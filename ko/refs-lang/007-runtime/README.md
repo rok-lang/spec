@@ -1,8 +1,10 @@
 # 7. 런타임 개요
 
-본 블록은 nok 런타임 시스템 ([GC](../000-meta/007-glossary.md#gc-garbage-collector), 작업 스케줄러, 코루틴) 의 구현 사양을 정의한다. 이 시스템은 [실행 엔진과 사용자 표면](../000-meta/001-execution-modes.md) 의 두 엔진 ([JIT](../000-meta/007-glossary.md#jit-just-in-time) / [AOT](../000-meta/007-glossary.md#aot-ahead-of-time)) 양쪽에서 동일하게 작동한다.
+본 블록은 rok 런타임 시스템 ([GC](../000-meta/007-glossary.md#gc-garbage-collector), 작업 스케줄러, 코루틴) 의 구현 사양을 정의합니다. 이 시스템은 [실행 엔진과 사용자 표면](../000-meta/001-execution-modes.md) 의 두 엔진 ([JIT](../000-meta/007-glossary.md#jit-just-in-time) / [AOT](../000-meta/007-glossary.md#aot-ahead-of-time)) 양쪽에서 동일하게 작동합니다.
 
 ## 목차
+
+본 장의 세부 절은 다음과 같이 구성됩니다.
 
 - [7.1. 객체 레이아웃과 메모리 공간](701-object-layout.md)
 - [7.2. 할당](702-allocation.md)
@@ -15,48 +17,51 @@
 
 ## 핵심 결정
 
+런타임의 핵심 구성 요소에 대한 결정은 다음과 같이 요약됩니다.
+
 ```
 GC          자체 Immix + Sticky Mark-Bit 세대
 Scheduler   M:N work-stealing
 Coroutine   LLVM coroutine intrinsic (stackless)
 ```
 
-세 부분 모두 자체 구현이다. 외부 라이브러리 의존 0.
+세 부분 모두 자체 구현이며, 외부 라이브러리에 대한 의존은 0 입니다.
 
 ## 의존성 0 원칙
 
-런타임은 외부 라이브러리에 의존하지 않는다.
+런타임은 외부 라이브러리에 의존하지 않습니다. 구체적으로 다음과 같은 외부 구성 요소를 사용하지 않습니다.
 
-- 외부 GC 라이브러리 (Boehm GC, MMTk 등) 사용 안 함.
-- 외부 비동기 런타임 사용 안 함.
-- 외부 코루틴 라이브러리 사용 안 함.
+- 외부 GC 라이브러리 (Boehm GC, MMTk 등) 를 사용하지 않습니다.
+- 외부 비동기 런타임을 사용하지 않습니다.
+- 외부 코루틴 라이브러리를 사용하지 않습니다.
 
-플랫폼 시스템 인터페이스 (`libc`, OS 헤더 등) 는 의존성으로 치지 않는다. OS 인터페이스의 필수 부분이다.
+다만 플랫폼 시스템 인터페이스 (`libc`, OS 헤더 등) 는 의존성으로 치지 않습니다. 이는 OS 인터페이스의 필수 부분이기 때문입니다.
 
 ## M:N 모델
 
-스케줄러는 M:N 하이브리드.
+스케줄러는 M:N 하이브리드 방식을 따릅니다.
 
 ```
-OS Thread (worker) N 개  ──── nok task / coroutine M 개
-                                   (M >> N 일반)
+OS Thread (worker) x N  ──── rok task / coroutine x M
+                                   (typically M >> N)
 ```
 
-- 기본 N = CPU 코어 수, 런타임 설정으로 조정 가능.
-- 한 OS thread 가 여러 역할을 동시에 수행한다. Scheduler Worker, Mutator, I/O Driver, GC Worker.
+> x N: N 개. x M: M 개. typically M >> N: 일반적으로 M >> N 입니다.
 
-이 통합으로 추가 thread 분리 비용 없이 모든 런타임 활동이 한 스레드 풀에서 처리된다.
+이 모델의 운용 방식은 다음과 같습니다. 기본 N 은 CPU 코어 수이며, 런타임 설정으로 조정할 수 있습니다. 또한 한 OS thread 가 여러 역할을 동시에 수행하는데, 그 역할은 Scheduler Worker, Mutator, I/O Driver, GC Worker 입니다.
+
+이러한 통합으로 추가 thread 분리 비용 없이 모든 런타임 활동이 한 스레드 풀에서 처리됩니다.
 
 ## 단일 .a 산출물
 
-런타임은 단일 staticlib `libnokr.a` 한 개로 배포된다. 사용자 패키지를 빌드하면 `libnokr.a` 가 링크되어 추가 외부 의존 없이 실행 가능한 바이너리가 나온다.
+런타임은 단일 staticlib `librokr.a` 한 개로 배포됩니다. 사용자 패키지를 빌드하면 `librokr.a` 가 링크되어 추가 외부 의존 없이 실행 가능한 바이너리가 나옵니다.
 
 ## 컴파일러와의 인터페이스
 
-런타임은 컴파일러가 생성한 코드와 정해진 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 로 통신한다.
+런타임은 컴파일러가 생성한 코드와 정해진 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 로 통신합니다. 인터페이스는 다음 세 가지 요소로 구성됩니다.
 
-- 객체 레이아웃 (16 바이트 헤더 + payload).
-- `extern "C"` 함수: `nok_gc_alloc_slow`, `nok_runtime_yield`, `nok_task_spawn` 등.
-- LLVM intrinsic: `llvm.gcroot`, `llvm.coro.*`.
+- 객체 레이아웃 (16 바이트 헤더 + payload) 입니다.
+- `extern "C"` 함수로는 `rok_gc_alloc_slow`, `rok_runtime_yield`, `rok_task_spawn` 등이 있습니다.
+- LLVM intrinsic 으로는 `llvm.gcroot`, `llvm.coro.*` 가 사용됩니다.
 
-이 ABI 는 [8. 런타임 ABI / MLIR lowering](../008-abi/README.md) 에서 자세히 정의한다. 본 7 장은 내부 동작만 다룬다.
+이 ABI 는 [8. 런타임 ABI / MLIR lowering](../008-abi/README.md) 에서 자세히 정의되며, 본 7 장은 내부 동작만을 다룹니다.

@@ -1,9 +1,10 @@
 # 8.2. ScanTable 직렬화 포맷
 
-[GC](../000-meta/007-glossary.md#gc-garbage-collector) 의 mark 단계는 각 객체의 자식 포인터들을 따라가야 한다. 어떤 offset 에 자식 포인터가
-있는지를 알려주는 자료가 ScanTable. 본 문서는 그 직렬화 포맷을 정의한다.
+[GC](../000-meta/007-glossary.md#gc-garbage-collector) 의 mark 단계에서는 각 객체의 자식 포인터들을 따라가야 하므로, 어떤 offset 에 자식 포인터가 있는지를 알려주는 자료가 필요합니다. 이 자료를 ScanTable 이라고 부르며, 본 문서에서는 그 직렬화 포맷을 정의합니다.
 
 ## 8.2.1. 목적
+
+GC 의 mark 루프는 다음과 같이 동작합니다.
 
 ```
 GC mark loop:
@@ -15,24 +16,26 @@ GC mark loop:
       mark(child)
 ```
 
-`lookup(type_id)` 는 컴파일러가 [객체 헤더 ABI](801-object-header-abi.md) 의 `nok_gc_register_type` 으로 프로세스 시작 시
-등록한 결과를 사용한다.
+여기서 `lookup(type_id)` 는 컴파일러가 [객체 헤더 ABI](801-object-header-abi.md) 의 `rok_gc_register_type` 을 통해 프로세스 시작 시점에 등록해 둔 결과를 사용합니다.
 
 ## 8.2.2. 등록 호출
 
+등록은 다음 외부 함수를 호출하여 이루어집니다.
+
 ```
 extern "C" {
-    fn nok_gc_register_type(type_id: u32, scan_table: ConstPtr<u8>);
+    fn rok_gc_register_type(type_id: u32, scan_table: ConstPtr<u8>);
 }
 ```
 
-- `type_id`: 등록할 타입의 ID.
-- `scan_table`: 직렬화된 ScanTable 의 시작 포인터.
+- `type_id`: 등록할 타입의 ID 입니다.
+- `scan_table`: 직렬화된 ScanTable 의 시작 포인터입니다.
 
-ScanTable 의 메모리는 컴파일러가 .rodata 에 emit 한다. 프로세스 수명 동안 유효. 런타임은 읽기만
-한다.
+ScanTable 의 메모리는 컴파일러가 .rodata 에 emit 하므로, 프로세스 수명 동안 유효합니다. 런타임은 이 영역을 읽기만 합니다.
 
 ## 8.2.3. 직렬화 포맷
+
+ScanTable 은 8 바이트짜리 헤더 뒤에 entry 배열이 이어지는 구조를 가집니다.
 
 ```
 ScanTable Header (8 bytes, 4-byte aligned):
@@ -45,29 +48,33 @@ Entry array (8 bytes each):
   offset  8 + 8*i + 4:  field_kind    u32  // 자식 포인터 종류
 ```
 
-총 크기 = 8 + 8 × num_entries. 모든 필드는 자연 정렬.
+전체 크기는 8 + 8 × num_entries 가 되며, 모든 필드는 자연 정렬을 따릅니다.
 
 ### Header
 
+헤더의 각 필드는 다음과 같습니다.
+
 | 필드          | 타입 | 의미                                             |
-| ------------- | ---- | ------------------------------------------------ |
+|---------------|------|--------------------------------------------------|
 | `version`     | u16  | 포맷 버전. 현재 = 1                              |
 | `total_size`  | u32  | 객체의 총 크기 (16 바이트 헤더 + 정렬된 payload) |
 | `num_entries` | u16  | 자식 포인터 entry 의 개수                        |
 
 ### Entry
 
-각 entry 는 객체 안의 한 자식 포인터 슬롯을 가리킨다.
+각 entry 는 객체 안의 한 자식 포인터 슬롯을 가리킵니다.
 
 | 필드           | 타입 | 의미                             |
-| -------------- | ---- | -------------------------------- |
+|----------------|------|----------------------------------|
 | `field_offset` | u32  | 그 슬롯의 offset (객체 시작부터) |
 | `field_kind`   | u32  | 슬롯의 종류                      |
 
 ### `field_kind` 종류
 
+`field_kind` 가 가질 수 있는 값과 그 의미는 다음과 같습니다.
+
 | 값  | 의미                                                             |
-| --- | ---------------------------------------------------------------- |
+|-----|------------------------------------------------------------------|
 | 0   | `STRONG_REF`: 일반 GC 객체 포인터 (mark 따라감)                  |
 | 1   | `WEAK_REF`: 약한 참조 (mark 안 따라감, GC 수집 시 정리)          |
 | 2   | `INTERIOR_REF`: 객체 내부를 가리킴 (forwarding 시 보정)          |
@@ -75,12 +82,11 @@ Entry array (8 bytes each):
 | 4   | `SUM_PAYLOAD`: 합 타입의 payload. tag 가 어딘지 메타와 결합 필요 |
 | 5 ~ | 예약 / 추가 종류                                                 |
 
-각 종류가 어떻게 mark 되는지는 GC 구현의 처리. 본 사양은 어떤 종류가 있는지와
-인코딩만 정의한다.
+각 종류가 실제로 어떻게 mark 되는지는 GC 구현이 처리할 사항이며, 본 사양에서는 어떤 종류가 있는지와 인코딩만 정의합니다.
 
 ## 8.2.4. 인코딩 예: `struct Point { x: f64; y: f64; }`
 
-자식 포인터가 없다 (필드 모두 원시 부동소수).
+이 구조체는 자식 포인터를 가지지 않습니다 (모든 필드가 원시 부동소수점 타입이기 때문입니다).
 
 ```
 ScanTable {
@@ -90,11 +96,11 @@ ScanTable {
 }
 ```
 
-8 바이트 (header only).
+따라서 ScanTable 의 크기는 헤더만 있는 8 바이트입니다.
 
 ## 8.2.5. 인코딩 예: `struct Pair { a: List<i32>; b: List<f64>; }`
 
-두 자식 포인터.
+이 경우에는 두 개의 자식 포인터를 가집니다.
 
 ```
 ScanTable {
@@ -107,9 +113,11 @@ ScanTable {
 }
 ```
 
-8 + 16 = 24 바이트.
+전체 크기는 8 + 16 = 24 바이트가 됩니다.
 
 ## 8.2.6. 인코딩 예: `enum` 변형
+
+다음과 같은 합 타입을 살펴보겠습니다.
 
 ```
 enum Result {
@@ -119,10 +127,9 @@ enum Result {
 }
 ```
 
-Tag (4 바이트) + 패딩 (4 바이트) + 가장 큰 변형 payload (8 바이트, str 포인터). 총 32 바이트
-객체.
+이 타입의 객체는 Tag (4 바이트), 패딩 (4 바이트), 그리고 가장 큰 변형의 payload (8 바이트, str 포인터) 로 구성되어 총 32 바이트가 됩니다.
 
-ScanTable 은 변형 별로 다르게 처리해야 한다. `field_kind` 의 `SUM_PAYLOAD` 사용.
+ScanTable 은 변형마다 다르게 처리해야 하므로, 이때는 `field_kind` 의 `SUM_PAYLOAD` 를 사용합니다.
 
 ```
 ScanTable {
@@ -135,74 +142,70 @@ ScanTable {
 }
 ```
 
-`SUM_PAYLOAD` 는 추가 메타가 필요하다. tag 의 위치와, 각 tag 에 대해 어떤 자식이 있는지.
-이 추가 메타는 entry 뒤에 연속된 보조 영역에 둘 수 있다 (자세한 형식은 GC 구현 결정).
+`SUM_PAYLOAD` 는 추가 메타가 필요합니다. 즉 tag 의 위치, 그리고 각 tag 에 대해 어떤 자식이 있는지에 대한 정보가 함께 있어야 합니다. 이 추가 메타는 entry 뒤에 연속된 보조 영역에 둘 수 있으며, 자세한 형식은 GC 구현이 결정합니다.
 
-본 사양은 `SUM_PAYLOAD` kind 가 추가 정보를 요구한다는 사실까지 정의한다.
+본 사양에서는 `SUM_PAYLOAD` kind 가 추가 정보를 요구한다는 사실까지를 정의합니다.
 
 ## 8.2.7. ANY 슬롯
 
-`any` 슬롯 ([`any` 슬롯](../002-types/202-any-slot.md)) 은 `tag + payload` 형태로 어떤 타입이든 담는다.
+`any` 슬롯 ([`any` 슬롯](../002-types/202-any-slot.md)) 은 `tag + payload` 형태로 어떤 타입이든 담을 수 있습니다.
 
 ```
-ANY 슬롯 레이아웃:
+ANY 슬롯 레이아웃.
   offset  0:  tag       u32
   offset  8:  payload   8 바이트 (작은 값 직접, 큰 값은 ptr)
 ```
 
-ScanTable entry:
+이에 대응하는 ScanTable entry 는 다음과 같이 구성됩니다.
 
 ```
 field_offset = (그 슬롯의 offset)
 field_kind = ANY_SLOT (3)
 ```
 
-GC 가 mark 시 tag 를 보고 payload 의 의미를 결정한다. 작은 원시 타입이면 무시, 포인터형이면
-mark.
+GC 는 mark 시점에 tag 를 보고 payload 의 의미를 결정합니다. payload 가 작은 원시 타입이면 무시하고, 포인터형이면 mark 합니다.
 
 ## 8.2.8. WEAK_REF
 
-약한 참조는 살아있게 만드는 효과가 없다.
+약한 참조는 객체를 살아있게 만드는 효과를 가지지 않습니다.
 
-- mark 단계: weak `ref` 는 따라가지 않는다.
-- sweep 후: weak `ref` 가 가리키던 객체가 수집되었으면 weak `ref` 슬롯을 0 으로 클리어한다.
+- mark 단계에서는 weak `ref` 를 따라가지 않습니다.
+- sweep 후에는 weak `ref` 가 가리키던 객체가 수집되었다면, weak `ref` 슬롯을 0 으로 클리어합니다.
 
-이 메커니즘은 캐시나 옵저버 패턴 등에 유용하다. 정확한 라이브러리 인터페이스는 표준 라이브러리
-사양에서 정한다.
+이 메커니즘은 캐시나 옵저버 패턴 등에 유용하며, 정확한 라이브러리 인터페이스는 표준 라이브러리 사양에서 정합니다.
 
 ## 8.2.9. INTERIOR_REF
 
-객체 내부의 (시작이 아닌) 위치를 가리킨다.
+INTERIOR_REF 는 객체 내부의 (시작이 아닌) 위치를 가리킵니다.
 
-- 슬라이스나 부분 view 등에서 발생한다.
-- forwarding 시 옛 객체와 새 객체의 상대 offset 으로 보정한다.
+- 슬라이스나 부분 view 등에서 발생합니다.
+- forwarding 시에는 옛 객체와 새 객체의 상대 offset 으로 보정합니다.
 
-자세한 처리는 GC 구현의 결정.
+자세한 처리 방식은 GC 구현이 결정합니다.
 
 ## 8.2.10. 직렬화의 endianness
 
-모든 필드는 little-endian. nok 은 little-endian 타깃을 우선한다 ([플랫폼 타깃](../000-meta/006-platform-targets.md) 의 모든
-Tier 1 타깃이 little-endian).
+모든 필드는 little-endian 입니다. rok 은 little-endian 타깃을 우선하며 ([플랫폼 타깃](../000-meta/006-platform-targets.md) 의 모든 Tier 1 타깃이 little-endian 입니다), 이에 따라 직렬화 포맷도 동일하게 정합니다.
 
-big-endian 타깃 지원이 추가되면 그때 직렬화 endianness 를 little 로 고정할지, 호스트
-endianness 를 따를지 결정한다.
+big-endian 타깃 지원이 추가되는 시점에는 직렬화 endianness 를 little 로 고정할지 아니면 호스트 endianness 를 따를지를 그때 결정하게 됩니다.
 
 ## 8.2.11. 변경 호환
 
-ScanTable 포맷의 version 필드가 호환을 다룬다.
+ScanTable 포맷의 호환성은 version 필드가 다룹니다.
 
-- 같은 major version 안에서 version 필드만으로 호환.
-- 다른 major version 은 별도 .a 가 필요하다.
+- 같은 major version 안에서는 version 필드만으로 호환을 처리합니다.
+- 다른 major version 사이에서는 별도의 .a 가 필요합니다.
 
 ## 8.2.12. 등록 시점
+
+등록은 프로세스가 시작되는 시점에 일괄적으로 수행됩니다.
 
 ```
 process_start:
   for each registered type:
-    nok_gc_register_type(type_id, &scan_table)
+    rok_gc_register_type(type_id, &scan_table)
   ↓
   user main()
 ```
 
-컴파일러가 `nok_register_types()` 같은 진입 함수에 모든 등록 호출을 넣고, 런타임 초기화
-직후 호출한다.
+컴파일러가 `rok_register_types()` 와 같은 진입 함수에 모든 등록 호출을 모아 두고, 런타임 초기화 직후에 이를 호출합니다.

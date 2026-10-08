@@ -1,6 +1,6 @@
 # 5.4. 모듈
 
-`mod` 키워드 ([키워드](../001-lexical/105-keywords.md)) 로 하위 모듈을 선언한다. 이 문서는 모듈 선언과 파일 시스템 레이아웃의 매핑 규칙을 정의한다.
+`mod` 키워드 ([키워드](../001-lexical/105-keywords.md)) 로 하위 모듈을 선언하며, 이 문서에서는 모듈 선언과 파일 시스템 레이아웃 사이의 매핑 규칙을 정의합니다.
 
 ```
 mod_decl        ::= "mod" identifier ";"
@@ -9,126 +9,139 @@ mod_decl        ::= "mod" identifier ";"
 
 ## 5.4.1. 모듈 선언
 
-```nok
+```rok
 mod foo;
 mod parsing;
 ```
 
-- `mod` + 모듈 이름 + `;`.
-- 모듈 이름은 [식별자](../001-lexical/104-identifiers.md) 형식이다.
-- 선언만으로 같은 이름의 파일이나 디렉토리에 자동 매핑된다.
+모듈 선언은 `mod` 키워드 뒤에 모듈 이름을 적고 `;` 로 마무리하는 형태로 이루어집니다. 모듈 이름은 [식별자](../001-lexical/104-identifiers.md) 형식을 따르며, 선언만으로 같은 이름의 파일이나 폴더에 자동으로 매핑됩니다.
 
-## 5.4.2. 매핑 형태 (둘 중 하나만)
+## 5.4.2. 매핑 형태
 
-`mod foo;` 가 등장하면 컴파일러는 부모 모듈의 본체와 같은 디렉토리에서 다음 둘 중 하나를 찾는다.
+`mod foo;` 가 등장하면 컴파일러는 부모 모듈 본체와 같은 디렉토리에서 다음 두 가지 중 하나를 찾습니다. 이는 Rust 2018+ 와 같은 규칙입니다.
 
-### 형태 1: 단일 파일 (`foo.nok`)
+### 형태 1: 단일 파일 (`foo.rok`)
 
-```
-parent/
-├── parent_body.nok          ← `mod foo;` 가 등장하는 곳
-└── foo.nok                  ← foo 모듈의 본체 (단일 파일 전부)
-```
-
-`foo.nok` 한 파일의 내용이 foo 모듈의 본체가 된다.
-
-### 형태 2: 디렉토리 (`foo/`)
+서브모듈이 없는 모듈은 단일 파일만으로도 충분합니다.
 
 ```
 parent/
-├── parent_body.nok          ← `mod foo;` 가 등장하는 곳
-└── foo/                     ← foo 모듈의 본체 (이 디렉토리 안의 .nok 파일들)
-    ├── a.nok                ← foo 본체의 일부
-    ├── b.nok                ← foo 본체의 일부
-    └── c.nok                ← foo 본체의 일부
+├── parent.rok                <- where `mod foo;` appears
+└── foo.rok                   <- foo module body, no submodules
 ```
 
-`foo/` 디렉토리의 최상위 `.nok` 파일들이 모두 합쳐 foo 모듈의 본체가 된다.
+> where `mod foo;` appears: `mod foo;` 가 등장하는 곳입니다. foo module body, no submodules: foo 모듈의 본체이며 서브모듈은 없습니다.
 
-- 파일 이름은 자유다. `foo/foo.nok` 처럼 디렉토리 이름과 같을 필요가 없고, `mod.nok` 같은 특별한 이름도 없다.
-- 모든 `.nok` 파일은 동등한 자격으로 본체에 기여한다. Go 의 패키지 모델과 같은 방식이다.
-- 파일들은 같은 모듈 스코프를 공유한다. 한 파일에서 다른 파일의 항목에 같은 짧은 이름으로 접근할 수 있다.
-- 디렉토리에 `.nok` 파일이 하나도 없으면 그 디렉토리는 모듈이 아니다 (컴파일 에러).
+이 경우 `foo.rok` 한 파일의 내용이 곧 foo 모듈의 본체가 됩니다.
 
-### 둘 중 하나만 (Rust 처럼)
+### 형태 2: 폴더 (`foo.rok` + `foo/`)
 
-같은 이름의 `foo.nok` 와 `foo/` 가 부모 디렉토리에 동시에 존재하면 컴파일 에러다.
+서브모듈을 가지는 모듈에서는 본체 파일 (`foo.rok`) 과 같은 이름의 폴더 (`foo/`) 가 함께 존재해야 합니다. 본체 파일은 모듈의 본체 역할을 하고, 같은 이름의 폴더는 서브모듈들을 담는 자리입니다.
 
 ```
 parent/
-├── parent_body.nok
-├── foo.nok                  ← 둘 다 있으면 ERROR
-└── foo/
+├── parent.rok                <- where `mod foo;` appears
+├── foo.rok                   <- foo module body
+└── foo/                      <- foo's submodules
+    ├── bar.rok                   declared as `mod bar;` inside foo.rok
+    └── baz.rok                   declared as `mod baz;` inside foo.rok
+```
+
+> foo module body: foo 모듈의 본체입니다. foo's submodules: foo 의 서브모듈들입니다. declared as `mod bar;` inside foo.rok: foo.rok 안에 `mod bar;` 로 선언됩니다.
+
+여기서 `foo.rok` 는 foo 모듈의 본체이며, 일반 항목과 `mod bar;` 같은 서브모듈 선언, 그리고 가시성 등을 포함합니다. `foo/` 디렉토리에 들어 있는 각 `.rok` 파일은 foo 의 서브모듈이 되며, 본체 안에 `mod 이름;` 으로 명시 선언되어 있어야 합니다. 만약 `foo/` 만 있고 `foo.rok` 가 없다면 ERROR 입니다. 본체 파일은 반드시 있어야 합니다.
+
+이 모델은 Rust 2018+ 의 `foo.rs` + `foo/` 구조와 동일하며, `mod.rok` 같은 별도의 본체 파일 이름은 두지 않습니다.
+
+### 같은 이름의 파일과 폴더의 의미
+
+같은 이름의 `foo.rok` 와 `foo/` 가 부모 디렉토리에 함께 놓여 있으면 자동으로 폴더 형태로 인식되며, 충돌로 처리되지 않습니다.
+
+```
+parent/
+├── parent.rok
+├── foo.rok                   <- foo body
+└── foo/                      <- foo's submodules
     └── ...
 ```
 
-이 배타성으로 모듈 본체가 어디인지 모호해지지 않도록 보장한다. Rust 가 `foo.rs` 와 `foo/mod.rs` 의 동시 존재를 금지하는 것과 같은 동기다.
+정리하면, `foo.rok` 만 있으면 단일 파일 모듈이고, `foo.rok` 와 `foo/` 가 함께 있으면 폴더 모듈이며, `foo/` 만 있으면 ERROR 입니다.
 
 ## 5.4.3. 서브모듈
 
-서브모듈은 디렉토리 형태에서만 가능하다.
+폴더 형태 (`foo.rok` + `foo/`) 의 모듈만 서브모듈을 가질 수 있습니다. 본체 (`foo.rok`) 안에 `mod 이름;` 을 적으면 `foo/이름.rok` 또는 `foo/이름.rok` + `foo/이름/` 이 그 서브모듈로 매핑됩니다.
 
-### 단일 파일 형태에서
+```rok
+// foo.rok 의 내용
+mod bar;
+mod baz;
 
-`foo.nok` 한 파일로 끝난 모듈은 서브모듈을 가질 수 없다. 본체 안에 `mod sub;` 를 적어도 매핑할 자리가 없다 (그 자리는 부모 디렉토리이며, sub 를 거기에 두면 의미가 충돌한다).
+pub fn foo_helper() { ... }
+```
 
-서브모듈이 필요하면 foo 를 디렉토리 형태로 바꾼다.
-
-### 디렉토리 형태에서
-
-`foo/` 디렉토리 안에 서브디렉토리를 두어 서브모듈을 표현한다.
+위 본체와 같은 디렉토리에는 다음과 같은 파일들이 있어야 합니다.
 
 ```
+foo.rok                       <- module body (the code above)
 foo/
-├── a.nok                     ← foo 본체
-├── b.nok                     ← foo 본체
-└── sub/                      ← foo::sub 서브모듈 (또 다른 모듈의 본체)
-    ├── x.nok                 ← foo::sub 본체
-    └── y.nok                 ← foo::sub 본체
+├── bar.rok                   <- foo::bar submodule
+└── baz.rok                   <- foo::baz submodule
 ```
 
-foo 의 본체 (`a.nok` 이든 `b.nok` 이든 어디든) 에 `mod sub;` 를 적으면 `foo/sub/` 디렉토리가 sub 서브모듈로 매핑된다.
+> module body (the code above): 본체이며 위의 코드입니다. foo::bar submodule: foo::bar 서브모듈입니다. foo::baz submodule: foo::baz 서브모듈입니다.
 
-서브모듈 sub 도 같은 두 형태 중 하나를 따른다.
+서브모듈 자체도 단일 파일 또는 폴더 형태 중 어느 쪽이든 자유롭게 선택할 수 있습니다.
 
-- 단일 파일 형태: `foo/sub.nok` (foo/ 디렉토리에 단일 파일).
-- 디렉토리 형태: `foo/sub/` (foo/ 안에 sub 서브디렉토리).
+```
+foo.rok
+foo/
+├── bar.rok                   <- foo::bar (single-file)
+├── baz.rok                   <- foo::baz body
+└── baz/                      <- foo::baz submodules
+    ├── x.rok                     foo::baz::x
+    └── y.rok                     foo::baz::y
+```
 
-`foo/sub.nok` 와 `foo/sub/` 도 동시에 존재할 수 없다 (위와 같은 배타성).
+> foo::bar (single-file): foo::bar 는 단일 파일입니다. foo::baz body: foo::baz 의 본체입니다. foo::baz submodules: foo::baz 의 서브모듈들입니다.
 
-### 디렉토리 본체와 서브모듈의 구분
+이 패턴은 임의의 깊이로 재귀적으로 적용되며, 각 모듈은 독립적으로 단일 파일 형태와 폴더 형태 중 하나를 선택할 수 있습니다.
 
-`foo/` 안에 `bar.nok` 파일이 있을 때.
+### 단일 파일 모듈에는 **파일 매핑** 서브모듈이 없습니다
 
-- foo 의 본체에 `mod bar;` 가 없으면 `bar.nok` 는 foo 본체의 일부.
-- foo 의 본체에 `mod bar;` 가 있으면 `bar.nok` 는 foo::bar 서브모듈의 본체 (foo 본체에서 제외).
+```rok
+// foo.rok (단일 파일 모듈, foo/ 없음)
+mod bar;            // ERROR — foo/ 가 없으므로 매핑할 자리가 없다
+```
 
-`mod bar;` 선언이 그 파일의 역할을 결정한다.
+파일 매핑 서브모듈이 필요해진다면 같은 이름의 폴더 (`foo/`) 를 만들고 그 안에 서브모듈 파일을 두면 됩니다. 단일 파일 모듈을 폴더 모듈로 승격하는 비용은 폴더를 만들고 서브모듈 파일을 옮기는 정도뿐입니다.
+
+한편 인라인 서브모듈 (`mod bar { ... }`) 은 단일 파일 모듈 안에서도 자유롭게 사용할 수 있는데, 별도의 파일 매핑이 필요하지 않기 때문입니다 ([5.4.5 인라인 모듈](#545-인라인-모듈-본체-안에-정의)).
 
 ## 5.4.4. 패키지 루트
 
-[소스 단위](../000-meta/003-source-units.md) 에서 정의한 `main.nok` 또는 `lib.nok` 이 패키지 루트 모듈의 본체 파일이다.
+[소스 단위](../000-meta/003-source-units.md) 에서 정의한 `main.rok` 또는 `lib.rok` 이 패키지 루트 모듈의 본체 파일이며, 패키지 디렉토리 자체가 루트 모듈의 폴더 역할을 맡습니다.
 
-루트 모듈은 `mod` 선언 없이 자동으로 인식된다. 다른 모든 모듈은 루트에서 시작하는 트리의 노드다.
+루트 모듈은 별도의 `mod` 선언 없이 자동으로 인식되고, 다른 모든 모듈은 루트에서 시작하는 트리의 노드가 됩니다.
 
 ```
 my_pkg/
-├── lib.nok                   ← 루트 모듈 본체 (단일 파일)
-├── geom.nok                  ← geom 모듈 (단일 파일)
-└── parsing/                  ← parsing 모듈 (디렉토리)
-    ├── lexer.nok             ← parsing 본체의 일부
-    └── parser.nok            ← parsing 본체의 일부
+├── lib.rok                   <- root module body (declares `mod geom; mod parsing;`)
+├── geom.rok                  <- geom module    (single-file: geom.rok)
+├── parsing.rok               <- parsing module body
+└── parsing/                  <- parsing's submodules (declared inside parsing.rok)
+    ├── lexer.rok                 parsing::lexer
+    └── parser.rok                parsing::parser
 ```
 
-루트 모듈도 단일 파일 (`lib.nok`) 또는 디렉토리 (디렉토리 안 `.nok` 파일들이 합쳐 루트 본체) 중 한 형태를 취한다.
+> root module body: 루트 모듈의 본체입니다. single-file: 단일 파일입니다. parsing module body: parsing 모듈의 본체입니다. parsing's submodules: parsing 의 서브모듈들입니다.
 
-다만 패키지 루트는 한 가지 차이가 있다. 단일 파일 형태의 이름이 정해져 있다 (`lib.nok` 또는 `main.nok`. [소스 단위](../000-meta/003-source-units.md) 참조). 디렉토리 형태에서는 같은 이름의 디렉토리가 없으므로 패키지 디렉토리 자체가 루트 모듈의 본체 디렉토리가 된다.
+루트 모듈은 항상 폴더 형태이며, 패키지 디렉토리가 그 폴더가 되고 `lib.rok` (라이브러리) 또는 `main.rok` (실행) 이 본체 파일이 됩니다. 패키지 루트는 별도의 `lib/` 같은 폴더를 두지 않습니다.
 
 ## 5.4.5. 인라인 모듈: 본체 안에 정의
 
-`mod` 선언 바로 뒤에 블록 본체를 두면 별도 파일 없이 인라인 모듈을 정의할 수 있다.
+`mod` 선언 바로 뒤에 블록 본체를 두면 별도의 파일 없이 인라인 모듈을 정의할 수 있습니다.
 
-```nok
+```rok
 mod inner {
     pub fn helper() -> i32 { 42i32 }
     const X: i32 = 100i32;
@@ -138,9 +151,7 @@ mod inner {
 let r = inner::helper();
 ```
 
-- `mod 이름 { ... }` 형태.
-- 본체에 임의의 항목 (함수, 타입, 트레잇, `const`, `static`, 다시 `mod` 등) 을 둘 수 있다.
-- 같은 이름의 파일이나 디렉토리는 없어야 한다. 충돌하면 ERROR.
+인라인 모듈은 `mod 이름 { ... }` 형태로 작성하며, 본체에는 함수, 타입, 트레잇, `const`, `static`, 그리고 다시 `mod` 등 임의의 항목을 둘 수 있습니다. 다만 같은 이름의 파일이나 폴더가 함께 존재해서는 안 되며, 충돌이 발생하면 ERROR 입니다.
 
 ## 5.4.6. 사용자 정의 경로: `#[path("...")]`
 
@@ -148,25 +159,23 @@ let r = inner::helper();
 path_attr       ::= "#" "[" "path" "(" string_lit ")" "]"
 ```
 
-기본 매핑을 재정의하려면 `#[path("...")]` 속성을 사용한다.
+기본 매핑을 재정의하고 싶다면 `#[path("...")]` 속성을 사용하면 됩니다.
 
-```nok
-#[path("custom_geom.nok")]
+```rok
+#[path("custom_geom.rok")]
 mod geom;
 
-#[path("../shared/")]
+#[path("../shared/shared.rok")]
 mod shared;
 ```
 
-- 속성에 명시한 상대 경로의 파일이나 디렉토리가 모듈로 매핑된다.
-- 디렉토리 매핑 시 그 디렉토리도 위의 두 형태 규칙을 따른다.
-- 일반 사용에서는 거의 등장하지 않는다. 빌드 시스템이나 자동 생성 코드 같은 특수 사례에 쓴다.
+이 경우 속성에 명시한 상대 경로의 파일이 모듈 본체로 매핑됩니다. 매핑 대상은 단일 파일이며, 폴더 매핑이 필요할 때에는 같은 위치에 같은 이름의 폴더가 함께 있어야 합니다 (5.4.2 의 폴더 형태 규칙이 그대로 적용됩니다). 일반적인 사용에서는 거의 등장하지 않으며, 빌드 시스템이나 자동 생성 코드 같은 특수한 사례에서 활용됩니다.
 
 ## 5.4.7. 모듈 안의 항목
 
-각 모듈은 [개요](README.md) 의 항목들을 가질 수 있다.
+각 모듈은 [개요](README.md) 에서 소개한 항목들을 포함할 수 있습니다.
 
-```nok
+```rok
 mod geom {
     struct Point { ... }
     fn distance(a: Point, b: Point) -> f64 { ... }
@@ -178,53 +187,71 @@ mod geom {
 }
 ```
 
-모든 항목은 그 모듈의 일부다. 외부에서 참조하려면 [가시성](506-visibility.md) 의 키워드와 [경로](507-paths.md) 의 경로 표기가 필요하다.
+모듈에는 항목만 둘 수 있으며, 실행되는 문 (top-level `let`, 식 문장) 은 진입 모듈 `main.rok` 에서만 허용됩니다 ([4.16.6](../004-functions/416-entry-point.md#4166-모듈은-정의-전용)). 이러한 모든 항목은 해당 모듈의 일부가 되며, 외부에서 참조하려면 [가시성](506-visibility.md) 의 키워드와 [경로](507-paths.md) 의 경로 표기가 함께 필요합니다.
 
 ## 5.4.8. 모듈의 가시성
 
-모듈 자체에도 가시성을 줄 수 있다.
+모듈 자체에도 가시성을 부여할 수 있습니다.
 
-```nok
+```rok
 pub mod public_api;            // 외부 패키지에서 사용 가능
 pub(pkg) mod internal;          // 같은 패키지 내부만
 mod _private;                   // 모듈 비공개 — 같은 부모 모듈에서만
 ```
 
-자세한 의미는 [가시성](506-visibility.md) 에서 정의한다.
+자세한 의미는 [가시성](506-visibility.md) 에서 정의합니다.
 
 ## 5.4.9. 모듈 안에서 부모 / 형제 / 자식 참조
 
-다른 모듈의 항목을 참조하는 경로 표기는 [경로](507-paths.md) 에서 정의한다.
+다른 모듈의 항목을 참조할 때 쓰이는 경로 표기는 [경로](507-paths.md) 에서 정의합니다.
 
-```nok
-crate::geom::Point             // 패키지 루트부터
-super::sibling_mod::item        // 부모 모듈 거쳐 형제로
-self::child_mod::item           // 같은 모듈 안 (보통 생략 가능)
+```rok
+pkg::geom::Point             // 패키지 루트부터
+sup::sibling_mod::item        // 부모 모듈 거쳐 형제로
+child_mod::item                // 같은 모듈 안 (식별자로 충분)
 ```
 
 ## 5.4.10. 모듈 선언의 위치
 
-`mod` 선언은 모듈 수준 (또 다른 `mod` 의 본체 또는 패키지 루트) 에만 가능하다. 함수 본체 안에서 `mod` 선언은 ERROR.
+`mod` 선언은 모듈 수준, 즉 또 다른 `mod` 의 본체나 패키지 루트에서만 가능합니다. 함수 본체 안에서 `mod` 를 선언하면 ERROR 입니다.
 
-```nok
+```rok
 fn f() {
     mod inner { ... }          // ERROR — 함수 안에서 모듈 선언 안 됨
 }
 ```
 
-모듈 트리는 컴파일 타임에 결정되는 정적 구조라는 원칙에 따른 제약이다.
+이는 모듈 트리가 컴파일 타임에 결정되는 정적 구조라는 원칙에서 비롯된 제약입니다.
 
-## 5.4.11. 디렉토리 본체 안의 파일 순서
+## 5.4.11. 같은 모듈을 여러 파일로 쪼개기
 
-디렉토리 형태에서 여러 `.nok` 파일이 있을 때, 컴파일러가 각 파일을 처리하는 순서는 결정론적이지만 (예: 파일명 사전순) 사용자 코드의 의미에 영향을 주지 않는다.
+본체를 여러 파일로 쪼개고자 한다면 폴더 형태를 사용하고, 본체 (`foo.rok`) 에서 서브모듈을 통해 항목을 재내보내면 됩니다.
 
-같은 모듈 안의 모든 항목 이름은 동시에 가시화된다 (전방 참조 가능). 파일 분리는 조직적 편의일 뿐, 의미적 경계가 아니다.
+```rok
+// foo.rok
+mod core;
+mod ext;
+
+pub use core::*;
+pub use ext::*;
+```
+
+```
+foo.rok                       <- module body (re-exports only)
+foo/
+├── core.rok                  <- core items
+└── ext.rok                   <- extension items
+```
+
+> module body (re-exports only): 본체이며 재내보내기만 합니다. core items: 핵심 항목입니다. extension items: 확장 항목입니다.
+
+이 패턴을 사용하면 사용자는 `foo::item` 형태로 모든 항목에 접근할 수 있고, 본체 파일은 작게 유지되며 실제 코드는 서브모듈에 분산됩니다. Rust 의 `pub use` 재내보내기 패턴과 같은 방식입니다.
 
 ## 5.4.12. 동일 부모 안 중복 모듈 금지
 
-같은 부모 모듈 안에서 같은 이름의 모듈을 두 번 선언하면 ERROR.
+같은 부모 모듈 안에서 같은 이름의 모듈을 두 번 선언하면 ERROR 입니다.
 
-```nok
+```rok
 mod foo;
 mod foo;                        // ERROR — 중복
 ```

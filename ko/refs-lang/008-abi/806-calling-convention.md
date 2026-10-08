@@ -1,15 +1,13 @@
 # 8.6. Calling Convention
 
-함수 호출의 레지스터·스택 사용 규약을 정의한다. 본 문서는 플랫폼 C [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 를 따르되 변형이
-필요한 부분만 명시한다.
+이 문서에서는 함수 호출 시 사용되는 레지스터와 스택의 사용 규약을 정의합니다. 본 문서는 기본적으로 플랫폼 C [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 를 따르며, 변형이 필요한 부분에 한해서만 별도로 명시하고 있습니다.
 
 ## 8.6.1. 기본: 플랫폼 C ABI
 
-[Extern "C" 심볼](805-extern-symbols.md) 의 모든 함수와 일반 nok 함수의 기본 호출 규약은 각 플랫폼의
-C ABI.
+[Extern "C" 심볼](805-extern-symbols.md) 로 선언된 모든 함수와 일반 rok 함수는 기본적으로 각 플랫폼의 C ABI 를 호출 규약으로 사용합니다.
 
 | 플랫폼                   | ABI                |
-| ------------------------ | ------------------ |
+|--------------------------|--------------------|
 | Linux x86_64             | System V AMD64     |
 | Linux aarch64            | AAPCS64            |
 | Linux i686               | System V i386      |
@@ -19,49 +17,47 @@ C ABI.
 | Windows aarch64          | AAPCS64 (MS 변형)  |
 | WASM                     | WebAssembly ABI    |
 
-이 규약은 LLVM 백엔드가 자동 처리한다. 본 사양은 변형 / 추가 사항만 정의한다.
+이 규약은 LLVM 백엔드가 자동으로 처리하므로, 본 사양에서는 변형되거나 추가되는 사항만을 정의하고 있습니다.
 
 ## 8.6.2. 레지스터 인자 / 반환
 
-각 ABI 의 기본 인자 / 반환 레지스터를 그대로 사용한다.
+각 ABI 가 정의하는 기본 인자 및 반환 레지스터를 그대로 사용합니다.
 
 | 플랫폼         | 인자 레지스터 (정수)       | 반환 (정수) |
-| -------------- | -------------------------- | ----------- |
+|----------------|----------------------------|-------------|
 | Linux x86_64   | rdi, rsi, rdx, rcx, r8, r9 | rax, rdx    |
 | Windows x86_64 | rcx, rdx, r8, r9           | rax         |
 | aarch64        | x0 ~ x7                    | x0, x1      |
 | i686           | (스택만)                   | eax, edx    |
 | armv7          | r0 ~ r3                    | r0, r1      |
 
-부동소수 / 벡터는 각 ABI 의 표준 (xmm0-7 / vN / sN 등).
+부동소수점이나 벡터 값의 경우에도 각 ABI 가 정한 표준 레지스터 (xmm0-7, vN, sN 등) 를 그대로 따르고 있습니다.
 
 ## 8.6.3. `struct` 인자 / 반환: small `struct` rule
 
-작은 `struct` 는 레지스터에 직접 패킹된다.
+크기가 작은 `struct` 는 레지스터에 직접 패킹되어 전달됩니다.
 
 | 플랫폼          | small `struct` 한계    |
-| --------------- | ---------------------- |
+|-----------------|------------------------|
 | System V x86_64 | 16 바이트 (2 레지스터) |
 | Windows x86_64  | 8 바이트 (1 레지스터)  |
 | aarch64         | 16 바이트 (2 레지스터) |
 
-이 한계 안의 `struct` 는 레지스터 전달. 초과는 호출자가 임시 메모리에 저장 후 포인터 전달.
+이 한계 이내의 `struct` 는 레지스터로 전달되며, 한계를 초과하는 경우에는 호출자가 임시 메모리에 저장한 뒤 그 포인터를 전달하게 됩니다.
 
-이는 LLVM 의 byval / sret 자동 처리.
+이러한 처리는 LLVM 의 byval / sret 메커니즘을 통해 자동으로 이루어집니다.
 
 ## 8.6.4. GC 객체 포인터: 일반 포인터로
 
-GC 객체 포인터는 플랫폼의 일반 포인터와 동일 ABI 로 전달한다. 특별 레지스터 / tagged pointer
-사용 안 함.
+GC 객체 포인터는 플랫폼이 사용하는 일반 포인터와 동일한 ABI 로 전달됩니다. 별도의 특별 레지스터나 tagged pointer 는 사용하지 않습니다.
 
-다만 호출 전후에 [배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md) 의 [shadow stack](../000-meta/007-glossary.md#shadow-stack) 에 등록되어 있어야 한다.
+다만 호출 전후로 [배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md) 의 [shadow stack](../000-meta/007-glossary.md#shadow-stack) 에 반드시 등록되어 있어야 합니다.
 
-이 등록은 `llvm.gcroot` intrinsic 으로 자동 처리된다.
+이 등록 작업은 `llvm.gcroot` intrinsic 을 통해 자동으로 처리됩니다.
 
 ## 8.6.5. Setjmp / Longjmp: 예외 처리
 
-[에러 제어 흐름](../003-expressions/314-error-control-flow.md) 의 `try` / `catch` / `throw` 는 `setjmp` / `longjmp` 또는 LLVM 의 EH
-intrinsic 으로 구현한다.
+[에러 제어 흐름](../003-expressions/314-error-control-flow.md) 에서 다루는 `try` / `catch` / `throw` 는 `setjmp` / `longjmp` 또는 LLVM 의 EH intrinsic 을 사용하여 구현하고 있습니다.
 
 ### 옵션 A: setjmp / longjmp
 
@@ -69,7 +65,7 @@ intrinsic 으로 구현한다.
 try { body } catch e: T { handler }
 ```
 
-→ lowering:
+위 구문은 다음과 같이 lowering 됩니다.
 
 ```mlir
 ; jmp_buf 할당
@@ -92,70 +88,62 @@ catch:
 end:
 ```
 
-`throw expr` →
+`throw expr` 의 경우는 다음과 같습니다.
 
 ```mlir
-call void @nok_throw(i8* %exception)
+call void @rok_throw(i8* %exception)
 ; 가장 가까운 jmp_buf 로 longjmp
 ```
 
-자세한 메커니즘은 `nokr` (facade) 가 제공하는 `nok_throw` 구현.
+자세한 메커니즘은 `rokr` (facade) 가 제공하는 `rok_throw` 구현에서 다루고 있습니다.
 
 ### 옵션 B: LLVM EH intrinsic
 
-LLVM 의 `invoke` / `landingpad` / `personality function` 사용. C++ EH 방식.
+LLVM 의 `invoke` / `landingpad` / `personality function` 을 사용하는 방식이며, 이는 C++ 의 EH 방식과 동일합니다.
 
-장점은 zero-cost happy path (정상 흐름엔 비용 없음).
-단점은 DWARF / 플랫폼 EH 인프라 필요.
+장점은 정상 흐름에서 비용이 발생하지 않는 zero-cost happy path 라는 점입니다.
+반면 단점으로는 DWARF 나 플랫폼 EH 인프라가 필요하다는 점을 들 수 있습니다.
 
-### nok 의 선택
+### rok 의 선택
 
-ClangIR (`cir.eh.setjmp` 패턴) 을 따라 setjmp / longjmp 우선. 이유:
+rok 은 ClangIR (`cir.eh.setjmp` 패턴) 을 따라 setjmp / longjmp 를 우선적으로 채택하고 있습니다. 그 이유는 다음과 같습니다.
 
-- 모든 플랫폼에서 작동 (특히 WASM).
-- Shadow stack 과 자연스럽게 공존 (longjmp 시 shadow stack 도 unwind).
-- 평균 비용은 정상 흐름에서 setjmp 한 번 정도.
+- 모든 플랫폼에서 작동합니다 (특히 WASM 환경에서도 사용할 수 있습니다).
+- Shadow stack 과 자연스럽게 공존합니다 (longjmp 시 shadow stack 도 함께 unwind 됩니다).
+- 평균 비용은 정상 흐름에서 setjmp 한 번 정도에 그칩니다.
 
-LLVM EH 는 향후 지원 가능 (옵션).
+## 8.6.6. Calling convention 의 rok 변형: 없음
 
-## 8.6.6. Calling convention 의 nok 변형: 없음
+rok 자체는 C ABI 를 그대로 따르며, 별도의 변형을 두지 않습니다.
 
-nok 자체는 C ABI 를 그대로 따른다. 별도 변형 없음.
+이러한 결정은 다음과 같은 이점을 가져다 줍니다.
 
-이 결정은:
-
-- [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) 호출이 자유로움. 사용자 / FFI 함수가 동일 ABI 라 wrapper 비용 없음.
-- 디버거 / 도구 친화성. 일반 C 디버거가 nok 함수 stack 도 그대로 본다.
+- [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) 호출이 자유로워집니다. 사용자 함수와 FFI 함수가 동일한 ABI 를 공유하므로 wrapper 비용이 발생하지 않습니다.
+- 디버거와 도구 친화성이 높아집니다. 일반 C 디버거가 rok 함수의 stack 을 그대로 들여다볼 수 있습니다.
 
 ## 8.6.7. tail call
 
-LLVM 의 `tail call` 최적화는 일반 함수에서 자동 적용. 코루틴에는 적용 안 함 (state machine
-구조).
+LLVM 의 `tail call` 최적화는 일반 함수에서 자동으로 적용됩니다. 다만 코루틴에는 state machine 구조의 특성상 적용하지 않습니다.
 
 ## 8.6.8. inline 함수의 ABI
 
-`#[inline]` ([내장 속성](../006-meta-system/602-built-in-attributes.md)) 의 효과는 호출 자체가 사라질 수 있다는 점. 이 경우 calling convention
-은 의미 없음.
+`#[inline]` ([내장 속성](../006-meta-system/602-built-in-attributes.md)) 의 효과는 호출 자체가 사라질 수 있다는 점에 있습니다. 이 경우에는 calling convention 자체가 의미를 가지지 않습니다.
 
-`#[inline(never)]` 는 항상 호출. 일반 ABI.
+`#[inline(never)]` 는 항상 호출되며, 일반 ABI 를 따릅니다.
 
 ## 8.6.9. 매개변수 전달의 평가 순서
 
-[매개변수](../004-functions/402-parameters.md) 의 좌→우 평가 순서는 calling convention 과 직교다.
+[매개변수](../004-functions/402-parameters.md) 의 좌→우 평가 순서는 calling convention 과 직교적인 관계에 있습니다.
 
-평가 순서가 좌→우 라는 말은, 각 인자 표현식을 좌측부터 평가한다는 뜻이다. 그 결과를 어떤
-레지스터나 스택 자리에 두는지는 ABI 가 정한다.
+평가 순서가 좌→우 라는 말은 각 인자 표현식을 좌측부터 차례로 평가한다는 뜻입니다. 그 결과를 어떤 레지스터나 스택 자리에 두는지는 ABI 가 결정하는 별개의 문제입니다.
 
-C / C++ 의 일부 ABI 는 우→좌 평가를 권장한다 (스택 push 순서). nok 은 좌→우 의미 보장. 컴파일
-러가 임시 변수 / 레지스터를 적절히 사용해 둘을 일치시킨다.
+C 와 C++ 의 일부 ABI 는 스택 push 순서를 이유로 우→좌 평가를 권장하기도 합니다. 그러나 rok 은 좌→우 의미를 보장하며, 컴파일러가 임시 변수와 레지스터를 적절히 활용하여 두 요건을 일치시키도록 처리해 줍니다.
 
 ## 8.6.10. 가변 인자 (variadic) 함수
 
-[매개변수](../004-functions/402-parameters.md) 의 `...T` variadic 은 언어 레벨 variadic (slice 로 묶어 전달).
-플랫폼의 C variadic (`...` 가변 인자) 은 별개.
+[매개변수](../004-functions/402-parameters.md) 의 `...T` variadic 은 언어 레벨의 variadic 으로서 slice 로 묶어 전달됩니다. 이는 플랫폼의 C variadic (`...` 가변 인자) 과는 별개의 개념입니다.
 
-C 의 variadic 함수 호출 (예: `printf`) 은 `extern "C"` 로 직접 호출 가능. ABI 는 플랫폼 C 가변
-인자 규약.
+C 의 variadic 함수 호출 (예를 들어 `printf`) 은 `extern "C"` 를 통해 직접 호출이 가능하며, 이때의 ABI 는 플랫폼이 정의한 C 가변 인자 규약을 따릅니다.
 
 ```
 extern "C" {
@@ -163,47 +151,46 @@ extern "C" {
 }
 ```
 
-가변 인자 함수의 호출 측은 플랫폼별로 약간 다르다. LLVM 이 자동 처리.
+가변 인자 함수의 호출 측 처리는 플랫폼에 따라 약간씩 차이가 있으나, 이는 LLVM 이 자동으로 처리해 줍니다.
 
 ## 8.6.11. 함수 포인터 ABI
 
-[함수 타입](../004-functions/404-function-type.md) 의 `fn(...) -> ...` 은 간접 호출 시에도 같은 calling convention.
+[함수 타입](../004-functions/404-function-type.md) 의 `fn(...) -> ...` 은 간접 호출 시에도 동일한 calling convention 을 사용합니다.
 
 ```mlir
 %fn_ptr = ; ... 함수 포인터 ...
 %result = call i32 %fn_ptr(...)
 ```
 
-인자 / 반환 ABI 가 동일하므로 직접 호출과 간접 호출의 인터페이스가 같다.
+인자와 반환의 ABI 가 동일하므로, 직접 호출과 간접 호출의 인터페이스가 서로 같습니다.
 
 ## 8.6.12. 클로저 호출
 
-[클로저](../004-functions/405-closure.md) 의 클로저는 환경과 코드 포인터의 묶음.
+[클로저](../004-functions/405-closure.md) 에서 다루는 클로저는 환경과 코드 포인터를 묶은 하나의 단위입니다.
 
-호출 시:
+호출 시에는 다음과 같이 동작합니다.
 
 ```
 환경 포인터를 첫 인자로, 그 뒤 일반 인자들.
 ```
 
-이 환경 인자가 클로저 본체에서 캡처된 변수에 접근하는 통로다.
+이 환경 인자가 클로저 본체에서 캡처된 변수에 접근하는 통로 역할을 합니다.
 
-LLVM 이 일반 함수처럼 컴파일한다 (환경이 그냥 첫 인자).
+LLVM 은 이를 일반 함수처럼 컴파일합니다 (환경이 단지 첫 번째 인자가 될 뿐입니다).
 
 ## 8.6.13. 비동기 함수 호출
 
-[비동기](../004-functions/412-async.md) 의 `async fn` 은 호출 즉시 Future ptr 반환. 일반 함수 호출 ABI.
+[비동기](../004-functions/412-async.md) 의 `async fn` 은 호출 즉시 Future ptr 을 반환하며, 이는 일반 함수 호출 ABI 를 그대로 따릅니다.
 
 ```
 let f = async_fn(args);     // 즉시 반환 (Future ptr)
 let r = await f;             // 코루틴 메커니즘
 ```
 
-`await` 자체는 `nok_coro_park` ([Extern "C" 심볼](805-extern-symbols.md)) 호출 + 재개. 일반 ABI 위에 작동한다.
+`await` 자체는 `rok_coro_park` ([Extern "C" 심볼](805-extern-symbols.md)) 호출과 재개 처리로 이루어지며, 일반 ABI 위에서 작동합니다.
 
 ## 8.6.14. 안정성
 
-본 calling convention 은 플랫폼 C ABI 를 따르므로 별도 안정성 결정이 없다. 플랫폼이 호환을
-보장하면 nok 도 호환.
+본 calling convention 은 플랫폼 C ABI 를 따르고 있으므로, 별도의 안정성 결정을 두지 않습니다. 플랫폼이 호환을 보장하는 범위 안에서 rok 또한 호환을 유지합니다.
 
-setjmp / longjmp 메커니즘은 런타임 ABI 의 일부. 변경 시 [개요](README.md) 의 안정성 정책.
+setjmp / longjmp 메커니즘은 런타임 ABI 의 일부이며, 변경이 필요한 경우 [개요](README.md) 의 안정성 정책을 따릅니다.
