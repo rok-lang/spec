@@ -49,13 +49,9 @@ call void @llvm.gcroot(i8** %root, i8* null)
 
 LLVM 백엔드가 이 intrinsic 을 인식하여 shadow stack 에 등록하는 코드를 자동으로 생성해 줍니다. 이 메커니즘은 모든 LLVM 백엔드 (x86, ARM, RISC-V, WASM, ...) 에서 자동으로 작동합니다.
 
-### setjmp / longjmp 와의 공존
+### 에러 전파와의 공존
 
-[에러 제어 흐름](../003-expressions/314-error-control-flow.md) 의 `try` / `catch` / `throw` 는 내부적으로 `setjmp` / `longjmp` (또는 그에 준하는 대체 메커니즘) 으로 구현될 수 있습니다.
-
-shadow stack 은 `longjmp` 시점의 부분 unwind 를 자연스럽게 처리할 수 있습니다. setjmp 가 저장한 깊이까지의 frame 만 valid 한 것으로 간주하면 되기 때문입니다.
-
-이는 LLVM statepoint 가 setjmp/longjmp 와 충돌하는 문제 (statepoint 는 일반 stack frame 만 가정합니다) 를 우회할 수 있는 방법이기도 합니다.
+[에러 제어 흐름](../003-expressions/314-error-control-flow.md) 의 에러는 throwing 함수의 반환값으로 전달됩니다 ([8.6.5](../008-abi/806-calling-convention.md#865-throwing-함수의-반환-값-기반-에러-전달)). 에러가 전파될 때에도 각 frame 은 일반 반환 경로로 빠져나가며 자신의 shadow stack 항목을 pop 하므로, shadow stack 은 에러 처리를 위한 별도의 보정 없이 항상 실제 호출 스택과 일치합니다.
 
 ## 7.4.2. Write Barrier: Incremental-Update
 

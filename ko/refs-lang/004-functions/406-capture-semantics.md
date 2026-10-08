@@ -88,8 +88,8 @@ ref || { ... }                    // 채택 안 함
 값 캡처가 기본이기 때문에, 루프 변수가 반복마다 자체 값을 갖는 동작이 자연스럽게 보장됩니다.
 
 ```rok
-let fns = [];
-for i in 0..5 {
+let fns: List<fn() -> i32> = [];
+for i in 0i32..5i32 {
     fns.push(|| i);               // 각 반복에서 i 값 복사
 }
 fns[0]();                          // 0
@@ -139,7 +139,7 @@ let g = [ref xs] || {
 `task::spawn` 이나 `par::for_each` 처럼 병렬 실행을 수행하는 클로저에서는 `[ref x]` 캡처가 거부됩니다. 병렬 분기가 같은 외부 변수를 동시에 갱신하면 데이터 경쟁이 발생하기 때문입니다.
 
 ```rok
-let buf = [];
+let buf: List<i32> = [];
 par::for_each(xs, [ref buf] |x| { buf.push(x) });
 // ERROR: ref capture rejected in parallel context.
 ```

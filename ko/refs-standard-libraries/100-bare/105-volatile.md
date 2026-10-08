@@ -44,13 +44,12 @@ unsafe fn volatile_write<T>(dst: Ptr<T>, value: T);
 
 `volatile` 이 필요한 자리는 대체로 다음 같은 패턴으로 정리됩니다.
 
-| 자리                      | 이유                                  |
-|---------------------------|---------------------------------------|
-| MMIO register             | hardware 가 read 만으로도 side effect |
-| Memory-mapped 디바이스    | DMA 등                                |
-| signal handler 변수       | signal 안에서 변경 — 외부에서 봐야 함 |
-| spinlock retry loop       | 다른 thread 가 변경한 값 반복 read    |
-| `setjmp` / `longjmp` 변수 | unwind 안전 보장                      |
+| 자리                   | 이유                                  |
+|------------------------|---------------------------------------|
+| MMIO register          | hardware 가 read 만으로도 side effect |
+| Memory-mapped 디바이스 | DMA 등                                |
+| signal handler 변수    | signal 안에서 변경 — 외부에서 봐야 함 |
+| spinlock retry loop    | 다른 thread 가 변경한 값 반복 read    |
 
 ## 1.5.4. 주의 — atomic 과 다름
 

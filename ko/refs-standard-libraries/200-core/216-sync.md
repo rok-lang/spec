@@ -39,11 +39,11 @@ impl<T: AtomicPrimitive> Atomic<T> {
     fn compare_exchange(
         self, current: T, new: T,
         success: Ordering, failure: Ordering,
-    ) -> Result<T, T>;
+    ) -> Result<T, T>;                  // 실패 결과도 값 — 에러가 아님
     fn compare_exchange_weak(
         self, current: T, new: T,
         success: Ordering, failure: Ordering,
-    ) -> Result<T, T>;
+    ) -> Result<T, T>;                  // 실패 결과도 값 — 에러가 아님
 
     // 정수 전용
     fn fetch_add(self, value: T, ordering: Ordering = SeqCst) -> T;
@@ -164,18 +164,17 @@ match g {
 
 rok 의 Mutex 는 Rust 의 PoisonError 모델과 다릅니다. panic 이 발생해도 잠금은 자동으로 해제되며, 다음 task 는 정상적으로 진입할 수 있습니다. 이렇게 설계한 이유는 두 가지입니다.
 
-1. rok 은 [unwinding 시 Drop 을 자동으로 호출](213-marker.md#2134-drop--scope-종료-시-정리)하므로, `MutexGuard` 의 drop 이 잠금 해제를 책임집니다.
+1. panic 은 잡을 수 없고 프로세스를 종료하므로, panic 도중의 잠금 상태를 다른 task 가 관측하는 일이 없습니다. 에러가 `throw` 로 전파되어 스코프를 벗어날 때에는 [scope 종료 시 Drop 이 자동으로 호출](213-marker.md#2134-drop--scope-종료-시-정리)되므로, `MutexGuard` 의 drop 이 잠금 해제를 책임집니다.
 2. poison 의 의미는 보수적으로 보이지만 사용자 부담이 크고, 대부분의 경우 false positive 입니다.
 
-panic 이후 일관성 검증이 정말로 필요한 자리에서는 다음과 같이 명시적으로 처리하면 됩니다.
+에러로 빠져나가기 전에 일관성 복원이 정말로 필요한 자리에서는 다음과 같이 명시적으로 처리하면 됩니다.
 
 ```rok
 let g = MUTEX.lock();
-let result = try { unsafe_op(g) };
-match result {
-    Ok(_) => {},
-    Err(e) => { g.reset_to_known_good_state(); throw e; },
-}
+try unsafe_op(g) catch e {
+    g.reset_to_known_good_state();
+    throw e;
+};
 ```
 
 ## 2.16.4. `RwLock<T>` — read-write 분리

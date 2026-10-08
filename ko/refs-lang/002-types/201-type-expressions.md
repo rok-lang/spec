@@ -15,10 +15,12 @@ unary_type  ::= path_type
               | fn_type
               | tuple_type
               | array_type
-              | "any"
+              | any_type
+any_type    ::= "any" ( trait_ref | "(" trait_ref ("+" trait_ref)* ")" )?
+trait_ref   ::= path_type
 path_type   ::= identifier ("::" identifier)* type_args?
 type_args   ::= "<" type_expr ("," type_expr)* ","? ">"
-fn_type     ::= "fn" "(" (type_expr ("," type_expr)*)? ")" ("->" type_expr)?
+fn_type     ::= "fn" "(" (type_expr ("," type_expr)*)? ")" ("throws" ("(" type_expr ")")?)? ("->" type_expr)?
 tuple_type  ::= "(" ")"
               | "(" type_expr "," ")"
               | "(" type_expr ("," type_expr)+ ","? ")"
@@ -36,7 +38,7 @@ array_type  ::= "[" type_expr ";" const_expr "]"
 | 함수 타입     | `fn(i32, i32) -> i32`                       |
 | 튜플 타입     | `(i32, str)`, `(i32,)`                      |
 | 배열 타입     | `[T; N]` (고정 크기)                        |
-| 동적 슬롯     | `any`                                       |
+| 동적 슬롯     | `any`, `any Error`, `any (Display + Hash)`  |
 
 각 형태의 정확한 의미는 아래에서 차례로 정의합니다.
 
@@ -146,9 +148,11 @@ fn(i32)                  // 반환 타입 생략 가능 (단위 타입)
 
 ```rok
 any
+any Error
+any (Display + Hash)
 ```
 
-`any` 는 [키워드](../001-lexical/105-keywords.md) 에 예약된 타입 이름 슬롯 키워드이며, 그 의미는 [`any` 슬롯](202-any-slot.md) 에서 정의합니다.
+`any` 는 [키워드](../001-lexical/105-keywords.md) 에 예약된 타입 이름 슬롯 키워드이며, 그 의미는 [`any` 슬롯](202-any-slot.md) 에서 정의합니다. `any` 뒤에 트레잇 경로 하나, 또는 괄호로 묶어 `+` 로 이은 트레잇 경로들을 붙이면 그 트레잇을 구현하는 값만 담는 제약 붙은 동적 슬롯이 됩니다 ([2.2.10](202-any-slot.md#2210-제약-붙은-any-any-trait)). 트레잇 경로가 둘 이상이면 괄호가 필요하며, `any` 는 바로 뒤의 트레잇 하나만 묶으므로 `any Error | none` 은 `(any Error) | none` 입니다. 트레잇 경로는 `any` 뒤에서만 타입 자리에 올 수 있습니다 ([트레잇-as-타입 금지](212-trait-as-type-banned.md)).
 
 ## 2.1.10. 우선순위 / 결합
 

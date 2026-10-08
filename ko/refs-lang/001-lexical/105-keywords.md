@@ -23,8 +23,11 @@ extern    as        ref       unsafe
 ```
 if        else      match     while     loop      for       in
 break     continue  return    is        using
-try       catch     throw     throws    finally
+try       catch     throw     throws    rethrows  finally
 ```
+
+> [!NOTE]
+> `try?` 와 `try!` 는 별도의 키워드가 아니라 키워드 `try` 와 구두점 `?` / `!` 의 토큰 열입니다 ([구두점과 연산자 토큰](110-punctuation-and-operator-tokens.md#점--물음표)).
 
 > [!NOTE]
 > `using` 은 RAII 형 자원 관리에 사용되는 블록 표현식의 도입 키워드입니다 ([`using` 표현식](../003-expressions/317-using-expression.md)).
@@ -57,7 +60,7 @@ true      false     none
 any
 ```
 
-`any` 는 동적 슬롯을 가리키는 타입 이름입니다. 의미는 타입 시스템 사양에서 정의합니다. 본 문서 범위에서 중요한 사실은 식별자로 재사용할 수 없다는 점뿐입니다.
+`any` 는 동적 슬롯을 가리키는 타입 이름이며, 뒤에 트레잇을 붙인 `any Error` 같은 형태로 제약 붙은 동적 슬롯도 만듭니다. 의미는 타입 시스템 사양에서 정의합니다. 본 문서 범위에서 중요한 사실은 식별자로 재사용할 수 없다는 점뿐입니다.
 
 ## 1.5.2. 의미는 후속 문서에서
 

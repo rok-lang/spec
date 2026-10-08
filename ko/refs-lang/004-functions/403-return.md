@@ -103,8 +103,8 @@ _ = compute();                    // 의도적 폐기 (명시적)
 본체가 절대 정상 종료하지 않는 함수, 즉 항상 `return`, `throw`, 무한 루프 등으로 흐름이 빠져나가는 함수도 있습니다.
 
 ```rok
-fn fail_always() {
-    throw Error("fatal");
+fn fail_always() throws {
+    throw ValueError { msg: "fatal" };
 }
 
 fn loop_forever() {

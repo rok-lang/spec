@@ -33,7 +33,7 @@ rok::std   (target-dep — uses foundation + bare)
 ```rok
 use rok::bare::CPtr;
 use rok::bare::alloc::{alloc, Layout};
-let layout = Layout::array::<u8>(1024)?;
+let layout = try Layout::array::<u8>(1024);
 let p: CPtr<u8> = unsafe { alloc(layout) };    // 실패 시 null — 1.4 alloc 참고
 ```
 

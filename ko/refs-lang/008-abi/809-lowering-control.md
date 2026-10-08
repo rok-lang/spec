@@ -165,38 +165,58 @@ for x in xs { body }
 
 라벨 (`'outer:`) 또한 적절한 [block](../000-meta/007-glossary.md#block-블록) 으로 점프합니다.
 
-## 8.9.6. `try` / `catch`: setjmp / longjmp
+## 8.9.6. `try` / `catch` / `finally`: 값 기반 분기
 
-[에러 제어 흐름](../003-expressions/314-error-control-flow.md) 과 [Calling convention](806-calling-convention.md) 에 정의된 EH 모델을 살펴보겠습니다.
+[에러 제어 흐름](../003-expressions/314-error-control-flow.md) 의 에러는 [Calling convention](806-calling-convention.md#865-throwing-함수의-반환-값-기반-에러-전달) 에서 정의한 `{ is_err, payload }` 반환값으로 전달됩니다. 따라서 `try` 와 `catch` 는 모두 일반 분기로 lower 됩니다.
 
 ```rok
-try { body } catch e: T { handler }
+let v = try f(x);              // f: fn(X) throws (E) -> T
 ```
 
-이 구문은 다음과 같은 MLIR 로 lower 됩니다.
+`try` 로 표시한 호출은 반환값의 `is_err` 를 검사해, 성공이면 payload 를 `T` 로 꺼내고 에러면 에러 경로로 분기합니다.
 
 ```
-%jbuf = llvm.alloca i32 (sizeof_jmp_buf) : !llvm.ptr
-%r = llvm.call @setjmp(%jbuf) : (!llvm.ptr) -> i32
-%is_normal = arith.cmpi "eq", %r, %0 : i32
+%r = func.call @f(%x) : (!X) -> !Throws_T_E
+%is_err = llvm.extractvalue %r[0] : !Throws_T_E
+cf.cond_br %is_err, ^err, ^ok
 
-cf.cond_br %is_normal, ^try_body, ^catch
+^ok:
+  %v = ; payload 를 T 로 해석
+  ...
 
-^try_body:
-  ; body
-  ; ... throw 가 있으면 rok_throw 호출 (longjmp)
-  cf.br ^end(%result_normal)
+^err:
+  %e = ; payload 를 E 로 해석
+  ; 가장 가까운 catch 가 있으면 그 dispatch 블록으로,
+  ; 없으면 둘러싼 함수의 반환값 { 1, e } 를 만들어 반환
+  cf.br ^catch_dispatch(%e)
+```
 
-^catch:
-  ; e 를 받아 (현재 던져진 예외 가져오기)
-  %exc = func.call @rok_exception_current() : () -> !llvm.ptr
-  ; 타입 검사 후 handler 실행
-  ; ...
-  cf.br ^end(%result_catch)
+`catch` 절이 붙은 식은 왼쪽 식의 모든 에러 경로가 모이는 dispatch 블록을 하나 갖습니다.
+
+```rok
+try body catch e: A { handler_a } catch _ { handler_any }
+```
+
+```
+^catch_dispatch(%e: !E):
+  ; 절의 순서대로 패턴 검사 (8.9.3 의 decision tree 와 같은 방식)
+  cf.cond_br %is_a, ^handler_a(%e), ^handler_any(%e)
+
+^handler_a(%ea: !A):
+  ; handler_a
+  cf.br ^end(%result_a)
+
+^handler_any(%ex: !E):
+  ; handler_any
+  cf.br ^end(%result_any)
 
 ^end(%result: ...):
   ...
 ```
+
+매칭되는 절이 없으면 dispatch 블록은 에러를 바깥 `catch` 의 dispatch 블록으로 넘기거나 둘러싼 함수의 에러 반환값을 만들어 반환합니다. untyped `throws` 의 에러 (`any Error`) 에 대한 타입 패턴 검사는 [`any`](808-lowering-types.md) 의 tag 비교로 lower 됩니다.
+
+`try?` 는 에러 경로에서 `none` 을 만들어 `^end` 로 가고, `try!` 는 에러 경로에서 `panic_fn` 을 호출합니다.
 
 ## 8.9.7. `throw`
 
@@ -206,15 +226,20 @@ cf.cond_br %is_normal, ^try_body, ^catch
 throw err;
 ```
 
-이는 다음과 같은 MLIR 로 lower 됩니다.
+`throw` 는 에러 경로로 가는 무조건 분기로 lower 됩니다. 가장 가까운 `catch` 가 같은 함수 안에 있으면 그 dispatch 블록으로 가고, 없으면 둘러싼 함수의 에러 반환값을 만들어 반환합니다.
 
 ```
-func.call @rok_throw(%err) : (!llvm.ptr) -> ()
-; longjmp 가 가장 가까운 jmp_buf 로 점프 — return 안 함
-llvm.unreachable
+; 같은 함수 안에 catch 가 있는 경우
+cf.br ^catch_dispatch(%err)
+
+; 없는 경우 — 함수의 에러 반환
+%r0 = llvm.mlir.undef : !Throws_T_E
+%r1 = llvm.insertvalue %true, %r0[0] : !Throws_T_E
+%r2 = ; payload 에 %err 저장
+func.return %r2 : !Throws_T_E
 ```
 
-여기서 `rok_throw` 는 `rokr` 가 제공해 주며, setjmp 가 저장한 jmp_buf 로 longjmp 하는 역할을 합니다.
+함수 밖으로 에러를 돌려주는 경로도 일반 `return` 과 같으므로, shadow stack pop 같은 epilogue 가 그대로 실행됩니다. 런타임 호출은 없습니다.
 
 ## 8.9.8. `finally`
 
@@ -224,9 +249,19 @@ llvm.unreachable
 try { body } finally { cleanup }
 ```
 
-이 경우에는 try_body 와 (있다면) `catch` 양쪽의 마지막에 cleanup 코드를 emit 합니다. 또한 `rok_throw` 가 unwind 할 때에도 cleanup 이 호출됩니다.
+왼쪽 식을 벗어나는 모든 경로가 cleanup 블록을 거치도록 lower 됩니다. 정상 종료, `catch` 처리 후 종료, 처리되지 않은 에러의 전파, 그리고 `return` / `break` / `continue` 의 각 경로는 cleanup 블록으로 분기한 뒤 원래 목적지로 이어집니다. 에러 전파도 일반 분기이므로 별도의 unwind 메커니즘은 필요하지 않습니다.
 
-자세한 unwind 메커니즘은 `rokr` 의 `rok_throw` 구현을 참고해 주시면 됩니다.
+```
+^body_ok(%v):        cf.br ^cleanup(%k_ok, %v)
+^body_err(%e):       cf.br ^cleanup(%k_err, %e)
+^body_return(%rv):   cf.br ^cleanup(%k_ret, %rv)
+
+^cleanup(%kind, %val):
+  ; cleanup
+  ; %kind 에 따라 ^end / 에러 전파 / 함수 return / 루프 목적지로 분기
+```
+
+cleanup 블록 안에서 새 에러가 던져지면 그 에러가 원래의 경로를 대체합니다. panic 은 프로세스를 종료하므로 cleanup 블록을 거치지 않습니다.
 
 ## 8.9.9. GC alloc: fast / slow path
 

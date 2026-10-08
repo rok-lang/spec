@@ -14,8 +14,8 @@ supertraits ::= ":" type_expr ("+" type_expr)*
 trait_item  ::= visibility? method_sig
               | visibility? assoc_type_decl
               | visibility? method_default
-method_sig  ::= "fn" identifier "(" param_list? ")" return_type? ";"
-method_default ::= "fn" identifier "(" param_list? ")" return_type? block
+method_sig  ::= "fn" identifier "(" param_list? ")" throws_clause? return_type? ";"
+method_default ::= "fn" identifier "(" param_list? ")" throws_clause? return_type? block
 assoc_type_decl ::= "type" identifier where_clause? ";"
 ```
 

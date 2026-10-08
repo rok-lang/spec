@@ -6,15 +6,15 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 
 ## 0.4.1. slot 분류
 
-먼저 전체 48 개 슬롯이 어떤 책임을 지느냐에 따라 네 그룹으로 나뉩니다. 아래 표는 각 그룹의 역할과 슬롯 수를 한눈에 보여 주며, 이후 절들의 세부 표가 어떤 카테고리에 속하는지 가늠하게 해 줍니다.
+먼저 전체 46 개 슬롯이 어떤 책임을 지느냐에 따라 네 그룹으로 나뉩니다. 아래 표는 각 그룹의 역할과 슬롯 수를 한눈에 보여 주며, 이후 절들의 세부 표가 어떤 카테고리에 속하는지 가늠하게 해 줍니다.
 
 | 그룹   | 책임                                                                 | slot 수 |
 |--------|----------------------------------------------------------------------|---------|
 | 타입   | rok 이 **구체 타입** 으로 인식하는 표준 라이브러리 타입              | 14      |
 | 트레잇 | rok 이 **operator / 제어 흐름 desugar** 및 derive 에 쓰는 트레잇     | 28      |
-| 메서드 | rok 이 **자동 호출** 하는 메서드 (drop / `?` 의 분기·재구성)         | 3       |
+| 메서드 | rok 이 **자동 호출** 하는 메서드 (drop)                              | 1       |
 | 함수   | rok 이 **intrinsic 호출** 로 부르는 표준 라이브러리 함수             | 3       |
-| 합계   |                                                                      | **48**  |
+| 합계   |                                                                      | **46**  |
 
 ## 0.4.2. 타입 슬롯 (14)
 
@@ -93,49 +93,45 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 
 함수 슬롯은 컴파일러가 intrinsic 처럼 직접 호출하는 표준 라이브러리 함수의 자리입니다. 주로 비정상 종료 경로 — `throw`, OOM, 도달 불가 — 가 여기 모이며, 정상 흐름이 아닌 곳에서 통일된 진입점이 필요할 때 이 슬롯들이 쓰입니다.
 
-| slot 이름        | 의미                             | 표준 라이브러리 함수           | 참조 |
-|------------------|----------------------------------|--------------------------------|------|
-| `panic_fn`       | `throw` 가 호출하는 abort 함수   | `rok::core::panic::panic`       | 2.14 |
+| slot 이름        | 의미                             | 표준 라이브러리 함수            | 참조 |
+|------------------|----------------------------------|---------------------------------|------|
+| `panic_fn`       | panic 시 호출하는 abort 함수     | `rok::core::panic::panic`       | 2.14 |
 | `oom_fn`         | OOM 시 호출되는 abort            | `rok::core::panic::oom`         | 2.14 |
 | `unreachable_fn` | 컴파일러가 unreachable 자리 호출 | `rok::core::panic::unreachable` | 2.14 |
 
-## 0.4.5. 메서드 슬롯 (3)
+## 0.4.5. 메서드 슬롯 (1)
 
-메서드 슬롯은 사용자가 명시적으로 적지 않아도 컴파일러가 자동으로 부르는 메서드의 자리입니다. scope exit 시의 폐기가 대표적이며, `?` 연산자의 desugar 가 호출하는 `Try::branch` 와 `FromResidual::from_residual` 도 같은 자리에 모입니다. 값의 복제 (`Clone::clone`) 는 자동으로 호출되지 않으므로 ([2.13.2](../200-core/213-marker.md#2132-clone--깊은-복제)) 메서드 슬롯이 아니라 트레잇 슬롯 `clone_trait` 로 등록됩니다.
+메서드 슬롯은 사용자가 명시적으로 적지 않아도 컴파일러가 자동으로 부르는 메서드의 자리입니다. 현재는 scope exit 시의 폐기 하나뿐입니다. `?` 연산자는 `T | none` 에 대해 컴파일러가 직접 풀어 쓰므로 ([refs-lang 3.14.10](../../refs-lang/003-expressions/314-error-control-flow.md#31410--연산자--none-조기-반환)) 메서드 슬롯을 두지 않습니다. 값의 복제 (`Clone::clone`) 는 자동으로 호출되지 않으므로 ([2.13.2](../200-core/213-marker.md#2132-clone--깊은-복제)) 메서드 슬롯이 아니라 트레잇 슬롯 `clone_trait` 로 등록됩니다.
 
-| slot 이름       | 의미                                  | 표준 라이브러리 메서드                         | 참조 |
-|-----------------|---------------------------------------|------------------------------------------------|------|
-| `drop_method`   | scope exit 시 자동 호출               | `rok::core::marker::Drop::drop`                 | 2.13 |
-| `try_branch`    | `?` desugar — Output / Residual 분기  | `rok::core::error::Try::branch`                 | 2.14 |
-| `from_residual` | `?` desugar — Residual 로 반환 재구성 | `rok::core::error::FromResidual::from_residual` | 2.14 |
+| slot 이름     | 의미                    | 표준 라이브러리 메서드          | 참조 |
+|---------------|-------------------------|---------------------------------|------|
+| `drop_method` | scope exit 시 자동 호출 | `rok::core::marker::Drop::drop` | 2.13 |
 
 ## 0.4.6. 슬롯 사용 측, 컴파일러의 lookup 위치
 
 앞 절들이 “어떤 슬롯이 존재하는가” 를 나열했다면, 이번 절은 거꾸로 “컴파일러가 언제 어떤 슬롯을 찾는가” 를 정리합니다. 사용자가 작성한 문법 한 줄이 표준 라이브러리의 어떤 항목으로 풀려나가는지 추적하고 싶을 때, 다음 표가 출발점이 됩니다.
 
-| 컴파일러 동작                                | lookup 슬롯                             |
-|----------------------------------------------|-----------------------------------------|
-| `none` 리터럴 lower                          | `none_type`                             |
-| `42` bare literal type                       | `int_type`                              |
-| `3.14` bare literal type                     | `float_type`                            |
-| `"hello"` literal type                       | `str_type`                              |
-| `for x in xs` desugar                        | `into_iterator_trait`, `iterator_trait` |
-| `arr[i]` desugar                             | `index_trait`                           |
-| `arr[i] = v` desugar                         | `index_set_trait`                       |
-| `s[1:3]` desugar                             | `slice_trait`                           |
-| `f"{x}"` 기본 자리 desugar                   | `display_trait`                         |
-| `f"{x:?}"` desugar                           | `debug_trait`                           |
-| `await expr` desugar                         | `future_trait`                          |
-| 산술 / 비트 / 논리 연산자 primitive lowering | `add_trait` … `logical_or_trait`        |
-| `==` / `!=`, literal 패턴 매칭               | `eq_trait`                              |
-| `<` / `>` / `<=` / `>=`, range 패턴 매칭     | `cmp_trait`                             |
+| 컴파일러 동작                                | lookup 슬롯                              |
+|----------------------------------------------|------------------------------------------|
+| `none` 리터럴 lower                          | `none_type`                              |
+| `42` bare literal type                       | `int_type`                               |
+| `3.14` bare literal type                     | `float_type`                             |
+| `"hello"` literal type                       | `str_type`                               |
+| `for x in xs` desugar                        | `into_iterator_trait`, `iterator_trait`  |
+| `arr[i]` desugar                             | `index_trait`                            |
+| `arr[i] = v` desugar                         | `index_set_trait`                        |
+| `s[1:3]` desugar                             | `slice_trait`                            |
+| `f"{x}"` 기본 자리 desugar                   | `display_trait`                          |
+| `f"{x:?}"` desugar                           | `debug_trait`                            |
+| `await expr` desugar                         | `future_trait`                           |
+| 산술 / 비트 / 논리 연산자 primitive lowering | `add_trait` … `logical_or_trait`         |
+| `==` / `!=`, literal 패턴 매칭               | `eq_trait`                               |
+| `<` / `>` / `<=` / `>=`, range 패턴 매칭     | `cmp_trait`                              |
 | `#[derive(Clone / Ord / Hash)]` 확장         | `clone_trait`, `ord_trait`, `hash_trait` |
-| `throw v;` lower                             | `panic_fn`                              |
-| OOM 발생 시                                  | `oom_fn`                                |
-| `match` 모든 arm exhaustive 체크 unreachable | `unreachable_fn`                        |
-| scope exit                                   | `drop_method`                           |
-| `expr?` desugar — 분기                       | `try_branch`                            |
-| `expr?` desugar — 잔류값 재구성              | `from_residual`                         |
+| panic (`try!` 실패 포함) lower               | `panic_fn`                               |
+| OOM 발생 시                                  | `oom_fn`                                 |
+| `match` 모든 arm exhaustive 체크 unreachable | `unreachable_fn`                         |
+| scope exit                                   | `drop_method`                            |
 
 ## 0.4.7. 중복 / 누락 검출
 
@@ -147,6 +143,4 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 
 마지막으로 새 슬롯을 추가하거나 기존 이름을 바꿀 때 따라야 할 명명 규칙을 정리해 둡니다. 일관된 이름은 표를 훑는 것만으로 슬롯의 종류를 짐작하게 해 주므로, 정책을 가볍게 보지 않습니다.
 
-이름은 snake_case 로 적고, type 슬롯에는 `_type` 접미사를, trait 슬롯에는 `_trait` 접미사를 붙입니다. function 슬롯에는 `_fn` 접미사가 따라오며, 일반적인 method 슬롯에는 `_method` 접미사가 붙습니다 (`drop_method`). 트레잇 전체를 가리키는 슬롯은 컴파일러가 그 트레잇의 여러 메서드나 derive 를 다루더라도 `_trait` 하나로 통일하며, 메서드 슬롯은 컴파일러가 **특정 메서드 하나를 자동 호출** 하는 경우로 한정합니다. 이 기준에 따라 `Clone` 은 `clone_method` 가 아닌 `clone_trait` 로 등록됩니다. 접미사는 부착 위치도 결정합니다. `_trait` 슬롯은 **트레잇 선언 자체** 에, `_method` 슬롯과 `?` desugar 슬롯은 **트레잇 안의 해당 메서드** 에, `_type` 슬롯은 타입 선언에, `_fn` 슬롯은 함수 선언에 부착하며, 다른 위치에 부착하면 [refs-lang 6.4.7](../../refs-lang/006-meta-system/604-lang-magic.md) 의 시그니처 검사에서 거부됩니다.
-
-다만 `?` 연산자 desugar 의 method 슬롯 (`try_branch`, `from_residual`) 은 산업 관용 (Rust `Try::branch` / `FromResidual::from_residual`) 을 따라 접미사 없이 트레잇 메서드 이름을 그대로 슬롯 이름으로 채택했습니다. 이는 desugar 결과가 곧바로 어느 트레잇 메서드를 호출하는지가 명확히 드러나도록 한 결정이며, 같은 그룹 안에서도 접미사 정책에서 벗어난 좁은 예외에 해당합니다.
+이름은 snake_case 로 적고, type 슬롯에는 `_type` 접미사를, trait 슬롯에는 `_trait` 접미사를 붙입니다. function 슬롯에는 `_fn` 접미사가 따라오며, method 슬롯에는 `_method` 접미사가 붙습니다 (`drop_method`). 트레잇 전체를 가리키는 슬롯은 컴파일러가 그 트레잇의 여러 메서드나 derive 를 다루더라도 `_trait` 하나로 통일하며, 메서드 슬롯은 컴파일러가 **특정 메서드 하나를 자동 호출** 하는 경우로 한정합니다. 이 기준에 따라 `Clone` 은 `clone_method` 가 아닌 `clone_trait` 로 등록됩니다. 접미사는 부착 위치도 결정합니다. `_trait` 슬롯은 **트레잇 선언 자체** 에, `_method` 슬롯은 **트레잇 안의 해당 메서드** 에, `_type` 슬롯은 타입 선언에, `_fn` 슬롯은 함수 선언에 부착하며, 다른 위치에 부착하면 [refs-lang 6.4.7](../../refs-lang/006-meta-system/604-lang-magic.md) 의 시그니처 검사에서 거부됩니다.

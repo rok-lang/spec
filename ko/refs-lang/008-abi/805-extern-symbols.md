@@ -269,31 +269,9 @@ extern "C" {
 
 `deadline` 은 절대 시간으로, 밀리초나 마이크로초 등이며 정확한 단위는 구현이 결정합니다. `waker` 는 시간 도달 시 깨울 waker 입니다.
 
-## 8.5.6. 예외 영역
+## 8.5.6. 에러 전달 (심볼 없음)
 
-### `rok_throw`
-
-[에러 제어 흐름](../003-expressions/314-error-control-flow.md) 의 예외 발생을 런타임에서 구현하는 심볼입니다. **Thread-safety: `caller-thread-only`** (호출자 frame 에서 unwind).
-
-```
-extern "C" {
-    fn rok_throw(exc: Ptr<u8>);   // 반환 안 함 — longjmp
-}
-```
-
-`exc` 는 던져진 예외 객체입니다. 이 함수는 반환하지 않으며, 가장 가까운 jmp_buf 로 longjmp 합니다. 호출자는 `llvm.unreachable` 또는 그에 동등한 표시로 control flow 를 종료합니다.
-
-### `rok_exception_current`
-
-**Thread-safety: `caller-thread-only`** (TLS 의 current exception 슬롯에서 읽기).
-
-```
-extern "C" {
-    fn rok_exception_current() -> Ptr<u8>;
-}
-```
-
-`catch` 블록 안에서 현재 던져진 예외 값을 가져옵니다.
+[에러 제어 흐름](../003-expressions/314-error-control-flow.md) 의 `throw` / `try` / `catch` 에는 런타임 심볼이 없습니다. throwing 함수는 에러를 반환값의 일부로 돌려주고 ([8.6.5](806-calling-convention.md#865-throwing-함수의-반환-값-기반-에러-전달)), 호출 지점이 그 값을 검사해 분기합니다 ([8.9.6](809-lowering-control.md#896-try--catch--finally-값-기반-분기)). 따라서 에러를 던지거나 현재 에러를 꺼내기 위해 런타임을 호출하는 일은 없으며, 에러 처리를 위한 TLS 슬롯이나 jmp_buf 도 두지 않습니다.
 
 ## 8.5.7. Diagnostic 영역
 
@@ -307,24 +285,23 @@ extern "C" {
 }
 ```
 
-회복 불가능한 panic 으로, fatal 입니다. 이 함수는 반환하지 않으며, 메시지를 stderr 에 출력한 뒤 프로세스를 종료시킵니다.
+회복 불가능한 panic 으로, fatal 입니다. 이 함수는 반환하지 않으며, 메시지를 stderr 에 출력한 뒤 프로세스를 종료 코드 `101` 로 종료시킵니다. `catch` 나 `finally` 는 실행되지 않습니다.
 
 ## 8.5.8. 심볼 명명 규약
 
 심볼의 접두사별 영역은 다음 표와 같이 정리됩니다.
 
-| Prefix                          | 영역           |
-|---------------------------------|----------------|
-| `rok_gc_*`                      | GC 관련        |
-| `rok_runtime_*`                 | 런타임 일반    |
-| `rok_thread_*`                  | OS thread 관련 |
-| `rok_coro_*`                    | 코루틴 관련    |
-| `rok_task_*`                    | task 관련      |
-| `rok_par_*`                     | 병렬 실행      |
-| `rok_io_*`                      | I/O            |
-| `rok_timer_*`                   | 타이머         |
-| `rok_throw` / `rok_exception_*` | 예외           |
-| `rok_panic`                     | 진단           |
+| Prefix          | 영역           |
+|-----------------|----------------|
+| `rok_gc_*`      | GC 관련        |
+| `rok_runtime_*` | 런타임 일반    |
+| `rok_thread_*`  | OS thread 관련 |
+| `rok_coro_*`    | 코루틴 관련    |
+| `rok_task_*`    | task 관련      |
+| `rok_par_*`     | 병렬 실행      |
+| `rok_io_*`      | I/O            |
+| `rok_timer_*`   | 타이머         |
+| `rok_panic`     | 진단           |
 
 이러한 접두사 규약을 통해 외부 라이브러리나 사용자 코드와의 심볼 충돌을 피하게 됩니다.
 

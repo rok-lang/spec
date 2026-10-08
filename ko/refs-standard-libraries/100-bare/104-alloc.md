@@ -12,8 +12,8 @@ struct Layout {
 
 impl Layout {
     fn new<T>() -> Layout;                     // size_of<T>(), align_of<T>()
-    fn array<T>(n: usize) -> Result<Layout, LayoutError>;
-    fn from_size_align(size: usize, align: usize) -> Result<Layout, LayoutError>;
+    fn array<T>(n: usize) throws (LayoutError) -> Layout;
+    fn from_size_align(size: usize, align: usize) throws (LayoutError) -> Layout;
 }
 
 unsafe fn alloc(layout: Layout) -> CPtr<u8>;
@@ -33,7 +33,7 @@ unsafe fn dealloc_array<T>(ptr: Ptr<T>, n: usize);
 ## 1.4.2. 사용 예
 
 ```rok
-let layout = Layout::array::<u32>(1000)?;
+let layout = try Layout::array::<u32>(1000);
 let p: CPtr<u8> = unsafe { rok::bare::alloc::alloc(layout) };
 
 match p.as_ptr() {
@@ -52,7 +52,7 @@ match p.as_ptr() {
 `using` 블록을 활용하면 RAII 형태로 정리할 수 있습니다.
 
 ```rok
-using buf = rok::bare::alloc::Allocation::<u32>::new(1000)? {
+using buf = try rok::bare::alloc::Allocation::<u32>::new(1000) {
     // buf.as_ptr() 사용 가능
 }     // ← 자동 dealloc
 ```

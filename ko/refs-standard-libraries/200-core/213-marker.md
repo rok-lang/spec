@@ -191,8 +191,8 @@ trait Drop {
 
 ```rok
 {
-    let f = File::open("data.txt").unwrap();
-    f.read_to_string();
+    let f = try! File::open("data.txt");
+    try! f.read_to_str();
     // ...
 }    // ← scope 끝 — File::drop 자동 호출 (file handle close)
 ```
@@ -216,15 +216,15 @@ trait Drop {
 이 보장이 있어야 비로소 RAII (Resource Acquisition Is Initialization) 패턴이 성립합니다. 따라서 다음 함수에서 `lock` 과 `file` 은, 정상 종료든 에러든 어떤 경로로 함수를 빠져나가더라도 반드시 닫힙니다.
 
 ```rok
-fn process(path: str) {
+fn process(path: str) throws (IoError) {
     let lock = MUTEX.lock();         // mutex 획득
-    let file = File::open(path)?;
+    let file = try File::open(path);
     do_work(file);
     // ↑ 정상 종료 또는 에러 발생 — _어느 경우든_ file.drop() 후 lock.drop()
 }
 ```
 
-또한 panic 이나 `throw` 가 발생한 경우에도 마찬가지입니다. unwinding 단계에서 현재까지 선언된 모든 변수의 `Drop` 이 차례대로 호출됩니다.
+`throw` 로 에러가 전파되어 스코프를 빠져나가는 경우에도 마찬가지입니다. 에러 전파는 값으로 반환하는 일반 경로이므로, 현재까지 선언된 모든 변수의 `Drop` 이 차례대로 호출됩니다. 반면 panic 은 잡을 수 없으며, 표준 에러에 메시지를 출력한 뒤 프로세스를 종료합니다 (종료 코드 101).
 
 ### `Drop` 구현 예
 
@@ -262,12 +262,12 @@ f.drop();                    // ERROR — Drop::drop 직접 호출 금지
 
 따라서 조기에 자원을 닫고 싶다면 `File::close()` 처럼 별도의 메서드를 노출하는 쪽이 옳습니다.
 
-또한 `drop` 본문 안에서 panic 을 일으키는 것은 권장되지 않습니다. 이미 unwinding 중에 또 panic 이 발생하면 double-panic 으로 abort 가 일어나기 때문입니다.
+또한 `drop` 은 `throws` 시그니처를 갖지 않으므로 본문에서 에러를 던질 수 없습니다. `drop` 안에서 panic 이 일어나면 다른 panic 과 마찬가지로 프로세스가 종료됩니다.
 
 ```rok
 impl Drop for X {
     fn drop(ref self) {
-        if some_cond { throw "oops" }    // **권장 안 함**
+        if some_cond { throw "oops" }    // ERROR — drop 은 throws 가 아님
     }
 }
 ```

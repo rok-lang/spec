@@ -37,7 +37,7 @@ impl Path {
     fn join(self, other: Path) -> Path;
     fn with_file_name(self, name: str) -> Path;
     fn with_extension(self, ext: str) -> Path;
-    fn strip_prefix(self, base: Path) -> Result<Path, StripPrefixError>;
+    fn strip_prefix(self, base: Path) throws (StripPrefixError) -> Path;
 
     fn is_absolute(self) -> bool;
     fn is_relative(self) -> bool;
@@ -51,8 +51,8 @@ impl Path {
     fn is_file(self) -> bool;
     fn is_dir(self) -> bool;
     fn is_symlink(self) -> bool;
-    fn metadata(self) -> Result<Metadata, IoError>;
-    fn canonicalize(self) -> Result<Path, IoError>;     // realpath (filesystem 검증)
+    fn metadata(self) throws (IoError) -> Metadata;
+    fn canonicalize(self) throws (IoError) -> Path;     // realpath (filesystem 검증)
 
     fn as_str(self) -> str;
     fn to_raw(self) -> RawPath;
@@ -104,7 +104,7 @@ let home = env::home_dir()? / ".config" / "myapp" / "settings.toml";
 
 ```rok
 let raw: RawPath = ...;
-let p: Result<Path, NonUtf8Error> = Path::try_from(raw);
+let p: Path = try Path::try_from(raw);    // UTF-8 이 아니면 NonUtf8Error 를 throw
 ```
 
 ## 3.8.5. `RawPath` — bytes / WTF-16
@@ -121,7 +121,7 @@ impl RawPath {
     fn as_bytes(self) -> Slice<u8>;                    // unix 만
     fn as_wide(self) -> Slice<u16>;                    // windows 만
 
-    fn try_to_path(self) -> Result<Path, NonUtf8Error>;
+    fn try_to_path(self) throws (NonUtf8Error) -> Path;
     fn to_path_lossy(self) -> Path;
 }
 ```
@@ -139,7 +139,7 @@ impl RawPath {
 
 ```rok
 Path::from("/a/b/../c").normalize();              //→ "/a/c" (lexical)
-Path::from("/a/b/../c").canonicalize()?;          //→ symlink 해석된 절대 경로
+try Path::from("/a/b/../c").canonicalize();       //→ symlink 해석된 절대 경로
 ```
 
 `normalize` 는 빠르고 syscall 을 동반하지 않으므로 90% 의 자리에서 충분히 제 역할을 해냅니다.
@@ -149,8 +149,8 @@ Path::from("/a/b/../c").canonicalize()?;          //→ symlink 해석된 절대
 `Path` 는 WASI Preview 2 의 **capability path** 와도 자연스럽게 통합됩니다.
 
 ```rok
-let dir: Dir = Dir::root().open_dir("data")?;
-let f = dir.open(Path::from("config.toml"))?;
+let dir: Dir = try Dir::root().open_dir("data");
+let f = try dir.open(Path::from("config.toml"));
                                           // Path 가 dir 에 상대적 — escape 거부
 ```
 

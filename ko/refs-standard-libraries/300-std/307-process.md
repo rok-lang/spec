@@ -39,9 +39,9 @@ impl Command {
     fn process_group(self, pgid: i32) -> Command;       // unix
 
     // 실행
-    fn spawn(self) -> Result<Child, IoError>;
-    fn output(self) -> Result<Output, IoError>;          // wait + collect
-    fn status(self) -> Result<ExitStatus, IoError>;      // wait, no output
+    fn spawn(self) throws (IoError) -> Child;
+    fn output(self) throws (IoError) -> Output;          // wait + collect
+    fn status(self) throws (IoError) -> ExitStatus;      // wait, no output
 }
 
 enum Stdio {
@@ -73,15 +73,15 @@ struct Child {
 
 impl Child {
     fn id(self) -> u32;                                  // pid
-    fn kill(self) -> Result<(), IoError>;
-    fn wait(self) -> Result<ExitStatus, IoError>;
-    fn try_wait(self) -> Result<ExitStatus | none, IoError>;
+    fn kill(self) throws (IoError);
+    fn wait(self) throws (IoError) -> ExitStatus;
+    fn try_wait(self) throws (IoError) -> ExitStatus | none;
 
     // pidfd (Linux only) — race-free signal
     #[cfg(target_os = "linux")]
-    fn pidfd(self) -> Result<RawFd, IoError>;
+    fn pidfd(self) throws (IoError) -> RawFd;
 
-    fn signal(self, sig: i32) -> Result<(), IoError>;    // unix
+    fn signal(self, sig: i32) throws (IoError);          // unix
 }
 
 impl ChildStdin { ... }                  // impl Writer
@@ -107,37 +107,37 @@ impl ExitStatus {
 use rok::std::process::{Command, Stdio};
 
 // 단순 실행
-let status = Command::new("ls").arg("-la").status()?;
+let status = try Command::new("ls").arg("-la").status();
 if !status.success() { panic("ls failed") };
 
 // 출력 수집
-let output = Command::new("git")
+let output = try Command::new("git")
     .args(["log", "--oneline", "-10"])
-    .output()?;
-let log = str::from_utf8(output.stdout)?;
+    .output();
+let log = try str::from_utf8(output.stdout);
 
 // pipe 통한 입출력
-let child = Command::new("grep")
+let child = try Command::new("grep")
     .arg("error")
     .stdin(Stdio::Piped)
     .stdout(Stdio::Piped)
-    .spawn()?;
+    .spawn();
 
-child.stdin.unwrap().write_all(input_bytes)?;
-let result = child.stdout.unwrap().read_to_end()?;
-child.wait()?;
+try child.stdin.unwrap().write_all(input_bytes);
+let result = try child.stdout.unwrap().read_to_end();
+try child.wait();
 
 // kill_on_drop — process leak 방지
 {
-    let child = Command::new("long_running")
+    let child = try Command::new("long_running")
         .kill_on_drop(true)
-        .spawn()?;
+        .spawn();
 
-    // panic / early return 시에도 child kill 보장
+    // 에러 전파 / early return 시에도 child kill 보장
 }    // ← Drop 시 자동 kill
 ```
 
-마지막 예시가 보여주듯, `kill_on_drop` 을 켜 두면 panic 이나 조기 return 같은 예기치 못한 흐름에서도 자식이 함께 정리됩니다. 블록을 빠져나가는 순간 Drop 이 호출되어 자동으로 kill 이 걸리기 때문입니다.
+마지막 예시가 보여주듯, `kill_on_drop` 을 켜 두면 에러 전파나 조기 return 같은 예기치 못한 흐름에서도 자식이 함께 정리됩니다. 블록을 빠져나가는 순간 Drop 이 호출되어 자동으로 kill 이 걸리기 때문입니다.
 
 ## 3.7.4. 모던 추가 — pidfd / posix_spawn / CLOEXEC
 
@@ -157,9 +157,9 @@ child.wait()?;
 조금 더 깊은 영역으로 내려가면 신호 처리 함수들이 자리 잡고 있습니다.
 
 ```rok
-fn signal(sig: i32, handler: || -> ()) -> Result<(), SignalError>;
-fn kill(pid: u32, sig: i32) -> Result<(), IoError>;
-fn raise(sig: i32) -> Result<(), IoError>;
+fn signal(sig: i32, handler: || -> ()) throws (SignalError);
+fn kill(pid: u32, sig: i32) throws (IoError);
+fn raise(sig: i32) throws (IoError);
 ```
 
 다만 대부분의 사용자는 이 부분을 직접 만질 일이 없습니다. daemon 이나 서버, interactive CLI 처럼 신호를 정면으로 마주해야 하는 자리에서나 비로소 필요해지는 도구들이라 보면 됩니다.

@@ -153,17 +153,17 @@ User = User { id: 1, name: "Alice" }
 | `Reflect` 자동   | 컴파일러 + `rok::core::reflect`                   | type info table — binary 부착 |
 | `Inspect` derive | `rok::core::reflect` + 메타 블록 `#[impl_derive]` | template token 기반 코드 생성 |
 | `MethodInfo`     | `rok::core::reflect`                              | 단순 struct                   |
-| `any` 타입       | 컴파일러 내장 + `rok::core::reflect::any`         | type tag + payload + vtable   |
+| `any` 타입       | 컴파일러 내장 + `rok::core::reflect::any`         | type tag + payload            |
 
 ## 2.12.6. 다른 언어와의 비교
 
-| 측면               | Rust                         | Java             | Python              | rok                              |
-|--------------------|------------------------------|------------------|---------------------|----------------------------------|
-| 타입 이름          | `std::any::type_name::<T>()` | `getClass()`     | `type(x).__name__`  | `x.type_name_of()` 메서드        |
-| 필드 introspection | **없음** (lib `bincode` 등)  | Reflection API   | `vars(x)` `getattr` | `x.get_field(name)` (opt-in)     |
-| 런타임 dispatch    | `dyn Trait` (vtable)         | 자동             | 자동                | sum type tag + any (opt-in)      |
-| 자동 구현          | **없음**                     | 모든 객체        | 모든 객체           | `Reflect` 자동, `Inspect` opt-in |
-| 메모리 비용        | 0                            | 모든 클래스 메타 | 모든 객체 dict      | `Reflect` 만 자동 (opt-in 분리)  |
+| 측면               | Rust                         | Java             | Python              | rok                                         |
+|--------------------|------------------------------|------------------|---------------------|---------------------------------------------|
+| 타입 이름          | `std::any::type_name::<T>()` | `getClass()`     | `type(x).__name__`  | `x.type_name_of()` 메서드                   |
+| 필드 introspection | **없음** (lib `bincode` 등)  | Reflection API   | `vars(x)` `getattr` | `x.get_field(name)` (opt-in)                |
+| 런타임 dispatch    | `dyn Trait` (vtable)         | 자동             | 자동                | sum type tag + `any` / `any Trait` (opt-in) |
+| 자동 구현          | **없음**                     | 모든 객체        | 모든 객체           | `Reflect` 자동, `Inspect` opt-in            |
+| 메모리 비용        | 0                            | 모든 클래스 메타 | 모든 객체 dict      | `Reflect` 만 자동 (opt-in 분리)             |
 
 rok 의 가장 큰 차이점은 두 가지입니다. 첫째, 두 단계로 분리되어 있어 가벼운 `Reflect` 는 자동으로 제공되고 무거운 `Inspect` 는 opt-in 으로 제공됩니다. 이는 Java 나 Python 의 전부 자동 모델보다 메모리 효율이 좋고, Rust 의 전부 수동 모델보다 ergonomic 합니다. 둘째, 메서드 일관성을 유지하여 `typeof(x)` 같은 글로벌 함수가 **없으며**, 모든 introspection 이 메서드 형태로 제공됩니다.
 

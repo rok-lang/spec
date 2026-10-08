@@ -41,10 +41,10 @@ rok 의 가장 큰 구조적 우위가 여기 있습니다. [task](../200-core/2
 
 ```rok
 // rok 식 — sync 처럼 보이지만 task 안에서 blocking 안 함
-fn fetch(url: str) -> Result<str, NetError> {
-    let conn = net::tcp_connect(url)?;       // suspend (parking)
-    let bytes = conn.read_all()?;             // suspend
-    Ok(parse(bytes))
+fn fetch(url: str) throws (NetError) -> str {
+    let conn = try net::tcp_connect(url);    // suspend (parking)
+    let bytes = try conn.read_all();          // suspend
+    parse(bytes)
 }
 
 task::spawn { fetch("...") };
@@ -77,11 +77,11 @@ TLS 1.3 는 **보안 critical** 영역입니다. 모든 앱이 TLS 를 새로 �
 ```rok
 use rok::std::net::tls;
 
-let conn = net::tcp_connect("example.com:443")?;
-let tls_conn = tls::Client::new(conn, "example.com")?;
+let conn = try net::tcp_connect("example.com:443");
+let tls_conn = try tls::Client::new(conn, "example.com");
 let req = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
-tls_conn.write_all(req)?;
-let resp = tls_conn.read_all()?;
+try tls_conn.write_all(req);
+let resp = try tls_conn.read_all();
 ```
 
 backend 로는 rustls 또는 aws-lc-rs 식을 상정합니다 (memory-safe, no OpenSSL FFI).
@@ -96,10 +96,10 @@ WASI Preview 2 의 pre-opened directory handle 모델을 따릅니다. 모든 fs
 use rok::std::fs::{Dir, File};
 
 let root: Dir = Dir::root();                  // capability — process 시작 시
-let data_dir: Dir = root.open_dir("data")?;   // sub-cap
+let data_dir: Dir = try root.open_dir("data"); // sub-cap
 
-let f: File = data_dir.open("config.toml")?;
-let bytes = f.read_to_end()?;
+let f: File = try data_dir.open("config.toml");
+let bytes = try f.read_to_end();
 ```
 
 이 모델의 장점은 세 가집니다. 첫째, TOCTOU 를 회피합니다 — `open_dir` 후 `open` 이 race-free 다. 둘째, 샌드박스가 자연스럽습니다 — 자식 task 에 **좁은 Dir** 만 전달하면 됩니다. 셋째, WASI 와 호환됩니다 — 같은 코드가 native 와 WASI 양쪽에서 동작합니다.
@@ -125,15 +125,16 @@ let full = Path::from("/etc") / "nginx" / "nginx.conf";
 
 자세한 비교와 권위 근거는 [3.8 path](308-path.md) 에서 다룹니다.
 
-### 6. 모든 I/O 가 `Result<T, IoError>`
+### 6. 모든 I/O 가 `throws (IoError)`
 
-panic 은 거의 발생하지 않습니다 (OOM 외). file not found, permission denied, network failure 어느 쪽이든 모두 `Result` 로 반환되며, `?` 연산자로 자연스럽게 체이닝할 수 있습니다.
+panic 은 거의 발생하지 않습니다 (OOM 외). file not found, permission denied, network failure 어느 쪽이든 모두 `throws (IoError)` 시그니처로 던져지며, 호출을 `try` 로 표시해 자연스럽게 전파할 수 있습니다. 에러 타입 사이의 자동 변환은 없으므로, 다른 에러 타입으로 바꾸려면 `catch` 에서 감싸 다시 던집니다.
 
 ```rok
-fn load_config() -> Result<Config, ConfigError> {
-    let bytes = fs::read("config.toml")?;       // IoError → ConfigError (From 변환)
-    let cfg = parse(bytes)?;
-    Ok(cfg)
+fn load_config() throws (ConfigError) -> Config {
+    let bytes = try fs::read("config.toml") catch e: IoError {
+        throw ConfigError::Io(e);              // IoError → ConfigError (명시 변환)
+    };
+    try parse(bytes)
 }
 ```
 

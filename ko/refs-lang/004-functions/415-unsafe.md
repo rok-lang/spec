@@ -95,15 +95,15 @@ unsafe {
 
 ```rok
 // 권장 — 좁은 unsafe scope
-fn safe_wrapper(p: Ptr<i32>) -> i32 {
-    let validated = check_ptr(p)?;
+fn safe_wrapper(p: Ptr<i32>) throws -> i32 {
+    let validated = try check_ptr(p);
     unsafe { validated.read() }    // 위험 동작만 unsafe
 }
 
 // 비권장 — 넓은 unsafe scope
-fn safe_wrapper(p: Ptr<i32>) -> i32 {
+fn safe_wrapper(p: Ptr<i32>) throws -> i32 {
     unsafe {
-        let validated = check_ptr(p)?;
+        let validated = try check_ptr(p);
         validated.read()
     }
 }

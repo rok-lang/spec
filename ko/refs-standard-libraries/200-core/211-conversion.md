@@ -11,7 +11,7 @@ rok 은 변환의 **의도** 에 따라 네 갈래로 분리해 다룹니다. �
 | 갈래         | 메서드                              | 의미                                  | 실패 시                     |
 |--------------|-------------------------------------|---------------------------------------|-----------------------------|
 | **lossless** | `.into::<T>()`                      | 정보 손실 0 — 항상 성공               | 컴파일 / 런타임 에러        |
-| **fallible** | `.try_into::<T>()`                  | 손실 가능 — 호출자가 처리             | `Result<T, OverflowError>`  |
+| **fallible** | `.try_into::<T>()`                  | 손실 가능 — 호출자가 처리             | `throws (OverflowError)`    |
 | **saturate** | `.saturating_into::<T>()`           | 범위 밖이면 i32::MAX / MIN 으로 clamp | 명시 saturate (사용자 선택) |
 | **bit**      | `.wrapping_into::<T>()` 또는 `as T` | bit 재해석 — 모듈러 산술 / 비트 패턴  | 명시 wrap (사용자 선택)     |
 
@@ -89,7 +89,7 @@ let small: i32 = big.into();   // 컴파일 에러 — From<i64> for i32 없음
 이 경우에는 `try_into`, `saturating_into`, `as` 중 하나를 명시적으로 선택해야 합니다.
 
 ```rok
-let small: i32 = big.try_into()?;          // Result, 호출자 처리
+let small: i32 = try big.try_into();       // throws, 호출자 처리
 let small: i32 = big.saturating_into();    // saturate 명시
 let small: i32 = big as i32;               // wrap 명시
 ```
@@ -98,19 +98,17 @@ let small: i32 = big as i32;               // wrap 명시
 
 ```rok
 trait TryFrom<U> {
-    fn try_from(value: U) -> Self | OverflowError;
+    fn try_from(value: U) throws (OverflowError) -> Self;
 }
 ```
 
-`try_from` 은 변환이 실패할 수 있다는 사실을 시그니처에서 직접 표현합니다. 합 타입 (`Self | OverflowError`) 을 반환하므로 사용자가 `match` 또는 `?` 로 처리할 수 있습니다.
+`try_from` 은 변환이 실패할 수 있다는 사실을 시그니처에서 직접 표현합니다. `throws (OverflowError)` 시그니처를 가지므로 사용자는 호출을 `try` 로 표시해 전파하거나, `catch` 로 처리하거나, `try?` 로 `T | none` 을 받을 수 있습니다.
 
 ```rok
 let big: i64 = 9999999999;
-let small_result: i32 = i32::try_from(big)?;     // ? 로 propagate
-let small_match = match i32::try_from(big) {
-    v: i32 => v,
-    e: OverflowError => default,
-};
+let small_result: i32 = try i32::try_from(big);  // try 로 전파
+let small_catch: i32 = try i32::try_from(big) catch e: OverflowError { default };
+let small_opt: i32 | none = try? i32::try_from(big);
 ```
 
 ### `TryInto<T>` 자동 mirror
@@ -118,7 +116,7 @@ let small_match = match i32::try_from(big) {
 `From` ↔ `Into` 와 동일한 패턴이 적용됩니다. 즉 `TryFrom<U> for T` 가 impl 되면 `TryInto<T> for U` 도 자동으로 구현됩니다.
 
 ```rok
-let small: i32 = big.try_into()?;        // = i32::try_from(big)?
+let small: i32 = try big.try_into();     // = try i32::try_from(big)
 ```
 
 ## 2.11.5. `saturating_into` / `wrapping_into` — 명시 정책
@@ -297,13 +295,13 @@ let f: Fahrenheit = c.into();   //→ Fahrenheit { degree: 212.0 }
 
 ```rok
 impl TryFrom<str> for i32 {
-    fn try_from(s: str) -> i32 | OverflowError {
-        // s 가 i32 range 안의 정수 string 이면 some, 아니면 OverflowError
+    fn try_from(s: str) throws (OverflowError) -> i32 {
+        // s 가 i32 range 안의 정수 string 이면 그 값, 아니면 OverflowError 를 throw
         ...
     }
 }
 
-let n: i32 = "42".try_into()?;
+let n: i32 = try "42".try_into();
 ```
 
 ## 2.11.10. 산술 결과의 자동 변환 — 없음

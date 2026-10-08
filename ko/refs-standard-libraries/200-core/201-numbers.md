@@ -417,7 +417,7 @@ fixed primitive 와 `int` 사이의 변환은 명시적으로만 가능합니다
 | 변환                     | 메서드                                | 실패 시                      |
 |--------------------------|---------------------------------------|------------------------------|
 | `i32` → `int`            | `.into::<int>()` 또는 `int::from_i32` | 항상 성공 (lossless)         |
-| `int` → `i32`            | `.try_into::<i32>()`                  | `Result<i32, OverflowError>` |
+| `int` → `i32`            | `.try_into::<i32>()`                  | `OverflowError` 를 throw     |
 | `int` → `i32` (saturate) | `.saturating_into::<i32>()`           | i32::MIN 또는 MAX            |
 | `int` → `i32` (wrap)     | `.wrapping_into::<i32>()`             | 모듈러 산술                  |
 | `int` → `f64`            | `.into::<f64>()` 또는 `int::to_f64`   | 정밀도 손실 가능 (round)     |

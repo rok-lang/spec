@@ -55,62 +55,31 @@ GC 객체 포인터는 플랫폼이 사용하는 일반 포인터와 동일한 A
 
 이 등록 작업은 `llvm.gcroot` intrinsic 을 통해 자동으로 처리됩니다.
 
-## 8.6.5. Setjmp / Longjmp: 예외 처리
+## 8.6.5. throwing 함수의 반환: 값 기반 에러 전달
 
-[에러 제어 흐름](../003-expressions/314-error-control-flow.md) 에서 다루는 `try` / `catch` / `throw` 는 `setjmp` / `longjmp` 또는 LLVM 의 EH intrinsic 을 사용하여 구현하고 있습니다.
-
-### 옵션 A: setjmp / longjmp
+[`throws` 시그니처](../004-functions/414-throws.md) 를 가진 함수는 에러를 반환값의 일부로 돌려줍니다. 별도의 unwinding 메커니즘이나 런타임 심볼은 사용하지 않습니다.
 
 ```
-try { body } catch e: T { handler }
+fn f(args) throws (E) -> T
 ```
 
-위 구문은 다음과 같이 lowering 됩니다.
+위 함수의 ABI 상 반환 타입은 다음 두 필드의 `struct` 입니다.
 
 ```mlir
-; jmp_buf 할당
-%jbuf = alloca jmp_buf
-
-; setjmp
-%r = call i32 @setjmp(jmp_buf* %jbuf)
-%is_normal = icmp eq i32 %r, 0
-br i1 %is_normal, label %try_body, label %catch
-
-try_body:
-  ; ... body ...
-  br label %end
-
-catch:
-  ; e 를 받아 handler 실행
-  ; ...
-  br label %end
-
-end:
+!Throws_T_E = !llvm.struct<(i1, !Payload_T_E)>
+; 필드 0: is_err — 0 이면 성공, 1 이면 에러
+; 필드 1: payload — union(T, E). is_err 가 0 이면 T, 1 이면 E 로 해석
 ```
 
-`throw expr` 의 경우는 다음과 같습니다.
+payload 는 `T` 와 `E` 가운데 큰 쪽의 크기와 정렬을 갖는 union 입니다. `T` 가 unit 이면 payload 는 `E` 만 담습니다. 에러 채널은 시그니처로 구분되므로 `T` 와 `E` 가 같은 타입이어도 문제가 없습니다. untyped `throws` (`throws (any Error)`) 의 `E` 는 [`any`](../002-types/202-any-slot.md) 와 같은 tag + payload 표현의 `any Error` 값입니다 ([8.8](808-lowering-types.md)).
 
-```mlir
-call void @rok_throw(i8* %exception)
-; 가장 가까운 jmp_buf 로 longjmp
-```
+이 `struct` 는 다른 반환값과 똑같이 플랫폼 C ABI 로 전달됩니다. 8.6.3 의 한계 이내이면 레지스터로, 초과하면 sret 으로 돌려줍니다. 호출 지점의 `try` 는 필드 0 을 검사해 분기하며, 자세한 lowering 은 [8.9.6](809-lowering-control.md#896-try--catch--finally-값-기반-분기) 에서 정의합니다.
 
-자세한 메커니즘은 `rokr` (facade) 가 제공하는 `rok_throw` 구현에서 다루고 있습니다.
+이 방식은 다음과 같은 이유로 채택되었습니다.
 
-### 옵션 B: LLVM EH intrinsic
-
-LLVM 의 `invoke` / `landingpad` / `personality function` 을 사용하는 방식이며, 이는 C++ 의 EH 방식과 동일합니다.
-
-장점은 정상 흐름에서 비용이 발생하지 않는 zero-cost happy path 라는 점입니다.
-반면 단점으로는 DWARF 나 플랫폼 EH 인프라가 필요하다는 점을 들 수 있습니다.
-
-### rok 의 선택
-
-rok 은 ClangIR (`cir.eh.setjmp` 패턴) 을 따라 setjmp / longjmp 를 우선적으로 채택하고 있습니다. 그 이유는 다음과 같습니다.
-
-- 모든 플랫폼에서 작동합니다 (특히 WASM 환경에서도 사용할 수 있습니다).
-- Shadow stack 과 자연스럽게 공존합니다 (longjmp 시 shadow stack 도 함께 unwind 됩니다).
-- 평균 비용은 정상 흐름에서 setjmp 한 번 정도에 그칩니다.
+- 모든 플랫폼에서 같은 방식으로 동작합니다 (WASM 을 포함하며, DWARF 나 플랫폼 EH 인프라가 필요 없습니다).
+- [shadow stack](../000-meta/007-glossary.md#shadow-stack) 과 충돌하지 않습니다. 에러도 일반 반환 경로로 frame 을 빠져나가므로, frame 마다 shadow stack 을 정상적으로 pop 합니다.
+- 에러가 나지 않는 경로의 비용은 반환 후 분기 하나뿐이며, `try` 나 `catch` 에 진입하는 비용은 없습니다.
 
 ## 8.6.6. Calling convention 의 rok 변형: 없음
 
@@ -193,4 +162,4 @@ let r = await f;             // 코루틴 메커니즘
 
 본 calling convention 은 플랫폼 C ABI 를 따르고 있으므로, 별도의 안정성 결정을 두지 않습니다. 플랫폼이 호환을 보장하는 범위 안에서 rok 또한 호환을 유지합니다.
 
-setjmp / longjmp 메커니즘은 런타임 ABI 의 일부이며, 변경이 필요한 경우 [개요](README.md) 의 안정성 정책을 따릅니다.
+throwing 함수의 반환값 레이아웃 (8.6.5) 은 런타임 ABI 의 일부이며, 변경이 필요한 경우 [개요](README.md) 의 안정성 정책을 따릅니다.

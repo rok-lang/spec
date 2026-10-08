@@ -36,11 +36,11 @@ impl Builder {
     fn new() -> Builder;
     fn name(self, name: str) -> Builder;
     fn stack_size(self, size: usize) -> Builder;
-    fn spawn<F: Fn() -> T, T>(self, f: F) -> Result<JoinHandle<T>, IoError>;
+    fn spawn<F: Fn() -> T, T>(self, f: F) throws (IoError) -> JoinHandle<T>;
 }
 
 impl<T> JoinHandle<T> {
-    fn join(self) -> Result<T, JoinError>;
+    fn join(self) throws (JoinError) -> T;
     fn thread(self) -> ref Thread<T>;
 }
 
@@ -72,13 +72,13 @@ use rok::std::thread;
 let h = thread::spawn(|| {
     heavy_blocking_work()
 });
-let result = h.join()?;
+let result = try h.join();
 
 // builder
-let h = thread::Builder::new()
+let h = try thread::Builder::new()
     .name("worker-1")
     .stack_size(4 * 1024 * 1024)
-    .spawn(|| { ... })?;
+    .spawn(|| { ... });
 
 // 다중
 let handles: List<JoinHandle<i64>> = (0..10)
@@ -87,7 +87,7 @@ let handles: List<JoinHandle<i64>> = (0..10)
 
 let results: List<i64> = handles
     .into_iter()
-    .map(|h| h.join().unwrap())
+    .map(|h| try! h.join())
     .collect();
 ```
 

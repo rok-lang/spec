@@ -12,7 +12,7 @@ Unsafe tier 는 저수준이거나 위험한 영역에 속하는 표준 라이�
 use rok::bare::ptr::Ptr;                              // 명시 import 필수 — 위험 시그널
 use rok::bare::alloc::{alloc, Layout};
 
-let layout = Layout::array::<u8>(1024).unwrap();
+let layout = try! Layout::array::<u8>(1024);
 let p: Ptr<u8> = unsafe { alloc(layout) };
 ```
 

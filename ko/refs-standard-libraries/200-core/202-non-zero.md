@@ -242,8 +242,9 @@ let nz: NonZero<i32> = NonZero::new_unchecked(n);
 // T → wrapper (fallible)
 impl<T: Primitive> TryFrom<T> for NonZero<T> {
     type Error = ZeroError;
-    fn try_from(v: T) -> Result<NonZero<T>, ZeroError> {
-        NonZero::new(v).ok_or(ZeroError)
+    fn try_from(v: T) throws (ZeroError) -> NonZero<T> {
+        let nz: NonZero<T> = NonZero::new(v) else { throw ZeroError; };
+        nz
     }
 }
 
@@ -257,7 +258,7 @@ impl<T: Primitive> From<NonZero<T>> for T {
 
 ```rok
 let n: i32 = 42;
-let nz: NonZero<i32> = n.try_into()?;      // Result<NonZero<i32>, ZeroError>
+let nz: NonZero<i32> = try n.try_into();   // 0 이면 ZeroError 를 throw
 
 let nz: NonZero<i32> = NonZero::new(7).unwrap();
 let v: i32 = nz.into();                    // lossless

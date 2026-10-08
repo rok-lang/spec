@@ -186,14 +186,12 @@ let r = await db.query("SELECT ...");
 
 ## 4.12.14. 에러 처리
 
-비동기 함수에서도 [에러 제어 흐름](../003-expressions/314-error-control-flow.md) 의 `try`, `catch`, `throw`, `finally` 를 그대로 사용할 수 있습니다. `throws` 시그니처와의 결합은 [`throws` 시그니처](414-throws.md) 에서 다룹니다.
+비동기 함수에서도 [에러 제어 흐름](../003-expressions/314-error-control-flow.md) 의 `try`, `catch`, `throw`, `finally` 를 그대로 사용할 수 있습니다. throwing `async` 함수의 에러는 `await` 지점에서 전달되므로, `await` 식을 `try` 로 덮습니다 (`try await fetch()`). `throws` 시그니처와의 결합은 [`throws` 시그니처](414-throws.md) 에서 다룹니다.
 
 ```rok
 async fn safe_fetch() throws -> Data {
-    try {
-        await fetch_or_throw()
-    } catch e: NetworkError {
-        await fetch_fallback()
+    try await fetch_or_throw() catch e: NetworkError {
+        try await fetch_fallback()
     }
 }
 ```

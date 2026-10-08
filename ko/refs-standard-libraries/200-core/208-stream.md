@@ -32,7 +32,7 @@ for await x in stream { body }
 
 ```rok
 loop {
-    match stream.poll_next(&CURRENT_CONTEXT).await {
+    match stream.poll_next(ref CURRENT_CONTEXT).await {
         Some(v) => { let x = v; body; }
         none => break,
     }
@@ -60,7 +60,7 @@ trait IntoStream {
 for await event in event_source { ... }
 // = let __s = event_source.into_stream();
 //   loop {
-//       match __s.poll_next(&CTX).await {
+//       match __s.poll_next(ref CTX).await {
 //           Some(e) => { let event = e; body; }
 //           none => break,
 //       }

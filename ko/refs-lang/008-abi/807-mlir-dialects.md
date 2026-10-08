@@ -15,7 +15,7 @@
 | `memref`   | 스택 / 힙 메모리 참조                    | 객체 / 배열 lowering                                                    |
 | `index`    | memref 인덱싱                            | 인덱싱 lowering                                                         |
 | `math`     | 수학 함수                                | sqrt / sin / cos 등                                                     |
-| `llvm`     | 저수준 op (intrinsic, `struct`, setjmp)  | [GC](../000-meta/007-glossary.md#gc-garbage-collector) / coroutine / EH |
+| `llvm`     | 저수준 op (intrinsic, `struct`)          | [GC](../000-meta/007-glossary.md#gc-garbage-collector) / coroutine      |
 
 별도의 커스텀 rok 다이얼렉트는 두지 않습니다. 일반 rok 코드의 의미는 위에 나열한 여덟 개의 표준 다이얼렉트로 표현되며, 가속 라이브러리가 추가로 활용하는 다이얼렉트는 8.7.5 에서 다룹니다.
 
@@ -133,12 +133,11 @@ LLVM 다이얼렉트는 어디까지나 마지막 수단으로 두고, 다른 �
 ```
 llvm.gcroot
 llvm.coro.id / llvm.coro.alloc / llvm.coro.begin / ...
-llvm.call @setjmp / @longjmp
 llvm.struct<(...)>
 llvm.intr.expect / llvm.intr.assume
 ```
 
-GC 와 coroutine, 예외 처리, 그리고 저수준 intrinsic 등은 모두 `llvm` 다이얼렉트의 영역에 속합니다.
+GC 와 coroutine, 그리고 저수준 intrinsic 등은 모두 `llvm` 다이얼렉트의 영역에 속합니다. 에러 전달은 반환값과 일반 분기로 표현되므로 ([8.9.6](809-lowering-control.md#896-try--catch--finally-값-기반-분기)) `llvm` 다이얼렉트의 특수 기능을 쓰지 않습니다.
 
 ## 8.7.4. 다이얼렉트 사용 우선순위
 

@@ -66,7 +66,7 @@ use rok::core::ops::{Add, Sub};
 
 ### 에러 / 문자열
 
-- [2.14. 에러 (`Result`, `Option` (제거), `TypeError`, `ValueError`, `IndexError`, `OverflowError`)](214-error.md)
+- [2.14. 에러 (`Error`, `Result` (보관용), `Option` (제거), `TypeError`, `ValueError`, `IndexError`, `OverflowError`)](214-error.md)
 - [2.15. 문자열 (`str` 가변 단일, `char`, `c_char`)](215-string.md)
 
 ### 동시성 / 비동기

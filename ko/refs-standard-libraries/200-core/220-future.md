@@ -1,6 +1,6 @@
 # 2.20. future — `Future` / `await` 통합
 
-`rok::core::future` 모듈은 async 메커니즘의 권위 트레잇을 제공합니다. `await expr` 의 desugar 는 이 장에서 정의하는 `Future` 트레잇 dispatch 로 lower 됩니다. 이 장은 48 개의 lang slot 가운데 `future_trait` 를 정의하는 자리이기도 합니다.
+`rok::core::future` 모듈은 async 메커니즘의 권위 트레잇을 제공합니다. `await expr` 의 desugar 는 이 장에서 정의하는 `Future` 트레잇 dispatch 로 lower 됩니다. 이 장은 46 개의 lang slot 가운데 `future_trait` 를 정의하는 자리이기도 합니다.
 
 ## 2.20.1. `Future<T>` — async 결과
 
@@ -57,7 +57,7 @@ let v = some_future.await;
 
 ```rok
 let v = loop {
-    match some_future.poll(&CURRENT_CONTEXT) {
+    match some_future.poll(ref CURRENT_CONTEXT) {
         Ready(v)  => break v,
         Pending   => yield_to_scheduler(),
     }

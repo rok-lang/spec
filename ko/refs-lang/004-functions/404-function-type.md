@@ -15,6 +15,16 @@ fn() -> ()
 
 기본적으로 `fn` 키워드 뒤에 괄호로 둘러싼 매개변수 타입 목록이 오고, 그 뒤로 `->` 와 반환 타입이 따라옵니다. 이때 매개변수 이름은 적지 않고 타입만 기재한다는 점에 유의합니다. 또한 반환 타입을 생략하면 unit 으로 간주되므로, `fn(i32, i32)` 는 사실상 `fn(i32, i32) -> ()` 와 동일하게 취급됩니다.
 
+에러를 던질 수 있는 함수의 타입은 함수 선언과 같은 자리에 [`throws`](414-throws.md) 를 적습니다.
+
+```rok
+fn(str) throws -> i32               // untyped — throws (any Error)
+fn(str) throws (ParseError) -> i32  // typed
+fn(Path) throws (IOError)           // 반환 타입 생략 — unit
+```
+
+`throws` 는 함수 타입의 일부이므로, throwing 함수 타입의 값을 호출할 때에도 `try` 로 표시해야 합니다. `rethrows` 는 함수 선언에만 쓰며 함수 타입에는 쓰지 않습니다.
+
 ## 4.4.2. 함수 / 클로저 값의 타입
 
 함수든 클로저든 모두 같은 형식의 함수 타입으로 표현됩니다.
@@ -109,6 +119,18 @@ let f: fn(i32 | f64) -> i32 = |x: i32| x;     // ERROR — 매개변수 타입�
 ```
 
 다시 한번 강조하면 매개변수와 반환 타입은 정확히 일치해야 합니다.
+
+예외는 4.4.8 의 divergent 반환과 에러 채널뿐입니다. 매개변수와 반환 타입이 같다면, 던지는 에러가 더 적은 함수 값은 더 많이 던질 수 있는 함수 타입 자리에 넣을 수 있습니다. 에러 채널은 값의 표현을 바꾸지 않고 호출 지점의 처리 의무만 늘리기 때문입니다.
+
+```rok
+fn parse_typed(s: str) throws (ParseError) -> i32 { ... }
+
+let p: fn(str) throws (ParseError) -> i32 = |s| s.len() as i32;   // OK — non-throwing → throwing
+let q: fn(str) throws -> i32 = parse_typed;   // OK — throws (ParseError) → throws (any Error)
+let r: fn(str) -> i32 = parse_typed;          // ERROR — throwing → non-throwing
+```
+
+`throws (A)` 함수 값은 `throws (A | B)` 자리에 넣을 수 있고, `A` 가 `Error` 를 구현하면 untyped `throws` 자리에도 넣을 수 있습니다.
 
 이러한 결정의 동기는 명시성을 우선시하는 데 있습니다. 함수 변환은 [형 변환](../002-types/214-cast-and-conversion.md) 의 명시적인 형태로 사용자가 직접 적도록 하는 것이 rok 의 방침입니다.
 

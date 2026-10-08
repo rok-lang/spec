@@ -12,7 +12,7 @@
 fn spawn<F: Fn() -> T, T>(f: F) -> Task<T>;
 fn race<T>(tasks: List<Task<T>>) -> T;                  // 첫 완료 task 결과
 fn join<T>(tasks: List<Task<T>>) -> List<T>;            // 모두 완료 후
-fn timeout<T>(dur: Duration, task: Task<T>) -> Result<T, TimeoutError>;
+fn timeout<T>(dur: Duration, task: Task<T>) throws (TimeoutError) -> T;
 fn yield_now();
 fn sleep(dur: Duration);
 fn sleep_until(when: Instant);

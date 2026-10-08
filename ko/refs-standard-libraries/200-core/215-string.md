@@ -2,7 +2,7 @@
 
 `rok::core::str` 모듈은 문자열과 문자 타입의 권위 정의를 제공합니다. rok 은 **UTF-8 우선** 정책을 채택하고 있어서, 모든 in-process 문자열은 UTF-8 로 다루며, FFI 경계에서만 `c_char` 를 사용합니다.
 
-이 장은 48 개의 lang slot 중 세 개를 정의합니다. 첫째로 `str_type` 은 `rok::core::str::str` 에 연결되며 언어 기본값에 해당하는 lowercase struct 입니다. 둘째로 `char_type` 은 `rok::core::str::Char` 에 연결되며 표준 라이브러리 추가 타입으로 `#[keyword("char")]` 가 부착됩니다. 셋째로 `cchar_type` 은 `rok::core::str::c_char` 에 연결되며 마찬가지로 언어 기본값입니다.
+이 장은 46 개의 lang slot 중 세 개를 정의합니다. 첫째로 `str_type` 은 `rok::core::str::str` 에 연결되며 언어 기본값에 해당하는 lowercase struct 입니다. 둘째로 `char_type` 은 `rok::core::str::Char` 에 연결되며 표준 라이브러리 추가 타입으로 `#[keyword("char")]` 가 부착됩니다. 셋째로 `cchar_type` 은 `rok::core::str::c_char` 에 연결되며 마찬가지로 언어 기본값입니다.
 
 ## 2.15.1. 단일 가변 문자열 모델 — `str`
 
@@ -48,7 +48,7 @@ struct str {
 impl str {
     fn new() -> str;                        // 빈 문자열
     fn with_capacity(cap: usize) -> str;
-    fn from_utf8(bytes: List<u8>) -> Result<str, Utf8Error>;
+    fn from_utf8(bytes: List<u8>) throws (Utf8Error) -> str;
 
     fn len(self) -> usize;                  // byte 길이
     fn is_empty(self) -> bool;
@@ -88,7 +88,7 @@ impl str {
     fn to_uppercase(self) -> str;
     fn replace(self, from: str, to: str) -> str;
 
-    fn parse<T: FromStr>(self) -> Result<T, T::Err>;
+    fn parse<T: FromStr>(self) throws (T::Err) -> T;
 
     // UTF-8 안전 slicing — byte boundary 검증
     // (s[a:b] desugar 가 본 메서드 dispatch)
@@ -198,7 +198,7 @@ let e: char = '😀';                  //→ U+1F600
 c.to_lowercase();                    //→ 'a'  (Unicode 변환)
 c.is_alphabetic();                   //→ true
 c.is_ascii();                        //→ true
-'1'.to_digit(10);                    //→ 1 (Result<u32, _>)
+try '1'.to_digit(10);                //→ 1 (u32, 실패 시 throw)
 c.len_utf8();                        //→ 1 (UTF-8 인코딩 시 byte 수)
 e.len_utf8();                        //→ 4
 ```
@@ -206,12 +206,12 @@ e.len_utf8();                        //→ 4
 ### 변환
 
 ```rok
-char::from_u32(0x41);                //→ 'A' (Result, surrogate 거부)
+try char::from_u32(0x41);            //→ 'A' (surrogate 는 throw 로 거부)
 char::from_digit(5, 10);             //→ '5'
 
 let n: u32 = c as u32;               //→ 65 (lossless)
 let c2: char = n as char;            //→ ERROR — `as` 거부 (try_into 권장)
-let c3 = char::try_from(n)?;         //→ Result<char, _>
+let c3 = try char::try_from(n);      //→ char (실패 시 throw)
 ```
 
 ### 트레잇 구현
@@ -265,7 +265,7 @@ prefix `c'...'` 형태를 사용하여 char 와 분리합니다.
 
 ## 2.15.6. UTF-8 invariant — 모든 in-process 문자열
 
-`str` 는 항상 UTF-8 valid 임이 보장되며, 그 근거는 다음과 같습니다. 우선 생성자가 검증을 수행하므로 `str::from_utf8(bytes)` 는 `Result` 를 반환합니다. 다음으로 슬라이싱이 byte boundary 를 검증하여 멀티바이트 시퀀스 중간을 거부합니다. 또한 `push` 나 `insert` 같은 in-place 수정 역시 UTF-8 무결성을 보장합니다. 마지막으로 `rok::bare::str_from_bytes_unchecked` 만이 검증을 우회할 수 있으며 이는 unsafe tier 에 속합니다.
+`str` 는 항상 UTF-8 valid 임이 보장되며, 그 근거는 다음과 같습니다. 우선 생성자가 검증을 수행하므로 `str::from_utf8(bytes)` 는 잘못된 바이트열에 대해 `Utf8Error` 를 던집니다 (`throws (Utf8Error)`). 다음으로 슬라이싱이 byte boundary 를 검증하여 멀티바이트 시퀀스 중간을 거부합니다. 또한 `push` 나 `insert` 같은 in-place 수정 역시 UTF-8 무결성을 보장합니다. 마지막으로 `rok::bare::str_from_bytes_unchecked` 만이 검증을 우회할 수 있으며 이는 unsafe tier 에 속합니다.
 
 ### 검증 우회의 이유
 
@@ -277,12 +277,12 @@ UTF-8 invariant 가 **깨지면** 어떤 문제가 생기는지 살펴볼 필요
 
 ```rok
 let bytes: List<u8> = [0x68, 0x65, 0x6C, 0x6C, 0x6F];
-let s: Result<str, Utf8Error> = str::from_utf8(bytes);
-                                          //→ Ok("hello")
+let s: str = try str::from_utf8(bytes);
+                                          //→ "hello"
 
 let invalid: List<u8> = [0xFF, 0xFE];
-let s: Result<str, Utf8Error> = str::from_utf8(invalid);
-                                          //→ Err(Utf8Error { ... })
+let s: str = try str::from_utf8(invalid);
+                                          //→ throw Utf8Error { ... }
 ```
 
 ## 2.15.7. `FromStr` 트레잇 — 파싱
@@ -290,23 +290,23 @@ let s: Result<str, Utf8Error> = str::from_utf8(invalid);
 ```rok
 trait FromStr {
     type Err;
-    fn from_str(s: str) -> Result<Self, Err>;
+    fn from_str(s: str) throws (Err) -> Self;
 }
 ```
 
 `str.parse::<T>()` 호출은 이 트레잇을 통해 dispatch 됩니다.
 
 ```rok
-let n: i32 = "42".parse()?;            // FromStr for i32
-let f: f64 = "3.14".parse()?;          // FromStr for f64
-let b: bool = "true".parse()?;         // FromStr for bool
+let n: i32 = try "42".parse();         // FromStr for i32
+let f: f64 = try "3.14".parse();       // FromStr for f64
+let b: bool = try "true".parse();      // FromStr for bool
 
 // 사용자 정의
 impl FromStr for Color {
     type Err = ParseColorError;
-    fn from_str(s: str) -> Result<Color, ParseColorError> { ... }
+    fn from_str(s: str) throws (ParseColorError) -> Color { ... }
 }
-let c: Color = "red".parse()?;
+let c: Color = try "red".parse();
 ```
 
 `FromStr` 은 [2.11 conversion](211-conversion.md) 의 `TryFrom<str>` 와 **별개** 입니다. `str → T` 변환만 다루며 fallible 함을 명시적으로 드러낸다는 차이가 있습니다.

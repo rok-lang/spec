@@ -23,9 +23,9 @@ fn channel_bounded<T>(cap: usize) -> (Sender<T>, Receiver<T>);
 let (tx, rx) = channel::<i32>();
 
 task::spawn {
-    tx.send(1);
-    tx.send(2);
-    tx.send(3);
+    try tx.send(1);
+    try tx.send(2);
+    try tx.send(3);
 };
 
 while let v: i32 = rx.recv() {
@@ -42,8 +42,8 @@ struct Sender<T> { /* ... */ }
 struct Receiver<T> { /* ... */ }
 
 impl<T> Sender<T> {
-    fn send(self, value: T) -> Result<(), SendError<T>>;
-    fn try_send(self, value: T) -> Result<(), TrySendError<T>>;
+    fn send(self, value: T) throws (SendError<T>);
+    fn try_send(self, value: T) throws (TrySendError<T>);
     fn clone(self) -> Sender<T>;             // 다중 sender
 }
 
@@ -61,13 +61,13 @@ enum TrySendError<T> { Full(T), Closed(T) }
 
 ## 2.17.3. close 의미
 
-채널이 닫히는 시점과 그 신호가 전달되는 방식은 다음과 같이 정리할 수 있습니다. 우선 `Sender::drop()` 이 호출되어 마지막 sender 가 사라지면 채널은 closed 상태가 됩니다. 이때 receiver 쪽에서는 `recv()` 가 `none` 을 반환하여 close 신호를 받게 됩니다. 반대로 receiver 가 모두 drop 된 경우에는 `send()` 가 `Err(Closed)` 를 돌려주어 송신이 더 이상 의미 없음을 알립니다.
+채널이 닫히는 시점과 그 신호가 전달되는 방식은 다음과 같이 정리할 수 있습니다. 우선 `Sender::drop()` 이 호출되어 마지막 sender 가 사라지면 채널은 closed 상태가 됩니다. 이때 receiver 쪽에서는 `recv()` 가 `none` 을 반환하여 close 신호를 받게 됩니다. 반대로 receiver 가 모두 drop 된 경우에는 `send()` 가 `SendError::Closed` 를 던져 송신이 더 이상 의미 없음을 알립니다.
 
 다음은 명시적인 `drop` 으로 채널을 닫는 예시입니다.
 
 ```rok
 let (tx, rx) = channel::<i32>();
-tx.send(1);
+try tx.send(1);
 drop(tx);              // 명시 drop (또는 scope 끝)
 
 rx.recv();             //→ 1
@@ -82,8 +82,8 @@ rx.recv();             //→ none  (closed)
 let (tx, rx) = channel::<str>();
 let tx2 = tx.clone();
 
-task::spawn { tx.send("hello"); };
-task::spawn { tx2.send("world"); };
+task::spawn { try tx.send("hello"); };
+task::spawn { try tx2.send("world"); };
 
 let v1 = rx.recv();
 let v2 = rx.recv();

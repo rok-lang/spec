@@ -28,7 +28,7 @@ impl Instant {
     fn checked_duration_since(self, earlier: Instant) -> Duration | none;
     fn saturating_duration_since(self, earlier: Instant) -> Duration;
 
-    // 산술 — Result 반환 (Rust 의 saturating-on-overflow silent 회피)
+    // 산술 — 실패 시 none 반환 (Rust 의 saturating-on-overflow silent 회피)
     fn checked_add(self, dur: Duration) -> Instant | none;
     fn checked_sub(self, dur: Duration) -> Instant | none;
 }
@@ -60,10 +60,10 @@ struct SystemTime { /* opaque — CLOCK_REALTIME / GetSystemTimeAsFileTime */ }
 impl SystemTime {
     fn now() -> SystemTime;
 
-    fn duration_since(self, earlier: SystemTime) -> Result<Duration, SystemTimeError>;
+    fn duration_since(self, earlier: SystemTime) throws (SystemTimeError) -> Duration;
                                             // earlier > self 면 Err
 
-    fn elapsed(self) -> Result<Duration, SystemTimeError>;
+    fn elapsed(self) throws (SystemTimeError) -> Duration;
 
     fn checked_add(self, dur: Duration) -> SystemTime | none;
     fn checked_sub(self, dur: Duration) -> SystemTime | none;
@@ -74,8 +74,8 @@ const UNIX_EPOCH: SystemTime;     // 1970-01-01 00:00:00 UTC
 // SystemTime ↔ unix timestamp
 impl SystemTime {
     fn from_unix(secs: i64, nanos: u32) -> SystemTime;
-    fn unix_seconds(self) -> Result<i64, SystemTimeError>;
-    fn unix_nanos(self) -> Result<i128, SystemTimeError>;
+    fn unix_seconds(self) throws (SystemTimeError) -> i64;
+    fn unix_nanos(self) throws (SystemTimeError) -> i128;
 }
 ```
 
@@ -87,13 +87,13 @@ unix timestamp 변환과 파일 mtime 조회는 다음과 같이 자연스럽게
 
 ```rok
 let now = SystemTime::now();
-let unix = now.unix_seconds()?;
+let unix = try now.unix_seconds();
 log(f"unix timestamp: {unix}");
 
 // 파일 mtime
-let meta = fs::metadata("data.txt")?;
-let mtime: SystemTime = meta.modified()?;
-let age = SystemTime::now().duration_since(mtime)?;
+let meta = try fs::metadata("data.txt");
+let mtime: SystemTime = try meta.modified();
+let age = try SystemTime::now().duration_since(mtime);
 log(f"file age: {age:?}");
 ```
 
