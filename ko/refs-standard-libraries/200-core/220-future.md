@@ -2,9 +2,9 @@
 
 `rok::core::future` 모듈은 async 메커니즘의 권위 트레잇을 제공합니다. `await expr` 의 desugar 는 이 장에서 정의하는 `Future` 트레잇 dispatch 로 lower 됩니다. 이 장은 46 개의 lang slot 가운데 `future_trait` 를 정의하는 자리이기도 합니다.
 
-## 2.20.1. `Future<T>` — async 결과
+## 2.20.1. `Future` — async 결과
 
-`Future<T>` 는 비동기 계산의 결과를 표현하는 핵심 트레잇입니다.
+`Future` 는 비동기 계산의 결과를 표현하는 핵심 트레잇이며, 결과 타입은 associated type `Output` 입니다.
 
 ```rok
 #[lang("future_trait")]
@@ -50,14 +50,15 @@ impl Waker {
 가장 흔한 사용 형태는 다음과 같습니다.
 
 ```rok
-let v = some_future.await;
+let v = await some_future;
 ```
 
 이 표현은 개념적으로 다음과 같이 desugar 됩니다.
 
 ```rok
+let __f = IntoFuture::into_future(some_future);
 let v = loop {
-    match some_future.poll(ref CURRENT_CONTEXT) {
+    match __f.poll(ref CURRENT_CONTEXT) {
         Ready(v)  => break v,
         Pending   => yield_to_scheduler(),
     }
@@ -68,49 +69,53 @@ let v = loop {
 
 ## 2.20.4. `async fn` / `async { }` / `async || { }`
 
-세 가지 형태가 모두 **Future 를 반환**합니다.
+세 가지 형태가 모두 **`Future<Output = T>` 를 구현하는 익명 타입의 값**을 반환합니다 ([refs-lang 4.1.11](../../refs-lang/004-functions/401-function-declaration.md#코루틴-함수의-결과-타입)).
 
 ```rok
 // (a) named function
 async fn fetch(url: str) -> Response {
-    let raw = get(url).await;
-    parse(raw).await
+    let raw = await get(url);
+    await parse(raw)
 }
-fetch("/").await;       // Future<Response>
+await fetch("/");       // fetch("/"): Future<Output = Response> 구현 익명 타입
 
 // (b) inline block (값)
-let f = async { compute().await };       // Future<T> 값
-f.await;
+let f = async { await compute() };       // Future<Output = T> 구현 익명 타입의 값
+await f;
 
 // (c) closure
-let g = async || { compute().await };    // Future<T> 반환 closure
-g().await;
+let g = async || { await compute() };    // 호출하면 Future<Output = T> 구현 값을 돌려주는 closure
+await g();
 ```
 
 이 **3 형태** 의 권위는 [refs-lang 4.12 async](../../refs-lang/004-functions/412-async.md) 에 있습니다.
 
-## 2.20.5. `Awaitable` 일반화
+## 2.20.5. `IntoFuture` — await 가능한 값
 
-`Awaitable<T>` 는 await 의 통일된 진입점입니다. 이를 통해 `Future`, `Task`, `Thread`, `Parallel` 모두 동일한 인터페이스로 await 될 수 있습니다.
+`IntoFuture` 는 await 의 통일된 진입점입니다. `Future` 뿐 아니라 `Thread`, `Parallel` 처럼 스스로는 `Future` 가 아닌 핸들도 이 트레잇을 통해 `await` 할 수 있습니다.
 
 ```rok
-trait Awaitable {
+trait IntoFuture {
     type Output;
-    fn await(self) -> Output;        // sync syntax 처럼 보이지만 desugar 는 future
+    type IntoFuture: Future<Output = Output>;
+
+    fn into_future(self) -> IntoFuture;
 }
 
-impl<T> Awaitable for Future<Output = T> { type Output = T; ... }
-impl<T> Awaitable for Task<T>           { type Output = T; ... }
-impl<T> Awaitable for Thread<T>         { type Output = T; ... }
-impl<T> Awaitable for Parallel<T>       { type Output = T; ... }
+impl<F: Future> IntoFuture for F {               // Task<T>: Future<Output = T> 도 여기에 포함
+    type Output = F::Output;
+    type IntoFuture = F;
+    fn into_future(self) -> F { self }
+}
+impl<T> IntoFuture for Thread<T>   { type Output = T; type IntoFuture = ThreadFuture<T>; ... }
+impl<T> IntoFuture for Parallel<T> { type Output = T; type IntoFuture = ParallelFuture<T>; ... }
 ```
 
-> [!NOTE]
-> 이 장은 `Awaitable` 을 **opt-in 일반화 트레잇** 으로 정의합니다. 컴파일러의 `await expr`
-> desugar 는 **내부적으로 `Future::poll` 을 사용**하며, `Awaitable` 은 **ergonomic surface**
-> 만 제공합니다.
+`Thread<T>` / `Parallel<T>` 의 impl 은 이 타입들이 `Future` 를 구현하지 않는 동안에만 blanket impl 과 겹치지 않아 합법입니다 ([refs-lang 2.9.5](../../refs-lang/002-types/209-impl.md#일관성-coherence)).
 
-`future_trait` 만 lang slot 으로 등록되며, `Awaitable` 은 일반 트레잇으로 둡니다. 컴파일러의 `await expr` desugar 는 `Future::poll` 을 직접 호출하고, `Awaitable` 은 사용자 ergonomic surface 만 담당합니다.
+`await expr` 는 먼저 `IntoFuture::into_future(expr)` 를 호출하고, 그 결과에 `Future::poll` 을 반복합니다 (2.20.3). [2.8 stream](208-stream.md) 의 `for await` 가 `IntoStream` 을 다루는 방식과 같습니다.
+
+`future_trait` 만 lang slot 으로 등록되며, `IntoFuture` 는 일반 트레잇으로 둡니다. 컴파일러가 `await` desugar 에서 `IntoFuture::into_future` 를 직접 호출하므로, `IntoStream` 과 마찬가지로 별도 lang slot 이 필요하지 않습니다.
 
 ## 2.20.6. async / await 의 "color of functions"
 
@@ -127,11 +132,11 @@ rok 의 정책은 다음과 같습니다.
 ```rok
 // sync fn 안에서 await 호출 — 컴파일 에러
 fn sync_caller() {
-    let v = some_future.await;       // ERROR — async 함수 안에서만 await 가능
+    let v = await some_future;       // ERROR — async 함수 안에서만 await 가능
 }
 
 async fn async_caller() {
-    let v = some_future.await;       // OK
+    let v = await some_future;       // OK
 }
 ```
 
@@ -150,25 +155,25 @@ let v = task::block_on(some_future);    // task::block_on — 현재 thread bloc
 Stream 을 소비할 때는 `for await` 형태를 사용합니다.
 
 ```rok
-for await event in stream {            // Stream<T> 소비 (async)
+for await event in stream {            // Stream<Item = T> 소비 (async)
     handle(event);
 }
 
-for x in iterator {                    // Iterator<T> 소비 (sync)
+for x in iterator {                    // Iterator<Item = T> 소비 (sync)
     use(x);
 }
 ```
 
-`for await` 의 권위는 [2.8 stream](208-stream.md) 의 `Stream<T>` 에 있습니다.
+`for await` 의 권위는 [2.8 stream](208-stream.md) 의 `Stream` 트레잇에 있습니다.
 
 ## 2.20.8. `async yield` — Stream 생성
 
 반대로 Stream 을 생성할 때는 `async yield` 를 사용합니다.
 
 ```rok
-async yield fn ticks(interval: Duration) -> Stream<Instant> {
+async yield fn ticks(interval: Duration) -> Instant {
     loop {
-        task::sleep(interval).await;
+        await task::sleep(interval);
         yield Instant::now();
     }
 }
@@ -190,7 +195,7 @@ for await t in ticks(Duration::ms(100)) {
 | `Poll<T>`        | `rok::core::future::poll`      | enum Ready/Pending        |
 | `Context`        | `rok::core::future::context`   | waker holder              |
 | `Waker`          | `rok::core::future::waker`     | scheduler callback        |
-| `Awaitable`      | `rok::core::future::awaitable` | 일반 트레잇 (lang slot X) |
+| `IntoFuture`     | `rok::core::future::into_future` | 일반 트레잇 (lang slot X) |
 | `task::block_on` | `rok::core::task`              | sync entry point          |
 
 ## 2.20.10. 다른 언어와의 비교
@@ -201,13 +206,13 @@ for await t in ticks(Duration::ms(100)) {
 |----------------|-------------------------|--------------------|------------------------|-----------------------------------|
 | 모델           | poll-based              | callback (state)   | continuation           | poll-based (Rust 동형)            |
 | `async fn`     | ✓                       | ✓                  | ✓                      | ✓                                 |
-| `await`        | postfix `.await`        | prefix `await`     | prefix `await`         | postfix `.await`                  |
+| `await`        | postfix `.await`        | prefix `await`     | prefix `await`         | prefix `await`                    |
 | coroutine 구현 | LLVM coro / 사용자 자체 | 컴파일러 generated | 컴파일러 generated     | LLVM coro                         |
 | Stackless      | ✓                       | ✓                  | ✓                      | ✓                                 |
 | color 통일     | ✗ (sync/async 분리)     | ✗                  | ✗                      | ✗ (산업 표준 채택)                |
-| Awaitable      | `Future` + 외부 lib     | `Task<T>` 통일     | `Task` + AsyncSequence | `Awaitable<T>` 일반화 (4 wrapper) |
+| await 일반화    | `Future` + 외부 lib     | `Task<T>` 통일     | `Task` + AsyncSequence | `IntoFuture` 일반화              |
 
 rok 의 가장 큰 차이점은 다음 두 가지입니다.
 
-1. **postfix `.await`**: Rust 와 같은 방식이며, 체이닝이 자연스럽습니다 (`x.await.method()`).
-2. `Awaitable` 일반 트레잇을 도입하여 Task, Thread, Parallel 도 동일하게 await 될 수 있습니다. Swift 의 `Task` 통일과 비슷한 발상이지만, 고유 타입을 보존한 후 trait 으로 일반화한다는 점이 다릅니다.
+1. **prefix `await`**: C#, Swift, JS 와 같은 방식이며, 권위는 [refs-lang 4.12](../../refs-lang/004-functions/412-async.md) 에 있습니다. 결과에 체이닝하려면 괄호로 묶습니다 (`(await x).method()`).
+2. `IntoFuture` 일반 트레잇을 도입하여 Task, Thread, Parallel 도 동일하게 await 될 수 있습니다. Swift 의 `Task` 통일과 비슷한 발상이지만, 고유 타입을 보존한 후 trait 으로 일반화한다는 점이 다릅니다.

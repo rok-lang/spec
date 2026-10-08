@@ -383,22 +383,44 @@ cf.cond_br %need_yield, ^slow, ^cont
 
 컴파일러는 함수의 진입 지점과 루프의 back-edge 에 위 코드를 emit 해 줍니다.
 
-## 8.9.12. llvm.gcroot
+## 8.9.12. Shadow stack frame
 
-[배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md) 을 함께 참고해 주세요.
+[배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack) 을 함께 참고해 주세요. 컴파일러는 LLVM 의 `gc "shadow-stack"` 전략이나 `llvm.gcroot` 를 쓰지 않고, frame 의 link / unlink 를 직접 emit 합니다. LLVM 의 체인 머리 `llvm_gc_root_chain` 은 프로세스 전역 하나뿐이라 thread 별 체인을 만들 수 없기 때문입니다.
+
+GC 참조 word 가 2 개 (`%x`, `%y`) 인 함수의 예입니다. 슬롯에는 word 의 주소를 넣으므로, 변수 대입은 평소처럼 `%x` 에 store 하는 것으로 끝납니다.
 
 ```
-; 변수 선언 시점
-%root = llvm.alloca i32 1 x !llvm.ptr : !llvm.ptr
-llvm.intr.gcroot %root, %null
+; 진입: word 0 초기화, frame 할당과 link
+%x = llvm.alloca %c1 x !llvm.ptr : (i64) -> !llvm.ptr
+%y = llvm.alloca %c1 x !llvm.ptr : (i64) -> !llvm.ptr
+llvm.store %null, %x : !llvm.ptr, !llvm.ptr
+llvm.store %null, %y : !llvm.ptr, !llvm.ptr
+%frame = llvm.alloca %c1 x !llvm.struct<(ptr, i32, array<2 x ptr>)> : (i64) -> !llvm.ptr
+%head_ptr = llvm.mlir.addressof @rok_tls_shadow_stack_top : !llvm.ptr
+%head = llvm.load %head_ptr : !llvm.ptr -> !llvm.ptr
+%prev_p = llvm.getelementptr %frame[0, 0] : (!llvm.ptr) -> !llvm.ptr
+llvm.store %head, %prev_p : !llvm.ptr, !llvm.ptr
+%count_p = llvm.getelementptr %frame[0, 1] : (!llvm.ptr) -> !llvm.ptr
+llvm.store %c2_i32, %count_p : i32, !llvm.ptr
+%s0 = llvm.getelementptr %frame[0, 2, 0] : (!llvm.ptr) -> !llvm.ptr
+llvm.store %x, %s0 : !llvm.ptr, !llvm.ptr          ; 값이 아니라 주소
+%s1 = llvm.getelementptr %frame[0, 2, 1] : (!llvm.ptr) -> !llvm.ptr
+llvm.store %y, %s1 : !llvm.ptr, !llvm.ptr
+llvm.store %frame, %head_ptr : !llvm.ptr, !llvm.ptr
 
-; 변수에 GC 객체 저장 시
-llvm.store %obj, %root : !llvm.ptr, !llvm.ptr
+; 변수 대입 — frame 갱신 없음
+llvm.store %obj, %x : !llvm.ptr, !llvm.ptr
+
+; 모든 return 직전 (에러 반환 포함): unlink
+%saved = llvm.load %prev_p : !llvm.ptr -> !llvm.ptr
+llvm.store %saved, %head_ptr : !llvm.ptr, !llvm.ptr
 ```
 
-여기서 `llvm.intr.gcroot` 가 LLVM 백엔드에 [shadow stack](../000-meta/007-glossary.md#shadow-stack) 등록 신호를 전달합니다.
+`@rok_tls_shadow_stack_top` 은 [8.3.8](803-tls-slots.md#838-컴파일러-emit-의-형식) 의 thread-local 심볼입니다. 에러 반환도 일반 `return` 이므로 ([8.9.6](#896-try--catch--finally-값-기반-분기)) 같은 unlink 를 지납니다. GC 참조를 들고 있어도 호출이나 할당이 없는 함수는 frame 을 만들지 않습니다.
 
-이후 LLVM 백엔드는 함수 진입 시점과 종료 시점에 shadow stack 의 push 와 pop 코드를 자동으로 삽입해 줍니다.
+### 모듈의 data layout
+
+컴파일러가 emit 하는 모듈은 반드시 `llvm.data_layout` 속성을 타깃에 맞게 설정합니다. 그렇지 않으면 `gep null[1]` 을 접어 얻는 크기 (객체 크기, frame 크기) 가 타깃과 어긋날 수 있습니다. data layout 을 설정하지 않는 경로에서는 그런 접힌 `gep` 으로 크기를 구하지 않고 상수로 계산합니다.
 
 ## 8.9.13. Indexing
 

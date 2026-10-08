@@ -43,7 +43,7 @@ matrix[i, j]           →   <typeof(matrix) as Index<(typeof(i), typeof(j))>>::
 
 대괄호 인덱싱은 유효 범위 밖에서 실패할 수 있는데, 실패가 어떤 형태로 드러나는지는 `Index` 구현이 결정합니다. 보통은 panic 이나 에러 발생 형태로 처리됩니다.
 
-만약 panic 없이 Option 값을 받고 싶다면, 라이브러리에서 제공하는 `.get(i)` 같은 메서드를 사용하면 됩니다.
+만약 panic 없이 `T | none` 값을 받고 싶다면, 라이브러리에서 제공하는 `.get(i)` 같은 메서드를 사용하면 됩니다.
 
 ## 3.6.2. 슬라이싱: `arr[start:end]`
 

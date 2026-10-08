@@ -62,6 +62,6 @@ OS Thread (worker) x N  ──── rok task / coroutine x M
 
 - 객체 레이아웃 (16 바이트 헤더 + payload) 입니다.
 - `extern "C"` 함수로는 `rok_gc_alloc_slow`, `rok_runtime_yield`, `rok_task_spawn` 등이 있습니다.
-- LLVM intrinsic 으로는 `llvm.gcroot`, `llvm.coro.*` 가 사용됩니다.
+- LLVM intrinsic 으로는 `llvm.coro.*` 가 사용됩니다. GC 루트는 intrinsic 없이 컴파일러가 shadow stack frame 을 직접 emit 합니다 ([7.4.1](704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack)).
 
 이 ABI 는 [8. 런타임 ABI / MLIR lowering](../008-abi/README.md) 에서 자세히 정의되며, 본 7 장은 내부 동작만을 다룹니다.

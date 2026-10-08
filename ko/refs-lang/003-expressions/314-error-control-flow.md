@@ -117,7 +117,7 @@ catch HttpError { code, msg } { fail(code, msg) }
 catch e: any Error { log(f"{e}"); fallback() }
 ```
 
-`catch` 뒤에는 [패턴](311-patterns.md) 의 모든 패턴 형태를 쓸 수 있습니다. `e: TimeoutError` 는 타입 검사 패턴이며, 매칭된 분기 안에서 `e` 는 그 타입으로 좁혀집니다. untyped `throws` 의 에러는 [`any Error`](../002-types/202-any-slot.md) 값이므로, 모든 에러를 한 이름으로 받으려면 `catch e: any Error` 또는 `catch e` 를 씁니다. 트레잇 이름을 그대로 쓴 `catch e: Error` 는 [트레잇-as-타입 금지](../002-types/212-trait-as-type-banned.md) 에 따라 컴파일 에러입니다.
+`catch` 뒤에는 [패턴](311-patterns.md) 의 모든 패턴 형태를 쓸 수 있습니다. `e: TimeoutError` 는 타입 검사 패턴이며, 매칭된 분기 안에서 `e` 는 그 타입으로 좁혀집니다. `catch e: A | B` 는 잡은 에러를 그 합 타입 (에러 합 타입의 부분) `A | B` 로 바인딩합니다. untyped `throws` 의 에러는 [`any Error`](../002-types/202-any-slot.md) 값이므로, 모든 에러를 한 이름으로 받으려면 `catch e: any Error` 또는 `catch e` 를 씁니다. 트레잇 이름을 그대로 쓴 `catch e: Error` 는 [트레잇-as-타입 금지](../002-types/212-trait-as-type-banned.md) 에 따라 컴파일 에러입니다.
 
 패턴을 생략한 `catch { ... }` 는 `catch _ { ... }` 와 같습니다.
 
@@ -130,6 +130,15 @@ fn parse_or_zero(s: str) -> i32 {          // non-throwing
     try parse(s) catch _ { 0 }             // 모든 에러를 덮음
 }
 ```
+
+### 도달하지 않는 `try` 와 `catch` 경고
+
+다음 경우 컴파일러는 경고를 냅니다.
+
+- throwing 호출을 하나도 덮지 않는 `try`
+- 어떤 에러도 도달하지 않는 `catch` 절이나 분기
+
+경고가 나는 절도 타입 검사는 그대로 받습니다.
 
 ## 3.14.5. `finally`
 

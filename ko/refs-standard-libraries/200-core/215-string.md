@@ -135,7 +135,7 @@ let s: str = "hello";        // GC heap 의 str 객체
 | `Debug`                     | ✓                              | `"..."` 이스케이프                         |
 | `Clone`                     | ✓                              | 깊은 복사 (새 buffer)                      |
 | `Copy`                      | ✗                              | 가변 컨테이너라 **Copy 안 함**             |
-| `PartialEq`                 | ✓                              | byte-wise                                  |
+| `PartialEq`                 | ✓                              | 내용 비교 (byte-wise)                      |
 | `Eq`                        | ✓                              |                                            |
 | `PartialOrd`                | ✓                              | lexicographic byte                         |
 | `Ord`                       | ✓                              |                                            |

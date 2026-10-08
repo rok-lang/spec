@@ -84,7 +84,7 @@ scan_table 은 GC 가 객체의 어떤 슬롯이 GC 포인터인지 알아내기
 
 ## shadow stack
 
-shadow stack 은 GC 가 살아 있는 객체를 추적하기 위한 보조 스택입니다. 함수 진입과 종료 시점에 GC 객체 변수를 push, pop 합니다. 일반 stack 위와 별도로 thread-local 영역에 둡니다.
+shadow stack 은 GC 가 살아 있는 객체를 추적하기 위한 보조 스택입니다. 컴파일러가 함수 진입과 종료 시점에 GC 객체 변수 슬롯을 담은 frame 을 link, unlink 하는 코드를 직접 emit 합니다. frame 은 기계 스택 위에 있고, 체인 머리는 thread 마다 TLS 에 둡니다.
 
 ## specialize
 

@@ -222,7 +222,7 @@ WinMain       (Windows GUI)
 _start        (no-OS)
 ```
 
-플랫폼별 진입점은 rokc 가 생성한 wrapper 안에서 사용자가 정의한 main 함수를 호출해 주게 됩니다. wrapper 는 `rok_runtime_init` 을 호출한 뒤 진입 함수를 호출하고, [4.16.4](../004-functions/416-entry-point.md#4164-종료-코드와-미처리-예외) 의 규칙으로 종료 코드를 정한 다음 `rok_runtime_shutdown` 을 거쳐 반환합니다.
+플랫폼별 진입점은 rokc 가 생성한 wrapper 안에서 사용자가 정의한 main 함수를 호출해 주게 됩니다. wrapper 는 `rok_runtime_init` 과 타입 등록 함수 `rok.register_types` ([8.2.12](../008-abi/802-scan-table.md#8212-등록-시점)) 를 차례로 호출한 뒤 진입 함수를 호출하고, [4.16.4](../004-functions/416-entry-point.md#4164-종료-코드와-미처리-예외) 의 규칙으로 종료 코드를 정한 다음 `rok_runtime_shutdown` 을 거쳐 반환합니다.
 
 `main.rok` 가 top-level 문으로 이루어진 경우 ([4.16.2](../004-functions/416-entry-point.md#4162-top-level-문의-의미-암묵-main)), 컴파일러가 합성한 암묵 `main` 이 진입 함수가 됩니다. 암묵 `main` 은 일반 함수와 같은 규칙으로 맹글링되지만 사용자 코드에서 이름으로 참조할 수 없으며, wrapper 만이 이를 호출합니다.
 

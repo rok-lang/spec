@@ -93,7 +93,7 @@ plugin 사용자 (라이브러리 작성자 + 그 라이브러리를 쓰는 사�
 - **LLVM 버전 일치**: plugin 이 빌드된 LLVM major 버전이 `rokc` 와 다르면 로드 거부됩니다. patch 버전 차이는 허용.
 - **ABI 안정성**: `RokMlirPluginV1` 의 필드 추가 / 변경은 본 사양의 SemVer 정책을 따릅니다. 다음 ABI 버전이 나오면 v1 / v2 두 entry point 가 공존할 수 있습니다.
 - **op 의미 검증**: rok 컴파일러는 op 이름이 plugin 에 등록되어 있는지만 확인합니다. op 의 의미 / 부수효과 / GC 안전성은 plugin 작성자 책임입니다.
-- **GC root 추적**: plugin op 이 GC heap 객체를 다룰 때는 `llvm.gcroot` 를 통한 root 추적을 plugin lowering 에서 명시해야 하며, 그렇지 않으면 GC cycle 에서 객체가 회수될 수 있습니다.
+- **GC root 추적**: plugin op 이 GC heap 객체를 다룰 때는 그 포인터를 shadow stack frame 슬롯에 두는 root 추적 ([refs-lang 7.4.1](../../refs-lang/007-runtime/704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack)) 을 plugin lowering 에서 지켜야 하며, 그렇지 않으면 GC cycle 에서 객체가 회수될 수 있습니다.
 - **target 가용성**: plugin 이 특정 target (GPU / FPGA / 양자 hw) 만 지원하는 경우, 해당 target 이 활성화되지 않은 빌드에서 호출하면 lowering 단계에서 에러가 납니다.
 
 ## 1.10.6. ABI 버전 정책

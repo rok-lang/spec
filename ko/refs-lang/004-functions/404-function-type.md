@@ -120,7 +120,7 @@ let f: fn(i32 | f64) -> i32 = |x: i32| x;     // ERROR — 매개변수 타입�
 
 다시 한번 강조하면 매개변수와 반환 타입은 정확히 일치해야 합니다.
 
-예외는 4.4.8 의 divergent 반환과 에러 채널뿐입니다. 매개변수와 반환 타입이 같다면, 던지는 에러가 더 적은 함수 값은 더 많이 던질 수 있는 함수 타입 자리에 넣을 수 있습니다. 에러 채널은 값의 표현을 바꾸지 않고 호출 지점의 처리 의무만 늘리기 때문입니다.
+예외는 4.4.8 의 divergent 반환과 에러 채널뿐입니다. 매개변수와 반환 타입이 같다면, 던지는 에러가 더 적은 함수 값은 더 많이 던질 수 있는 함수 타입 자리에 넣을 수 있습니다. 이 변환 (non-throwing → throwing, 좁은 에러 → 넓은 에러) 은 컴파일러가 만드는 어댑터로 구현될 수 있습니다.
 
 ```rok
 fn parse_typed(s: str) throws (ParseError) -> i32 { ... }
@@ -131,6 +131,13 @@ let r: fn(str) -> i32 = parse_typed;          // ERROR — throwing → non-thro
 ```
 
 `throws (A)` 함수 값은 `throws (A | B)` 자리에 넣을 수 있고, `A` 가 `Error` 를 구현하면 untyped `throws` 자리에도 넣을 수 있습니다.
+
+현재 규칙에서 이 변환은 정적으로 알려진 함수와 클로저에만 적용됩니다. callee 를 정적으로 알 수 없는 함수 타입 변수는 다른 에러 채널의 함수 타입으로 변환할 수 없습니다.
+
+```rok
+let g: fn(str) throws (ParseError) -> i32 = parse_typed;
+let h: fn(str) throws -> i32 = g;             // ERROR — g 의 callee 를 정적으로 모름
+```
 
 이러한 결정의 동기는 명시성을 우선시하는 데 있습니다. 함수 변환은 [형 변환](../002-types/214-cast-and-conversion.md) 의 명시적인 형태로 사용자가 직접 적도록 하는 것이 rok 의 방침입니다.
 

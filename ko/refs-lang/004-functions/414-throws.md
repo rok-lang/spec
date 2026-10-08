@@ -155,6 +155,8 @@ let lens = names.map(|s| s.len());              // non-throwing 클로저 — tr
 let nums = try names.map(|s| try parse(s));     // throwing 클로저 — try 필요
 ```
 
+`rethrows` 함수를 값으로 쓰면, 기대 타입 (함수 타입) 이 어느 인스턴스를 쓸지 정합니다. 기대 타입이 없으면 에러 매개변수는 `any Error` 로 정해집니다.
+
 ## 4.14.8. 함수 타입의 `throws`
 
 `throws` 는 [함수 타입](404-function-type.md) 에도 붙습니다.
@@ -187,12 +189,12 @@ async yield fn read_paginated(url: str) throws (NetworkError) -> Page { ... }
 async fn fetch_data() throws (NetworkError) -> Data { ... }
 ```
 
-위 함수의 호출 결과 타입이 `Future<Data>` 인지 아니면 `Future<Data | NetworkError>` 인지 궁금할 수 있습니다.
+위 함수의 호출 결과가 구현하는 트레잇이 `Future<Output = Data>` 인지 아니면 `Future<Output = Data | NetworkError>` 인지 궁금할 수 있습니다.
 
-답은 **`Future<Data>`** 입니다. 에러는 `Future` 의 결과 타입에 섞이지 않고, `await` 지점에서 에러 채널로 전달됩니다. 따라서 `await` 하는 쪽이 `try` 로 표시합니다.
+답은 **`Future<Output = Data>`** 입니다. 에러는 `Future` 의 결과 타입에 섞이지 않고, `await` 지점에서 에러 채널로 전달됩니다. 따라서 `await` 하는 쪽이 `try` 로 표시합니다.
 
 ```rok
-let f = fetch_data();              // f: Future<Data>
+let f = fetch_data();              // f: Future<Output = Data> 를 구현하는 익명 타입
 let d = try await f catch e: NetworkError {
     ...
 };
@@ -200,7 +202,7 @@ let d = try await f catch e: NetworkError {
 
 이 결정 덕분에 `Future` 가 결과와 에러라는 두 변형을 갖는 `enum` 으로 변하지 않으며, 깔끔한 단일 타입으로 유지될 수 있습니다.
 
-`yield` 와 `async yield` 도 동일한 패턴을 따릅니다. `Iterator<T>` 와 `Stream<T>` 의 `T` 는 성공 값의 타입을 나타내고, `throws` 의 에러는 `next` 지점에서 에러 채널로 전달되므로 그 지점을 `try` 로 표시합니다.
+`yield` 와 `async yield` 도 동일한 패턴을 따릅니다. `Iterator<Item = T>` 와 `Stream<Item = T>` 의 `T` 는 성공 값의 타입을 나타내고, `throws` 의 에러는 `next` 지점에서 에러 채널로 전달되므로 그 지점을 `try` 로 표시합니다.
 
 ## 4.14.11. 메서드의 `throws`
 
@@ -213,6 +215,10 @@ impl Database {
 ```
 
 호출 시 호출자의 의무와 전파 규칙은 자유 함수와 동일하게 적용됩니다.
+
+트레잇을 구현하는 impl 메서드의 `throws` 는 트레잇 메서드의 `throws` 와 같아야 합니다. impl 이 `throws` 를 새로 붙이거나 에러 타입을 넓히면 컴파일 에러입니다.
+
+연산자 트레잇 메서드 (`Add::add` 등) 는 `throws` 없이 선언되므로 연산자는 에러를 던지지 않습니다. 실패할 수 있는 연산은 이름 있는 메서드로 두거나 `Result` 를 반환합니다 ([stdlib 2.3](../../refs-standard-libraries/200-core/203-ops.md)).
 
 ## 4.14.12. 값 기반 구현 모델
 

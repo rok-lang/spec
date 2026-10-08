@@ -67,7 +67,7 @@ REPL 과 Jupyter 의 셀 사이에서 변수가 공유되어야 하므로, top-l
 untyped (let x = 42)        → LLVM global of {tag:u32, payload:i64}
 typed (let x: i32 = 42i32)  → LLVM global of that type
 heap payload                → register GC root
-                             (llvm.gcroot shadow stack,
+                             (compiler-emitted shadow stack frame,
                               linked into rokr shadow stack chain)
 ```
 

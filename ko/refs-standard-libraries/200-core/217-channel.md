@@ -101,11 +101,11 @@ for v in rx {
 }
 ```
 
-이에 더해 비동기 iterator 인 `Stream<T>` 도 함께 구현되므로, `for await` 구문도 동일하게 사용 가능합니다.
+이에 더해 비동기 iterator 인 `Stream<Item = T>` 도 함께 구현되므로, `for await` 구문도 동일하게 사용 가능합니다.
 
 ```rok
 for await v in rx {
-    handle(v).await;
+    await handle(v);
 }
 ```
 

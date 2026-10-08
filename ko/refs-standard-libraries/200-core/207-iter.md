@@ -237,7 +237,7 @@ trait Step: PartialOrd + Clone {
 |----------------------|----------|------------------------------------------------------|
 | `i8`..`i64`, `isize` | **있음** | overflow 시 `forward_checked` 가 `none` 반환         |
 | `u8`..`u64`, `usize` | **있음** | underflow 시 `backward_checked` 가 `none` 반환       |
-| `int`                | **있음** | 무한 정밀도 — `forward_checked` 항상 some            |
+| `int`                | **있음** | 무한 정밀도 — `forward_checked` 가 `none` 을 안 냄  |
 | `char`               | **있음** | codepoint 진행, surrogate (`0xD800..=0xDFFF`) 건너뜀 |
 | `bool`               | **있음** | `false` → `true` 한 칸                               |
 | `f32`, `f64`         | **없음** | `Range<f64>` 거부 — 의미 모호                        |

@@ -51,7 +51,7 @@ LLVM 이 코루틴 안에 흩어져 있는 `alloca` 들을 한데 모아 frame �
 
 - frame 이 자동으로 GC root 역할을 수행하며, 누군가 frame 을 가리키는 동안에는 살아 있습니다.
 - sticky 비트를 통해 long-lived `async` task 가 자연스럽게 추적됩니다 ([GC 알고리듬](703-gc-algorithm.md) 참고).
-- Future / Iterator / Stream 트레잇과 자동으로 연결되어, frame 자체가 그 트레잇 객체 역할을 합니다.
+- frame 타입이 곧 호출 결과의 익명 타입이며, Future / Iterator / Stream 트레잇을 구현합니다 ([4.1.11](../004-functions/401-function-declaration.md#코루틴-함수의-결과-타입)).
 
 ## 7.8.5. Generator 와 Async 의 두 lowering
 

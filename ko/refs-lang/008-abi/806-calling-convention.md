@@ -53,7 +53,7 @@ GC 객체 포인터는 플랫폼이 사용하는 일반 포인터와 동일한 A
 
 다만 호출 전후로 [배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md) 의 [shadow stack](../000-meta/007-glossary.md#shadow-stack) 에 반드시 등록되어 있어야 합니다.
 
-이 등록 작업은 `llvm.gcroot` intrinsic 을 통해 자동으로 처리됩니다.
+이 등록은 컴파일러가 emit 하는 shadow stack frame 의 link / unlink 로 이루어집니다 ([8.9.12](809-lowering-control.md#8912-shadow-stack-frame)).
 
 ## 8.6.5. throwing 함수의 반환: 값 기반 에러 전달
 

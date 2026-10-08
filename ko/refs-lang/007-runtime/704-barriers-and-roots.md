@@ -2,52 +2,63 @@
 
 [GC](../000-meta/007-glossary.md#gc-garbage-collector) 가 정확히 동작하려면 어디부터 mark 를 시작해야 하는지 (루트) 와 프로그램 실행 중에 발생하는 변경 (write barrier) 을 추적해야 합니다. 본 문서는 이 두 메커니즘을 정의합니다.
 
-## 7.4.1. 루트 추적: Shadow Stack via `llvm.gcroot`
+## 7.4.1. 루트 추적: 컴파일러가 직접 emit 하는 Shadow Stack
 
 ### Shadow stack 선택
 
 가장 흔하게 쓰이는 두 가지 루트 추적 방식은 다음과 같습니다.
 
-| 방식                         | 장점                       | 단점                           |
-|------------------------------|----------------------------|--------------------------------|
-| LLVM statepoint              | 정밀 stackmap              | x86_64 / aarch64 / ppc 만 지원 |
-| Shadow Stack (`llvm.gcroot`) | 모든 LLVM 백엔드 자동 지원 | 추가 스택 메모리 사용          |
+| 방식                     | 장점                     | 단점                           |
+|--------------------------|--------------------------|--------------------------------|
+| LLVM statepoint          | 정밀 stackmap            | x86_64 / aarch64 / ppc 만 지원 |
+| Shadow Stack (직접 emit) | 모든 타깃에서 같은 코드  | 추가 스택 메모리와 push/pop    |
 
 [플랫폼 타깃](../000-meta/006-platform-targets.md) 의 Tier 1 에는 32-bit ARM (`armv7`), 32-bit x86 (`i686`), WASM 도 포함되어 있습니다. LLVM statepoint 는 이들을 지원하지 않으므로, 모든 Tier 1 에 적용할 수 있는 방식은 [shadow stack](../000-meta/007-glossary.md#shadow-stack) 뿐이라고 할 수 있습니다.
 
+LLVM 의 `gc "shadow-stack"` 전략 (`llvm.gcroot`) 은 쓰지 않습니다. 이 전략의 체인 머리 `llvm_gc_root_chain` 은 프로세스 전체에 하나뿐인 global 이라 thread 마다 shadow stack 을 둘 수 없기 때문입니다.
+
 > [!IMPORTANT]
-> rok 의 루트 추적은 `llvm.gcroot` intrinsic 을 기반으로 한 shadow stack 입니다. 모든 Tier 1 타깃 (32-bit ARM / x86 / WASM 포함) 에서 동작이 보장됩니다.
+> rok 의 루트 추적은 컴파일러가 frame push / pop 을 직접 emit 하는 shadow stack 입니다. 체인 머리는 thread 마다 하나씩 있는 export 된 thread-local 심볼 `rok_tls_shadow_stack_top` 입니다 ([8.3.8](../008-abi/803-tls-slots.md#838-컴파일러-emit-의-형식)). 모든 Tier 1 타깃 (32-bit ARM / x86 / WASM 포함) 에서 같은 방식으로 동작합니다.
 
 ### Shadow Stack 의 구조
 
-각 OS thread 는 별도의 shadow stack 을 가집니다.
+각 OS thread 는 별도의 shadow stack 을 가집니다. shadow stack 은 각 함수의 기계 스택 위에 놓인 frame 들을 `prev` 로 이은 연결 리스트입니다.
 
 ```
-shadow_stack:
-  ├── frame N      (current function)
-  │   ├── slot 0   ← gcroot variable 1
-  │   ├── slot 1   ← gcroot variable 2
-  │   └── ...
-  ├── frame N-1    (caller)
-  │   └── ...
-  └── ...
+rok_tls_shadow_stack_top ──► frame N      (current function)
+                             ├── prev ──► frame N-1 (caller) ──► ... ──► null
+                             ├── count = 2
+                             ├── slots[0]  ──► &word (local x)      ──► GC object
+                             └── slots[1]  ──► &word (spill slot)   ──► GC object
 ```
 
-> current function: 현재 함수. caller: 호출자. gcroot variable: gcroot 등록된 변수.
-
-함수 진입 시점에 그 함수의 gcroot 변수들을 위한 frame 을 push 하고, 함수가 종료되는 시점에 frame 을 pop 합니다. GC 는 mark 시에 모든 thread 의 shadow stack 을 walk 하여 살아 있는 변수 슬롯들을 root 로 mark 하게 됩니다.
-
-### `llvm.gcroot` 사용
-
-컴파일러는 GC 객체를 가리키는 지역 변수마다 LLVM IR 에 `llvm.gcroot` intrinsic 을 emit 합니다.
+> current function: 현재 함수. caller: 호출자. local x: 지역 변수 x 의 스택 슬롯. spill slot: 레지스터 spill 슬롯. GC object: GC 객체.
 
 ```
-%root = alloca i8*           ; gcroot 변수
-call void @llvm.gcroot(i8** %root, i8* null)
-; ... 사용 ...
+ShadowFrame {
+    prev:  ptr          // 호출자의 frame (없으면 null)
+    count: u32          // slots 개수
+    slots: [ptr; count] // GC 참조 word 의 주소
+}
 ```
 
-LLVM 백엔드가 이 intrinsic 을 인식하여 shadow stack 에 등록하는 코드를 자동으로 생성해 줍니다. 이 메커니즘은 모든 LLVM 백엔드 (x86, ARM, RISC-V, WASM, ...) 에서 자동으로 작동합니다.
+`slots` 에는 GC 참조 값이 아니라 **GC 참조를 담은 word 의 주소** 가 들어갑니다. 그 word 는 지역 변수의 스택 슬롯이나 spill 슬롯이며, 배열 원소나 `struct` 필드 안의 word 도 같은 방식으로 가리킵니다. 따라서 변수에 대입할 때 frame 을 따로 갱신하지 않습니다.
+
+### 컴파일러의 emit 규칙
+
+GC 참조를 들고 있으면서 호출이나 할당을 하는 함수만 frame 을 만듭니다. 그런 함수에 컴파일러는 다음 코드를 직접 emit 합니다.
+
+1. 진입 시 GC 참조 word 들을 0 으로 채웁니다.
+2. 기계 스택에 `ShadowFrame` 을 잡고 `slots` 에 그 word 들의 주소를 기록합니다. `prev` 에 현재 `rok_tls_shadow_stack_top` 을 저장한 뒤 머리를 이 frame 으로 바꿉니다 (link).
+3. 모든 `return` 직전에 머리를 `prev` 로 되돌립니다 (unlink). 에러 반환도 일반 `return` 이므로 같은 경로를 지납니다. panic 은 프로세스를 끝내므로 unlink 가 필요 없습니다.
+
+GC 는 mark 시에 모든 thread 의 체인 머리에서 출발해 frame 을 walk 하며, 각 `slots[i]` 가 가리키는 word 의 값을 root 로 mark 합니다.
+
+코루틴 frame 은 GC heap 객체이므로 ([7.8](708-coroutine.md)) 그 안의 변수는 shadow stack 이 아니라 frame 객체의 scan table 로 추적됩니다.
+
+### 초기 구현
+
+이 장의 GC 설계 (Immix, sticky mark-bit, 동시 수집) 는 목표 설계입니다. 초기 구현은 객체를 옮기지 않는 단순 mark-sweep 이어도 됩니다. 단, 루트 (이 절의 shadow stack) 와 write barrier ([7.4.2](#742-write-barrier-incremental-update)) 는 이 사양의 계약대로 emit 해야 합니다. 그래야 컴파일러 산출물을 바꾸지 않고 수집기를 교체할 수 있습니다.
 
 ### 에러 전파와의 공존
 
@@ -141,10 +152,13 @@ GC 가 mark 를 시작할 때의 동작은 다음과 같습니다.
 
 ```
 for each thread T:
-    for each frame in T.shadow_stack:
-        for each slot in frame:
-            if *slot != null:
-                mark(*slot)
+    frame = T.rok_tls_shadow_stack_top
+    while frame != null:
+        for i in 0..frame.count:
+            ref = *frame.slots[i]          // slot 은 word 의 주소
+            if ref != null:
+                mark(ref)
+        frame = frame.prev
 ```
 
 각 thread 의 shadow stack 을 walk 하여 살아 있는 모든 GC 객체 변수를 mark queue 에 add 합니다.
@@ -153,15 +167,15 @@ for each thread T:
 
 ## 7.4.6. TLS 의 핵심 슬롯
 
-각 thread 는 고정된 TLS 슬롯을 가지고 있습니다.
+각 thread 는 다음 TLS 슬롯을 가집니다. 슬롯마다 런타임이 export 하는 `thread_local` global 하나입니다.
 
-| 슬롯               | 의미                                                                                      |
-|--------------------|-------------------------------------------------------------------------------------------|
-| `yield_flag`       | safepoint 에서 `yield` 해야 하는지                                                        |
-| `tlab_cursor`      | [TLAB](../000-meta/007-glossary.md#tlab-thread-local-allocation-buffer) 의 다음 할당 위치 |
-| `tlab_limit`       | TLAB 의 끝                                                                                |
-| `shadow_stack_top` | shadow stack 의 현재 위치                                                                 |
-| `wb_log_cursor`    | write barrier log 의 위치                                                                 |
-| `mutator_state`    | 현재 mutator 상태 (running / GC-cooperating)                                              |
+| 슬롯                        | 의미                                                                                      |
+|-----------------------------|-------------------------------------------------------------------------------------------|
+| `rok_tls_yield_flag`        | safepoint 에서 `yield` 해야 하는지                                                        |
+| `rok_tls_tlab_cursor`       | [TLAB](../000-meta/007-glossary.md#tlab-thread-local-allocation-buffer) 의 다음 할당 위치 |
+| `rok_tls_tlab_limit`        | TLAB 의 끝                                                                                |
+| `rok_tls_shadow_stack_top`  | shadow stack 체인 머리 (가장 안쪽 frame)                                                  |
+| `rok_tls_wb_log_cursor`     | write barrier log 의 위치                                                                 |
+| `rok_tls_mutator_state`     | 현재 mutator 상태 (running / GC-cooperating)                                              |
 
-자세한 TLS 슬롯 레이아웃은 [TLS 슬롯](../008-abi/803-tls-slots.md) 에서 정의하고 있습니다.
+자세한 TLS 슬롯 정의는 [TLS 슬롯](../008-abi/803-tls-slots.md) 에서 정의하고 있습니다.

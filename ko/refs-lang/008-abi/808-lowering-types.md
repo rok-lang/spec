@@ -239,13 +239,13 @@ Ptr<u8> | none
 let x: any = ...
 ```
 
-이는 `!llvm.struct<(i32, i64)>` 형태로 lower 되며, tag (type_id 또는 종류 식별자) 와 payload 로 구성됩니다.
+이는 `(i32 tag, usize payload)` 쌍으로 lower 되며, tag 는 type_id 입니다. `any Tr` 과 맨 `any` 의 표현은 같습니다.
 
 ```
-!Any = !llvm.struct<(i32, i64)>
+!Any = !llvm.struct<(i32, iN)>      ; iN = 타깃의 포인터 폭 (usize)
 ```
 
-작은 원시 값은 payload 에 직접 담기지만, 큰 값의 경우 payload 는 포인터가 됩니다.
+포인터 폭 이하의 숫자·`bool`·`char` 값은 payload 에 직접 담깁니다. 그 밖의 값은 GC heap 의 box 이고 payload 는 그 포인터입니다. 따라서 payload 가 포인터인지는 tag 로만 알 수 있으며, GC 는 `any` 슬롯을 scan 할 때 tag 를 보고 판단해야 합니다.
 
 ### `any` 의 동적 디스패치
 
@@ -263,12 +263,12 @@ v + 1i32     // v: any
 cf.switch %tag, [
   default: ^trap,
   TAG_I32: ^add_i32,
-  TAG_F64: ^add_f64,
+  TAG_F64: ^add_f64,       ; 다른 피연산자 타입 불일치는 ^trap (panic, exit 101)
   ...
 ]
 
 ^add_i32:
-  %payload = llvm.extractvalue %v[1] : i64
+  %payload = llvm.extractvalue %v[1] : i64     ; 64-bit 타깃
   %i = llvm.trunc %payload : i64 to i32
   %sum = arith.addi %i, %1_const : i32
   ; 결과를 any 로 다시 wrap

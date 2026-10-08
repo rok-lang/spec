@@ -41,6 +41,29 @@ fn first<T>(pair: (T, T)) -> T { pair.0 }
 
 값을 매개변수로 받는 형태입니다. 정확한 규칙은 [`const` 제네릭](211-const-generics.md) 에서 따로 정의하고 있습니다.
 
+### 타입 인자 추론
+
+호출 지점에서 타입 인자를 적지 않으면 컴파일러가 추론합니다. 인자의 타입뿐 아니라 기대 타입 (`let` 의 타입 주석, 인자 자리의 매개변수 타입, 반환 자리의 반환 타입) 도 추론에 쓰입니다.
+
+```rok
+fn empty<T>() -> List<T> { [] }
+
+let xs: List<i32> = empty();        // T = i32 — let 의 타입 주석에서
+takes_strs(empty());                // T = str — 매개변수 타입 List<str> 에서
+```
+
+인자가 없는 정적 트레잇 메서드도 같은 방식으로 `Self` 를 정합니다. 타입 매개변수 위의 호출 `T::zero()` 와 트레잇 경로 호출 `Tr::m()` 은 기대 타입에서 `Self` 를 가져옵니다.
+
+```rok
+trait Zero { fn zero() -> Self; }
+
+let z: i32 = Zero::zero();          // Self = i32
+fn sum<T: Zero + Add>(xs: List<T>) -> T {
+    let acc: T = T::zero();          // Self = T
+    ...
+}
+```
+
 ## 2.10.3. 트레잇 바운드
 
 매개변수가 충족해야 할 트레잇을 적는 방식입니다.

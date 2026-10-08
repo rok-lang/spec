@@ -135,7 +135,7 @@ worker:       requeue frame, run another task
   ↓ (some worker)
 resume:       pop frame and continue execution
   ↓ (on normal termination)
-result:       returned as Future<T>
+result:       delivered as Output of Task<T> (Task<T>: Future<Output = T>)
 ```
 
-> user code: 사용자 코드. compiler: 컴파일러. create coroutine frame + push to queue: coroutine frame 생성 + 큐 push. pop task from deque/lifo and execute: deque/lifo 에서 task 꺼내 실행. on await / yield: await / yield 만나면. requeue frame, run another task: frame 을 큐에 다시, 다른 task 진행. some worker: 어떤 worker 가. resume: 재개. pop frame and continue execution: frame 꺼내 이어서 실행. on normal termination: 정상 종료 시. result: 결과. returned as Future<T>: Future<T> 의 결과로 반환.
+> user code: 사용자 코드. compiler: 컴파일러. create coroutine frame + push to queue: coroutine frame 생성 + 큐 push. pop task from deque/lifo and execute: deque/lifo 에서 task 꺼내 실행. on await / yield: await / yield 만나면. requeue frame, run another task: frame 을 큐에 다시, 다른 task 진행. some worker: 어떤 worker 가. resume: 재개. pop frame and continue execution: frame 꺼내 이어서 실행. on normal termination: 정상 종료 시. result: 결과. delivered as Output of Task<T> (Task<T>: Future<Output = T>): `Future<Output = T>` 를 구현하는 `Task<T>` 의 결과로 전달.

@@ -41,6 +41,7 @@ a < b < c       →   ?                        // 비결합 (체이닝 금지)
 ```
 12   member access (.), method call, indexing
 11   prefix unary (-, !, ~)
+10   as is (후위 형 변환 / 형 검사) — 언어 고정, 좌결합
  9   << >>
  8   * / % %%
  7   + -
@@ -63,6 +64,9 @@ a < b < c       →   ?                        // 비결합 (체이닝 금지)
 
 > [!IMPORTANT]
 > **`try` 와 `catch` / `finally` 의 결합**: [에러 제어 흐름](314-error-control-flow.md) 의 `try` / `try?` / `try!` 와 `catch` / `finally` 절도 `#[infix]` 등록이 아니라 언어가 고정한 구문입니다. `try` 는 전위 형태이지만 표의 전위 단항 연산자 (prec=11) 와 달리 오른쪽 식 전체를 덮습니다. 그 피연산자는 `catch` / `finally` 절, 문장 종결자 `;`, 닫는 괄호, 콤마 앞까지 이어지므로 `try a + b()` 는 `try (a + b())` 입니다. `catch` / `finally` 절은 대입 (prec=-1) 보다 강하고 그 밖의 모든 연산자보다 약하게 묶여, 왼쪽의 식 전체에 붙습니다. 따라서 `try parse(s) catch _ { 0 }` 은 `(try parse(s)) catch _ { 0 }` 이고, `x = try f() catch _ { 0 }` 은 `x = ((try f()) catch _ { 0 })` 입니다.
+
+> [!IMPORTANT]
+> **`as` 와 `is`**: 두 후위 연산자는 `#[infix]` 등록이 아니라 언어가 고정한 구문이며, 같은 등급 (prec=10) 으로 묶입니다. 전위 단항보다 약하고 산술보다 강하므로 `-x as i64` 는 `(-x) as i64`, `a + b is i32` 는 `a + (b is i32)` 입니다. `e is T` 의 결과는 `bool` 입니다 ([2.2.5](../002-types/202-any-slot.md#225-슬롯의-현재-타입-검사)).
 
 > [!NOTE]
 > **점-접두 (broadcast) 연산자의 우선순위**: `.+`, `.*`, `.&&`, `.%%` 같은 점-접두 형태의 우선순위와 결합성은 점 없는 형태와 동일합니다. 별도의 행으로 표기하지는 않으나, 모든 점-접두 토큰은 대응하는 일반 토큰의 등급을 그대로 따릅니다. 예: `.+` 는 `+` 와 같은 prec=7 left, `.&&` 는 `&&` 와 같은 prec=3 left.

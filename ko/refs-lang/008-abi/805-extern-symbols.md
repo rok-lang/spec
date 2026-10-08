@@ -102,7 +102,9 @@ extern "C" {
 }
 ```
 
-호출 시점은 프로세스 시작 직후이자 `main()` 이전이며, 효과로는 worker 풀을 생성하고 GC 공간을 mmap 하며 I/O driver 를 초기화합니다.
+호출 시점은 프로세스 시작 직후이자 `main()` 이전이며, 효과로는 worker 풀을 생성하고 GC 공간을 mmap 하며 I/O driver 를 초기화합니다. 컴파일러가 생성한 C-ABI `main` 은 이 호출 직후에 `rok.register_types` 를 호출합니다 ([8.2.12](802-scan-table.md#8212-등록-시점)).
+
+런타임은 이 밖에 thread-local 데이터 심볼 `rok_tls_shadow_stack_top` 을 export 합니다 ([8.3.8](803-tls-slots.md#838-컴파일러-emit-의-형식)).
 
 ### `rok_runtime_shutdown`
 

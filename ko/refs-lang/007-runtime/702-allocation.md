@@ -59,6 +59,8 @@ slow path 가 수행하는 작업은 다음과 같습니다. 먼저 LOS 임계 �
 
 이후 payload 부분은 사용자 코드가 필드 값으로 채우게 됩니다.
 
+객체를 옮기지 않는 수집기는 `gc_word` 를 자유롭게 쓸 수 있습니다. 또한 수집기는 헤더 앞이나 side table 에 자체 bookkeeping 을 둘 수 있습니다 ([8.1.4](../008-abi/801-object-header-abi.md#814-gc_word-offset-8-u64-또는-ptr)).
+
 ## 7.2.5. 정렬
 
 모든 할당은 8 바이트 정렬을 보장합니다. TLAB cursor 가 8 바이트의 배수로 유지되며, 객체 크기 또한 8 바이트 배수로 올림 처리됩니다. 더 큰 정렬이 요구되는 객체 (`#[repr(align(N))]`) 는 slow path 에서 처리하게 됩니다.

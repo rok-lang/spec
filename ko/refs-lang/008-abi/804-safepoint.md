@@ -115,9 +115,7 @@ mutator 는 각 STW 동안 `rok_runtime_yield` 안에서 [block](../000-meta/007
 
 safepoint 에 도달했을 때, mutator 의 살아있는 모든 GC 객체 변수가 shadow stack 에 등록되어 있어야 합니다.
 
-이 보장은 컴파일러가 [배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md) 의 `llvm.gcroot` 를 함수 진입 시 emit 함으로써 이루어집니다. LLVM 백엔드가 모든 gcroot 변수를 shadow stack 에 push 한 상태로 만들어 줍니다.
-
-함수 본체 안에서도 gcroot 변수의 값이 변하면 shadow stack 슬롯도 함께 동기화되며, LLVM 의 코드 생성이 이를 자동으로 처리합니다.
+이 보장은 컴파일러가 [배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md) 의 shadow stack frame 을 함수 진입 시 직접 link 함으로써 이루어집니다. GC 포인터 지역 변수는 frame 의 슬롯에 살기 때문에, 본체에서 값이 바뀌면 슬롯도 함께 바뀝니다.
 
 ## 8.4.8. Loop back-edge poll
 

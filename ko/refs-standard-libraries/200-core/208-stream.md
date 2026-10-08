@@ -1,10 +1,10 @@
 # 2.8. stream — async iterator
 
-`rok::core::stream` 모듈은 async 단계 진행 트레잇 `Stream<T>` 를 정의합니다. [2.7 iter](207-iter.md) 의 `Iterator` 가 **sync** 인 반면, `Stream` 은 **async** 이며, 각 `next()` 호출이 **await 가능** 하다는 점에서 차이가 납니다.
+`rok::core::stream` 모듈은 async 단계 진행 트레잇 `Stream` (원소 타입은 associated type `Item`) 을 정의합니다. [2.7 iter](207-iter.md) 의 `Iterator` 가 **sync** 인 반면, `Stream` 은 **async** 이며, 각 `next()` 호출이 **await 가능** 하다는 점에서 차이가 납니다.
 
 또한 이 모듈은 `for await x in stream` 의 desugar 권위를 가지며, 해당 구문은 이 장에서 정의하는 트레잇으로 dispatch 됩니다.
 
-## 2.8.1. `Stream<T>` — async 단계 진행
+## 2.8.1. `Stream` — async 단계 진행
 
 먼저 트레잇 정의는 다음과 같습니다.
 
@@ -16,7 +16,7 @@ trait Stream {
 }
 ```
 
-이는 `Iterator::next` 의 async 버전에 해당하며, 반환값의 의미는 다음과 같이 해석됩니다. `Poll::Ready(Some(v))` 는 다음 원소 `v` 가 준비되었음을 뜻하고, `Poll::Ready(none)` 은 stream 의 끝을 의미하며, `Poll::Pending` 은 아직 값이 준비되지 않았음을 나타내어 Waker 가 깨우면 다시 poll 하게 됩니다.
+이는 `Iterator::next` 의 async 버전에 해당하며, 반환값의 의미는 다음과 같이 해석됩니다. `Poll::Ready(v)` (`v: Item`) 는 다음 원소 `v` 가 준비되었음을 뜻하고, `Poll::Ready(none)` 은 stream 의 끝을 의미하며, `Poll::Pending` 은 아직 값이 준비되지 않았음을 나타내어 Waker 가 깨우면 다시 poll 하게 됩니다.
 
 요컨대 `Iterator` 의 `next() -> T | none` 과 의미는 같지만, **await 가능** 하다는 점이 결정적인 차이입니다.
 
@@ -32,9 +32,9 @@ for await x in stream { body }
 
 ```rok
 loop {
-    match stream.poll_next(ref CURRENT_CONTEXT).await {
-        Some(v) => { let x = v; body; }
-        none => break,
+    match await stream.poll_next(ref CURRENT_CONTEXT) {
+        v: Item => { let x = v; body; }
+        none    => break,
     }
 }
 ```
@@ -60,9 +60,9 @@ trait IntoStream {
 for await event in event_source { ... }
 // = let __s = event_source.into_stream();
 //   loop {
-//       match __s.poll_next(ref CTX).await {
-//           Some(e) => { let event = e; body; }
-//           none => break,
+//       match await __s.poll_next(ref CTX) {
+//           e: Item => { let event = e; body; }
+//           none    => break,
 //       }
 //   }
 ```
@@ -72,15 +72,15 @@ for await event in event_source { ... }
 Stream 을 직접 생성하는 가장 자연스러운 방법은 `async yield` 함수를 작성하는 것입니다.
 
 ```rok
-async yield fn ticks(interval: Duration) -> Stream<Instant> {
+async yield fn ticks(interval: Duration) -> Instant {
     loop {
-        task::sleep(interval).await;
+        await task::sleep(interval);
         yield Instant::now();
     }
 }
 ```
 
-`async yield` 는 Stream 을 반환하는 함수를 만들며, 컴파일러는 이를 LLVM coro.* state machine 으로 변환합니다. 이때 `yield` 자리는 **suspend point** 이며, `await` 자리 역시 **suspend point** 가 됩니다.
+`-> Instant` 는 원소 타입이며, 호출 결과는 `Stream<Item = Instant>` 를 구현하는 컴파일러 생성 익명 타입입니다 ([refs-lang 4.1.11](../../refs-lang/004-functions/401-function-declaration.md#코루틴-함수의-결과-타입)). 컴파일러는 이 함수를 LLVM coro.* state machine 으로 변환합니다. 이때 `yield` 자리는 **suspend point** 이며, `await` 자리 역시 **suspend point** 가 됩니다.
 
 자세한 syntax 권위는 [refs-lang 4.13 stream (`async yield`)](../../refs-lang/004-functions/413-stream.md) 을 따릅니다.
 
@@ -89,21 +89,23 @@ async yield fn ticks(interval: Duration) -> Stream<Instant> {
 `Iterator` 와 비슷하게 다양한 어댑터가 제공됩니다.
 
 ```rok
-impl<T> Stream<Item = T> {
-    fn map<U, F: Fn(T) -> U>(self, f: F) -> impl Stream<Item = U>;
-    fn filter<F: Fn(T) -> bool>(self, pred: F) -> impl Stream<Item = T>;
-    fn take(self, n: usize) -> impl Stream<Item = T>;
-    fn skip(self, n: usize) -> impl Stream<Item = T>;
+impl Stream {
+    fn map<U>(self, f: fn(Item) -> U) -> Map<Self, U>;
+    fn filter(self, pred: fn(Item) -> bool) -> Filter<Self>;
+    fn take(self, n: usize) -> Take<Self>;
+    fn skip(self, n: usize) -> Skip<Self>;
 
-    fn collect<C: FromStream<T>>(self) -> C;        // await 까지 포함
-    fn for_each<F: Fn(T)>(self, f: F);              // await 까지 포함
+    fn collect<C: FromStream<Item>>(self) -> C;     // await 까지 포함
+    fn for_each(self, f: fn(Item));                 // await 까지 포함
 
     // async-specific
-    fn buffer_unordered(self, n: usize) -> impl Stream<Item = T>;
-    fn buffered(self, n: usize) -> impl Stream<Item = T>;
-    fn throttle(self, dur: Duration) -> impl Stream<Item = T>;
+    fn buffer_unordered(self, n: usize) -> BufferUnordered<Self>;
+    fn buffered(self, n: usize) -> Buffered<Self>;
+    fn throttle(self, dur: Duration) -> Throttle<Self>;
 }
 ```
+
+반환 타입은 [2.7 iter](207-iter.md) 의 어댑터처럼 이름 있는 구체 struct 이며, `rok::core::stream` 모듈에 있습니다 (`stream::Map<S, U>` 는 `iter::Map` 과 별개입니다). `Map<Self, U>` 는 `Stream<Item = U>` 를, 나머지는 `Stream<Item = Item>` 을 구현합니다.
 
 이 가운데 `buffer_unordered(n)` 와 `buffered(n)` 는 N개의 future 를 동시에 처리하는 concurrency control 수단으로 동작합니다.
 
@@ -120,8 +122,8 @@ trait FromStream<T> {
 `Stream::collect` 가 호출되면 대상 컬렉션의 `from_stream` 이 호출되며, stream 의 모든 원소가 await 후 누적되어 컬렉션을 만듭니다.
 
 ```rok
-let v: List<i32> = (0..).take(5).map(|x| async { x * 2 }).buffered(3).collect().await;
-//   = List::from_stream(...).await
+let v: List<i32> = await (0..).take(5).map(|x| async { x * 2 }).buffered(3).collect();
+//   = await List::from_stream(...)
 ```
 
 `List`, `Dict`, `Set`, `String` 등 모든 collectable 컨테이너가 `FromIterator` 와 `FromStream` 을 함께 impl 하여 sync / async 양쪽에서 같은 패턴을 따릅니다.
@@ -146,9 +148,9 @@ for await event in rx {
 여러 stream 을 결합하는 combinator 도 제공됩니다.
 
 ```rok
-fn merge<S1: Stream, S2: Stream>(a: S1, b: S2) -> impl Stream<Item = S1::Item | S2::Item>;
-fn zip<S1: Stream, S2: Stream>(a: S1, b: S2) -> impl Stream<Item = (S1::Item, S2::Item)>;
-fn select<S1: Stream, S2: Stream>(a: S1, b: S2) -> impl Stream<Item = S1::Item>;  // 첫 ready
+fn merge<S1: Stream, S2: Stream>(a: S1, b: S2) -> Merge<S1, S2>;    // Stream<Item = S1::Item | S2::Item>
+fn zip<S1: Stream, S2: Stream>(a: S1, b: S2) -> Zip<S1, S2>;        // Stream<Item = (S1::Item, S2::Item)>
+fn select<S1: Stream, S2: Stream>(a: S1, b: S2) -> Select<S1, S2>;  // Stream<Item = S1::Item>, 첫 ready
 ```
 
 각 함수의 의미를 정리하면, `merge` 는 두 stream 의 union 을 만들고, `zip` 은 두 stream 을 pair 로 묶으며, `select` 는 race 식으로 먼저 준비되는 쪽을 취합니다.
@@ -161,9 +163,9 @@ fn select<S1: Stream, S2: Stream>(a: S1, b: S2) -> impl Stream<Item = S1::Item>;
 |-------------------------------|---------------------------------|------------------------------|
 | `Stream`                      | `rok::core::stream::stream`      | poll-based                   |
 | `IntoStream`                  | `rok::core::stream::into_stream` |                              |
-| `Receiver<T>`                 | `rok::core::channel::receiver`   | impl Stream                  |
-| `Stream::map`/`filter`/`take` | `rok::core::stream::adapter`     | adapter struct + impl Stream |
-| `merge`/`zip`/`select`        | `rok::core::stream::combinator`  |                              |
+| `Receiver<T>`                 | `rok::core::channel::receiver`   | `Stream<Item = T>` 구현      |
+| `Stream::map`/`filter`/`take` | `rok::core::stream::adapter`     | adapter struct (`Stream` 구현) |
+| `merge`/`zip`/`select`        | `rok::core::stream::combinator`  | `Merge`/`Zip`/`Select` struct |
 
 ## 2.8.10. `Stream` lang slot 여부
 

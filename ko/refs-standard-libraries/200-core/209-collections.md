@@ -175,7 +175,7 @@ for (k, v) in d.entries() {
 impl<K: Hash + Eq, V> Index<K> for Dict<K, V> {
     type Output = V;
     fn index(self, k: K) -> V {
-        self.get(k).expect("key not found")
+        self.get(k) ?? panic("key not found")
     }
 }
 ```

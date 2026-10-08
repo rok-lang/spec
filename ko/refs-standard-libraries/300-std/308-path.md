@@ -30,8 +30,8 @@ impl Path {
     fn file_name(self) -> str | none;
     fn file_stem(self) -> str | none;
     fn extension(self) -> str | none;
-    fn components(self) -> impl Iterator<Item = Component>;
-    fn ancestors(self) -> impl Iterator<Item = Path>;
+    fn components(self) -> Components;   // Iterator<Item = Component> 구현
+    fn ancestors(self) -> Ancestors;     // Iterator<Item = Path> 구현
 
     // 조작
     fn join(self, other: Path) -> Path;

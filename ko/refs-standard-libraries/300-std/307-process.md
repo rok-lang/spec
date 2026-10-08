@@ -123,8 +123,10 @@ let child = try Command::new("grep")
     .stdout(Stdio::Piped)
     .spawn();
 
-try child.stdin.unwrap().write_all(input_bytes);
-let result = try child.stdout.unwrap().read_to_end();
+let stdin = child.stdin ?? panic("stdin not piped");     // 필드는 ChildStdin | none
+let stdout = child.stdout ?? panic("stdout not piped");
+try stdin.write_all(input_bytes);
+let result = try stdout.read_to_end();
 try child.wait();
 
 // kill_on_drop — process leak 방지
@@ -157,7 +159,7 @@ try child.wait();
 조금 더 깊은 영역으로 내려가면 신호 처리 함수들이 자리 잡고 있습니다.
 
 ```rok
-fn signal(sig: i32, handler: || -> ()) throws (SignalError);
+fn signal(sig: i32, handler: fn()) throws (SignalError);
 fn kill(pid: u32, sig: i32) throws (IoError);
 fn raise(sig: i32) throws (IoError);
 ```

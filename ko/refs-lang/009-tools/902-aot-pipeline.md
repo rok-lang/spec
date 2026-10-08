@@ -83,6 +83,8 @@ HIR 은 타입 정보가 풍부하게 담긴 중간 표현이며, 위 4 ~ 5 단�
 4. 캐시. 같은 (item_id, type_tuple) 는 한 번만.
 ```
 
+프로그램의 root (`main`, export 된 심볼, 런타임이 참조하는 심볼) 에서 도달할 수 없는 함수는 emit 하지 않습니다.
+
 이 단계 덕분에 [AOT](../000-meta/007-glossary.md#aot-ahead-of-time) 가 vtable 없는 직접 호출을 할 수 있게 됩니다 ([트레잇-as-타입 금지](../002-types/212-trait-as-type-banned.md) 참고).
 
 ## 9.2.9. rok-mir 생성

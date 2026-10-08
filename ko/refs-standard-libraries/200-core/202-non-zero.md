@@ -46,7 +46,7 @@ impl<T: Primitive> NonZero<T> {
 ### 사용 예
 
 ```rok
-let n: NonZero<i32> = NonZero::new(42).unwrap();
+let n: NonZero<i32> = NonZero::new(42) ?? panic("zero");
 let z: NonZero<i32> | none = NonZero::new(0);     //→ none
 
 n.get();                  //→ 42
@@ -109,8 +109,8 @@ NonNan 의 가장 큰 가치는 `Eq` 와 `Ord` 를 구현할 수 있다는 점�
 impl<F: float> Eq for NonNan<F> { }
 impl<F: float> Ord for NonNan<F> {
     fn cmp(self, rhs: NonNan<F>) -> Ordering {
-        // NaN 없으니 partial_cmp 결과가 항상 some
-        self.0.partial_cmp(rhs.0).unwrap()
+        // NaN 이 없으니 partial_cmp 는 none 을 반환하지 않음
+        self.0.partial_cmp(rhs.0) ?? panic("unreachable")
     }
 }
 ```
@@ -207,7 +207,7 @@ struct Outer { id: Inner; name: str; }   // Inner 의 niche 가 Outer 로 전파
 ### 컴파일 타임 (literal)
 
 ```rok
-let n: NonZero<i32> = NonZero::new(0).unwrap();   // 컴파일 시점 — unwrap 후 panic
+let n: NonZero<i32> = NonZero::new(0) ?? panic("zero");   // 컴파일 시점 — none 이라 panic
 ```
 
 const 자리에서는 const evaluation 을 통해 **`NonZero::new(0)` 자체** 가 컴파일 에러로 잡힙니다.
@@ -260,7 +260,7 @@ impl<T: Primitive> From<NonZero<T>> for T {
 let n: i32 = 42;
 let nz: NonZero<i32> = try n.try_into();   // 0 이면 ZeroError 를 throw
 
-let nz: NonZero<i32> = NonZero::new(7).unwrap();
+let nz: NonZero<i32> = NonZero::new(7) ?? panic("zero");
 let v: i32 = nz.into();                    // lossless
 ```
 

@@ -131,13 +131,12 @@ math.cos %x : f64
 LLVM 다이얼렉트는 어디까지나 마지막 수단으로 두고, 다른 다이얼렉트로는 표현할 수 없는 의미가 있을 때에만 사용합니다.
 
 ```
-llvm.gcroot
 llvm.coro.id / llvm.coro.alloc / llvm.coro.begin / ...
 llvm.struct<(...)>
 llvm.intr.expect / llvm.intr.assume
 ```
 
-GC 와 coroutine, 그리고 저수준 intrinsic 등은 모두 `llvm` 다이얼렉트의 영역에 속합니다. 에러 전달은 반환값과 일반 분기로 표현되므로 ([8.9.6](809-lowering-control.md#896-try--catch--finally-값-기반-분기)) `llvm` 다이얼렉트의 특수 기능을 쓰지 않습니다.
+coroutine 과 저수준 intrinsic 등은 `llvm` 다이얼렉트의 영역에 속합니다. GC 루트는 intrinsic 없이 일반 load / store 로 shadow stack frame 을 다룹니다 ([8.9.12](809-lowering-control.md#8912-shadow-stack-frame)). 에러 전달은 반환값과 일반 분기로 표현되므로 ([8.9.6](809-lowering-control.md#896-try--catch--finally-값-기반-분기)) `llvm` 다이얼렉트의 특수 기능을 쓰지 않습니다.
 
 ## 8.7.4. 다이얼렉트 사용 우선순위
 

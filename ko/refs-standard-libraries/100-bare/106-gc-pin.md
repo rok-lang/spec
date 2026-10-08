@@ -101,11 +101,11 @@ struct Ptr<T>   { /* raw — root 추적 X */ }
 ```rok
 struct GcPtr<T> {
     // 내부: 보통 단순 `*T` — GC 가 외부에서 root set 으로 추적
-    // shadow stack 또는 statepoint 으로 LLVM 에 register
+    // 지역 변수면 컴파일러가 emit 하는 shadow stack frame 슬롯에 둠
 }
 ```
 
-rok 의 GC 는 **llvm.gcroot intrinsic** 기반의 shadow stack 을 사용해 root set 을 추적합니다.
+rok 의 GC 는 컴파일러가 직접 emit 하는 **thread 별 shadow stack** 으로 root set 을 추적합니다 ([refs-lang 7.4.1](../../refs-lang/007-runtime/704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack)).
 
 ## 1.6.4. pin / unpin 의 GC 측 메커니즘
 
@@ -183,7 +183,7 @@ null-terminated 형태처럼, 각 컨테이너의 layout 에 맞춘 형태로 �
 |------------------|--------------------------------|
 | `Pinned<T>`      | `rok_gc_pin` / `rok_gc_unpin`  |
 | `pin<T>()`       | (위와 동일)                    |
-| `GcPtr<T>`       | shadow stack via `llvm.gcroot` |
+| `GcPtr<T>`       | shadow stack frame 슬롯 (컴파일러 emit) |
 | `as_data_ptr` 등 | container 별 layout 의존       |
 
 ## 1.6.8. 다른 언어와의 비교

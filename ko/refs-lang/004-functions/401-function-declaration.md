@@ -190,18 +190,36 @@ unsafe unsafe fn bad3() { ... }          // ERROR — unsafe 중복
 
 세 수식어가 모두 선택적이므로 총 8 개의 조합이 가능하며, 각각 다음과 같이 정의됩니다.
 
-| 조합                    | 결과 타입     | 의미                 | 정의 위치                          |
-|-------------------------|---------------|----------------------|------------------------------------|
-| `fn`                    | `T`           | 일반 함수            | [4.1](401-function-declaration.md) |
-| `unsafe fn`             | `T`           | unsafe 함수          | [4.15](415-unsafe.md)              |
-| `async fn`              | `Future<T>`   | 비동기 함수          | [4.12](412-async.md)               |
-| `yield fn`              | `Iterator<T>` | 제너레이터           | [4.11](411-generators.md)          |
-| `async yield fn`        | `Stream<T>`   | 비동기 스트림        | [4.13](413-stream.md)              |
-| `unsafe async fn`       | `Future<T>`   | unsafe 비동기 함수   | (각 modifier 의 합)                |
-| `unsafe yield fn`       | `Iterator<T>` | unsafe 제너레이터    | (각 modifier 의 합)                |
-| `unsafe async yield fn` | `Stream<T>`   | unsafe 비동기 스트림 | (각 modifier 의 합)                |
+| 조합                    | 호출 결과                              | 의미                 | 정의 위치                          |
+|-------------------------|----------------------------------------|----------------------|------------------------------------|
+| `fn`                    | `R`                                    | 일반 함수            | [4.1](401-function-declaration.md) |
+| `unsafe fn`             | `R`                                    | unsafe 함수          | [4.15](415-unsafe.md)              |
+| `async fn`              | `Future<Output = R>` 구현 익명 타입    | 비동기 함수          | [4.12](412-async.md)               |
+| `yield fn`              | `Iterator<Item = R>` 구현 익명 타입    | 제너레이터           | [4.11](411-generators.md)          |
+| `async yield fn`        | `Stream<Item = R>` 구현 익명 타입      | 비동기 스트림        | [4.13](413-stream.md)              |
+| `unsafe async fn`       | `Future<Output = R>` 구현 익명 타입    | unsafe 비동기 함수   | (각 modifier 의 합)                |
+| `unsafe yield fn`       | `Iterator<Item = R>` 구현 익명 타입    | unsafe 제너레이터    | (각 modifier 의 합)                |
+| `unsafe async yield fn` | `Stream<Item = R>` 구현 익명 타입      | unsafe 비동기 스트림 | (각 modifier 의 합)                |
 
 `unsafe` 가 함께 붙은 조합의 의미는 단순합니다. 함수 본체 전체가 unsafe scope 가 되며 (4.15 의 정의), 결과 타입과 코루틴 동작은 함께 붙은 다른 수식어 (`async` / `yield`) 의 정의를 그대로 따릅니다. 즉 `unsafe` 는 본체 안에서 raw pointer 역참조나 `unsafe fn` 호출을 허용하는 효과만 더해 줍니다.
+
+### 코루틴 함수의 결과 타입
+
+`Future`, `Iterator`, `Stream` 은 트레잇이므로 그 자체로는 타입이 아닙니다 ([2.12](../002-types/212-trait-as-type-banned.md)). `async` / `yield` 가 붙은 함수를 호출하면 **컴파일러가 함수마다 생성하는 익명 구체 타입** 의 값이 돌아옵니다. 이 타입은 해당 함수의 코루틴 프레임 타입이며, 위 표의 트레잇을 구현합니다. 선언의 `-> R` 은 이 익명 타입이 아니라 `Output` / `Item` 이 될 값의 타입을 적습니다.
+
+```rok
+async fn fetch_user(id: i64) -> User { ... }
+let f = fetch_user(42i64);        // f: Future<Output = User> 를 구현하는 익명 타입
+```
+
+익명 타입에는 이름이 없으므로, 시그니처에서 이런 값을 다루려면 두 방법 중 하나를 씁니다.
+
+```rok
+fn run<F: Future<Output = User>>(f: F) { ... }        // 제네릭 bound — 정적 dispatch
+fn keep(f: any Future<Output = User>) { ... }         // any — boxing, 동적 dispatch
+```
+
+블록과 클로저 형태 (`async { }`, `yield || { }` 등) 의 결과도 같은 규칙을 따릅니다.
 
 ### 클로저와 블록 형태
 

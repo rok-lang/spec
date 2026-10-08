@@ -52,7 +52,7 @@ task::spawn { fetch("...") };
 // ↑ 동시에 실행 — 한 task suspend 시 worker 가 다른 task 실행
 ```
 
-그 결과 `AsyncRead` / `AsyncWrite` 트레잇은 **존재하지 않으며**, `Future<T>` 를 직접 다룰 일도 거의 없습니다. 무엇보다 function color 문제가 **완화** 됩니다 — sync API 가 곧 async 이기 때문입니다.
+그 결과 `AsyncRead` / `AsyncWrite` 트레잇은 **존재하지 않으며**, `Future` 구현 값을 직접 다룰 일도 거의 없습니다. 무엇보다 function color 문제가 **완화** 됩니다 — sync API 가 곧 async 이기 때문입니다.
 
 이 정책은 [Tokio io_uring 글](https://tokio.rs/blog/2021-07-tokio-uring) 이 지적한 completion vs readiness model 충돌도 회피합니다. sync API 라 두 모델 모두를 자유롭게 선택할 수 있는 까닭입니다.
 

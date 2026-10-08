@@ -9,7 +9,7 @@
 핵심 API 의 시그니처는 다음과 같습니다.
 
 ```rok
-fn spawn<F: Fn() -> T, T>(f: F) -> Task<T>;
+fn spawn<T>(f: fn() -> T) -> Task<T>;
 fn race<T>(tasks: List<Task<T>>) -> T;                  // 첫 완료 task 결과
 fn join<T>(tasks: List<Task<T>>) -> List<T>;            // 모두 완료 후
 fn timeout<T>(dur: Duration, task: Task<T>) throws (TimeoutError) -> T;
@@ -26,7 +26,7 @@ fn sleep_until(when: Instant);
 use rok::core::task::*;
 
 let t = task::spawn { compute_heavy() };
-let result = t.await;
+let result = await t;
 
 let results = task::join([
     task::spawn { fetch("a") },
@@ -58,13 +58,17 @@ impl<T> Task<T> {
     fn id(self) -> TaskId;
     fn cancel(self);                      // 협력적 취소 신호
     fn is_finished(self) -> bool;
-    fn await(self) -> T;                  // suspend until done
+}
+
+impl<T> Future for Task<T> {              // `await t` — 완료까지 suspend
+    type Output = T;
+    ...
 }
 ```
 
-### `Awaitable` 통합 surface
+### `IntoFuture` 통합
 
-`Task<T>` 는 [2.20 future](220-future.md) 의 `Awaitable` 트레잇을 구현하므로, `Future`, `Thread`, `Parallel` 과 동일한 인터페이스로 await 될 수 있습니다. `Awaitable` 트레잇과 lang slot `future_trait` 의 권위 있는 정의는 [2.20 future](220-future.md) 에 있으며, 본 절은 그 정의를 그대로 따릅니다.
+`Task<T>` 는 `Future<Output = T>` 를 구현하므로 `await t` 로 기다릴 수 있고, [2.20 future](220-future.md) 의 `IntoFuture` blanket impl 에도 포함되어 `Thread`, `Parallel` 과 동일한 방식으로 await 될 수 있습니다. `IntoFuture` 트레잇과 lang slot `future_trait` 의 권위 있는 정의는 [2.20 future](220-future.md) 에 있으며, 본 절은 그 정의를 그대로 따릅니다.
 
 ## 2.18.3. 스케줄러 모델 — work-stealing
 
@@ -160,4 +164,4 @@ impl Instant {
 | `Task<T>`            | `rok::core::task`                     | coroutine frame ref      |
 | `Duration`/`Instant` | `rok::core::task::time`               | i64 ns + monotonic clock |
 | `Future` (lang slot) | `rok::core::future`                   | poll-based               |
-| `Awaitable`          | `rok::core::future`                   | ergonomic surface        |
+| `IntoFuture`         | `rok::core::future`                   | await 진입점             |

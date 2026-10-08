@@ -124,17 +124,20 @@ let c = Counter::new();             // OK — 팩토리 메서드 (있다면)
 
 ## 5.6.9. `enum` 변형의 가시성
 
-각 변형도 별도의 가시성을 가집니다.
+변형은 별도의 가시성을 갖지 않으며, `enum` 의 가시성을 그대로 따릅니다. 변형 앞에 가시성 키워드를 붙이면 컴파일 에러입니다.
 
 ```rok
-pub enum Result {
-    pub Ok(i32),
-    pub Err(str),
-        Pending,                    // 모듈 비공개
+pub enum Shape {
+    Circle(f64),                    // pub — Shape 를 따름
+    Square(f64),
+}
+
+pub enum Bad {
+    pub A,                          // ERROR — 변형에는 가시성을 적지 않음
 }
 ```
 
-변형 자체가 비공개라면 외부에서 매칭하거나 생성할 수 없습니다.
+`struct` 필드와 달리 변형을 하나만 숨기면 외부의 `match` 가 완전성을 만족할 수 없으므로 이렇게 정합니다. 표준 라이브러리의 `pub enum Result<T, E> { Ok(T), Err(E) }` 도 이 규칙으로 `Ok` / `Err` 가 공개됩니다.
 
 ## 5.6.10. `impl` 메서드의 가시성
 

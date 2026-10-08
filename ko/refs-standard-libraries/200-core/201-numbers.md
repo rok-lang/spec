@@ -58,7 +58,7 @@ impl Int {
     fn from_u64(n: u64) -> int;
     fn from_str(s: str, radix: u32) -> int | none;  // 파싱
 
-    fn to_i32(self) -> i32 | none;  // 범위 안이면 some, 밖이면 none
+    fn to_i32(self) -> i32 | none;  // 범위 안이면 값, 밖이면 none
     fn to_i64(self) -> i64 | none;
     fn to_f64(self) -> f64;        // 항상 가능 (정밀도 손실 가능)
     ...

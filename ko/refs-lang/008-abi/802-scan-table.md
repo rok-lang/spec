@@ -152,8 +152,8 @@ ScanTable {
 
 ```
 ANY 슬롯 레이아웃.
-  offset  0:  tag       u32
-  offset  8:  payload   8 바이트 (작은 값 직접, 큰 값은 ptr)
+  offset  0:            tag       u32
+  offset  ptr 정렬:     payload   usize (포인터 폭 이하 숫자·bool·char 는 직접, 그 밖은 box ptr)
 ```
 
 이에 대응하는 ScanTable entry 는 다음과 같이 구성됩니다.
@@ -163,7 +163,12 @@ field_offset = (그 슬롯의 offset)
 field_kind = ANY_SLOT (3)
 ```
 
-GC 는 mark 시점에 tag 를 보고 payload 의 의미를 결정합니다. payload 가 작은 원시 타입이면 무시하고, 포인터형이면 mark 합니다.
+GC 는 mark 시점에 payload 가 box 포인터인지 판단해야 합니다. 현재 ABI 에는 tag → "box 여부" 표가 없으므로, 객체를 옮기지 않는 수집기는 다음 방식을 써도 됩니다.
+
+- payload word 를 후보로 보고, 살아 있는 객체 주소 집합에 있으면 mark 합니다.
+- ANY_SLOT 외의 모든 자리는 그대로 정밀하게 scan 합니다. 그래서 보수성은 ANY_SLOT 에 한정되며, 우연히 객체 주소와 같은 정수는 그 객체 하나만 살려 둡니다.
+
+객체를 옮기는 수집기는 payload 를 고쳐 써야 하므로 이 방식을 쓸 수 없고, tag → box 여부 표가 필요합니다. 그 표의 형식은 향후 정의합니다.
 
 ## 8.2.8. WEAK_REF
 
@@ -208,4 +213,13 @@ process_start:
   user main()
 ```
 
-컴파일러가 `rok_register_types()` 와 같은 진입 함수에 모든 등록 호출을 모아 두고, 런타임 초기화 직후에 이를 호출합니다.
+컴파일러는 모든 등록 호출을 모은 함수 `rok.register_types` 를 emit 합니다. 컴파일러가 생성하는 C-ABI `main` 은 `rok_runtime_init` 직후에 이 함수를 호출하고, 그다음 사용자 진입점으로 들어갑니다.
+
+```
+main(argc, argv):                // 컴파일러 생성, C ABI
+  rok_runtime_init()
+  rok.register_types()           // rok_gc_register_type 호출 모음
+  → 사용자 진입점 (4.16)
+```
+
+GC 객체 할당의 slow path 는 `rok_gc_alloc_slow(size, align, type_id)` 이며 ([7.2.3](../007-runtime/702-allocation.md#723-slow-path-rok_gc_alloc_slow)), 컴파일러가 부여하는 type id 는 `0x10000` 부터 시작합니다 ([8.1.2](801-object-header-abi.md#812-type_id-offset-0-u32-little-endian)).
