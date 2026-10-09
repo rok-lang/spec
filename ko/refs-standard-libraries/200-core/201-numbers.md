@@ -360,6 +360,15 @@ let big: int = 9999999999;  // int
 
 자세한 변환 매트릭스는 [2.11 변환](211-conversion.md) 에 정리되어 있습니다.
 
+### `Zero` / `One`
+
+```rok
+trait Zero { fn zero() -> Self; }       // 덧셈 항등원
+trait One  { fn one() -> Self; }        // 곱셈 항등원
+```
+
+모든 숫자 primitive 와 `int` / `float` 가 두 트레잇을 구현합니다. `Iterator::sum` / `product` 가 이를 씁니다 ([2.7.1](207-iter.md#271-iterator--단계-진행)).
+
 ## 2.1.6. 산술 결과 타입
 
 ### `int + int = int`
@@ -476,7 +485,7 @@ primitive 를 default 로 둡니다. rok 도 리터럴의 기본은 fixed (`i32`
 
 각 언어와의 차이를 정리하면 다음과 같습니다. **Python** 은 int 만 제공하며,
 fixed-width 가 없어서 FFI 나 성능 critical 한 상황에서는 NumPy 에 의존하게
-됩니다. **Julia** 는 fixed 가 default 라서 silent overflow 의 위험이 있고,
-사용자가 이를 자주 잊는 경향이 있습니다. **Rust** 는 fixed only 라서 매번
-사용자가 type 을 적어야만 합니다. 이에 반해 **rok** 는 두 세계가 공존하도록
+됩니다. **Julia** 는 rok 과 같이 fixed 가 default 이며, 무한 정밀도가
+필요하면 `BigInt` 를 명시합니다. **Rust** 는 fixed only 라서 매번
+사용자가 type 을 적어야만 합니다. **rok** 는 두 세계가 공존하도록
 하여, 리터럴은 기대 타입을 따르고 (없으면 `i32` / `f64`), 무한 정밀도가 필요한 자리에서 `int` / `float` 를 적도록 설계되어 있습니다.

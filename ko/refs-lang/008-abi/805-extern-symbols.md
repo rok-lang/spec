@@ -314,6 +314,30 @@ extern "C" {
 
 회복 불가능한 panic 으로, fatal 입니다. 이 함수는 반환하지 않으며, 메시지를 stderr 에 출력한 뒤 프로세스를 종료 코드 `101` 로 종료시킵니다. `catch` 나 `finally` 는 실행되지 않습니다.
 
+### `rok_panic_str`
+
+**Thread-safety: `thread-safe`**.
+
+```
+extern "C" {
+    fn rok_panic_str(msg: str) -> !;          // msg 는 (ptr, len)
+}
+```
+
+`rok_panic` 과 같으며 메시지를 `str` 로 받습니다. core 의 `panic(msg: str)` 이 이 심볼을 부릅니다.
+
+### `rok_oom`
+
+**Thread-safety: `thread-safe`**.
+
+```
+extern "C" {
+    fn rok_oom() -> !;
+}
+```
+
+`fatal error: out of memory` 를 stderr 에 출력하고 종료 코드 `101` 로 종료합니다. 런타임 안의 할당 실패와 core 의 `oom()` 이 모두 이 심볼을 거칩니다. 런타임은 rok 함수를 이름으로 부를 수 없으므로, 할당 실패 시 `oom_fn` 슬롯의 함수를 부르지 않고 이 심볼을 직접 씁니다.
+
 ## 8.5.8. 심볼 명명 규약
 
 심볼의 접두사별 영역은 다음 표와 같이 정리됩니다.

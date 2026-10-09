@@ -211,12 +211,12 @@ Fatal 은 `throws` 의 에러가 아니므로 `catch` 로 잡을 수 없습니�
 mod rok::core::panic {
     #[lang("panic_fn")]
     fn panic(msg: str) -> ! {
-        // stderr 출력 후 종료 코드 101 로 프로세스 종료
+        rok_panic_str(msg)           // stderr 출력 후 종료 코드 101
     }
 
     #[lang("oom_fn")]
     fn oom() -> ! {
-        // GC alloc 실패 시 호출
+        rok_oom()                    // "fatal error: out of memory", 종료 코드 101
     }
 
     #[lang("unreachable_fn")]
@@ -240,15 +240,16 @@ mod rok::core::panic {
 
 ### OOM 처리
 
-GC alloc 이 실패하면 다음과 같은 흐름으로 OOM 이 처리됩니다.
+GC alloc 이 실패하면 다음과 같은 흐름으로 OOM 이 처리됩니다. 런타임은 rok 함수를 이름으로 부를 수 없으므로 `oom()` 대신 런타임 심볼 `rok_oom` 을 직접 부릅니다 ([refs-lang 8.5.7](../../refs-lang/008-abi/805-extern-symbols.md#857-diagnostic-영역)).
 
-```rok
-// GC 의 alloc fastpath 가 실패
-@rok_gc_alloc_slow:
+```
+rok_gc_alloc_slow:
     if !try_collect_and_retry() {
-        @rok::core::panic::oom();        // -> never return
+        rok_oom();                       // "fatal error: out of memory", exit 101
     }
 ```
+
+core 의 `oom()` 도 같은 `rok_oom` 을 부르므로 두 경로의 출력과 종료 코드는 같습니다.
 
 OOM 은 Fatal 에 해당하므로 catch 되지 않습니다.
 

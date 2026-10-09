@@ -128,7 +128,15 @@ fn(any) -> any
 
 ## 4.4.8. divergent 함수의 타입
 
-[반환](403-return.md) 에서 다룬 divergent 함수도 함수 타입으로 표현할 수 있습니다. 반환 타입 자리에 표준 라이브러리의 발산 타입을 두면 되며, 정확한 이름은 라이브러리 사양을 따릅니다. divergent 함수는 임의의 함수 타입에 호환되므로, `fn(i32) -> i32` 가 들어갈 자리에 `fn(i32) -> 발산` 도 무리 없이 들어갈 수 있습니다.
+[반환](403-return.md) 에서 다룬 divergent 함수의 타입은 반환 타입 자리에 `!` 를 적습니다 (`fn() -> !`). `fn(A) -> !` 값은 매개변수가 같은 임의의 `fn(A) -> R` 자리에 들어갈 수 있습니다.
+
+```rok
+let f: fn() -> i32 = || panic("never");     // fn() -> ! 값 → fn() -> i32 자리
+```
+
+### 함수 값의 표현
+
+함수 값은 `{code, env}` 쌍입니다. `code` 는 코드 포인터이고 `env` 는 캡처 환경입니다. 이름 있는 함수의 값은 `env` 가 null 입니다. `extern "C"` 선언의 함수 타입 매개변수는 예외로, `env` 없는 C 함수 포인터이며 이름 있는 함수만 받습니다 ([5.9.4](../005-modules/509-extern-block.md#594-ffi-호환-타입)).
 
 ## 4.4.9. 함수 타입의 부분 집합 관계 (없음)
 
@@ -153,11 +161,11 @@ let r: fn(str) -> i32 = parse_typed;          // ERROR — throwing → non-thro
 
 `throws (A)` 함수 값은 `throws (A | B)` 자리에 넣을 수 있고, `A` 가 `Error` 를 구현하면 untyped `throws` 자리에도 넣을 수 있습니다.
 
-현재 규칙에서 이 변환은 정적으로 알려진 함수와 클로저에만 적용됩니다. callee 를 정적으로 알 수 없는 함수 타입 변수는 다른 에러 채널의 함수 타입으로 변환할 수 없습니다.
+이 변환은 함수 타입 변수와 캡처가 있는 클로저를 포함한 모든 함수 값에 적용됩니다. 컴파일러는 원래 값을 감싸는 어댑터 `{code, env}` 를 만듭니다.
 
 ```rok
 let g: fn(str) throws (ParseError) -> i32 = parse_typed;
-let h: fn(str) throws -> i32 = g;             // ERROR — g 의 callee 를 정적으로 모름
+let h: fn(str) throws -> i32 = g;             // OK — 어댑터로 감쌈
 ```
 
 이러한 결정의 동기는 명시성을 우선시하는 데 있습니다. 함수 변환은 [형 변환](../002-types/214-cast-and-conversion.md) 의 명시적인 형태로 사용자가 직접 적도록 하는 것이 rok 의 방침입니다.

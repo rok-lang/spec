@@ -55,9 +55,7 @@ takes_strs(empty());                // T = str — 매개변수 타입 List<str>
 인자가 없는 정적 트레잇 메서드도 같은 방식으로 `Self` 를 정합니다. 타입 매개변수 위의 호출 `T::zero()` 와 트레잇 경로 호출 `Tr::m()` 은 기대 타입에서 `Self` 를 가져옵니다.
 
 ```rok
-trait Zero { fn zero() -> Self; }
-
-let z: i32 = Zero::zero();          // Self = i32
+let z: i32 = Zero::zero();          // Self = i32 — rok::core::num::Zero
 fn sum<T: Zero + Add>(xs: List<T>) -> T {
     let acc: T = T::zero();          // Self = T
     ...

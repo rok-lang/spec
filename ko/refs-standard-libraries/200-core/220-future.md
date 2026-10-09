@@ -92,7 +92,7 @@ await g();
 
 ## 2.20.5. `IntoFuture` — await 가능한 값
 
-`IntoFuture` 는 await 의 통일된 진입점입니다. `Future` 뿐 아니라 `Thread`, `Parallel` 처럼 스스로는 `Future` 가 아닌 핸들도 이 트레잇을 통해 `await` 할 수 있습니다.
+`IntoFuture` 는 await 의 통일된 진입점입니다. `Future` 뿐 아니라 `Thread` 처럼 스스로는 `Future` 가 아닌 핸들도 이 트레잇을 통해 `await` 할 수 있습니다.
 
 ```rok
 trait IntoFuture {
@@ -108,10 +108,9 @@ impl<F: Future> IntoFuture for F {               // Task<T>: Future<Output = T> 
     fn into_future(self) -> F { self }
 }
 impl<T> IntoFuture for Thread<T>   { type Output = T; type IntoFuture = ThreadFuture<T>; ... }
-impl<T> IntoFuture for Parallel<T> { type Output = T; type IntoFuture = ParallelFuture<T>; ... }
 ```
 
-`Thread<T>` / `Parallel<T>` 의 impl 은 이 타입들이 `Future` 를 구현하지 않는 동안에만 blanket impl 과 겹치지 않아 합법입니다 ([refs-lang 2.9.5](../../refs-lang/002-types/209-impl.md#일관성-coherence)).
+`Thread<T>` 의 impl 은 이 타입이 `Future` 를 구현하지 않는 동안에만 blanket impl 과 겹치지 않아 합법입니다 ([refs-lang 2.9.5](../../refs-lang/002-types/209-impl.md#일관성-coherence)).
 
 `await expr` 는 먼저 `IntoFuture::into_future(expr)` 를 호출하고, 그 결과에 `Future::poll` 을 반복합니다 (2.20.3). [2.8 stream](208-stream.md) 의 `for await` 가 `IntoStream` 을 다루는 방식과 같습니다.
 
@@ -215,4 +214,4 @@ for await t in ticks(Duration::ms(100)) {
 rok 의 가장 큰 차이점은 다음 두 가지입니다.
 
 1. **prefix `await`**: C#, Swift, JS 와 같은 방식이며, 권위는 [refs-lang 4.12](../../refs-lang/004-functions/412-async.md) 에 있습니다. 결과에 체이닝하려면 괄호로 묶습니다 (`(await x).method()`).
-2. `IntoFuture` 일반 트레잇을 도입하여 Task, Thread, Parallel 도 동일하게 await 될 수 있습니다. Swift 의 `Task` 통일과 비슷한 발상이지만, 고유 타입을 보존한 후 trait 으로 일반화한다는 점이 다릅니다.
+2. `IntoFuture` 일반 트레잇을 도입하여 Task, Thread 도 동일하게 await 될 수 있습니다. Swift 의 `Task` 통일과 비슷한 발상이지만, 고유 타입을 보존한 후 trait 으로 일반화한다는 점이 다릅니다.

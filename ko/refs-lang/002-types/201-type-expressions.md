@@ -45,6 +45,12 @@ array_type  ::= "[" type_expr ";" const_expr "]"
 
 각 형태의 정확한 의미는 아래에서 차례로 정의합니다.
 
+`T::Assoc` 형태의 associated type projection (`I::Item`, `F::Output`) 도 타입입니다. 이는 경로 형태 (`path_type`) 의 하나이며, `T` 가 그 associated type 을 가진 트레잇으로 제약된 타입 매개변수일 때 유효합니다 ([타입 경로](213-type-paths.md)).
+
+```rok
+fn zip<I: Iterator, J: Iterator>(a: I, b: J) -> List<(I::Item, J::Item)> { ... }
+```
+
 ## 2.1.2. 단순 이름
 
 단순 이름은 식별자 한 개로 구성되며, [식별자](../001-lexical/104-identifiers.md) 형식을 따릅니다.

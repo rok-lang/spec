@@ -85,6 +85,18 @@ fn external_inc(ref c: Counter) { ... }
 external_inc(ref c);              // 일반 함수 호출은 'ref' 명시가 필요
 ```
 
+### `ref self` 의 의미 — copy-in / copy-out
+
+`ref self` 는 copy-in / copy-out 으로 동작합니다. 호출 시 receiver 의 값을 `self` 로 복사해 들이고, 호출이 끝나면 `self` 의 최종 값을 receiver 자리에 다시 씁니다.
+
+- **배타성**: 호출이 진행되는 동안 receiver 변수를 다른 경로 (다른 인자, 캡처한 클로저 등) 로 접근하면 안 됩니다. 컴파일러가 이를 볼 수 있으면 컴파일 에러입니다 (Swift 의 exclusivity 규칙과 같습니다).
+- **임시 receiver**: receiver 가 임시 값 (`make().increment()`) 이면 되쓰기 결과는 버려집니다.
+
+```rok
+c.increment();                     // c 를 복사해 들이고, 끝나면 c 에 되씀
+c.add_from(|| c.count);            // ERROR — 호출 중 c 를 클로저로 접근
+```
+
 ## 4.7.6. `ref` 의 타입 측면
 
 `ref` 는 수식어이지 타입이 아니며, [타입 표현식](../002-types/201-type-expressions.md) 어디에도 등장하지 않습니다.

@@ -98,7 +98,7 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 | slot 이름        | 의미                             | 표준 라이브러리 함수            | 참조 |
 |------------------|----------------------------------|---------------------------------|------|
 | `panic_fn`       | panic 시 호출하는 abort 함수     | `rok::core::panic::panic`       | 2.14 |
-| `oom_fn`         | OOM 시 호출되는 abort            | `rok::core::panic::oom`         | 2.14 |
+| `oom_fn`         | OOM abort (런타임 할당 실패는 `rok_oom` 직접) | `rok::core::panic::oom`         | 2.14 |
 | `unreachable_fn` | 컴파일러가 unreachable 자리 호출 | `rok::core::panic::unreachable` | 2.14 |
 
 ## 0.4.5. 메서드 슬롯 (1)

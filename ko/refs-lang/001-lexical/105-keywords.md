@@ -9,7 +9,7 @@
 선언과 변수에 관련된 키워드는 다음과 같습니다.
 
 ```
-let       fn        struct    enum      union     trait     impl
+let       fn        struct    enum      trait     impl
 type      const     static    mut       where     pub       mod       use
 extern    as        ref       unsafe
 ```
@@ -78,7 +78,7 @@ any
 
 rok 은 일반 식별자 자리에서 컨텍스트 키워드를 도입하지 않습니다. 위 예약 목록의 모든 토큰은 어디에 나타나든 키워드로 토큰화됩니다. 식별자 자리에 나타나도 키워드입니다. 이 단순함을 위해 일부 영어 단어 (예: `loop`, `is`) 를 변수 이름으로 쓸 수 없게 되는 비용을 받아들입니다.
 
-예외는 두 자리에 한정됩니다.
+예외는 세 자리에 한정됩니다.
 
 ### 가시성 한정자: `pkg` / `sub`
 
@@ -91,6 +91,16 @@ pkg       sub
 ```rok
 pub(sub) fn helper() { ... }   // pub( ) 안에서: 가시성 한정자
 trait Sub { fn sub(self, rhs: Self) -> Self; }  // 일반 위치에서: 식별자
+```
+
+### 항목 도입: `union`
+
+`union` 은 항목 시작 위치 (가시성 한정자 뒤 포함) 에서 바로 뒤에 식별자가 올 때만 [`union` 선언](../002-types/205-union.md) 의 키워드입니다. 그 밖의 위치에서는 일반 식별자이므로 메서드 이름 등으로 쓸 수 있습니다.
+
+```rok
+union EpollData { fd: i32; ptr: Ptr<u8>; }      // 항목 시작 + 식별자: 키워드
+trait Union { fn union(self, rhs: Self) -> Self; } // 일반 위치: 식별자
+let u = a.union(b);
 ```
 
 ### 경로 루트: `pkg` / `sup` / `rok`

@@ -8,7 +8,7 @@
 
 ```
 identifier          ::= identifier_start identifier_continue*
-identifier_start    ::= xid_start | "_" | math_start | emoji
+identifier_start    ::= xid_start | "_" | math_start | emoji | flag
 identifier_continue ::= xid_continue | math_continue | prime | emoji | emoji_component
 ```
 
@@ -17,11 +17,11 @@ identifier_continue ::= xid_continue | math_continue | prime | emoji | emoji_com
 
 ### Unicode 기준 버전
 
-`XID_Start`, `XID_Continue`, `Extended_Pictographic` 표는 **Unicode 13.0.0** 을 기준으로 합니다. 아래 수학 표기 프로필 집합은 code point 로 고정해 두며, UAX #31 (Revision 45) §7.1 의 `ID_Compat_Math_Start` / `ID_Compat_Math_Continue` 와 같습니다.
+`XID_Start`, `XID_Continue`, `ID_Compat_Math_Start`, `ID_Compat_Math_Continue`, `Extended_Pictographic` 속성은 **Unicode 18.0.0** (UCD 18.0.0) 의 표를 따릅니다.
 
 ### 수학 표기 프로필
 
-UAX #31 §7.1 "Mathematical Compatibility Notation Profile" 을 따르고, n-항 연산 기호 세 개를 더합니다.
+UAX #31 §7.1 "Mathematical Compatibility Notation Profile" 을 따릅니다. `math_start` 는 `ID_Compat_Math_Start` 에 n-항 연산 기호 `∑ ∏ ∫` 를 더한 것이고, `math_continue` 는 `ID_Compat_Math_Continue` 에 같은 세 기호를 더한 것입니다. 아래 표는 참고용 예시이며 (UCD 18.0 기준), 권위는 속성입니다.
 
 | 집합            | 코드포인트                                                                                                  |
 |-----------------|-------------------------------------------------------------------------------------------------------------|
@@ -43,6 +43,8 @@ UAX #31 §7.1 "Mathematical Compatibility Notation Profile" 을 따르고, n-항
   - 피부색 수식자 U+1F3FB–1F3FF
   - 지역 표시자 U+1F1E6–1F1FF (국기)
   - 태그 U+E0020–E007F
+
+- `flag`: 지역 표시자 두 개로 된 국기 (`🇰🇷`) 는 식별자의 시작에도 올 수 있습니다.
 
 키캡 시퀀스 (`1️⃣`) 는 숫자로 시작하므로 식별자가 아닙니다.
 
@@ -90,8 +92,8 @@ my var     // 공백
 
 컴파일러는 다음 경우에 **경고** 를 냅니다 (에러가 아닙니다).
 
-- 정규화 후 같은 skeleton (UTS #39 의 confusable 판정) 을 갖는 서로 다른 이름이 한 프로그램에 있을 때. 예: `σ²` 와 `σ2`, 라틴 `a` 와 키릴 `а`.
-- 한 식별자 안에 위험한 스크립트 혼합이 있을 때. 예: 라틴과 키릴. 한글, 한자, 가나와 라틴의 혼합은 허용합니다.
+- 같은 패키지 안에서 서로 다른 이름이 같은 skeleton 을 가질 때. skeleton 은 NFKC 정규화에 confusable 접기를 더한 것이며, 구현은 UTS #39 의 confusable 표 가운데 일부만 써도 됩니다. 예: `σ²` 와 `σ2`, 라틴 `a` 와 키릴 `а`.
+- 한 식별자 안에서 키릴 문자가 라틴 또는 그리스 문자와 섞일 때. 라틴과 그리스의 혼합 (`Δt`, `σx`) 은 수학 이름에 흔하므로 경고하지 않으며, 한글, 한자, 가나와 라틴의 혼합도 경고하지 않습니다.
 
 ## 1.4.3. 대소문자
 

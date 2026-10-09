@@ -65,7 +65,7 @@ impl Iterator {
     fn map<U>(self, f: fn(Item) -> U) -> Map<Self, U>;
     fn filter(self, pred: fn(Item) -> bool) -> Filter<Self>;
     fn enumerate(self) -> Enumerate<Self>;        // (index, item) 쌍
-    fn zip<I: Iterator>(self, other: I) -> Zip<Self, I>;
+    fn zip<J: Iterator>(self, other: J) -> Zip<Self, J>;    // Item = (Item, J::Item)
     fn chain<I: Iterator<Item = Item>>(self, other: I) -> Chain<Self, I>;
     fn take(self, n: usize) -> Take<Self>;
     fn skip(self, n: usize) -> Skip<Self>;
@@ -77,8 +77,8 @@ impl Iterator {
 
     // 종결 메서드 — eager
     fn count(self) -> usize;
-    fn sum(self) -> Item where Item: Sum;           // 비면 0
-    fn product(self) -> Item where Item: Product;   // 비면 1
+    fn sum(self) -> Item where Item: Add<Output = Item> + Zero;     // 비면 0
+    fn product(self) -> Item where Item: Mul<Output = Item> + One;  // 비면 1
     fn fold<B>(self, init: B, f: fn(B, Item) -> B) -> B;
     fn reduce(self, f: fn(Item, Item) -> Item) -> Item | none;
     fn any(self, pred: fn(Item) -> bool) -> bool;
@@ -96,21 +96,9 @@ impl Iterator {
 }
 ```
 
-### `Sum` / `Product`
+### `sum` / `product` 와 `Zero` / `One`
 
-`sum` 과 `product` 는 원소 타입의 `Sum` / `Product` 트레잇을 거칩니다. 빈 iterator 의 합은 0, 곱은 1 입니다.
-
-```rok
-trait Sum {
-    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self;      // 빈 iterator → 0
-}
-
-trait Product {
-    fn product<I: Iterator<Item = Self>>(iter: I) -> Self;  // 빈 iterator → 1
-}
-```
-
-표준 라이브러리는 모든 숫자 primitive 와 `int` / `float` 에 두 트레잇을 구현합니다.
+`sum` 은 `Zero::zero()` 에서 시작해 `+` 로 누적하고, `product` 는 `One::one()` 에서 시작해 `*` 로 누적합니다. 따라서 빈 iterator 의 합은 0, 곱은 1 입니다. `Zero` / `One` 은 `rok::core::num` 의 트레잇입니다 ([2.1](201-numbers.md)).
 
 ### lazy vs eager
 

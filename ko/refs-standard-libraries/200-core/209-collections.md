@@ -191,6 +191,10 @@ impl<K: Hash + Eq, V> Index<K> for Dict<K, V> {
 
 `d[k]` 표기는 키의 존재가 보장됨을 가정하므로, 안전한 접근이 필요할 때는 `.get(k)` 를 사용합니다.
 
+### lazy view
+
+`keys` / `values` / `entries` 는 사본이 아니라 현재 table 을 그대로 보는 lazy view 입니다. 순회 도중 dict 를 바꾸면 결과는 정해지지 않지만 (원소를 빠뜨리거나 두 번 볼 수 있음), 메모리 안전성은 지켜집니다.
+
 ## 2.9.4. `Set<T>` — hash set
 
 ```rok

@@ -68,7 +68,7 @@ impl<T> Future for Task<T> {              // `await t` — 완료까지 suspend
 
 ### `IntoFuture` 통합
 
-`Task<T>` 는 `Future<Output = T>` 를 구현하므로 `await t` 로 기다릴 수 있고, [2.20 future](220-future.md) 의 `IntoFuture` blanket impl 에도 포함되어 `Thread`, `Parallel` 과 동일한 방식으로 await 될 수 있습니다. `IntoFuture` 트레잇과 lang slot `future_trait` 의 권위 있는 정의는 [2.20 future](220-future.md) 에 있으며, 본 절은 그 정의를 그대로 따릅니다.
+`Task<T>` 는 `Future<Output = T>` 를 구현하므로 `await t` 로 기다릴 수 있고, [2.20 future](220-future.md) 의 `IntoFuture` blanket impl 에도 포함되어 `Thread` 와 동일한 방식으로 await 될 수 있습니다. `IntoFuture` 트레잇과 lang slot `future_trait` 의 권위 있는 정의는 [2.20 future](220-future.md) 에 있으며, 본 절은 그 정의를 그대로 따릅니다.
 
 ## 2.18.3. 스케줄러 모델 — work-stealing
 

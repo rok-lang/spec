@@ -87,6 +87,7 @@ extern "C" {
 - 포인터: `Ptr<T>`, `ConstPtr<T>` (표준 라이브러리, [표준 라이브러리 계층](../000-meta/005-standard-libraries-tiers.md) 의 `unsafe` 영역).
 - `#[repr(C)]` `struct` / `union`: C ABI 호환 표시가 붙은 사용자 정의 타입.
 - 함수 포인터: `extern "C" fn(...) -> ...` (별도 형식).
+- 함수 타입 매개변수: `extern "C"` 선언의 `fn(..) -> R` 매개변수는 일반 C 함수 포인터이며, 이름 있는 함수 (캡처 없음, 제네릭 아님) 만 받습니다. 클로저나 함수 타입 변수는 넘길 수 없습니다.
 - `str`: 아래 규칙으로 변환됩니다.
 
 `str` 을 extern 시그니처에 쓰면 이름에 따라 전달 방식이 다릅니다.
@@ -99,6 +100,10 @@ extern "C" {
 C 함수에 넘길 때 컴파일러는 NUL 로 끝나는 바이트열을 넘기며, 필요하면 사본을 만듭니다. 내부에 NUL 이 있으면 C 쪽에서는 첫 NUL 까지만 보입니다. 반환된 `char*` 가 null 이면 동작은 정의되지 않으므로, null 일 수 있는 C 문자열은 `CPtr<c_char>` 로 받습니다 ([stdlib 1.7.2](../../refs-standard-libraries/100-bare/107-ffi.md#172-cstr--cstring--null-terminated-string)).
 
 호환되지 않는 타입을 적으시면 컴파일 경고나 에러가 발생합니다. 정확한 검사 규칙은 [Calling Convention](../008-abi/806-calling-convention.md) 에서 정의됩니다.
+
+### extern 함수의 이름 공간
+
+`extern` 블록에 선언한 함수는 하나의 전역 이름 공간을 이루며, 어느 모듈에서든 접두 없는 이름으로 부를 수 있습니다. C 심볼은 링크 시점에 하나의 전역 공간에 있으므로 이를 그대로 반영한 것입니다. 이는 일반 항목에 대한 "조상 모듈 암묵 탐색 없음" 규칙 ([5.7.1](507-paths.md#571-경로의-시작-식별자)) 의 예외이며, extern 함수에만 적용됩니다. 같은 이름의 extern 함수를 시그니처가 다르게 두 번 선언하면 컴파일 에러입니다.
 
 ## 5.9.5. `Ptr<T>` / `ConstPtr<T>`
 
