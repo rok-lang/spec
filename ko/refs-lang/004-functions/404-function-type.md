@@ -85,6 +85,27 @@ let f: fn(i32) -> i32 = |x| x + n;     // n 을 캡처하지만 타입은 fn(i32
 
 참고로 Rust 의 `Fn`, `FnMut`, `FnOnce` 트레잇 구분은 rok 에는 존재하지 않습니다. 캡처가 값 기반을 기본으로 하기 때문에 의미상의 복잡성이 줄어들기 때문입니다. 자세한 캡처 의미에 대해서는 [클로저](405-closure.md) 에서 정의하고 있으니 참조합니다.
 
+### `Send` / `Sync` bound
+
+함수 타입 끝에 `+ Send` / `+ Sync` 를 붙이면, 그 값이 스레드 경계를 넘을 수 있음을 타입에 적습니다 ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--스레드-경계-marker)).
+
+```rok
+fn(i32) -> i32 + Send
+fn() + Send + Sync
+```
+
+- 클로저 리터럴이 `+ Send` 자리에 오면, 컴파일러는 캡처한 값이 모두 `Send` 인지 검사합니다 (`+ Sync` 는 `Sync` 인지).
+- `fn` 타입 변수를 넣으려면 그 변수의 타입에 이미 같은 bound 가 있어야 합니다. `fn() -> T` 값은 `fn() -> T + Send` 자리에 들어가지 않습니다.
+- 이름 있는 함수는 캡처가 없으므로 항상 `Send + Sync` 입니다.
+
+```rok
+let c: Cell<i32> = Cell::new(0);
+let f: fn() + Send = || print("hi");     // OK — 캡처 없음
+let g: fn() + Send = || c.set(1);        // ERROR — Cell 은 Send 가 아님
+let h: fn() = || print("hi");
+let k: fn() + Send = h;                  // ERROR — h 의 타입에 + Send 없음
+```
+
 ## 4.4.7. 매개변수 / 반환의 점진성
 
 함수 타입에 제네릭 매개변수를 두는 것은 본 표기법에서 직접 표현되지 않습니다. 제네릭 함수의 값은 호출 지점에서 단형화되어 구체적인 타입을 가진 함수 값이 됩니다.

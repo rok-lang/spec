@@ -62,9 +62,9 @@ fn linux_only() { ... }
 여기에 더해 연산자 매직 패밀리가 있습니다.
 
 ```rok
-#[infix("+", prec, assoc)]
-#[prefix("-", prec)]
-#[postfix("?", prec)]
+#[infix("+")]
+#[prefix("-")]
+#[infix("⊕", like = "+")]
 ```
 
 이 매직들이 `1 + 2` 와 같은 언어 토큰을 라이브러리 트레잇 메서드 호출로 연결해 주는 역할을 담당합니다. 자세한 내용은 [`#[literal]` 매직](605-literal-magic.md) 부터 [연산자 매직](607-operator-magic.md) 까지에 걸쳐 정의되어 있습니다.

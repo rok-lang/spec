@@ -4,13 +4,11 @@
 함께 두며, 사용자가 자유롭게 어느 쪽을 쓸지 선택할 수 있습니다.
 
 ```
-int / float    (auto-promote, 무한 정밀도, 사용자 친화적 default)
-fixed primitive (i8..i64, u8..u64, isize, usize, f32, f64; 하드웨어 친화적)
+int / float    (auto-promote, 무한 정밀도, opt-in)
+fixed primitive (i8..i64, u8..u64, isize, usize, f32, f64; 하드웨어 친화적, 기본)
 ```
 
-이 두 세계는 서로 **공존** 합니다. bare 리터럴은 `int` / `float` 로 풀리고,
-suffix 가 붙은 리터럴 (`42i32`, `3.14f64`) 은 fixed primitive 로 해제됩니다.
-즉 어느 세계를 쓸지는 전적으로 사용자의 선택입니다.
+이 두 세계는 서로 **공존** 합니다. 접미사 없는 리터럴은 기대 타입을 따르며, 기대 타입이 없으면 `i32` / `f64` 가 됩니다 ([refs-lang 1.6.3](../../refs-lang/001-lexical/106-numeric-literals.md#163-접미사-없는-리터럴)). `int` / `float` 는 타입을 적은 자리에서만 쓰입니다.
 
 ## 2.1.1. 두 세계의 숫자 — 분리하는 이유
 
@@ -32,17 +30,15 @@ silent wrap 되어 황당한 결과를 내는 일이 없습니다.
 
 ### 어느 쪽이 default 인가
 
-bare 리터럴 (`42`, `3.14`) 은 **`int` / `float`** 가 됩니다. 즉 사용자가 별도의
-typing 을 하지 않으면 자동으로 auto-promote 세계에서 코드가 작성됩니다.
+접미사 없는 리터럴 (`42`, `3.14`) 은 기대 타입이 없으면 **`i32` / `f64`** 가 됩니다. auto-promote 세계는 `int` / `float` 를 적은 자리에서만 쓰입니다.
 
 ```rok
-let total = 0;                    // int (auto-promote)
+let total: int = 0;               // int (auto-promote) — 명시
 for x in xs { total = total + x; }
 // total 이 i32 범위 넘어가도 자동 promote — silent overflow 없음
 
-let perf_critical: i64 = 0;       // 명시 i64 (fixed-width)
-for x in big_xs { perf_critical = perf_critical + x as i64; }
-// 사용자가 i64 범위 안에서 안전성 책임 — wrap 가능
+let n = 0;                        // i32 (기대 타입 없음)
+let perf_critical: i64 = 0;       // i64 — 기대 타입을 따름
 ```
 
 ## 2.1.2. `int` — 무한 정밀도 정수
@@ -68,8 +64,7 @@ impl Int {
 `#[keyword("int")]` 가 식별자 `int` 를 키워드로 등록하기 때문에, 사용자
 코드에서는 PascalCase `Int` 가 아닌 lowercase `int` 로 타입을 표기하게 됩니다
 ([refs-lang 6.6](../../refs-lang/006-meta-system/606-keyword-magic.md) 가
-권위입니다). 그리고 `#[lang("int_type")]` 가 컴파일러의 bare integer literal
-lookup 슬롯과 연결됩니다.
+권위입니다). 그리고 `#[lang("int_type")]` 로 컴파일러가 `int` 타입을 찾습니다.
 
 `int` 의 핵심 특성을 정리해 보면 다음과 같습니다. 메모리 표현 측면에서 작은
 값은 64-bit word 안에 직접 저장되는 small-int optimization 을 거치고, 큰 값은
@@ -78,15 +73,14 @@ heap 의 BigInt 표현으로 자동 promote 되며, 이 모든 과정은 사용�
 2^62-1` 정도) 를 벗어날 때이며, 그 이후로는 BigInt 표현이 유지됩니다. 다시
 값이 작아지더라도 small-int 로 demote 되지는 않는데, 이는 성능 안정성을 위한
 선택입니다. **lang slot** 으로는 `int_type` ([0.4 lang slot
-표](../000-meta/004-lang-slot-table.md)) 이 사용되며, 이는 bare integer literal
-(`42`) 의 타입을 결정합니다.
+표](../000-meta/004-lang-slot-table.md)) 이 사용됩니다. 접미사 없는 정수 리터럴은 기대 타입이 `int` 일 때만 `int` 가 됩니다.
 
 ### 산술
 
 `int` 끼리의 모든 산술은 절대 wrap 되거나 saturate 되지 않습니다.
 
 ```rok
-let big = 1;
+let big: int = 1;
 big = big * 1000;
 big = big * 1000;
 big = big * 1000;
@@ -156,8 +150,7 @@ impl Float {
 
 ### lang slot
 
-`float_type` ([0.4 lang slot 표](../000-meta/004-lang-slot-table.md)) 이 bare
-float literal (`3.14`) 의 타입을 담당합니다.
+`float_type` ([0.4 lang slot 표](../000-meta/004-lang-slot-table.md)) 으로 컴파일러가 `float` 타입을 찾습니다. 접미사 없는 실수 리터럴은 기대 타입이 `float` 일 때만 `float` 가 됩니다.
 
 ## 2.1.4. fixed-width primitive
 
@@ -336,32 +329,33 @@ impl f64 {
 
 ## 2.1.5. literal → 어느 타입?
 
-[refs-lang 1.6 숫자 리터럴](../../refs-lang/001-lexical/106-numeric-literals.md)
-과 [2.11 변환](211-conversion.md) 을 종합하면 다음과 같이 정리됩니다.
+[refs-lang 1.6 숫자 리터럴](../../refs-lang/001-lexical/106-numeric-literals.md) 의 규칙을 정리하면 다음과 같습니다.
 
-| 형태      | 결정 타입                        |
-|-----------|----------------------------------|
-| `42`      | `int` (bare integer)             |
-| `3.14`    | `float` (bare float)             |
-| `42i32`   | `i32`                            |
-| `42u64`   | `u64`                            |
-| `3.14f32` | `f32`                            |
-| `3.14f64` | `f64`                            |
-| `'A'`     | `char` (표준 라이브러리 타입)    |
-| `c'A'`    | `c_char` (primitive)             |
-| `0xFF`    | `int` — bare. hexadecimal 도 int |
-| `0xFFi32` | `i32`                            |
+| 형태      | 결정 타입                                         |
+|-----------|---------------------------------------------------|
+| `42`      | 기대 타입 (정수 / 실수 타입), 없으면 `i32`         |
+| `3.14`    | 기대 타입 (실수 타입), 없으면 `f64`                |
+| `42i32`   | `i32`                                             |
+| `42u64`   | `u64`                                             |
+| `3.14f32` | `f32`                                             |
+| `3.14f64` | `f64`                                             |
+| `'A'`     | `char` (표준 라이브러리 타입)                     |
+| `c'A'`    | `c_char` (primitive)                              |
+| `0xFF`    | 10 진과 같음 — 기대 타입, 없으면 `i32`             |
+| `0xFFi32` | `i32`                                             |
 
-### context auto-From
+### 기대 타입과 범위 검사
 
-annotation 이 있는 경우 컴파일 타임 range check 와 lossless 변환이
-이루어집니다.
+범위는 컴파일 타임에 검사합니다.
 
 ```rok
-let x: i32 = 42;            // int(42) → i32 (range OK, lossless)
-let y: i32 = 9999999999;    // 컴파일 에러 (int 가 i32 범위 밖)
-let z: f32 = 3.14;          // float → f32 (round to nearest)
+let x: i32 = 42;            // i32
+let y: i32 = 9999999999;    // 컴파일 에러 (i32 범위 밖)
+let z: f32 = 3.14;          // f32
+let f: f64 = 1;             // f64 — 정수 리터럴은 실수 슬롯에 들어감
 let w: u8 = 256;            // 컴파일 에러 (256 ∉ u8 range 0..=255)
+let i: i32 = 1.5;           // 컴파일 에러 — 실수 리터럴은 정수 슬롯 불가
+let big: int = 9999999999;  // int
 ```
 
 자세한 변환 매트릭스는 [2.11 변환](211-conversion.md) 에 정리되어 있습니다.
@@ -374,8 +368,8 @@ auto-promote 가 적용되므로 결과는 항상 `int` 자체가 됩니다. fix
 이루어지지 않습니다.
 
 ```rok
-let a = 1000;        // int
-let b = 2000;        // int
+let a: int = 1000;
+let b: int = 2000;
 let c = a + b;       // int (3000)
 ```
 
@@ -395,7 +389,7 @@ let wider: i64 = (a as i64) + (b as i64);   // i64
 ### `int + i32` (혼합 — 거부)
 
 ```rok
-let a = 5;            // int
+let a: int = 5;       // int
 let b: i32 = 3;       // i32
 let c = a + b;        // 컴파일 에러 — type mismatch
 ```
@@ -478,13 +472,11 @@ rok 의 두-세계 모델 (`int` auto-promote 와 fixed primitive) 은 여러 �
 의 원형이라고 할 수 있고, Lisp 와 Scheme 의 numeric tower (fixnum / bignum /
 rational / real) 도 중요한 참고가 됩니다. 또한 **Python int** 는 무한 정밀도를
 default 로 두지만 fixed primitive 가 없다는 차이가 있고, **Julia** 는 fixed
-primitive 를 default 로 두는 반면 rok 은 int default 와 fixed opt-in 으로
-정반대 방향을 택합니다.
+primitive 를 default 로 둡니다. rok 도 리터럴의 기본은 fixed (`i32` / `f64`) 이고, `int` 는 opt-in 입니다.
 
 각 언어와의 차이를 정리하면 다음과 같습니다. **Python** 은 int 만 제공하며,
 fixed-width 가 없어서 FFI 나 성능 critical 한 상황에서는 NumPy 에 의존하게
 됩니다. **Julia** 는 fixed 가 default 라서 silent overflow 의 위험이 있고,
 사용자가 이를 자주 잊는 경향이 있습니다. **Rust** 는 fixed only 라서 매번
 사용자가 type 을 적어야만 합니다. 이에 반해 **rok** 는 두 세계가 공존하도록
-하여, bare literal 의 default 가 안전한 `int` 이고 명시 typing 시에 fixed 로
-들어가도록 설계되어 있습니다.
+하여, 리터럴은 기대 타입을 따르고 (없으면 `i32` / `f64`), 무한 정밀도가 필요한 자리에서 `int` / `float` 를 적도록 설계되어 있습니다.

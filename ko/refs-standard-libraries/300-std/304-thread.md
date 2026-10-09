@@ -25,7 +25,7 @@ struct Thread<T> { /* OS handle */ }
 struct JoinHandle<T> { /* JoinHandle */ }
 struct ThreadId { /* opaque */ }
 
-fn spawn<T>(f: fn() -> T) -> JoinHandle<T>;
+fn spawn<T: Send>(f: fn() -> T + Send) -> JoinHandle<T>;
 
 struct Builder {
     name: str | none;
@@ -36,7 +36,7 @@ impl Builder {
     fn new() -> Builder;
     fn name(self, name: str) -> Builder;
     fn stack_size(self, size: usize) -> Builder;
-    fn spawn<T>(self, f: fn() -> T) throws (IoError) -> JoinHandle<T>;
+    fn spawn<T: Send>(self, f: fn() -> T + Send) throws (IoError) -> JoinHandle<T>;
 }
 
 impl<T> JoinHandle<T> {
@@ -59,7 +59,7 @@ fn park_timeout(dur: Duration);
 fn panicking() -> bool;
 
 // thread-local storage
-fn local<T>(init: fn() -> T) -> ThreadLocal<T>;
+fn local<T>(init: fn() -> T + Sync) -> ThreadLocal<T>;     // 각 스레드에서 init 호출
 ```
 
 ## 3.4.3. 사용 예

@@ -27,7 +27,7 @@ lang_attr       ::= "#" "[" "lang" "(" string_lit ")" "]"
 #[lang("add_trait")]
 trait Add<Rhs = Self> {
     type Output;
-    #[infix("+", prec = 7, left)]
+    #[infix("+")]
     fn add(self, rhs: Rhs) -> Output;
 }
 
@@ -141,7 +141,7 @@ trait T { ... }
 #[lang("add_trait")]
 trait Add<Rhs = Self> {
     type Output;
-    #[infix("+", prec = 7, left)]
+    #[infix("+")]
     fn add(self, rhs: Rhs) -> Output;
 }
 ```

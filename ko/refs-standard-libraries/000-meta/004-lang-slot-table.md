@@ -6,15 +6,15 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 
 ## 0.4.1. slot 분류
 
-먼저 전체 46 개 슬롯이 어떤 책임을 지느냐에 따라 네 그룹으로 나뉩니다. 아래 표는 각 그룹의 역할과 슬롯 수를 한눈에 보여 주며, 이후 절들의 세부 표가 어떤 카테고리에 속하는지 가늠하게 해 줍니다.
+먼저 전체 48 개 슬롯이 어떤 책임을 지느냐에 따라 네 그룹으로 나뉩니다. 아래 표는 각 그룹의 역할과 슬롯 수를 한눈에 보여 주며, 이후 절들의 세부 표가 어떤 카테고리에 속하는지 가늠하게 해 줍니다.
 
 | 그룹   | 책임                                                                 | slot 수 |
 |--------|----------------------------------------------------------------------|---------|
 | 타입   | rok 이 **구체 타입** 으로 인식하는 표준 라이브러리 타입              | 14      |
-| 트레잇 | rok 이 **operator / 제어 흐름 desugar** 및 derive 에 쓰는 트레잇     | 28      |
+| 트레잇 | rok 이 **operator / 제어 흐름 desugar**, derive, 스레드 경계 검사에 쓰는 트레잇 | 30      |
 | 메서드 | rok 이 **자동 호출** 하는 메서드 (drop)                              | 1       |
 | 함수   | rok 이 **intrinsic 호출** 로 부르는 표준 라이브러리 함수             | 3       |
-| 합계   |                                                                      | **46**  |
+| 합계   |                                                                      | **48**  |
 
 ## 0.4.2. 타입 슬롯 (14)
 
@@ -46,7 +46,7 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 | `char_type`  | `char` Unicode scalar     | `rok::core::str::Char` + `#[keyword("char")]`              | 2.15 |
 | `range_type` | `Range<T>` (`a..b`)       | `rok::core::iter::Range` + `#[literal( expr ".." expr )]`  | 2.7  |
 
-## 0.4.3. 트레잇 슬롯 (28)
+## 0.4.3. 트레잇 슬롯 (30)
 
 트레잇 슬롯은 사용자가 작성한 문법이 표준 라이브러리 트레잇 호출로 desugar 될 때 컴파일러가 어떤 트레잇을 찾아갈지 가리키는 자리입니다. `for` 루프나 인덱싱, 슬라이싱, 포맷, `await` 같은 핵심 문법이 모두 여기 등록된 트레잇을 통해 풀려나가므로, 이 표는 언어 문법과 라이브러리 사이의 가장 굵은 다리에 해당합니다.
 
@@ -61,7 +61,7 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 | `debug_trait`         | `f"{x:?}"` 디버그 포맷     | `rok::core::fmt::Debug`         | 2.10 |
 | `future_trait`        | `await expr` 의 단계 진행  | `rok::core::future::Future`     | 2.20 |
 
-다음으로 연산자 트레잇 슬롯이 있습니다. 연산자 토큰의 dispatch 대상과 우선순위는 각 트레잇 메서드에 부착된 `#[infix]` / `#[prefix]` ([refs-lang 6.7](../../refs-lang/006-meta-system/607-operator-magic.md)) 가 결정하며, 아래 슬롯은 컴파일러가 primitive lowering 과 진단에서 "덧셈 트레잇", "비교 트레잇" 을 이름으로 찾을 수 있게 해 주는 고정 자리입니다. 복합 대입 (`AddAssign` 등, 2.4), broadcast (`DotAdd` 등, 2.6), Euclidean modulo (`Modulo`, `%%`) 트레잇은 `#[infix]` 등록만으로 충분하므로 슬롯을 두지 않습니다.
+다음으로 연산자 트레잇 슬롯이 있습니다. 연산자 토큰의 dispatch 대상은 각 트레잇 메서드에 부착된 `#[infix]` / `#[prefix]` ([refs-lang 6.7](../../refs-lang/006-meta-system/607-operator-magic.md)) 가 결정하고 우선순위는 [refs-lang 3.2](../../refs-lang/003-expressions/302-precedence-and-associativity.md) 표가 고정하며, 아래 슬롯은 컴파일러가 primitive lowering 과 진단에서 "덧셈 트레잇", "비교 트레잇" 을 이름으로 찾을 수 있게 해 주는 고정 자리입니다. 복합 대입 (`AddAssign` 등, 2.4), broadcast (`DotAdd` 등, 2.6), Euclidean modulo (`Modulo`, `%%`) 트레잇은 `#[infix]` 등록만으로 충분하므로 슬롯을 두지 않습니다.
 
 | slot 이름             | 의미                                | 표준 라이브러리 트레잇                | 참조   |
 |---------------------|-----------------------------------|-----------------------------|------|
@@ -85,6 +85,8 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 | `ord_trait`         | 완전 순서 (`#[derive(Ord)]`)          | `rok::core::cmp::Ord`        | 2.5  |
 | `hash_trait`        | 해시 (`#[derive(Hash)]`)            | `rok::core::cmp::Hash`       | 2.5  |
 | `clone_trait`       | 복제 (`#[derive(Clone)]`)           | `rok::core::marker::Clone`   | 2.13 |
+| `send_trait`        | 자동 marker — 스레드 이동 안전       | `rok::core::marker::Send`    | 2.13 |
+| `sync_trait`        | 자동 marker — 스레드 공유 안전       | `rok::core::marker::Sync`    | 2.13 |
 
 > [!NOTE]
 > 비교 슬롯의 이름과 트레잇 이름은 일대일로 겹치지 않습니다. `eq_trait` 는 동등 연산자를 정의하는 `PartialEq` 에, `cmp_trait` 는 순서 비교 연산자를 정의하는 `PartialOrd` 에 부착됩니다. marker 트레잇인 `Eq` 는 메서드가 없고 컴파일러가 이름으로 찾을 일이 없으므로 슬롯을 두지 않습니다.
@@ -114,8 +116,8 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 | 컴파일러 동작                                | lookup 슬롯                              |
 |----------------------------------------------|------------------------------------------|
 | `none` 리터럴 lower                          | `none_type`                              |
-| `42` bare literal type                       | `int_type`                               |
-| `3.14` bare literal type                     | `float_type`                             |
+| `42` (기대 타입 없음) literal type            | `i32_type`                               |
+| `3.14` (기대 타입 없음) literal type          | `f64_type`                               |
 | `"hello"` literal type                       | `str_type`                               |
 | `for x in xs` desugar                        | `into_iterator_trait`, `iterator_trait`  |
 | `arr[i]` desugar                             | `index_trait`                            |
@@ -132,6 +134,7 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 | OOM 발생 시                                  | `oom_fn`                                 |
 | `match` 모든 arm exhaustive 체크 unreachable | `unreachable_fn`                         |
 | scope exit                                   | `drop_method`                            |
+| `Send` / `Sync` 자동 구현, `+ Send` 검사     | `send_trait`, `sync_trait`               |
 
 ## 0.4.7. 중복 / 누락 검출
 

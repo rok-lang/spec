@@ -294,13 +294,15 @@ impl Drop for Container {
 
 ## 2.13.5. lang slot 매핑
 
-이 모듈이 컴파일러와 연결되는 지점은 세 개의 lang slot 입니다. 각각의 자동 호출 시점은 앞서 살펴본 정책 그대로입니다.
+이 모듈이 컴파일러와 연결되는 지점은 다섯 개의 lang slot 입니다. 각각의 자동 호출 시점은 앞서 살펴본 정책 그대로입니다.
 
 | slot          | 부착 항목                 | 자동 호출 시점                           |
 |---------------|---------------------------|------------------------------------------|
 | `clone_trait` | `Clone` 트레잇            | 없음 — `#[derive(Clone)]` 확장에서 사용  |
 | `drop_method` | `Drop::drop` 메서드       | scope exit 시 자동                       |
 | `none_type`   | `NoneSentinel` 타입 (2.13.8) | `none` 리터럴 lower                   |
+| `send_trait`  | `Send` 트레잇 (2.13.9)    | 자동 구현, 스레드 경계 검사              |
+| `sync_trait`  | `Sync` 트레잇 (2.13.9)    | 자동 구현, 스레드 경계 검사              |
 
 상세한 내용은 [0.4 lang slot 표](../000-meta/004-lang-slot-table.md) 0.4.2 / 0.4.3 / 0.4.5 절을 참고합니다.
 
@@ -312,12 +314,12 @@ impl Drop for Container {
 |----------------------------------|-------------|---------------|---------------------------------|--------------------------------------|
 | `i*`, `u*`, `f*`                 | ✓           | ✓             | ✗                               | `rok.clone.copy` (bitwise)           |
 | `bool`, `char`, `c_char`         | ✓           | ✓             | ✗                               | bitwise                              |
-| `str`                            | ✓           | ✗             | ✗                               | 내부 buffer 새로 할당 — GC drop 무관 |
+| `str`                            | ✓           | ✓             | ✗                               | 불변 `(ptr, len)` 값 복사            |
 | `List<T>`, `Dict<K,V>`, `Set<T>` | ✓ (T:Clone) | ✗             | ✗                               | 재귀 clone                           |
 | `Tuple<T...>`                    | ✓ (모두)    | ✓ (모두 Copy) | ✗                               | derive 자동                          |
 | `Range<T>`                       | ✓ (T:Clone) | ✓ (T:Copy)    | ✗                               | derive 자동                          |
 | `File`                           | ✗           | ✗             | ✓                               | `rok::bare::close_fd`                 |
-| `MutexGuard<'_, T>`              | ✗           | ✗             | ✓                               | `rok::bare::unlock`                   |
+| `MutexGuard<T>`                  | ✗           | ✗             | ✓                               | `rok::bare::unlock`                   |
 | `Channel::Sender<T>`             | ✓           | ✗             | ✓ (마지막 sender drop 시 close) | (위와 동일)                          |
 
 표 뒤에 자리 잡은 원칙은 단순합니다. 먼저 모든 primitive 와 내부 GC 타입은 `Clone` 을 구현하고, 그 가운데 비트 복사가 의미적으로 옳은 것들만 `Copy` 가 됩니다. 그다음 `str` 과 컬렉션은 `Clone` 이지만 `Copy` 는 아닙니다. 비트 복사가 깊은 복제의 의미를 보존하지 않기 때문입니다. 또한 `Drop` 은 `File`, `Socket`, `MutexGuard` 처럼 외부 자원을 감싸는 wrapper 만 구현합니다. 이 타입들은 자원 중복 소유를 막기 위해 보통 `Clone` 을 구현하지 않습니다.
@@ -349,3 +351,33 @@ struct NoneSentinel;
 ```
 
 사용자는 이 이름을 직접 쓸 일이 거의 없습니다. `T | none` 같은 합 타입 표기 ([refs-lang 2.6](../../refs-lang/002-types/206-sum-types.md)) 에서 `none` 자리가 곧 `NoneSentinel` 변형이며, `none` 리터럴과 `none` 타입 표기는 모두 이 슬롯을 통해 같은 타입으로 해소됩니다.
+
+## 2.13.9. `Send` / `Sync` — 스레드 경계 marker
+
+```rok
+#[lang("send_trait")]
+trait Send { }      // 다른 스레드로 옮겨도 안전
+
+#[lang("sync_trait")]
+trait Sync { }      // 공유 참조로 여러 스레드에서 읽어도 안전
+```
+
+두 트레잇은 메서드가 없는 **자동 marker 트레잇** 이며, 컴파일러가 구조적으로 구현합니다.
+
+- 원시 숫자, `bool`, `char`, `c_char`, `str`, `none` 은 `Send + Sync` 입니다.
+- `struct`, `enum`, 튜플, 배열, 합 타입은 모든 필드 (구성 요소) 가 `Send` 이면 `Send`, 모두 `Sync` 이면 `Sync` 입니다. 제네릭 컨테이너 (`List<T>` 등) 도 같은 규칙으로 `T` 에 따릅니다.
+- 다음은 제외됩니다: `Cell<T>`, 원시 포인터 (`Ptr<T>`, `ConstPtr<T>`, `CPtr<T>`), 맨 `any` 와 bound 에 `Send` / `Sync` 가 없는 `any Tr`, bound 없는 함수 타입. 이 밖의 예외는 각 타입의 장에서 정합니다.
+- 함수 타입은 `fn(..) -> R + Send` 처럼 bound 를 적었을 때만 그 트레잇을 가집니다 ([refs-lang 4.4](../../refs-lang/004-functions/404-function-type.md#send--sync-bound)).
+
+자동 구현이 맞지 않는 타입은 직접 선언합니다. 내부에 원시 포인터를 두지만 스레드 안전하게 감싼 타입은 `unsafe impl` 로 opt-in 하고 (안전성은 작성자 책임), 구조상 자동 구현되지만 스레드 안전하지 않은 타입은 `impl !Send` 로 opt-out 합니다. `Cell<T>` 의 제외도 이 방식으로 선언됩니다.
+
+```rok
+struct Handle { raw: Ptr<u8>; }
+unsafe impl Send for Handle { }
+unsafe impl Sync for Handle { }
+
+impl<T> !Send for Cell<T> { }
+impl<T> !Sync for Cell<T> { }
+```
+
+스레드나 task 로 값을 넘기는 API (`thread::spawn`, `task::spawn`, `par::*`, `channel`) 는 이 두 트레잇으로 인자를 제한합니다. 동기화 primitive 의 정책은 [2.16 sync](216-sync.md) 를 따릅니다.

@@ -64,7 +64,8 @@ rok.eq.i32
 rok.lt.i32
 ...
 rok.neg.i32        unary
-rok.not.i32        bitwise not
+rok.not.bool       logical not (bool)
+rok.not.i32        bitwise not (정수)
 rok.cast.i32.i64   type cast
 ```
 
@@ -90,14 +91,15 @@ impl Add for i32 {
 
     #[intrinsic("rok.add.i32")]
     fn add(self, rhs: i32) -> i32 {
-        // 본문 — intrinsic fallback 없는 환경 (interpret 모드 등) 에서 사용
-        // intrinsic 활성 시 본문 무시
-        unreachable()
+        // 본문 — fn 값으로 꺼내 부르거나 intrinsic 을 모르는 환경에서 실행
+        self + rhs                    // primitive 연산자는 기계 연산으로 직접 lower
     }
 }
 ```
 
 규칙은 다음과 같이 요약됩니다. intrinsic 이 활성화된 정상 컴파일 경로에서는 본문이 무시되며, intrinsic 을 인식하지 못하는 실험 backend 나 interpret 환경에서는 본문이 실제로 사용됩니다. 만약 본문이 비어 있다면 stub `panic("intrinsic not available")` 로 처리됩니다.
+
+메서드를 `fn` 값으로 꺼낸 경우 (`let f = i32::add;`) 그 값을 호출하면 본문이 실행됩니다. intrinsic 은 직접 호출 지점에만 적용되므로, intrinsic 메서드의 본문도 같은 의미의 올바른 구현이어야 합니다.
 
 ## 0.3.5. 사용자 코드의 intrinsic 사용
 

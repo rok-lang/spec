@@ -52,6 +52,8 @@ GC 참조를 들고 있으면서 호출이나 할당을 하는 함수만 frame �
 2. 기계 스택에 `ShadowFrame` 을 잡고 `slots` 에 그 word 들의 주소를 기록합니다. `prev` 에 현재 `rok_tls_shadow_stack_top` 을 저장한 뒤 머리를 이 frame 으로 바꿉니다 (link).
 3. 모든 `return` 직전에 머리를 `prev` 로 되돌립니다 (unlink). 에러 반환도 일반 `return` 이므로 같은 경로를 지납니다. panic 은 프로세스를 끝내므로 unlink 가 필요 없습니다.
 
+변수의 스코프가 끝나면 그 root 슬롯이 가리키는 word 를 null 로 지워도 됩니다. 그러면 frame 이 죽은 객체를 붙잡아 두지 않습니다.
+
 GC 는 mark 시에 모든 thread 의 체인 머리에서 출발해 frame 을 walk 하며, 각 `slots[i]` 가 가리키는 word 의 값을 root 로 mark 합니다.
 
 코루틴 frame 은 GC heap 객체이므로 ([7.8](708-coroutine.md)) 그 안의 변수는 shadow stack 이 아니라 frame 객체의 scan table 로 추적됩니다.

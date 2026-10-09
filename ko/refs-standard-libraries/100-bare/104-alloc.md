@@ -68,6 +68,8 @@ using buf = try rok::bare::alloc::Allocation::<u32>::new(1000) {
 | FFI `malloc`             | C `malloc`                  | ✗                  |
 | Large object (≥8KB)      | LOS — non-moving mark-sweep | ✓ (단, non-moving) |
 
+GC 가 관리하는 raw buffer 가 필요하면 이 모듈 대신 `rok::core::collections::raw::GcBuf<T>` ([2.9.12](../200-core/209-collections.md#2912-gcbuft--raw-gc-buffer)) 를 씁니다.
+
 GC 외부 영역은 GC 의 추적 대상이 아니므로 정리 책임이 사용자에게 있습니다. 다만 객체가 이동하지 않는 영역인 만큼, `Ptr<T>` 는 별도의 pin guard 없이도 그대로 유효합니다.
 
 ## 1.4.4. runtime 연계

@@ -9,7 +9,7 @@
 ```rok
 trait Add<Rhs = Self> {
     type Output;
-    #[infix("+", prec = 7, left)]
+    #[infix("+")]
     fn add(self, rhs: Rhs) -> Output;
 }
 ```

@@ -4,24 +4,53 @@
 
 ## 1.4.1. 형식
 
-식별자는 유니코드 표준 부속서 #31 (UAX #31), Unicode Identifier and Pattern Syntax 의 기본 정의를 따릅니다.
+식별자는 유니코드 표준 부속서 #31 (UAX #31) 의 기본 정의 (`XID_Start` / `XID_Continue`) 에 다음을 더한 것입니다. 첫째는 밑줄 `_`, 둘째는 수학 표기 프로필, 셋째는 프라임, 넷째는 이모지입니다.
 
 ```
-identifier      ::= identifier_start identifier_continue*
-identifier_start    ::= xid_start | "_"
-identifier_continue ::= xid_continue
+identifier          ::= identifier_start identifier_continue*
+identifier_start    ::= xid_start | "_" | math_start | emoji
+identifier_continue ::= xid_continue | math_continue | prime | emoji | emoji_component
 ```
-
-위에서 `xid_start` 는 `XID_Start` 속성을 갖는 코드포인트를 가리키며, `xid_continue` 는 `XID_Continue` 속성을 갖는 코드포인트를 가리킵니다.
-
-`XID_Start` 와 `XID_Continue` 의 정의는 유니코드 표준이 결정하며, 본 사양은 그 표를 그대로 따릅니다. 사용자가 외워야 할 규칙은 다음 한 줄로 충분합니다.
 
 > [!IMPORTANT]
-> **사람의 언어로 변수 이름을 쓸 수 있습니다. 첫 글자가 숫자가 아니면 됩니다.**
+> **사람의 언어와 수학 기호로 변수 이름을 쓸 수 있습니다. 첫 글자가 숫자가 아니면 됩니다.**
+
+### Unicode 기준 버전
+
+`XID_Start`, `XID_Continue`, `Extended_Pictographic` 표는 **Unicode 13.0.0** 을 기준으로 합니다. 아래 수학 표기 프로필 집합은 code point 로 고정해 두며, UAX #31 (Revision 45) §7.1 의 `ID_Compat_Math_Start` / `ID_Compat_Math_Continue` 와 같습니다.
+
+### 수학 표기 프로필
+
+UAX #31 §7.1 "Mathematical Compatibility Notation Profile" 을 따르고, n-항 연산 기호 세 개를 더합니다.
+
+| 집합            | 코드포인트                                                                                                  |
+|-----------------|-------------------------------------------------------------------------------------------------------------|
+| `math_start`    | `∂` U+2202, `∇` U+2207, `∞` U+221E, 그 수학 스타일 변형 U+1D6C1, U+1D6DB, U+1D6FB, U+1D715, U+1D735, U+1D74F, U+1D76F, U+1D789, U+1D7A9, U+1D7C3 (`𝛁 𝛛 𝛻 𝜕 𝜵 𝝏 𝝯 𝞉 𝞩 𝟃`), 그리고 `∑` U+2211, `∏` U+220F, `∫` U+222B |
+| `math_continue` | `math_start` 전부, 위 첨자 `¹ ² ³ ⁰ ⁴`–`⁹` `⁺ ⁻ ⁼ ⁽ ⁾` (U+00B2, U+00B3, U+00B9, U+2070, U+2074–207E), 아래 첨자 `₀`–`₉` `₊ ₋ ₌ ₍ ₎` (U+2080–208E) |
+
+`∑ ∏ ∫` 는 함수 이름으로 쓸 수 있도록 rok 이 더한 것이며, 이 때문에 연산자 토큰이 될 수 없습니다.
+
+### 프라임
+
+`′ ″ ‴ ⁗` (U+2032–2034, U+2057) 는 `identifier_continue` 에만 올 수 있습니다 (`f′`, `x″`).
+
+### 이모지
+
+- `emoji`: `Extended_Pictographic` 속성을 가진 코드포인트 가운데 U+00FF 이하 (`©`, `®` 등) 를 제외한 것입니다. 시작과 이어지는 자리 모두에 올 수 있습니다.
+- `emoji_component`: 이어지는 자리에만 올 수 있습니다.
+  - ZWJ (U+200D) — 두 pictograph 사이에서만
+  - 변형 선택자 U+FE0E / U+FE0F — 정규화에서 제거됨 (1.4.2)
+  - 피부색 수식자 U+1F3FB–1F3FF
+  - 지역 표시자 U+1F1E6–1F1FF (국기)
+  - 태그 U+E0020–E007F
+
+키캡 시퀀스 (`1️⃣`) 는 숫자로 시작하므로 식별자가 아닙니다.
+
+### `x²` 는 이름입니다
+
+`x²` 는 `x` 의 제곱이 아니라 `x²` 라는 하나의 이름입니다. 제곱은 `x * x` 나 `x.pow(2)` 로 씁니다.
 
 ### 정상 예
-
-식별자로 인정되는 표기는 다음과 같습니다.
 
 ```rok
 count
@@ -30,26 +59,39 @@ my_var
 β2
 Δt
 σ²
+x₀
+f′
+∂u
+∇φ
+∑
 변수1
 データ
+🚀count
 _internal
 ```
 
 ### 비정상 예
 
-반면에 다음 표기는 식별자가 될 수 없습니다.
-
 ```rok
 2x         // 첫 글자가 숫자
 my-var     // '-' 는 식별자 글자가 아님
 my var     // 공백
+′x         // 프라임은 시작 글자가 될 수 없음
+1️⃣         // 키캡 — 숫자로 시작
 ```
 
 ## 1.4.2. 정규화
 
-식별자는 NFC (Normalization Form C) 로 정규화된 형태로 비교됩니다. 따라서 동일한 의미를 갖는 두 표기, 예를 들어 사전합성된 `é` 와 결합 형태인 `e + ◌́` 는 같은 식별자로 취급됩니다. 컴파일러는 식별자를 토큰화한 직후에 NFC 로 정규화합니다.
+식별자는 NFC (Normalization Form C) 로 정규화한 뒤 변형 선택자 U+FE0E / U+FE0F 를 제거한 형태로 비교됩니다. 따라서 사전합성된 `é` 와 결합 형태인 `e + ◌́` 는 같은 식별자이고, `❤️` 와 `❤` 도 같은 식별자입니다. 컴파일러는 식별자를 토큰화한 직후에 이 정규화를 적용합니다.
 
 이러한 결정은 검색 가능성과 진단 메시지의 일관성을 확보하기 위한 것입니다.
+
+### 혼동 경고
+
+컴파일러는 다음 경우에 **경고** 를 냅니다 (에러가 아닙니다).
+
+- 정규화 후 같은 skeleton (UTS #39 의 confusable 판정) 을 갖는 서로 다른 이름이 한 프로그램에 있을 때. 예: `σ²` 와 `σ2`, 라틴 `a` 와 키릴 `а`.
+- 한 식별자 안에 위험한 스크립트 혼합이 있을 때. 예: 라틴과 키릴. 한글, 한자, 가나와 라틴의 혼합은 허용합니다.
 
 ## 1.4.3. 대소문자
 

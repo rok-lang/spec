@@ -141,7 +141,7 @@ nm libfoo.a
 
 ## 9.3.8. 표준 라이브러리 archive
 
-`librok_unsafe.a`, `librok.a`, `librok_std.a` 도 모두 같은 형식을 따르고 있습니다. 표준 라이브러리 또한 일반 패키지와 다를 바 없는 archive 로 제공됩니다.
+`librok_bare.a`, `librok_core.a`, `librok_std.a` 도 모두 같은 형식을 따르고 있습니다. 표준 라이브러리 또한 일반 패키지와 다를 바 없는 archive 로 제공됩니다.
 
 ## 9.3.9. archive 의 압축 / 최소화
 
@@ -168,7 +168,7 @@ objdump -h libfoo.a       # 섹션 정보
 clang main.o \
   libfoo.a \
   librokr.a \
-  librok_unsafe.a librok.a librok_std.a \
+  librok_bare.a librok_core.a librok_std.a \
   -o my_binary
 ```
 

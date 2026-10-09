@@ -236,11 +236,11 @@ task::spawn { c.set(100) };       // ERROR — Cell 은 cross-task 안전 X
 
 ### `Send` / `Sync` 마커
 
-cross-task 안전성은 다음 정책을 따릅니다.
+`Send` / `Sync` 는 [2.13.9](213-marker.md#2139-send--sync--스레드-경계-marker) 의 자동 marker 트레잇입니다. 이 장의 타입은 다음 정책을 따릅니다.
 
 - `Atomic<T>`: Send + Sync
 - `Mutex<T>` / `RwLock<T>`: Send + Sync (T: Send 시)
-- `Cell<T>`: 없음 (single-task only)
+- `Cell<T>`: 없음 (single-task only) — 위 `task::spawn` 이 에러인 이유는 클로저가 `Cell` 을 캡처해 `fn() + Send` 자리에 들어갈 수 없기 때문입니다
 
 ## 2.16.6. 모듈 매핑
 

@@ -149,6 +149,14 @@ let buf: Buffer = ...;
 let b = unsafe { buf.raw_get(0) };
 ```
 
+### `unsafe impl`
+
+`unsafe impl` 은 자동 marker 트레잇 `Send` / `Sync` 를 손으로 구현할 때만 씁니다. 그 타입이 스레드 경계를 넘어도 안전하다는 것을 작성자가 보증한다는 표시입니다. 다른 트레잇에 `unsafe impl` 을 쓰면 컴파일 에러입니다 ([2.9.1](../002-types/209-impl.md#291-두-형태)).
+
+```rok
+unsafe impl Send for Handle { }
+```
+
 ## 4.15.5. 책임 모델
 
 `unsafe` 는 컴파일러가 안전 검증을 *포기* 한다는 뜻이 아닙니다. 다음 두 책임이 호출자에게 이전된다는 뜻입니다.

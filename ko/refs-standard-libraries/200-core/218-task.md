@@ -9,7 +9,7 @@
 핵심 API 의 시그니처는 다음과 같습니다.
 
 ```rok
-fn spawn<T>(f: fn() -> T) -> Task<T>;
+fn spawn<T: Send>(f: fn() -> T + Send) -> Task<T>;
 fn race<T>(tasks: List<Task<T>>) -> T;                  // 첫 완료 task 결과
 fn join<T>(tasks: List<Task<T>>) -> List<T>;            // 모두 완료 후
 fn timeout<T>(dur: Duration, task: Task<T>) throws (TimeoutError) -> T;

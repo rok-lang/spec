@@ -152,6 +152,8 @@ br i1 %check, label %slow, label %cont
 
 이후 LLVM 백엔드가 타깃별 TLS 명령어로 lower 해 주게 됩니다.
 
+`rok_tls_*` 슬롯은 initial-exec TLS 모델을 씁니다. 런타임은 항상 실행 파일에 정적으로 링크되므로 이 모델로 충분합니다. 툴체인이 TLS 모델을 고를 수 없는 구현은 general-dynamic 으로 대신해도 됩니다.
+
 ### `rok_tls_shadow_stack_top`
 
 ```

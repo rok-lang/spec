@@ -52,7 +52,7 @@ for x in xs {
 
 ### 메서드 — default impl 풍부
 
-`Iterator` 에서 사용자가 직접 구현해야 하는 메서드는 `next` 하나뿐입니다. 나머지 메서드들은 모두 `next` 위에 default impl 형태로 제공됩니다.
+`Iterator` 에서 사용자가 직접 구현해야 하는 메서드는 `next(ref self)` 하나뿐입니다. 나머지 메서드들은 모두 `next` 위에 default impl 형태로 제공됩니다.
 
 > [!NOTE]
 > 아래 시그니처에 등장하는 `fn(Item) -> U` 는 [refs-lang 4.4 함수 타입](../../refs-lang/004-functions/404-function-type.md) 이 정의하는 callable 통합 타입이며, **함수와 closure 둘 다** 받습니다. 따라서 `it.map(some_fn)` 도, `it.map(|x| x * 2)` 도 같은 자리에 들어갑니다. Rust 의 `fn`/`Fn`/`FnMut`/`FnOnce` 와는 다른 단일 형태이니 유의해 주세요.
@@ -77,8 +77,8 @@ impl Iterator {
 
     // 종결 메서드 — eager
     fn count(self) -> usize;
-    fn sum(self) -> Item where Item: Add;
-    fn product(self) -> Item where Item: Mul;
+    fn sum(self) -> Item where Item: Sum;           // 비면 0
+    fn product(self) -> Item where Item: Product;   // 비면 1
     fn fold<B>(self, init: B, f: fn(B, Item) -> B) -> B;
     fn reduce(self, f: fn(Item, Item) -> Item) -> Item | none;
     fn any(self, pred: fn(Item) -> bool) -> bool;
@@ -95,6 +95,22 @@ impl Iterator {
     fn nth(ref self, n: usize) -> Item | none;
 }
 ```
+
+### `Sum` / `Product`
+
+`sum` 과 `product` 는 원소 타입의 `Sum` / `Product` 트레잇을 거칩니다. 빈 iterator 의 합은 0, 곱은 1 입니다.
+
+```rok
+trait Sum {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self;      // 빈 iterator → 0
+}
+
+trait Product {
+    fn product<I: Iterator<Item = Self>>(iter: I) -> Self;  // 빈 iterator → 1
+}
+```
+
+표준 라이브러리는 모든 숫자 primitive 와 `int` / `float` 에 두 트레잇을 구현합니다.
 
 ### lazy vs eager
 

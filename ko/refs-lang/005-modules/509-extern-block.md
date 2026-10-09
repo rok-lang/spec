@@ -87,6 +87,16 @@ extern "C" {
 - 포인터: `Ptr<T>`, `ConstPtr<T>` (표준 라이브러리, [표준 라이브러리 계층](../000-meta/005-standard-libraries-tiers.md) 의 `unsafe` 영역).
 - `#[repr(C)]` `struct` / `union`: C ABI 호환 표시가 붙은 사용자 정의 타입.
 - 함수 포인터: `extern "C" fn(...) -> ...` (별도 형식).
+- `str`: 아래 규칙으로 변환됩니다.
+
+`str` 을 extern 시그니처에 쓰면 이름에 따라 전달 방식이 다릅니다.
+
+| 심볼                          | `str` 매개변수                         | `str` 반환                         |
+|-------------------------------|----------------------------------------|------------------------------------|
+| `rok_*` 런타임 심볼           | `(ptr, len)` 두 인자                   | `(ptr, len)` 쌍                    |
+| 그 밖의 `extern "C"` 함수     | NUL 로 끝나는 `char*` 하나              | `char*` — 길이는 `strlen` 으로 잼   |
+
+C 함수에 넘길 때 컴파일러는 NUL 로 끝나는 바이트열을 넘기며, 필요하면 사본을 만듭니다. 내부에 NUL 이 있으면 C 쪽에서는 첫 NUL 까지만 보입니다. 반환된 `char*` 가 null 이면 동작은 정의되지 않으므로, null 일 수 있는 C 문자열은 `CPtr<c_char>` 로 받습니다 ([stdlib 1.7.2](../../refs-standard-libraries/100-bare/107-ffi.md#172-cstr--cstring--null-terminated-string)).
 
 호환되지 않는 타입을 적으시면 컴파일 경고나 에러가 발생합니다. 정확한 검사 규칙은 [Calling Convention](../008-abi/806-calling-convention.md) 에서 정의됩니다.
 

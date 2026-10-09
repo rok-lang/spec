@@ -41,6 +41,19 @@ extern "C" {
 
 null 을 반환하는 경우는 out of memory 와 같은 극단적 상황입니다. 실제로는 fatal error 를 던지게 되며, 이는 구현이 결정합니다.
 
+### `rok_gc_alloc_bytes`
+
+헤더 뒤에 `size` 바이트의 payload 를 가진 GC 객체를 할당합니다. **Thread-safety: `thread-safe`**.
+
+```
+extern "C" {
+    fn rok_gc_alloc_bytes(size: usize, traced: bool) -> str;
+}
+```
+
+- `traced = false` 이면 type id `1` (GC 문자열), `true` 이면 type id `2` (word-traced buffer) 로 할당합니다 ([8.2.12](802-scan-table.md#8212-런타임-예약-type-id)).
+- 반환값은 payload 를 가리키는 `(ptr, len)` 쌍 (`str` 의 표현, [8.8](808-lowering-types.md)) 입니다.
+
 ### `rok_gc_wb_slow`
 
 [배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md) 의 write barrier slow path 에 해당합니다. **Thread-safety: `caller-thread-only`** (TLS 의 wb log buffer 에 기록).
@@ -102,7 +115,7 @@ extern "C" {
 }
 ```
 
-호출 시점은 프로세스 시작 직후이자 `main()` 이전이며, 효과로는 worker 풀을 생성하고 GC 공간을 mmap 하며 I/O driver 를 초기화합니다. 컴파일러가 생성한 C-ABI `main` 은 이 호출 직후에 `rok.register_types` 를 호출합니다 ([8.2.12](802-scan-table.md#8212-등록-시점)).
+호출 시점은 프로세스 시작 직후이자 `main()` 이전이며, 효과로는 worker 풀을 생성하고 GC 공간을 mmap 하며 I/O driver 를 초기화합니다. 컴파일러가 생성한 C-ABI `main` 은 이 호출 직후에 `rok.register_types` 를 호출합니다 ([8.2.13](802-scan-table.md#8213-등록-시점)).
 
 런타임은 이 밖에 thread-local 데이터 심볼 `rok_tls_shadow_stack_top` 을 export 합니다 ([8.3.8](803-tls-slots.md#838-컴파일러-emit-의-형식)).
 
@@ -117,6 +130,18 @@ extern "C" {
 ```
 
 호출 시점은 `main()` 이 끝난 직후이며, 효과로는 worker 풀을 종료하고 미해제 자원을 정리합니다.
+
+### `rok_exit`
+
+프로세스를 즉시 종료합니다. **Thread-safety: `thread-safe`**.
+
+```
+extern "C" {
+    fn rok_exit(code: i32) -> !;
+}
+```
+
+[`rok::std::env::exit`](../../refs-standard-libraries/300-std/306-env.md) 가 이 심볼을 부릅니다. `finally` 와 `Drop` 은 실행하지 않습니다 ([4.16.4](../004-functions/416-entry-point.md#4164-종료-코드와-미처리-예외)).
 
 ### `rok_runtime_yield`
 

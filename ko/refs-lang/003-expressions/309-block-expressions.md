@@ -10,8 +10,11 @@
 block       ::= label? "{" stmt* tail_expr? "}"
 label       ::= "'" identifier ":"
 stmt        ::= expr ";"
+              | block_like_expr ";"?
               | let_stmt
               | item_decl
+block_like_expr ::= block | if_expr | match_expr | loop_expr
+              | while_expr | for_expr | unsafe_block
 tail_expr   ::= expr            // no trailing ";"
 ```
 

@@ -2,7 +2,7 @@
 
 `rok::core::error` / `rok::core::panic` 모듈은 에러 처리 권위를 제공합니다. rok 의 에러 모델은 하나입니다. 에러를 던질 수 있는 함수는 시그니처에 `throws` 를 적고, 호출하는 쪽은 그 호출을 `try` 로 표시합니다 ([refs-lang 4.14](../../refs-lang/004-functions/414-throws.md)). `Result<T, E>` 는 에러를 **값으로 담아 두기** 위한 평범한 enum 이며, 에러를 전파하는 수단이 아닙니다.
 
-이 장은 46 개의 lang slot 가운데 `panic_fn` / `oom_fn` / `unreachable_fn` 세 개를 정의합니다.
+이 장은 48 개의 lang slot 가운데 `panic_fn` / `oom_fn` / `unreachable_fn` 세 개를 정의합니다.
 
 ## 2.14.1. 모델 개요 — 던지면 `throws`, 담아 두면 `Result`
 

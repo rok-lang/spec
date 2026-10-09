@@ -83,7 +83,7 @@ HIR 은 타입 정보가 풍부하게 담긴 중간 표현이며, 위 4 ~ 5 단�
 4. 캐시. 같은 (item_id, type_tuple) 는 한 번만.
 ```
 
-프로그램의 root (`main`, export 된 심볼, 런타임이 참조하는 심볼) 에서 도달할 수 없는 함수는 emit 하지 않습니다.
+프로그램의 root (`main`, export 된 심볼, `#[export_name]` 항목, 런타임이 참조하는 심볼) 에서 도달할 수 없는 함수는 emit 하지 않습니다.
 
 이 단계 덕분에 [AOT](../000-meta/007-glossary.md#aot-ahead-of-time) 가 vtable 없는 직접 호출을 할 수 있게 됩니다 ([트레잇-as-타입 금지](../002-types/212-trait-as-type-banned.md) 참고).
 
@@ -103,15 +103,22 @@ target/foo.mlir
 
 [8. 런타임 ABI / MLIR lowering](../008-abi/README.md) 의 lowering 규칙에 따라 모든 rok 의미를 표준 다이얼렉트로 변환합니다.
 
+`rokc` 는 MLIR 라이브러리 바인딩 (C++, Rust 등) 을 쓰지 않습니다. MLIR 을 텍스트로 emit 한 뒤, 이어지는 단계에서 외부 도구 `mlir-opt`, `mlir-translate`, `clang` 을 프로세스로 호출합니다.
+
 여기까지가 `rokc` 의 책임 영역입니다.
 
 ## 9.2.11. mlir-opt 호출
 
-표준 MLIR 도구인 `mlir-opt` 를 호출하여 표준 패스 (인라인, dce, simplification 등) 를 적용합니다.
+표준 MLIR 도구인 `mlir-opt` 를 호출하여 정리 패스와 LLVM 다이얼렉트로의 변환 패스를 적용합니다. `mlir-opt` 에는 `-O2` 같은 최적화 단계 옵션이 없으므로, 패스를 이름으로 나열합니다.
 
 ```
-mlir-opt -O2 ... target/foo.mlir > target/foo.opt.mlir
+mlir-opt --canonicalize --cse \
+         --convert-scf-to-cf --convert-cf-to-llvm --convert-arith-to-llvm \
+         --convert-func-to-llvm --reconcile-unrealized-casts \
+         target/foo.mlir > target/foo.opt.mlir
 ```
+
+정확한 패스 목록은 구현이 정하며, 위는 대표적인 구성입니다. `-O0` ~ `-O3` 같은 최적화 단계는 이후 `clang` 단계에 적용됩니다.
 
 ## 9.2.12. mlir-translate 호출
 
@@ -139,8 +146,8 @@ ar rcs target/libfoo.a target/foo.o target/foo.hir.o
 ```
 clang -O2 \
   target/foo.o \
-  librokr.a \
-  librok_unsafe.a librok.a librok_std.a \
+  $ROK_HOME/lib/librokr.a \
+  librok_bare.a librok_core.a librok_std.a \
   -o target/foo                         (-lc 등 필요시)
 ```
 
@@ -198,3 +205,20 @@ target/
 `rokc` 는 이들 도구를 호출하기만 할 뿐이며, LLVM 라이브러리에 직접 link 하지는 않습니다 ([컴파일 파이프라인](../000-meta/002-pipeline.md) 참고).
 
 만약 도구가 설치되어 있지 않은 경우에는 `rokc build` 가 명확한 에러를 내놓습니다 (어떤 도구를 어디에서 받을 수 있는지 함께 안내합니다).
+
+## 9.2.19. 설치 레이아웃
+
+설치된 toolchain 은 `$ROK_HOME` 아래에 다음과 같이 놓입니다.
+
+```
+$ROK_HOME/
+├── bin/rokc
+└── lib/
+    ├── librokr.a              # 런타임
+    └── rok/
+        ├── core/              # rok::core
+        ├── std/               # rok::std
+        └── bare/              # rok::bare
+```
+
+`rokc` 는 런타임과 표준 라이브러리를 이 경로에서 찾습니다. `ROK_HOME` 이 설정되지 않으면 `rokc` 실행 파일이 있는 디렉토리의 상위 (`bin/` 의 `..`) 를 `ROK_HOME` 으로 봅니다. 저장소에서 직접 실행하는 개발 레이아웃은 위 경로에서 찾지 못했을 때의 fallback 으로 유지합니다.

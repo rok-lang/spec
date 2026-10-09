@@ -22,7 +22,8 @@ trait_args  ::= "<" trait_arg ("," trait_arg)* ","? ">"
 trait_arg   ::= type_expr | identifier "=" type_expr
 path_type   ::= identifier ("::" identifier)* type_args?
 type_args   ::= "<" type_expr ("," type_expr)* ","? ">"
-fn_type     ::= "fn" "(" (type_expr ("," type_expr)*)? ")" ("throws" ("(" type_expr ")")?)? ("->" type_expr)?
+fn_type     ::= "fn" "(" (type_expr ("," type_expr)*)? ")" ("throws" ("(" type_expr ")")?)? ("->" type_expr)? fn_bound*
+fn_bound    ::= "+" ("Send" | "Sync")
 tuple_type  ::= "(" ")"
               | "(" type_expr "," ")"
               | "(" type_expr ("," type_expr)+ ","? ")"
@@ -37,7 +38,7 @@ array_type  ::= "[" type_expr ";" const_expr "]"
 | 경로          | `rok::std::time::Duration`                  |
 | 제네릭 적용   | `List<i32>`, `Dict<str, f64>`, `Pair<A, B>` |
 | 합 타입 (`\|`) | `i32 \| f32`, `T \| none`                     |
-| 함수 타입     | `fn(i32, i32) -> i32`                       |
+| 함수 타입     | `fn(i32, i32) -> i32`, `fn() -> T + Send`   |
 | 튜플 타입     | `(i32, str)`, `(i32,)`                      |
 | 배열 타입     | `[T; N]` (고정 크기)                        |
 | 동적 슬롯     | `any`, `any Error`, `any (Display + Hash)`  |

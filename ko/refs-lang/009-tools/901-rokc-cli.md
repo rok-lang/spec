@@ -247,6 +247,7 @@ rokc --quiet test
 
 | 변수              | 의미                                                                                     |
 |-------------------|------------------------------------------------------------------------------------------|
+| `ROK_HOME`        | toolchain 설치 위치 ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)). 없으면 `rokc` 실행 파일의 `../` |
 | `ROKC_VERBOSE`    | `--verbose` 와 동일                                                                      |
 | `ROKC_TARGET_DIR` | `target/` 의 위치 (기본은 패키지 안)                                                     |
 | `ROKC_CACHE_DIR`  | [JIT](../000-meta/007-glossary.md#jit-just-in-time) 캐시 디렉토리 (기본 `~/.cache/rok/`) |

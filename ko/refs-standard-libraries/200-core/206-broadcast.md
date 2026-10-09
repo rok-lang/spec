@@ -81,31 +81,31 @@ precedence 와 associativity 는 일반 트레잇([2.3 ops](203-ops.md), [2.5 cm
 ```rok
 trait DotAdd<Rhs = Self> {
     type Output;
-    #[infix(".+", prec = 7, left)]
+    #[infix(".+")]
     fn dot_add(self, rhs: Rhs) -> Output;
 }
 
 trait DotMul<Rhs = Self> {
     type Output;
-    #[infix(".*", prec = 8, left)]
+    #[infix(".*")]
     fn dot_mul(self, rhs: Rhs) -> Output;
 }
 
 trait DotModulo<Rhs = Self> {
     type Output;
-    #[infix(".%%", prec = 8, left)]
+    #[infix(".%%")]
     fn dot_modulo(self, rhs: Rhs) -> Output;
 }
 
 trait DotEq<Rhs = Self> {
     type Output;
-    #[infix(".==", prec = 4, none)]
+    #[infix(".==")]
     fn dot_eq(self, rhs: Rhs) -> Output;
 }
 
 trait DotLogicalAnd<Rhs = Self> {
     type Output;
-    #[infix(".&&", prec = 3, left)]
+    #[infix(".&&")]
     fn dot_logical_and(self, rhs: Rhs) -> Output;
 }
 ```

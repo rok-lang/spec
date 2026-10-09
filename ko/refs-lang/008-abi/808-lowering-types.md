@@ -16,6 +16,8 @@
 | `char`            | `i32` (Unicode 코드포인트)                                                                  |
 | `c_char`          | `i8`                                                                                        |
 
+`str` 은 `!llvm.struct<(ptr, iN)>` (포인터와 `usize` 바이트 길이) 로 값 전달되는 불변 쌍입니다. 리터럴은 immortal 상수를, 런타임에 만든 문자열은 GC 객체 (type id `1`, [8.2.12](802-scan-table.md#8212-런타임-예약-type-id)) 의 payload 를 가리킵니다. `str` 슬롯은 GC 가 scan 할 때 `ptr` 을 객체 내부 포인터로 다룹니다.
+
 여기서 한 가지 유의할 점이 있습니다. MLIR 의 정수 타입 자체에는 부호 정보가 없으며, 부호 해석은 연산자 (`addi` 나 `subi` 등) 가 결정합니다.
 
 ## 8.8.2. 산술 연산

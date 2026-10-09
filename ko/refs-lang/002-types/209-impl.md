@@ -8,7 +8,8 @@
 
 ```
 impl_block      ::= "impl" generics? type_expr "{" impl_item* "}"
-                  | "impl" generics? type_expr "for" type_expr where_clause? "{" impl_item* "}"
+                  | "unsafe"? "impl" generics? type_expr "for" type_expr where_clause? "{" impl_item* "}"
+                  | "impl" generics? "!" type_expr "for" type_expr where_clause? "{" "}"
 impl_item       ::= fn_decl
                   | "type" identifier "=" type_expr ";"
                   | const_decl
@@ -45,6 +46,11 @@ impl Add for Point {
 이 형태는 `impl 트레잇 for 타입 { ... }` 의 모습을 가집니다. 본체에는 [`trait`](208-trait.md) 가 요구한 메서드의 본체와 연관 타입의 구체 정의가 옵니다. 한편 트레잇이 기본 메서드를 제공한 항목은 본체에서 생략할 수 있으며, 그러면 기본 본체를 사용하게 됩니다.
 
 impl 메서드의 `throws` 는 트레잇 메서드의 `throws` 와 같아야 합니다. impl 이 `throws` 를 새로 붙이거나 에러 타입을 넓힐 수 없습니다 ([4.14.11](../004-functions/414-throws.md#41411-메서드의-throws)).
+
+`Send` / `Sync` 는 자동 marker 트레잇이며 두 가지 수동 선언이 있습니다 ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--스레드-경계-marker)).
+
+- opt-in: `unsafe impl Send for X {}`. `unsafe impl` 은 `Send` / `Sync` 에만 쓸 수 있고, 이 두 트레잇의 수동 구현에는 반드시 필요합니다.
+- opt-out: `impl !Send for X {}`, `impl<T> !Send for Cell<T> {}`. 자동 구현을 막으며, 본체는 비어 있어야 합니다. `!` 는 `Send` / `Sync` 에만 쓸 수 있습니다.
 
 ## 2.9.2. 메서드의 `self` 관례
 

@@ -35,7 +35,7 @@ rok 은 이 두 모드를 자동으로 선택합니다.
 
 ```rok
 trait AddAssign<Rhs = Self> {
-    #[infix("+=", prec = -1, right)]
+    #[infix("+=")]
     fn add_assign(ref self, rhs: Rhs);
 }
 ```
@@ -53,7 +53,7 @@ xs += [3, 4];       //→ [1, 2, 3, 4]  (List 의 add_assign — push 효율)
 
 ```rok
 trait SubAssign<Rhs = Self> {
-    #[infix("-=", prec = -1, right)]
+    #[infix("-=")]
     fn sub_assign(ref self, rhs: Rhs);
 }
 ```
@@ -62,7 +62,7 @@ trait SubAssign<Rhs = Self> {
 
 ```rok
 trait MulAssign<Rhs = Self> {
-    #[infix("*=", prec = -1, right)]
+    #[infix("*=")]
     fn mul_assign(ref self, rhs: Rhs);
 }
 ```
@@ -71,7 +71,7 @@ trait MulAssign<Rhs = Self> {
 
 ```rok
 trait DivAssign<Rhs = Self> {
-    #[infix("/=", prec = -1, right)]
+    #[infix("/=")]
     fn div_assign(ref self, rhs: Rhs);
 }
 ```
@@ -80,7 +80,7 @@ trait DivAssign<Rhs = Self> {
 
 ```rok
 trait RemAssign<Rhs = Self> {
-    #[infix("%=", prec = -1, right)]
+    #[infix("%=")]
     fn rem_assign(ref self, rhs: Rhs);
 }
 ```
@@ -89,7 +89,7 @@ trait RemAssign<Rhs = Self> {
 
 ```rok
 trait ModuloAssign<Rhs = Self> {
-    #[infix("%%=", prec = -1, right)]
+    #[infix("%%=")]
     fn modulo_assign(ref self, rhs: Rhs);
 }
 ```
@@ -102,7 +102,7 @@ trait ModuloAssign<Rhs = Self> {
 
 ```rok
 trait BitAndAssign<Rhs = Self> {
-    #[infix("&=", prec = -1, right)]
+    #[infix("&=")]
     fn bitand_assign(ref self, rhs: Rhs);
 }
 ```
@@ -116,7 +116,7 @@ flags &= 0x0F;     //→ 0x0F
 
 ```rok
 trait BitOrAssign<Rhs = Self> {
-    #[infix("|=", prec = -1, right)]
+    #[infix("|=")]
     fn bitor_assign(ref self, rhs: Rhs);
 }
 ```
@@ -125,7 +125,7 @@ trait BitOrAssign<Rhs = Self> {
 
 ```rok
 trait BitXorAssign<Rhs = Self> {
-    #[infix("^=", prec = -1, right)]
+    #[infix("^=")]
     fn bitxor_assign(ref self, rhs: Rhs);
 }
 ```
@@ -134,7 +134,7 @@ trait BitXorAssign<Rhs = Self> {
 
 ```rok
 trait ShlAssign<Rhs = Self> {
-    #[infix("<<=", prec = -1, right)]
+    #[infix("<<=")]
     fn shl_assign(ref self, rhs: Rhs);
 }
 ```
@@ -148,7 +148,7 @@ n <<= 4;       //→ 16
 
 ```rok
 trait ShrAssign<Rhs = Self> {
-    #[infix(">>=", prec = -1, right)]
+    #[infix(">>=")]
     fn shr_assign(ref self, rhs: Rhs);
 }
 ```
@@ -167,7 +167,7 @@ fn add_assign(ref self, rhs: Rhs);
 
 ## 2.4.5. 우선순위 / 결합성 — prec=-1, right
 
-모든 `*Assign` 토큰은 동일한 등급으로 묶여 있습니다. 우선순위 측면에서 `prec = -1` 을 가지므로 일반 산술 (+=7, *=8) 보다 낮고, `..` (=0) 보다도 낮은 위치에 자리합니다. 결합성 측면에서는 `right`, 즉 우결합 으로 동작하여 `a += b += c` 가 `a += (b += c)` 와 동치가 됩니다. 다만 `b += c` 가 unit 을 반환하므로 실용성은 거의 없으나 일관성을 위해 이 규칙이 유지됩니다.
+모든 `*Assign` 토큰은 [refs-lang 3.2](../../refs-lang/003-expressions/302-precedence-and-associativity.md) 표에서 동일한 등급으로 고정되어 있습니다. 우선순위 측면에서 `prec = -1` 을 가지므로 일반 산술 (+=7, *=8) 보다 낮고, `..` (=0) 보다도 낮은 위치에 자리합니다. 결합성 측면에서는 `right`, 즉 우결합 으로 동작하여 `a += b += c` 가 `a += (b += c)` 와 동치가 됩니다. 다만 `b += c` 가 unit 을 반환하므로 실용성은 거의 없으나 일관성을 위해 이 규칙이 유지됩니다.
 
 ## 2.4.6. 트레잇 구현 매트릭스
 
@@ -181,12 +181,12 @@ primitive 타입의 `*Assign` impl 에는 모두 `#[intrinsic("rok.OP_assign.TYP
 | `int`        | 산술 + 비트                                 | auto-promote 로직 + in-place mutation           |
 | `float`      | 산술                                        | (위와 동일 — auto-promote)                      |
 | `List<T>`    | `AddAssign<List<T>>`, `AddAssign<T>`        | push                                            |
-| `str`        | `AddAssign<str>`, `AddAssign<char>`         | in-place push_str / push                        |
+| `str`        | `AddAssign<str>`, `AddAssign<char>`         | `s = s + t` — 새 str 로 교체 (str 은 불변)      |
 | `Dict<K,V>`  | `AddAssign<Dict<K,V>>`                      | merge — 기존 키 덮어씀                          |
 
 ## 2.4.7. 컬렉션의 *Assign — 핵심 사용처
 
-`List<T>` / `str` / `Dict<K,V>` 같은 가변 컨테이너에서는 `*Assign` 가 **진짜 in-place** 동작을 수행합니다.
+`List<T>` / `Dict<K,V>` 같은 가변 컨테이너에서는 `*Assign` 가 **진짜 in-place** 동작을 수행합니다.
 
 ```rok
 let xs: List<i32> = [1, 2, 3];

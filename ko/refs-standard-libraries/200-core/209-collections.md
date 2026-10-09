@@ -32,18 +32,27 @@ struct Set<T> { /* ... */ }
 struct Tuple { /* ... */ }
 ```
 
-리터럴 query 문법의 의미는 다음과 같이 정리할 수 있습니다. 먼저 `{...} % sep *` 는 0 회 이상 sep 으로 구분된 반복을 나타내고, `{...} % sep +` 는 1 회 이상의 반복을 의미하며, 이는 Set 의 단일 원소 `{1}` 와 block `{1}` 사이의 모호성을 처리하기 위해 필요합니다. 토큰열 매칭의 경우 lexer 단계에서 직접 구분한 뒤 parser 가 query 매칭을 수행합니다.
+리터럴 query 문법의 의미는 다음과 같이 정리할 수 있습니다. 먼저 `{...} % sep *` 는 0 회 이상 sep 으로 구분된 반복을 나타내고, `{...} % sep +` 는 1 회 이상의 반복을 의미하며, 원소가 하나인 Set 은 후행 콤마로 `{1,}` 라고 써서 block `{1}` 과 구분합니다. 토큰열 매칭의 경우 lexer 단계에서 직접 구분한 뒤 parser 가 query 매칭을 수행합니다.
 
 ### Dict / Set 모호성 해결
 
 ```rok
 {"a": 1}      // Dict — `:` 패턴
 {1, 2}        // Set — 값만
-{1}           // Set (단일 원소) — context 로 판정
+{1,}          // Set (단일 원소 — 후행 콤마)
+{1}           // 항상 block — 슬롯이 Set 이어도 마찬가지
 { x = 1 }     // block expression — `{` 다음 토큰이 statement-like
 ```
 
-parser 의 lookahead 가 첫 두 토큰을 기준으로 결정하며, `expr ":"` 형태이면 Dict 로, 그 외에는 Set 또는 block 으로 판정합니다.
+parser 가 내용만 보고 결정합니다. `expr ":"` 형태이면 Dict, 콤마가 있으면 Set, 그 밖에는 block 입니다. 받는 슬롯의 타입은 판정에 쓰지 않습니다.
+
+### `[...]` 의 타입
+
+`[1, 2, 3]` 은 기대 타입이 없으면 `List<T>` 입니다. 고정 크기 배열 `[T; N]` 은 `let a: [i32; 3] = [1, 2, 3];` 처럼 기대 타입을 `[T; N]` 으로 적었을 때만 만들어집니다.
+
+### 참조 핸들
+
+`List`, `Dict`, `Set` 값은 GC heap 객체를 가리키는 참조 핸들입니다. `let ys = xs;` 나 인자 전달은 핸들을 복사하므로 같은 컬렉션을 공유합니다. 그래서 컬렉션을 바꾸는 메서드도 `ref self` 가 아니라 `self` 를 받습니다. 독립된 사본이 필요하면 `clone()` 을 부릅니다. `keys` / `values` / `entries` 는 컬렉션을 복사하지 않는 lazy iterator 를 돌려줍니다.
 
 ## 2.9.2. `List<T>` — 동적 배열
 
@@ -66,19 +75,19 @@ impl<T> List<T> {
     fn is_empty(self) -> bool;
     fn capacity(self) -> usize;
 
-    fn push(ref self, x: T);
-    fn pop(ref self) -> T | none;
-    fn insert(ref self, idx: usize, x: T);
-    fn remove(ref self, idx: usize) -> T;
-    fn clear(ref self);
+    fn push(self, x: T);
+    fn pop(self) -> T | none;
+    fn insert(self, idx: usize, x: T);
+    fn remove(self, idx: usize) -> T;
+    fn clear(self);
 
     fn get(self, idx: usize) -> T | none;       // safe — out-of-bounds → none
     fn first(self) -> T | none;
     fn last(self) -> T | none;
 
-    fn extend<I: IntoIterator<Item = T>>(ref self, iter: I);
-    fn reserve(ref self, additional: usize);
-    fn shrink_to_fit(ref self);
+    fn extend<I: IntoIterator<Item = T>>(self, iter: I);
+    fn reserve(self, additional: usize);
+    fn shrink_to_fit(self);
 
     fn iter(self) -> ListIter<T>;
     fn into_iter(self) -> ListIntoIter<T>;
@@ -140,8 +149,8 @@ impl<K: Hash + Eq, V> Dict<K, V> {
     fn len(self) -> usize;
     fn is_empty(self) -> bool;
 
-    fn insert(ref self, k: K, v: V) -> V | none;       // 기존 V 반환 / 없으면 none
-    fn remove(ref self, k: K) -> V | none;
+    fn insert(self, k: K, v: V) -> V | none;       // 기존 V 반환 / 없으면 none
+    fn remove(self, k: K) -> V | none;
     fn get(self, k: K) -> V | none;
     fn contains_key(self, k: K) -> bool;
 
@@ -149,7 +158,7 @@ impl<K: Hash + Eq, V> Dict<K, V> {
     fn values(self) -> ValuesIter<K, V>;
     fn entries(self) -> EntriesIter<K, V>;            // (K, V) 쌍
 
-    fn entry(ref self, k: K) -> Entry<K, V>;          // or_insert / and_modify
+    fn entry(self, k: K) -> Entry<K, V>;          // or_insert / and_modify
 }
 ```
 
@@ -198,8 +207,8 @@ impl<T: Hash + Eq> Set<T> {
     fn len(self) -> usize;
     fn is_empty(self) -> bool;
 
-    fn insert(ref self, x: T) -> bool;        // true if 새로 들어감
-    fn remove(ref self, x: T) -> bool;
+    fn insert(self, x: T) -> bool;        // true if 새로 들어감
+    fn remove(self, x: T) -> bool;
     fn contains(self, x: T) -> bool;
 
     fn union(self, other: Set<T>) -> Set<T>;
@@ -408,3 +417,22 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 | ordered map | `BTreeMap` (정렬 맵) | **기본 dict**              | 별도 `OrderedDict`                     |
 
 rok 의 가장 큰 차이점은 다음과 같이 정리할 수 있습니다. 첫째로 6 가지 컬렉션이 모두 1급 리터럴 문법을 가지므로 `vec![]` 같은 매크로를 사용하지 않습니다. 둘째로 `Dict` / `Set` 의 insertion order 는 보장되지 않으며, 이는 Python 3.7+ 와 다른 점이므로 순서가 필요한 경우에는 `OrderedDict` 를 명시적으로 사용해야 합니다. 셋째로 `Slice<T>` 가 stride 를 가지는 view 이기 때문에 `xs[::2]` 같은 표현조차 zero-copy 로 처리됩니다.
+
+## 2.9.12. `GcBuf<T>` — raw GC buffer
+
+`rok::core::collections::raw` 의 `GcBuf<T>` 는 `List` / `Dict` 같은 컬렉션 구현이 쓰는 고정 길이 GC buffer 이며, 컴파일러가 아는 타입입니다. 런타임의 word-traced buffer (type id `2`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-런타임-예약-type-id)) 위에 놓입니다.
+
+```rok
+struct GcBuf<T> { /* 컴파일러가 아는 표현 */ }
+
+impl<T> GcBuf<T> {
+    #[intrinsic("rok.buf_new")]
+    fn new(len: usize) -> GcBuf<T>;           // 모든 word 를 0 (null) 으로
+    #[intrinsic("rok.buf_get")]
+    fn get(self, i: usize) -> T;               // 범위 밖이면 panic
+    #[intrinsic("rok.buf_set")]
+    fn set(self, i: usize, v: T);              // write barrier 포함
+}
+```
+
+한 원소는 한 word 를 차지합니다. 일반 사용자 코드는 `List<T>` 를 쓰며, `GcBuf<T>` 는 컬렉션 구현을 위한 것입니다.

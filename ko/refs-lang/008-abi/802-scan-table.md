@@ -201,7 +201,18 @@ ScanTable 포맷의 호환성은 version 필드가 다룹니다.
 - 같은 major version 안에서는 version 필드만으로 호환을 처리합니다.
 - 다른 major version 사이에서는 별도의 .a 가 필요합니다.
 
-## 8.2.12. 등록 시점
+## 8.2.12. 런타임 예약 type id
+
+다음 두 type id 는 런타임이 직접 정의하며, 컴파일러는 ScanTable 을 등록하지 않습니다 ([8.1.2](801-object-header-abi.md#812-type_id-offset-0-u32-little-endian)).
+
+| type id | 의미              | scan                                                    |
+|---------|-------------------|---------------------------------------------------------|
+| `1`     | GC 문자열         | payload 는 바이트이며 scan 하지 않음                    |
+| `2`     | word-traced buffer | payload 의 모든 word 를 GC 참조 (또는 null) 로 보고 scan |
+
+두 종류는 `rok_gc_alloc_bytes(size, traced)` 로 할당합니다 ([8.5.1](805-extern-symbols.md#851-gc-영역)). 표준 라이브러리의 [`GcBuf<T>`](../../refs-standard-libraries/200-core/209-collections.md#2912-gcbuft--raw-gc-buffer) 가 이 위에 놓입니다.
+
+## 8.2.13. 등록 시점
 
 등록은 프로세스가 시작되는 시점에 일괄적으로 수행됩니다.
 

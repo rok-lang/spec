@@ -9,8 +9,8 @@
 채널을 만드는 함수는 두 가지 형태로 제공됩니다.
 
 ```rok
-fn channel<T>() -> (Sender<T>, Receiver<T>);
-fn channel_bounded<T>(cap: usize) -> (Sender<T>, Receiver<T>);
+fn channel<T: Send>() -> (Sender<T>, Receiver<T>);
+fn channel_bounded<T: Send>(cap: usize) -> (Sender<T>, Receiver<T>);
 ```
 
 먼저 `channel<T>()` 는 **unbounded** 채널을 만듭니다. capacity 가 무한하다는 의미이며, 실질적으로는 메모리 한계까지 메시지를 받아들입니다. 반면 `channel_bounded<T>(cap)` 은 **bounded** 채널을 만들며, capacity 가 `cap` 으로 고정되어 큐가 가득 차면 sender 쪽이 block 됩니다.
@@ -56,6 +56,8 @@ impl<T> Receiver<T> {
 enum SendError<T> { Closed(T) }
 enum TrySendError<T> { Full(T), Closed(T) }
 ```
+
+`T: Send` 이면 `Sender<T>` 와 `Receiver<T>` 도 `Send` 이므로 다른 task 나 스레드로 옮길 수 있습니다 ([2.13.9](213-marker.md#2139-send--sync--스레드-경계-marker)).
 
 여기서 주의해서 보실 부분은 `recv` 의 동작 방식입니다. `recv` 는 **blocking** 이지만, task 환경에서는 OS thread 를 막는 대신 **coroutine suspend** 로 처리되므로 시스템 자원을 낭비하지 않습니다.
 

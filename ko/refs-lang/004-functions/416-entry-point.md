@@ -14,7 +14,7 @@
 ```ebnf
 main_file   ::= item* fn_main item*            // 형태 1: 명시 main
               | (item | top_stmt)*             // 형태 2: top-level 문 (fn main 없음)
-top_stmt    ::= let_stmt | let_else_stmt | expr ";"
+top_stmt    ::= let_stmt | let_else_stmt | expr ";" | block_like_expr ";"?   // 3.9.1
 module_file ::= item*                          // lib.rok 및 main.rok 가 아닌 모든 모듈 파일
 ```
 
@@ -83,8 +83,9 @@ fn main() throws {          // 암묵 main 의 형태 — 4.16.4 참고
 | `fn main()`                       | `0`                    |                                    |
 | `fn main() -> i32`                | 반환값                 | 반환값이 그대로 프로세스 종료 코드 |
 | `fn main() throws` / `throws (E)` | `0`                    | 미처리 예외 → 4.16.4               |
-| `fn main() throws ... -> i32`     | 반환값                 | 미처리 예외 → 4.16.4               |
-| `async fn main()` 및 위 반환 형태 | 위와 같음              | 4.16.5                             |
+| 위 세 형태에 `async` 를 붙인 것    | 위와 같음              | 4.16.5                             |
+
+`Result` 를 반환하는 `main` 이나 `throws` 와 `-> i32` 를 함께 쓴 `main` 은 없습니다. 에러가 있을 때 특정 종료 코드가 필요하면 `catch` 에서 [`rok::std::env::exit(code)`](../../refs-standard-libraries/300-std/306-env.md) 를 호출합니다.
 
 명령행 인자와 환경 변수는 매개변수가 아니라 표준 라이브러리 [`rok::std::env`](../../refs-standard-libraries/300-std/306-env.md) 로 얻습니다. `unsafe`, `yield` 수식어는 `main` 에 붙일 수 없습니다. 가시성 (`pub`) 은 진입점 여부에 영향을 주지 않습니다.
 

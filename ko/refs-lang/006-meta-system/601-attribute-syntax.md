@@ -71,10 +71,10 @@ mod m {
 #[link("m")]
 #[inline(always)]
 #[cfg(target_os = "linux")]
-#[infix("+", prec = 9, left)]
+#[infix("+")]
 ```
 
-이는 ` 이름(인자들)` 형태이며, 인자들은 콤마로 구분합니다. 각 인자는 식별자, 리터럴, 키-값 (`prec = 9`), 또는 다시 중첩된 속성형 (`derive(...)` 안의 `Display`) 가 될 수 있습니다.
+이는 ` 이름(인자들)` 형태이며, 인자들은 콤마로 구분합니다. 각 인자는 식별자, 리터럴, 키-값 (`like = "+"`), 또는 다시 중첩된 속성형 (`derive(...)` 안의 `Display`) 가 될 수 있습니다.
 
 ### 키-값
 
@@ -152,8 +152,8 @@ fn f() { ... }
 다음과 같이 같은 메서드에 여러 속성을 부착할 수도 있습니다.
 
 ```rok
-#[infix("≤", prec = 8, none)]
-#[infix("<=", prec = 8, none)]
+#[infix("≤")]
+#[infix("<=")]
 fn le(self, rhs: Self) -> bool;
 ```
 

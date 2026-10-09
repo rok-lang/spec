@@ -57,7 +57,7 @@ let handler = [ref counter] || {
 [구두점과 연산자 토큰](../001-lexical/110-punctuation-and-operator-tokens.md) 의 최장 일치 규칙과 문맥을 통해 모호함이 제거됩니다. `[...]` 뒤에 `||` 나 `|x|` 가 바로 이어진다면 캡처 리스트로 해석되고, 그렇지 않으면 일반 인덱싱 또는 배열 리터럴로 해석됩니다.
 
 ```rok
-let xs = [1, 2, 3];               // 배열 리터럴
+let xs = [1, 2, 3];               // List 리터럴
 let f = [ref count] || { ... };   // 캡처 리스트 + 클로저
 arr[ref count]                     // ERROR — 인덱싱에 ref 못 씀
 ```

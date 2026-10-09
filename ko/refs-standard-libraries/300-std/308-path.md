@@ -74,7 +74,7 @@ enum Component {
 ```rok
 impl Div<str> for Path {
     type Output = Path;
-    #[infix("/", prec = 8, left)]
+    #[infix("/")]
     fn div(self, rhs: str) -> Path { self.join(Path::from(rhs)) }
 }
 
