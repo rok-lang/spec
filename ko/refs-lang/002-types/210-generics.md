@@ -12,6 +12,9 @@ where_clause    ::= "where" where_pred ("," where_pred)* ","?
 where_pred      ::= type_expr ":" type_bounds
 ```
 
+> [!NOTE]
+> `where` 는 함수 시그니처나 `impl` 헤더 뒤에서만 키워드인 문맥 키워드입니다 ([1.5.4](../001-lexical/105-keywords.md#154-문맥-키워드)).
+
 ## 2.10.1. 매개변수 선언 위치
 
 제네릭 매개변수는 다음과 같은 위치에서 등장합니다.

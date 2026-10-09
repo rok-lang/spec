@@ -30,7 +30,7 @@ fn name(args) throws (A | B | C) -> R           // typed — 합 타입 에러
 fn name(f: fn(T) throws -> U) rethrows -> R     // 인자로 받은 함수가 던질 때만 던짐
 ```
 
-`throws` 와 `rethrows` 는 [키워드](../001-lexical/105-keywords.md) 항목에 정의되어 있으며, 매개변수 괄호 뒤이자 반환 타입 화살표 앞에 위치합니다. `throws` 뒤의 선택적인 괄호 안에는 던질 수 있는 에러의 타입을 명시합니다.
+`throws` 와 `rethrows` 는 매개변수 괄호 `)` 뒤에서만 키워드인 문맥 키워드이며 ([1.5.4](../001-lexical/105-keywords.md#154-문맥-키워드)), 반환 타입 화살표 앞에 위치합니다. `throws` 뒤의 선택적인 괄호 안에는 던질 수 있는 에러의 타입을 명시합니다.
 
 ## 4.14.2. non-throwing 함수
 

@@ -13,6 +13,9 @@ continue_stmt ::= "continue" label_target? ";"
 label_target ::= "'" identifier
 ```
 
+> [!NOTE]
+> `in` 은 `for pat in` 자리에서만 키워드인 문맥 키워드입니다 ([1.5.4](../001-lexical/105-keywords.md#154-문맥-키워드)).
+
 `for await` 의 의미와 사용처는 [스트림](../004-functions/413-stream.md) 에서 정의합니다. 비동기 스트림에서 한 항목씩 받아 본체를 실행하는 형태입니다.
 
 라벨 (`'name:`) 의 의미는 [3.13.4 라벨](#3134-라벨-중첩-루프-제어) 에서 정의합니다. 라벨이 붙은 **블록** (`'b: { ... }`) 은 [블록 표현식](309-block-expressions.md) 에서 정의합니다.

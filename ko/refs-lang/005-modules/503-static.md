@@ -1,6 +1,6 @@
 # 5.3. `static`
 
-`static` 키워드 ([키워드](../001-lexical/105-keywords.md)) 는 프로그램이 살아 있는 동안 내내 유지되는 전역 메모리를 선언할 때 쓰입니다.
+`static` 키워드 (항목 시작에서만 키워드인 문맥 키워드이며, 뒤의 `mut` 도 `static mut` 자리에서만 키워드, [1.5.4](../001-lexical/105-keywords.md#154-문맥-키워드)) 는 프로그램이 살아 있는 동안 내내 유지되는 전역 메모리를 선언할 때 쓰입니다.
 
 ```
 static_decl     ::= "static" "mut"? identifier ":" type_expr "=" const_expr ";"
@@ -75,6 +75,7 @@ extern "C" {
 
 - `static mut` 는 오직 `extern "C"` 블록 안에서만 허용합니다.
 - 일반 rok 코드에서의 `static mut` 는 ERROR 로 처리합니다.
+- extern `static mut` 가 아닌 `static` 에 대입하면 컴파일 에러입니다 (`COUNTER = ...`). 내부 변경은 위 wrapper 의 메서드로 합니다.
 
 공유되는 mutable 상태는 데이터 경쟁의 직접적인 원인이 되기 때문에 이러한 제약을 두었습니다. 일반 코드에서는 wrapper 를 통해 안전성을 보장하고, FFI 영역에서만 raw access 를 허용합니다.
 

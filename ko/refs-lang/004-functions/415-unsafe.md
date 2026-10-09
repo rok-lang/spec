@@ -51,7 +51,9 @@ impl Buffer {
 
 ### `extern "C"` 블록 안
 
-C ABI 함수는 정의가 컴파일러 통제 밖이므로 묵시적으로 모두 `unsafe` 입니다 ([extern 블록](../005-modules/509-extern-block.md)). 명시 표기 (`unsafe fn`) 가 권장되며, 생략하면 자동으로 `unsafe` 처리됩니다.
+사용자가 선언한 C ABI 함수는 정의가 컴파일러 통제 밖이므로 묵시적으로 모두 `unsafe` 입니다 ([extern 블록](../005-modules/509-extern-block.md)). 명시 표기 (`unsafe fn`) 가 권장되며, 생략하면 자동으로 `unsafe` 처리됩니다.
+
+예외로, toolchain 이 선언하는 함수 — 컴파일러가 주입하거나 런타임이 제공하는 `rok_print_*`, `rok_panic_str` 같은 심볼 — 는 안전하게 호출할 수 있습니다.
 
 ```rok
 extern "C" {
@@ -85,7 +87,7 @@ unsafe {
 - raw pointer (`Ptr<T>`, `ConstPtr<T>`, `ManyPtr<T>`) 의 dereference (`p.read()`, `p.write(v)`)
 - [`rok::bare::*`](../../refs-standard-libraries/100-bare/README.md) 모듈의 위험 함수 직접 호출
 - [`rok::bare::mlir::__mlir_op`](../../refs-standard-libraries/100-bare/109-mlir.md) MLIR op 직접 호출
-- `union` 의 다른 필드로 비트 재해석 ([union](../002-types/205-union.md))
+- `union` 필드 읽기 (비트 재해석, [union](../002-types/205-union.md)). 필드 쓰기는 `unsafe` 없이 가능합니다.
 
 이 외의 일반 안전 동작은 unsafe 블록 안에서도 똑같이 작동합니다 — `unsafe` 는 *기능을 추가* 하는 것이지 *기존 의미를 바꾸는* 것이 아닙니다.
 
@@ -129,6 +131,17 @@ fn safe_caller(p: Ptr<i32>) -> i32 {
 ```
 
 해결은 `unsafe { ... }` 로 감싸거나, 호출자 자신을 `unsafe fn` 으로 표시하는 두 가지 길이 있습니다.
+
+### `unsafe fn` 타입
+
+`unsafe fn` 과 C 함수를 값으로 쓰면 그 타입은 `unsafe fn(..) -> R` 입니다 ([4.4](404-function-type.md)). 이 타입의 값을 호출하려면 `unsafe` 가 필요합니다. 안전한 `fn(..) -> R` 값은 `unsafe fn(..) -> R` 자리에 넣을 수 있지만, 반대는 안 됩니다.
+
+```rok
+let f: unsafe fn(usize) -> CPtr<u8> = malloc;   // C 함수 값
+let p = unsafe { f(16) };
+let g: unsafe fn(i32) -> i32 = |x| x + 1;      // OK — safe → unsafe
+let h: fn(usize) -> CPtr<u8> = f;              // ERROR — unsafe → safe
+```
 
 ## 4.15.4. trait 안에서
 

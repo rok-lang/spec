@@ -121,7 +121,7 @@ let xs = [1, 2, 3];   // ERROR — List 미 import
 `**` 는 **pub 항목만** 노출합니다. 내부 구현 (`pub(pkg)` / private) 은 외부 사용자에게 절대로 새어 나가지 않습니다.
 
 ```rok
-mod rok::core::sync {
+mod sync {                          // rok::core::sync
     pub struct Mutex<T> { ... }
     pub fn lock<T>(m: ref Mutex<T>) -> MutexGuard<T> { ... }
 

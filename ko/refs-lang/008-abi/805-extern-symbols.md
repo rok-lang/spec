@@ -54,6 +54,19 @@ extern "C" {
 - `traced = false` 이면 type id `1` (GC 문자열), `true` 이면 type id `2` (word-traced buffer) 로 할당합니다 ([8.2.12](802-scan-table.md#8212-런타임-예약-type-id)).
 - 반환값은 payload 를 가리키는 `(ptr, len)` 쌍 (`str` 의 표현, [8.8](808-lowering-types.md)) 입니다.
 
+### `rok_alloc_raw` / `rok_realloc_raw`
+
+GC 밖의 raw 메모리를 할당합니다 ([stdlib 1.4 alloc](../../refs-standard-libraries/100-bare/104-alloc.md)). **Thread-safety: `thread-safe`**.
+
+```
+extern "C" {
+    fn rok_alloc_raw(size: usize, align: usize, zeroed: i32) -> usize;
+    fn rok_realloc_raw(ptr: usize, old_size: usize, align: usize, new_size: usize) -> usize;
+}
+```
+
+`zeroed` 가 0 이 아니면 할당한 메모리를 0 으로 채웁니다. `rok_alloc_raw` 는 `size` 가 0 이거나 `align` 이 2 의 거듭제곱이 아니거나 할당에 실패하면 null (`0`) 을 반환하며, abort 하지 않습니다. `rok_realloc_raw` 도 실패 시 null 을 반환합니다. 실패 처리는 호출자 (`rok::bare::alloc`) 가 합니다.
+
 ### `rok_gc_wb_slow`
 
 [배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md) 의 write barrier slow path 에 해당합니다. **Thread-safety: `caller-thread-only`** (TLS 의 wb log buffer 에 기록).

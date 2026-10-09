@@ -54,7 +54,7 @@ _Y3f8a1c2b_std_vec_push_a7c91d8e44b2f190
 
 ### `<path>`: 모듈 경로
 
-[경로](../005-modules/507-paths.md) 에서 정의한 모듈 경로의 `::` 를 `_` 로 바꾸어 표현합니다.
+[경로](../005-modules/507-paths.md) 에서 정의한 모듈 경로의 `::` 를 `_` 로 바꾸어 표현합니다. 표준 라이브러리 경로는 `rok::` 루트 세그먼트를 빼고 (`rok::std::vec` → `std_vec`), 사용자 경로는 `pkg::` 를 뺍니다.
 
 ```
 rok::std::vec      → std_vec

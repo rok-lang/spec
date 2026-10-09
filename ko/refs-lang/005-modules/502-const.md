@@ -1,6 +1,6 @@
 # 5.2. `const`
 
-`const` 키워드 ([키워드](../001-lexical/105-keywords.md)) 는 컴파일 타임에 결정되는 값을 선언할 때 사용합니다. 문법은 다음과 같이 정의됩니다.
+`const` 키워드 (항목 시작에서만 키워드인 문맥 키워드, [1.5.4](../001-lexical/105-keywords.md#154-문맥-키워드)) 는 컴파일 타임에 결정되는 값을 선언할 때 사용합니다. 문법은 다음과 같이 정의됩니다.
 
 ```
 const_decl      ::= "const" identifier ":" type_expr "=" const_expr ";"

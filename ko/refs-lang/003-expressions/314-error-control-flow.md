@@ -12,7 +12,7 @@ finally_clause ::= "finally" block
 question_expr  ::= expr "?"
 ```
 
-에러를 던질 수 있는 함수의 시그니처 (`throws`, `rethrows`) 는 [`throws` 시그니처](../004-functions/414-throws.md) 에서 정의합니다. 본 문서는 식과 문장 수준의 제어 흐름을 다룹니다.
+`catch` 와 `finally` 는 식이나 블록 뒤의 후위 절 자리에서만 키워드인 문맥 키워드입니다 ([1.5.4](../001-lexical/105-keywords.md#154-문맥-키워드)). 에러를 던질 수 있는 함수의 시그니처 (`throws`, `rethrows`) 는 [`throws` 시그니처](../004-functions/414-throws.md) 에서 정의합니다. 본 문서는 식과 문장 수준의 제어 흐름을 다룹니다.
 
 ## 3.14.1. `throw`: 에러 발생
 

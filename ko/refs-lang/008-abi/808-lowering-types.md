@@ -213,7 +213,7 @@ union EpollData {
 }
 ```
 
-이는 가장 큰 필드 크기를 갖는 `!llvm.struct<(i64)>` 로 lower 됩니다. 각 필드 접근은 bitcast 나 getelementptr 를 통해 같은 메모리를 다른 형으로 해석하는 방식으로 처리됩니다.
+이는 가장 큰 필드 크기를 갖는 `!llvm.struct<(i64)>` 로 lower 됩니다. 각 필드 접근은 bitcast 나 getelementptr 를 통해 같은 메모리를 다른 형으로 해석하는 방식으로 처리됩니다. 필드 읽기는 소스에서 `unsafe` 안에 있어야 합니다 ([2.5](../002-types/205-union.md)).
 
 ## 8.8.8. 합 타입 (`A | B`) 의 표현
 

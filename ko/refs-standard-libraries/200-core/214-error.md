@@ -208,7 +208,7 @@ Fatal 은 `throws` 의 에러가 아니므로 `catch` 로 잡을 수 없습니�
 에러 모델의 바닥에는 컴파일러가 직접 호출하는 hook 함수들이 자리잡고 있습니다.
 
 ```rok
-mod rok::core::panic {
+mod panic {                         // rok::core::panic
     #[lang("panic_fn")]
     fn panic(msg: str) -> ! {
         rok_panic_str(msg)           // stderr 출력 후 종료 코드 101

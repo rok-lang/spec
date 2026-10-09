@@ -6,61 +6,26 @@
 
 ## 1.5.1. 예약 키워드 목록
 
-선언과 변수에 관련된 키워드는 다음과 같습니다.
+키워드는 두 부류입니다. 원칙은 다음 한 줄입니다.
+
+> [!IMPORTANT]
+> 문장이나 식을 시작해 "식별자 + 뒤따르는 것" 과 혼동될 수 있는 단어는 **예약 키워드**, 나타나는 위치가 고정된 단어는 **문맥 키워드** (1.5.4) 입니다.
+
+예약 키워드는 어디에 나타나든 키워드로 토큰화되며 식별자로 쓸 수 없습니다. 예외는 1.5.5 의 이름 자리뿐입니다.
 
 ```
-let       fn        struct    enum      trait     impl
-type      const     static    mut       where     pub       mod       use
-extern    as        ref       unsafe
-```
-
-> [!NOTE]
-> `mut` 는 오직 `extern "C" { ... }` 블록 안의 `static mut` 형태에서만 사용됩니다 ([`static`](../005-modules/503-static.md)).
-> 일반 변수는 rok 에서 기본 가변이므로 일반 코드에 `mut` 가 등장하지 않습니다.
-
-제어 흐름에 사용되는 키워드는 다음과 같습니다.
-
-```
-if        else      match     while     loop      for       in
-break     continue  return    is        using
-try       catch     throw     throws    rethrows  finally
+let       fn        if        else      match     while     loop      for
+return    break     continue  try       throw
+async     await     yield     unsafe    using
+struct    enum      trait     impl      pub       mod       use
+as        is        ref
+true      false     none      self      Self
 ```
 
 > [!NOTE]
 > `try?` 와 `try!` 는 별도의 키워드가 아니라 키워드 `try` 와 구두점 `?` / `!` 의 토큰 열입니다 ([구두점과 연산자 토큰](110-punctuation-and-operator-tokens.md#점--물음표)).
 
-> [!NOTE]
-> `using` 은 RAII 형 자원 관리에 사용되는 블록 표현식의 도입 키워드입니다 ([`using` 표현식](../003-expressions/317-using-expression.md)).
-
-비동기와 생성자에 사용되는 키워드는 다음과 같습니다.
-
-```
-async     await     yield
-```
-
-자기참조에 사용되는 키워드는 다음과 같습니다.
-
-```
-self      Self
-```
-
-`self` (소문자) 는 인스턴스 식별자 (메서드 receiver) 를 가리키며, `Self` (대문자) 는 현재 `impl` 의 대상 타입 이름을 가리킵니다.
-
-경로 시작점의 `pkg` (패키지 루트), `sup` (부모 모듈), `rok` (표준 라이브러리 가상 네임스페이스) 은 컨텍스트 키워드입니다. `pub(...)` 의 `pkg` / `sub` 와 같은 방식으로 일반 식별자 자리에서는 평범한 식별자로 동작합니다. 따라서 본 항목 (예약 키워드 표) 에는 들어가지 않습니다.
-
-진리값과 센티넬에 사용되는 키워드는 다음과 같습니다.
-
-```
-true      false     none
-```
-
-타입 이름 슬롯에 사용되는 키워드는 다음과 같습니다.
-
-```
-any
-```
-
-`any` 는 동적 슬롯을 가리키는 타입 이름이며, 뒤에 트레잇을 붙인 `any Error` 같은 형태로 제약 붙은 동적 슬롯도 만듭니다. 의미는 타입 시스템 사양에서 정의합니다. 본 문서 범위에서 중요한 사실은 식별자로 재사용할 수 없다는 점뿐입니다.
+`self` (소문자) 는 인스턴스 식별자 (메서드 receiver) 를 가리키며, `Self` (대문자) 는 현재 `impl` 의 대상 타입 이름을 가리킵니다. `using` 은 RAII 형 자원 관리 블록의 도입 키워드입니다 ([`using` 표현식](../003-expressions/317-using-expression.md)).
 
 ## 1.5.2. 의미는 후속 문서에서
 
@@ -72,58 +37,76 @@ any
 
 위 예약 목록 외에, 표준 라이브러리가 추가 키워드를 등록할 수 있는 메커니즘이 있습니다. 이는 메타 시스템의 일부입니다. 등록 메커니즘과 정확한 처리 규칙은 [`#[keyword(...)]` 매직](../006-meta-system/606-keyword-magic.md) 에서 정의합니다.
 
-본 문서 범위에서는 다음 사항만 약속합니다. 예약 키워드는 어떤 환경에서도 식별자가 아니며 무조건 키워드로 분리됩니다. 등록된 키워드는 그 등록을 포함하는 컴파일 단위 안에서만 효력을 갖습니다. 두 집합이 충돌하면 등록 시점에 거부되며, 예약 키워드는 덮어쓸 수 없습니다.
+본 문서 범위에서는 다음 사항만 약속합니다. 예약 키워드는 1.5.5 의 이름 자리를 빼면 식별자가 아니며 키워드로 분리됩니다. 등록된 키워드는 그 등록을 포함하는 컴파일 단위 안에서만 효력을 갖습니다. 두 집합이 충돌하면 등록 시점에 거부되며, 예약 키워드는 덮어쓸 수 없습니다.
 
-## 1.5.4. 컨텍스트 키워드
+## 1.5.4. 문맥 키워드
 
-rok 은 일반 식별자 자리에서 컨텍스트 키워드를 도입하지 않습니다. 위 예약 목록의 모든 토큰은 어디에 나타나든 키워드로 토큰화됩니다. 식별자 자리에 나타나도 키워드입니다. 이 단순함을 위해 일부 영어 단어 (예: `loop`, `is`) 를 변수 이름으로 쓸 수 없게 되는 비용을 받아들입니다.
+다음 단어는 정해진 위치에서만 키워드이고, 그 밖의 위치에서는 일반 식별자입니다.
 
-예외는 세 자리에 한정됩니다.
+| 단어                               | 키워드가 되는 위치                                                     | 정의 |
+|------------------------------------|------------------------------------------------------------------------|------|
+| `type`                             | 항목 시작에서 식별자가 오고 그 뒤에 `=` 또는 `<` 가 올 때 (타입 별칭) | [2.6](../002-types/206-sum-types.md) |
+| `any`                              | 타입 자리 (`any`, `any Tr`)                                            | [2.2](../002-types/202-any-slot.md) |
+| `in`                               | `for pat in` 의 `in`                                                   | [3.13.3](../003-expressions/313-loop-expressions.md#3133-for-반복자-기반-반복) |
+| `where`                            | 함수 시그니처나 `impl` 헤더 뒤                                         | [2.10.4](../002-types/210-generics.md#2104-where-절) |
+| `throws`, `rethrows`               | 함수 시그니처의 매개변수 `)` 뒤                                        | [4.14](../004-functions/414-throws.md) |
+| `catch`, `finally`                 | 식이나 블록 뒤 (후위 절)                                               | [3.14](../003-expressions/314-error-control-flow.md) |
+| `const`, `static`, `extern`, `mut` | 항목 시작 (`extern "C"`, `static mut` 포함)                            | [5.2](../005-modules/502-const.md), [5.3](../005-modules/503-static.md), [5.9](../005-modules/509-extern-block.md) |
+| `union`                            | 항목 시작에서 바로 뒤에 식별자가 올 때                                 | [2.5](../002-types/205-union.md) |
+| `pkg`, `sub`                       | `pub(` 바로 뒤                                                         | [5.6](../005-modules/506-visibility.md) |
+| `pkg`, `sup`, `rok`                | 경로의 첫 토큰이고 바로 뒤에 `::` 가 올 때                             | [5.7](../005-modules/507-paths.md) |
+
+```rok
+let type = 1;                       // 식별자
+type Pair = (i32, i32);             // 타입 별칭 (항목 시작 + 식별자 + =)
+let in = 3;  for x in xs { }        // 식별자 / for 의 in
+fn catch(e: str) { }                // 식별자 — 식 뒤가 아님
+```
+
+사용자가 `any` 라는 이름의 타입을 선언하면 컴파일 에러입니다 (`struct any { }`). 타입 자리의 `any` 와 구분할 수 없기 때문입니다.
 
 ### 가시성 한정자: `pkg` / `sub`
 
-```
-pkg       sub
-```
-
-이 두 단어는 `pub(pkg)`, `pub(sub)` 의 괄호 안에서 한정자로 쓰입니다. 그 위치에서만 한정자로 해석되며, 그 외 위치에서는 일반 식별자입니다. 따라서 함수와 변수, 메서드 이름으로 자유롭게 쓸 수 있습니다.
+`pkg` 와 `sub` 는 `pub(pkg)`, `pub(sub)` 의 괄호 안에서 한정자로 쓰이며, 그 밖의 위치에서는 일반 식별자입니다.
 
 ```rok
 pub(sub) fn helper() { ... }   // pub( ) 안에서: 가시성 한정자
 trait Sub { fn sub(self, rhs: Self) -> Self; }  // 일반 위치에서: 식별자
 ```
 
-### 항목 도입: `union`
-
-`union` 은 항목 시작 위치 (가시성 한정자 뒤 포함) 에서 바로 뒤에 식별자가 올 때만 [`union` 선언](../002-types/205-union.md) 의 키워드입니다. 그 밖의 위치에서는 일반 식별자이므로 메서드 이름 등으로 쓸 수 있습니다.
-
-```rok
-union EpollData { fd: i32; ptr: Ptr<u8>; }      // 항목 시작 + 식별자: 키워드
-trait Union { fn union(self, rhs: Self) -> Self; } // 일반 위치: 식별자
-let u = a.union(b);
-```
-
 ### 경로 루트: `pkg` / `sup` / `rok`
 
-```
-pkg       sup       rok
-```
-
-이 세 단어는 path 의 첫 토큰 자리에서 경로 루트로 해석됩니다 ([5.7 경로](../005-modules/507-paths.md)).
+세 단어는 경로의 첫 토큰이고 바로 뒤에 `::` 가 오면 항상 경로 루트입니다 ([5.7 경로](../005-modules/507-paths.md)). 그 밖의 위치에서는 일반 식별자입니다.
 
 - `pkg::xxx` — 현재 패키지 루트부터
 - `sup::xxx` — 부모 모듈부터
-- `rok::xxx` — 표준 라이브러리 가상 네임스페이스 (`rok::core`, `rok::bare`, `rok::std` 세 tier 가 그 아래에 자리합니다, [0.5 표준 라이브러리 계층](../000-meta/005-standard-libraries-tiers.md))
+- `rok::xxx` — 표준 라이브러리 가상 네임스페이스 (`rok::core`, `rok::bare`, `rok::std`, [0.5 표준 라이브러리 계층](../000-meta/005-standard-libraries-tiers.md))
 
-세 단어 모두 path 시작 위치 외에서는 일반 식별자입니다. 따라서 변수 이름, 모듈 이름, 함수 이름으로 자유롭게 쓸 수 있습니다.
+`pkg::name` 이 언제나 루트로 해석되므로, 세 단어를 모듈이나 타입 (`struct`, `enum`, `union`, `trait`, 타입 별칭, `mod`) 의 이름으로 쓰면 컴파일 에러입니다. 변수, 함수, 필드, 메서드 이름으로는 쓸 수 있습니다.
 
 ```rok
-let rok = 42;                  // 변수 이름 OK
-mod rok { ... }                 // 모듈 이름 OK
-rok::core::vec::Vec              // path 시작에서: 표준 라이브러리 foundation
-rok::bare::ptr::Ptr              // path 시작에서: 표준 라이브러리 bare
-rok::std::fs::File              // path 시작에서: 표준 라이브러리 std
-self.rok                        // 멤버 이름: 일반 식별자
+let rok = 42;                   // 변수 이름 OK
+fn sup() { }                    // 함수 이름 OK
+self.rok                        // 필드 / 멤버 이름 OK
+mod rok { ... }                 // ERROR — 모듈 이름으로 쓸 수 없음
+struct pkg { }                  // ERROR — 타입 이름으로 쓸 수 없음
+rok::core::iter::Iterator       // 경로 루트
 ```
 
-이 좁은 예외들은 "한정자는 `pub(` 직후, 경로 루트는 path 의 첫 토큰" 이라는 단순한 lookahead 규칙으로 결정됩니다. 컨텍스트 추적은 늘어나지 않습니다.
+## 1.5.5. 이름 자리의 키워드
+
+다음 자리에서는 예약 키워드를 포함한 모든 키워드가 식별자로 쓰입니다. 이 자리는 앞뒤 토큰으로 이름임이 분명하기 때문입니다.
+
+- `.` 바로 뒤 (멤버 접근, 메서드 호출): `x.type`, `stream.match(p)`
+- `struct` / `enum` 필드 이름 선언: `struct Token { type: Kind; }`
+- `struct` 리터럴과 `struct` 패턴의 필드 이름: `Ev { match: 1 }`, `Ev { match: m } => ...`
+- 이름 있는 인자의 이름: `f(type: 1)`
+
+`self` 는 예외로, 이 자리에서도 식별자가 될 수 없습니다. raw 식별자 (Rust 의 `r#fn`) 는 여전히 두지 않습니다 ([1.4.4](104-identifiers.md#144-키워드와의-충돌)).
+
+```rok
+struct Token { type: Kind; for: str; }   // 필드 이름 — OK
+let k = tok.type;                         // . 뒤 — OK
+make(type: Kind::Ident, if: true);        // 이름 있는 인자 — OK
+struct S { self: i32; }                   // ERROR — self 는 예외
+```

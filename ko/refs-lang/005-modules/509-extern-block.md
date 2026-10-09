@@ -1,6 +1,6 @@
 # 5.9. `extern` 블록 ([FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) 선언)
 
-`extern` 키워드 ([키워드](../001-lexical/105-keywords.md)) 와 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 명시 (`"C"` 등) 를 결합하여 외부 함수와 전역에 대한 선언 블록을 정의합니다. 외부 라이브러리, 시스템 콜, 다른 언어와의 인터페이스를 다룰 때 쓰이는 형태입니다.
+`extern` 키워드 (항목 시작에서만 키워드인 문맥 키워드, [1.5.4](../001-lexical/105-keywords.md#154-문맥-키워드)) 와 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 명시 (`"C"` 등) 를 결합하여 외부 함수와 전역에 대한 선언 블록을 정의합니다. 외부 라이브러리, 시스템 콜, 다른 언어와의 인터페이스를 다룰 때 쓰이는 형태입니다.
 
 ```
 extern_block    ::= "extern" string_lit "{" extern_item* "}"
@@ -130,15 +130,15 @@ extern "C" {
 }
 
 fn use_malloc() {
-    let p = malloc(1024usize);
+    let p = unsafe { malloc(1024usize) };
     if !p.is_null() {
         // ... 사용 ...
-        free(p);
+        unsafe { free(p) };
     }
 }
 ```
 
-호출은 그저 직접 함수 호출일 뿐이며, `extern` 함수도 외부 심볼이라는 점을 빼면 다를 바가 없습니다. 결과 타입에는 rok 의 일반적인 의미론이 그대로 적용됩니다. `extern static` 역시 일반 변수처럼 읽기와 (mut 인 경우) 쓰기가 모두 가능합니다.
+사용자가 선언한 `extern "C"` 함수는 unsafe 이므로 `unsafe { ... }` 안에서 부릅니다 ([4.15](../004-functions/415-unsafe.md)). toolchain 이 선언하는 런타임 함수 (`rok_print_*`, `rok_panic_str` 등) 는 안전하게 부를 수 있습니다. 그 밖에는 `extern` 함수도 외부 심볼이라는 점을 빼면 일반 호출과 다를 바가 없습니다. 결과 타입에는 rok 의 일반적인 의미론이 그대로 적용됩니다. `extern static` 역시 일반 변수처럼 읽기와 (mut 인 경우) 쓰기가 모두 가능합니다.
 
 ## 5.9.7. 가시성
 
@@ -194,7 +194,18 @@ extern "C" fn callback(arg: i32) -> i32 {
 }
 ```
 
-일반 함수 선언에 `extern "ABI"` 수식어를 붙이시면 그 함수를 해당 ABI 호환으로 컴파일하라는 표시가 됩니다. 그리고 `#[export_name("...")]` 으로는 외부에 노출되는 심볼의 이름을 명시할 수 있습니다. 외부 함수 호출과 외부 노출, 이 두 메커니즘이 함께 FFI 의 양방향을 이룹니다.
+일반 함수 선언에 `extern "ABI"` 수식어를 붙이시면 그 함수를 해당 ABI 호환으로 컴파일하라는 표시가 됩니다. `extern "C" fn` 정의도 심볼 이름은 맹글링된 이름 ([9.5](../009-tools/905-symbol-mangling.md)) 그대로이며, C 에서 보이는 이름이 필요하면 `#[export_name("...")]` 을 함께 붙입니다.
+
+`extern "C" fn` 정의에는 다음 제약이 있습니다.
+
+- 제네릭, `async`, `throws` 일 수 없습니다.
+- 매개변수와 반환 타입은 5.9.4 의 FFI 호환 타입이어야 하며, `str` 같은 비 FFI 타입은 쓸 수 없습니다. (5.9.4 의 `str` 변환은 C 함수를 *호출* 하는 선언에만 적용됩니다.)
+
+```rok
+#[export_name("on_event")]
+extern "C" fn on_event(code: i32) -> i32 { code }     // C 에서 on_event 로 보임
+extern "C" fn bad(s: str) { }                          // ERROR — str 은 쓸 수 없음
+``` 외부 함수 호출과 외부 노출, 이 두 메커니즘이 함께 FFI 의 양방향을 이룹니다.
 
 ## 5.9.11. `extern fn` 의 호출 규칙
 

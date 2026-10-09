@@ -378,6 +378,10 @@ unsafe impl Sync for Handle { }
 
 impl<T> !Send for Cell<T> { }
 impl<T> !Sync for Cell<T> { }
+impl<T> !Send for Ptr<T> { }
+impl<T> !Sync for Ptr<T> { }
+impl<T> !Send for CPtr<T> { }
+impl<T> !Sync for CPtr<T> { }
 ```
 
 스레드나 task 로 값을 넘기는 API (`thread::spawn`, `task::spawn`, `par::*`, `channel`) 는 이 두 트레잇으로 인자를 제한합니다. 동기화 primitive 의 정책은 [2.16 sync](216-sync.md) 를 따릅니다.

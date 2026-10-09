@@ -22,7 +22,7 @@ trait_args  ::= "<" trait_arg ("," trait_arg)* ","? ">"
 trait_arg   ::= type_expr | identifier "=" type_expr
 path_type   ::= identifier ("::" identifier)* type_args?
 type_args   ::= "<" type_expr ("," type_expr)* ","? ">"
-fn_type     ::= "fn" "(" (type_expr ("," type_expr)*)? ")" ("throws" ("(" type_expr ")")?)? ("->" type_expr)? fn_bound*
+fn_type     ::= "unsafe"? "fn" "( (type_expr ("," type_expr)*)? ")" ("throws" ("(" type_expr ")")?)? ("->" type_expr)? fn_bound*
 fn_bound    ::= "+" ("Send" | "Sync")
 tuple_type  ::= "(" ")"
               | "(" type_expr "," ")"
