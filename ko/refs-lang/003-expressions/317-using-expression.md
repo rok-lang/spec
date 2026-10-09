@@ -2,7 +2,7 @@
 
 `using` 키워드 ([키워드](../001-lexical/105-keywords.md)) 는 자원을 한 블록의 수명에 묶어 두기 위한 표현식 형태입니다. 블록이 어떤 경로로 끝나든 (정상 종료, 조기 `return`, `?` 의 `none` 반환, 에러 전파) 묶인 자원의 `Drop::drop` 이 반드시 호출됩니다.
 
-GC 가 메모리는 자동으로 회수해 주지만 외부 자원 (file, socket, mutex, FFI 핸들, GC pin 등) 은 결정론적으로 해제되어야 합니다. `using` 은 이 결정론을 문법으로 보장합니다.
+GC 가 메모리는 자동으로 회수해 주지만 외부 자원 (file, socket, mutex, FFI 핸들, GC pin 등) 은 결정론적으로 해제되어야 합니다. `using` 은 이 결정론을 문법으로 보장하며, `Drop::drop` 이 호출되는 유일한 경로입니다. 일반 바인딩은 scope 를 벗어나도 `drop` 되지 않습니다 ([stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop--using-해제-시-정리)).
 
 ## 3.17.1. 형태
 
@@ -48,7 +48,7 @@ let f = try fs::open(path);
 try {
     f.read_line()
 } finally {
-    f.drop();
+    f.drop();          // 컴파일러가 넣는 호출 — 사용자가 직접 쓰면 에러
 }
 ```
 
@@ -102,7 +102,7 @@ panic 과 fatal 에러는 프로세스를 곧바로 종료하므로 `drop` 을 �
 `using` 의 우변 식의 타입은 [`Drop`](../../refs-standard-libraries/200-core/213-marker.md) 트레잇을 구현해야 합니다. 그렇지 않으면 컴파일 에러가 발생합니다.
 
 ```rok
-using x = 42 { ... }   // ERROR: i32 는 Drop 을 구현하지 않음
+using x = 42 { ... }   // ERROR: using 에는 Drop 구현 타입이 필요 — i32 는 Drop 을 구현하지 않음
 ```
 
 이 제약은 의미가 있는 자원만 `using` 으로 묶이도록 강제합니다. 단순 값에 `using` 이 등장하는 일을 사양 차원에서 차단합니다.

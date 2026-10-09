@@ -19,7 +19,7 @@ async { ... await expr; ... }                        // 인라인 블록 (값)
 async || { ... await expr; ... }                     // 클로저 수식어
 ```
 
-세 형태 모두 결과는 `Future<Output = T>` 트레잇을 구현하는, 컴파일러가 만든 익명 구체 타입의 값입니다 ([4.1.11](401-function-declaration.md#코루틴-함수의-결과-타입)). 이는 [제너레이터](411-generators.md) 의 `yield` 가 같은 세 형태로 쓰이는 패턴과 일관된 구조입니다.
+세 형태 모두 결과는 라이브러리 타입 `AsyncFuture<T>` (`Future<Output = T>` 구현) 의 값이며, `throws (E)` 면 `TryAsyncFuture<T, E>` 입니다 ([4.1.11](401-function-declaration.md#코루틴-함수의-결과-타입)). 이는 [제너레이터](411-generators.md) 의 `yield` 가 같은 세 형태로 쓰이는 패턴과 일관된 구조입니다.
 
 ## 4.12.2. `await` 연산자
 
@@ -49,10 +49,10 @@ async fn fetch_user(id: i64) -> User {
 }
 ```
 
-본체 안에서는 `await` 로 다른 비동기 결과를 기다릴 수 있으며, `-> R` 자리는 완료 시 산출되는 값의 타입을 가리킵니다. 호출 결과는 `Future<Output = R>` 를 구현하는 익명 타입입니다.
+본체 안에서는 `await` 로 다른 비동기 결과를 기다릴 수 있으며, `-> R` 자리는 완료 시 산출되는 값의 타입을 가리킵니다. 호출 결과는 `AsyncFuture<R>`입니다.
 
 ```rok
-let f = fetch_user(42i64);        // f: Future<Output = User> 를 구현하는 익명 타입
+let f = fetch_user(42i64);        // f: `AsyncFuture<User>`
 let u = await f;                   // 결과를 기다림
 ```
 
@@ -60,7 +60,7 @@ let u = await f;                   // 결과를 기다림
 
 ## 4.12.4. 인라인 `async` 블록: 값
 
-`async` 블록은 식 자리에서 즉시 `Future<Output = T>` 를 구현하는 익명 타입의 값을 만들어 줍니다.
+`async` 블록은 식 자리에서 즉시 `AsyncFuture<T>`을 만들어 줍니다.
 
 ```rok
 let f = async {
@@ -84,7 +84,7 @@ let task = async || {
     process(data)
 };
 
-let f1 = task();                   // f1: Future<Output = ...> 를 구현하는 익명 타입
+let f1 = task();                   // f1: `AsyncFuture<...>`
 let f2 = task();                   // 매번 새 Future 생성
 ```
 
@@ -104,7 +104,7 @@ async 형     async fn f() { ... } ↔  async || { ... } ↔  async { ... }
 
 ## 4.12.7. Future 트레잇
 
-비동기 함수, 블록, 클로저의 결과는 표준 라이브러리의 `Future<Output = T>` 트레잇을 구현하는 익명 타입의 값입니다. 정확한 트레잇 정의와 `then`, `map`, `join` 같은 메서드는 표준 라이브러리에서 정의됩니다.
+비동기 함수, 블록, 클로저의 결과는 표준 라이브러리의 `AsyncFuture<T>` (`Future<Output = T>` 구현) 입니다. 정확한 트레잇 정의와 `then`, `map`, `join` 같은 메서드는 표준 라이브러리에서 정의됩니다.
 
 ## 4.12.8. `await` 의 의미론
 
@@ -127,10 +127,12 @@ async fn f() -> i32 {
 여러 Future 를 동시에 진행하려면 표준 라이브러리 함수를 사용합니다.
 
 ```rok
-let (a, b) = await join(op1(), op2());      // 둘 다 끝나기를 기다림
-let first = await race(op1(), op2());       // 먼저 끝나는 것
-let cancelled = await timeout(d, op1());    // 시간 제한
+let rs = await task::join([task::spawn(op1()), task::spawn(op2())]);   // 모두 — List<T>
+let first = await task::race([task::spawn(op1()), task::spawn(op2())]); // 먼저 끝나는 것
+let r = try await task::timeout(d, task::spawn(op1()));                // 시간 초과면 TimeoutError
 ```
+
+`join` / `race` 는 `List<Task<T>>` 를 받으며 그 결과를 `await` 합니다 ([stdlib 2.18](../../refs-standard-libraries/200-core/218-task.md)).
 
 `join`, `race`, `timeout`, `select` 등은 언어 키워드가 아니라 라이브러리 함수이며, [언어와 표준 라이브러리의 경계](../000-meta/004-language-vs-standard-libraries.md) 의 원칙을 따릅니다. 자세한 시그니처는 표준 라이브러리에서 정의됩니다.
 
@@ -164,11 +166,11 @@ let data = await f;                // 결과 필요 시점에 기다림
 비동기 작업을 별도 실행 단위로 띄우려면 표준 라이브러리의 `task::spawn` 을 사용합니다.
 
 ```rok
-let handle = task::spawn { compute() };       // 새 task 로 실행
+let handle = task::spawn(async { compute() });       // 새 task 로 실행
 let result = await handle;                     // 완료 대기
 ```
 
-`task::spawn` 은 본체 클로저를 스케줄러에 등록하고, Future 와 같은 인터페이스를 가진 handle 을 반환합니다.
+`task::spawn` 은 future (여기서는 `async` 블록) 를 스케줄러에 등록하고, `Future` 를 구현하는 `Task<T>` handle 을 반환합니다.
 
 `task::spawn` 은 라이브러리 함수이며 `async` 와 직교하는 개념입니다. 함수에 `async` 를 붙이는 것 자체는 "이 함수가 비동기다" 를 표시할 뿐이며, 실제로 별도의 실행 단위로 띄우려면 `task::spawn` 같은 명시적 호출이 필요합니다.
 

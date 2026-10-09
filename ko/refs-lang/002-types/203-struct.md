@@ -7,9 +7,8 @@
 `struct` 선언은 다음과 같은 문법을 따릅니다.
 
 ```
-struct_decl     ::= "struct" identifier generics? struct_body
-struct_body     ::= "{" named_field_list? "}"
-                  | "(" tuple_field_list? ")" ";"
+struct_decl     ::= "struct" identifier generics? where_clause? "{" named_field_list? "}"
+                  | "struct" identifier generics? "(" tuple_field_list? ")" where_clause? ";"   // tuple struct: where 는 필드 목록 뒤
                   | ";"
 named_field_list ::= named_field (";" named_field)* ";"?
 named_field     ::= identifier ":" type_expr

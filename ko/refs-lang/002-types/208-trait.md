@@ -14,9 +14,11 @@ supertraits ::= ":" type_expr ("+" type_expr)*
 trait_item  ::= visibility? method_sig
               | visibility? assoc_type_decl
               | visibility? method_default
+              | visibility? assoc_const_decl
 method_sig  ::= "fn" identifier "(" param_list? ")" throws_clause? return_type? ";"
 method_default ::= "fn" identifier "(" param_list? ")" throws_clause? return_type? block
 assoc_type_decl ::= "type" identifier where_clause? ";"
+assoc_const_decl ::= "const" identifier ":" type_expr ("=" const_expr)? ";"
 ```
 
 다음은 트레잇 선언의 예시입니다.
@@ -82,6 +84,23 @@ fn first_item<T: Iterator>(ref it: T) -> T::Item | none { it.next() }
 ```
 
 이 표기는 [구두점과 연산자 토큰](../001-lexical/110-punctuation-and-operator-tokens.md) 의 `::` 경로 구분자를 쓴 연관 항목 접근입니다. 한편 경로의 일반 규칙 (모듈 경로·turbofish·완전 자격 형태) 은 [타입 경로](213-type-paths.md) 에서 정의합니다.
+
+## 2.8.3a. 연관 상수 (associated const)
+
+트레잇은 `const N: T;` 로 연관 상수를 선언할 수 있으며, `= 값` 으로 기본값을 줄 수 있습니다. 각 `impl` 이 값을 정하고 (기본값이 있으면 생략 가능), 그 트레잇으로 제약된 타입 매개변수에서는 `T::N` 으로 읽습니다.
+
+```rok
+trait Shape {
+    const SIDES: u32;
+    const NAME: str = "shape";
+}
+
+impl Shape for Square { const SIDES: u32 = 4; }
+
+fn sides<T: Shape>() -> u32 { T::SIDES }      // <T as Shape>::SIDES 와 같음
+```
+
+제네릭 타입에 대한 `impl` 에서는 연관 상수가 인스턴스화마다 다른 값을 가질 수 있습니다 (`impl<const N: usize> Shape for Poly<N> { const SIDES: u32 = N as u32; }`). 모호할 때는 완전 자격 형태 `<T as Tr>::N` 을 씁니다 ([2.13.4](213-type-paths.md#2134-완전-자격-형태-fully-qualified-path)).
 
 ## 2.8.4. 슈퍼트레잇 (supertrait)
 

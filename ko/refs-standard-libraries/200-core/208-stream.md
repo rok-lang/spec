@@ -12,7 +12,7 @@
 trait Stream {
     type Item;
 
-    fn poll_next(ref self, ctx: ref Context) -> Poll<Item | none>;
+    fn poll_next(ref self, ref ctx: Context) -> Poll<Item | none>;
 }
 ```
 
@@ -80,7 +80,7 @@ async yield fn ticks(interval: Duration) -> Instant {
 }
 ```
 
-`-> Instant` 는 원소 타입이며, 호출 결과는 `Stream<Item = Instant>` 를 구현하는 컴파일러 생성 익명 타입입니다 ([refs-lang 4.1.11](../../refs-lang/004-functions/401-function-declaration.md#코루틴-함수의-결과-타입)). 컴파일러는 이 함수를 LLVM coro.* state machine 으로 변환합니다. 이때 `yield` 자리는 **suspend point** 이며, `await` 자리 역시 **suspend point** 가 됩니다.
+`-> Instant` 는 원소 타입이며, 호출 결과는 `AsyncStream<Instant>` (`Stream<Item = Instant>` 구현) 입니다 ([refs-lang 4.1.11](../../refs-lang/004-functions/401-function-declaration.md#코루틴-함수의-결과-타입)). 컴파일러는 이 함수를 LLVM coro.* state machine 으로 변환합니다. 이때 `yield` 자리는 **suspend point** 이며, `await` 자리 역시 **suspend point** 가 됩니다.
 
 자세한 syntax 권위는 [refs-lang 4.13 stream (`async yield`)](../../refs-lang/004-functions/413-stream.md) 을 따릅니다.
 
@@ -134,7 +134,7 @@ let v: List<i32> = await (0..).take(5).map(|x| async { x * 2 }).buffered(3).coll
 
 ```rok
 let (tx, rx) = channel::<Event>();
-task::spawn { tx.send(event1); tx.send(event2); };
+task::spawn(async { tx.send(event1); tx.send(event2); });
 
 for await event in rx {
     handle(event);

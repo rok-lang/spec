@@ -52,6 +52,18 @@ impl 메서드의 `throws` 는 트레잇 메서드의 `throws` 와 같아야 합
 - opt-in: `unsafe impl Send for X {}`. `unsafe impl` 은 `Send` / `Sync` 에만 쓸 수 있고, 이 두 트레잇의 수동 구현에는 반드시 필요합니다.
 - opt-out: `impl !Send for X {}`, `impl<T> !Send for Cell<T> {}`. 자동 구현을 막으며, 본체는 비어 있어야 합니다. `!` 는 `Send` / `Sync` 에만 쓸 수 있습니다.
 
+### `impl` 안의 상수
+
+`impl` 블록 안의 `const N: T = v;` 는 그 타입의 연관 상수입니다. 바깥에서는 `Type::N` 으로, `impl` 안에서는 `Self::N` 으로 읽습니다. 트레잇이 선언한 연관 상수 ([2.8.3a](208-trait.md#283a-연관-상수-associated-const)) 는 트레잇 `impl` 에서 값을 정합니다.
+
+```rok
+impl Circle {
+    const UNIT: f64 = 1.0;
+    fn unit() -> Circle { Circle { r: Self::UNIT } }
+}
+let r = Circle::UNIT;
+```
+
 ## 2.9.2. 메서드의 `self` 관례
 
 본체의 함수가 인스턴스 메서드가 되려면 첫 매개변수가 `self` (또는 `ref self`) 여야 합니다.

@@ -57,9 +57,9 @@ impl<T> Drop for Pinned<T> {
 }
 ```
 
-전형적인 RAII guard 입니다. `pin()` 이 반환한 `Pinned<T>` 가 scope 안에 살아 있는
-동안 GC 는 해당 객체를 이동시키지 않으며, `Pinned::drop` 시점에 자동으로 unpin
-됩니다.
+`using` 으로 묶는 guard 입니다. `pin()` 이 반환한 `Pinned<T>` 가 `using` 블록 안에 있는
+동안 GC 는 해당 객체를 이동시키지 않으며, 블록을 빠져나갈 때 `Pinned::drop` 이 불려 unpin
+됩니다. `using` 없이 받은 `Pinned<T>` 는 자동으로 풀리지 않습니다.
 
 ### 사용 예 — FFI 호출
 
@@ -200,8 +200,8 @@ rok 이 다른 언어와 갈라지는 가장 큰 지점은 두 가지입니다.
 
 1. 타입 시스템이 강제한다는 점입니다. `GcPtr<T>` 와 `Ptr<T>` 는 서로 다른
    타입이며, 자동 변환은 거부됩니다. 오직 pin guard 를 통해서만 건너갈 수 있습니다.
-2. `using` block 기반의 RAII 입니다. `Pinned<T>` 가 자동으로 drop 되기 때문에 pin
-   누락이 원천적으로 불가능합니다. Go 의 수동 `defer` 방식보다 한층 안전한
+2. `using` block 기반의 해제입니다. `using` 블록을 빠져나갈 때 `Pinned<T>` 가 drop 되기 때문에 unpin
+   누락이 일어나지 않습니다. Go 의 수동 `defer` 방식보다 한층 안전한
    설계입니다.
 
 > 이 정책은 rok pointer 모델의 backbone 입니다. unsafe 와 GC, 두 영역이 안전하게

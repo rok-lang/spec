@@ -21,6 +21,9 @@
 
 컴파일러가 이 intrinsic들을 emit 하면, LLVM 백엔드가 이를 상태 머신으로 lower해 줍니다.
 
+> [!NOTE]
+> **구현 노트 — 상태 기계 lowering.** 구현은 `llvm.coro.*` 대신 컴파일러가 직접 만든 상태 기계로 코루틴을 lower 해도 됩니다. 이때 frame 은 `rok_gc_alloc_slow` 로 할당하는 GC 객체이며, 중단된 동안에는 frame 의 ScanTable 로, 실행 중에는 shadow stack ([7.4.1](../007-runtime/704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack)) 으로 root 가 잡힙니다. 관찰 가능한 의미는 같습니다.
+
 ## 8.10.2. Generator (`yield fn`) lowering
 
 다음과 같은 제너레이터가 있다고 가정해 보겠습니다.

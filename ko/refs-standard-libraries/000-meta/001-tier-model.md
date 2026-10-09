@@ -49,7 +49,7 @@ iter, 컬렉션, fmt, 변환, sync, task, future 등 언어를 일상적으로 �
 let xs: List<i32> = [1, 2, 3];        // List 직접 사용 — 묵시 use rok::core::**; 가 가져옴
 let r = a + b;                         // Add 트레잇 자동
 let m = Mutex::new(0);                 // sync::Mutex 도 자동
-task::spawn { /* ... */ };              // task 모듈도 자동
+task::spawn(async { /* ... */ });              // task 모듈도 자동
 ```
 
 이 자동 적용을 위해 별도의 `rok::core::prelude` 모듈을 두지 않는다는 점은 짚어둘 만합니다.

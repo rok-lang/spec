@@ -7,7 +7,7 @@
 `enum` 의 문법은 다음과 같이 정의됩니다.
 
 ```
-enum_decl   ::= visibility? "enum" identifier generics? "{" variant_list? "}"
+enum_decl   ::= visibility? "enum" identifier generics? where_clause? "{" variant_list? "}"
 variant_list ::= variant ("," variant)* ","?
 variant     ::= visibility? identifier                                  // unit
               | visibility? identifier "(" type_expr ("," type_expr)* ","? ")"  // tuple

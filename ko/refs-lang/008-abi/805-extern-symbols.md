@@ -20,6 +20,19 @@
 
 `caller-thread-only` 는 함수의 효과가 호출자의 TLS 슬롯이나 stack frame 에 결합되어 있어 다른 thread 에서 그 호출자를 대신할 수 없다는 뜻입니다. 함수 자체가 reentrant 하지 않다는 의미는 아니며, 다중 thread 가 각자 자기 호출자에 대해 동시에 호출하는 것은 허용됩니다.
 
+## 8.5.0a. `RokFn` — 함수 값의 C ABI 형태
+
+rok 함수 값 `{code, env}` ([4.4](../004-functions/404-function-type.md#함수-값의-표현)) 를 런타임 심볼에 넘길 때의 C 표현입니다.
+
+```c
+typedef struct {
+    void *code;   // env 를 첫 인자로 받는 코드 포인터
+    void *env;    // 캡처 환경 (이름 있는 함수는 NULL)
+} RokFn;
+```
+
+`RokFn` 은 C 구조체로 **값 전달** 됩니다. 실제 레지스터 배치는 타깃 C ABI 의 16 바이트 구조체 규칙을 따릅니다.
+
 ## 8.5.1. GC 영역
 
 ### `rok_gc_alloc_slow`
@@ -156,9 +169,24 @@ extern "C" {
 
 [`rok::std::env::exit`](../../refs-standard-libraries/300-std/306-env.md) 가 이 심볼을 부릅니다. `finally` 와 `Drop` 은 실행하지 않습니다 ([4.16.4](../004-functions/416-entry-point.md#4164-종료-코드와-미처리-예외)).
 
+### 문자열 helper
+
+`FromStr` 과 `str::bytes` 를 뒷받침하는 내부 helper 입니다 ([stdlib 2.15](../../refs-standard-libraries/200-core/215-string.md)). **Thread-safety: `thread-safe`**. `str` 인자는 `(ptr, len)` 으로 전달됩니다.
+
+```
+extern "C" {
+    fn rok_str_byte(s: str, i: usize) -> u8;                         // i 번째 바이트 (경계 검사는 호출자)
+    fn rok_str_int_status(s: str, signed: i32, bits: u32) -> i32;    // 0 ok, 1 empty, 2 invalid digit, 3 out of range
+    fn rok_str_to_i64(s: str) -> i64;                                 // status 0 확인 후 호출
+    fn rok_str_to_u64(s: str) -> u64;                                 // status 0 확인 후 호출
+    fn rok_str_float_ok(s: str) -> i32;                               // inf, NaN, 지수 포함 — 1 이면 파싱 가능
+    fn rok_str_to_f64(s: str) -> f64;                                 // float_ok 확인 후 호출
+}
+```
+
 ### `rok_runtime_yield`
 
-[Safepoint 프로토콜](804-safepoint.md) 의 `yield` 함수에 해당합니다. **Thread-safety: `caller-thread-only`** (호출자 mutator 가 자기 yield_flag 를 polling 한 결과로 호출).
+[Safepoint 프로토콜](804-safepoint.md) 의 `yield` 함수, 즉 safepoint poll 의 slow path 입니다. **Thread-safety: `caller-thread-only`** (호출자 mutator 가 자기 yield_flag 를 polling 한 결과로 호출).
 
 ```
 extern "C" {
@@ -246,15 +274,48 @@ extern "C" {
 
 task 를 cancel 합니다. 진행 중이라면 중단시키며, `await` 중인 호출자에게 취소 신호를 전달합니다.
 
+### `rok_task_exec_*` / `rok_time_now_ns`
+
+현재 스레드의 task executor ([stdlib 2.18](../../refs-standard-libraries/200-core/218-task.md)) 를 TLS 슬롯 `rok_tls_task_exec` ([8.3.1](803-tls-slots.md#831-tls-슬롯-구조)) 에 두고 꺼내는 함수와 시계입니다. **Thread-safety: `caller-thread-only`** (자기 스레드의 슬롯만 다룸; `rok_time_now_ns` 는 `thread-safe`).
+
+```
+extern "C" {
+    fn rok_task_exec_active() -> i32;          // executor 가 있으면 1
+    fn rok_task_exec_get() -> usize;           // executor 객체 주소, 없으면 0
+    unsafe fn rok_task_exec_set(exec: usize);  // exec 는 살아 있는 GC 객체 — 설치하는 동안 pin
+    fn rok_task_exec_clear();                  // 해제하고 unpin
+    fn rok_time_now_ns() -> i64;               // monotonic clock (ns)
+}
+```
+
 ### `rok_thread_spawn`
 
 1:1 OS thread 를 생성합니다. **Thread-safety: `thread-safe`**.
 
 ```
 extern "C" {
-    fn rok_thread_spawn(closure: Ptr<u8>) -> Ptr<u8>;    // ThreadHandle
+    fn rok_thread_spawn(f: RokFn, stack_size: usize, id: u64) -> usize;
+    fn rok_thread_new_id() -> u64;
+    fn rok_thread_id() -> u64;                        // 현재 스레드의 worker id
+    fn rok_thread_sleep_ns(ns: i64);
+    fn rok_thread_yield_now();
 }
 ```
+
+`rok_thread_spawn` 은 rok 클로저 `f` (아래 `RokFn`, 값 전달) 를 OS 스레드에서 실행합니다 (`stack_size` 0 은 기본값). `id` 는 `rok_thread_new_id` 로 받은 값이며 새 스레드의 `rok_tls_worker_id` 가 됩니다. 반환값은 join handle 이고, 생성에 실패하면 0 입니다. 스레드가 끝날 때까지 `env` 는 GC root 입니다.
+
+### `rok_sync_wait` / `rok_sync_wake`
+
+동기화 primitive (`Mutex`, `Condvar`, `Once`) 의 대기와 깨우기입니다. **Thread-safety: `thread-safe`**.
+
+```
+extern "C" {
+    fn rok_sync_wait(buf: Ptr<u8>, index: usize, expected: i32);   // GcBuf<i32> 원소가 expected 인 동안 대기
+    fn rok_sync_wake(buf: Ptr<u8>, index: usize);                   // 그 원소에서 대기 중인 스레드를 모두 깨움
+}
+```
+
+`rok_sync_wait` 는 깨운 이유 없이 돌아올 수 있으므로 호출자가 조건을 다시 확인합니다. 대기하는 동안 그 스레드는 GC 에 대해 정지한 것으로 봅니다.
 
 ### `rok_thread_join`
 
@@ -262,7 +323,7 @@ extern "C" {
 
 ```
 extern "C" {
-    fn rok_thread_join(handle: Ptr<u8>) -> Ptr<u8>;
+    fn rok_thread_join(handle: usize) -> i32;          // 0 이면 성공
 }
 ```
 

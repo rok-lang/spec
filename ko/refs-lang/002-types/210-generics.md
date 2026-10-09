@@ -13,7 +13,7 @@ where_pred      ::= type_expr ":" type_bounds
 ```
 
 > [!NOTE]
-> `where` 는 함수 시그니처나 `impl` 헤더 뒤에서만 키워드인 문맥 키워드입니다 ([1.5.4](../001-lexical/105-keywords.md#154-문맥-키워드)).
+> `where` 는 함수 시그니처, `impl` 헤더, `struct` / `enum` / `union` / 타입 별칭 헤더 뒤에서만 키워드인 문맥 키워드입니다 ([1.5.4](../001-lexical/105-keywords.md#154-문맥-키워드)).
 
 ## 2.10.1. 매개변수 선언 위치
 

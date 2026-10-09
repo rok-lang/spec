@@ -1,6 +1,6 @@
 # 4.13. 스트림 (`async yield`)
 
-`async` 와 `yield` 두 수식어를 함께 쓴 형태는 비동기 제너레이터, 즉 여러 값을 시간 차로 내보내는 함수를 정의합니다. 그 결과는 `Stream<Item = T>` 트레잇을 구현하는 익명 구체 타입의 값입니다 ([4.1.11](401-function-declaration.md#코루틴-함수의-결과-타입)).
+`async` 와 `yield` 두 수식어를 함께 쓴 형태는 비동기 제너레이터, 즉 여러 값을 시간 차로 내보내는 함수를 정의합니다. 그 결과는 라이브러리 타입 `AsyncStream<T>` (`Stream<Item = T>` 구현) 의 값이며, `throws (E)` 면 `TryAsyncStream<T, E>` 입니다 ([4.1.11](401-function-declaration.md#코루틴-함수의-결과-타입)).
 
 ## 4.13.1. 세 가지 정의 형태
 
@@ -27,9 +27,9 @@ async yield || { ... await ...; yield ...; }                        // 클로저
 | 형태             | 호출 결과                           | 의미               |
 |------------------|-------------------------------------|--------------------|
 | `fn`             | `R`                                 | 즉시 한 값         |
-| `async fn`       | `Future<Output = R>` 구현 익명 타입 | 미래의 한 값       |
-| `yield fn`       | `Iterator<Item = R>` 구현 익명 타입 | 동기적으로 여러 값 |
-| `async yield fn` | `Stream<Item = R>` 구현 익명 타입   | 시간 차로 여러 값  |
+| `async fn`       | `AsyncFuture<R>` | 미래의 한 값       |
+| `yield fn`       | `GenIter<R>` | 동기적으로 여러 값 |
+| `async yield fn` | `AsyncStream<R>`   | 시간 차로 여러 값  |
 
 이는 직교하는 두 차원, 즉 지연 여부 (sync/async) 와 값의 수 (단일/복수) 의 모든 조합에 해당합니다.
 
@@ -58,7 +58,7 @@ async yield fn read_lines(file: str) -> str {
 
 ```rok
 async fn run() {
-    let s = read_lines("data.txt");   // s: Stream<Item = str> 를 구현하는 익명 타입
+    let s = read_lines("data.txt");   // s: `AsyncStream<str>`
 
     for await line in s {              // 비동기 for
         process(line);
@@ -104,7 +104,7 @@ async yield fn paginate() -> Page {
 
 ## 4.13.7. Stream 트레잇
 
-이 결과 객체는 표준 라이브러리의 `Stream<Item = T>` 트레잇을 구현하는 익명 타입의 값입니다. 의미상으로는 Iterator 와 Future 가 결합된 형태이며, 다음 값을 기다리는 메커니즘이라고 할 수 있습니다.
+이 결과 객체는 표준 라이브러리의 `AsyncStream<T>` (`Stream<Item = T>` 구현) 입니다. 의미상으로는 Iterator 와 Future 가 결합된 형태이며, 다음 값을 기다리는 메커니즘이라고 할 수 있습니다.
 
 자세한 시그니처와 메서드 (`map`, `filter`, `take`, `merge`, `zip` 등) 는 표준 라이브러리에서 정의됩니다.
 

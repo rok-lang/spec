@@ -109,6 +109,8 @@ loop {
 
 (정확한 트레잇과 메서드 이름은 표준 라이브러리에서 정의합니다.)
 
+`next` 가 던지는 iterator (`TryGenIter<T, E>` 등) 를 도는 `for` 는 throwing 식이므로 `try for pat in it { ... }` 처럼 `try` 로 덮어야 합니다. `for await` 도 같습니다 ([4.14.10](../004-functions/414-throws.md#try-for)).
+
 ### 결과 값
 
 `for` 의 결과 값은 항상 unit 입니다 (`while` 과 같은 이유입니다).

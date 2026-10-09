@@ -128,7 +128,7 @@ park 가 진행되는 동안 CPU 사용량은 0 이므로, idle worker 가 많�
 
 [비동기](../004-functions/412-async.md) 의 `task::timeout` 이나 `task::race`, 또는 사용자가 명시적으로 cancel 을 요청하면 해당 task 의 Future 가 drop 됩니다.
 
-drop 시점에는 진행 중이던 `await` 위치에서 정리 코드가 실행되며, `finally` 블록이나 drop guard 가 정의되어 있다면 그 또한 함께 수행됩니다.
+drop 시점에는 진행 중이던 `await` 위치에서 정리 코드가 실행되며, `finally` 블록이나 `using` 블록의 `drop` 이 있다면 그 또한 함께 수행됩니다.
 
 자세한 cancellation 메커니즘은 스케줄러와 코루틴 구현이 결정합니다.
 

@@ -12,11 +12,11 @@ rok 의 런타임은 [Immix + Sticky Mark-Bit Generational GC](../../refs-lang/0
 |-------------------|-------------------------|-------------------------------------------------|
 | 메모리 회수       | `Drop` 가 책임          | GC 가 자동 — `Drop` **하지 않음**               |
 | `Drop::drop` 의미 | 자원 해제 + 메모리 free | **외부 자원 정리만** (file handle, socket, ...) |
-| 호출 시점         | 결정론적 (scope exit)   | **scope exit 결정론적** (GC 수집과 무관)        |
+| 호출 시점         | 결정론적 (scope exit)   | **`using` 블록을 빠져나갈 때만** (GC 수집과 무관) |
 | 누락 시 영향      | 자원 누수 + 메모리 누수 | 자원 누수만 (메모리는 GC 가 결국 회수)          |
 
 > [!NOTE]
-> `Drop` 은 GC 와 독립적인 scope-bound finalizer 입니다. 객체가 scope 를 떠나는 순간 즉시 호출되며 (RAII), 이는 GC 의 finalizer queue 와는 전혀 다른 메커니즘입니다.
+> 일반 바인딩에는 scope 종료 시 자동 drop 이 없습니다. `Drop::drop` 은 `using` 으로 묶은 바인딩에서만 호출됩니다 ([refs-lang 3.17 `using`](../../refs-lang/003-expressions/317-using-expression.md)). GC 는 다른 객체의 finalization 을 보장하지 않으며, 어떤 경우에도 `drop` 을 부르지 않습니다.
 
 이처럼 메모리 회수와 자원 정리를 분리한 덕분에, 일반 객체는 `Drop` 을 신경 쓰지 않아도 GC 가 알아서 회수해 주고, 외부 자원을 다루는 타입만 `Drop` 을 구현해 결정론적인 정리 시점을 확보할 수 있습니다.
 
@@ -172,9 +172,9 @@ v1.x;                        //→ 1.0  (사용 OK)
 > [!IMPORTANT]
 > `Copy` derive 는 모든 필드가 `Copy` 일 때만 가능합니다. 한 필드라도 `str` / `List` 등이라면 derive 가 거부됩니다.
 
-## 2.13.4. `Drop` — scope 종료 시 정리
+## 2.13.4. `Drop` — `using` 해제 시 정리
 
-파일을 열었으면 닫아야 하고, mutex 를 잠갔으면 풀어야 합니다. 이러한 외부 자원 정리는 GC 의 손에 맡길 수 없습니다. 언제 일어날지 알 수 없는 sweep 시점까지 자원을 붙들고 있다면, 파일 디스크립터가 고갈되거나 잠금이 풀리지 않은 채로 다른 코드가 멈춰 서는 일이 벌어지기 때문입니다. 따라서 `Drop` 트레잇이 이 문제를 해결합니다.
+파일을 열었으면 닫아야 하고, mutex 를 잠갔으면 풀어야 합니다. 이러한 외부 자원 정리는 GC 의 손에 맡길 수 없습니다. 언제 일어날지 알 수 없는 sweep 시점까지 자원을 붙들고 있다면, 파일 디스크립터가 고갈되거나 잠금이 풀리지 않은 채로 다른 코드가 멈춰 서는 일이 벌어지기 때문입니다. `Drop` 트레잇과 `using` 표현식이 이 문제를 해결합니다.
 
 ```rok
 trait Drop {
@@ -183,48 +183,31 @@ trait Drop {
 }
 ```
 
-`drop` 은 객체가 scope 를 떠날 때 자동으로 호출되어, 파일이나 소켓, mutex lock 같은 외부 자원을 결정론적으로 정리합니다.
+### 호출 시점 — `using` 바인딩에서만
 
-### 호출 시점
+rok 은 GC 언어이므로 일반 바인딩이 scope 를 벗어날 때 자동으로 `drop` 을 부르지 않습니다. `drop` 은 `using` 으로 묶은 바인딩에서만, 블록을 빠져나갈 때 호출됩니다 ([refs-lang 3.17 `using`](../../refs-lang/003-expressions/317-using-expression.md)).
 
-가장 단순한 형태는 다음과 같습니다.
-
-```rok
-{
-    let f = try! File::open("data.txt");
-    try! f.read_to_str();
-    // ...
-}    // ← scope 끝 — File::drop 자동 호출 (file handle close)
-```
-
-또한 한 scope 안에 여러 자원이 선언된 경우에는 선언의 역순, 즉 LIFO 로 `drop` 이 호출됩니다.
-
-```rok
-{
-    let a = Resource::new("a");      // 1번째 선언
-    let b = Resource::new("b");      // 2번째 선언
-    // ...
-}    // ← b.drop() 먼저, 그다음 a.drop()
-```
-
-### GC 와의 관계 — 결정론적 호출
-
-이 시점에서 `Drop` 과 GC 의 finalize 큐는 분명히 구분되어야 합니다. rok 의 정책은 다음과 같이 못 박혀 있습니다.
-
-> `Drop::drop` 은 **scope exit 시 결정론적으로 즉시** 호출됩니다. GC 의 sweep 시점과 무관합니다.
-
-이 보장이 있어야 비로소 RAII (Resource Acquisition Is Initialization) 패턴이 성립합니다. 따라서 다음 함수에서 `lock` 과 `file` 은, 정상 종료든 에러든 어떤 경로로 함수를 빠져나가더라도 반드시 닫힙니다.
+- 정상 종료, `return`, `break`, 에러 전파 모두에서 호출됩니다.
+- 여러 바인딩은 선언의 역순 (LIFO) 으로 호출됩니다.
+- panic 은 프로세스를 끝내므로 `drop` 을 부르지 않습니다.
 
 ```rok
 fn process(path: str) throws (IoError) {
-    let lock = MUTEX.lock();         // mutex 획득
-    let file = try File::open(path);
-    do_work(file);
-    // ↑ 정상 종료 또는 에러 발생 — _어느 경우든_ file.drop() 후 lock.drop()
+    using lock = MUTEX.lock(), file = try File::open(path) {
+        do_work(file);
+    }   // ← 정상 종료든 에러든 file.drop() 다음 lock.drop()
 }
+
+{
+    let f = try! File::open("data.txt");
+}   // ← 자동 drop 없음 — f 는 GC 가 회수하지만 File::drop 은 불리지 않음
 ```
 
-`throw` 로 에러가 전파되어 스코프를 빠져나가는 경우에도 마찬가지입니다. 에러 전파는 값으로 반환하는 일반 경로이므로, 현재까지 선언된 모든 변수의 `Drop` 이 차례대로 호출됩니다. 반면 panic 은 잡을 수 없으며, 표준 에러에 메시지를 출력한 뒤 프로세스를 종료합니다 (종료 코드 101).
+`Drop` 을 구현하지 않은 타입을 `using` 으로 묶으면 `Drop` 이 필요하다는 컴파일 에러가 납니다.
+
+### GC 와의 관계
+
+GC 는 `using` 밖의 객체에 대해 finalization 을 보장하지 않으며, 어떤 경우에도 `drop` 을 부르지 않습니다. 결정론적 정리가 필요한 자원은 반드시 `using` 으로 묶거나 `close()` 같은 메서드로 직접 닫습니다.
 
 ### `Drop` 구현 예
 
@@ -252,15 +235,16 @@ struct File { handle: i32; }
 impl Drop for File { ... }
 ```
 
-그다음 사용자가 `drop` 을 직접 호출하는 일은 금지됩니다. scope exit 시점에서만 자동으로 한 번 호출되어야 정확성이 보장되기 때문입니다.
+그다음 사용자가 `drop` 을 직접 호출하면 컴파일 에러입니다. `using` 해제 시점에 한 번만 호출되어야 정확성이 보장되기 때문입니다.
 
 ```rok
 let f = File::open(path);
 f.drop();                    // ERROR — Drop::drop 직접 호출 금지
-                             //         scope exit 만 자동 호출
 ```
 
 따라서 조기에 자원을 닫고 싶다면 `File::close()` 처럼 별도의 메서드를 노출하는 쪽이 옳습니다.
+
+예외는 `rok::bare` 안의 unsafe 코드뿐입니다. 예를 들어 `unsafe fn drop_in_place` ([1.3 mem](../100-bare/103-mem.md)) 는 수동 메모리 관리를 위한 함수이며 `Drop::drop` 을 실행할 수 있습니다.
 
 또한 `drop` 은 `throws` 시그니처를 갖지 않으므로 본문에서 에러를 던질 수 없습니다. `drop` 안에서 panic 이 일어나면 다른 panic 과 마찬가지로 프로세스가 종료됩니다.
 
@@ -274,14 +258,14 @@ impl Drop for X {
 
 ### derive 정책
 
-`Clone` 과 달리 `Drop` 은 derive 할 수 없습니다. 그럴 필요가 없기 때문입니다. struct 의 필드가 각자 `Drop` 을 구현하고 있다면, 컴파일러가 알아서 필드별 `drop` 을 선언 역순으로 호출해 줍니다. 따라서 사용자가 작성하는 `Drop` 본문은 "필드 이외에 추가로 정리해야 할 것" 만 다루면 됩니다.
+`Clone` 과 달리 `Drop` 은 derive 할 수 없습니다. `using` 으로 묶인 값의 `drop` 이 끝나면, 컴파일러는 그 struct 의 `Drop` 필드들의 `drop` 을 선언 역순으로 이어서 호출합니다. 따라서 사용자가 작성하는 `Drop` 본문은 "필드 이외에 추가로 정리해야 할 것" 만 다루면 됩니다.
 
 ```rok
 struct Container {
     a: File;
     b: Socket;
 }
-// Drop 구현 안 해도 — Container 가 scope 떠날 때 b.drop() → a.drop() 자동 호출
+// Container 를 using 으로 묶으면 해제 시 b.drop() → a.drop()
 // (필드 자체가 Drop 구현이라)
 
 impl Drop for Container {
@@ -319,8 +303,8 @@ impl Drop for Container {
 | `Tuple<T...>`                    | ✓ (모두)    | ✓ (모두 Copy) | ✗                               | derive 자동                          |
 | `Range<T>`                       | ✓ (T:Clone) | ✓ (T:Copy)    | ✗                               | derive 자동                          |
 | `File`                           | ✗           | ✗             | ✓                               | `rok::bare::close_fd`                 |
-| `MutexGuard<T>`                  | ✗           | ✗             | ✓                               | `rok::bare::unlock`                   |
-| `Channel::Sender<T>`             | ✓           | ✗             | ✓ (마지막 sender drop 시 close) | (위와 동일)                          |
+| `MutexGuard<T>`                  | ✗           | ✗             | ✓ (`using` 해제 시)             | `rok::bare::unlock`                   |
+| `Channel::Sender<T>`             | ✓           | ✗             | ✗ (`close()` 로 닫음)           | (위와 동일)                          |
 
 표 뒤에 자리 잡은 원칙은 단순합니다. 먼저 모든 primitive 와 내부 GC 타입은 `Clone` 을 구현하고, 그 가운데 비트 복사가 의미적으로 옳은 것들만 `Copy` 가 됩니다. 그다음 `str` 과 컬렉션은 `Clone` 이지만 `Copy` 는 아닙니다. 비트 복사가 깊은 복제의 의미를 보존하지 않기 때문입니다. 또한 `Drop` 은 `File`, `Socket`, `MutexGuard` 처럼 외부 자원을 감싸는 wrapper 만 구현합니다. 이 타입들은 자원 중복 소유를 막기 위해 보통 `Clone` 을 구현하지 않습니다.
 
@@ -336,7 +320,7 @@ impl Drop for Container {
 | Clone 의미        | 깊은 복제                | `clone()` (Object.clone)    | 깊은 복제                |
 | derive            | `#[derive(Clone, Copy)]` | `Cloneable` 인터페이스      | `#[derive(Clone, Copy)]` |
 
-rok 이 두드러지는 지점은 결국 GC 와 결정론적 `Drop` 의 공존입니다. 메모리 회수는 GC 가 맡기 때문에 `Drop` 이 메모리 해제를 의미하지 않으며, 그래서 일반 객체는 `Drop` 을 구현할 필요가 전혀 없습니다. 따라서 외부 자원 RAII 가 필요한 타입만 `Drop` 을 구현하면 충분합니다.
+rok 이 두드러지는 지점은 결국 GC 와 결정론적 `Drop` 의 공존입니다. 메모리 회수는 GC 가 맡기 때문에 `Drop` 이 메모리 해제를 의미하지 않으며, 그래서 일반 객체는 `Drop` 을 구현할 필요가 전혀 없습니다. 따라서 외부 자원 정리가 필요한 타입만 `Drop` 을 구현하고, 사용하는 쪽은 `using` 으로 묶으면 충분합니다.
 
 이 모델은 한쪽으로는 Java/Python 의 finalizer 비결정성 문제를, 다른 한쪽으로는 GC 가 없는 데에서 오는 Rust 의 비용을 동시에 회피합니다.
 

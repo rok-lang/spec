@@ -68,12 +68,12 @@ steal 은 worker 를 최대 N-1 개까지 시도해 보고, 그래도 모두 비
 
 | 라이브러리 함수         | 의미                                                                     |
 |-------------------------|--------------------------------------------------------------------------|
-| `task::spawn(f)`        | 새 task 를 큐에 push. 결과 `Task<T>`.                                    |
+| `task::spawn(fut)`      | future 를 새 task 로 큐에 push. 결과 `Task<T>`.                          |
 | `task::yield_now()`     | 자발적 `yield`. 다른 task 에 양보.                                       |
 | `task::sleep(d)`        | timer 큐로 이동.                                                         |
-| `task::race(a, b)`      | 둘 중 먼저 끝나는 것.                                                    |
-| `task::join_all([...])` | 모두 끝날 때까지.                                                        |
-| `task::timeout(d, fut)` | 시간 제한.                                                               |
+| `task::race([...])`     | 먼저 끝나는 task (`List<Task<T>>`, await).                               |
+| `task::join([...])`     | 모두 끝날 때까지 (`List<Task<T>>`, await).                               |
+| `task::timeout(d, t)`   | 시간 제한. 초과하면 `try await` 에서 `TimeoutError`.                     |
 | `thread::spawn(f)`      | 새 OS thread 만들기 (1:1).                                               |
 | `par::for_each(xs, f)`  | 병렬 for-each ([block](../000-meta/007-glossary.md#block-블록) on join). |
 | `par::scope { ... }`    | 병렬 스코프 (트레일링 클로저).                                           |
@@ -84,7 +84,7 @@ steal 은 worker 를 최대 N-1 개까지 시도해 보고, 그래도 모두 비
 
 대부분의 task 는 스케줄러가 매핑하는 M:N 방식으로 동작하지만, 블로킹 작업이나 외부 라이브러리 호출 같은 경우에는 전용 OS thread 가 자연스러울 때가 있습니다. 이때는 `thread::spawn` 을 통해 진짜 OS thread 를 만들어 1:1 로 매핑할 수 있습니다.
 
-내부적으로는 Unix 의 `pthread_create` 또는 Windows 의 `CreateThread` 등을 직접 호출하며, 일반 task 와는 분리된 풀에서 작동합니다. 결과는 Future 와는 별개의 타입인 `Thread<T>` 로 반환됩니다.
+내부적으로는 Unix 의 `pthread_create` 또는 Windows 의 `CreateThread` 등을 직접 호출하며, 일반 task 와는 분리된 풀에서 작동합니다. 결과는 Future 와는 별개의 타입인 `JoinHandle<T>` 로 반환됩니다.
 
 ## 7.6.7. Blocking Syscall 자동 검출
 
@@ -125,7 +125,7 @@ task 가 `await` 또는 `yield` 를 만나면 coroutine frame 만 큐에 다시 
 ## 7.6.13. 전체 흐름 요약
 
 ```
-user code:    task::spawn { compute() }
+user code:    task::spawn(async { compute() })
   ↓
 compiler:     create coroutine frame + push to queue
   ↓

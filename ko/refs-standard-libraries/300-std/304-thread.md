@@ -21,9 +21,11 @@
 기본 타입과 함수 시그니처는 아래와 같습니다.
 
 ```rok
-struct Thread<T> { /* OS handle */ }
-struct JoinHandle<T> { /* JoinHandle */ }
+struct Thread { /* OS handle — 제네릭 아님 */ }
+struct JoinHandle<T> { /* join 결과 T */ }
 struct ThreadId { /* opaque */ }
+
+struct JoinError { code: i32; }          // OS 수준 join 실패만 (errno)
 
 fn spawn<T: Send>(f: fn() -> T + Send) -> JoinHandle<T>;
 
@@ -41,17 +43,18 @@ impl Builder {
 
 impl<T> JoinHandle<T> {
     fn join(self) throws (JoinError) -> T;
-    fn thread(self) -> ref Thread<T>;
+    fn detach(self);                     // join 하지 않음 — 스레드는 끝까지 실행
+    fn thread(self) -> Thread;
 }
 
-impl<T> Thread<T> {
+impl Thread {
     fn id(self) -> ThreadId;
     fn name(self) -> str | none;
     fn unpark(self);
 }
 
 // 현재 thread
-fn current() -> Thread<()>;
+fn current() -> Thread;
 fn yield_now();
 fn sleep(dur: Duration);
 fn park();                                     // unpark 까지 block
@@ -61,6 +64,10 @@ fn panicking() -> bool;
 // thread-local storage
 fn local<T>(init: fn() -> T + Sync) -> ThreadLocal<T>;     // 각 스레드에서 init 호출
 ```
+
+### panic 과 `JoinError`
+
+어느 스레드에서든 panic 이 나면 프로세스 전체가 종료 코드 101 로 끝납니다. 그래서 `join` 이 다른 스레드의 panic 을 받을 일은 없으며, `JoinError` 는 OS 수준의 join 실패만 나타냅니다.
 
 ## 3.4.3. 사용 예
 
@@ -82,7 +89,7 @@ let h = try thread::Builder::new()
 
 // 다중
 let handles: List<JoinHandle<i64>> = (0..10)
-    .map(|i| thread::spawn(move || { compute(i) }))
+    .map(|i| thread::spawn(|| { compute(i) }))
     .collect();
 
 let results: List<i64> = handles

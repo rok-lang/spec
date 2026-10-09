@@ -13,6 +13,9 @@ unary_pattern   ::= literal_pattern
                   | struct_pattern
                   | enum_variant_pattern
                   | range_pattern
+                  | binding_pattern
+                  | "(" pattern ")"                      // grouping
+binding_pattern ::= identifier "@" unary_pattern
 type_check_pattern  ::= identifier ":" type_expr
 tuple_pattern   ::= "(" (pattern ("," pattern)* ","?)? ")"
 struct_pattern  ::= path "{" (field_pattern ("," field_pattern)* ","?)? "}"
@@ -87,6 +90,8 @@ match v {
 (..)
 ```
 
+`(p)` 는 그룹 패턴으로 `p` 와 같으며 튜플이 아닙니다. 항이 하나인 튜플은 후행 콤마로 `(p,)` 라고 씁니다. 튜플 타입 (`(T,)`) 과 튜플 식 (`(e,)`) 도 같은 규칙입니다.
+
 튜플 패턴은 튜플의 각 항을 부분 패턴으로 매칭합니다. `..` 는 나머지 묶기로, 튜플의 일부를 모두 무시하거나 하나의 변수에 묶을 때 씁니다. `..` 는 한 패턴에서 한 번만 등장할 수 있고, 길이는 매칭 대상과 일치해야 합니다 (`..` 가 있으면 자유롭게 매칭됩니다).
 
 ### `enum` 패턴
@@ -148,6 +153,22 @@ or 패턴은 `|` 로 여러 부분 패턴을 결합한 것으로, 부분 패턴 
 ```rok
 match v {
     Ok(x) | OkAlt(x) => use(x),     // 두 변형 모두 같은 이름 x 의 같은 타입에 바인딩
+}
+```
+
+### 바인딩 패턴: `name @ pat`
+
+```rok
+n @ 1..=9
+p @ Point { x: 0, .. }
+```
+
+`name @ pat` 은 부분 패턴 `pat` 이 매칭되면 값 전체를 `name` 에 바인딩합니다. `pat` 안의 바인딩도 함께 만들어집니다. or 패턴은 괄호로 묶어 `n @ (1 | 2)` 처럼 씁니다. 바인딩 패턴은 `match` 뿐 아니라 `let` 과 `for` 의 패턴에도 쓸 수 있습니다.
+
+```rok
+match age {
+    n @ 0..=17 => f"minor {n}",
+    n          => f"adult {n}",     // 범위는 열린 집합이라 catch-all 필요
 }
 ```
 

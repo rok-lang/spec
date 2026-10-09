@@ -47,8 +47,8 @@ fn fetch(url: str) throws (NetError) -> str {
     parse(bytes)
 }
 
-task::spawn { fetch("...") };
-task::spawn { fetch("...") };
+task::spawn(async { fetch("...") });
+task::spawn(async { fetch("...") });
 // ↑ 동시에 실행 — 한 task suspend 시 worker 가 다른 task 실행
 ```
 

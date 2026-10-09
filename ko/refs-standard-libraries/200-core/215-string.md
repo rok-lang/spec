@@ -56,8 +56,8 @@ impl str {
     fn chars(self) -> CharsIter;            // Unicode scalar iterator
     fn bytes(self) -> BytesIter;            // u8 iterator
     fn char_indices(self) -> CharIndicesIter;
-    fn lines(self) -> LinesIter;
-    fn split(self, sep: str) -> SplitIter;
+    fn lines(self) -> LinesIter;            // 끝의 \r 제거, 마지막 빈 줄은 내지 않음
+    fn split(self, sep: str) -> SplitIter;  // 빈 조각도 유지 ("a,,b" → "a", "", "b")
     fn split_whitespace(self) -> SplitWhitespaceIter;
 
     fn starts_with(self, pat: str) -> bool;
@@ -282,7 +282,7 @@ trait FromStr {
 }
 ```
 
-`str.parse::<T>()` 호출은 이 트레잇을 통해 dispatch 됩니다.
+`str.parse::<T>()` 는 `throws (T::Err)` 이며 이 트레잇을 통해 dispatch 됩니다. 숫자 타입과 `bool` 의 `Err` 는 core 의 `ParseError { input, pos, reason }` ([2.14.4](214-error.md#2144-내장-에러-타입)) 입니다. 숫자 파싱은 런타임 helper `rok_str_int_status` / `rok_str_to_i64` / `rok_str_to_u64` / `rok_str_float_ok` / `rok_str_to_f64` 위에 구현됩니다 ([refs-lang 8.5](../../refs-lang/008-abi/805-extern-symbols.md#문자열-helper)).
 
 ```rok
 let n: i32 = try "42".parse();         // FromStr for i32

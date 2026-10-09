@@ -19,7 +19,7 @@ yield { ... yield expr; ... }                         // 인라인 블록 (값)
 yield || { ... yield expr; ... }                      // 클로저 수식어
 ```
 
-세 형태 모두 결과는 `Iterator<Item = T>` 트레잇을 구현하는, 컴파일러가 만든 익명 구체 타입의 값입니다. 이 규칙은 [4.1.11](401-function-declaration.md#코루틴-함수의-결과-타입) 에서 정의합니다.
+세 형태 모두 결과는 라이브러리 타입 `GenIter<T>` (`Iterator<Item = T>` 구현) 의 값이며, `throws (E)` 면 `TryGenIter<T, E>` 입니다. 이 규칙은 [4.1.11](401-function-declaration.md#코루틴-함수의-결과-타입) 에서 정의합니다.
 
 ## 4.11.2. `yield` statement: 값을 내보내기
 
@@ -46,10 +46,10 @@ yield fn count_up_to(n: i32) -> i32 {
 }
 ```
 
-`yield fn` 은 제너레이터임을 표시하는 함수 선언이며, 본체 안에서는 `yield expr;` 으로 값을 내보냅니다. `-> R` 자리에는 `yield` 되는 값의 타입을 적으며, 호출 결과는 `Iterator<Item = R>` 를 구현하는 익명 타입 (이 제너레이터의 프레임 타입) 입니다. R 을 생략하면 본체의 `yield` 식에서 타입을 추론합니다. 호출 방식은 일반 함수와 동일하며, 결과는 반복자 객체가 됩니다.
+`yield fn` 은 제너레이터임을 표시하는 함수 선언이며, 본체 안에서는 `yield expr;` 으로 값을 내보냅니다. `-> R` 자리에는 `yield` 되는 값의 타입을 적으며, 호출 결과는 `GenIter<R>` (이 제너레이터의 프레임 타입) 입니다. R 을 생략하면 본체의 `yield` 식에서 타입을 추론합니다. 호출 방식은 일반 함수와 동일하며, 결과는 반복자 객체가 됩니다.
 
 ```rok
-let it = count_up_to(5i32);       // it: Iterator<Item = i32> 를 구현하는 익명 타입
+let it = count_up_to(5i32);       // it: `GenIter<i32>`
 for x in it { print(x); }         // 0 1 2 3 4
 ```
 
@@ -65,7 +65,7 @@ let it = yield {
 };
 ```
 
-이 형태는 식 자리에 등장하며, 즉시 `Iterator<Item = T>` 를 구현하는 익명 타입의 값을 만들어냅니다. 본체는 [블록 표현식](../003-expressions/309-block-expressions.md) 의 블록입니다. 짧은 제너레이터를 익명 인라인으로 적기 위한 형태라고 할 수 있습니다.
+이 형태는 식 자리에 등장하며, 즉시 `GenIter<T>` 를 만들어냅니다. 본체는 [블록 표현식](../003-expressions/309-block-expressions.md) 의 블록입니다. 짧은 제너레이터를 익명 인라인으로 적기 위한 형태라고 할 수 있습니다.
 
 ## 4.11.5. `yield` 클로저
 
@@ -173,11 +173,11 @@ yield fn early_stop(stop: i32) -> i32 {
 
 ## 4.11.12. `yield` 함수의 매개변수와 반환
 
-`yield fn` 은 제너레이터이므로, `-> T` 는 본체에서 `yield` 되는 값의 타입을 가리키며, 호출 결과는 `Iterator<Item = T>` 를 구현하는 익명 타입입니다.
+`yield fn` 은 제너레이터이므로, `-> T` 는 본체에서 `yield` 되는 값의 타입을 가리키며, 호출 결과는 `GenIter<T>`입니다.
 
 ```rok
 yield fn f() -> i32 { yield 1i32; }
-// 호출 결과: Iterator<Item = i32> 를 구현하는 익명 타입
+// 호출 결과: `GenIter<i32>`
 ```
 
 매개변수의 사용 방식은 일반 함수와 동일합니다.

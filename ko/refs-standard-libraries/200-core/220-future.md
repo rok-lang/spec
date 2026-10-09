@@ -11,7 +11,7 @@
 trait Future {
     type Output;
 
-    fn poll(ref self, ctx: ref Context) -> Poll<Output>;
+    fn poll(ref self, ref ctx: Context) -> Poll<Output>;
 }
 
 enum Poll<T> {
@@ -69,7 +69,7 @@ let v = loop {
 
 ## 2.20.4. `async fn` / `async { }` / `async || { }`
 
-세 가지 형태가 모두 **`Future<Output = T>` 를 구현하는 익명 타입의 값**을 반환합니다 ([refs-lang 4.1.11](../../refs-lang/004-functions/401-function-declaration.md#코루틴-함수의-결과-타입)).
+세 가지 형태가 모두 **`AsyncFuture<T>`**을 반환합니다 ([refs-lang 4.1.11](../../refs-lang/004-functions/401-function-declaration.md#코루틴-함수의-결과-타입)).
 
 ```rok
 // (a) named function
@@ -77,10 +77,10 @@ async fn fetch(url: str) -> Response {
     let raw = await get(url);
     await parse(raw)
 }
-await fetch("/");       // fetch("/"): Future<Output = Response> 구현 익명 타입
+await fetch("/");       // fetch("/"): AsyncFuture<Response>
 
 // (b) inline block (값)
-let f = async { await compute() };       // Future<Output = T> 구현 익명 타입의 값
+let f = async { await compute() };       // AsyncFuture<T>
 await f;
 
 // (c) closure
@@ -107,10 +107,10 @@ impl<F: Future> IntoFuture for F {               // Task<T>: Future<Output = T> 
     type IntoFuture = F;
     fn into_future(self) -> F { self }
 }
-impl<T> IntoFuture for Thread<T>   { type Output = T; type IntoFuture = ThreadFuture<T>; ... }
+impl<T> IntoFuture for JoinHandle<T> { type Output = T; type IntoFuture = ThreadFuture<T>; ... }
 ```
 
-`Thread<T>` 의 impl 은 이 타입이 `Future` 를 구현하지 않는 동안에만 blanket impl 과 겹치지 않아 합법입니다 ([refs-lang 2.9.5](../../refs-lang/002-types/209-impl.md#일관성-coherence)).
+`JoinHandle<T>` 의 impl 은 이 타입이 `Future` 를 구현하지 않는 동안에만 blanket impl 과 겹치지 않아 합법입니다 ([refs-lang 2.9.5](../../refs-lang/002-types/209-impl.md#일관성-coherence)).
 
 `await expr` 는 먼저 `IntoFuture::into_future(expr)` 를 호출하고, 그 결과에 `Future::poll` 을 반복합니다 (2.20.3). [2.8 stream](208-stream.md) 의 `for await` 가 `IntoStream` 을 다루는 방식과 같습니다.
 

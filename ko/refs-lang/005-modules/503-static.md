@@ -87,7 +87,7 @@ extern "C" {
 - 다른 모듈 사이에서는 의존 순서를 따르며, 한 `static` 의 초기값이 다른 `static` 을 참조하는 경우 후자가 먼저 초기화됩니다.
 - 순환 의존이 있다면 컴파일 에러로 처리합니다.
 
-`const fn` 의 평가가 결정론적이기 때문에, 초기화 순서 검사는 컴파일 타임에 완전하게 수행됩니다.
+`const` 초기값의 순서 검사는 컴파일 타임에 수행됩니다. `const` 가 아닌 초기값은 첫 접근 시점에 초기화되며, 초기화 도중 자기 자신에 다시 접근하면 panic 입니다.
 
 ## 5.3.7. 가시성
 
@@ -114,15 +114,13 @@ impl Counter {
 
 ## 5.3.9. 초기값의 `const` 한정
 
-`static` 의 초기값은 반드시 `const` 표현식이어야 하며, 런타임 함수 호출은 사용할 수 없습니다. 런타임 전역이긴 하지만 초기화만큼은 결정론적이어야 한다는 원칙입니다.
+`static` 의 초기값이 `const` 표현식이면 컴파일 타임에 평가되어 바이너리에 들어갑니다. `const` 가 아닌 초기값도 허용되며, 그 경우 `static` 은 실제 저장소를 갖고 처음 접근할 때 한 번 초기화됩니다. 이 지연 초기화는 스레드 안전합니다 (동시에 접근한 스레드는 초기화가 끝날 때까지 기다림).
 
 ```rok
-static NOW: Time = current_time();      // ERROR — 런타임 함수
-static PI: f64 = 3.14159f64;             // OK — 리터럴
-static LIMIT: i32 = compute_limit();     // OK if compute_limit 가 const fn
+static PI: f64 = 3.14159f64;             // const — 컴파일 타임
+static START: Instant = Instant::now();   // 첫 접근 때 한 번 초기화
+static CACHE: Mutex<Dict<str, Data>> = Mutex::new(Dict::new());
 ```
-
-런타임에 결정되는 전역이 필요하다면, 지연 초기화 패턴을 라이브러리 (`Lazy<T>` 같은 타입) 로 표현하면 됩니다. 이 부분은 표준 라이브러리에서 정의합니다.
 
 ## 5.3.10. `extern static`: FFI
 
@@ -138,6 +136,6 @@ extern "C" {
 
 ## 5.3.11. 평가 / 메모리 모델 측면
 
-`static` 의 메모리는 프로그램이 시작될 때 초기화되어 종료 시점까지 유지됩니다. 가비지 컬렉터가 이를 루트로 추적하므로 ([GC](../000-meta/007-glossary.md#gc-garbage-collector) 는 `static` 이 가리키는 객체를 살아 있는 상태로 유지합니다).
+`static` 의 메모리는 종료 시점까지 유지됩니다 (`const` 초기값은 시작 시, 그 밖은 첫 접근 시 초기화). 모든 `static` 은 GC root 이므로 ([GC](../000-meta/007-glossary.md#gc-garbage-collector) 는 `static` 이 가리키는 객체를 살아 있는 상태로 유지합니다).
 
 자세한 GC 와 런타임 동작에 관한 내용은 [7. 런타임 모델](../007-runtime/README.md) 과 [8. 런타임 ABI](../008-abi/README.md) 에서 다룹니다.

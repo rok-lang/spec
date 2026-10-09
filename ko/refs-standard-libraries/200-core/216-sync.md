@@ -5,7 +5,7 @@
 `use rok::core::**;` 가 묵시적으로 적용되므로 별도의 import 없이도 `Atomic`, `Mutex`, `RwLock`, `Cell` 을 곧바로 사용할 수 있습니다. 다만 동시성 코드임을 시각적으로 분명히 드러내고 싶은 자리에서는 다음과 같이 좁은 범위의 import 를 권장합니다.
 
 ```rok
-use rok::core::sync::{Atomic, Mutex, RwLock, Cell};
+use rok::core::sync::{Atomic, Mutex, RwLock, Once, Condvar, Cell};
 ```
 
 ## 2.16.1. 4 primitive 개요
@@ -33,33 +33,33 @@ trait AtomicPrimitive { /* marker — i32/i64/u32/u64/usize/isize/bool/Ptr */ }
 impl<T: AtomicPrimitive> Atomic<T> {
     const fn new(value: T) -> Atomic<T>;
 
-    fn load(self, ordering: Ordering = SeqCst) -> T;
-    fn store(self, value: T, ordering: Ordering = SeqCst);
-    fn swap(self, value: T, ordering: Ordering = SeqCst) -> T;
+    fn load(self, ordering: AtomicOrdering = SeqCst) -> T;
+    fn store(self, value: T, ordering: AtomicOrdering = SeqCst);
+    fn swap(self, value: T, ordering: AtomicOrdering = SeqCst) -> T;
     fn compare_exchange(
         self, current: T, new: T,
-        success: Ordering, failure: Ordering,
+        success: AtomicOrdering, failure: AtomicOrdering,
     ) -> Result<T, T>;                  // 실패 결과도 값 — 에러가 아님
     fn compare_exchange_weak(
         self, current: T, new: T,
-        success: Ordering, failure: Ordering,
+        success: AtomicOrdering, failure: AtomicOrdering,
     ) -> Result<T, T>;                  // 실패 결과도 값 — 에러가 아님
 
     // 정수 전용
-    fn fetch_add(self, value: T, ordering: Ordering = SeqCst) -> T;
-    fn fetch_sub(self, value: T, ordering: Ordering = SeqCst) -> T;
-    fn fetch_and(self, value: T, ordering: Ordering = SeqCst) -> T;
-    fn fetch_or(self, value: T, ordering: Ordering = SeqCst) -> T;
-    fn fetch_xor(self, value: T, ordering: Ordering = SeqCst) -> T;
+    fn fetch_add(self, value: T, ordering: AtomicOrdering = SeqCst) -> T;
+    fn fetch_sub(self, value: T, ordering: AtomicOrdering = SeqCst) -> T;
+    fn fetch_and(self, value: T, ordering: AtomicOrdering = SeqCst) -> T;
+    fn fetch_or(self, value: T, ordering: AtomicOrdering = SeqCst) -> T;
+    fn fetch_xor(self, value: T, ordering: AtomicOrdering = SeqCst) -> T;
 }
 ```
 
-### `Ordering`
+### `AtomicOrdering`
 
 원자 연산은 메모리 순서 보장 수준에 따라 다섯 가지로 나뉘며, 각 변형의 의미는 다음과 같습니다.
 
 ```rok
-enum Ordering {
+enum AtomicOrdering {
     Relaxed,        // 동기화 없음 — counter 등
     Acquire,        // load 후 동기화 보장
     Release,        // store 전 동기화 보장
@@ -68,7 +68,7 @@ enum Ordering {
 }
 ```
 
-이 모델은 C++ 와 Rust 의 atomic ordering 모델과 동형이며, 기본값은 안전한 `SeqCst` 입니다. 따라서 약한 ordering 은 성능이 critical 한 자리에서만 신중하게 사용하는 것이 좋습니다.
+이 모델은 C++ 와 Rust 의 atomic ordering 모델과 동형이며, 기본값은 안전한 `SeqCst` 입니다. 이름이 `AtomicOrdering` 인 것은 암묵 core glob 아래에서 비교용 `cmp::Ordering` 과 겹치지 않게 하기 위함이며, 변형 (`Relaxed`, `Acquire`, `Release`, `AcqRel`, `SeqCst`) 은 접두 없이 쓸 수 있습니다. ordering 인자는 컴파일 타임 상수여야 합니다. 따라서 약한 ordering 은 성능이 critical 한 자리에서만 신중하게 사용하는 것이 좋습니다.
 
 ### 사용 예
 
@@ -77,8 +77,8 @@ enum Ordering {
 ```rok
 static COUNTER: Atomic<i32> = Atomic::new(0);
 
-task::spawn { COUNTER.fetch_add(1, Relaxed); };
-task::spawn { COUNTER.fetch_add(1, Relaxed); };
+task::spawn(async { COUNTER.fetch_add(1, Relaxed); });
+task::spawn(async { COUNTER.fetch_add(1, Relaxed); });
 // 결과: COUNTER == 2 (race 없음)
 
 let v = COUNTER.load(SeqCst);     //→ 2
@@ -106,7 +106,7 @@ fn lock_free_push(stack: Atomic<List<T> | none>, x: T) {
 
 ## 2.16.3. `Mutex<T>` — 배타적 잠금
 
-원자 연산만으로 표현하기 어려운 공유 상태에는 `Mutex<T>` 를 사용합니다. 내부는 futex 와 payload 로 구성되며, RAII 가드를 통해 잠금을 자동으로 관리합니다.
+원자 연산만으로 표현하기 어려운 공유 상태에는 `Mutex<T>` 를 사용합니다. 내부는 futex 와 payload 로 구성되며, `using` 으로 묶은 가드가 잠금을 해제합니다.
 
 ```rok
 struct Mutex<T> {
@@ -129,23 +129,24 @@ impl<T> Drop for MutexGuard<T> {
 }
 
 impl<T> MutexGuard<T> {
-    fn deref(self) -> T;        // 또는 Index
-    fn deref_mut(ref self) -> ref T;
+    fn get(self) -> T;                  // 보호된 값
+    fn set(self, value: T);             // 값 교체
+    fn update(self, f: fn(T) -> T);     // 읽고 바꿔 씀
 }
 ```
 
 ### 사용 예
 
-scope 가 종료되면 가드가 자동으로 drop 되어 잠금이 해제되므로, 명시적인 unlock 호출이 필요 없습니다.
+가드를 `using` 으로 묶으면 블록을 빠져나갈 때 `drop` 되어 잠금이 해제됩니다. `using` 없이 받은 가드는 자동으로 풀리지 않으므로 반드시 `using` 으로 묶습니다.
 
 ```rok
 static STATE: Mutex<List<i32>> = Mutex::new([]);
 
-task::spawn {
-    let g = STATE.lock();
-    g.push(42);
-    // ↑ scope 끝 — g.drop() 자동 호출 → 잠금 해제 ([2.13 marker](213-marker.md))
-};
+task::spawn(async {
+    using g = STATE.lock() {
+        g.update(|xs| { xs.push(42); xs });
+    }   // ← g.drop() → 잠금 해제 ([2.13 marker](213-marker.md))
+});
 ```
 
 ### deadlock 회피 — `try_lock`
@@ -153,9 +154,8 @@ task::spawn {
 deadlock 을 피하고 싶을 때는 blocking 대신 `try_lock` 으로 비차단 시도를 할 수 있습니다.
 
 ```rok
-let g = STATE.try_lock();
-match g {
-    v: MutexGuard<...> => { v.push(1); },
+match STATE.try_lock() {
+    v: MutexGuard<...> => using g = v { g.push(1); },
     none => { log("locked, skip"); },
 }
 ```
@@ -164,17 +164,18 @@ match g {
 
 rok 의 Mutex 는 Rust 의 PoisonError 모델과 다릅니다. panic 이 발생해도 잠금은 자동으로 해제되며, 다음 task 는 정상적으로 진입할 수 있습니다. 이렇게 설계한 이유는 두 가지입니다.
 
-1. panic 은 잡을 수 없고 프로세스를 종료하므로, panic 도중의 잠금 상태를 다른 task 가 관측하는 일이 없습니다. 에러가 `throw` 로 전파되어 스코프를 벗어날 때에는 [scope 종료 시 Drop 이 자동으로 호출](213-marker.md#2134-drop--scope-종료-시-정리)되므로, `MutexGuard` 의 drop 이 잠금 해제를 책임집니다.
+1. panic 은 잡을 수 없고 프로세스를 종료하므로, panic 도중의 잠금 상태를 다른 task 가 관측하는 일이 없습니다. 에러가 `throw` 로 전파되어 `using` 블록을 벗어날 때에는 [`using` 이 Drop 을 호출](213-marker.md#2134-drop--using-해제-시-정리)하므로, `MutexGuard` 의 drop 이 잠금 해제를 책임집니다.
 2. poison 의 의미는 보수적으로 보이지만 사용자 부담이 크고, 대부분의 경우 false positive 입니다.
 
 에러로 빠져나가기 전에 일관성 복원이 정말로 필요한 자리에서는 다음과 같이 명시적으로 처리하면 됩니다.
 
 ```rok
-let g = MUTEX.lock();
-try unsafe_op(g) catch e {
-    g.reset_to_known_good_state();
-    throw e;
-};
+using g = MUTEX.lock() {
+    try unsafe_op(g) catch e {
+        g.reset_to_known_good_state();
+        throw e;
+    };
+}
 ```
 
 ## 2.16.4. `RwLock<T>` — read-write 분리
@@ -200,12 +201,36 @@ config 나 cache 처럼 read 가 압도적으로 많은 자리에서 사용하�
 ```rok
 static CONFIG: RwLock<Config> = RwLock::new(Config::default());
 
-let c = CONFIG.read();           // 다른 reader 와 동시 OK
-process(c);
-// ↑ scope 끝 — read guard drop, lock 해제
+using c = CONFIG.read() {        // 다른 reader 와 동시 OK
+    process(c);
+}   // ← read guard drop, lock 해제
 
-CONFIG.write().reload_from_file();    // 잠시 모든 reader 차단
+using w = CONFIG.write() {       // 잠시 모든 reader 차단
+    w.reload_from_file();
+}
 ```
+
+## 2.16.4a. `Once` / `Condvar`
+
+Rust 와 같은 모양의 두 primitive 입니다. poisoning 은 없습니다.
+
+```rok
+struct Once { /* ... */ }
+impl Once {
+    const fn new() -> Once;
+    fn call_once(self, f: fn());          // 처음 한 번만 f 실행, 동시 호출자는 끝날 때까지 대기
+}
+
+struct Condvar { /* ... */ }
+impl Condvar {
+    const fn new() -> Condvar;
+    fn wait<T>(self, guard: MutexGuard<T>) -> MutexGuard<T>;   // 잠금을 풀고 대기, 깨면 다시 잠금
+    fn notify_one(self);
+    fn notify_all(self);
+}
+```
+
+`wait` 는 spurious wakeup 이 있을 수 있으므로 조건을 루프에서 다시 확인합니다.
 
 ## 2.16.5. `Cell<T>` — single-threaded interior
 
@@ -231,7 +256,7 @@ c.set(42);
 let v = c.get();          //→ 42
 
 // task 간 공유 — 컴파일 에러 (Cell 은 Send / Sync 가 정의되지 않음)
-task::spawn { c.set(100) };       // ERROR — Cell 은 cross-task 안전 X
+task::spawn(async { c.set(100) });       // ERROR — Cell 은 cross-task 안전 X
 ```
 
 ### `Send` / `Sync` 마커
@@ -240,7 +265,7 @@ task::spawn { c.set(100) };       // ERROR — Cell 은 cross-task 안전 X
 
 - `Atomic<T>`: Send + Sync
 - `Mutex<T>` / `RwLock<T>`: Send + Sync (T: Send 시)
-- `Cell<T>`: 없음 (single-task only) — 위 `task::spawn` 이 에러인 이유는 클로저가 `Cell` 을 캡처해 `fn() + Send` 자리에 들어갈 수 없기 때문입니다
+- `Cell<T>`: 없음 (single-task only) — 위 `task::spawn` 이 에러인 이유는 `async` 블록이 `Cell` 을 캡처해 `Send` 가 아니기 때문입니다
 
 ## 2.16.6. 모듈 매핑
 

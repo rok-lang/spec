@@ -83,10 +83,10 @@ let r: Ptr<i32> = rok::bare::ptr::from_exposed_provenance(addr);  // unsafe — 
 
 ```rok
 let obj: List<i32> = [1, 2, 3];                // GcPtr (자동)
-let pin = rok::bare::gc::pin(obj);                // pin 시작
-let raw: Ptr<i32> = rok::bare::ptr::list_data(obj);
-ffi_function(raw, obj.len());
-drop(pin);                                     // pin 해제 — raw 무효
+using pin = rok::bare::gc::pin(obj) {           // pin 시작
+    let raw: Ptr<i32> = rok::bare::ptr::list_data(obj);
+    ffi_function(raw, obj.len());
+}                                              // pin 해제 — raw 무효
 ```
 
 ### 4. Cast 는 명시 named operation 만

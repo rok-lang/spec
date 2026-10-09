@@ -13,7 +13,7 @@ fn channel<T: Send>() -> (Sender<T>, Receiver<T>);
 fn channel_bounded<T: Send>(cap: usize) -> (Sender<T>, Receiver<T>);
 ```
 
-먼저 `channel<T>()` 는 **unbounded** 채널을 만듭니다. capacity 가 무한하다는 의미이며, 실질적으로는 메모리 한계까지 메시지를 받아들입니다. 반면 `channel_bounded<T>(cap)` 은 **bounded** 채널을 만들며, capacity 가 `cap` 으로 고정되어 큐가 가득 차면 sender 쪽이 block 됩니다.
+먼저 `channel<T>()` 는 **unbounded** 채널을 만듭니다. capacity 가 무한하다는 의미이며, 실질적으로는 메모리 한계까지 메시지를 받아들입니다. 반면 `channel_bounded<T>(cap)` 은 **bounded** 채널을 만들며, capacity 가 `cap` 으로 고정되어 큐가 가득 차면 sender 쪽이 block 됩니다. `channel_bounded(0)` 은 rendezvous 채널로, `send` 는 receiver 가 그 값을 받을 때까지 기다립니다.
 
 ### 사용 예
 
@@ -22,11 +22,11 @@ fn channel_bounded<T: Send>(cap: usize) -> (Sender<T>, Receiver<T>);
 ```rok
 let (tx, rx) = channel::<i32>();
 
-task::spawn {
+task::spawn(async {
     try tx.send(1);
     try tx.send(2);
     try tx.send(3);
-};
+});
 
 while let v: i32 = rx.recv() {
     use(v);                  //→ 1, 2, 3
@@ -45,12 +45,18 @@ impl<T> Sender<T> {
     fn send(self, value: T) throws (SendError<T>);
     fn try_send(self, value: T) throws (TrySendError<T>);
     fn clone(self) -> Sender<T>;             // 다중 sender
+    fn close(self);                          // 이 sender 를 닫음
 }
 
 impl<T> Receiver<T> {
-    fn recv(self) -> T | none;               // none = 모든 sender drop
+    fn recv(self) -> T | none;               // none = 모든 sender 가 close
     fn try_recv(self) -> T | none;           // none = 비어있음 또는 closed
     fn iter(self) -> ChannelIter<T>;         // for x in rx { ... }
+}
+
+impl<T> IntoIterator for Receiver<T> {   // for x in rx — 모든 sender 가 close 되면 끝
+    type Item = T;
+    type IntoIter = ChannelIter<T>;
 }
 
 enum SendError<T> { Closed(T) }
@@ -63,14 +69,14 @@ enum TrySendError<T> { Full(T), Closed(T) }
 
 ## 2.17.3. close 의미
 
-채널이 닫히는 시점과 그 신호가 전달되는 방식은 다음과 같이 정리할 수 있습니다. 우선 `Sender::drop()` 이 호출되어 마지막 sender 가 사라지면 채널은 closed 상태가 됩니다. 이때 receiver 쪽에서는 `recv()` 가 `none` 을 반환하여 close 신호를 받게 됩니다. 반대로 receiver 가 모두 drop 된 경우에는 `send()` 가 `SendError::Closed` 를 던져 송신이 더 이상 의미 없음을 알립니다.
+채널이 닫히는 시점과 그 신호가 전달되는 방식은 다음과 같이 정리할 수 있습니다. 우선 모든 sender 가 `close()` 되면 채널은 closed 상태가 됩니다. 이때 receiver 쪽에서는 `recv()` 가 `none` 을 반환하여 close 신호를 받게 됩니다. rok 은 scope 종료 시 자동 drop 이 없으므로 ([2.13.4](213-marker.md#2134-drop--using-해제-시-정리)), sender 를 닫는 것은 명시적인 `close()` 입니다.
 
-다음은 명시적인 `drop` 으로 채널을 닫는 예시입니다.
+다음은 `close()` 로 채널을 닫는 예시입니다.
 
 ```rok
 let (tx, rx) = channel::<i32>();
 try tx.send(1);
-drop(tx);              // 명시 drop (또는 scope 끝)
+tx.close();            // 명시 close
 
 rx.recv();             //→ 1
 rx.recv();             //→ none  (closed)
@@ -84,8 +90,8 @@ rx.recv();             //→ none  (closed)
 let (tx, rx) = channel::<str>();
 let tx2 = tx.clone();
 
-task::spawn { try tx.send("hello"); };
-task::spawn { try tx2.send("world"); };
+task::spawn(async { try tx.send("hello"); });
+task::spawn(async { try tx2.send("world"); });
 
 let v1 = rx.recv();
 let v2 = rx.recv();

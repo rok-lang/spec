@@ -48,7 +48,7 @@ true      false     none      self      Self
 | `type`                             | 항목 시작에서 식별자가 오고 그 뒤에 `=` 또는 `<` 가 올 때 (타입 별칭) | [2.6](../002-types/206-sum-types.md) |
 | `any`                              | 타입 자리 (`any`, `any Tr`)                                            | [2.2](../002-types/202-any-slot.md) |
 | `in`                               | `for pat in` 의 `in`                                                   | [3.13.3](../003-expressions/313-loop-expressions.md#3133-for-반복자-기반-반복) |
-| `where`                            | 함수 시그니처나 `impl` 헤더 뒤                                         | [2.10.4](../002-types/210-generics.md#2104-where-절) |
+| `where`                            | 함수 시그니처, `impl` 헤더, `struct` / `enum` / `union` / 타입 별칭 헤더 뒤 | [2.10.4](../002-types/210-generics.md#2104-where-절) |
 | `throws`, `rethrows`               | 함수 시그니처의 매개변수 `)` 뒤                                        | [4.14](../004-functions/414-throws.md) |
 | `catch`, `finally`                 | 식이나 블록 뒤 (후위 절)                                               | [3.14](../003-expressions/314-error-control-flow.md) |
 | `const`, `static`, `extern`, `mut` | 항목 시작 (`extern "C"`, `static mut` 포함)                            | [5.2](../005-modules/502-const.md), [5.3](../005-modules/503-static.md), [5.9](../005-modules/509-extern-block.md) |

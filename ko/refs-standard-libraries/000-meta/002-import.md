@@ -48,7 +48,7 @@ fn main() {
     println(f"{total}");                   // rok::core::print::println
 
     let m = Mutex::new(0);                 // rok::core::sync::Mutex
-    task::spawn { /* ... */ };              // rok::core::task::spawn
+    task::spawn(async { /* ... */ });              // rok::core::task::spawn
 
     let h = handle::new();                 // rok::core::sync::Handle
 }
@@ -123,7 +123,7 @@ let xs = [1, 2, 3];   // ERROR — List 미 import
 ```rok
 mod sync {                          // rok::core::sync
     pub struct Mutex<T> { ... }
-    pub fn lock<T>(m: ref Mutex<T>) -> MutexGuard<T> { ... }
+    pub fn lock<T>(ref m: Mutex<T>) -> MutexGuard<T> { ... }
 
     pub(pkg) struct Internal { ... }    // pkg 내부만
     fn helper() { ... }                  // private
@@ -140,7 +140,7 @@ rok::core::sync::helper();                     // ERROR — private
 ```rok
 // 묵시 use rok::core::**; 후
 let m = Mutex::new(0);              // OK — Mutex 직접 노출 (pub at rok::core::sync 라 reachable)
-let s = task::spawn { /* */ };      // OK — task 모듈 자체도 reachable, spawn 은 task::spawn
+let s = task::spawn(async { /* */ });      // OK — task 모듈 자체도 reachable, spawn 은 task::spawn
 
 // 둘 다 같은 의미.
 rok::core::sync::Mutex::new(0);

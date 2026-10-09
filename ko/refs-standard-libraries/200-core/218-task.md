@@ -9,13 +9,14 @@
 핵심 API 의 시그니처는 다음과 같습니다.
 
 ```rok
-fn spawn<T: Send>(f: fn() -> T + Send) -> Task<T>;
-fn race<T>(tasks: List<Task<T>>) -> T;                  // 첫 완료 task 결과
-fn join<T>(tasks: List<Task<T>>) -> List<T>;            // 모두 완료 후
-fn timeout<T>(dur: Duration, task: Task<T>) throws (TimeoutError) -> T;
+fn spawn<F: Future + Send>(f: F) -> Task<F::Output> where F::Output: Send;
+fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future — 현재 스레드에서 실행
+async fn race<T>(tasks: List<Task<T>>) -> T;            // 첫 완료 task 결과
+async fn join<T>(tasks: List<Task<T>>) -> List<T>;      // 모두 완료 후
+async fn timeout<T>(dur: Duration, task: Task<T>) throws (TimeoutError) -> T;   // try await 에서 던짐
+async fn sleep(dur: Duration);
+async fn sleep_until(when: Instant);
 fn yield_now();
-fn sleep(dur: Duration);
-fn sleep_until(when: Instant);
 ```
 
 ### 사용 예
@@ -25,25 +26,25 @@ fn sleep_until(when: Instant);
 ```rok
 use rok::core::task::*;
 
-let t = task::spawn { compute_heavy() };
+let t = task::spawn(async { compute_heavy() });
 let result = await t;
 
-let results = task::join([
-    task::spawn { fetch("a") },
-    task::spawn { fetch("b") },
-    task::spawn { fetch("c") },
+let results = await task::join([
+    task::spawn(async { fetch("a") }),
+    task::spawn(async { fetch("b") }),
+    task::spawn(async { fetch("c") }),
 ]);
 
-let first = task::race([
-    task::spawn { source_a() },
-    task::spawn { source_b() },
+let first = await task::race([
+    task::spawn(async { source_a() }),
+    task::spawn(async { source_b() }),
 ]);
 
-task::sleep(Duration::ms(100));
+await task::sleep(Duration::ms(100));
 task::yield_now();
 ```
 
-여기서 사용된 trailing closure 는 [refs-lang 4.8 trailing closure](../../refs-lang/004-functions/408-trailing-closure.md) 의 일반 규칙을 따르므로, `task::spawn { ... }` 는 `task::spawn(|| { ... })` 와 동일하게 동작합니다.
+`spawn` 은 클로저가 아니라 future 를 받으므로 `task::spawn(async { ... })` 처럼 `async` 블록이나 `async fn` 호출 결과를 넘깁니다. `Send` 가 아닌 future 는 `spawn_local` 로 현재 스레드에서 실행합니다. `join` / `race` / `timeout` 은 `await` 해서 결과를 받습니다.
 
 ## 2.18.2. `Task<T>` 타입
 
@@ -94,7 +95,7 @@ Worker 0 ─┐      Worker 1 ─┐    ...    Worker N-1 ─┐
 협력적 취소는 다음과 같이 사용합니다.
 
 ```rok
-let t = task::spawn { long_running() };
+let t = task::spawn(async { long_running() });
 // ... 다른 일 ...
 t.cancel();              // 협력적 신호 — task 가 cancellation point 에서 종료
 ```

@@ -189,20 +189,32 @@ async yield fn read_paginated(url: str) throws (NetworkError) -> Page { ... }
 async fn fetch_data() throws (NetworkError) -> Data { ... }
 ```
 
-위 함수의 호출 결과가 구현하는 트레잇이 `Future<Output = Data>` 인지 아니면 `Future<Output = Data | NetworkError>` 인지 궁금할 수 있습니다.
+위 함수의 호출 결과가 `Data | NetworkError` 를 담는 Future 인지 궁금할 수 있습니다.
 
-답은 **`Future<Output = Data>`** 입니다. 에러는 `Future` 의 결과 타입에 섞이지 않고, `await` 지점에서 에러 채널로 전달됩니다. 따라서 `await` 하는 쪽이 `try` 로 표시합니다.
+답은 **`TryAsyncFuture<Data, NetworkError>`** 입니다 ([4.1.11](401-function-declaration.md#코루틴-함수의-결과-타입)). 에러는 결과 타입에 섞이지 않고, `await` 지점에서 에러 채널로 전달됩니다. 따라서 `await` 하는 쪽이 `try` 로 표시합니다. `TryAsyncFuture` 는 일반 `Future` 트레잇을 구현하지 않습니다.
 
 ```rok
-let f = fetch_data();              // f: Future<Output = Data> 를 구현하는 익명 타입
+let f = fetch_data();              // f: TryAsyncFuture<Data, NetworkError>
 let d = try await f catch e: NetworkError {
     ...
 };
 ```
 
-이 결정 덕분에 `Future` 가 결과와 에러라는 두 변형을 갖는 `enum` 으로 변하지 않으며, 깔끔한 단일 타입으로 유지될 수 있습니다.
+이 결정 덕분에 결과가 결과와 에러라는 두 변형을 갖는 `enum` 으로 변하지 않습니다.
 
-`yield` 와 `async yield` 도 동일한 패턴을 따릅니다. `Iterator<Item = T>` 와 `Stream<Item = T>` 의 `T` 는 성공 값의 타입을 나타내고, `throws` 의 에러는 `next` 지점에서 에러 채널로 전달되므로 그 지점을 `try` 로 표시합니다.
+`yield` 와 `async yield` 도 동일한 패턴을 따릅니다. `throws (E)` 인 제너레이터는 `TryGenIter<T, E>`, 스트림은 `TryAsyncStream<T, E>` 이며, 에러는 `next` 지점에서 에러 채널로 전달됩니다.
+
+### `try for`
+
+`next` 가 던지는 iterator (`TryGenIter` 등) 를 도는 `for` 는 throwing 식이므로 `try` 로 덮어야 합니다. `for await` 도 마찬가지입니다.
+
+```rok
+try for line in lines("a.txt") {         // 각 next 의 IoError 가 전파됨
+    process(line);
+}
+try for await ev in events() { handle(ev); }
+for line in lines("a.txt") { ... }       // ERROR — try 없음
+```
 
 ## 4.14.11. 메서드의 `throws`
 

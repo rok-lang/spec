@@ -107,7 +107,7 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 
 | slot 이름     | 의미                    | 표준 라이브러리 메서드          | 참조 |
 |---------------|-------------------------|---------------------------------|------|
-| `drop_method` | scope exit 시 자동 호출 | `rok::core::marker::Drop::drop` | 2.13 |
+| `drop_method` | `using` 블록 해제 시 호출 | `rok::core::marker::Drop::drop` | 2.13 |
 
 ## 0.4.6. 슬롯 사용 측, 컴파일러의 lookup 위치
 
@@ -133,7 +133,7 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 | panic (`try!` 실패 포함) lower               | `panic_fn`                               |
 | OOM 발생 시                                  | `oom_fn`                                 |
 | `match` 모든 arm exhaustive 체크 unreachable | `unreachable_fn`                         |
-| scope exit                                   | `drop_method`                            |
+| `using` 블록 해제                            | `drop_method`                            |
 | `Send` / `Sync` 자동 구현, `+ Send` 검사     | `send_trait`, `sync_trait`               |
 
 ## 0.4.7. 중복 / 누락 검출

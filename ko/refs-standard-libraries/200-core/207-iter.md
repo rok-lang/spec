@@ -235,15 +235,15 @@ trait Step: PartialOrd + Clone {
 
 ### Step impl 매트릭스
 
-표준 라이브러리는 다음 primitive 에 대해 `Step` 을 impl 합니다.
+표준 라이브러리는 정수 primitive 와 `char` 에만 `Step` 을 impl 합니다.
 
 | 타입                 | impl     | 비고                                                 |
 |----------------------|----------|------------------------------------------------------|
 | `i8`..`i64`, `isize` | **있음** | overflow 시 `forward_checked` 가 `none` 반환         |
 | `u8`..`u64`, `usize` | **있음** | underflow 시 `backward_checked` 가 `none` 반환       |
-| `int`                | **있음** | 무한 정밀도 — `forward_checked` 가 `none` 을 안 냄  |
+| `int`                | **없음** | 표준 라이브러리 impl 없음                            |
 | `char`               | **있음** | codepoint 진행, surrogate (`0xD800..=0xDFFF`) 건너뜀 |
-| `bool`               | **있음** | `false` → `true` 한 칸                               |
+| `bool`               | **없음** | 표준 라이브러리 impl 없음                            |
 | `f32`, `f64`         | **없음** | `Range<f64>` 거부 — 의미 모호                        |
 | `float`              | **없음** | (위와 동일)                                          |
 
@@ -314,6 +314,8 @@ struct RangeInclusive<T> {
 impl<T: Step> Iterator for RangeInclusive<T> { ... }
 ```
 
+`start` 와 `end` 외의 필드 (예: 끝에 도달했는지 표시하는 내부 플래그) 는 구현 세부이며 비공개입니다. `end` 가 타입의 최댓값이어도 `a..=b` 는 `b` 까지 정확히 냅니다.
+
 ```rok
 for i in 0..=5 {
     use(i);          //→ 0, 1, 2, 3, 4, 5
@@ -339,6 +341,8 @@ impl<T: Step> Iterator for RangeFrom<T> {
 ```rok
 let it = (10..).take(3);     //→ [10, 11, 12] (take 가 lazy 어댑터)
 ```
+
+`RangeFrom` 은 타입의 최댓값을 내지 않습니다. 최댓값의 다음 값이 없으므로, 최댓값에 도달하면 그 값을 내기 전에 끝납니다 (`(254u8..)` 은 `254` 만 내고 끝남).
 
 ### `RangeTo<T>` / `RangeFull`
 
@@ -436,7 +440,13 @@ trait DoubleEndedIterator: Iterator {
 
 이 트레잇은 뒤에서부터 진행 가능한 iterator 를 표현하며, `rev()` 어댑터나 `rfold`, `rfind` 등 일부 메서드가 이 트레잇을 요구합니다.
 
-`List<T>`, `Range<T>`, `Slice<T>` 등이 이 트레잇을 impl 합니다. 반면 `Dict<K, V>` 와 `Set<T>` 는 순서가 없으므로 impl 하지 않습니다.
+`List<T>`, `Slice<T>` 의 iterator 와 다음 타입은 반드시 이 트레잇을 impl 합니다.
+
+- `Range<T>`, `RangeInclusive<T>`
+- `Rev<I>` (`I` 가 양방향일 때), `Map<I, U>`, `Filter<I>`, `Chain<A, B>` (구성 iterator 가 양방향일 때)
+- `Enumerate<I>`, `Zip<A, B>`, `Take<I>`, `Skip<I>`, `StepBy<I>` — 구성 iterator 가 `DoubleEndedIterator + ExactSizeIterator` 일 때. 뒤에서 세려면 길이가 필요하기 때문입니다.
+
+반면 `Dict<K, V>` 와 `Set<T>` 는 순서가 없으므로 impl 하지 않습니다.
 
 ```rok
 let r: List<i32> = (0..5).rev().collect();    //→ [4, 3, 2, 1, 0]
@@ -452,7 +462,7 @@ trait ExactSizeIterator: Iterator {
 }
 ```
 
-`count()` 의 default impl 은 이 트레잇을 활용하여 O(1) 로 동작합니다.
+`len()` 은 남은 원소 수입니다. `count()` 의 default impl 은 이 트레잇을 활용하여 O(1) 로 동작합니다. `List`, `Slice`, `Range` 의 iterator 와 구성 iterator 가 모두 `ExactSizeIterator` 인 `Enumerate`, `Zip`, `Take`, `Skip`, `StepBy`, `Rev`, `Map` 이 이 트레잇을 impl 합니다.
 
 ## 2.7.11. 모듈 매핑
 

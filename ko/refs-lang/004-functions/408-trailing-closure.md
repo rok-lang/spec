@@ -24,8 +24,8 @@ trailing_closure ::= ("|" closure_params? "|")? block
 매개변수가 없는 클로저의 경우 `|| { body }` 대신 `{ body }` 형태로 단축해서 적을 수 있습니다.
 
 ```rok
-let t = task::spawn { heavy_work() };
-// == task::spawn(|| { heavy_work() })
+let h = thread::spawn { heavy_work() };
+// == thread::spawn(|| { heavy_work() })
 
 with_lock(mutex) { critical_section() };
 ```
@@ -77,11 +77,11 @@ process("in", "out") |s| { s.to_upper() };            // ERROR — 트레일링�
 호출에 인자가 없을 때는 빈 괄호도 생략할 수 있습니다.
 
 ```rok
-task::spawn { heavy() };          // task::spawn() { heavy() } 와 동일
-                                   // == task::spawn(|| { heavy() })
+thread::spawn { heavy() };        // thread::spawn() { heavy() } 와 동일
+                                   // == thread::spawn(|| { heavy() })
 ```
 
-`task::spawn` 의 매개변수가 클로저 한 개라면 위 형태가 가장 자연스러운 호출 방식이 됩니다.
+`thread::spawn` 처럼 매개변수가 클로저 한 개라면 위 형태가 가장 자연스러운 호출 방식이 됩니다.
 
 ## 4.8.5. 중첩
 

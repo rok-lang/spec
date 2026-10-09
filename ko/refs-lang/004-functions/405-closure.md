@@ -168,7 +168,7 @@ async yield || { ... }            // Stream 반환 클로저
 특정 문맥에서는 `{ body }` 가 0-매개변수 클로저로 인식되는 단축 형태가 있습니다. 이 단축은 트레일링 클로저와 결합해 자주 사용됩니다.
 
 ```rok
-task::spawn { heavy_work() }      // == task::spawn(|| { heavy_work() })
+thread::spawn { heavy_work() }    // == thread::spawn(|| { heavy_work() })
 ```
 
 이 단축의 정확한 규칙은 [트레일링 클로저](408-trailing-closure.md) 에서 정의합니다.

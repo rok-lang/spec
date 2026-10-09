@@ -12,6 +12,9 @@
 
 이러한 선택 덕분에 [플랫폼 타깃](../000-meta/006-platform-targets.md) 에서 정의하는 13 개 Tier 1 플랫폼 모두에서 자동으로 작동합니다. arch 별로 별도의 context-switch 어셈블리를 작성할 필요가 전혀 없습니다.
 
+> [!NOTE]
+> **구현 노트 — 상태 기계 lowering.** 구현은 `llvm.coro.*` 대신 컴파일러가 직접 만든 상태 기계로 코루틴을 lower 해도 됩니다. 이때 frame 은 `rok_gc_alloc_slow` 로 할당하는 GC 객체이며, 중단된 동안에는 frame 의 ScanTable 로, 실행 중에는 shadow stack ([7.4.1](704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack)) 으로 root 가 잡힙니다. 관찰 가능한 의미는 같습니다.
+
 ## 7.8.2. 컴파일 흐름
 
 ```
@@ -51,7 +54,7 @@ LLVM 이 코루틴 안에 흩어져 있는 `alloca` 들을 한데 모아 frame �
 
 - frame 이 자동으로 GC root 역할을 수행하며, 누군가 frame 을 가리키는 동안에는 살아 있습니다.
 - sticky 비트를 통해 long-lived `async` task 가 자연스럽게 추적됩니다 ([GC 알고리듬](703-gc-algorithm.md) 참고).
-- frame 타입이 곧 호출 결과의 익명 타입이며, Future / Iterator / Stream 트레잇을 구현합니다 ([4.1.11](../004-functions/401-function-declaration.md#코루틴-함수의-결과-타입)).
+- 호출 결과 (`GenIter<T>`, `AsyncFuture<T>`, `AsyncStream<T>` 와 그 `Try*` 변형) 는 이 frame 을 감싼 값입니다 ([4.1.11](../004-functions/401-function-declaration.md#코루틴-함수의-결과-타입)).
 
 ## 7.8.5. Generator 와 Async 의 두 lowering
 
@@ -161,6 +164,9 @@ async fn deep(n: i32) -> i32 {
 위 코드는 호출이 일어날 때마다 frame 을 새로 할당할 뿐, 일반 stack 은 전혀 쓰지 않습니다. 그래서 수십만 깊이까지도 가능합니다 (다만 heap 사용량은 그만큼 늘어납니다).
 
 이는 일반 함수가 안고 있는 stack overflow 위험과 뚜렷하게 구분되는 코루틴의 장점입니다.
+
+> [!NOTE]
+> **구현 노트.** 상태 기계 lowering 을 쓰는 구현은 중첩된 `await` 를 native stack 위의 호출로 진행할 수 있습니다. 이 경우 위 깊이 보장은 약해지며, 매우 깊은 `await` 재귀는 stack overflow 가 될 수 있습니다.
 
 ## 7.8.11. 코루틴 프레임의 수명
 
