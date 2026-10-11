@@ -13,7 +13,7 @@ fn channel<T: Send>() -> (Sender<T>, Receiver<T>);
 fn channel_bounded<T: Send>(cap: usize) -> (Sender<T>, Receiver<T>);
 ```
 
-먼저 `channel<T>()` 는 **unbounded** 채널을 만듭니다. capacity 가 무한하다는 의미이며, 실질적으로는 메모리 한계까지 메시지를 받아들입니다. 반면 `channel_bounded<T>(cap)` 은 **bounded** 채널을 만들며, capacity 가 `cap` 으로 고정되어 큐가 가득 차면 sender 쪽이 block 됩니다. `channel_bounded(0)` 은 rendezvous 채널로, `send` 는 receiver 가 그 값을 받을 때까지 기다립니다.
+먼저 `channel<T>()` 는 **unbounded** 채널을 만듭니다. capacity 가 무한하다는 의미이며, 실질적으로는 메모리 한계까지 메시지를 받아들입니다. 반면 `channel_bounded<T>(cap)` 은 **bounded** 채널을 만들며, capacity 가 `cap` 으로 고정되어 큐가 가득 차면 sender 쪽이 block 됩니다. `channel_bounded(0)` 은 rendezvous 채널로, `send` 는 receiver 가 그 값을 받을 때까지 기다립니다. 이 채널의 `try_send` 는 기다리는 receiver 가 없으면 `TrySendError::Full` 을 던집니다.
 
 ### 사용 예
 
@@ -51,7 +51,13 @@ impl<T> Sender<T> {
 impl<T> Receiver<T> {
     fn recv(self) -> T | none;               // none = 모든 sender 가 close
     fn try_recv(self) -> T | none;           // none = 비어있음 또는 closed
+    fn recv_async(self) -> RecvFuture<T>;    // await rx.recv_async() — task 만 중단, Output = T | none
     fn iter(self) -> ChannelIter<T>;         // for x in rx { ... }
+}
+
+impl<T> Stream for Receiver<T> {         // for await v in rx — task 만 중단
+    type Item = T;
+    ...
 }
 
 impl<T> IntoIterator for Receiver<T> {   // for x in rx — 모든 sender 가 close 되면 끝
@@ -65,7 +71,7 @@ enum TrySendError<T> { Full(T), Closed(T) }
 
 `T: Send` 이면 `Sender<T>` 와 `Receiver<T>` 도 `Send` 이므로 다른 task 나 스레드로 옮길 수 있습니다 ([2.13.9](213-marker.md#2139-send--sync--스레드-경계-marker)).
 
-여기서 주의해서 보실 부분은 `recv` 의 동작 방식입니다. `recv` 는 **blocking** 이지만, task 환경에서는 OS thread 를 막는 대신 **coroutine suspend** 로 처리되므로 시스템 자원을 낭비하지 않습니다.
+`recv` 와 `send` (bounded 가 가득 찬 경우) 는 스레드를 block 합니다. async 코드에서 task 만 중단하려면 `await rx.recv_async()` 나 `for await v in rx` 를 씁니다. `Mutex::lock` / `lock_async` 도 같은 구분입니다 ([2.16](216-sync.md)).
 
 ## 2.17.3. close 의미
 

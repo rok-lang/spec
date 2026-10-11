@@ -17,7 +17,7 @@ fixed primitive (i8..i64, u8..u64, isize, usize, f32, f64; 하드웨어 친화�
 이 세계는 무한 정밀도를 지향합니다. overflow 자체가 발생하지 않으며, 메모리
 한계에 도달했을 때만 OOM 으로 끝납니다. 작은 값은 hardware fixed-width 로
 저장되는 small-int optimization 을 거치고, 값이 커지면 heap 의 BigInt 로 자동
-promote 됩니다. 그 결과 사용자는 산술 정확성을 보장받게 되어, `I32_MAX + 1` 가
+promote 됩니다. `int` / `float` 값은 불변이며, heap 의 BigInt 도 제자리에서 바뀌지 않고 공유만 됩니다 (그래서 `Copy` 입니다). 그 결과 사용자는 산술 정확성을 보장받게 되어, `I32_MAX + 1` 가
 silent wrap 되어 황당한 결과를 내는 일이 없습니다.
 
 ### fixed primitive — 하드웨어 친화 세계

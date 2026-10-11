@@ -464,6 +464,25 @@ trait ExactSizeIterator: Iterator {
 
 `len()` 은 남은 원소 수입니다. `count()` 의 default impl 은 이 트레잇을 활용하여 O(1) 로 동작합니다. `List`, `Slice`, `Range` 의 iterator 와 구성 iterator 가 모두 `ExactSizeIterator` 인 `Enumerate`, `Zip`, `Take`, `Skip`, `StepBy`, `Rev`, `Map` 이 이 트레잇을 impl 합니다.
 
+## 2.7.10a. `GenIter<T>` / `TryGenIter<T, E>` — 제너레이터의 값
+
+`yield fn` 호출과 `yield { .. }` 블록의 값입니다 ([refs-lang 4.1.11](../../refs-lang/004-functions/401-function-declaration.md#코루틴-함수의-결과-타입)).
+
+```rok
+struct GenIter<T> { /* 비공개 */ }
+impl<T> Iterator for GenIter<T> {
+    type Item = T;
+    fn next(ref self) -> T | none;          // 본체를 다음 yield 까지 진행
+}
+
+struct TryGenIter<T, E> { /* 비공개 */ }    // yield fn .. throws (E)
+impl<T, E> TryGenIter<T, E> {
+    fn next(ref self) throws (E) -> T | none;
+}
+```
+
+`TryGenIter` 는 `next` 가 던지므로 `Iterator` 를 구현하지 않습니다. `try for` 나 `try g.next()` 로 진행합니다. 비공개 필드는 사양으로 정하지 않습니다. 복사본은 같은 코루틴 frame 을 공유하므로 진행 위치도 공유합니다.
+
 ## 2.7.11. 모듈 매핑
 
 각 트레잇과 lang slot, 표준 라이브러리 위치의 매핑을 정리하면 다음과 같습니다.

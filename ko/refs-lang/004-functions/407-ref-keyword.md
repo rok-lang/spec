@@ -144,6 +144,8 @@ let r: SomePointerType = ref x;   // ERROR
 
 `ref` 는 값을 만드는 식이 아니며, 호출과 매개변수, 캡처 리스트에 붙는 수식어 토큰일 뿐입니다.
 
+코루틴 함수 (`yield fn`, `async fn`, `async yield fn`) 는 `ref` 매개변수를 가질 수 없으며, 쓰면 컴파일 에러입니다. 호출이 끝난 뒤에도 본체가 이어서 실행되므로 되쓰기 시점이 없기 때문입니다.
+
 같은 이유로 `ref` 매개변수를 가진 함수는 함수 값으로 쓸 수 없으며 (`let f = increment;` 는 에러), 클로저는 `ref` 매개변수를 가질 수 없습니다. 함수 타입 `fn(..)` 에는 `ref` 를 표현할 자리가 없기 때문입니다.
 
 만약 일급 참조가 필요한 경우(예: [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface)) 에는 [타입 표현식](../002-types/201-type-expressions.md) 의 원시 포인터 타입(`Ptr<T>` 와 `ConstPtr<T>`) 을 사용하면 되며, 이는 [표준 라이브러리 계층](../000-meta/005-standard-libraries-tiers.md) 의 `unsafe` 영역에 해당합니다.

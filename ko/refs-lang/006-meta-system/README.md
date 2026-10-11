@@ -37,7 +37,7 @@ meta block — user-defined derive / attribute definitions
 속성은 다음과 같은 모습을 가집니다.
 
 ```rok
-#[derive(Display, Clone)]
+#[derive(Debug, Clone)]
 struct Point { x: f64; y: f64; }
 
 #[inline(always)]

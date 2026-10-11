@@ -15,24 +15,19 @@ deprecated_attr ::= "#" "[" "deprecated" ("(" string_lit ")")? "]"
 ## 6.2.1. `#[derive(...)]` 자동 트레잇 구현
 
 ```rok
-#[derive(Display, Clone, Eq, Ord, Hash, Debug)]
-struct Point { x: f64; y: f64; }
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+struct Point { x: i64; y: i64; }
 ```
 
 `#[derive(...)]` 의 인자에는 트레잇 이름들을 콤마로 구분하여 나열합니다. 그러면 나열된 각 트레잇에 대해 해당 타입에 어울리는 자동 구현이 생성됩니다.
 
 ### 내장 derive 가능 트레잇
 
-| 트레잇    | 의미                                   |
-|-----------|----------------------------------------|
-| `Eq`      | 동등성 (==, !=)                        |
-| `Ord`     | 순서 (<, >, <=, >=). `Eq` 도 함께 필요 |
-| `Hash`    | 해시 가능                              |
-| `Display` | 사용자 표시 (`f"{x}"` 의 기본 형식)    |
-| `Debug`   | 디버그 표시 (`f"{x:?}"`)               |
-| `Clone`   | 복사 가능 (`.clone()`)                 |
+`Clone`, `Copy`, `Debug`, `Default`, `PartialEq`, `Eq`, `PartialOrd`, `Ord`, `Hash` 만 derive 할 수 있습니다. 각 트레잇의 생성 규칙과 요구 조건은 [stdlib 2.13.11](../../refs-standard-libraries/200-core/213-marker.md#21311-derive-가능한-트레잇) 에서 정의합니다.
 
-자동 구현이 어떤 식으로 동작할지는 표준 라이브러리에서 정의해 둡니다. 예를 들어 `Eq` 는 모든 필드의 동등성을 비교하는 방식으로 구현되며, `Hash` 는 모든 필드의 해시를 결합하는 방식으로 구현됩니다.
+- `Display` 는 derive 할 수 없습니다. 표시 형식은 타입 작성자가 정합니다 ([stdlib 2.10](../../refs-standard-libraries/200-core/210-fmt.md)).
+- `Eq` / `Ord` 를 상위 트레잇 (`PartialEq` / `PartialOrd`, `Eq`) 없이 derive 하면 컴파일 에러입니다. `Copy` 는 `Clone` 이 필요하고 `Drop` 과 함께 쓸 수 없습니다.
+- `union` 에 `#[derive]` 를 붙이면 컴파일 에러입니다.
 
 ### 사용자 정의 derive 와의 결합
 
@@ -41,7 +36,7 @@ struct Point { x: f64; y: f64; }
 내장 derive 와 사용자 정의 derive 는 하나의 `#[derive(...)]` 안에 자유롭게 섞어 사용할 수 있습니다.
 
 ```rok
-#[derive(Eq, Clone, MyCustomTrait)]
+#[derive(PartialEq, Eq, Clone, MyCustomTrait)]
 struct Foo { ... }
 ```
 

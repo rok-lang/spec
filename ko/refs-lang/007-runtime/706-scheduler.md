@@ -19,6 +19,9 @@ OS Thread = {
 
 이렇게 역할을 통합한 덕분에 추가로 thread 를 분리하지 않고도 모든 런타임 활동이 하나의 풀에서 처리될 수 있습니다.
 
+> [!NOTE]
+> 현재 구현에서 pool 은 `task::block_on` 이 띄우며, worker 수는 CPU 수이고 호출 스레드가 worker 0 입니다. `par::*` 도 같은 pool 위에서 돕니다 ([stdlib 2.18.3](../../refs-standard-libraries/200-core/218-task.md#2183-스케줄러-모델--work-stealing)).
+
 ## 7.6.2. Work-Stealing 구조
 
 각 worker 는 로컬 deque 와 LIFO slot 을 함께 갖고 있습니다.

@@ -178,7 +178,7 @@ primitive 타입의 `*Assign` impl 에는 모두 `#[intrinsic("rok.OP_assign.TYP
 | `i*`, `u*`   | 산술 6 개 + 비트 5 개 (11 트레잇)           | `rok.add_assign.i32`, `rok.shl_assign.u32`, ... |
 | `f32`, `f64` | 산술 6 개만                                 | `rok.add_assign.f64`, ...                       |
 | `bool`       | `BitAndAssign`/`BitOrAssign`/`BitXorAssign` | `rok.and_assign.bool`, ...                      |
-| `int`        | 산술 + 비트                                 | auto-promote 로직 + in-place mutation           |
+| `int`        | 산술 + 비트                                 | auto-promote 로직 — 새 값으로 교체 (불변)       |
 | `float`      | 산술                                        | (위와 동일 — auto-promote)                      |
 | `List<T>`    | `AddAssign<List<T>>`, `AddAssign<T>`        | push                                            |
 | `str`        | `AddAssign<str>`, `AddAssign<char>`         | `s = s + t` — 새 str 로 교체 (str 은 불변)      |

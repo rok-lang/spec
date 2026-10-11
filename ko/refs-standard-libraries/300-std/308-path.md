@@ -15,6 +15,8 @@ rok 의 경로 표현은 두 개의 타입으로 나뉩니다.
 
 ## 3.8.2. `Path` — UTF-8
 
+`Path` 는 불변 값입니다. `join`, `/`, `with_*` 는 모두 새 `Path` 를 돌려주며, 경로를 제자리에서 바꾸는 `PathBuf` / `push` 는 없습니다. `p /= q` 는 일반 복합 대입 규칙대로 `p = p / q` 입니다.
+
 `Path` 의 인터페이스는 다음과 같이 구성됩니다.
 
 ```rok
@@ -92,6 +94,18 @@ let home = env::home_dir()? / ".config" / "myapp" / "settings.toml";
 
 이는 Python 의 `Path("/etc") / "nginx" / "nginx.conf"` 와 **동일한 ergonomics** 를 제공합니다. 그 결과 Rust `PathBuf::join` 과 `push` 의 verbose 한 표현을 자연스럽게 회피하게 됩니다.
 
+## 3.8.3a. `AsPath` — 경로 인자
+
+```rok
+trait AsPath {
+    fn as_path(self) -> Path;
+}
+impl AsPath for str { ... }
+impl AsPath for Path { ... }
+```
+
+`fs` 의 경로 인자는 `AsPath` 로 받으므로 `str` 과 `Path` 를 모두 넘길 수 있습니다 (`fs::read("a.txt")`, `fs::read(dir / "a.txt")`).
+
 ## 3.8.4. UTF-8 invariant
 
 `Path` 는 **항상 UTF-8** 입니다. 따라서 `Path::from(s)` 시점에 `s` 가 이미 UTF-8 이므로 별도 검증이 필요하지 않습니다.
@@ -163,7 +177,7 @@ let f = try dir.open(Path::from("config.toml"));
 | 측면          | Rust                      | Python `pathlib` | Go `filepath`   | rok                         |
 |---------------|---------------------------|------------------|-----------------|-----------------------------|
 | 타입          | `Path` / `PathBuf`        | `Path`           | `string`        | `Path`                      |
-| owned vs view | borrowed `&Path` / owned  | **불변**         | **불변**        | **가변** (`/=`/`push` 가능) |
+| owned vs view | borrowed `&Path` / owned  | **불변**         | **불변**        | **불변** (`/` 는 새 Path)   |
 | `/` 연산자    | **없음** (`.join()` 명시) | `/`              | **없음**        | `/`                         |
 | non-UTF-8     | `OsStr` (혼합)            | `bytes` (별도)   | `string` (혼란) | `RawPath` 분리              |
 | canonicalize  | `.canonicalize()`         | `.resolve()`     | `filepath.Abs`  | `.canonicalize()`           |

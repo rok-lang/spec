@@ -184,6 +184,25 @@ for await t in ticks(Duration::ms(100)) {
 
 `async yield` 는 async 와 yield 의 결합이며, Stream 을 생성합니다. syntax 권위는 [refs-lang 4.13 stream](../../refs-lang/004-functions/413-stream.md) 에 있습니다.
 
+## 2.20.8a. `AsyncFuture<T>` / `TryAsyncFuture<T, E>` — 비동기 함수의 값
+
+`async fn` 호출과 `async { .. }` 블록의 값입니다 ([refs-lang 4.1.11](../../refs-lang/004-functions/401-function-declaration.md#코루틴-함수의-결과-타입)).
+
+```rok
+struct AsyncFuture<T> { /* 비공개 */ }
+impl<T> Future for AsyncFuture<T> {
+    type Output = T;
+    fn poll(ref self, ref ctx: Context) -> Poll<T>;   // 본체를 다음 대기 지점까지 진행
+}
+
+struct TryAsyncFuture<T, E> { /* 비공개 */ }    // async fn .. throws (E)
+impl<T, E> TryAsyncFuture<T, E> {
+    fn poll(ref self, ref ctx: Context) throws (E) -> Poll<T>;
+}
+```
+
+`TryAsyncFuture` 는 `poll` 이 던지므로 `Future` 를 구현하지 않습니다. `try await` 로 기다립니다. 비공개 필드는 사양으로 정하지 않습니다. 복사본은 같은 코루틴 frame 을 공유하므로 진행 위치도 공유합니다.
+
 ## 2.20.9. 모듈 매핑
 
 각 항목의 모듈 위치와 lang slot / 역할은 아래와 같습니다.

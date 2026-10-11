@@ -16,7 +16,7 @@ struct Command {
     stdout: Stdio;
     stderr: Stderr;
     cwd: Path | none;
-    kill_on_drop: bool;       // child kill on Command/Child drop
+    kill_on_drop: bool;       // using 으로 묶은 Child 가 해제될 때 kill
     process_group: i32 | none;
     // ...
 }
@@ -84,9 +84,9 @@ impl Child {
     fn signal(self, sig: i32) throws (IoError);          // unix
 }
 
-impl ChildStdin { ... }                  // impl Writer
-impl ChildStdout { ... }                 // impl Reader
-impl ChildStderr { ... }                 // impl Reader
+impl ChildStdin { ... }                  // 파일 핸들 — impl Writer
+impl ChildStdout { ... }                 // 파일 핸들 — impl Reader
+impl ChildStderr { ... }                 // 파일 핸들 — impl Reader
 
 struct ExitStatus { /* opaque */ }
 
@@ -130,16 +130,14 @@ let result = try stdout.read_to_end();
 try child.wait();
 
 // kill_on_drop — process leak 방지
-{
-    let child = try Command::new("long_running")
+using child = try Command::new("long_running")
         .kill_on_drop(true)
-        .spawn();
-
+        .spawn() {
     // 에러 전파 / early return 시에도 child kill 보장
-}    // ← Drop 시 자동 kill
+}    // ← using 해제 시 Drop → kill
 ```
 
-마지막 예시가 보여주듯, `kill_on_drop` 을 켜 두면 에러 전파나 조기 return 같은 예기치 못한 흐름에서도 자식이 함께 정리됩니다. 블록을 빠져나가는 순간 Drop 이 호출되어 자동으로 kill 이 걸리기 때문입니다.
+마지막 예시가 보여주듯, `kill_on_drop` 을 켠 `Child` 를 `using` 으로 묶으면 에러 전파나 조기 return 같은 흐름에서도 자식이 함께 정리됩니다. `using` 블록을 빠져나갈 때 `Drop` 이 kill 을 겁니다. `using` 밖의 `Child` 는 자동으로 kill 되지 않습니다 ([2.13.4](../200-core/213-marker.md#2134-drop--using-해제-시-정리)). `ChildStdin` / `ChildStdout` / `ChildStderr` 는 파이프의 파일 핸들이며 `File` 과 같은 방식으로 읽고 씁니다.
 
 ## 3.7.4. 모던 추가 — pidfd / posix_spawn / CLOEXEC
 
@@ -150,7 +148,7 @@ try child.wait();
 | `posix_spawn` fast path | fork+exec 대신 syscall        | huge process spawn 빠름 |
 | `pidfd` (Linux 5.3+)    | pid 대신 fd 로 추적           | race-free signal        |
 | `CLOEXEC` default       | 모든 fd 가 자동 close-on-exec | fd leak 방지            |
-| `kill_on_drop`          | Child drop 시 자동 kill       | process leak 방지       |
+| `kill_on_drop`          | `using` 해제 시 kill          | process leak 방지       |
 
 이러한 결정은 fd 누수와 process 누수, 그리고 신호 race 를 줄이는 방향으로 일관되게 정렬되어 있습니다.
 

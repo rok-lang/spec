@@ -221,7 +221,10 @@ extern "C" {
 
 `rok_gc_alloc_slow` 와 거의 동일하지만, frame 전용으로 별도 처리가 가능합니다.
 
-### `rok_coro_park` / `rok_coro_unpark`
+### `rok_coro_park` / `rok_coro_unpark` (예약)
+
+> [!NOTE]
+> 현재 구현은 이 두 심볼을 쓰지 않습니다. task 의 대기와 깨우기는 `rok::core::task` 의 parking registry (`rok_task_parking_*`) 로 처리합니다. 두 이름은 예약으로 남깁니다.
 
 **Thread-safety: `rok_coro_park` 는 `caller-thread-only`** (호출자 코루틴 자신을 park), **`rok_coro_unpark` 는 `thread-safe`** (다른 thread 에서 호출 가능).
 
@@ -304,6 +307,19 @@ extern "C" {
 
 `rok_thread_spawn` 은 rok 클로저 `f` (아래 `RokFn`, 값 전달) 를 OS 스레드에서 실행합니다 (`stack_size` 0 은 기본값). `id` 는 `rok_thread_new_id` 로 받은 값이며 새 스레드의 `rok_tls_worker_id` 가 됩니다. 반환값은 join handle 이고, 생성에 실패하면 0 입니다. 스레드가 끝날 때까지 `env` 는 GC root 입니다.
 
+### `rok_task_parking_ready` / `rok_task_parking_install` / `rok_task_key_*`
+
+async 대기 (`Mutex::lock_async`, `Receiver::recv_async`, `task::park` / `unpark`) 에서 키에 park 된 task 를 담는 프로세스 전역 registry 입니다. **Thread-safety: `thread-safe`**.
+
+```
+extern "C" {
+    fn rok_task_parking_ready() -> i32;                    // registry 가 설치되어 있으면 1
+    unsafe fn rok_task_parking_install(obj: usize) -> usize; // 없으면 obj 를 설치 (영구 pin), 사용 중인 registry 반환
+    fn rok_task_key_i32(obj: usize) -> usize;              // GcBuf<i32> 객체 주소를 park 키로
+    fn rok_task_key_usize(obj: usize) -> usize;            // GcBuf<usize> 객체 주소를 park 키로
+}
+```
+
 ### `rok_sync_wait` / `rok_sync_wake`
 
 동기화 primitive (`Mutex`, `Condvar`, `Once`) 의 대기와 깨우기입니다. **Thread-safety: `thread-safe`**.
@@ -312,6 +328,7 @@ extern "C" {
 extern "C" {
     fn rok_sync_wait(buf: Ptr<u8>, index: usize, expected: i32);   // GcBuf<i32> 원소가 expected 인 동안 대기
     fn rok_sync_wake(buf: Ptr<u8>, index: usize);                   // 그 원소에서 대기 중인 스레드를 모두 깨움
+    fn rok_sync_wait_timeout(buf: Ptr<u8>, index: usize, expected: i32, ns: i64);   // wait 와 같되 약 ns 후에도 돌아옴 (executor 의 유휴 대기)
 }
 ```
 
@@ -325,6 +342,58 @@ extern "C" {
 extern "C" {
     fn rok_thread_join(handle: usize) -> i32;          // 0 이면 성공
 }
+```
+
+### `rok_thread_detach` / `rok_thread_park` / `rok_thread_unpark` / `rok_cpu_count`
+
+**Thread-safety: `thread-safe`**.
+
+```
+extern "C" {
+    fn rok_thread_detach(handle: usize) -> i32;   // 끝나면 OS 자원 반환, 더 이상 join 불가. 0 이면 성공
+    fn rok_thread_park(timeout_ns: i64);          // 토큰이 설 때까지 대기 (음수 = 무기한), 깨운 이유 없이 돌아올 수 있음
+    fn rok_thread_unpark(id: u64);                // 스레드 id 의 토큰을 세우고 깨움 (이미 끝났으면 무시)
+    fn rok_cpu_count() -> usize;                  // 온라인 CPU 수 (최소 1) — par 풀의 크기
+}
+```
+
+### `rok_static_init_begin` / `rok_static_init_end`
+
+`const` 가 아닌 초기값을 가진 `static` 의 지연 초기화 ([5.3](../005-modules/503-static.md)) 를 뒷받침합니다. **Thread-safety: `thread-safe`**.
+
+```
+extern "C" {
+    fn rok_static_init_begin(state: Ptr<u8>) -> i32;   // 1: 호출자가 초기화식 실행, 0: 이미 준비됨
+    fn rok_static_init_end(state: Ptr<u8>);            // 초기화 완료 공개
+}
+```
+
+`state` 는 그 `static` 의 상태 바이트 (0 새로, 1 진행 중, 2 준비됨) 입니다. 다른 스레드가 초기화 중이면 `rok_static_init_begin` 은 끝날 때까지 기다리며, 그동안 GC 에 대해 정지한 것으로 봅니다.
+
+### `rok_gc_add_root`
+
+```
+extern "C" {
+    fn rok_gc_add_root(word: ConstPtr<usize>);   // static 의 참조 word 를 프로세스 끝까지 GC root 로 등록
+}
+```
+
+컴파일러가 만든 시작 코드가 GC 참조를 담는 모든 `static` 에 대해 호출합니다.
+
+### `rok_os_*` — OS helper (내부, 변경 가능)
+
+표준 라이브러리 `rok::std` (fs, io, env, process) 를 뒷받침하는 내부 심볼입니다. ABI 안정 대상이 아니며 바뀔 수 있으므로 사용자 코드는 직접 부르지 않습니다.
+
+```
+rok_os_strerror  rok_os_open      rok_os_close     rok_os_read      rok_os_read_all
+rok_os_write     rok_os_write_all rok_os_fsync     rok_os_ftruncate rok_os_lseek
+rok_os_dup       rok_os_fchmod    rok_os_flock     rok_os_copy_fd   rok_os_stat
+rok_os_mkdir     rok_os_unlink    rok_os_rename    rok_os_link      rok_os_opendir
+rok_os_readdir   rok_os_closedir  rok_os_getcwd    rok_os_chdir     rok_os_realpath
+rok_os_stdin_line rok_os_stdin_read rok_os_flush_stdout
+rok_os_argc      rok_os_arg       rok_os_env_at    rok_os_getenv    rok_os_setenv
+rok_os_spawn     rok_os_waitpid   rok_os_kill      rok_os_getpid    rok_os_getppid
+rok_os_abort
 ```
 
 ### `rok_par_for` / `rok_par_scope`

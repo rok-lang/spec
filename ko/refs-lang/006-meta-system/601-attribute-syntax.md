@@ -21,7 +21,7 @@ attr_arg        ::= literal | identifier | attr_body | identifier "=" literal
 외부 속성은 바로 뒤에 오는 항목에 부착됩니다. 예를 들어 다음과 같이 작성할 수 있습니다.
 
 ```rok
-#[derive(Display)]
+#[derive(Debug)]
 struct Point { x: f64; y: f64; }
 
 #[inline(always)]
@@ -66,7 +66,7 @@ mod m {
 다음과 같이 인자를 동반하는 형태도 자주 쓰입니다.
 
 ```rok
-#[derive(Display, Clone, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 #[repr(C)]
 #[link("m")]
 #[inline(always)]
@@ -94,8 +94,8 @@ mod m {
 | 항목                        | 예                                      |
 |-----------------------------|-----------------------------------------|
 | 함수 / 메서드               | `#[inline] fn f() { ... }`              |
-| `struct` / `enum` / `union` | `#[derive(Eq)] struct S { ... }`        |
-| `trait` / `impl`            | `#[derive(Display)] trait T { ... }`    |
+| `struct` / `enum` / `union` | `#[derive(PartialEq, Eq)] struct S { ... }` (`union` 에 derive 는 에러) |
+| `trait` / `impl`            | `#[deprecated] trait T { ... }`         |
 | `const` / `static`          | `#[deprecated] const X: i32 = 0;`       |
 | 모듈                        | `#[cfg(test)] mod tests { ... }`        |
 | 항목 안의 필드 / 변형       | `struct S { #[deprecated] x: i32; }`    |
@@ -110,7 +110,7 @@ mod m {
 같은 항목에 여러 속성을 함께 부착할 수도 있습니다.
 
 ```rok
-#[derive(Display, Clone)]
+#[derive(Debug, Clone)]
 #[repr(C)]
 #[deprecated]
 struct OldPoint { x: f64; y: f64; }

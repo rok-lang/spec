@@ -9,8 +9,11 @@
 핵심 API 의 시그니처는 다음과 같습니다.
 
 ```rok
+fn block_on<F: Future>(f: F) -> F::Output;              // sync 진입점 — pool 을 띄워 f 를 끝까지 실행
 fn spawn<F: Future + Send>(f: F) -> Task<F::Output> where F::Output: Send;
-fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future — 현재 스레드에서 실행
+fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future — 현재 worker 에 고정
+fn workers() -> usize;                                  // 실행 중 pool 의 worker 수 (block_on 밖에서는 1)
+fn cpu_count() -> usize;                                // 온라인 CPU 수 — pool 크기
 async fn race<T>(tasks: List<Task<T>>) -> T;            // 첫 완료 task 결과
 async fn join<T>(tasks: List<Task<T>>) -> List<T>;      // 모두 완료 후
 async fn timeout<T>(dur: Duration, task: Task<T>) throws (TimeoutError) -> T;   // try await 에서 던짐
@@ -56,10 +59,13 @@ struct Task<T> {
 }
 
 impl<T> Task<T> {
-    fn id(self) -> TaskId;
-    fn cancel(self);                      // 협력적 취소 신호
+    fn cancel(self);                      // 더 이상 poll 하지 않음
+    fn is_cancelled(self) -> bool;
     fn is_finished(self) -> bool;
+    fn join(self) -> Join<T>;             // try await t.join() — 취소됐으면 CancellationError
 }
+
+struct CancellationError {}
 
 impl<T> Future for Task<T> {              // `await t` — 완료까지 suspend
     type Output = T;
@@ -72,6 +78,8 @@ impl<T> Future for Task<T> {              // `await t` — 완료까지 suspend
 `Task<T>` 는 `Future<Output = T>` 를 구현하므로 `await t` 로 기다릴 수 있고, [2.20 future](220-future.md) 의 `IntoFuture` blanket impl 에도 포함되어 `Thread` 와 동일한 방식으로 await 될 수 있습니다. `IntoFuture` 트레잇과 lang slot `future_trait` 의 권위 있는 정의는 [2.20 future](220-future.md) 에 있으며, 본 절은 그 정의를 그대로 따릅니다.
 
 ## 2.18.3. 스케줄러 모델 — work-stealing
+
+`block_on` 은 CPU 수 (`cpu_count()`) 만큼의 worker 로 이루어진 work-stealing pool 을 띄우며, 호출한 스레드가 worker 0 이 됩니다. `spawn` 한 task 는 어느 worker 에서든 실행될 수 있으므로 `Future + Send` 이고 결과도 `Send` 여야 합니다. `spawn_local` 의 task 는 그것을 만든 worker 에 고정됩니다. `block_on` 이 끝날 때 아직 실행 중인 task 는 버려집니다.
 
 스케줄러 골격은 다음과 같이 구성됩니다.
 
@@ -100,9 +108,11 @@ let t = task::spawn(async { long_running() });
 t.cancel();              // 협력적 신호 — task 가 cancellation point 에서 종료
 ```
 
-cancellation point 는 다음 세 가지 자리로 구성됩니다. 먼저 `task::yield_now()` 호출 지점이 있고, 다음으로 `await` 진입 지점이 있으며, 마지막으로 시스템 호출 (I/O 또는 sleep) 지점이 있습니다.
+`cancel()` 이 호출되면 그 task 는 더 이상 poll 되지 않고 현재 중단 지점에서 끝납니다. 취소된 task 를 `try await t.join()` 으로 기다리면 `CancellationError` 가 던져지고, `await t` 로 기다리면 panic 입니다.
 
-`cancel()` 이 호출되면 위에서 언급한 자리에서 **CancellationError 가 throw** 되며, 이후 `Drop` 에 의해 cleanup 이 이루어집니다.
+```rok
+let r = try await t.join() catch _: CancellationError { fallback() };
+```
 
 ## 2.18.5. `thread::*` — 1:1 OS thread
 
@@ -150,7 +160,7 @@ impl Instant {
 }
 ```
 
-이를 활용하여 `task::sleep(Duration::ms(100))` 또는 `task::sleep_until(t)` 와 같이 호출하면 정확한 monotonic time 을 보장받을 수 있습니다.
+이를 활용하여 `await task::sleep(Duration::ms(100))` 또는 `await task::sleep_until(t)` 와 같이 호출하면 정확한 monotonic time 을 보장받을 수 있습니다. 두 타입은 `rok::core::task::time` 에 있으며 (2.18.7), `rok::std::time` 이 이를 다시 내보냅니다.
 
 ## 2.18.7. 모듈 매핑
 

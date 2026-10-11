@@ -57,13 +57,20 @@ impl Thread {
 fn current() -> Thread;
 fn yield_now();
 fn sleep(dur: Duration);
-fn park();                                     // unpark 까지 block
+fn park();                                     // unpark 될 때까지 block (깨운 이유 없이 돌아올 수 있음)
 fn park_timeout(dur: Duration);
-fn panicking() -> bool;
 
 // thread-local storage
-fn local<T>(init: fn() -> T + Sync) -> ThreadLocal<T>;     // 각 스레드에서 init 호출
+fn local<T>(init: fn() -> T + Sync) -> ThreadLocal<T>;     // 각 스레드에서 처음 쓸 때 init 호출
+
+impl<T> ThreadLocal<T> {
+    fn get(self) -> T;                       // 현재 스레드의 값
+    fn set(self, value: T);
+    fn with<R>(self, f: fn(T) -> R) -> R;
+}
 ```
+
+`Thread::unpark` 는 그 스레드의 park 토큰을 세우고 깨웁니다. 토큰은 한 번의 `park` 가 소비합니다.
 
 ### panic 과 `JoinError`
 
@@ -105,8 +112,8 @@ let results: List<i64> = handles
 ```rok
 let counter = thread::local(|| 0);
 
-thread::spawn(|| {
-    counter.with(|c| { c.set(c.get() + 1); });
+try thread::spawn(|| {
+    counter.set(counter.get() + 1);         // 이 스레드의 값만 바뀜
 }).join();
 ```
 

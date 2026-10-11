@@ -116,7 +116,8 @@ struct Mutex<T> {
 impl<T> Mutex<T> {
     fn new(value: T) -> Mutex<T>;
 
-    fn lock(self) -> MutexGuard<T>;            // blocking
+    fn lock(self) -> MutexGuard<T>;            // 스레드를 block
+    fn lock_async(self) -> LockFuture<T>;      // await m.lock_async() — task 만 중단 (Future<Output = MutexGuard<T>>)
     fn try_lock(self) -> MutexGuard<T> | none; // non-blocking
 }
 

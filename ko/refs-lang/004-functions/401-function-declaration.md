@@ -178,7 +178,7 @@ unsafe → async → yield
 이 순서를 어기면 syntax error 가 발생합니다. 같은 수식어를 두 번 적는 것 또한 grammar 차원에서 불가능합니다 (`unsafe?` 의 `?` 가 0 또는 1 개만 허용).
 
 ```rok
-unsafe async yield fn ok() { ... }       // OK — 정해진 순서
+unsafe async yield fn ok() -> i32 { ... }   // OK — 정해진 순서
 async unsafe fn bad1() { ... }           // ERROR — async 가 unsafe 앞에 옴
 yield async fn bad2() { ... }            // ERROR — yield 가 async 앞에 옴
 unsafe unsafe fn bad3() { ... }          // ERROR — unsafe 중복

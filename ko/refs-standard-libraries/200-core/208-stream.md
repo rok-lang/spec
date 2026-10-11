@@ -155,6 +155,31 @@ fn select<S1: Stream, S2: Stream>(a: S1, b: S2) -> Select<S1, S2>;  // Stream<It
 
 각 함수의 의미를 정리하면, `merge` 는 두 stream 의 union 을 만들고, `zip` 은 두 stream 을 pair 로 묶으며, `select` 는 race 식으로 먼저 준비되는 쪽을 취합니다.
 
+## 2.8.8a. `AsyncStream<T>` / `TryAsyncStream<T, E>` — 비동기 스트림의 값
+
+`async yield fn` 호출과 `async yield { .. }` 블록의 값입니다 ([refs-lang 4.1.11](../../refs-lang/004-functions/401-function-declaration.md#코루틴-함수의-결과-타입)).
+
+```rok
+struct AsyncStream<T> { /* 비공개 */ }
+impl<T> Stream for AsyncStream<T> {
+    type Item = T;
+    fn poll_next(ref self, ref ctx: Context) -> Poll<T | none>;
+}
+impl<T> AsyncStream<T> {
+    fn map<U>(self, f: fn(T) -> U) -> AsyncStream<U>;
+    fn filter(self, pred: fn(T) -> bool) -> AsyncStream<T>;
+    fn take(self, n: usize) -> AsyncStream<T>;
+    async fn collect(self) -> List<T>;
+}
+
+struct TryAsyncStream<T, E> { /* 비공개 */ }    // async yield fn .. throws (E)
+impl<T, E> TryAsyncStream<T, E> {
+    fn poll_next(ref self, ref ctx: Context) throws (E) -> Poll<T | none>;
+}
+```
+
+`TryAsyncStream` 은 `poll_next` 가 던지므로 `Stream` 을 구현하지 않으며 `try for await` 로 소비합니다. 비공개 필드는 사양으로 정하지 않습니다. 복사본은 같은 코루틴 frame 을 공유하므로 진행 위치도 공유합니다.
+
 ## 2.8.9. 모듈 매핑
 
 각 항목이 자리 잡는 모듈은 다음 표에 정리되어 있습니다.

@@ -99,9 +99,7 @@ let c2 = c1.clone();         // 모든 필드 재귀 clone
 
 derive 가 합성하는 본문은 모든 필드의 `Clone::clone` 을 호출한 결과를 같은 구조로 묶어 돌려주는 형태입니다. 따라서 모든 필드가 재귀적으로 `Clone` 을 구현하고 있어야 한다는 요구 조건이 자연스럽게 따라옵니다.
 
-## 2.13.3. `Copy` — bitwise 복제
-
-어떤 타입은 메모리의 비트 패턴을 그대로 옮기기만 해도 안전하게 복제됩니다. 정수처럼 외부 자원을 참조하지 않고, 소유권을 의식할 필요가 없는 타입들이 이에 해당합니다. `Copy` 는 바로 이러한 사실을 컴파일러에 알리는 marker trait 입니다.
+## 2.13.3. `Copy` — marker
 
 ```rok
 trait Copy: Clone {
@@ -109,68 +107,30 @@ trait Copy: Clone {
 }
 ```
 
-`Copy` 는 `Clone` 을 상위 트레잇으로 두고, 그 위에 "비트 복사로 충분하다" 라는 추가 약속을 얹습니다. 두 트레잇의 차이를 정리하면 다음과 같습니다.
-
-| 측면                     | `Clone`                          | `Copy`                            |
-|--------------------------|----------------------------------|-----------------------------------|
-| 메서드                   | `clone(self) -> Self`            | (없음 — marker)                   |
-| 본문                     | 임의 (사용자 정의 가능)          | **bitwise memcpy** 만 가능        |
-| `let y = x;` 후 `x` 사용 | 가능 (참조 공유 또는 별도 clone) | 가능 — 양쪽 모두 사용 OK          |
-| 자동 dispatch            | 명시 호출 (`x.clone()`)          | `let y = x;` 시 **자동 bit copy** |
-
-`Copy` 가 보내는 메시지는 다음 한 줄로 요약됩니다.
-
-> 이 타입의 값은 **bitwise memcpy 로 안전히 복제** 될 수 있습니다 (소유권 이슈 없음).
-
-따라서 `Copy` impl 자체에는 메서드가 없지만, 컴파일러는 이 타입을 만나면 변수 할당이나 인자 전달 시점에 자동으로 비트 복사를 수행합니다.
+rok 에서는 모든 값이 값으로 복사됩니다. 컬렉션이나 GC 객체는 핸들이 복사되어 같은 객체를 가리키고, 원시 값과 `str` (불변 `(ptr, len)`) 은 그 자체가 복사됩니다. 따라서 `Copy` 는 **marker 일 뿐** 이며, 대입이나 인자 전달의 의미를 바꾸지 않습니다. `Copy` 는 제네릭 bound (`T: Copy`) 에서 "비트 복사가 곧 독립된 사본" 인 타입을 고를 때만 쓰입니다.
 
 ### impl 정책
 
-어떤 타입이 `Copy` 일 수 있는지는 결국 "비트 복사가 의미적으로 옳은가" 라는 한 가지 기준으로 정해집니다. 표준 라이브러리의 분류는 다음과 같습니다.
-
 | 타입                             | `Clone`     | `Copy`           | 비고                                 |
 |----------------------------------|-------------|------------------|--------------------------------------|
-| `i*`, `u*`, `f*`                 | ✓           | ✓                | 모든 primitive (`int`, `float` 포함) |
-| `bool`, `char`, `c_char`         | ✓           | ✓                | 모두 bitwise copy 안전               |
-| `str`                            | ✓           | ✗                | 가변 컨테이너 — `Copy` 하지 않습니다 |
-| `List<T>`, `Dict<K,V>`, `Set<T>` | ✓ (T:Clone) | ✗                | 컬렉션은 `Copy` 하지 않습니다        |
-| `Tuple<T...>`                    | ✓ (모두)    | ✓ (모두 Copy 시) | 컴포넌트별                           |
+| `i*`, `u*`, `f*`                 | ✓           | ✓                | 원시 숫자                            |
+| `bool`, `char`, `c_char`         | ✓           | ✓                |                                      |
+| `str`                            | ✓           | ✓                | 불변 `(ptr, len)` 값                 |
+| `int`, `float`                   | ✓           | ✓                | 불변 값 — heap 의 BigInt 도 공유만   |
+| `List<T>`, `Dict<K,V>`, `Set<T>` | ✓ (T:Clone) | ✗                | 핸들 복사는 공유 — 독립 사본 아님    |
+| 튜플                             | ✓ (모두)    | ✓ (모두 Copy 시) | 컴포넌트별                           |
 | `Range<T>`                       | ✓ (T:Clone) | ✓ (T:Copy)       | start/end 둘 다 Copy 시              |
-| 사용자 struct                    | derive      | derive           | 모든 필드 같은 트레잇 구현 시        |
+| 사용자 struct / enum             | derive      | derive           | 모든 필드 같은 트레잇 구현 시        |
 
-반대로 `Copy` 가 될 수 없는 타입은 두 부류로 나뉩니다. 먼저 컬렉션 (List/Dict/Set) 은 buffer 가 GC heap 위에 놓이기 때문에 비트 복사를 수행하면 참조 공유가 되어 깊은 복사라는 의도와 어긋납니다. 그다음 `Drop` 을 구현한 타입은 `Copy` 와 동시에 구현될 수 없습니다. 비트 복사로 사본이 무한히 늘어나는 와중에 결정론적인 정리를 보장하는 일은 의미적으로 양립할 수 없기 때문입니다.
-
-### 사용 예
-
-`Copy` 와 그렇지 않은 타입의 차이는 변수 대입 한 줄에서 곧바로 드러납니다.
-
-```rok
-let n: i32 = 42;
-let m = n;                   // bitwise copy (Copy)
-n;                           //→ 42  (사용 OK)
-m;                           //→ 42
-
-let s: str = "hello";
-let t = s;                   // 참조 공유 (str 은 Copy 아님)
-                             // 둘 다 같은 buffer 가리킴 (mutation 시 shared)
-                             // independent 사본 원하면 t = s.clone();
-```
-
-### `#[derive(...)]`
-
-수치 필드만으로 이루어진 작은 값 타입은 `Copy` derive 의 가장 흔한 후보입니다.
+`Drop` 을 구현한 타입은 `Copy` 가 될 수 없습니다.
 
 ```rok
 #[derive(Clone, Copy)]
 struct Vec3 { x: f64; y: f64; z: f64; }
-
-let v1 = Vec3 { x: 1.0, y: 2.0, z: 3.0 };
-let v2 = v1;                 // bitwise copy
-v1.x;                        //→ 1.0  (사용 OK)
 ```
 
 > [!IMPORTANT]
-> `Copy` derive 는 모든 필드가 `Copy` 일 때만 가능합니다. 한 필드라도 `str` / `List` 등이라면 derive 가 거부됩니다.
+> `Copy` derive 는 `Clone` 도 함께 구현될 때만, 그리고 모든 필드가 `Copy` 일 때만 가능합니다.
 
 ## 2.13.4. `Drop` — `using` 해제 시 정리
 
@@ -300,7 +260,7 @@ impl Drop for Container {
 | `bool`, `char`, `c_char`         | ✓           | ✓             | ✗                               | bitwise                              |
 | `str`                            | ✓           | ✓             | ✗                               | 불변 `(ptr, len)` 값 복사            |
 | `List<T>`, `Dict<K,V>`, `Set<T>` | ✓ (T:Clone) | ✗             | ✗                               | 재귀 clone                           |
-| `Tuple<T...>`                    | ✓ (모두)    | ✓ (모두 Copy) | ✗                               | derive 자동                          |
+| 튜플                             | ✓ (모두)    | ✓ (모두 Copy) | ✗                               | 컴포넌트별                           |
 | `Range<T>`                       | ✓ (T:Clone) | ✓ (T:Copy)    | ✗                               | derive 자동                          |
 | `File`                           | ✗           | ✗             | ✓                               | `rok::bare::close_fd`                 |
 | `MutexGuard<T>`                  | ✗           | ✗             | ✓ (`using` 해제 시)             | `rok::bare::unlock`                   |
@@ -369,3 +329,43 @@ impl<T> !Sync for CPtr<T> { }
 ```
 
 스레드나 task 로 값을 넘기는 API (`thread::spawn`, `task::spawn`, `par::*`, `channel`) 는 이 두 트레잇으로 인자를 제한합니다. 동기화 primitive 의 정책은 [2.16 sync](216-sync.md) 를 따릅니다.
+
+## 2.13.10. `Default` — 기본값
+
+```rok
+trait Default {
+    fn default() -> Self;
+}
+```
+
+| 타입                              | `default()`        |
+|-----------------------------------|--------------------|
+| 정수, `int`                       | `0`                |
+| 실수, `float`                     | `0.0`              |
+| `bool`                            | `false`            |
+| `char`                            | `'\0'`             |
+| `str`                             | `""`               |
+| `List`, `Dict`, `Set` 등 컬렉션   | 빈 컬렉션          |
+| `T \| none`                       | `none`             |
+
+`Default` 는 derive 할 수 있으며, 모든 필드의 `default()` 로 값을 만듭니다.
+
+## 2.13.11. derive 가능한 트레잇
+
+`#[derive(...)]` ([refs-lang 6.2.1](../../refs-lang/006-meta-system/602-built-in-attributes.md#621-derive-자동-트레잇-구현)) 로 만들 수 있는 내장 트레잇은 다음뿐입니다.
+
+| 트레잇        | 생성되는 구현                               | 요구                                |
+|---------------|---------------------------------------------|-------------------------------------|
+| `Clone`       | 필드별 `clone`                              | 모든 필드 `Clone`                   |
+| `Copy`        | marker                                      | `Clone` 도 derive/구현, `Drop` 아님 |
+| `Debug`       | 필드 이름과 값을 `f"{x:?}"` 형식으로        | 모든 필드 `Debug`                   |
+| `Default`     | 필드별 `default()`                          | 모든 필드 `Default`                 |
+| `PartialEq`   | 필드별 `==` 의 AND                          | 모든 필드 `PartialEq`               |
+| `Eq`          | marker                                      | `PartialEq` 도 derive/구현          |
+| `PartialOrd`  | 필드 선언 순서의 사전식 비교                | 모든 필드 `PartialOrd`, `PartialEq` |
+| `Ord`         | 필드 선언 순서의 사전식 비교                | `Eq`, `PartialOrd` 도 derive/구현   |
+| `Hash`        | 필드별 해시의 결합 (결합 함수는 정하지 않음) | 모든 필드 `Hash`                   |
+
+- `Display` 는 derive 할 수 없습니다 ([2.10](210-fmt.md)).
+- `Eq` / `Ord` 를 그 상위 트레잇 없이 derive 하면 컴파일 에러입니다.
+- `union` 에 `#[derive]` 를 붙이면 컴파일 에러입니다.
