@@ -12,7 +12,7 @@ rokc build --emit=mir           # rok-mir 텍스트 출력
 rokc build --emit=mlir          # 표준 MLIR 텍스트
 rokc build --emit=llvmir        # LLVM IR
 rokc build --emit=asm           # 어셈블리
-rokc build --emit=obj           # object 파일 (default)
+rokc build --emit=obj           # object 파일
 ```
 
 산출물은 다음 위치에 출력됩니다.
@@ -26,9 +26,12 @@ target/foo.s
 target/foo.o
 ```
 
-여러 단계를 한 번에 지정하려면 `--emit=mlir,llvmir,asm` 처럼 쉼표로 구분하면 됩니다.
+여러 단계를 한 번에 지정하려면 `--emit=mlir,llvmir,asm` 처럼 쉼표로 구분하면 됩니다. 종류가 하나면 `-o <path>` 로 위치를 바꿀 수 있습니다. `--emit` 을 주면 실행 파일이나 archive 는 만들지 않습니다.
 
 ## 9.9.2. RHIR 검사
+
+> [!NOTE]
+> `rokc rhir-text` 는 아직 제공하지 않습니다 (RHIR, [9.4](904-rhir-bytecode.md) 미구현).
 
 ```
 rokc rhir-text path/to/libfoo.a
@@ -65,7 +68,7 @@ rokc demangle <symbol>
 rokc demangle _Y3f8a1c2b_geom_distance_a7c91d8e44b2f190
 ```
 
-이 명령은 [심볼 맹글링](905-symbol-mangling.md) 의 mangled 심볼을 원본 형식으로 출력해 줍니다.
+이 명령은 [심볼 맹글링](905-symbol-mangling.md) 의 mangled 심볼을 원본 형식으로 출력해 줍니다. 심볼을 여러 개 주면 블록을 빈 줄로 나눕니다. 맹글링은 루트 `rok::` 를 남기지 않으므로, 경로의 첫 세그먼트가 `core` / `std` / `bare` 이면 `rok::` 를 붙여 표준 라이브러리 경로로 보여 줍니다.
 
 ```
 package:  3f8a1c2b
@@ -100,11 +103,22 @@ error: 'count' is not declared
 rokc build --message-format=json
 ```
 
-각 줄이 하나의 JSON 객체로 구성됩니다.
+진단 하나가 stdout 의 한 줄 JSON 객체입니다 (사람용 형식은 stderr).
 
 ```json
-{"type":"error","code":"E001","message":"...","spans":[{"file_name":"...","line_start":5,"col_start":10,...}]}
+{"type":"error","code":"E200","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"..."}],"notes":["..."]}
 ```
+
+| 필드       | 뜻                                                                 |
+|------------|--------------------------------------------------------------------|
+| `type`     | `error` / `fatal` / `warning` / `note`                             |
+| `code`     | 에러 종류의 코드 (아래 표)                                         |
+| `kind`     | 에러 종류의 이름                                                   |
+| `message`  | 메시지                                                             |
+| `spans`    | 위치 목록. 첫 원소가 주 위치 (`is_primary: true`), 나머지는 보조 위치 |
+| `notes`    | note 문자열 목록                                                   |
+
+span 은 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_primary`, `label` 을 가집니다. 위치 없이 파일만 아는 진단은 `{"file_name": .., "is_primary": true}` 만 둡니다.
 
 이 형식 덕분에 IDE 와 CI 시스템이 진단을 기계로 판독할 수 있습니다.
 
@@ -121,7 +135,26 @@ rokc build --message-format=json
 | `E400` ~ `E499` | 빌드 / 링크        |
 | `E500` ~        | 추가 카테고리      |
 
-자세한 코드와 메시지는 `rokc` 가 결정하며, 본 사양은 영역별 코드 prefix 만 보장합니다.
+현재 코드는 에러 종류마다 하나로 고정되어 있습니다. 같은 종류의 진단은 같은 코드를 가지며, 개별 진단 코드는 아직 없습니다.
+
+| 코드   | `kind`        | 종류                         |
+|--------|---------------|------------------------------|
+| `E001` | `lexical`     | 어휘                         |
+| `E002` | `parse`       | 구문                         |
+| `E100` | `resolve`     | 이름 해소                    |
+| `E101` | `visibility`  | 가시성                       |
+| `E102` | `module`      | 모듈 / 파일                  |
+| `E200` | `type`        | 타입                         |
+| `E201` | `pattern`     | 패턴 / 완전성                |
+| `E300` | `meta`        | 메타 블록 / 속성 / 키워드 매직 |
+| `E400` | `lowering`    | HIR / MIR lowering           |
+| `E401` | `codegen`     | 코드 생성                    |
+| `E402` | `linkage`     | 외부 도구 / 링크             |
+| `E500` | `unsupported` | 아직 지원하지 않는 구문      |
+| `E501` | `internal`    | 컴파일러 내부                |
+| `E502` | `other`       | 그 밖                        |
+
+본 사양은 영역별 코드 prefix 를 보장합니다. 개별 코드가 생기면 같은 영역 안에서 나뉩니다.
 
 ## 9.9.5. 로그 / 진행 표시
 
@@ -130,33 +163,30 @@ rokc build --message-format=json
 기본 빌드 출력은 다음과 같은 형태로 표시됩니다.
 
 ```
-   Compiling foo v0.1.0 (path/to/foo)
+   Compiling foo (path/to/foo)
     Building target/libfoo.a
-    Finished release [optimized] target(s) in 1.23s
+    Finished in 1.23s
 ```
+
+진행 줄은 stderr 에 나오며, 동사 목록은 [9.1.8](901-rokc-cli.md#918-출력-형식) 에 있습니다.
 
 ### `--verbose` / `-v`
 
 상세 모드에서는 단계별 시간을 함께 표시합니다.
 
 ```
-   Compiling foo v0.1.0 (path/to/foo)
-   Stage: parsing 23 files (45ms)
-   Stage: type-check (89ms)
-   Stage: specialize 142 instances (67ms)
-   Stage: MLIR text emit (34ms)
-   Stage: mlir-opt (456ms)
-   Stage: mlir-translate (123ms)
-   Stage: clang -c (234ms)
-   Stage: ar/link (45ms)
-   Finished in 1.10s
+   Compiling foo (path/to/foo)
+   Stage: front end (134ms)
+    Building target/foo
+   Stage: codegen + link (812ms)
+    Finished in 0.95s
 ```
 
-각 단계의 시간을 표시하므로, 빌드 병목을 진단할 때 유용합니다.
+각 단계의 시간을 표시하므로, 빌드 병목을 진단할 때 유용합니다. 단계를 얼마나 잘게 나눌지는 `rokc` 가 정합니다 (예: parse, type-check, specialize, mlir-opt, clang). 현재는 `front end` 와 `codegen + link` (`--emit` 이면 `emit <ext>`) 입니다.
 
 ### `-vv` (매우 자세히)
 
-이 모드에서는 각 단계의 내부 정보 (처리한 파일 목록, [specialize](../000-meta/007-glossary.md#specialize) 의 (item, type) 쌍 등) 를 함께 출력합니다.
+이 모드에서는 각 단계의 내부 정보 (처리한 파일 목록, [specialize](../000-meta/007-glossary.md#specialize) 의 (item, type) 쌍 등) 를 함께 출력합니다. 현재는 `-v` 와 같은 출력입니다.
 
 ## 9.9.6. 디버거 통합: gdb / lldb
 
@@ -258,6 +288,9 @@ REPL / Jupyter 안에서는 다음과 같은 명령으로 JIT 산출물을 확�
 
 [사용자 정의 메타 블록](../006-meta-system/608-meta-blocks.md) 의 derive / attribute 가 어떤 코드를 생성하는지 확인할 수 있습니다.
 
+> [!NOTE]
+> `--emit=expanded` 는 아직 제공하지 않습니다.
+
 ```
 rokc build --emit=expanded
 ```
@@ -297,11 +330,13 @@ rokc build --message-format=json --no-color > build.log
 | `2`   | CLI 에러         |
 | `101` | rokc 내부 panic  |
 
+`rokc test` 는 실패한 테스트가 있으면 `1` 입니다. 테스트마다 별도 프로세스이므로 테스트의 panic (`101`) 이 rokc 의 `101` 이 되지는 않습니다.
+
 CI 가 코드별로 다른 처리 (재시도, 알림 등) 를 적용할 수 있습니다.
 
 ## 9.9.13. LSP 서버
 
-`rokc` 는 LSP (Language Server Protocol) 모드도 제공합니다.
+`rokc` 는 LSP (Language Server Protocol) 모드를 둘 예정이며, 아직 제공하지 않습니다.
 
 ```
 rokc lsp
@@ -313,7 +348,7 @@ rokc lsp
 
 ## 9.9.14. 패키지 검사
 
-패키지 전체 정보를 한 번에 확인할 수 있습니다.
+패키지 전체 정보를 한 번에 확인할 수 있습니다. 아직 제공하지 않습니다.
 
 ```
 rokc inspect path/to/libfoo.a

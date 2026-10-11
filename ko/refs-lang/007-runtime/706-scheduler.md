@@ -20,7 +20,7 @@ OS Thread = {
 이렇게 역할을 통합한 덕분에 추가로 thread 를 분리하지 않고도 모든 런타임 활동이 하나의 풀에서 처리될 수 있습니다.
 
 > [!NOTE]
-> 현재 구현에서 pool 은 `task::block_on` 이 띄우며, worker 수는 CPU 수이고 호출 스레드가 worker 0 입니다. `par::*` 도 같은 pool 위에서 돕니다 ([stdlib 2.18.3](../../refs-standard-libraries/200-core/218-task.md#2183-스케줄러-모델--work-stealing)).
+> 현재 구현에서 pool 은 `task::block_on` 이 띄우며, worker 수는 CPU 수이고 호출 스레드가 worker 0 입니다. `par::*` 도 같은 pool 위에서 돕니다 ([stdlib 2.18.3](../../refs-standard-libraries/200-core/218-task.md#2183-스케줄러-모델--work-stealing)). I/O driver 는 worker 가 겸하지 않고 프로세스당 reactor thread 하나로 둡니다 ([7.7.1](707-io-and-timer.md#771-io-멀티플렉싱)).
 
 ## 7.6.2. Work-Stealing 구조
 
@@ -72,7 +72,7 @@ steal 은 worker 를 최대 N-1 개까지 시도해 보고, 그래도 모두 비
 | 라이브러리 함수         | 의미                                                                     |
 |-------------------------|--------------------------------------------------------------------------|
 | `task::spawn(fut)`      | future 를 새 task 로 큐에 push. 결과 `Task<T>`.                          |
-| `task::yield_now()`     | 자발적 `yield`. 다른 task 에 양보.                                       |
+| `task::yield_now()`     | 자발적 양보 (`await`). 다른 ready task 를 한 번 실행시킴.                |
 | `task::sleep(d)`        | timer 큐로 이동.                                                         |
 | `task::race([...])`     | 먼저 끝나는 task (`List<Task<T>>`, await).                               |
 | `task::join([...])`     | 모두 끝날 때까지 (`List<Task<T>>`, await).                               |

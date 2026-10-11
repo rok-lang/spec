@@ -13,7 +13,7 @@ fn channel<T: Send>() -> (Sender<T>, Receiver<T>);
 fn channel_bounded<T: Send>(cap: usize) -> (Sender<T>, Receiver<T>);
 ```
 
-먼저 `channel<T>()` 는 **unbounded** 채널을 만듭니다. capacity 가 무한하다는 의미이며, 실질적으로는 메모리 한계까지 메시지를 받아들입니다. 반면 `channel_bounded<T>(cap)` 은 **bounded** 채널을 만들며, capacity 가 `cap` 으로 고정되어 큐가 가득 차면 sender 쪽이 block 됩니다. `channel_bounded(0)` 은 rendezvous 채널로, `send` 는 receiver 가 그 값을 받을 때까지 기다립니다. 이 채널의 `try_send` 는 기다리는 receiver 가 없으면 `TrySendError::Full` 을 던집니다.
+먼저 `channel<T>()` 는 **unbounded** 채널을 만듭니다. capacity 가 무한하다는 의미이며, 실질적으로는 메모리 한계까지 메시지를 받아들입니다. 반면 `channel_bounded<T>(cap)` 은 **bounded** 채널을 만들며, capacity 가 `cap` 으로 고정되어 큐가 가득 차면 sender 쪽이 block 됩니다. `channel_bounded(0)` 은 rendezvous 채널로, `send` 는 receiver 가 그 값을 받을 때까지 기다립니다. 이 채널의 `try_send` 는 기다리는 receiver 가 없으면 `TrySendError::Full` 을 던집니다. `recv` 로 막힌 스레드뿐 아니라 `recv_async` / `for await` 에서 중단된 task 도 기다리는 receiver 로 셉니다.
 
 ### 사용 예
 
@@ -44,6 +44,7 @@ struct Receiver<T> { /* ... */ }
 impl<T> Sender<T> {
     fn send(self, value: T) throws (SendError<T>);
     fn try_send(self, value: T) throws (TrySendError<T>);
+    fn send_async(self, value: T) -> SendFuture<T>;   // try await tx.send_async(v) — task 만 중단, throws (SendError<T>)
     fn clone(self) -> Sender<T>;             // 다중 sender
     fn close(self);                          // 이 sender 를 닫음
 }
@@ -71,7 +72,7 @@ enum TrySendError<T> { Full(T), Closed(T) }
 
 `T: Send` 이면 `Sender<T>` 와 `Receiver<T>` 도 `Send` 이므로 다른 task 나 스레드로 옮길 수 있습니다 ([2.13.9](213-marker.md#2139-send--sync--스레드-경계-marker)).
 
-`recv` 와 `send` (bounded 가 가득 찬 경우) 는 스레드를 block 합니다. async 코드에서 task 만 중단하려면 `await rx.recv_async()` 나 `for await v in rx` 를 씁니다. `Mutex::lock` / `lock_async` 도 같은 구분입니다 ([2.16](216-sync.md)).
+`recv` 와 `send` (bounded 가 가득 찬 경우, rendezvous 에서 값이 받아질 때까지) 는 스레드를 block 합니다. async 코드에서 task 만 중단하려면 `await rx.recv_async()`, `for await v in rx`, `try await tx.send_async(v)` 를 씁니다. `send_async` 는 bounded 채널이 가득 찬 동안, rendezvous 채널에서는 receiver 가 값을 가져갈 때까지 task 를 중단합니다. `send` 와 같이, 이 sender 가 이미 `close()` 되었으면 값을 담은 `SendError::Closed` 를 던집니다. `Mutex::lock` / `lock_async` 도 같은 구분입니다 ([2.16](216-sync.md)).
 
 ## 2.17.3. close 의미
 

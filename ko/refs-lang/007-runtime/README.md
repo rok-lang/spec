@@ -48,7 +48,7 @@ OS Thread (worker) x N  ──── rok task / coroutine x M
 
 > x N: N 개. x M: M 개. typically M >> N: 일반적으로 M >> N 입니다.
 
-이 모델의 운용 방식은 다음과 같습니다. 기본 N 은 CPU 코어 수이며, 런타임 설정으로 조정할 수 있습니다. 또한 한 OS thread 가 여러 역할을 동시에 수행하는데, 그 역할은 Scheduler Worker, Mutator, I/O Driver, GC Worker 입니다.
+이 모델의 운용 방식은 다음과 같습니다. 기본 N 은 CPU 코어 수이며, 런타임 설정으로 조정할 수 있습니다. 또한 한 OS thread 가 여러 역할을 동시에 수행하는데, 그 역할은 Scheduler Worker, Mutator, I/O Driver, GC Worker 입니다. 다만 I/O driver 는 현재 별도의 reactor thread 하나가 맡습니다 ([7.7](707-io-and-timer.md)).
 
 이러한 통합으로 추가 thread 분리 비용 없이 모든 런타임 활동이 한 스레드 풀에서 처리됩니다.
 
@@ -61,7 +61,7 @@ OS Thread (worker) x N  ──── rok task / coroutine x M
 런타임은 컴파일러가 생성한 코드와 정해진 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 로 통신합니다. 인터페이스는 다음 세 가지 요소로 구성됩니다.
 
 - 객체 레이아웃 (16 바이트 헤더 + payload) 입니다.
-- `extern "C"` 함수로는 `rok_gc_alloc_slow`, `rok_runtime_yield`, `rok_task_spawn` 등이 있습니다.
+- `extern "C"` 함수로는 `rok_gc_alloc_slow`, `rok_runtime_yield`, `rok_thread_spawn` 등이 있습니다.
 - LLVM intrinsic 으로는 `llvm.coro.*` 가 사용됩니다. GC 루트는 intrinsic 없이 컴파일러가 shadow stack frame 을 직접 emit 합니다 ([7.4.1](704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack)).
 
 이 ABI 는 [8. 런타임 ABI / MLIR lowering](../008-abi/README.md) 에서 자세히 정의되며, 본 7 장은 내부 동작만을 다룹니다.

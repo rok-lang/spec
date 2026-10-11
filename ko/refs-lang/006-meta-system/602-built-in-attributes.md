@@ -31,7 +31,7 @@ struct Point { x: i64; y: i64; }
 
 ### 사용자 정의 derive 와의 결합
 
-`#[derive(MyTrait)]` 처럼 사용자 정의 트레잇도 derive 할 수 있습니다. 다만 이렇게 사용하려면 `MyTrait` 가 메타 블록 (후속 사양에서 다룹니다) 안에서 `#[impl_derive(MyTrait)]` 의 형태로 미리 정의되어 있어야 합니다.
+`#[derive(MyTrait)]` 처럼 사용자 정의 트레잇도 derive 할 수 있습니다. 다만 이렇게 사용하려면 `MyTrait` 가 `#[impl_derive(MyTrait)]` 메타 블록 ([6.8](608-meta-blocks.md)) 으로 정의되어 있어야 합니다. 위의 내장 derive 이름은 메타 블록이 다시 정의할 수 없습니다.
 
 내장 derive 와 사용자 정의 derive 는 하나의 `#[derive(...)]` 안에 자유롭게 섞어 사용할 수 있습니다.
 

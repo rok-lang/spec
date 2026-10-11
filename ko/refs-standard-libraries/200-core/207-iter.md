@@ -263,7 +263,7 @@ for d in Weekday::Mon..=Weekday::Fri {
 }
 ```
 
-## 2.7.4. `Range<T>` / `RangeInclusive<T>` / `RangeFrom<T>` / `RangeTo<T>` / `RangeFull`
+## 2.7.4. `Range<T>` / `RangeInclusive<T>` / `RangeFrom<T>` / `RangeTo<T>` / `RangeToInclusive<T>` / `RangeFull`
 
 [refs-lang 3.7 범위 표현식](../../refs-lang/003-expressions/307-range-expressions.md) 의 `a..b` syntax 는 본 표준 라이브러리 타입으로 desugar 됩니다.
 
@@ -344,17 +344,20 @@ let it = (10..).take(3);     //→ [10, 11, 12] (take 가 lazy 어댑터)
 
 `RangeFrom` 은 타입의 최댓값을 내지 않습니다. 최댓값의 다음 값이 없으므로, 최댓값에 도달하면 그 값을 내기 전에 끝납니다 (`(254u8..)` 은 `254` 만 내고 끝남).
 
-### `RangeTo<T>` / `RangeFull`
+### `RangeTo<T>` / `RangeToInclusive<T>` / `RangeFull`
 
 ```rok
 #[literal( ".." expr )]
 struct RangeTo<T> { end: T; }
 
+#[literal( "..=" expr )]
+struct RangeToInclusive<T> { end: T; }               // ..=b
+
 #[literal( ".." )]
 struct RangeFull;
 ```
 
-`..b` (start 가 없는 형태) 와 `..` (둘 다 없는 형태) 는 slice 나 index 문맥에서만 의미를 가지며, iterator 를 만들지는 않습니다.
+`..b` / `..=b` (start 가 없는 형태) 와 `..` (둘 다 없는 형태) 는 slice 나 index 문맥에서만 의미를 가지며, iterator 를 만들지는 않습니다.
 
 ```rok
 let xs = [1, 2, 3, 4, 5];

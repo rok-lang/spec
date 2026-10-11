@@ -87,6 +87,15 @@ let r = foo() ?? "default";
 let r2: i32 | str = foo() ?? "default";       // 명시 합 타입 슬롯 OK
 ```
 
+`y` 도 `T | none` 이면 결과는 `T | none` 입니다 (`T | (T | none)` 을 합친 것). 그래서 `??` 를 이어 쓰면 마지막 대안이 `none` 이 아닐 때 비로소 `none` 이 빠집니다.
+
+```rok
+let a: i32 | none = ...;
+let b: i32 | none = ...;
+let r = a ?? b;              // r: i32 | none
+let s = a ?? b ?? 0i32;      // s: i32
+```
+
 ## 3.8.5. 우선순위
 
 [우선순위와 결합성](302-precedence-and-associativity.md) 의 등급에서 `?.` 는 멤버 접근 (`.`) 과 같은 우선순위를 가지며 매우 강하게 묶입니다. 반면 `??` (prec=1) 는 논리 OR (`||`) 보다는 낮고 범위 연산자 (`..`, prec=0) 보다는 높은 우선순위에 위치하며 우결합으로 처리됩니다.

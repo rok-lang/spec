@@ -35,40 +35,38 @@ use rok::std::thread::Builder;
 
 ## 핵심 디자인 원칙
 
-### 1. Sync API over M:N scheduler — async 트레잇 없음
+### 1. blocking API + `*_async` — async 트레잇 없음
 
-rok 의 가장 큰 구조적 우위가 여기 있습니다. [task](../200-core/218-task.md) 의 M:N 스케줄러가 blocking 호출을 자동으로 suspend 하므로, 사용자 코드는 sync 처럼 작성하면 됩니다.
+std 의 I/O 함수는 sync 이며 호출한 OS 스레드를 막습니다. task 안에서 기다리는 동안 worker 를 내주려면 같은 연산의 `*_async` 메서드를 `await` 합니다 ([3.2.0](302-net.md#320-공통-규칙)). stackless 코루틴에서는 보통 함수가 task 를 중단시킬 수 없으므로, sync 호출이 저절로 async 가 되지는 않습니다.
 
 ```rok
-// rok 식 — sync 처럼 보이지만 task 안에서 blocking 안 함
-fn fetch(url: str) throws (NetError) -> str {
-    let conn = try net::tcp_connect(url);    // suspend (parking)
-    let bytes = try conn.read_all();          // suspend
-    parse(bytes)
+// blocking — OS 스레드 (thread::spawn) 나 task 밖에서
+fn fetch(addr: str) throws (IoError) -> List<u8> {
+    using conn = try net::tcp_connect(addr);
+    return try conn.read_all();
 }
 
-task::spawn(async { fetch("...") });
-task::spawn(async { fetch("...") });
-// ↑ 동시에 실행 — 한 task suspend 시 worker 가 다른 task 실행
+// async — task 만 중단
+async fn fetch_async(addr: str) throws (IoError) -> List<u8> {
+    using conn = try await net::tcp_connect_async(addr);
+    return try await conn.read_all_async();
+}
 ```
 
-그 결과 `AsyncRead` / `AsyncWrite` 트레잇은 **존재하지 않으며**, `Future` 구현 값을 직접 다룰 일도 거의 없습니다. 무엇보다 function color 문제가 **완화** 됩니다 — sync API 가 곧 async 이기 때문입니다.
+`AsyncRead` / `AsyncWrite` 트레잇은 **두지 않습니다**. async 판은 타입의 고유 메서드이며, 아직 소켓에만 있습니다. 일반 파일의 async I/O 는 제공하지 않습니다.
 
-이 정책은 [Tokio io_uring 글](https://tokio.rs/blog/2021-07-tokio-uring) 이 지적한 completion vs readiness model 충돌도 회피합니다. sync API 라 두 모델 모두를 자유롭게 선택할 수 있는 까닭입니다.
+### 2. I/O backend — runtime detail
 
-### 2. io_uring / IOCP / kqueue / epoll — runtime detail
+준비 대기 (readiness) 는 **runtime 의 책임** 입니다 ([refs-lang 7.7](../../refs-lang/007-runtime/707-io-and-timer.md)). 사용자 코드는 어떤 backend 가 돌아가는지 알 필요가 없습니다.
 
-I/O backend 는 **runtime 의 책임** 입니다. 사용자 코드는 어떤 backend 가 돌아가는지 알 필요가 없습니다.
+| 플랫폼          | backend                     |
+|-----------------|-----------------------------|
+| Linux           | epoll (edge-triggered)      |
+| macOS / FreeBSD | kqueue (`EV_CLEAR`)         |
+| Windows         | IOCP (향후)                 |
+| WASI            | poll_oneoff (향후)          |
 
-| 플랫폼          | backend                             |
-|-----------------|-------------------------------------|
-| Linux 5.15+     | io_uring (default) + epoll fallback |
-| Linux 5.10-5.14 | epoll                               |
-| macOS / FreeBSD | kqueue                              |
-| Windows         | IOCP + wepoll                       |
-| WASI            | poll_oneoff                         |
-
-io_uring backend 는 `IORING_SETUP_DEFER_TASKRUN` (Linux 5.19+) 을 활용해 epoll 대비 2-5x throughput 이득을 얻습니다. 보안 CVE 측면에서는 opt-in 환경 변수와 epoll fallback 을 함께 제공해, Google/Android 처럼 io_uring 을 비활성화하는 환경에서도 동작하도록 설계되어 있습니다.
+io_uring 과 IOCP 같은 completion 모델 backend 는 향후 과제입니다.
 
 ### 3. TLS 1.3 in std — HTTP out
 

@@ -28,9 +28,15 @@
 
 ## 9.2.2. 패키지 발견
 
-`rokc build [path]` 의 path 부터 상위 방향으로 탐색하여 `main.rok` 또는 `lib.rok` 을 찾습니다. 만약 `[path]` 자체가 `lib.rok` 이거나 `main.rok` 이라면 그것이 곧 패키지가 되고, 그 외의 경우에는 디렉토리를 위로 한 단계씩 올라가며 찾습니다.
+`rokc build [path]` 의 path 부터 상위 방향으로 탐색하여 `main.rok` 또는 `lib.rok` 을 찾습니다. 만약 `[path]` 자체가 `lib.rok` 이거나 `main.rok` 이라면 그것이 곧 패키지가 되고, 그 외의 경우에는 (path 가 파일이면 그 디렉토리부터) 디렉토리를 위로 한 단계씩 올라가며 찾습니다.
 
-찾았다면 그 디렉토리가 패키지 루트가 됩니다 ([소스 단위](../000-meta/003-source-units.md) 참고).
+찾았다면 그 디렉토리가 패키지 루트가 됩니다 ([소스 단위](../000-meta/003-source-units.md) 참고). 그 밖의 경우는 다음과 같습니다.
+
+- 한 디렉토리에 `main.rok` 와 `lib.rok` 가 함께 있으면 에러입니다.
+- path 가 파일이고 위로 올라가도 패키지가 없으면, 그 파일 하나로 된 익명 실행 패키지입니다 ([4.16.8](../004-functions/416-entry-point.md#4168-단일-파일-실행)). 파일 서브모듈 (`mod foo;`) 은 에러입니다.
+- path 가 디렉토리이고 패키지가 없으면 에러입니다.
+
+패키지 이름은 루트 디렉토리의 이름 (익명 패키지는 파일 이름에서 `.rok` 를 뗀 것) 이며, 산출물 이름이 됩니다 (9.2.15).
 
 ## 9.2.3. 의존성 해소
 
@@ -166,6 +172,16 @@ target/
 ├── libfoo.a            # package archive (for lib)
 └── foo                 # executable (for main)
 ```
+
+`target/` 은 평평합니다. 빌드 종류 (debug / release) 나 타깃별 하위 디렉토리를 두지 않으며, 이름 `foo` 는 패키지 이름입니다 (9.2.2).
+
+| 산출물          | 경로                                                     |
+|-----------------|----------------------------------------------------------|
+| 실행 파일       | `target/<name>`                                          |
+| 라이브러리      | `target/lib<name>.a` 와 `target/<name>.o`                |
+| `--emit=<kind>` | `target/<name>.<ext>` (`hir` `mir` `mlir` `ll` `s` `o`) |
+
+`-o` 는 산출물 경로를, 환경 변수 `ROKC_TARGET_DIR` 은 `target/` 자체의 위치를 바꿉니다. `foo.hir.o` (RHIR, [9.4](904-rhir-bytecode.md)) 는 아직 만들지 않습니다.
 
 > debug 는 디버그를 의미하고, obj of concrete code 는 concrete 코드의 obj, obj containing RHIR bytecode 는 RHIR bytecode 가 담긴 obj 를 가리킵니다. package archive (for lib) 은 lib 인 경우의 패키지 archive 이고, executable (for main) 은 main 인 경우의 실행 파일입니다.
 

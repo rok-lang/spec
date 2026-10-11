@@ -19,7 +19,9 @@ async fn join<T>(tasks: List<Task<T>>) -> List<T>;      // 모두 완료 후
 async fn timeout<T>(dur: Duration, task: Task<T>) throws (TimeoutError) -> T;   // try await 에서 던짐
 async fn sleep(dur: Duration);
 async fn sleep_until(when: Instant);
-fn yield_now();
+async fn yield_now();                                   // await — 다른 ready task 에 한 번 양보
+fn readable(fd: i32) -> IoReady;                       // await — fd 가 읽기 가능해질 때까지 (refs-lang 7.7.2)
+fn writable(fd: i32) -> IoReady;
 ```
 
 ### 사용 예
@@ -44,10 +46,27 @@ let first = await task::race([
 ]);
 
 await task::sleep(Duration::ms(100));
-task::yield_now();
+await task::yield_now();
 ```
 
 `spawn` 은 클로저가 아니라 future 를 받으므로 `task::spawn(async { ... })` 처럼 `async` 블록이나 `async fn` 호출 결과를 넘깁니다. `Send` 가 아닌 future 는 `spawn_local` 로 현재 스레드에서 실행합니다. `join` / `race` / `timeout` 은 `await` 해서 결과를 받습니다.
+
+### `spawn` 의 `Send` 검사
+
+`task::spawn` 은 다음 값 가운데 `Send` 가 아닌 것이 있는 future 를 거부합니다 ([2.13.9](213-marker.md#2139-send--sync--스레드-경계-marker)).
+
+- `async` 블록 / 클로저가 캡처한 값.
+- 코루틴 안에서 `await` 를 넘어 살아 있는 지역 (frame 에 남는 값).
+
+```rok
+let c = Cell::new(0);                      // Cell: !Send
+task::spawn(async { c.set(1); });          // ERROR — !Send 캡처
+task::spawn_local(async { c.set(1); });    // OK — 현재 worker 에 고정
+```
+
+이 검사는 근사해도 됩니다. 구현은 `Send` 인 future 를 거부할 수 있지만 (보수적), `Send` 가 아닌 값을 넘기는 future 를 받아서는 안 됩니다. 예를 들어 `spawn` 인자가 `async` 블록, `async fn` 호출, 또는 그것으로 초기화된 지역 변수일 때만 frame 을 들여다보고, 그 밖의 future 는 타입의 `Send` 구현만 보는 구현이 허용됩니다.
+
+`async fn` 의 결과 타입 `AsyncFuture<T>` 는 `T: Send` 일 때, throwing 판 `TryAsyncFuture<T, E>` 는 `T` 와 `E` 가 모두 `Send` 일 때 `Send` 입니다. 캡처와 frame 은 위 검사가 따로 봅니다.
 
 ## 2.18.2. `Task<T>` 타입
 
@@ -59,7 +78,7 @@ struct Task<T> {
 }
 
 impl<T> Task<T> {
-    fn cancel(self);                      // 더 이상 poll 하지 않음
+    fn cancel(self);                      // 취소 요청 — 다음 await 에서 끝남 (2.18.4)
     fn is_cancelled(self) -> bool;
     fn is_finished(self) -> bool;
     fn join(self) -> Join<T>;             // try await t.join() — 취소됐으면 CancellationError
@@ -90,11 +109,11 @@ Worker 0 ─┐      Worker 1 ─┐    ...    Worker N-1 ─┐
  [256 slot]│      [256 slot]│            [256 slot] │
            └─ Global Injector Queue ──────┘
            └─ I/O Driver (포터블)   ──────┘
-           └─ Timer Wheel           ──────┘
+           └─ Timer (heap / wheel)  ──────┘
            └─ Parked Worker Stack   ──────┘
 ```
 
-이 구조의 주요 특성을 정리하면, 우선 로컬 큐는 Tokio 방식과 같은 256-slot ring 으로 구성됩니다. 또한 LIFO slot 은 깨어난 task 를 즉시 실행하여 cache 친화성을 높이며, 도둑 알고리듬은 steal back (FIFO) 방식으로 동작합니다. I/O Driver 는 target 에 따라 epoll, io_uring, kqueue, IOCP, wepoll, poll_oneoff 중 하나를 사용하며, Timer 는 Hashed Hierarchical Timing Wheel 을 통해 O(1) 성능을 보장합니다.
+이 구조의 주요 특성을 정리하면, 우선 로컬 큐는 Tokio 방식과 같은 256-slot ring 으로 구성됩니다. 또한 LIFO slot 은 깨어난 task 를 즉시 실행하여 cache 친화성을 높이며, 도둑 알고리듬은 steal back (FIFO) 방식으로 동작합니다. I/O Driver 는 프로세스당 reactor thread 하나가 epoll / kqueue 를 edge-triggered 로 기다리며 (io_uring / IOCP 는 향후, [refs-lang 7.7](../../refs-lang/007-runtime/707-io-and-timer.md)), Timer 구조는 구현이 정합니다 (binary heap 또는 timing wheel, [refs-lang 7.7.5](../../refs-lang/007-runtime/707-io-and-timer.md#775-타이머-구조)).
 
 표준 라이브러리 측의 권위는 API 시그니처에 한정되며, 알고리듬 본문은 spec 외부의 runtime 및 표준 라이브러리 body 영역에 속한다는 점에 유의해야 합니다.
 
@@ -108,7 +127,23 @@ let t = task::spawn(async { long_running() });
 t.cancel();              // 협력적 신호 — task 가 cancellation point 에서 종료
 ```
 
-`cancel()` 이 호출되면 그 task 는 더 이상 poll 되지 않고 현재 중단 지점에서 끝납니다. 취소된 task 를 `try await t.join()` 으로 기다리면 `CancellationError` 가 던져지고, `await t` 로 기다리면 panic 입니다.
+`cancel()` 은 취소를 **요청** 합니다. 규칙은 다음과 같습니다 ([refs-lang 7.7.10](../../refs-lang/007-runtime/707-io-and-timer.md#7710-cancellation)).
+
+- 모든 `await` 가 cancellation point 입니다. 취소된 task 는 다음 `await` 에서 `return` 처럼 본문을 떠나며, 지나는 `finally` 와 `using` 정리가 안쪽부터 실행됩니다.
+- 취소는 task 안에서 `catch` 할 수 있는 에러가 아닙니다. task 안으로 `CancellationError` 가 던져지지 않습니다.
+- blocking syscall 은 cancellation point 가 아닙니다. 그 호출이 끝난 뒤 다음 `await` 에서 떠납니다.
+- `CancellationError` 는 기다리는 쪽이 받습니다. 취소된 task 를 `try await t.join()` 으로 기다리면 `CancellationError` 가 던져지고, `await t` 로 기다리면 panic 입니다.
+
+```rok
+let t = task::spawn(async {
+    using log = open_log();                      // 취소되면 여기서 drop
+    loop {
+        await task::sleep(Duration::sec(1));     // cancellation point
+        tick(log);
+    }
+});
+t.cancel();
+```
 
 ```rok
 let r = try await t.join() catch _: CancellationError { fallback() };

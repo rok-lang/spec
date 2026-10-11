@@ -48,7 +48,15 @@ parser 가 내용만 보고 결정합니다. `expr ":"` 형태이면 Dict, 콤�
 
 ### `[...]` 의 타입
 
-`[1, 2, 3]` 은 기대 타입이 없으면 `List<T>` 입니다. 고정 크기 배열 `[T; N]` 은 `let a: [i32; 3] = [1, 2, 3];` 처럼 기대 타입을 `[T; N]` 으로 적었을 때만 만들어집니다.
+`[1, 2, 3]` 은 기대 타입이 없으면 `List<T>` 입니다. 고정 크기 배열 `[T; N]` 은 `let a: [i32; 3] = [1, 2, 3];` 처럼 기대 타입을 `[T; N]` 으로 적었을 때만 만들어집니다. 고정 배열은 컴파일러가 직접 만들며 핸들러를 거치지 않습니다.
+
+고정 배열은 원소가 구현하면 `Clone` / `Copy` / `Default` / `Debug` / `PartialEq` / `Eq` / `Hash` 를 구현하고 (`==` / `!=` 가능), `len()` 과 `is_empty()` 를 가집니다. 순서 비교 (`<` 등) 는 없습니다.
+
+```rok
+let a: [i32; 3] = [1, 2, 3];
+a.len();                 //→ 3
+a == [1, 2, 3];          //→ true
+```
 
 ### 참조 핸들
 
@@ -128,6 +136,13 @@ let total: i32 = ys.into_iter().sum();   //→ 60
 | `Clone`               | `T: Clone`          | 깊은 복제                       |
 | `PartialEq`           | `T: PartialEq`      | element-wise                    |
 | `Eq`/`Ord`/`Hash`     | T 의 같은 트레잇 시 | lexicographic                   |
+
+### 비교 / 해시 / Debug — 공통 규칙
+
+- `List<T>` 는 `PartialEq` / `Eq` / `Hash` 를 순서대로 원소별로 구현합니다.
+- `Dict<K, V>` 와 `Set<T>` 는 순서와 무관하게 비교하고 해시합니다. 같은 원소 (키와 값) 를 가지면 같습니다.
+- 세 컬렉션 모두 원소가 그 트레잇을 구현하면 `Debug` 를 구현하며, 순회 순서대로 출력합니다.
+- 따라서 원소가 `Eq + Hash` 인 컬렉션은 `Set` 원소나 `Dict` 키가 될 수 있습니다 (`Set<List<i32>>`).
 
 ## 2.9.3. `Dict<K, V>` — hash map
 
@@ -264,7 +279,7 @@ let s = OrderedSet::from([1, 2, 3]);
 struct Tuple { /* heterogeneous, 컴파일 타임 결정 */ }
 ```
 
-튜플 식은 콤마가 하나 이상 있어야 합니다. `(e)` 는 그룹 식이고, 항이 하나인 튜플은 `(e,)` 입니다.
+튜플은 언어 고유이며 리터럴 핸들러로 등록할 수 없습니다 ([refs-lang 6.5.7](../../refs-lang/006-meta-system/605-literal-magic.md#657-사용자-정의-리터럴)). 튜플 식은 콤마가 하나 이상 있어야 합니다. `(e)` 는 그룹 식이고, 항이 하나인 튜플은 `(e,)` 입니다.
 
 각 위치별로 서로 다른 타입을 가질 수 있으며, 길이는 컴파일 타임에 고정됩니다.
 
@@ -290,6 +305,8 @@ let (n, s, b) = t;
 | `PartialOrd` | 모든 컴포넌트 `PartialOrd` |
 | `Ord`        | 모든 컴포넌트 `Ord`        |
 | `Hash`       | 모든 컴포넌트 `Hash`       |
+
+표의 트레잇은 항 1 ~ 12 개의 튜플에 대해 `rok::core::tuple` 이 제공합니다. `PartialOrd` / `Ord` 는 사전식 (첫 항부터, 처음 다른 항이 결정) 이며, 그래서 `<` / `<=` / `>` / `>=` 를 튜플에 바로 쓸 수 있습니다 (`(1, "b") < (1, "c")`).
 
 `Display` 는 자동으로 도출되지 않으므로 필요할 때마다 직접 구현하는 편이 권장됩니다.
 
@@ -347,18 +364,18 @@ let owned: List<i32> = s1.to_list();    //→ [2, 3, 4] (새 List)
 
 ### variadic args 와의 통합
 
-`fn f(xs: ...T)` 의 `xs` 는 `Slice<T>` 형태로 zero-alloc 뷰를 제공합니다.
+`fn f(xs: ...T)` 의 `xs` 는 고정 크기 배열 `[T; N]` 이며 값으로 전달됩니다 ([refs-lang 4.2.5](../../refs-lang/004-functions/402-parameters.md#425-variadic-t)). 스택에 놓이므로 힙 할당이 없습니다.
 
 ```rok
 fn sum(xs: ...i32) -> i32 {
     let total = 0;
-    for x in xs {            // xs: Slice<i32>
+    for x in xs {            // xs: [i32; N]
         total = total + x;   // 재할당은 `let` 없이
     }
     total
 }
 
-sum(1, 2, 3);                //→ 6 (스택 임시 배열 + Slice 전달)
+sum(1, 2, 3);                //→ 6 (xs: [i32; 3])
 ```
 
 ## 2.9.8. `Index` / `IndexSet` / `Slice` 트레잇 매핑

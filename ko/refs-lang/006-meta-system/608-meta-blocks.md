@@ -166,7 +166,14 @@ pub(pkg) @attribute { ... }
 @derive { ... }                  // 비공개
 ```
 
-가시성 키워드는 템플릿 블록 자체에 부착하며, 비공개인 경우에는 같은 모듈 안에서만 사용할 수 있습니다.
+가시성 키워드는 템플릿 블록 자체에 부착합니다. 효과는 다음과 같습니다.
+
+| 가시성                  | 쓸 수 있는 곳                                     |
+|-------------------------|---------------------------------------------------|
+| `pub` (`pub(pkg)` 포함) | 빌드 전체. `use` 없이 `#[derive(X)]` / `#[x]` 로 씀 |
+| 비공개                  | 메타 블록을 정의한 파일 안                        |
+
+derive 와 attribute 이름은 모듈 경로를 갖지 않는 빌드 전역 이름입니다 (6.8.11).
 
 ## 6.8.7. 본체 시작자 (`@derive` / `@attribute`)
 
@@ -196,7 +203,7 @@ pub(pkg) @attribute { ... }
 
 확장은 더 이상 확장할 derive 나 attribute 가 남아 있지 않은 고정점 (fixed-point) 에 도달하면 종료됩니다.
 
-순환 확장 (A 가 B 를 호출하고 B 가 다시 A 를 호출하는 경우) 은 컴파일러가 검출하여 ERROR 를 발생시킵니다.
+순환 확장 (A 가 B 를 호출하고 B 가 다시 A 를 호출하는 경우) 은 컴파일러가 검출하여 ERROR 를 발생시킵니다. 메시지는 순환 경로 (`A → B → A`) 를 보여 줍니다.
 
 ## 6.8.9. 토큰 스트림 조작 없음
 
@@ -220,22 +227,25 @@ rok 의 선택은 표현력을 제한하는 대신 예측 가능성과 디버깅
 
 ## 6.8.11. 등록/가시성과의 결합
 
-`#[impl_derive(TraitName)]` 가 부착된 메타 블록은 `TraitName` 이라는 derive 매핑을 현재 모듈의 가시 범위에 등록해 줍니다.
+`#[impl_derive(TraitName)]` 가 부착된 메타 블록은 `TraitName` 이라는 derive 를, `#[impl_attribute(name)]` 는 `#[name]` attribute 를 등록합니다. 컴파일러는 parse 전에 라이브러리와 사용자 패키지의 모든 파일에서 메타 블록을 모으므로, 정의 위치나 파일 순서와 무관하게 쓸 수 있습니다.
 
-다른 모듈에서 그 derive 를 사용하려면 메타 블록이 보이는 위치에 있거나 import 되어 있어야 합니다.
+`pub` 메타 블록은 `use` 없이 빌드 전체에서 보입니다 (6.8.6). 메타 블록은 이름 공간의 항목이 아니므로 `use` 로 가져오는 대상도 아닙니다.
 
 ```rok
 // pkg::derives
-pub @derive {
-    #[impl_derive(MyHash)]
+#[impl_derive(MyHash)] pub @derive {
     impl MyHash for @Self { ... }
 }
 
-// 다른 모듈
-use pkg::derives::*;     // MyHash derive 사용 가능
+// 다른 모듈 — import 없이 사용
 #[derive(MyHash)]
 struct Foo { ... }
 ```
+
+다음은 에러입니다.
+
+- 같은 derive 또는 attribute 이름을 두 메타 블록이 등록하는 것.
+- 내장 derive ([6.2.1](602-built-in-attributes.md): `Clone`, `Copy`, `Default`, `Debug`, `PartialEq`, `Eq`, `PartialOrd`, `Ord`, `Hash`) 나 내장 attribute (`cfg`, `derive`, `test`, `inline`, `repr`, `keyword` 등 6.2 ~ 6.7 의 속성) 의 이름을 메타 블록이 다시 정의하는 것.
 
 ## 6.8.12. 정리
 

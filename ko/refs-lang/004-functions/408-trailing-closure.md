@@ -9,7 +9,7 @@
 ```
 trailing_call   ::= primary "(" arg_list? ")" trailing_closure
                   | primary trailing_closure                    // 0-arg call
-trailing_closure ::= ("|" closure_params? "|")? block
+trailing_closure ::= ("|" closure_params? "|" ("->" type)?)? block
 ```
 
 ```rok
@@ -49,6 +49,21 @@ pairs.for_each |k, v| { print(k, v) };
 파이프 (`|...|`) 는 괄호 밖, 본체 직전에 위치합니다. 본체는 항상 블록이어서 `|x| body` 같은 한 줄 형태가 아니라 언제나 `|x| { body }` 형태로 적습니다.
 
 트레일링 클로저는 가독성과 일관성을 위해 블록 본체를 기본으로 삼고 있습니다.
+
+### 괄호 없는 형태의 규칙
+
+`xs.map |x| { .. }` 처럼 호출 괄호 없이 클로저를 붙이는 형태는 다음 조건에서만 트레일링 클로저입니다.
+
+- 바로 앞이 경로 (`thread::spawn`, `f`) 이거나 멤버 이름 (`.map`) 입니다.
+- 뒤에 `|매개변수|`, 선택적 `-> R`, 그리고 `{` 가 이어집니다. 이 모양이 아니면 `|` 는 비트 OR 입니다.
+- `||` 는 언제나 논리 OR 입니다. 매개변수 없는 클로저는 `{ body }` 단축으로 씁니다.
+- `if` / `while` / `match` 의 머리 (조건과 scrutinee) 안에서는 괄호 없는 트레일링 클로저와 `{ body }` 단축이 꺼집니다. 그 자리의 `{` 는 본체 블록을 엽니다. 머리에서 클로저가 필요하면 괄호로 씁니다 (`if xs.any(|x| { x > 0 }) { .. }`).
+
+```rok
+let ys = xs.map |x| -> i64 { x as i64 * 2 };   // 반환 타입 명시
+let z = a | b;                                  // 비트 OR — 뒤에 `|params| {` 모양이 아님
+if ok || retry { .. }                           // 논리 OR
+```
 
 ## 4.8.2. 명시 괄호와의 자유 선택
 

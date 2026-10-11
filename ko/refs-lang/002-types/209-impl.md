@@ -28,6 +28,18 @@ impl Point {
 
 이 형태는 `impl 타입 { ... }` 의 모습을 가지며, 본체는 함수 정의의 모음으로 이루어집니다. 그리고 이렇게 정의된 함수는 그 타입의 메서드가 됩니다.
 
+고정 배열과 튜플에도 고유 `impl` 을 둘 수 있습니다. 표준 라이브러리는 이것으로 배열에 `len()` / `is_empty()` 를 줍니다.
+
+```rok
+impl<T, const N: usize> [T; N] {
+    fn len(self) -> usize { N }
+}
+
+impl<A, B> (A, B) {
+    fn swap(self) -> (B, A) { (self.1, self.0) }
+}
+```
+
 ### 트레잇 `impl`. 트레잇 구현
 
 다음으로 트레잇 `impl` 의 예시를 살펴보겠습니다.

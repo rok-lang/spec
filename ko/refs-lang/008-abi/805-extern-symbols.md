@@ -241,7 +241,12 @@ extern "C" {
 
 ## 8.5.4. Scheduler 영역
 
-### `rok_task_spawn`
+### `rok_task_spawn` / `rok_task_await` / `rok_task_cancel` (예약)
+
+> [!NOTE]
+> 현재 구현은 이 세 심볼을 쓰지 않습니다. task 런타임 (spawn, join, cancel, executor) 은 `rok::core::task` 의 rok 코드이며, 런타임에는 아래의 `rok_task_exec_*` / `rok_task_parking_*` 와 스레드 심볼만 있습니다. 세 이름은 예약으로 남깁니다.
+
+#### `rok_task_spawn`
 
 [스케줄러](../007-runtime/706-scheduler.md) 의 task spawn 에 해당합니다. **Thread-safety: `thread-safe`**.
 
@@ -253,7 +258,7 @@ extern "C" {
 
 `coro_frame` 은 `async fn` 의 frame 이며, 반환값은 `await` 할 수 있는 객체인 task handle 입니다.
 
-### `rok_task_await`
+#### `rok_task_await`
 
 **Thread-safety: `caller-thread-only`** (호출자 코루틴이 직접 대기 / 일시 중단되는 흐름).
 
@@ -265,7 +270,7 @@ extern "C" {
 
 task 의 결과를 기다립니다. 호출자도 코루틴이므로 결과가 나오지 않으면 호출자가 일시 중단됩니다.
 
-### `rok_task_cancel`
+#### `rok_task_cancel`
 
 **Thread-safety: `thread-safe`**.
 
@@ -275,7 +280,7 @@ extern "C" {
 }
 ```
 
-task 를 cancel 합니다. 진행 중이라면 중단시키며, `await` 중인 호출자에게 취소 신호를 전달합니다.
+task 의 취소를 요청합니다. task 는 다음 `await` 에서 정리 코드를 실행하며 끝나고, 그 task 를 `join` 으로 기다리는 쪽은 `CancellationError` 를 받습니다 ([7.7.10](../007-runtime/707-io-and-timer.md#7710-cancellation)).
 
 ### `rok_task_exec_*` / `rok_time_now_ns`
 
@@ -411,33 +416,52 @@ extern "C" {
 
 ## 8.5.5. I/O / Timer 영역
 
-### `rok_io_register`
+### `rok_io_register` / `rok_timer_register` (예약)
+
+> [!NOTE]
+> 현재 구현은 이 두 심볼을 쓰지 않습니다. I/O 대기는 reactor thread 가 `rok_io_*` (아래) 로 처리하고, 깨울 task 는 `rok::core::task` 의 parking registry 에서 찾습니다 ([7.7.4](../007-runtime/707-io-and-timer.md#774-io-driver-추상화)). timer 는 executor 가 rok 쪽에서 관리합니다. 두 이름은 예약으로 남깁니다.
 
 **Thread-safety: `thread-safe`**.
 
 ```
 extern "C" {
     fn rok_io_register(fd: i32, interest: u32, waker: Ptr<u8>);
-}
-```
-
-각 인자의 의미는 다음과 같습니다.
-
-- `fd`: file descriptor 입니다.
-- `interest`: 비트 플래그로, READ / WRITE / EDGE 등이 포함됩니다.
-- `waker`: fd 가 ready 될 때 깨울 waker 입니다.
-
-### `rok_timer_register`
-
-**Thread-safety: `thread-safe`**.
-
-```
-extern "C" {
     fn rok_timer_register(deadline: u64, waker: Ptr<u8>);
 }
 ```
 
-`deadline` 은 절대 시간으로, 밀리초나 마이크로초 등이며 정확한 단위는 구현이 결정합니다. `waker` 는 시간 도달 시 깨울 waker 입니다.
+- `fd`: file descriptor 입니다.
+- `interest`: 비트 플래그로, READ / WRITE / EDGE 등이 포함됩니다.
+- `waker`: fd 가 ready 되거나 `deadline` 에 도달할 때 깨울 waker 입니다.
+- `deadline`: 절대 시간이며 정확한 단위는 구현이 결정합니다.
+
+### `rok_io_*` — reactor (내부, 변경 가능)
+
+[I/O 드라이버](../007-runtime/707-io-and-timer.md) 의 reactor 를 이루는 내부 심볼입니다. ABI 안정 대상이 아니며 바뀔 수 있습니다. **Thread-safety: `thread-safe`**.
+
+```
+extern "C" {
+    fn rok_io_poller() -> i32;                    // 프로세스의 kqueue / epoll fd (처음 부를 때 생성)
+    fn rok_io_driver_claim() -> i32;              // 처음 부른 쪽만 1 — 그쪽이 reactor thread 를 띄움
+    fn rok_io_watch(fd: i32) -> i32;              // fd 를 읽기 / 쓰기 edge-triggered 로 등록 (다시 걸어도 무해), 0 또는 -errno
+    fn rok_io_poll(out: Ptr<u8>, max: usize) -> i32;   // 변화가 올 때까지 막힘 (GC 에는 park), 사건 수 또는 -errno
+}
+```
+
+`rok_io_poll` 은 사건을 `GcBuf<i64>` 인 `out` 에 `fd * 2 + 방향` (읽기 0, 쓰기 1) 으로 최대 `max` 개 씁니다.
+
+### `rok_net_*` — 소켓 helper (내부, 변경 가능)
+
+표준 라이브러리 `rok::std::net` ([stdlib 3.2](../../refs-standard-libraries/300-std/302-net.md)) 을 뒷받침하는 내부 심볼입니다. ABI 안정 대상이 아니며 바뀔 수 있으므로 사용자 코드는 직접 부르지 않습니다. 소켓은 늘 non-blocking 으로 만들어지며, 실패는 `-errno` 로 돌려줍니다.
+
+```
+rok_net_socket     rok_net_bind       rok_net_listen     rok_net_connect
+rok_net_sock_error rok_net_accept     rok_net_addr       rok_net_send
+rok_net_send_to    rok_net_recv_from  rok_net_shutdown   rok_net_setopt
+rok_net_multicast_v4 rok_net_wait     rok_net_resolve    rok_net_gai_strerror
+```
+
+`rok_net_wait` 는 blocking 호출이 준비를 기다리는 `poll(2)` 이며 (GC 에는 native 구간), `rok_net_resolve` 는 `getaddrinfo` 입니다.
 
 ## 8.5.6. 에러 전달 (심볼 없음)
 

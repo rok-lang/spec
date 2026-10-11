@@ -22,6 +22,29 @@ template_token  ::= "@" identifier
 @for_fields { ... }     필드 반복 블록
 ```
 
+### 토큰 목록
+
+| 토큰                                                     | 값                                          | 절    |
+|----------------------------------------------------------|---------------------------------------------|-------|
+| `@Self`                                                  | 대상 타입 (`Name<T, ..>`)                   | 6.9.2 |
+| `@if_struct` / `@if_enum` / `@if_union { .. }`           | 대상 종류가 맞을 때만 본문                  | 6.9.2 |
+| `@for_fields { .. }`                                     | 필드마다 본문                               | 6.9.3 |
+| `@field`, `@field.name`, `@field.type`                   | 현재 필드 (접근 / 이름 / 타입)              | 6.9.3 |
+| `@field.is_pub`, `@field.has_attr(x)`                    | 부울                                        | 6.9.3 |
+| `@for_variants { .. }`                                   | `enum` 변형마다 본문                        | 6.9.4 |
+| `@variant.name`, `@variant.pattern`                      | 현재 변형 (이름 / 매칭 패턴)                | 6.9.4 |
+| `@variant.is_unit` / `.is_tuple` / `.is_named`           | 부울                                        | 6.9.4 |
+| `@for_variant_fields { .. }`                             | 현재 변형의 필드마다 본문                   | 6.9.4 |
+| `@apply_if(cond) { .. }`                                 | `cond` 가 참일 때만 본문                    | 6.9.5 |
+| `@accept(kind, ..)`                                      | 대상 종류 제한 (attribute 전용)             | 6.9.5 |
+| `@where_all(Trait)`                                      | 타입 파라미터마다 `T: Trait`                | 6.9.5 |
+| `@has_derive_attr(a)`, `@derive_attr(a)`                 | 필드의 derive attribute (부울 / 인자)       | 6.9.6 |
+| `@item`, `@item.name` / `.params` / `.return_type` / `.body` | 부착 대상 항목과 그 부분 (attribute 전용) | 6.9.7 |
+| `@attribute`                                             | 사용처의 attribute 인자 (attribute 전용)    | 6.9.7 |
+| `<이름 토큰>.as_str()`                                   | 이름의 문자열 리터럴                        | 6.9.3 |
+
+`@where_for_fields(pred)` 는 예약된 이름이며 아직 제공하지 않습니다. 목록에 없는 `@이름` 은 에러입니다.
+
 ## 6.9.2. 타입 컨텍스트
 
 ### `@Self` 대상 타입 이름
@@ -56,7 +79,7 @@ template_token  ::= "@" identifier
 
 ### `@for_fields { ... }`
 
-`@for_fields` 는 `struct` 나 `union` 의 필드, 또는 `enum` named-variant 의 필드 각각에 대해 블록을 반복합니다.
+`@for_fields` 는 `struct` 나 `union` 의 필드 각각에 대해 블록을 반복합니다. `@for_variants` 안에서는 현재 변형의 필드를 반복하며 `@for_variant_fields` 와 같습니다. `enum` 에 `@for_variants` 없이 쓰면 에러입니다.
 
 ```rok
 @for_fields {
@@ -84,7 +107,7 @@ let v = @field.name;                  // 식별자 자리에 그 이름이 들�
 fn @field.name() -> i32 { ... }       // 함수 이름으로도 사용 가능
 ```
 
-문자열로 사용하고자 한다면 `@field.name.as_str()` 같은 변환을 사용합니다. 정확한 형태는 표준 라이브러리에서 정의합니다.
+문자열이 필요하면 `.as_str()` 을 붙입니다. `@field.name.as_str()`, `@variant.name.as_str()`, `@item.name.as_str()`, `@Self.as_str()` 은 확장 시점에 그 이름의 문자열 리터럴 (`"x"`) 로 바뀝니다. `@Self.as_str()` 은 타입 인자 없는 이름입니다. 문자열이나 f-string 안에 적은 `@item.name` 같은 이름 토큰은 글자 그대로 치환됩니다.
 
 ### `@field.type`
 
@@ -132,7 +155,7 @@ fn typed<T>() where T == @field.type { ... }
 
 ### `@variant.pattern` 매칭 패턴
 
-`@variant.pattern` 은 variant 의 매칭 패턴 형태로, 예를 들면 `Circle(r)`, `Pending`, `Click { x, y }` 와 같은 모양이 됩니다.
+`@variant.pattern` 은 variant 의 매칭 패턴 형태로, 예를 들면 `Shape::Circle(r)`, `Shape::Pending`, `Shape::Click { x: x1, y: y1 }` 와 같은 모양이 됩니다. 여기서 `r`, `x1`, `y1` 자리의 바인딩은 컴파일러가 만든 이름이며 (위생, 6.9.8), 그 값은 `@for_variant_fields` 안의 `@field` 로 꺼냅니다. 바인딩 이름을 템플릿이 직접 쓸 수는 없습니다.
 
 ```rok
 match self {
@@ -237,11 +260,11 @@ variant 안의 필드들에 대해 반복할 때는 `@for_variant_fields` 를 �
 }
 ```
 
-이렇게 하면 생성되는 `impl` 에는 `where T: Eq` 같은 절이 자동으로 추가됩니다.
+이렇게 하면 생성되는 `impl` 에는 대상 타입의 타입 파라미터마다 `T: Eq` 가 추가됩니다. 구체 필드 타입에 대한 절은 넣지 않으며, 그 필드들이 `Eq` 를 구현하는지는 생성된 본문의 타입 검사가 봅니다. 템플릿의 `impl` 뒤에는 대상 타입의 제네릭 파라미터가 들어가며, 바운드는 `@where_all` 이 붙인 것뿐입니다.
 
-### `@where_for_fields(pred)`
+### `@where_for_fields(pred)` (예약)
 
-`@where_for_fields` 는 특정 조건의 필드에만 where 절을 적용할 때 사용합니다. 정확한 형태는 표준 라이브러리에서 정의합니다.
+특정 조건의 필드에만 where 절을 적용하는 토큰으로 예약되어 있으며, 아직 제공하지 않습니다.
 
 ## 6.9.6. derive_attribute 토큰
 
@@ -326,20 +349,18 @@ fn run() { ... }
 
 ## 6.9.8. 확장 메커니즘
 
-### parse 직후의 expand 패스
+### 모으기와 확장
 
-[컴파일 파이프라인](../000-meta/002-pipeline.md) 에서는 parse 직후에 메타 확장 패스가 실행되며, 그 흐름은 다음과 같습니다.
+메타 확장은 다음 흐름으로 진행됩니다.
 
-1. parse 결과 AST 에서 `#[derive]`, `#[attribute_name]`, 메타 블록의 적용을 찾습니다.
-2. 각 적용을 해당 메타 블록의 본체로 확장하면서 템플릿 토큰을 실제 값으로 치환합니다.
-3. 확장 결과 AST 도 다시 메타 처리될 수 있습니다 (재귀).
-4. 고정점에 도달할 때까지 반복합니다.
+1. parse 전의 pre-pass 가 라이브러리와 사용자 패키지의 모든 파일에서 메타 블록을 모읍니다 ([6.8.11](608-meta-blocks.md#6811-등록가시성과의-결합)).
+2. 파서가 `#[derive(X)]` 나 `#[x]` 가 붙은 항목을 만나면, 그 메타 블록의 본체에서 템플릿 토큰을 항목의 값으로 치환하고 결과를 다시 파싱합니다.
+3. 생성된 항목도 다시 메타 처리됩니다. 고정점에 도달할 때까지 반복합니다.
+4. 순환 (`A → B → A`) 은 에러입니다 ([6.8.8](608-meta-blocks.md#688-fixed-point-확장)).
 
-### `cfg` 와의 순서
+### `cfg` 와의 관계
 
-[`#[cfg]`](603-cfg.md) 의 cfg 처리는 메타 확장 전에 일어납니다. cfg 가 거짓인 항목은 처음부터 사라지므로, 그 항목에 적용된 메타 블록은 처리되지 않습니다.
-
-전체 순서는 다음과 같습니다.
+항목에 붙은 [`#[cfg]`](603-cfg.md) 는 그 항목에서 생성된 모든 항목에 그대로 복사됩니다. 따라서 cfg 가 거짓인 항목은 생성물과 함께 사라지며, 결과는 다음 순서와 같습니다.
 
 ```
 parse → cfg eval → meta expansion (fixed-point) → 이름 해소 → 타입 검사 → ...
@@ -347,15 +368,13 @@ parse → cfg eval → meta expansion (fixed-point) → 이름 해소 → 타입
 
 ### 위생 (hygiene)
 
-메타 블록이 생성하는 코드 안의 식별자는 생성 컨텍스트의 이름 공간만 보며, 사용처의 이름 공간을 오염시키지 않습니다.
-
-예를 들어 메타 블록이 임시 변수를 도입하는 경우를 살펴봅니다.
+템플릿이 묶는 지역 이름, 곧 `let` / `for` 의 바인딩과 클로저 매개변수 (f-string 의 `{..}` 안 포함) 는 확장할 때 겹치지 않는 이름으로 바뀝니다. 그래서 템플릿의 지역은 항목에서 온 이름 (`@item.body`, `@item.params`, `let @field.name = ..`) 을 가리거나 붙잡지 않습니다.
 
 ```rok
 #[impl_derive(Foo)] pub @derive {
     impl Foo for @Self {
         fn foo(self) -> i32 {
-            let temp = compute();             // 'temp' 는 메타 블록 컨텍스트
+            let temp = compute();             // 확장 시 이름이 바뀜
             temp * 2
         }
     }
@@ -369,17 +388,33 @@ let s = S { temp: "hi" };
 let r = s.foo();                              // 메타가 만든 'temp' 와 충돌 안 함
 ```
 
-이때 생성된 메서드 안의 `temp` 는 메타 블록 안의 임시 변수일 뿐이며, 사용처의 `S::temp` 필드와는 무관합니다.
+`match` arm 패턴이 묶는 이름과 `S { x }` 축약은 바꾸지 않습니다. 템플릿은 그 자리에 항목과 겹칠 수 있는 이름을 쓰지 않습니다. `@variant.pattern` 의 바인딩은 컴파일러가 만든 이름이므로 겹치지 않습니다.
 
 ### 자유 식별자의 해소
 
-메타 블록 안에서 해소되지 않은 식별자 (예: `compute()`, `now()`, `log()`) 는 메타 블록의 모듈 컨텍스트에서 보이는 항목으로 해소됩니다.
+생성된 항목은 **사용처의 모듈** 에 놓입니다. 따라서 템플릿 안에서 묶이지 않은 식별자 (예: `compute()`, `now()`, `log()`) 는 메타 블록의 모듈이 아니라 사용처에서 해소됩니다.
 
-따라서 메타 블록 작성자가 필요한 도구 (`compute`, `log` 등) 를 그 모듈 안에 import 해두면, 사용처의 환경과 무관하게 동작하게 됩니다.
+템플릿 작성자는 절대 경로 (`rok::core::..`, 라이브러리의 `pkg::..`) 를 쓰거나, 사용처에서 보이는 이름 (묵시 `use rok::core::**;` 의 항목 등) 만 씁니다.
+
+```rok
+#[impl_derive(MyHash)] pub @derive {
+    impl MyHash for @Self {
+        fn my_hash(self) -> u64 {
+            let h: u64 = 0u64;
+            @for_fields { h = mylib::hash::combine(h, self.@field.my_hash()); }   // 절대 경로
+            h
+        }
+    }
+}
+```
+
+### 진단 위치
+
+확장 중의 에러와 확장 결과의 파싱 에러는 템플릿의 위치를 가리키고, 사용처 (`#[derive(X)]` / `#[x]`) 를 note 로 덧붙입니다. 템플릿 토큰을 거쳐 항목에서 온 토큰은 항목의 위치를 가리킵니다.
 
 ## 6.9.9. 디버깅
 
-`rokc --emit=expanded` 같은 명령으로 확장된 결과 AST 를 출력할 수 있는데, 정확한 명령은 컴파일러 사양에 따릅니다. 이를 통해 메타 블록이 어떤 코드를 생성했는지 시각적으로 확인할 수 있습니다.
+확장 결과를 출력하는 `rokc build --emit=expanded` ([9.9.10](../009-tools/909-debug-tools.md#9910-메타-블록-디버그)) 는 아직 제공하지 않습니다.
 
 ## 6.9.10. 정리
 

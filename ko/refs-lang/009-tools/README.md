@@ -27,18 +27,18 @@ rokc  (single binary)
   │   └── rokc test       : collect + run test functions (#[test])
   │
   ├── interactive
-  │   ├── rokc repl       : terminal REPL (JIT engine)
-  │   └── rokc jupyter    : Jupyter kernel (JIT engine + ZMQ wire)
+  │   ├── rokc repl       : terminal REPL (JIT engine)              [planned]
+  │   └── rokc jupyter    : Jupyter kernel (JIT engine + ZMQ wire)  [planned]
   │
   ├── tools
   │   ├── rokc fmt        : formatter
   │   ├── rokc check      : type / diagnostics only (no codegen)
-  │   └── rokc lsp        : LSP server (IDE integration)
+  │   └── rokc lsp        : LSP server (IDE integration)            [planned]
   │
   ├── debug / diagnostic
   │   ├── rokc demangle   : symbol demangle
-  │   ├── rokc rhir-text  : RHIR bytecode text dump
-  │   └── rokc inspect    : package inspect
+  │   ├── rokc rhir-text  : RHIR bytecode text dump                 [planned]
+  │   └── rokc inspect    : package inspect                         [planned]
   │
   └── auxiliary
       ├── rokc new        : create new package
@@ -46,7 +46,7 @@ rokc  (single binary)
       └── rokc version    : version
 ```
 
-> single binary: 단일 바이너리. build / run: 빌드 / 실행. interactive: 인터랙티브. tools: 도구. debug / diagnostic: 디버그 / 진단. auxiliary: 보조. AOT compile: AOT 컴파일. source: 소스. executable: 실행 파일. compile then run immediately: AOT 컴파일 후 즉시 실행. collect + run test functions: 테스트 함수 수집 + 실행. terminal REPL: 터미널 REPL. JIT engine: JIT 엔진. Jupyter kernel: Jupyter 커널. formatter: 포매터. type / diagnostics only: 타입 / 진단만. no codegen: 코드 생성 없이. LSP server: LSP 서버. IDE integration: IDE 통합. symbol demangle: 심볼 demangle. RHIR bytecode text dump: RHIR bytecode 텍스트 출력. package inspect: 패키지 검사. create new package: 새 패키지 생성. remove build artifacts: 빌드 산출물 제거. version: 버전.
+> single binary: 단일 바이너리. build / run: 빌드 / 실행. interactive: 인터랙티브. tools: 도구. debug / diagnostic: 디버그 / 진단. auxiliary: 보조. AOT compile: AOT 컴파일. source: 소스. executable: 실행 파일. compile then run immediately: AOT 컴파일 후 즉시 실행. collect + run test functions: 테스트 함수 수집 + 실행. terminal REPL: 터미널 REPL. JIT engine: JIT 엔진. Jupyter kernel: Jupyter 커널. formatter: 포매터. type / diagnostics only: 타입 / 진단만. no codegen: 코드 생성 없이. LSP server: LSP 서버. IDE integration: IDE 통합. symbol demangle: 심볼 demangle. RHIR bytecode text dump: RHIR bytecode 텍스트 출력. package inspect: 패키지 검사. create new package: 새 패키지 생성. remove build artifacts: 빌드 산출물 제거. version: 버전. planned: 계획 — 아직 제공하지 않음.
 
 모든 명령어가 `rokc` 한 바이너리에 통합되어 있습니다. 별도 도구 (`rok-fmt` 등) 는 두지 않고 있습니다.
 
@@ -91,6 +91,7 @@ foo/
        v rokc build
 foo/target/
 ├── libfoo.a                 <- artifact (static archive)
+├── foo.o
 └── ...
 ```
 

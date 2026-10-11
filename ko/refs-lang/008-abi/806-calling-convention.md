@@ -110,7 +110,7 @@ C 와 C++ 의 일부 ABI 는 스택 push 순서를 이유로 우→좌 평가를
 
 ## 8.6.10. 가변 인자 (variadic) 함수
 
-[매개변수](../004-functions/402-parameters.md) 의 `...T` variadic 은 언어 레벨의 variadic 으로서 slice 로 묶어 전달됩니다. 이는 플랫폼의 C variadic (`...` 가변 인자) 과는 별개의 개념입니다.
+[매개변수](../004-functions/402-parameters.md) 의 `...T` variadic 은 언어 레벨의 variadic 으로서 고정 크기 배열 `[T; N]` 하나로 묶어 값으로 전달됩니다 (보통 배열 인자와 같은 ABI). 이는 플랫폼의 C variadic (`...` 가변 인자) 과는 별개의 개념입니다.
 
 C 의 variadic 함수 호출 (예를 들어 `printf`) 은 `extern "C"` 를 통해 직접 호출이 가능하며, 이때의 ABI 는 플랫폼이 정의한 C 가변 인자 규약을 따릅니다.
 
