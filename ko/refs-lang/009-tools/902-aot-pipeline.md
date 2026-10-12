@@ -42,13 +42,21 @@
 
 이 단계에서는 [경로](../005-modules/507-paths.md) 와 [`use`](../005-modules/505-use.md) 의 외부 패키지 참조 (`use external_pkg::...`) 를 처리합니다.
 
-`rokc` 는 의존성을 스스로 해소하지 않습니다. front-end `rok` ([9.10](910-rok-frontend.md)) 가 `Rok.toml` / `Rok.lock` 을 따라 path / git 의존 패키지를 가져와 빌드하고, 그 루트 (`.a`) 들의 위치를 아래 저수준 옵션으로 `rokc` 에 넘깁니다.
+`rokc` 는 의존성을 스스로 해소하지 않습니다. front-end `rok` ([9.10](910-rok-frontend.md)) 가 `Rok.toml` / `Rok.lock` 을 따라 path / git 의존 패키지를 준비하고, 각 패키지의 루트를 `--extern` 으로 `rokc` 에 넘깁니다.
 
 ```
-rokc build --extern foo=path/to/libfoo.a --extern bar=...
+rokc build --extern util=../util --extern parser=$ROK_HOME/cache/git/checkouts/<commit>/lib.rok
 ```
 
-옵션을 통해 각 의존 패키지의 .a 위치를 명시합니다. 보통은 `rok` 가 채우며, 다른 빌드 시스템이 직접 쓸 수도 있습니다. 아직 제공하지 않습니다.
+`--extern name=<dir | lib.rok>` 는 의존 패키지의 `lib.rok` 를 같은 빌드에서 **소스로 함께 컴파일** 하고, 그 패키지를 최상위 경로 `name` 에 mount 합니다. `name` 은 `Rok.toml` 의 의존성 이름 (키) 입니다.
+
+- 사용자 코드는 `use name::..` 로 그 패키지의 항목을 씁니다.
+- 의존 패키지 안의 `pkg::` 는 그 의존 패키지 자신을 가리킵니다.
+- 의존 패키지는 별개의 패키지입니다. `pub` 항목만 바깥에서 쓸 수 있고, `pub(pkg)` / `pub(sub)` / 비공개 항목은 쓸 수 없습니다 ([5.7.14](../005-modules/507-paths.md#5714-패키지-사이-경로)).
+- 사용자 패키지의 모듈이 의존 패키지와 같은 이름이면 에러입니다.
+- 미리 빌드한 archive (`.a`) 를 넘기는 것은 아직 지원하지 않습니다 ("not supported yet" 에러). 그래서 의존 패키지는 빌드마다 함께 다시 컴파일됩니다.
+
+보통은 `rok` 가 `--extern` 을 채우며, 다른 빌드 시스템이 직접 쓸 수도 있습니다.
 
 ## 9.2.4. 소스 파싱
 
@@ -161,19 +169,16 @@ clang -O2 \
 
 ## 9.2.15. 산출물
 
-> [!NOTE]
-> 아래 profile 별 레이아웃은 계획입니다. 현재 구현은 평평한 `target/` 을 씁니다 (`target/<name>`, `target/lib<name>.a` + `target/<name>.o`, `target/<name>.<ext>`).
-
-산출물은 cargo 와 같이 **profile 별** 디렉토리에 놓입니다. profile 은 `debug` (기본값) 와 `release` (`--release`) 입니다.
+산출물은 cargo 와 같이 **profile 별** 디렉토리에 놓입니다. profile 은 `debug` (기본값) 와 `release` 이며, 최적화 단계가 `-O2` / `-O3` / `-Os` (`--release` 포함) 이면 `release` 입니다.
 
 ```
 target/
 ├── debug/                      # profile (기본)
 │   ├── foo                     # executable (for main)
 │   ├── libfoo.a                # package archive (for lib)
-│   ├── foo.mlir                # --emit=mlir
-│   ├── build/                  # intermediates — foo.o, foo.hir.o, module.mlir, ...
-│   └── deps/                   # compiled dependencies (lib<dep>.a)
+│   ├── foo.o                   # the archive's object (for lib)
+│   ├── build/                  # intermediates and --emit output (foo.mlir, ...)
+│   └── deps/                   # compiled dependencies (reserved)
 ├── release/                    # --release
 │   └── ...
 ├── aarch64-unknown-linux-gnu/  # cross build (--target=<triple>)
@@ -183,15 +188,15 @@ target/
 
 > profile: 빌드 종류. executable (for main): 실행 패키지의 실행 파일. package archive (for lib): 라이브러리 패키지의 archive. intermediates: 중간 산출물. compiled dependencies: 빌드된 의존 패키지. cross build: 교차 빌드.
 
-| 산출물                | 경로                                                     |
-|-----------------------|----------------------------------------------------------|
-| 실행 파일             | `target/<profile>/<name>`                                |
-| 라이브러리            | `target/<profile>/lib<name>.a`                           |
-| `--emit=<kind>`       | `target/<profile>/<name>.<ext>` (`hir` `mir` `mlir` `ll` `s` `o`) |
-| 중간 산출물           | `target/<profile>/build/` (`<name>.o`, `<name>.hir.o` 등) |
-| 의존 패키지           | `target/<profile>/deps/`                                 |
-| 교차 빌드             | `target/<triple>/<profile>/...` (위와 같은 구조)         |
-| 문서                  | `target/doc/`                                            |
+| 산출물          | 경로                                                              |
+|-----------------|-------------------------------------------------------------------|
+| 실행 파일       | `target/<profile>/<name>`                                         |
+| 라이브러리      | `target/<profile>/lib<name>.a` 와 `target/<profile>/<name>.o`     |
+| `--emit=<kind>` | `target/<profile>/build/<name>.<ext>` (`hir` `mir` `mlir` `ll` `s` `o`) |
+| 중간 산출물     | `target/<profile>/build/`                                         |
+| 의존 패키지     | `target/<profile>/deps/` — 예약 (지금은 의존 패키지를 소스로 함께 컴파일, 9.2.3) |
+| 교차 빌드       | `target/<triple>/<profile>/...` (위와 같은 구조)                  |
+| 문서            | `target/doc/` (계획)                                              |
 
 이름 `foo` 는 패키지 이름입니다 (9.2.2). `-o` 는 산출물 하나의 경로를, `--target-dir=<dir>` 와 환경 변수 `ROKC_TARGET_DIR` 은 `target/` 자체의 위치를 바꿉니다. `rokc clean` / `rok clean` 은 `target/` 전체를 지웁니다. `foo.hir.o` (RHIR, [9.4](904-rhir-bytecode.md)) 는 아직 만들지 않습니다.
 
@@ -240,7 +245,7 @@ target/
 $ROK_HOME/
 ├── bin/
 │   ├── rokc               # 컴파일러 (9.1)
-│   ├── rok                # front-end — 의존성, 환경, toolchain (9.10, 계획)
+│   ├── rok                # front-end — 의존성, 환경, toolchain (9.10)
 │   └── rokls              # LSP 서버 = rok lsp
 ├── lib/
     ├── librokr.a              # 런타임
@@ -248,9 +253,9 @@ $ROK_HOME/
         ├── core/              # rok::core
         ├── std/               # rok::std
         └── bare/              # rok::bare
-├── cache/                     # 의존 소스의 내용 주소 캐시 (9.10.4, 계획)
-├── envs/<name>/               # 이름 있는 환경 (9.10.5, 계획)
-└── toolchains/<version>/      # 고정된 toolchain (9.10.6, 계획)
+├── cache/                     # git 의존 / 스크립트 lock 캐시 (9.10.4)
+├── envs/<name>/, envs/CURRENT  # 이름 있는 환경, `env use` 의 선택 (9.10.5)
+└── toolchains/<version>/      # 설치된 toolchain (9.10.6)
 ```
 
 `rokc` 는 런타임과 표준 라이브러리를 이 경로에서 찾습니다. `ROK_HOME` 이 설정되지 않으면 `rokc` 실행 파일이 있는 디렉토리의 상위 (`bin/` 의 `..`) 를 `ROK_HOME` 으로 봅니다. 저장소에서 직접 실행하는 개발 레이아웃은 위 경로에서 찾지 못했을 때의 fallback 으로 유지합니다.

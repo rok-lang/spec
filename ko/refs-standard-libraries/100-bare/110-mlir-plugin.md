@@ -66,7 +66,7 @@ rokc build \
 
 ### 패키지 매니페스트 선언
 
-패키지의 매니페스트 (`Rok.toml`, [refs-lang 9.10](../../refs-lang/009-tools/910-rok-frontend.md)) 에 `mlir_plugin` 의존성을 선언하면 빌드 시 자동 로드됩니다. 매니페스트 형식 자체는 패키지 매니저 사양의 영역이며 본 사양 외부입니다.
+패키지의 매니페스트 (`Rok.toml`, [refs-lang 9.10](../../refs-lang/009-tools/910-rok-frontend.md)) 에 `mlir_plugin` 의존성을 선언하면 빌드 시 자동 로드됩니다. 매니페스트 형식은 [refs-lang 9.10.3](../../refs-lang/009-tools/910-rok-frontend.md#9103-roktoml--roklock) 이 정의합니다. plugin 을 선언하는 키는 아직 그 형식에 없으며, 정해지면 9.10.3 에 추가됩니다.
 
 ## 1.10.4. plugin op 호출
 

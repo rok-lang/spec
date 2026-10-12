@@ -18,12 +18,12 @@ rokc build --emit=obj           # object 파일
 산출물은 다음 위치에 출력됩니다.
 
 ```
-target/debug/foo.hir
-target/debug/foo.mir
-target/debug/foo.mlir
-target/debug/foo.ll
-target/debug/foo.s
-target/debug/foo.o
+target/debug/build/foo.hir
+target/debug/build/foo.mir
+target/debug/build/foo.mlir
+target/debug/build/foo.ll
+target/debug/build/foo.s
+target/debug/build/foo.o
 ```
 
 여러 단계를 한 번에 지정하려면 `--emit=mlir,llvmir,asm` 처럼 쉼표로 구분하면 됩니다. 종류가 하나면 `-o <path>` 로 위치를 바꿀 수 있습니다. `--emit` 을 주면 실행 파일이나 archive 는 만들지 않습니다.
@@ -153,6 +153,7 @@ span 은 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_p
 | `E500` | `unsupported` | 아직 지원하지 않는 구문      |
 | `E501` | `internal`    | 컴파일러 내부                |
 | `E502` | `other`       | 그 밖                        |
+| `E503` | `lint`        | lint ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어), `rokc lint`) |
 
 본 사양은 영역별 코드 prefix 를 보장합니다. 개별 코드가 생기면 같은 영역 안에서 나뉩니다.
 
@@ -305,7 +306,7 @@ rokc build --emit=expanded
 rokc bench
 ```
 
-이 명령 ([9.1.2](901-rokc-cli.md#rokc-bench-벤치마크)) 은 `#[bench]` 가 부착된 함수들을 마이크로벤치마크로 실행하며, 자세한 벤치마크 인프라는 표준 라이브러리 / 도구에서 결정됩니다.
+이 명령 ([9.1.2](901-rokc-cli.md#rokc-bench-벤치마크)) 은 `#[bench]` 가 부착된 함수들을 `-O2` 빌드에서 하나씩 실행하고, 호출 한 번의 평균 시간과 표본 사이의 표준편차를 `ns/iter (+/- sd)` 로 출력합니다. `--iters` / `--samples` 로 표본을 조절합니다.
 
 ## 9.9.12. CI / 테스트 통합
 

@@ -74,6 +74,15 @@ let r = await f;
 
 본체는 [블록 표현식](../003-expressions/309-block-expressions.md) 입니다. 이 형태는 짧은 비동기 작업을 익명으로, 그리고 인라인으로 적기 위한 수단입니다.
 
+`async` 블록은 클로저와 같이 바깥 값을 **만들 때 복사해** 캡처합니다 ([4.6](406-capture-semantics.md)). 그래서 블록을 만든 뒤 바깥 변수를 바꿔도 future 안의 값은 그대로이고, future 안에서의 재할당도 바깥에 보이지 않습니다.
+
+```rok
+let n = 1;
+let f = async { n * 10 };
+n = 2;
+await f;                       //→ 10 — 만들 때의 n
+```
+
 ## 4.12.5. `async` 클로저
 
 `async ||` 는 호출 가능한 비동기 클로저를 만듭니다.
@@ -88,7 +97,15 @@ let f1 = task();                   // f1: `AsyncFuture<...>`
 let f2 = task();                   // 매번 새 Future 생성
 ```
 
-호출할 때마다 새로운 **Future** 가 생성된다는 점이 특징입니다.
+호출할 때마다 새로운 **Future** 가 생성된다는 점이 특징입니다. `[ref x]` 캡처 리스트를 붙인 `async [ref x] || { .. }` 는 `x` 의 공유 셀을 그 클로저가 만드는 모든 future 와 바깥이 함께 씁니다.
+
+```rok
+let hits = 0;
+let bump = async [ref hits] || { hits += 1; };
+await bump();
+await bump();
+hits;                          //→ 2
+```
 
 ## 4.12.6. 세 형태의 대응
 

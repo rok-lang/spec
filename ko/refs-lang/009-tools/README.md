@@ -20,9 +20,9 @@
 도구 표면은 다음과 같이 구성되어 있습니다.
 
 ```
-rok  (front-end, cargo-like)                                            [planned]
-  │   new / init, add / remove / update (Rok.toml, Rok.lock), env, toolchain
-  │   build / check / run / test / bench / fmt / lint / doc / clean / repl / lsp
+rok  (front-end, cargo-like)
+  │   new / init, add / remove / update / deps (Rok.toml, Rok.lock), env, toolchain
+  │   build / check / run / test / bench / emit / fmt / lint / doc / clean / repl / lsp / demangle
   │        └── resolve deps, then call rokc ... --extern <dep roots>
   ▼
 rokc  (compiler)
@@ -31,14 +31,14 @@ rokc  (compiler)
   │   ├── rokc build      : AOT compile — .rok source to .a / executable
   │   ├── rokc run        : AOT compile then run immediately
   │   ├── rokc test       : collect + run test functions (#[test])
-  │   ├── rokc bench      : collect + run benchmarks (#[bench])         [planned]
+  │   ├── rokc bench      : collect + run benchmarks (#[bench])
   │   ├── rokc check      : type / diagnostics only (no native build)
   │   └── rokc clean      : remove build artifacts
   │
   ├── tools
   │   ├── rokc fmt        : formatter
-  │   ├── rokc lint       : linter                                      [planned]
-  │   ├── rokc doc        : API documentation                           [planned]
+  │   ├── rokc lint       : linter
+  │   ├── rokc doc        : API documentation
   │   └── rokc lsp        : LSP server (IDE integration)
   │
   ├── interactive

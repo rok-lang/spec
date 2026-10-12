@@ -122,6 +122,8 @@ fn test_addition() {
 
 `#[test]` 를 함수에 부착하면 그 함수가 테스트 함수임을 표시하게 됩니다. 그러면 테스트 러너 (`rokc test` 등) 가 이러한 함수들을 자동으로 수집하여 실행해 줍니다. 일반 빌드에서는 마치 `#[cfg(test)]` 가 함께 붙어 있는 것처럼 제외되니 참고합니다.
 
+`#[bench]` 는 벤치마크 함수를 표시하며, `#[test]` 와 같이 `#[cfg(test)]` 를 함의합니다. `rokc bench` 가 모아 실행합니다 ([9.1.2](../009-tools/901-rokc-cli.md#rokc-bench-벤치마크)).
+
 ## 6.2.6. `#[cold]` 드물게 호출되는 함수
 
 ```rok
@@ -150,7 +152,7 @@ fn old_api2() { ... }
 fn add(x: i32, y: i32) -> i32 { x + y }
 ```
 
-[어휘 구조](../001-lexical/102-lexical-structure.md) 에서 다루는 `///` 문서 주석은 어휘 단계에서 이러한 형태의 속성으로 변환됩니다.
+[어휘 구조](../001-lexical/102-lexical-structure.md) 에서 다루는 `///` 문서 주석은 이러한 형태의 속성과 같은 의미입니다. 구현은 문서 주석을 속성으로 바꾸지 않고 텍스트 그대로 도구 (`rokc doc` 등) 에 넘겨도 됩니다.
 
 ```rok
 /// 이 함수는 ...
@@ -173,9 +175,41 @@ fn _placeholder() { }
 fn strict_zone() { ... }
 ```
 
-이 속성들은 부착된 항목의 범위 안에서 린터의 진단 수준을 변경해 줍니다. `allow` 는 진단을 무시하고, `warn` 은 진단을 경고로 발생시키며, `deny` 는 진단을 에러로 발생시킵니다.
+이 속성들은 부착된 항목의 범위 안에서 린터 (`rokc lint`, [9.1.2](../009-tools/901-rokc-cli.md#rokc-lint-린터)) 의 진단 수준을 변경해 줍니다. `allow` 는 진단을 무시하고, `warn` 은 진단을 경고로 발생시키며, `deny` 는 진단을 에러로 발생시킵니다. 내부 형태 `#![allow(..)]` 등은 둘러싼 모듈 (파일 머리에서는 파일 전체) 에 적용됩니다. 인자는 lint 이름이나 그룹 이름입니다.
 
-자세한 린트 카테고리는 컴파일러 및 린터 사양에서 정의하며, 본 사양의 범위에는 포함되지 않습니다.
+수준은 안쪽에서부터 정해집니다. 가장 가까운 속성, 그다음 바깥 항목 / 모듈의 속성, 그다음 CLI (`-A` / `-W` / `-D`) 와 `Rok.toml` 의 `[lints]` ([9.10.3](../009-tools/910-rok-frontend.md#9103-roktoml--roklock)), 마지막으로 각 lint 의 기본 수준입니다. lint 진단의 코드는 `E503` 입니다.
+
+모든 lint 의 기본 수준은 `warn` 입니다.
+
+| lint                     | 검사                                                               |
+|--------------------------|--------------------------------------------------------------------|
+| `unused_variables`       | 읽지 않는 지역 변수나 매개변수                                     |
+| `unused_imports`         | 모듈이 이름을 쓰지 않는 `use`                                      |
+| `dead_code`              | 아무도 부르지 않는 비 `pub` 함수                                   |
+| `unreachable_code`       | `return` / `break` / `continue` / `throw` / `panic` 뒤의 문장      |
+| `unused_must_use`        | `#[must_use]` 함수의 결과를 버림                                   |
+| `ignored_error`          | `try? f();` 문장이 에러를 조용히 버림                              |
+| `shadowed_loop_var`      | `for` 본체의 `let` 이 루프 변수를 다시 묶음                        |
+| `nan_comparison`         | NaN 과의 비교 (늘 거짓, `!=` 는 늘 참)                             |
+| `none_comparison`        | `x is none` 대신 `x == none`                                       |
+| `bool_comparison`        | `bool` 을 `true` / `false` 와 비교                                 |
+| `self_assignment`        | `x = x;`                                                           |
+| `while_true`             | `loop` 대신 `while true`                                           |
+| `deprecated`             | `#[deprecated]` 함수 사용                                          |
+| `redundant_cast`         | `x` 가 이미 `T` 인 `x as T`                                        |
+| `redundant_clone`        | 원시 타입 값의 `.clone()`                                          |
+| `non_snake_case`         | 함수, 지역 변수, 매개변수, 모듈 이름이 snake_case 가 아님          |
+| `non_camel_case_types`   | 타입, 트레잇, 변형 이름이 UpperCamelCase 가 아님                   |
+| `non_upper_case_globals` | `const` / `static` 이름이 UPPER_SNAKE_CASE 가 아님                 |
+| `confusable_idents`      | 서로 닮은 식별자 ([1.4](../001-lexical/104-identifiers.md))        |
+
+| 그룹                | 포함                                                                                         |
+|---------------------|----------------------------------------------------------------------------------------------|
+| `unused`            | `unused_variables`, `unused_imports`, `dead_code`, `unreachable_code`, `unused_must_use`     |
+| `nonstandard_style` | `non_snake_case`, `non_camel_case_types`, `non_upper_case_globals`                           |
+| `all`               | 모든 lint                                                                                    |
+
+`rokc lint --list` 는 lint 와 그룹, 기본 수준을 출력합니다.
 
 ## 6.2.10. `#[non_exhaustive]` 외부에서의 완전성 검사 회피
 

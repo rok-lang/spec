@@ -22,7 +22,7 @@ rokc <subcommand> [options] [args]
 
 ```
 cli_invocation  ::= "rokc" subcommand option* arg*
-subcommand      ::= "build" | "run" | "test" | "bench" | "check"
+subcommand      ::= "build" | "emit" | "run" | "test" | "bench" | "check" | "new" | "init"
                   | "fmt" | "lint" | "doc" | "repl" | "jupyter" | "lsp"
                   | "clean" | "demangle" | "rhir-text" | "inspect" | "version" | "help"
 option          ::= "--" identifier ("=" value)?
@@ -33,14 +33,15 @@ option          ::= "--" identifier ("=" value)?
 
 | 영역            | 서브명령                                              |
 |-----------------|-------------------------------------------------------|
-| 빌드 / 실행     | `build`, `run`, `test`, `bench`, `check`, `clean`     |
+| 빌드 / 실행     | `build`, `emit`, `run`, `test`, `bench`, `check`      |
+| 패키지          | `new`, `init`, `clean`                                |
 | 도구            | `fmt`, `lint`, `doc`, `lsp`                           |
 | 인터랙티브      | `repl`, `jupyter`                                     |
 | 디버그 / 진단   | `demangle`, `rhir-text`, `inspect`                    |
 | 그 밖           | `version`, `help`                                     |
 
 > [!NOTE]
-> 현재 구현이 제공하는 서브명령은 `build`, `run`, `test`, `check` (`check -` 포함), `fmt`, `repl`, `lsp`, `clean`, `demangle`, `version`, `help` 와 `rokls` 입니다. 그 밖의 서브명령과 `--emit=expanded`, `--load-mlir-plugin`, `--extern`, `repl --package` 는 아직 제공하지 않으며, 이 절의 해당 항목은 계획된 인터페이스입니다. `rok` front-end 도 계획입니다 ([9.10](910-rok-frontend.md)).
+> 아직 제공하지 않는 것은 `jupyter`, `rhir-text`, `inspect` 서브명령과 `--emit=expanded`, `--load-mlir-plugin`, `--extern` 의 `.a`, `repl --package` 입니다. 이 절의 해당 항목은 계획된 인터페이스입니다.
 
 ### 패키지 지정 (`path`)
 
@@ -66,18 +67,27 @@ option          ::= "--" identifier ("=" value)?
 rokc build [path]
 ```
 
-`[path]` 는 위의 패키지 지정 규칙을 따릅니다. 산출물은 [9.2.15](902-aot-pipeline.md#9215-산출물) 의 profile 별 `target/` 에 놓입니다. 실행 패키지는 `target/<profile>/<name>`, 라이브러리 패키지는 `target/<profile>/lib<name>.a` 이며, profile 은 `debug` (기본) 또는 `release` 입니다 (계획 — 현재 구현은 평평한 `target/<name>` / `target/lib<name>.a`). `--target-dir=<dir>` 나 `ROKC_TARGET_DIR` 이 있으면 `target/` 대신 그 디렉토리를 씁니다.
+`[path]` 는 위의 패키지 지정 규칙을 따릅니다. 산출물은 [9.2.15](902-aot-pipeline.md#9215-산출물) 의 profile 별 `target/` 에 놓입니다. 실행 패키지는 `target/<profile>/<name>`, 라이브러리 패키지는 `target/<profile>/lib<name>.a` (와 `<name>.o`) 입니다. profile 은 `-O2` / `-O3` / `-Os` (`--release` 포함) 이면 `release`, 그 밖에는 `debug` 이며, `--target=<triple>` 이면 `target/<triple>/<profile>/` 입니다. `--target-dir=<dir>` 나 `ROKC_TARGET_DIR` 이 있으면 `target/` 대신 그 디렉토리를 씁니다.
 
 옵션은 다음과 같습니다.
 
 - `--release` 는 최적화 빌드 (`-O2` 와 같음) 를 `release` profile 로 수행하며, 기본값은 `debug` profile 의 디버그 빌드 (`-O0`) 입니다.
-- `--target-dir=<dir>` 는 `target/` 의 위치를 바꿉니다 (`ROKC_TARGET_DIR` 과 같음, 계획).
+- `--target-dir=<dir>` 는 `target/` 의 위치를 바꿉니다 (`ROKC_TARGET_DIR` 과 같음).
+- `--extern <name>=<dir | lib.rok>` 는 의존 패키지 하나를 붙입니다. 그 패키지의 `lib.rok` 를 같은 빌드에서 소스로 컴파일해 최상위 경로 `name` 에 mount 합니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 여러 번 쓸 수 있고, 보통 `rok` 가 채웁니다. `name` 은 식별자여야 하며, 미리 빌드한 `.a` 는 아직 받지 않습니다.
 - `-O0` / `-O1` / `-O2` / `-O3` / `-Os` 는 최적화 단계를 명시적으로 지정합니다.
 - `--target=<triple>` 은 타깃 플랫폼을 지정하며, [플랫폼 타깃](../000-meta/006-platform-targets.md) 의 13 개 Tier 1 중 하나를 사용합니다.
 - `-o` / `--out=<path>` 는 출력 위치를 지정합니다.
 - `--cfg <flag>` / `--cfg <key>=<value>` 는 [조건부 컴파일](../006-meta-system/603-cfg.md) 의 cfg flag 를 설정합니다. 여러 번 쓸 수 있습니다.
-- `--emit=<kind>[,<kind>..]` 는 중간 산출물 (`hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`) 을 `target/<profile>/<name>.<ext>` 에 씁니다 ([9.9.1](909-debug-tools.md#991-중간-산출물-출력---emit)). 쉼표로 여러 종류를 한 번에 지정하며, 이때는 `-o` 를 함께 쓸 수 없습니다. `--emit` 이 있으면 실행 파일이나 archive 는 만들지 않습니다.
+- `--emit=<kind>[,<kind>..]` 는 중간 산출물 (`hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`) 을 `target/<profile>/build/<name>.<ext>` 에 씁니다 ([9.9.1](909-debug-tools.md#991-중간-산출물-출력---emit)). 쉼표로 여러 종류를 한 번에 지정하며, 이때는 `-o` 를 함께 쓸 수 없습니다. `--emit` 이 있으면 실행 파일이나 archive 는 만들지 않습니다.
 - `--load-mlir-plugin=<path|name>` 은 MLIR 다이얼렉트 plugin 을 동적으로 로드합니다 ([rok::bare::mlir::plugin](../../refs-standard-libraries/100-bare/110-mlir-plugin.md)). 여러 번 사용 가능하며, 빌드 시점에 plugin 의 다이얼렉트 op 이 `__mlir_op` 으로 호출 가능해집니다.
+
+### `rokc emit`: 중간 산출물
+
+```
+rokc emit [path] [--emit=<kind>[,<kind>..]]
+```
+
+`rokc build --emit=..` 와 같습니다. `--emit` 을 생략하면 `mlir` 입니다.
 
 ### `rokc run`: 빌드 후 실행
 
@@ -147,7 +157,16 @@ test result: FAILED. 2 passed; 1 failed; 0 filtered out; finished in 0.12s
 rokc bench [path] [filter]
 ```
 
-`#[bench]` 가 붙은 함수를 모아 최적화 빌드로 실행하고 측정합니다 ([9.9.11](909-debug-tools.md#9911-벤치마크)). `path` 와 `filter` 규칙은 `rokc test` 와 같습니다. 측정 방법과 출력 형식은 `rokc` 가 정합니다.
+`#[bench]` 가 붙은 함수를 모아 최적화 빌드 (`-O` 를 주지 않으면 `-O2`) 로 실행하고 측정합니다 ([9.9.11](909-debug-tools.md#9911-벤치마크)). `#[bench]` 는 `#[test]` 처럼 `#[cfg(test)]` 를 함의합니다. `path` 와 `filter` 규칙은 `rokc test` 와 같습니다.
+
+- `--iters=N` 은 표본 하나에서 함수를 부르는 횟수입니다. 생략하면 표본 하나가 약 10 ms 가 되도록 맞춥니다.
+- `--samples=N` 은 측정할 표본 수입니다 (기본 10). 그 전에 버리는 warm-up 표본이 하나 있습니다.
+
+벤치는 하나씩 차례로 실행되며, cargo 형태로 호출 한 번의 평균 ns 와 표본 사이의 표준편차를 출력합니다.
+
+```
+bench fib_20 ... bench:       41,503 ns/iter (+/- 312)
+```
 
 ### `rokc repl`: 터미널 REPL
 
@@ -214,7 +233,14 @@ native 빌드 (어셈블, 링크) 없이 진단만 냅니다. 백엔드가 낮�
 rokc lint [path]
 ```
 
-컴파일 진단에 더해 스타일과 흔한 실수를 검사하는 lint 규칙을 돌리고, 결과를 경고로 보고합니다 (9.1.8 형식, `--message-format=json` 가능). lint 규칙의 목록과 이름은 `rokc` 가 정하며, 코드의 `#[allow(..)]` / `#[warn(..)]` / `#[deny(..)]` ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)) 로 조정합니다. `deny` 로 올린 lint 가 있으면 종료 코드는 `1` 입니다.
+native 빌드 없이 컴파일 진단과 lint 검사를 돌리고 결과를 보고합니다 (9.1.8 형식, `--message-format=json` 가능, 코드 `E503`). lint 목록과 그룹은 [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어) 에 있습니다.
+
+- `-A` / `-W` / `-D <lint | group>` (`--allow` / `--warn` / `--deny`) 은 수준을 정합니다. 여러 번 쓸 수 있고 뒤의 것이 이깁니다.
+- `Rok.toml` 의 `[lints]` ([9.10.3](910-rok-frontend.md#9103-roktoml--roklock)) 도 수준을 정합니다.
+- 코드의 `#[allow(..)]` / `#[warn(..)]` / `#[deny(..)]` 와 `#![..]` 가 CLI 와 매니페스트보다 우선합니다.
+- `--list` 는 lint 와 그룹, 기본 수준을 출력합니다.
+
+`deny` 수준의 lint 가 하나라도 걸리면 종료 코드는 `1` 입니다.
 
 ### `rokc doc`: 문서 생성
 
@@ -222,7 +248,16 @@ rokc lint [path]
 rokc doc [path]
 ```
 
-패키지의 공개 항목과 문서 주석 ([6.2.8](../006-meta-system/602-built-in-attributes.md#628-doc---문서-주석-형태)) 으로 API 문서를 `target/doc/` 에 만듭니다. 출력 형식은 `rokc` 가 정합니다.
+패키지 (와 `--extern` 의존 패키지) 의 공개 항목과 문서 (`///`, `//!`, `#[doc]`, [6.2.8](../006-meta-system/602-built-in-attributes.md#628-doc---문서-주석-형태)) 로 HTML API 문서를 `target/doc/` 에 만듭니다.
+
+```
+target/doc/
+├── index.html                 # 패키지 목록
+├── <pkg>/<mod>/index.html     # 모듈마다 한 쪽
+└── search-index.js            # 검색용 색인
+```
+
+문서 텍스트는 markdown 의 부분집합으로 해석하며, 그 범위는 `rokc` 가 정합니다.
 
 ### `rokc lsp`: LSP 서버
 
@@ -267,6 +302,15 @@ rokc inspect path/to/libfoo.a
 archive 의 exports, [generic](../000-meta/007-glossary.md#generic--제네릭) items, 의존, 빌드 메타 등을 한 번에 표시해 줍니다.
 
 ## 9.1.4. 보조 서브명령
+
+### `rokc new` / `rokc init`: 패키지 생성
+
+```
+rokc new [--lib | --bin] <name>
+rokc init [--lib | --bin] [dir]
+```
+
+`rokc new` 는 `<name>` 디렉토리를 만들고 기본 파일을 채웁니다. `--bin` (기본값) 은 인사말을 출력하는 `main.rok` 를, `--lib` 는 예시 함수와 `#[test]` 하나를 담은 `lib.rok` 를 만듭니다. `<name>` 이 이미 있으면 에러입니다. `rokc init` 은 이미 있는 디렉토리 (생략하면 현재 디렉토리) 를 패키지로 만들며, 그 디렉토리에 `main.rok` 나 `lib.rok` 가 이미 있으면 에러입니다. 매니페스트는 만들지 않습니다. `Rok.toml` 까지 만들려면 `rok new` / `rok init` ([9.10.2](910-rok-frontend.md#9102-rok-new--rok-init-패키지-생성)) 을 씁니다.
 
 ### `rokc clean`: 빌드 산출물 제거
 

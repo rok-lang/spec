@@ -151,7 +151,14 @@ impl Display for i32 { ... }     // ERROR — 둘 다 외부 패키지
 
 - 구체 `impl` 이 제네릭 `impl` 과 겹치면 컴파일 에러입니다.
 - 제네릭 `impl` 은 쓰이는 타입마다 단형화됩니다.
-- 제네릭 `impl` 두 개가 겹치는 것도 에러입니다. 프로그램에 등장하는 어떤 타입이 두 `impl` 을 모두 만족하면 구현은 선언 시점에 보고해야 하며, 그렇지 않더라도 늦어도 모호해지는 호출 지점에서는 보고해야 합니다.
+- 제네릭 `impl` 두 개가 겹치는 것도 에러이며, 선언 시점에 보고합니다. 두 `impl` 은 대상 (과 트레잇 인자) 이 단일화 (unify) 되고, 단일화 후 남은 자유 파라미터마다 각 `impl` 의 바운드를 모두 만족하는 타입이 프로그램에 알려져 있으면 겹칩니다. 아직 어떤 타입도 만족하지 않는 바운드 조합은 겹침으로 보지 않습니다.
+
+```rok
+impl<T: Display> Describe for List<T> { ... }
+impl<T: Hash> Describe for List<T> { ... }   // ERROR — i32 가 Display 와 Hash 를 모두 만족
+impl<T: Shape> Area for T { ... }
+impl<T: Color> Area for T { ... }            // OK — Shape 와 Color 를 모두 구현하는 타입이 (아직) 없음
+```
 
 ```rok
 impl<T: Display> Describe for T { ... }

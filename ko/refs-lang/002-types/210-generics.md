@@ -55,6 +55,14 @@ let xs: List<i32> = empty();        // T = i32 — let 의 타입 주석에서
 takes_strs(empty());                // T = str — 매개변수 타입 List<str> 에서
 ```
 
+기대 타입이 없는 `let` 은 나중의 쓰임에서 추론합니다. 주석 없는 `let x = f();` 에서 `f` 의 제네릭 반환 타입이 호출만으로 정해지지 않으면, 같은 블록 안에서 `x` 가 처음으로 구체 타입 자리 (인자 자리, 주석 있는 `let`, struct 필드, `return`) 에 쓰일 때 그 타입으로 정해집니다. 그런 쓰임이 없으면 "type annotations needed" 에러입니다.
+
+```rok
+let xs = empty();                   // 아직 List<?>
+takes_ints(xs);                     // 여기서 T = i32 — 매개변수 List<i32>
+let ys = empty();                   // ERROR — type annotations needed (구체 쓰임 없음)
+```
+
 인자가 없는 정적 트레잇 메서드도 같은 방식으로 `Self` 를 정합니다. 타입 매개변수 위의 호출 `T::zero()` 와 트레잇 경로 호출 `Tr::m()` 은 기대 타입에서 `Self` 를 가져옵니다.
 
 ```rok
