@@ -2,6 +2,9 @@
 
 이 절에서는 [JIT 엔진](906-jit-engine.md) 의 RokJitSession 이 사용자 입력 (cell) 을 어떻게 처리하는지 자세히 정의합니다.
 
+> [!NOTE]
+> **재실행 (replay) 구현.** 규범은 셀 세션의 의미 ([4.16.10](../004-functions/416-entry-point.md#41610-jit--repl-과의-관계): 셀을 차례로 이어 붙인 암묵 `main.rok`) 이며, JIT 는 그것을 구현하는 한 방법입니다. 적합한 구현은 JIT 없이, 셀마다 지금까지의 세션 전체를 하나의 익명 `main.rok` 로 다시 컴파일해 처음부터 다시 실행하고 새 셀의 출력만 보여 줄 수도 있습니다. 현재 `rokc repl` 이 이 방식입니다. 이 경우 앞 셀의 부수 효과 (I/O, 시각, 난수) 가 매번 되풀이되고, 아래 9.7.6 캐시와 materialize 단계는 없습니다.
+
 ## 9.7.1. Cell 의 종류
 
 REPL 의 한 줄과 Jupyter 의 한 셀은 그 내용에 따라 처리 방식이 달라집니다.
@@ -24,7 +27,7 @@ REPL 의 한 줄과 Jupyter 의 한 셀은 그 내용에 따라 처리 방식이
 ## 9.7.2. 실행 흐름: 자세히
 
 ```
-rok receives input:
+rokc receives input:
   ↓
 1. parse  →  AST
   ↓ (on parse error: show immediately, do not add cell)
@@ -48,7 +51,7 @@ rok receives input:
 11. update last_value, print result
 ```
 
-> rok receives input: rok 입력 받음. on parse error: show immediately, do not add cell: parse error 면 즉시 표시, cell 추가하지 않습니다. on type error: show, do not add cell: type error 면 표시, cell 추가하지 않습니다. decide if new item / expr needs specialize: 새 항목 / 식에 specialize 가 필요한지 결정. standard MLIR text: 표준 MLIR 텍스트. in-process lowering via mlir_ee transformer hook: mlir_ee 의 transformer 훅으로 in-process lowering. on link error: rollback: link error 면 롤백. lookup symbol of top-level expr / function: top-level 식 / 함수의 심볼을 lookup. call that function: 그 함수 호출. result + type: 결과 + 타입. update last_value, print result: last_value 갱신, 결과 출력.
+> rokc receives input: rokc 입력 받음. on parse error: show immediately, do not add cell: parse error 면 즉시 표시, cell 추가하지 않습니다. on type error: show, do not add cell: type error 면 표시, cell 추가하지 않습니다. decide if new item / expr needs specialize: 새 항목 / 식에 specialize 가 필요한지 결정. standard MLIR text: 표준 MLIR 텍스트. in-process lowering via mlir_ee transformer hook: mlir_ee 의 transformer 훅으로 in-process lowering. on link error: rollback: link error 면 롤백. lookup symbol of top-level expr / function: top-level 식 / 함수의 심볼을 lookup. call that function: 그 함수 호출. result + type: 결과 + 타입. update last_value, print result: last_value 갱신, 결과 출력.
 
 각 단계는 transactional 하게 동작하며, 실패하면 직전 상태로 깨끗하게 롤백됩니다.
 
@@ -154,6 +157,8 @@ parse error / type error / 의미 에러.
 
 런타임 에러는 부분적인 효과가 이미 남아 있을 수 있어 완전한 롤백이 불가능하므로, 사용자가 직접 선택해 undo (Jupyter 셀 삭제) 를 수행하게 됩니다.
 
+재실행 구현에서는 실패한 셀을 남겨 두면 이후 모든 재실행이 같은 지점에서 실패하므로, 런타임 에러가 난 셀도 **버립니다** (컴파일 에러와 같이 세션에 추가하지 않음). 이미 출력된 부분 효과는 되돌리지 않습니다.
+
 ### JIT materialize 실패
 
 ```
@@ -190,7 +195,7 @@ ORCv2 의 link 단계에서 실패 (alien 심볼 등):
 다음 중 어느 하나에라도 해당하면 캐시는 무효로 처리됩니다.
 
 - `pkg_hash` 변경 (소스 변경).
-- `rok` 버전 변경.
+- `rokc` 버전 변경.
 - `abi_version_hash` 변경.
 
 캐시 항목의 메타가 위 세 가지 hash 를 모두 담고 있으므로, mismatch 가 발생하면 자동으로 폐기됩니다.
@@ -200,7 +205,7 @@ ORCv2 의 link 단계에서 실패 (alien 심볼 등):
 ```
 ~/.cache/rok/
 ├── <pkg_hash_1>/
-│   ├── meta.json                 # rok version, abi version, etc.
+│   ├── meta.json                 # rokc version, abi version, etc.
 │   ├── <typehash_a>.o            # specialize result
 │   ├── <typehash_b>.o
 │   └── ...
@@ -209,9 +214,9 @@ ORCv2 의 link 단계에서 실패 (alien 심볼 등):
 └── ...
 ```
 
-> rok version, abi version, etc.: rok 버전, abi 버전 등. specialize result: specialize 결과.
+> rokc version, abi version, etc.: rokc 버전, abi 버전 등. specialize result: specialize 결과.
 
-`rok clean --jit-cache` 명령이나 `rm -rf ~/.cache/rok/` 를 사용해 사용자가 수동으로 정리할 수 있습니다.
+`rokc clean --jit-cache` 명령이나 `rm -rf ~/.cache/rok/` 를 사용해 사용자가 수동으로 정리할 수 있습니다.
 
 ## 9.7.7. 시각화 / 출력
 
@@ -224,7 +229,12 @@ i32: 3
 List<i32>: [1, 2, 3]
 ```
 
-마지막 식의 값과 타입을 자동으로 출력하며, 표준 라이브러리의 `Display` 또는 `Debug` 트레잇을 사용합니다.
+마지막 식의 값과 타입을 자동으로 출력하며, 표준 라이브러리의 `Display` 또는 `Debug` 트레잇을 사용합니다. `let` 셀은 묶은 값을 같은 `타입: 값` 형태로 출력합니다 (값을 출력할 수 없으면 타입만, 단위 타입이면 출력 없음).
+
+```
+> let xs = [1, 2, 3];
+List<i32>: [1, 2, 3]
+```
 
 ### Jupyter 출력
 

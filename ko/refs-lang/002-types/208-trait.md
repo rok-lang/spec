@@ -75,7 +75,19 @@ trait Iterator {
 
 연관 타입은 같은 트레잇 안의 시그니처에서 쓸 수 있습니다. 위의 `Item | none` 이 그 예입니다.
 
-트레잇 안과 모든 impl (트레잇 impl 과 고유 impl) 안에서 맨 이름 `Item` 과 `Self::Item` 은 둘 다 그 연관 타입을 가리키며, 메서드 시그니처와 본문 모두에서 쓸 수 있습니다. impl 에서는 그 impl 이 정한 구체 타입입니다. 연관 타입이 바깥의 같은 이름 타입 (모듈의 `struct Item` 등) 을 가리면 경고가 납니다.
+트레잇 안과 모든 impl (트레잇 impl 과 고유 impl) 안에서 맨 이름 `Item` 과 `Self::Item` 은 둘 다 그 연관 타입을 가리키며, 메서드 시그니처와 본문 모두에서 쓸 수 있습니다. impl 에서는 그 impl 이 정한 구체 타입입니다. 연관 타입이 바깥의 같은 이름 타입 (모듈의 `struct Item`, 원시 타입 등) 을 가리면 경고가 납니다. 같은 이름의 트레잇은 타입이 아니므로 경고하지 않습니다 (`trait IntoFuture { type IntoFuture; }` 는 괜찮습니다).
+
+한 타입이 같은 이름의 연관 타입을 가진 트레잇 둘을 구현하면, 그 타입의 impl 본문에서 맨 `X` / `Self::X` 는 어느 쪽인지 모호하므로 에러입니다. 이때는 `<Self as Tr>::X` 로 트레잇을 밝힙니다.
+
+```rok
+impl Iterator for Stream { type Item = i32; ... }
+impl Source for Stream { type Item = str; ... }
+
+impl Stream {
+    fn first(self) -> Self::Item { ... }                   // ERROR — Iterator::Item? Source::Item?
+    fn first(self) -> <Self as Iterator>::Item { ... }     // OK
+}
+```
 
 ### 외부에서의 연관 타입 참조. `T::AssocType`
 

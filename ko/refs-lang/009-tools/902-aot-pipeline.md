@@ -1,6 +1,6 @@
 # 9.2. AOT 빌드 파이프라인
 
-이 장에서는 `rok build` 의 단계별 흐름을 정의합니다. [실행 엔진과 사용자 표면](../000-meta/001-execution-modes.md) 과 [컴파일 파이프라인](../000-meta/002-pipeline.md) 에서 제시한 큰 그림을 구체적인 명령과 파일 흐름으로 구체화하여 명시 표기합니다.
+이 장에서는 `rokc build` 의 단계별 흐름을 정의합니다. [실행 엔진과 사용자 표면](../000-meta/001-execution-modes.md) 과 [컴파일 파이프라인](../000-meta/002-pipeline.md) 에서 제시한 큰 그림을 구체적인 명령과 파일 흐름으로 구체화하여 명시 표기합니다.
 
 ## 9.2.1. 단계
 
@@ -28,7 +28,7 @@
 
 ## 9.2.2. 패키지 발견
 
-`rok build [path]` 의 path 부터 상위 방향으로 탐색하여 `main.rok` 또는 `lib.rok` 을 찾습니다. 만약 `[path]` 자체가 `lib.rok` 이거나 `main.rok` 이라면 그것이 곧 패키지가 되고, 그 외의 경우에는 (path 가 파일이면 그 디렉토리부터) 디렉토리를 위로 한 단계씩 올라가며 찾습니다.
+`rokc build [path]` 의 path 부터 상위 방향으로 탐색하여 `main.rok` 또는 `lib.rok` 을 찾습니다. 만약 `[path]` 자체가 `lib.rok` 이거나 `main.rok` 이라면 그것이 곧 패키지가 되고, 그 외의 경우에는 (path 가 파일이면 그 디렉토리부터) 디렉토리를 위로 한 단계씩 올라가며 찾습니다.
 
 찾았다면 그 디렉토리가 패키지 루트가 됩니다 ([소스 단위](../000-meta/003-source-units.md) 참고). 그 밖의 경우는 다음과 같습니다.
 
@@ -42,13 +42,13 @@
 
 이 단계에서는 [경로](../005-modules/507-paths.md) 와 [`use`](../005-modules/505-use.md) 의 외부 패키지 참조 (`use external_pkg::...`) 를 처리합니다.
 
-의존성은 `rok` 의 패키지 매니저가 다룹니다 ([9.1.4](901-rok-cli.md#rok-add--rok-remove--rok-update-의존성)). 매니페스트의 의존성과 lockfile `rok.lock` 을 따라 path / git 의존 패키지를 가져와 빌드하고, 그 `.a` 들의 위치를 아래 저수준 옵션으로 넘깁니다.
+`rokc` 는 의존성을 스스로 해소하지 않습니다. front-end `rok` ([9.10](910-rok-frontend.md)) 가 `Rok.toml` / `Rok.lock` 을 따라 path / git 의존 패키지를 가져와 빌드하고, 그 루트 (`.a`) 들의 위치를 아래 저수준 옵션으로 `rokc` 에 넘깁니다.
 
 ```
-rok build --extern foo=path/to/libfoo.a --extern bar=...
+rokc build --extern foo=path/to/libfoo.a --extern bar=...
 ```
 
-옵션을 통해 각 의존 패키지의 .a 위치를 명시합니다. 보통은 패키지 매니저가 채우며, 다른 빌드 시스템이 직접 쓸 수도 있습니다. 아직 제공하지 않습니다.
+옵션을 통해 각 의존 패키지의 .a 위치를 명시합니다. 보통은 `rok` 가 채우며, 다른 빌드 시스템이 직접 쓸 수도 있습니다. 아직 제공하지 않습니다.
 
 ## 9.2.4. 소스 파싱
 
@@ -104,14 +104,14 @@ MIR 은 HIR 보다 한층 더 낮은 수준의 IR 로, 이 단계에서 연산�
 [컴파일 파이프라인](../000-meta/002-pipeline.md) 과 [MLIR 다이얼렉트 사용](../008-abi/807-mlir-dialects.md) 의 표준 MLIR 다이얼렉트를 사용하여 `.mlir` 텍스트를 emit 합니다.
 
 ```
-target/foo.mlir
+target/debug/build/foo.mlir
 ```
 
 [8. 런타임 ABI / MLIR lowering](../008-abi/README.md) 의 lowering 규칙에 따라 모든 rok 의미를 표준 다이얼렉트로 변환합니다.
 
-`rok` 는 MLIR 라이브러리 바인딩 (C++, Rust 등) 을 쓰지 않습니다. MLIR 을 텍스트로 emit 한 뒤, 이어지는 단계에서 외부 도구 `mlir-opt`, `mlir-translate`, `clang` 을 프로세스로 호출합니다.
+`rokc` 는 MLIR 라이브러리 바인딩 (C++, Rust 등) 을 쓰지 않습니다. MLIR 을 텍스트로 emit 한 뒤, 이어지는 단계에서 외부 도구 `mlir-opt`, `mlir-translate`, `clang` 을 프로세스로 호출합니다.
 
-여기까지가 `rok` 의 책임 영역입니다.
+여기까지가 `rokc` 의 책임 영역입니다.
 
 ## 9.2.11. mlir-opt 호출
 
@@ -121,7 +121,7 @@ target/foo.mlir
 mlir-opt --canonicalize --cse \
          --convert-scf-to-cf --convert-cf-to-llvm --convert-arith-to-llvm \
          --convert-func-to-llvm --reconcile-unrealized-casts \
-         target/foo.mlir > target/foo.opt.mlir
+         target/debug/build/foo.mlir > target/debug/build/foo.opt.mlir
 ```
 
 정확한 패스 목록은 구현이 정하며, 위는 대표적인 구성입니다. `-O0` ~ `-O3` 같은 최적화 단계는 이후 `clang` 단계에 적용됩니다.
@@ -131,7 +131,7 @@ mlir-opt --canonicalize --cse \
 표준 도구인 `mlir-translate` 를 사용해서 MLIR 을 LLVM IR 로 옮깁니다.
 
 ```
-mlir-translate --mlir-to-llvmir target/foo.opt.mlir > target/foo.ll
+mlir-translate --mlir-to-llvmir target/debug/build/foo.opt.mlir > target/debug/build/foo.ll
 ```
 
 ## 9.2.13. clang / lld 호출
@@ -139,8 +139,8 @@ mlir-translate --mlir-to-llvmir target/foo.opt.mlir > target/foo.ll
 표준 도구인 `clang` (또는 LLVM 의 `llc` + `lld` 조합) 으로 LLVM IR 을 네이티브 코드로 변환합니다.
 
 ```
-clang -O2 -c target/foo.ll -o target/foo.o
-ar rcs target/libfoo.a target/foo.o target/foo.hir.o
+clang -O2 -c target/debug/build/foo.ll -o target/debug/build/foo.o
+ar rcs target/debug/libfoo.a target/debug/build/foo.o target/debug/build/foo.hir.o
 ```
 
 여기서 `foo.hir.o` 는 [RHIR bytecode 포맷](904-rhir-bytecode.md) 의 [RHIR](../000-meta/007-glossary.md#rhir-rok-hir-bytecode) 섹션을 담고 있는 obj 입니다.
@@ -151,39 +151,49 @@ ar rcs target/libfoo.a target/foo.o target/foo.hir.o
 
 ```
 clang -O2 \
-  target/foo.o \
+  target/debug/build/foo.o \
   $ROK_HOME/lib/librokr.a \
   librok_bare.a librok_core.a librok_std.a \
-  -o target/foo                         (-lc 등 필요시)
+  -o target/debug/foo                         (-lc 등 필요시)
 ```
 
 이 단계가 비로소 실행 가능한 바이너리를 만들어 내는 단계입니다.
 
 ## 9.2.15. 산출물
 
-최종적으로 생성되는 산출물의 구조는 다음과 같습니다.
+> [!NOTE]
+> 아래 profile 별 레이아웃은 계획입니다. 현재 구현은 평평한 `target/` 을 씁니다 (`target/<name>`, `target/lib<name>.a` + `target/<name>.o`, `target/<name>.<ext>`).
+
+산출물은 cargo 와 같이 **profile 별** 디렉토리에 놓입니다. profile 은 `debug` (기본값) 와 `release` (`--release`) 입니다.
 
 ```
 target/
-├── foo.mlir            # debug (when --emit=mlir)
-├── foo.ll              # debug (when --emit=llvmir)
-├── foo.o               # obj of concrete code
-├── foo.hir.o           # obj containing RHIR bytecode
-├── libfoo.a            # package archive (for lib)
-└── foo                 # executable (for main)
+├── debug/                      # profile (기본)
+│   ├── foo                     # executable (for main)
+│   ├── libfoo.a                # package archive (for lib)
+│   ├── foo.mlir                # --emit=mlir
+│   ├── build/                  # intermediates — foo.o, foo.hir.o, module.mlir, ...
+│   └── deps/                   # compiled dependencies (lib<dep>.a)
+├── release/                    # --release
+│   └── ...
+├── aarch64-unknown-linux-gnu/  # cross build (--target=<triple>)
+│   └── debug/ ...
+└── doc/                        # rok doc / rokc doc
 ```
 
-`target/` 은 평평합니다. 빌드 종류 (debug / release) 나 타깃별 하위 디렉토리를 두지 않으며, 이름 `foo` 는 패키지 이름입니다 (9.2.2).
+> profile: 빌드 종류. executable (for main): 실행 패키지의 실행 파일. package archive (for lib): 라이브러리 패키지의 archive. intermediates: 중간 산출물. compiled dependencies: 빌드된 의존 패키지. cross build: 교차 빌드.
 
-| 산출물          | 경로                                                     |
-|-----------------|----------------------------------------------------------|
-| 실행 파일       | `target/<name>`                                          |
-| 라이브러리      | `target/lib<name>.a` 와 `target/<name>.o`                |
-| `--emit=<kind>` | `target/<name>.<ext>` (`hir` `mir` `mlir` `ll` `s` `o`) |
+| 산출물                | 경로                                                     |
+|-----------------------|----------------------------------------------------------|
+| 실행 파일             | `target/<profile>/<name>`                                |
+| 라이브러리            | `target/<profile>/lib<name>.a`                           |
+| `--emit=<kind>`       | `target/<profile>/<name>.<ext>` (`hir` `mir` `mlir` `ll` `s` `o`) |
+| 중간 산출물           | `target/<profile>/build/` (`<name>.o`, `<name>.hir.o` 등) |
+| 의존 패키지           | `target/<profile>/deps/`                                 |
+| 교차 빌드             | `target/<triple>/<profile>/...` (위와 같은 구조)         |
+| 문서                  | `target/doc/`                                            |
 
-`-o` 는 산출물 경로를, 환경 변수 `ROK_TARGET_DIR` 은 `target/` 자체의 위치를 바꿉니다. `foo.hir.o` (RHIR, [9.4](904-rhir-bytecode.md)) 는 아직 만들지 않습니다.
-
-> debug 는 디버그를 의미하고, obj of concrete code 는 concrete 코드의 obj, obj containing RHIR bytecode 는 RHIR bytecode 가 담긴 obj 를 가리킵니다. package archive (for lib) 은 lib 인 경우의 패키지 archive 이고, executable (for main) 은 main 인 경우의 실행 파일입니다.
+이름 `foo` 는 패키지 이름입니다 (9.2.2). `-o` 는 산출물 하나의 경로를, `--target-dir=<dir>` 와 환경 변수 `ROKC_TARGET_DIR` 은 `target/` 자체의 위치를 바꿉니다. `rokc clean` / `rok clean` 은 `target/` 전체를 지웁니다. `foo.hir.o` (RHIR, [9.4](904-rhir-bytecode.md)) 는 아직 만들지 않습니다.
 
 ## 9.2.16. 증분 빌드
 
@@ -196,21 +206,21 @@ target/
 4. archive 만 재구성.
 ```
 
-이때 캐시 키는 파일 hash 에 `rok` 버전 hash 와 의존 hash 를 더해 구성합니다.
+이때 캐시 키는 파일 hash 에 `rokc` 버전 hash 와 의존 hash 를 더해 구성합니다.
 
-자세한 증분 알고리듬은 `rok` 가 결정합니다.
+자세한 증분 알고리듬은 `rokc` 가 결정합니다.
 
 ## 9.2.17. 컴파일러와 런타임의 분리
 
-이 파이프라인은 코드 의존성 0 원칙을 지킵니다. 즉 `rok` 는 런타임 (`librokr.a`) 을 빌드 시점에 참조하지 않습니다.
+이 파이프라인은 코드 의존성 0 원칙을 지킵니다. 즉 `rokc` 는 런타임 (`librokr.a`) 을 빌드 시점에 참조하지 않습니다.
 
 대신에 `extern "C"` 심볼 ([Extern "C" 심볼](../008-abi/805-extern-symbols.md)) 호출만을 emit 하고, 링크 시점에 가서 사용자 빌드가 `librokr.a` 를 함께 링크하는 방식으로 동작합니다.
 
-이렇게 분리해 둔 덕분에 `rok` 와 `librokr.a` 가 서로 독립된 SemVer 로 진화할 수 있게 됩니다.
+이렇게 분리해 둔 덕분에 `rokc` 와 `librokr.a` 가 서로 독립된 SemVer 로 진화할 수 있게 됩니다.
 
 ## 9.2.18. 외부 도구 의존
 
-`rok build` 가 정상적으로 동작하려면 다음의 외부 도구들이 PATH 에 등록되어 있어야 합니다.
+`rokc build` 가 정상적으로 동작하려면 다음의 외부 도구들이 PATH 에 등록되어 있어야 합니다.
 
 | 도구                       | 역할                 |
 |----------------------------|----------------------|
@@ -218,9 +228,9 @@ target/
 | `mlir-translate`           | MLIR → LLVM IR       |
 | `clang` 또는 `llc` + `lld` | LLVM IR → obj / 링킹 |
 
-`rok` 는 이들 도구를 호출하기만 할 뿐이며, LLVM 라이브러리에 직접 link 하지는 않습니다 ([컴파일 파이프라인](../000-meta/002-pipeline.md) 참고).
+`rokc` 는 이들 도구를 호출하기만 할 뿐이며, LLVM 라이브러리에 직접 link 하지는 않습니다 ([컴파일 파이프라인](../000-meta/002-pipeline.md) 참고).
 
-만약 도구가 설치되어 있지 않은 경우에는 `rok build` 가 명확한 에러를 내놓습니다 (어떤 도구를 어디에서 받을 수 있는지 함께 안내합니다).
+만약 도구가 설치되어 있지 않은 경우에는 `rokc build` 가 명확한 에러를 내놓습니다 (어떤 도구를 어디에서 받을 수 있는지 함께 안내합니다).
 
 ## 9.2.19. 설치 레이아웃
 
@@ -229,14 +239,18 @@ target/
 ```
 $ROK_HOME/
 ├── bin/
-│   ├── rok                # toolchain (컴파일러, 패키지 매니저, REPL, LSP, fmt, lint)
-│   └── rokls              # = rok lsp
-└── lib/
+│   ├── rokc               # 컴파일러 (9.1)
+│   ├── rok                # front-end — 의존성, 환경, toolchain (9.10, 계획)
+│   └── rokls              # LSP 서버 = rok lsp
+├── lib/
     ├── librokr.a              # 런타임
     └── rok/
         ├── core/              # rok::core
         ├── std/               # rok::std
         └── bare/              # rok::bare
+├── cache/                     # 의존 소스의 내용 주소 캐시 (9.10.4, 계획)
+├── envs/<name>/               # 이름 있는 환경 (9.10.5, 계획)
+└── toolchains/<version>/      # 고정된 toolchain (9.10.6, 계획)
 ```
 
-`rok` 는 런타임과 표준 라이브러리를 이 경로에서 찾습니다. `ROK_HOME` 이 설정되지 않으면 `rok` 실행 파일이 있는 디렉토리의 상위 (`bin/` 의 `..`) 를 `ROK_HOME` 으로 봅니다. 저장소에서 직접 실행하는 개발 레이아웃은 위 경로에서 찾지 못했을 때의 fallback 으로 유지합니다.
+`rokc` 는 런타임과 표준 라이브러리를 이 경로에서 찾습니다. `ROK_HOME` 이 설정되지 않으면 `rokc` 실행 파일이 있는 디렉토리의 상위 (`bin/` 의 `..`) 를 `ROK_HOME` 으로 봅니다. 저장소에서 직접 실행하는 개발 레이아웃은 위 경로에서 찾지 못했을 때의 fallback 으로 유지합니다.

@@ -414,7 +414,7 @@ let r = s.foo();                              // 메타가 만든 'temp' 와 충
 
 ## 6.9.9. 디버깅
 
-확장 결과를 출력하는 `rok build --emit=expanded` ([9.9.10](../009-tools/909-debug-tools.md#9910-메타-블록-디버그)) 는 아직 제공하지 않습니다.
+확장 결과를 출력하는 `rokc build --emit=expanded` ([9.9.10](../009-tools/909-debug-tools.md#9910-메타-블록-디버그)) 는 아직 제공하지 않습니다.
 
 ## 6.9.10. 정리
 

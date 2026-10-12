@@ -401,18 +401,37 @@ rok_os_spawn     rok_os_waitpid   rok_os_kill      rok_os_getpid    rok_os_getpp
 rok_os_abort
 ```
 
-### `rok_par_for` / `rok_par_scope`
+### `rok_par_for` / `rok_par_scope` / `rok_par_spawn`
 
 병렬 실행을 담당합니다 ([스케줄러](../007-runtime/706-scheduler.md) 참조). **Thread-safety: `thread-safe`**.
 
 ```
 extern "C" {
     fn rok_par_for(start: i64, end: i64, step: i64, callback: Ptr<u8>);
-    fn rok_par_scope(callback: Ptr<u8>);
+    fn rok_par_scope(callback: Ptr<u8>);           // callback(scope: Ptr<u8>)
+    fn rok_par_spawn(scope: Ptr<u8>, f: RokFn);
 }
 ```
 
-`rok_par_for` 는 `par::for_each` 의 desugar 이며, `rok_par_scope` 는 `par::scope` 의 desugar 입니다.
+`rok_par_for` 는 `par::for_each` 의 desugar 이며, `callback(i)` 를 `start..end` (간격 `step`) 의 각 `i` 에 대해 여러 CPU 에서 부릅니다 (순서 미정). `rok_par_scope` 는 `par::scope` 의 desugar 입니다. `callback` 을 scope 핸들 하나를 인자로 불러 주고, 그 scope 에서 spawn 된 일이 모두 끝날 때까지 기다린 뒤 돌아옵니다.
+
+`rok_par_spawn` 은 rok 클로저 `f` ([8.5.0a `RokFn`](#850a-rokfn--함수-값의-c-abi-형태)) 를 scope 안에서 실행합니다. 핸들은 `rok_par_scope` 가 callback 에 넘긴 것 (또는 그 scope 에서 spawn 된 일이 받은 것) 이며, 그 `rok_par_scope` 호출이 끝나기 전에만 유효합니다. spawn 된 일이 다시 spawn 한 일도 같은 scope 가 기다립니다 (중첩 join).
+
+### `rok_deque_*` — work-stealing deque
+
+task 스케줄러 ([7.6.2](../007-runtime/706-scheduler.md#762-work-stealing-구조)) 의 lock-free Chase-Lev deque 입니다. deque 와 그 ring 은 GC 객체이며 GC 가 추적합니다. 그래서 deque 안에만 있는 원소도 살아 있습니다. **Thread-safety:** `push` / `pop` 은 소유 thread 만, `steal` 과 `len` 은 어느 thread 든.
+
+```
+extern "C" {
+    fn rok_deque_new() -> Ptr<u8>;                                   // 빈 deque (GC 객체)
+    unsafe fn rok_deque_push(d: Ptr<u8>, item: usize);               // 소유자: 끝에 넣음 (GC 참조)
+    unsafe fn rok_deque_pop(d: Ptr<u8>, out: Ptr<u8>, index: usize) -> i32;    // 소유자: 가장 새 원소를 out[index] 에, 있으면 1
+    unsafe fn rok_deque_steal(d: Ptr<u8>, out: Ptr<u8>, index: usize) -> i32;  // 가장 오래된 원소를 out[index] 에, 있으면 1
+    unsafe fn rok_deque_len(d: Ptr<u8>) -> usize;                    // 원소 수 (경합 중의 근사값)
+}
+```
+
+`out` 은 GC 참조를 담는 `GcBuf` 이며 `index` 자리에 결과를 씁니다. 이 함수들 안에는 safepoint 가 없습니다.
 
 ## 8.5.5. I/O / Timer 영역
 

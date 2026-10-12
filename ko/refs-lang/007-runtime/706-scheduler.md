@@ -24,20 +24,19 @@ OS Thread = {
 
 ## 7.6.2. Work-Stealing 구조
 
-각 worker 는 로컬 deque 와 LIFO slot 을 함께 갖고 있습니다.
+각 worker 는 로컬 deque 를 갖습니다 (lock-free Chase-Lev deque, [8.5.4 `rok_deque_*`](../008-abi/805-extern-symbols.md#rok_deque_--work-stealing-deque)).
 
 ```
 Worker:
-  ├── lifo_slot   : 1-task buffer    (most recently spawned task)
-  ├── local_deque : 64-task ring     (this worker's tasks)
+  ├── local_deque : growable ring    (this worker's tasks, GC-traced)
   └── ...
 ```
 
-> most recently spawned task: 가장 최근 spawn 한 task. this worker's tasks: 자신의 task 들.
+> this worker's tasks, GC-traced: 자신의 task 들, GC 가 추적.
 
-task 가 새로 생성되면 먼저 LIFO slot 에 들어가고, 이미 차 있다면 local_deque 의 bottom 으로 옮겨집니다. task 를 실행할 때는 local_deque 의 bottom 에서 꺼내어 LIFO 순서로 진행하며, steal 이 일어날 때는 다른 worker 의 local_deque 의 top 즉 FIFO 쪽에서 가져옵니다.
+새로 깨어나거나 spawn 된 task 는 그 worker 의 deque 끝 (bottom) 에 들어갑니다. **소유 worker 도 thief 도 가장 오래된 task (top) 부터** 꺼냅니다. 소유자가 가장 새 task 부터 꺼내면, 스스로를 다시 깨우는 task (`await task::yield_now()` 를 도는 task 등) 가 자기 뒤에 쌓인 task 들을 굶길 수 있기 때문입니다.
 
-이 구조는 자기가 spawn 한 task 를 자기가 실행해 캐시 locality 를 살리는 동시에, 다른 worker 가 일이 없으면 훔쳐 와서 load balancing 까지 얻어내는 표준적인 work-stealing 모델입니다.
+이 구조는 자기가 spawn 한 task 를 대개 자기가 실행해 캐시 locality 를 살리는 동시에, 다른 worker 가 일이 없으면 훔쳐 와서 load balancing 까지 얻어내는 work-stealing 모델입니다. LIFO slot 같은 "가장 최근 task 우선" 최적화는, 위의 굶김이 생기지 않는 범위에서 구현이 둘 수 있습니다.
 
 ## 7.6.3. Global Injector Queue
 
@@ -55,7 +54,7 @@ Global injector:
 
 ## 7.6.4. Steal 알고리듬
 
-worker 의 local deque 가 비고 LIFO slot 까지 비어 있다면 다음과 같은 순서로 진행됩니다.
+worker 의 local deque 가 비어 있다면 다음과 같은 순서로 진행됩니다.
 
 ```
 1. global injector 에서 pull 시도.
@@ -99,11 +98,13 @@ work-stealing 모델은 task 가 blocking syscall 을 호출하면 그 worker �
 
 기본 동작은 N 개의 worker 를 두고 task 가 thread 사이를 자유롭게 이동하도록 하는 형태입니다. 다만 thread-per-core 옵션을 켜면 각 task 가 고정된 worker 에 pinning 되고, worker 끼리 steal 하지 않으며, 그 결과 cache locality 가 극대화되어 NUMA 환경이나 데이터센터 워크로드에 적합한 동작을 얻을 수 있습니다.
 
-이 옵션은 `rok` 빌드 옵션이나 환경 변수 같은 런타임 설정으로 켜고 끌 수 있습니다.
+이 옵션은 `rokc` 빌드 옵션이나 환경 변수 같은 런타임 설정으로 켜고 끌 수 있습니다.
 
 ## 7.6.9. 우선순위 / 공정성
 
-기본은 우선순위 없는 FIFO + work-stealing 입니다. 같은 worker 안의 task 는 cache 효율을 위해 LIFO 순서로 처리되고, 다른 worker 가 steal 해 간 task 는 오래된 것을 우선하기 위해 FIFO 순서로 처리됩니다.
+기본은 우선순위 없는 FIFO + work-stealing 입니다. 소유 worker 와 thief 모두 deque 에서 가장 오래된 task 부터 처리합니다 (7.6.2).
+
+바쁜 worker 도 timer 를 미루지 않습니다. task 를 32 개 실행할 때마다 기한이 지난 timer 를 처리해 그 task 를 큐에 되돌립니다. 그래서 늘 일이 있는 worker 위에서도 `task::sleep` / `task::timeout` 이 제때 깨어납니다.
 
 명시적 우선순위 지정은 본 사양의 범위 밖이며, 표준 라이브러리의 별도 표면에서 다룹니다.
 

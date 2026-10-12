@@ -1,25 +1,30 @@
-# 9.1. `rok` CLI 인터페이스
+# 9.1. `rokc` CLI 인터페이스
 
-이 절에서는 `rok` 의 명령줄 인터페이스를 정의합니다. toolchain 은 **바이너리 하나** `rok` 이며, 컴파일러, 패키지 매니저, REPL, LSP 서버, 포매터, 린터를 모두 담습니다. 별도 도구 (`rok-fmt` 등) 는 두지 않습니다.
+이 절에서는 컴파일러 `rokc` 의 명령줄 인터페이스를 정의합니다. toolchain 은 세 바이너리로 이루어집니다.
 
-예외는 `rokls` 하나입니다. `rokls` 는 `rok lsp` 와 같은 동작을 하는 독립 바이너리로, 서버 실행 파일 하나를 요구하는 편집기를 위해 둡니다.
+| 바이너리 | 역할                                                                                  |
+|----------|---------------------------------------------------------------------------------------|
+| `rokc`   | 컴파일러 (rustc 에 해당). 빌드, 실행, 테스트, 포매터, 린터, REPL, LSP 를 담음 (이 절) |
+| `rok`    | cargo 식 front-end. 매니페스트, 의존성, 환경, toolchain 고정을 맡고 `rokc` 를 부름 ([9.10](910-rok-frontend.md)) |
+| `rokls`  | 편집기용 LSP 서버 실행 파일. `rok lsp` 와 같음                                         |
+
+런타임은 `librokr.a` (`rokr`) 입니다. 별도 도구 (`rok-fmt` 등) 는 두지 않습니다. `rokc` 는 의존성을 해소하지 않으며, 의존 패키지는 `rok` 가 `--extern` 으로 넘깁니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)).
 
 ## 9.1.1. 일반 형태
 
-`rok` 는 다음과 같은 일반 형태로 호출됩니다.
+`rokc` 는 다음과 같은 일반 형태로 호출됩니다.
 
 ```
-rok <subcommand> [options] [args]
+rokc <subcommand> [options] [args]
 ```
 
 문법 규칙으로 정리하면 아래와 같습니다.
 
 ```
-cli_invocation  ::= "rok" subcommand option* arg*
-subcommand      ::= "new" | "init" | "build" | "run" | "test" | "bench"
-                  | "check" | "fmt" | "lint" | "repl" | "jupyter" | "lsp"
-                  | "add" | "remove" | "update" | "doc" | "clean"
-                  | "demangle" | "rhir-text" | "inspect" | "version" | "help"
+cli_invocation  ::= "rokc" subcommand option* arg*
+subcommand      ::= "build" | "run" | "test" | "bench" | "check"
+                  | "fmt" | "lint" | "doc" | "repl" | "jupyter" | "lsp"
+                  | "clean" | "demangle" | "rhir-text" | "inspect" | "version" | "help"
 option          ::= "--" identifier ("=" value)?
                   | "-" letter
 ```
@@ -28,15 +33,14 @@ option          ::= "--" identifier ("=" value)?
 
 | 영역            | 서브명령                                              |
 |-----------------|-------------------------------------------------------|
-| 패키지          | `new`, `init`, `add`, `remove`, `update`, `clean`     |
-| 빌드 / 실행     | `build`, `run`, `test`, `bench`, `check`              |
-| 도구            | `fmt`, `lint`, `doc`, `lsp` (`rokls`)                 |
+| 빌드 / 실행     | `build`, `run`, `test`, `bench`, `check`, `clean`     |
+| 도구            | `fmt`, `lint`, `doc`, `lsp`                           |
 | 인터랙티브      | `repl`, `jupyter`                                     |
 | 디버그 / 진단   | `demangle`, `rhir-text`, `inspect`                    |
 | 그 밖           | `version`, `help`                                     |
 
 > [!NOTE]
-> 현재 구현이 제공하는 서브명령은 `new`, `build`, `run`, `test`, `check`, `fmt`, `clean`, `demangle`, `version`, `help` 입니다. 그 밖의 서브명령과 `rokls`, 그리고 `--emit=expanded`, `--load-mlir-plugin`, `check -` (표준 입력) 은 아직 제공하지 않으며, 이 절의 해당 항목은 계획된 인터페이스입니다.
+> 현재 구현이 제공하는 서브명령은 `build`, `run`, `test`, `check` (`check -` 포함), `fmt`, `repl`, `lsp`, `clean`, `demangle`, `version`, `help` 와 `rokls` 입니다. 그 밖의 서브명령과 `--emit=expanded`, `--load-mlir-plugin`, `--extern`, `repl --package` 는 아직 제공하지 않으며, 이 절의 해당 항목은 계획된 인터페이스입니다. `rok` front-end 도 계획입니다 ([9.10](910-rok-frontend.md)).
 
 ### 패키지 지정 (`path`)
 
@@ -54,50 +58,51 @@ option          ::= "--" identifier ("=" value)?
 
 ## 9.1.2. 핵심 서브명령
 
-### `rok build`: [AOT](../000-meta/007-glossary.md#aot-ahead-of-time) 빌드
+### `rokc build`: [AOT](../000-meta/007-glossary.md#aot-ahead-of-time) 빌드
 
-`rok build` 는 패키지를 AOT 로 빌드해 주는 서브명령입니다.
+`rokc build` 는 패키지를 AOT 로 빌드해 주는 서브명령입니다.
 
 ```
-rok build [path]
+rokc build [path]
 ```
 
-`[path]` 는 위의 패키지 지정 규칙을 따릅니다. 산출물은 [9.2.15](902-aot-pipeline.md#9215-산출물) 의 평평한 `target/` 에 놓입니다. 실행 패키지는 `target/<name>`, 라이브러리 패키지는 `target/lib<name>.a` (와 `target/<name>.o`) 입니다. `ROK_TARGET_DIR` 이 있으면 `target/` 대신 그 디렉토리를 씁니다.
+`[path]` 는 위의 패키지 지정 규칙을 따릅니다. 산출물은 [9.2.15](902-aot-pipeline.md#9215-산출물) 의 profile 별 `target/` 에 놓입니다. 실행 패키지는 `target/<profile>/<name>`, 라이브러리 패키지는 `target/<profile>/lib<name>.a` 이며, profile 은 `debug` (기본) 또는 `release` 입니다 (계획 — 현재 구현은 평평한 `target/<name>` / `target/lib<name>.a`). `--target-dir=<dir>` 나 `ROKC_TARGET_DIR` 이 있으면 `target/` 대신 그 디렉토리를 씁니다.
 
 옵션은 다음과 같습니다.
 
-- `--release` 는 최적화 빌드 (`-O2` 와 같음) 를 수행하며, 기본값은 디버그 빌드 (`-O0`) 입니다.
+- `--release` 는 최적화 빌드 (`-O2` 와 같음) 를 `release` profile 로 수행하며, 기본값은 `debug` profile 의 디버그 빌드 (`-O0`) 입니다.
+- `--target-dir=<dir>` 는 `target/` 의 위치를 바꿉니다 (`ROKC_TARGET_DIR` 과 같음, 계획).
 - `-O0` / `-O1` / `-O2` / `-O3` / `-Os` 는 최적화 단계를 명시적으로 지정합니다.
 - `--target=<triple>` 은 타깃 플랫폼을 지정하며, [플랫폼 타깃](../000-meta/006-platform-targets.md) 의 13 개 Tier 1 중 하나를 사용합니다.
 - `-o` / `--out=<path>` 는 출력 위치를 지정합니다.
 - `--cfg <flag>` / `--cfg <key>=<value>` 는 [조건부 컴파일](../006-meta-system/603-cfg.md) 의 cfg flag 를 설정합니다. 여러 번 쓸 수 있습니다.
-- `--emit=<kind>[,<kind>..]` 는 중간 산출물 (`hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`) 을 `target/<name>.<ext>` 에 씁니다 ([9.9.1](909-debug-tools.md#991-중간-산출물-출력---emit)). 쉼표로 여러 종류를 한 번에 지정하며, 이때는 `-o` 를 함께 쓸 수 없습니다. `--emit` 이 있으면 실행 파일이나 archive 는 만들지 않습니다.
+- `--emit=<kind>[,<kind>..]` 는 중간 산출물 (`hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`) 을 `target/<profile>/<name>.<ext>` 에 씁니다 ([9.9.1](909-debug-tools.md#991-중간-산출물-출력---emit)). 쉼표로 여러 종류를 한 번에 지정하며, 이때는 `-o` 를 함께 쓸 수 없습니다. `--emit` 이 있으면 실행 파일이나 archive 는 만들지 않습니다.
 - `--load-mlir-plugin=<path|name>` 은 MLIR 다이얼렉트 plugin 을 동적으로 로드합니다 ([rok::bare::mlir::plugin](../../refs-standard-libraries/100-bare/110-mlir-plugin.md)). 여러 번 사용 가능하며, 빌드 시점에 plugin 의 다이얼렉트 op 이 `__mlir_op` 으로 호출 가능해집니다.
 
-### `rok run`: 빌드 후 실행
+### `rokc run`: 빌드 후 실행
 
-`rok run` 은 빌드 직후 산출물을 바로 실행해 주는 명령입니다.
-
-```
-rok run [path] [-- args...]
-```
-
-실행 패키지를 빌드한 뒤 곧바로 실행하며, `--` 뒤에 적은 인자는 실행 파일에 그대로 전달됩니다. 옵션은 `rok build` 와 동일합니다. 라이브러리 패키지에는 실행할 것이 없으므로 에러입니다.
-
-패키지는 `target/<name>` 에 빌드하고, 익명 패키지 (단일 파일) 는 임시 디렉토리에 빌드하므로 파일 옆에 `target/` 을 만들지 않습니다. `rok build <file>.rok` 은 익명 패키지도 `target/` 에 빌드합니다.
+`rokc run` 은 빌드 직후 산출물을 바로 실행해 주는 명령입니다.
 
 ```
-rok run hello.rok -- arg1 arg2
+rokc run [path] [-- args...]
 ```
 
-`rok run` 의 종료 코드는 프로그램의 종료 코드입니다. 프로그램이 시그널 `n` 으로 끝나면 `128 + n` 입니다.
+실행 패키지를 빌드한 뒤 곧바로 실행하며, `--` 뒤에 적은 인자는 실행 파일에 그대로 전달됩니다. 옵션은 `rokc build` 와 동일합니다. 라이브러리 패키지에는 실행할 것이 없으므로 에러입니다.
 
-### `rok test`: 테스트
-
-`rok test` 는 테스트 함수들을 모아 빌드하고 실행해 주는 명령입니다.
+패키지는 `target/<profile>/<name>` 에 빌드하고, 익명 패키지 (단일 파일) 는 임시 디렉토리에 빌드하므로 파일 옆에 `target/` 을 만들지 않습니다. `rokc build <file>.rok` 은 익명 패키지도 `target/` 에 빌드합니다.
 
 ```
-rok test [path] [filter]
+rokc run hello.rok -- arg1 arg2
+```
+
+`rokc run` 의 종료 코드는 프로그램의 종료 코드입니다. 프로그램이 시그널 `n` 으로 끝나면 `128 + n` 입니다.
+
+### `rokc test`: 테스트
+
+`rokc test` 는 테스트 함수들을 모아 빌드하고 실행해 주는 명령입니다.
+
+```
+rokc test [path] [filter]
 ```
 
 `#[test]` 가 붙은 함수를 모아 테스트 실행 파일을 빌드하고 실행합니다. `#[test]` 는 `#[cfg(test)]` 를 함의하므로 ([6.2.5](../006-meta-system/602-built-in-attributes.md#625-test-테스트-함수-마커)) 테스트 함수는 일반 빌드에 들어가지 않습니다. 테스트 빌드에서는 패키지의 진입점 대신 테스트를 고르는 진입점이 쓰입니다.
@@ -109,9 +114,9 @@ rok test [path] [filter]
 
 **각 테스트는 자기 프로세스에서 실행됩니다.** 테스트가 panic 하거나 (종료 코드 101) 잡히지 않은 에러로 끝나면 (종료 코드 1) 그 테스트만 실패하고 나머지는 계속 실행됩니다. 시그널로 끝나도 실패입니다.
 
-옵션은 `rok build` 와 동일하며, 추가로 다음 두 가지를 지원합니다.
+옵션은 `rokc build` 와 동일하며, 추가로 다음 두 가지를 지원합니다.
 
-- `--threads=N` 은 동시에 실행할 테스트 프로세스 수를 지정합니다. 기본값은 `ROK_NUM_JOBS`, 그것도 없으면 CPU 수입니다.
+- `--threads=N` 은 동시에 실행할 테스트 프로세스 수를 지정합니다. 기본값은 `ROKC_NUM_JOBS`, 그것도 없으면 CPU 수입니다.
 - `--show-output` 은 성공한 테스트의 stdout / stderr 까지도 표시해 줍니다. 실패한 테스트의 출력은 늘 표시합니다.
 
 출력은 stdout 에 다음 형태로 나옵니다.
@@ -136,32 +141,32 @@ test result: FAILED. 2 passed; 1 failed; 0 filtered out; finished in 0.12s
 
 실패한 테스트가 하나라도 있으면 종료 코드는 `1` 입니다.
 
-### `rok bench`: 벤치마크
+### `rokc bench`: 벤치마크
 
 ```
-rok bench [path] [filter]
+rokc bench [path] [filter]
 ```
 
-`#[bench]` 가 붙은 함수를 모아 최적화 빌드로 실행하고 측정합니다 ([9.9.11](909-debug-tools.md#9911-벤치마크)). `path` 와 `filter` 규칙은 `rok test` 와 같습니다. 측정 방법과 출력 형식은 `rok` 가 정합니다.
+`#[bench]` 가 붙은 함수를 모아 최적화 빌드로 실행하고 측정합니다 ([9.9.11](909-debug-tools.md#9911-벤치마크)). `path` 와 `filter` 규칙은 `rokc test` 와 같습니다. 측정 방법과 출력 형식은 `rokc` 가 정합니다.
 
-### `rok repl`: 터미널 REPL
+### `rokc repl`: 터미널 REPL
 
-`rok repl` 은 터미널에서 인터랙티브 셸을 띄워 주는 명령입니다.
+`rokc repl` 은 터미널에서 인터랙티브 셸을 띄워 주는 명령입니다.
 
 ```
-rok repl [--package <path>]
+rokc repl [--package <path>]
 ```
 
-이 모드는 터미널 인터랙티브 셸로 동작하며, 내부적으로 [JIT 엔진](906-jit-engine.md) 을 사용합니다. `--package` 를 지정하면 시작 시 해당 패키지를 자동으로 로드해 줍니다 (`use` 가 자동으로 적용됩니다).
+이 모드는 터미널 인터랙티브 셸로 동작합니다. 셀의 의미는 [9.7](907-jit-cells.md) 를 따르며, [JIT 엔진](906-jit-engine.md) 대신 세션을 다시 컴파일해 재실행하는 구현도 허용됩니다 (현재 구현이 그렇습니다). `--package` 를 지정하면 시작 시 해당 패키지를 자동으로 로드해 줍니다 (`use` 가 자동으로 적용됩니다).
 
 REPL 의 키바인드와 명령은 본 사양의 범위 바깥이며, 구현 측에서 결정합니다.
 
-### `rok jupyter`: Jupyter 커널
+### `rokc jupyter`: Jupyter 커널
 
-`rok jupyter` 는 Jupyter 가 호출하는 커널 모드를 제공합니다.
+`rokc jupyter` 는 Jupyter 가 호출하는 커널 모드를 제공합니다.
 
 ```
-rok jupyter [--connection-file <path>]
+rokc jupyter [--connection-file <path>]
 ```
 
 이 명령은 Jupyter 가 호출하는 커널 모드이므로 사용자가 직접 실행하지는 않습니다. `--connection-file` 은 Jupyter 가 제공하는 ZMQ 연결 정보 파일의 경로를 받습니다. 자세한 통합 내용은 [Jupyter 통합](908-jupyter-integration.md) 에서 정의합니다.
@@ -171,20 +176,20 @@ rok jupyter [--connection-file <path>]
 커널 등록은 다음과 같이 수행합니다.
 
 ```
-rok jupyter --install-kernel
+rokc jupyter --install-kernel
 ```
 
 이 명령은 Jupyter 의 kernelspec 을 등록해 주며, `~/.local/share/jupyter/kernels/rok/kernel.json` 을 생성합니다. 한 번만 실행하면 그 이후로는 Jupyter 가 자동으로 인식해 줍니다.
 
-### `rok fmt`: 포매터
+### `rokc fmt`: 포매터
 
-`rok fmt` 는 표준 포맷을 적용해 주는 포매터 명령입니다.
+`rokc fmt` 는 표준 포맷을 적용해 주는 포매터 명령입니다.
 
 ```
-rok fmt [path]
+rokc fmt [path]
 ```
 
-`[path]` 는 파일 또는 디렉토리를 받으며 (여러 개 가능, 생략하면 현재 디렉토리), [표준 포맷](#9111-표준-포맷-rok-fmt) 에 맞게 in-place 로 수정해 줍니다. 디렉토리는 재귀로 `.rok` 파일을 찾으며 `target/` 과 `.` 으로 시작하는 디렉토리는 건너뜁니다.
+`[path]` 는 파일 또는 디렉토리를 받으며 (여러 개 가능, 생략하면 현재 디렉토리), [표준 포맷](#9111-표준-포맷-rokc-fmt) 에 맞게 in-place 로 수정해 줍니다. 디렉토리는 재귀로 `.rok` 파일을 찾으며 `target/` 과 `.` 으로 시작하는 디렉토리는 건너뜁니다.
 
 옵션은 다음과 같습니다.
 
@@ -193,135 +198,105 @@ rok fmt [path]
 
 어휘 에러가 있는 파일은 건드리지 않고 에러를 보고하며, 종료 코드는 `1` 입니다.
 
-### `rok check`: 타입 / 진단
+### `rokc check`: 타입 / 진단
 
-`rok check` 는 빌드까지 진행하지 않고 타입 검사와 진단만 수행해 주는 명령입니다.
-
-```
-rok check [path]
-```
-
-native 빌드 (어셈블, 링크) 없이 진단만 냅니다. 백엔드가 낮출 수 없는 구문도 잡도록 표준 MLIR 생성까지는 거칩니다. 옵션은 `rok build` 와 거의 동일합니다.
-
-### `rok lint`: 린터
+`rokc check` 는 빌드까지 진행하지 않고 타입 검사와 진단만 수행해 주는 명령입니다.
 
 ```
-rok lint [path]
+rokc check [path]
 ```
 
-컴파일 진단에 더해 스타일과 흔한 실수를 검사하는 lint 규칙을 돌리고, 결과를 경고로 보고합니다 (9.1.8 형식, `--message-format=json` 가능). lint 규칙의 목록과 이름은 `rok` 가 정하며, 코드의 `#[allow(..)]` / `#[warn(..)]` / `#[deny(..)]` ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)) 로 조정합니다. `deny` 로 올린 lint 가 있으면 종료 코드는 `1` 입니다.
+native 빌드 (어셈블, 링크) 없이 진단만 냅니다. 백엔드가 낮출 수 없는 구문도 잡도록 표준 MLIR 생성까지는 거칩니다. 옵션은 `rokc build` 와 거의 동일합니다.
 
-### `rok doc`: 문서 생성
-
-```
-rok doc [path]
-```
-
-패키지의 공개 항목과 문서 주석 ([6.2.8](../006-meta-system/602-built-in-attributes.md#628-doc---문서-주석-형태)) 으로 API 문서를 `target/doc/` 에 만듭니다. 출력 형식은 `rok` 가 정합니다.
-
-### `rok lsp`: LSP 서버
-
-`rok lsp` 는 Language Server Protocol 서버 모드로 동작합니다.
+### `rokc lint`: 린터
 
 ```
-rok lsp
+rokc lint [path]
 ```
 
-이 모드는 VS Code, Vim, Emacs 등 LSP 클라이언트에서 호출하도록 설계되어 있습니다. 독립 바이너리 `rokls` 는 `rok lsp` 와 같습니다.
+컴파일 진단에 더해 스타일과 흔한 실수를 검사하는 lint 규칙을 돌리고, 결과를 경고로 보고합니다 (9.1.8 형식, `--message-format=json` 가능). lint 규칙의 목록과 이름은 `rokc` 가 정하며, 코드의 `#[allow(..)]` / `#[warn(..)]` / `#[deny(..)]` ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)) 로 조정합니다. `deny` 로 올린 lint 가 있으면 종료 코드는 `1` 입니다.
+
+### `rokc doc`: 문서 생성
+
+```
+rokc doc [path]
+```
+
+패키지의 공개 항목과 문서 주석 ([6.2.8](../006-meta-system/602-built-in-attributes.md#628-doc---문서-주석-형태)) 으로 API 문서를 `target/doc/` 에 만듭니다. 출력 형식은 `rokc` 가 정합니다.
+
+### `rokc lsp`: LSP 서버
+
+`rokc lsp` 는 Language Server Protocol 서버 모드로 동작합니다.
+
+```
+rokc lsp
+```
+
+이 모드는 VS Code, Vim, Emacs 등 LSP 클라이언트에서 호출하도록 설계되어 있습니다. 편집기용 독립 바이너리 `rokls` 는 `rok lsp` (곧 `rokc lsp`) 와 같습니다.
 
 ## 9.1.3. 디버그 / 진단 서브명령
 
-### `rok demangle`: 심볼 demangle
+### `rokc demangle`: 심볼 demangle
 
-`rok demangle` 은 mangled 심볼을 사람이 읽을 수 있는 형식으로 풀어 출력해 줍니다.
+`rokc demangle` 은 mangled 심볼을 사람이 읽을 수 있는 형식으로 풀어 출력해 줍니다.
 
 ```
-rok demangle <symbol>...
+rokc demangle <symbol>...
 ```
 
 심볼마다 [9.5.4](905-symbol-mangling.md) 형식의 블록을 빈 줄로 나눠 출력합니다 ([9.9.3](909-debug-tools.md#993-심볼-demangle)). rok 심볼이 아닌 인자가 있으면 종료 코드는 `1` 입니다.
 
-### `rok rhir-text`: [RHIR](../000-meta/007-glossary.md#rhir-rok-hir-bytecode) 텍스트 출력
+### `rokc rhir-text`: [RHIR](../000-meta/007-glossary.md#rhir-rok-hir-bytecode) 텍스트 출력
 
-`rok rhir-text` 는 archive 안에 들어 있는 RHIR bytecode 를 텍스트로 출력해 줍니다.
+`rokc rhir-text` 는 archive 안에 들어 있는 RHIR bytecode 를 텍스트로 출력해 줍니다.
 
 ```
-rok rhir-text path/to/libfoo.a
+rokc rhir-text path/to/libfoo.a
 ```
 
 [archive](../000-meta/007-glossary.md#archive) 안의 RHIR bytecode 를 텍스트로 출력해 주며, 자세한 포맷은 [RHIR bytecode 포맷](904-rhir-bytecode.md) 에 기술되어 있습니다.
 
-### `rok inspect`: 패키지 검사
+### `rokc inspect`: 패키지 검사
 
-`rok inspect` 는 archive 의 내용을 한눈에 살펴볼 수 있도록 해 줍니다.
+`rokc inspect` 는 archive 의 내용을 한눈에 살펴볼 수 있도록 해 줍니다.
 
 ```
-rok inspect path/to/libfoo.a
+rokc inspect path/to/libfoo.a
 ```
 
 archive 의 exports, [generic](../000-meta/007-glossary.md#generic--제네릭) items, 의존, 빌드 메타 등을 한 번에 표시해 줍니다.
 
 ## 9.1.4. 보조 서브명령
 
-### `rok new` / `rok init`: 패키지 생성
+### `rokc clean`: 빌드 산출물 제거
+
+`rokc clean` 은 빌드 산출물을 제거해 주는 명령입니다.
 
 ```
-rok new [--lib | --bin] <name>
-rok init [--lib | --bin] [path]
+rokc clean [path]
 ```
 
-`rok new` 는 `<name>` 디렉토리를 만들고 그 안에 기본 파일을 채워 줍니다. `--bin` (기본값) 은 인사말을 출력하는 `main.rok` 를, `--lib` 는 예시 함수와 `#[test]` 하나를 담은 `lib.rok` 를 만듭니다. `<name>` 이 이미 있으면 에러입니다.
+패키지의 `target/` 디렉토리 전체 (모든 profile 과 교차 빌드 포함, `--target-dir` / `ROKC_TARGET_DIR` 이 있으면 그 디렉토리) 를 삭제해 줍니다. 없으면 아무 일도 하지 않습니다.
 
-`rok init` 은 이미 있는 디렉토리 (생략하면 현재 디렉토리) 를 패키지로 만듭니다. 그 디렉토리에 `main.rok` 나 `lib.rok` 가 이미 있으면 에러입니다.
+### `rokc version`: 버전
 
-### `rok add` / `rok remove` / `rok update`: 의존성
-
-```
-rok add <name> --path <dir>
-rok add <name> --git <url> [--rev <rev> | --tag <tag> | --branch <branch>]
-rok remove <name>
-rok update [name]
-```
-
-`rok` 는 패키지 매니저를 겸합니다. 의존성은 패키지 루트의 매니페스트에 기록되고, 해소된 결과 (git 의 커밋 등) 는 lockfile `rok.lock` 에 고정됩니다. 빌드는 `rok.lock` 을 따르며, `rok update` 만 lockfile 을 갱신합니다. `rok.lock` 은 버전 관리에 함께 넣습니다.
-
-| 출처     | 형태                                         | 고정 대상           |
-|----------|----------------------------------------------|---------------------|
-| path     | `--path <dir>` (로컬 패키지)                 | 없음 (늘 현재 내용) |
-| git      | `--git <url>` + `--rev` / `--tag` / `--branch` | 커밋 해시           |
-| registry | 예약 — 향후                                  |                     |
-
-의존 패키지는 같은 파이프라인으로 빌드되어 `.a` 로 링크됩니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 매니페스트의 형식은 패키지 매니저 사양에서 정의합니다.
-
-### `rok clean`: 빌드 산출물 제거
-
-`rok clean` 은 빌드 산출물을 제거해 주는 명령입니다.
+`rokc version` 은 rokc 의 버전 정보를 출력해 줍니다.
 
 ```
-rok clean [path]
+rokc version
+rokc --version
 ```
 
-패키지의 `target/` 디렉토리 (`ROK_TARGET_DIR` 이 있으면 그 디렉토리) 를 삭제해 줍니다. 없으면 아무 일도 하지 않습니다.
-
-### `rok version`: 버전
-
-`rok version` 은 rok 의 버전 정보를 출력해 줍니다.
-
-```
-rok version
-rok --version
-```
-
-이 명령은 stdout 에 `rok <버전>` 한 줄 (예: `rok 0.1.0`) 을 출력합니다. `-V` 도 같습니다.
+이 명령은 stdout 에 `rokc <버전>` 한 줄 (예: `rokc 0.1.0`) 을 출력합니다. `-V` 도 같습니다.
 
 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 해시 ([8. 런타임 ABI](../008-abi/README.md) 참조) 와 Tier 1 타깃 목록을 함께 출력하는 것은 계획이며, 아직 제공하지 않습니다.
 
-### `rok help`: 도움말
+### `rokc help`: 도움말
 
-`rok help` 는 도움말을 보여 줍니다.
+`rokc help` 는 도움말을 보여 줍니다.
 
 ```
-rok help [subcommand]
+rokc help [subcommand]
 ```
 
 ## 9.1.5. 전역 옵션
@@ -343,9 +318,9 @@ rok help [subcommand]
 사용 예는 다음과 같습니다.
 
 ```
-rok --verbose build
-rok test -q
-rok --cwd=examples/hello run
+rokc --verbose build
+rokc test -q
+rokc --cwd=examples/hello run
 ```
 
 ## 9.1.6. 종료 코드
@@ -357,21 +332,21 @@ rok --cwd=examples/hello run
 | `0`   | 성공                                            |
 | `1`   | 사용자 코드 에러 (컴파일 에러 / 테스트 실패 등) |
 | `2`   | 사용 / CLI 에러 (잘못된 옵션 등)                |
-| `101` | rok 내부 에러 (panic)                          |
+| `101` | rokc 내부 에러 (panic)                          |
 
-rok 자신이 panic 하면 (internal compiler error) 메시지를 출력하고 `101` 로 끝납니다. `rok run` 은 실행한 프로그램의 종료 코드로 끝납니다 (9.1.2).
+rokc 자신이 panic 하면 (internal compiler error) 메시지를 출력하고 `101` 로 끝납니다. `rokc run` 은 실행한 프로그램의 종료 코드로 끝납니다 (9.1.2).
 
 ## 9.1.7. 환경 변수
 
-`rok` 의 동작에 영향을 주는 환경 변수는 다음 표와 같습니다.
+`rokc` 의 동작에 영향을 주는 환경 변수는 다음 표와 같습니다.
 
 | 변수              | 의미                                                                                     |
 |-------------------|------------------------------------------------------------------------------------------|
-| `ROK_HOME`        | toolchain 설치 위치 ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)). 없으면 `rok` 실행 파일의 `../` |
-| `ROK_VERBOSE`    | `--verbose` 와 동일                                                                      |
-| `ROK_TARGET_DIR` | `target/` 의 위치 (기본은 패키지 안)                                                     |
-| `ROK_CACHE_DIR`  | [JIT](../000-meta/007-glossary.md#jit-just-in-time) 캐시 디렉토리 (기본 `~/.cache/rok/`) |
-| `ROK_NUM_JOBS`   | `rok test --threads` 의 기본값 (없으면 CPU 코어 수)                                     |
+| `ROK_HOME`        | toolchain 설치 위치 ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)). 없으면 `rokc` 실행 파일의 `../` |
+| `ROKC_VERBOSE`    | `--verbose` 와 동일                                                                      |
+| `ROKC_TARGET_DIR` | `target/` 의 위치 (기본은 패키지 안)                                                     |
+| `ROKC_CACHE_DIR`  | [JIT](../000-meta/007-glossary.md#jit-just-in-time) 캐시 디렉토리 (기본 `~/.cache/rok/`) |
+| `ROKC_NUM_JOBS`   | `rokc test --threads` 의 기본값 (없으면 CPU 코어 수)                                     |
 | `NO_COLOR`        | 있으면 `--color=auto` 가 색을 쓰지 않음                                                  |
 
 ## 9.1.8. 출력 형식
@@ -398,9 +373,9 @@ error: 'count' is not declared
 
 ```
    Compiling foo (path/to/foo)
-    Building target/foo
+    Building target/debug/foo
     Finished in 1.23s
-     Running `target/foo`
+     Running `target/debug/foo`
 ```
 
 | 동사        | 시점                                      |
@@ -418,22 +393,22 @@ error: 'count' is not declared
 도구 통합을 위해서는 JSON 형식으로도 출력할 수 있습니다.
 
 ```
-rok build --message-format=json
+rokc build --message-format=json
 ```
 
 이 모드에서는 진단 하나가 stdout 의 한 줄 JSON 객체가 되므로, IDE 와 CI 도구에서 쉽게 파싱할 수 있습니다. 객체의 모양은 [9.9.4](909-debug-tools.md#994-진단--에러-메시지) 에서 정의합니다.
 
 ## 9.1.9. 표준 입력
 
-`rok check -` 처럼 인자 자리에 `-` 를 적으면 표준 입력을 의미하며, 파이프 또는 스크립트 통합 용도로 활용할 수 있습니다. 아직 제공하지 않습니다.
+`rokc check -` 처럼 인자 자리에 `-` 를 적으면 표준 입력을 의미하며, 파이프 또는 스크립트 통합 용도로 활용할 수 있습니다. 표준 입력의 소스는 익명 실행 패키지의 `main.rok` 로 검사합니다.
 
 ## 9.1.10. 외부 도구와의 호환
 
-`rok` 가 패키지 매니저를 겸하므로 별도의 상위 도구 없이 의존성을 다룹니다 (9.1.4). 다른 빌드 시스템은 `rok build` 와 저수준 옵션 (`--extern`, [9.2.3](902-aot-pipeline.md#923-의존성-해소)) 을 호출해 통합할 수 있습니다. CLI 호환성을 깨는 변경은 SemVer 규칙에 따라 관리됩니다.
+`rokc` 는 저수준 컴파일러이며, 의존성 해소는 front-end `rok` ([9.10](910-rok-frontend.md)) 가 맡습니다. `rok` 는 해소한 의존 패키지의 루트를 `--extern` ([9.2.3](902-aot-pipeline.md#923-의존성-해소)) 으로 넘겨 `rokc` 를 부릅니다. 다른 빌드 시스템도 같은 방식으로 `rokc` 를 직접 호출해 통합할 수 있습니다. CLI 호환성을 깨는 변경은 SemVer 규칙에 따라 관리됩니다.
 
-## 9.1.11. 표준 포맷 (`rok fmt`)
+## 9.1.11. 표준 포맷 (`rokc fmt`)
 
-`rok fmt` 의 표준 포맷은 **토큰을 보존하는 배치 규칙** 입니다. 줄 안의 토큰과 주석은 바꾸지 않고 줄의 들여쓰기와 공백 줄만 정합니다.
+`rokc fmt` 의 표준 포맷은 **토큰을 보존하는 배치 규칙** 입니다. 줄 안의 토큰과 주석은 바꾸지 않고 줄의 들여쓰기와 공백 줄만 정합니다.
 
 1. 들여쓰기는 괄호 (`(` `[` `{` `#[`) 깊이마다 공백 4 칸입니다. 닫는 괄호로 시작하는 줄은 여는 줄의 깊이를 따릅니다. 탭은 공백으로 바뀝니다.
 2. 이어지는 줄, 곧 앞 토큰이 `;` `,` 나 괄호가 아닌 줄 (긴 식을 나눈 줄 등) 은 원래 파일에서 블록 들여쓰기보다 더 들여쓴 만큼을 유지합니다.

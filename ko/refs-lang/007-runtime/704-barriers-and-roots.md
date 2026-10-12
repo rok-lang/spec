@@ -37,7 +37,7 @@ rok_tls_shadow_stack_top ──► frame N      (current function)
 ```
 ShadowFrame {
     prev:  ptr          // 호출자의 frame (없으면 null)
-    count: u32          // slots 개수
+    count: usize        // slots 개수 (pointer 폭)
     slots: [ptr; count] // GC 참조 word 의 주소
 }
 ```
@@ -52,7 +52,7 @@ GC 참조를 들고 있으면서 호출이나 할당을 하는 함수만 frame �
 2. 기계 스택에 `ShadowFrame` 을 잡고 `slots` 에 그 word 들의 주소를 기록합니다. `prev` 에 현재 `rok_tls_shadow_stack_top` 을 저장한 뒤 머리를 이 frame 으로 바꿉니다 (link).
 3. 모든 `return` 직전에 머리를 `prev` 로 되돌립니다 (unlink). 에러 반환도 일반 `return` 이므로 같은 경로를 지납니다. panic 은 프로세스를 끝내므로 unlink 가 필요 없습니다.
 
-변수의 스코프가 끝나면 그 root 슬롯이 가리키는 word 를 null 로 지워도 됩니다. 그러면 frame 이 죽은 객체를 붙잡아 두지 않습니다.
+변수가 더 이상 쓰이지 않게 되면 (liveness 기준), 그 root 슬롯이 가리키는 word 를 null 로 지워도 됩니다. 그 word 를 다시 읽지 않는 한 의미는 바뀌지 않으며, frame 이 죽은 객체를 붙잡아 두지 않게 됩니다.
 
 GC 는 mark 시에 모든 thread 의 체인 머리에서 출발해 frame 을 walk 하며, 각 `slots[i]` 가 가리키는 word 의 값을 root 로 mark 합니다.
 
@@ -60,7 +60,7 @@ GC 는 mark 시에 모든 thread 의 체인 머리에서 출발해 frame 을 wal
 
 ### 초기 구현
 
-이 장의 GC 설계 (Immix, sticky mark-bit, 동시 수집) 는 목표 설계입니다. 초기 구현은 객체를 옮기지 않는 단순 mark-sweep 이어도 됩니다. 단, 루트 (이 절의 shadow stack) 와 write barrier ([7.4.2](#742-write-barrier-incremental-update)) 는 이 사양의 계약대로 emit 해야 합니다. 그래야 컴파일러 산출물을 바꾸지 않고 수집기를 교체할 수 있습니다.
+이 장의 GC 설계 (Immix, sticky mark-bit, 동시 수집) 는 목표 설계입니다. 현재 구현의 heap 은 객체를 옮기지 않는 Immix 식 mark-region 입니다 (32 KiB block, 128 B line, thread 별 TLAB bump 할당, [7.1.2](701-object-layout.md#712-메모리-공간)). evacuation 과 세대 수집 (sticky mark-bit) 은 구현의 선택 사항이며, 이를 쓰지 않는 수집기에서 write barrier 의 slow path 는 아무 일도 하지 않습니다. 단, 루트 (이 절의 shadow stack) 와 write barrier ([7.4.2](#742-write-barrier-incremental-update)) 는 이 사양의 계약대로 emit 해야 합니다. 그래야 컴파일러 산출물을 바꾸지 않고 수집기를 교체할 수 있습니다.
 
 ### 에러 전파와의 공존
 

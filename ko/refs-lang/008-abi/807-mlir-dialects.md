@@ -197,13 +197,13 @@ llvm.mlir.global thread_local @rok_tls_tlab_cursor(0 : i64) : i64
 각 단계의 책임 범위는 다음과 같이 나뉘어 있습니다.
 
 ```
-rok:           rok-mir → 표준 MLIR 텍스트  (본 블록)
+rokc:           rok-mir → 표준 MLIR 텍스트  (본 블록)
 mlir-opt:       표준 MLIR → 최적화된 MLIR  (외부 도구)
 mlir-translate: MLIR → LLVM IR  (외부 도구)
 clang/lld:      LLVM IR → 네이티브  (외부 도구)
 ```
 
-`rok` 의 책임은 표준 MLIR 텍스트를 생성하는 데까지이며, 그 이후 단계는 모두 외부 도구의 몫입니다. `rok` 가 해당 명령어들을 호출하기는 하지만, 도구 자체는 외부에 있다는 점을 기억해야 합니다.
+`rokc` 의 책임은 표준 MLIR 텍스트를 생성하는 데까지이며, 그 이후 단계는 모두 외부 도구의 몫입니다. `rokc` 가 해당 명령어들을 호출하기는 하지만, 도구 자체는 외부에 있다는 점을 기억해야 합니다.
 
 ## 8.7.9. 변환 검증
 

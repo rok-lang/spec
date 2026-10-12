@@ -44,15 +44,26 @@ let x: int = int::from(42i32);   // i32 → int (lossless)
 
 `From` 은 [묵시 `use rok::core::**;`](../000-meta/002-import.md) 에 의해 자동으로 사용 가능하므로, 별도의 `use` 선언이 필요하지 않습니다.
 
-## 2.11.3. `Into<T>` 트레잇 — `From` 의 mirror
+## 2.11.3. `Into` 트레잇 — `From` 의 mirror
 
 ```rok
-trait Into<T> {
-    fn into(self) -> T;
+trait Into {
+    fn into<T: From<Self>>(self) -> T;
+}
+
+impl<S> Into for S {
+    fn into<T: From<S>>(self) -> T { T::from(self) }
 }
 ```
 
-`From<U> for T` 가 구현되면 그에 대응하는 `Into<T> for U` 가 자동으로 구현됩니다. 따라서 사용자는 `Into` 를 직접 구현하지 않고 `From` 만 작성하면 됩니다.
+`Into` 는 타입 파라미터가 없는 트레잇이고, 제네릭 메서드 `into` 하나를 가집니다. blanket impl 하나가 모든 타입에 `into` 를 주므로, `x.into()` 는 `T::from(x)` 입니다. 대상 타입 `T` 는 기대 타입 (`let` 주석, 인자 자리 등) 이나 `x.into::<T>()` 에서 정해집니다. 사용자는 `Into` 를 구현하지 않고 `From` 만 작성합니다.
+
+변환 가능성을 바운드로 적을 때는 `From` 쪽으로 씁니다. `T: Into<U>` 라는 바운드는 없습니다.
+
+```rok
+fn widen<T, U: From<T>>(x: T) -> U { x.into() }      // OK — U: From<T>
+fn widen2<T: Into<U>, U>(x: T) -> U { x.into() }     // ERROR — Into 는 타입 인자를 받지 않음
+```
 
 ### 사용 예
 
@@ -111,9 +122,18 @@ let small_catch: i32 = try i32::try_from(big) catch e: OverflowError { default }
 let small_opt: i32 | none = try? i32::try_from(big);
 ```
 
-### `TryInto<T>` 자동 mirror
+### `TryInto` 자동 mirror
 
-`From` ↔ `Into` 와 동일한 패턴이 적용됩니다. 즉 `TryFrom<U> for T` 가 impl 되면 `TryInto<T> for U` 도 자동으로 구현됩니다.
+`From` ↔ `Into` 와 동일한 패턴이 적용됩니다.
+
+```rok
+trait TryInto {
+    fn try_into<T: TryFrom<Self>>(self) throws (OverflowError) -> T;
+}
+impl<S> TryInto for S { ... }            // = try T::try_from(self)
+```
+
+`try_from` 이 던지는 `OverflowError { op, ty }` ([2.14](214-error.md)) 의 `op` 은 `"try_from"`, `ty` 는 대상 타입 이름 (`"i32"` 등) 입니다.
 
 ```rok
 let small: i32 = try big.try_into();     // = try i32::try_from(big)
@@ -124,14 +144,22 @@ let small: i32 = try big.try_into();     // = try i32::try_from(big)
 손실이 가능한 변환에 대해서는 사용자가 값 변형 정책을 직접 명시하게 됩니다. 그 수단으로 다음 두 메서드가 제공됩니다.
 
 ```rok
-trait SaturatingInto<T> {
-    fn saturating_into(self) -> T;
+trait SaturatingFrom<U> {
+    fn saturating_from(value: U) -> Self;    // 범위 밖이면 가까운 끝
+}
+trait SaturatingInto {
+    fn saturating_into<T: SaturatingFrom<Self>>(self) -> T;
 }
 
-trait WrappingInto<T> {
-    fn wrapping_into(self) -> T;
+trait WrappingFrom<U> {
+    fn wrapping_from(value: U) -> Self;      // 하위 비트 유지 (= as)
+}
+trait WrappingInto {
+    fn wrapping_into<T: WrappingFrom<Self>>(self) -> T;
 }
 ```
+
+`From` / `Into` 와 같은 모양입니다. 변환 자체는 `SaturatingFrom` / `WrappingFrom` impl 이고, `saturating_into` / `wrapping_into` 는 blanket impl 이 주는 제네릭 메서드입니다.
 
 ### `saturating_into` — 범위 끝으로 clamp
 
@@ -289,7 +317,7 @@ let c = Celsius { degree: 100.0 };
 let f: Fahrenheit = c.into();   //→ Fahrenheit { degree: 212.0 }
 ```
 
-이때 `Into<Fahrenheit>` 가 자동으로 mirror 되므로, 사용자가 `Into` 를 직접 작성할 필요는 없습니다.
+이때 blanket `Into` 가 `c.into()` 를 `Fahrenheit::from(c)` 로 이어 주므로, 사용자가 `Into` 를 직접 작성할 필요는 없습니다.
 
 ### `try_from` 도 동일 패턴
 
@@ -339,11 +367,13 @@ let auto: i64 = (a + b).into();  // From<i32> for i64 (lossless) 명시
 | 트레잇              | lang slot            | 표준 라이브러리 위치 |
 |---------------------|----------------------|----------------------|
 | `From<U>`           | (없음 — derive 가능) | 표준 라이브러리      |
-| `Into<T>`           | (자동 mirror)        | 표준 라이브러리      |
+| `Into`              | (blanket impl)       | 표준 라이브러리      |
 | `TryFrom<U>`        | (없음)               | 표준 라이브러리      |
-| `TryInto<T>`        | (자동 mirror)        | 표준 라이브러리      |
-| `SaturatingInto<T>` | (없음)               | 표준 라이브러리      |
-| `WrappingInto<T>`   | (없음)               | 표준 라이브러리      |
+| `TryInto`           | (blanket impl)       | 표준 라이브러리      |
+| `SaturatingFrom<U>` | (없음)               | 표준 라이브러리      |
+| `SaturatingInto`    | (blanket impl)       | 표준 라이브러리      |
+| `WrappingFrom<U>`   | (없음)               | 표준 라이브러리      |
+| `WrappingInto`      | (blanket impl)       | 표준 라이브러리      |
 
 primitive 사이의 모든 lossless 변환 impl 에는 `#[intrinsic("rok.cast.FROM.TO")]` 가 부착됩니다.
 

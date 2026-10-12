@@ -238,8 +238,8 @@ struct str { ... }
 
 ```rok
 impl i32 {
-    fn min() -> i32;               // -2147483648
-    fn max() -> i32;               // 2147483647
+    const MIN: i32 = -2147483648;
+    const MAX: i32 = 2147483647;
     fn abs(self) -> i32;
     fn pow(self, exp: u32) -> i32;
     fn count_ones(self) -> u32;
@@ -279,6 +279,8 @@ impl i32 {
 unsigned, 부동소수, isize 도 비슷한 패턴으로 구성되며, 각 타입에 적합한
 메서드만 노출됩니다.
 
+정수의 최솟값 / 최댓값은 함수가 아니라 연관 상수 `i32::MIN` / `i32::MAX` 입니다. 인자 없는 고유 메서드 `min()` / `max()` 를 두면 같은 이름의 `Ord::min` / `Ord::max` (`a.min(b)`) 를 가리기 때문입니다.
+
 부동소수 (`f32`, `f64`) 의 경우 추가 메서드가 다음과 같이 제공됩니다.
 
 ```rok
@@ -301,7 +303,7 @@ impl f64 {
     fn fract(self) -> f64;       // self - self.trunc()
 
     fn abs(self) -> f64;
-    fn signum(self) -> f64;      // -1.0, 0.0, or 1.0
+    fn signum(self) -> f64;      // 양수 1.0, 음수 -1.0, ±0.0 이면 그 0, NaN 이면 NaN
 
     fn sqrt(self) -> f64;
     fn cbrt(self) -> f64;

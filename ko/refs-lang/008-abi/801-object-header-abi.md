@@ -82,7 +82,7 @@ bit  6 ~ 31 : 예약 / GC 구현 결정
 
 ### Immix 객체의 forwarding
 
-객체를 옮기지 않는 수집기에게 `gc_word` 는 자유 영역이며, 수집기가 원하는 용도로 써도 됩니다. 아래 forwarding / LOS size 의미는 Immix 설계 기준입니다.
+객체를 옮기지 않는 수집기에게 `gc_word` 는 자유 영역이며, 수집기가 원하는 용도로 써도 됩니다. 예를 들어 현재 구현 (non-moving mark-region) 은 모든 객체의 `gc_word` 에 객체 크기를 두고, 할당 fast path 가 그것을 인라인으로 씁니다 ([8.9.9](809-lowering-control.md#899-gc-alloc-fast--slow-path)). block 안의 객체는 `type_id` 0 을 갖지 않으므로, 수집기는 0 을 빈 자리의 표시로 쓸 수 있습니다. 아래 forwarding / LOS size 의미는 Immix 설계 기준입니다.
 
 Immix 객체가 evacuate 되지 않은 경우에는 `FORWARDED` 비트가 0 이고 `gc_word` 가 0 (또는 self-pointer 로, 구현에 따라 결정됩니다) 입니다. evacuate 된 경우에는 `FORWARDED` 비트가 1 이 되고, `gc_word` 에 새 위치의 포인터가 8 바이트 정렬로 저장됩니다.
 

@@ -154,7 +154,7 @@ br i1 %check, label %slow, label %cont
 
 이후 LLVM 백엔드가 타깃별 TLS 명령어로 lower 해 주게 됩니다.
 
-`rok_tls_*` 슬롯은 initial-exec TLS 모델을 씁니다. 런타임은 항상 실행 파일에 정적으로 링크되므로 이 모델로 충분합니다. 툴체인이 TLS 모델을 고를 수 없는 구현은 general-dynamic 으로 대신해도 됩니다.
+`rok_tls_*` 슬롯은 ELF 에서 initial-exec TLS 모델을 씁니다 (컴파일러가 접근 코드를 이 모델로 emit 하므로 링커의 relax 에 기대지 않음). 런타임은 항상 실행 파일에 정적으로 링크되므로 이 모델로 충분합니다. Mach-O 는 플랫폼의 TLV 디스크립터 방식을 씁니다. 툴체인이 TLS 모델을 고를 수 없는 구현은 general-dynamic 으로 대신해도 됩니다.
 
 ### `rok_tls_shadow_stack_top`
 

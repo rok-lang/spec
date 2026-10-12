@@ -114,4 +114,16 @@ work-stealing 은 스케줄러의 load balancing 메커니즘입니다. 각 work
 
 MLIR plugin 은 rok 컴파일러에 외부에서 빌드된 MLIR 다이얼렉트를 동적으로 등록하기 위한 메커니즘입니다. `--load-mlir-plugin=<path>` CLI 옵션이나 패키지 매니페스트 선언으로 로드되며, 로드된 op 은 `rok::bare::mlir::__mlir_op` 으로 호출 가능해집니다. 도메인 특화 컴파일러 (암호화, 신호 처리, 새 가속기 ISA 등) 영역에서 활용합니다. 자세한 내용은 [refs-standard-libraries 1.10](../../refs-standard-libraries/100-bare/110-mlir-plugin.md) 을 참조하시면 됩니다.
 
+## rokc / rok / rokls / rokr
+
+toolchain 을 이루는 실행 파일과 런타임입니다. `rokc` 는 컴파일러 (rustc 에 해당, [9.1](../009-tools/901-rokc-cli.md)), `rok` 은 매니페스트와 의존성, 환경, toolchain 고정을 맡고 `rokc` 를 부르는 cargo 식 front-end ([9.10](../009-tools/910-rok-frontend.md)), `rokls` 는 편집기용 LSP 서버 실행 파일 (`rok lsp`), `rokr` 은 런타임 (`librokr.a`) 입니다.
+
+## Rok.toml / Rok.lock
+
+패키지 루트의 매니페스트와 lockfile 입니다. 이름은 이 철자 그대로 (첫 글자만 대문자) 입니다. 의존성이 없는 패키지에는 필요하지 않습니다 ([0.3.4](003-source-units.md#034-매니페스트-roktoml-는-선택)). `Rok.toml` 은 의존성과 toolchain 고정을 선언하고, `Rok.lock` 은 `rok update` 가 해소한 결과를 고정합니다.
+
+## 환경 (environment)
+
+`rok` 이 의존성 집합을 두는 단위입니다. `Rok.toml` 이 있는 모든 디렉토리가 환경이며 활성화 단계는 없습니다. 프로젝트 밖에서는 `$ROK_HOME/envs/` 의 이름 있는 환경 (기본 `default`) 을 씁니다 ([9.10.5](../009-tools/910-rok-frontend.md#9105-환경)).
+
 이상으로 rok 사양에서 자주 마주치는 용어를 한 자리에 모아 살펴보았습니다. 여기에 정리한 항목들은 단지 단어의 뜻을 옮긴 것이 아니라, 컴파일 파이프라인, 메모리 관리, 타입 체계, 동시성 모델 등 rok 이 어떤 토대 위에 서 있는지를 압축적으로 보여 주는 색인이기도 합니다. 본문을 읽다가 개념이 흐릿해질 때마다 이 장으로 돌아오면, 각 용어가 사양 전체에서 어떤 자리를 차지하고 있는지를 더욱 또렷하게 가늠할 수 있을 것입니다.

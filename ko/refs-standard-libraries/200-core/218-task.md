@@ -104,16 +104,16 @@ impl<T> Future for Task<T> {              // `await t` — 완료까지 suspend
 
 ```
 Worker 0 ─┐      Worker 1 ─┐    ...    Worker N-1 ─┐
- Local Q   │      Local Q   │            Local Q    │
- LIFO slot │      LIFO slot │            LIFO slot  │
- [256 slot]│      [256 slot]│            [256 slot] │
+ Local     │      Local     │            Local      │
+ deque     │      deque     │            deque      │
+ (Chase-Lev)      (Chase-Lev)            (Chase-Lev)│
            └─ Global Injector Queue ──────┘
            └─ I/O Driver (포터블)   ──────┘
            └─ Timer (heap / wheel)  ──────┘
            └─ Parked Worker Stack   ──────┘
 ```
 
-이 구조의 주요 특성을 정리하면, 우선 로컬 큐는 Tokio 방식과 같은 256-slot ring 으로 구성됩니다. 또한 LIFO slot 은 깨어난 task 를 즉시 실행하여 cache 친화성을 높이며, 도둑 알고리듬은 steal back (FIFO) 방식으로 동작합니다. I/O Driver 는 프로세스당 reactor thread 하나가 epoll / kqueue 를 edge-triggered 로 기다리며 (io_uring / IOCP 는 향후, [refs-lang 7.7](../../refs-lang/007-runtime/707-io-and-timer.md)), Timer 구조는 구현이 정합니다 (binary heap 또는 timing wheel, [refs-lang 7.7.5](../../refs-lang/007-runtime/707-io-and-timer.md#775-타이머-구조)).
+이 구조의 주요 특성을 정리하면, 우선 로컬 큐는 lock-free Chase-Lev deque 이며, 소유 worker 와 도둑 모두 가장 오래된 task 부터 꺼냅니다 (스스로를 다시 깨우는 task 가 다른 task 를 굶기지 않도록, [refs-lang 7.6.2](../../refs-lang/007-runtime/706-scheduler.md#762-work-stealing-구조)). 바쁜 worker 는 task 32 개마다 기한이 지난 timer 를 처리합니다. I/O Driver 는 프로세스당 reactor thread 하나가 epoll / kqueue 를 edge-triggered 로 기다리며 (io_uring / IOCP 는 향후, [refs-lang 7.7](../../refs-lang/007-runtime/707-io-and-timer.md)), Timer 구조는 구현이 정합니다 (binary heap 또는 timing wheel, [refs-lang 7.7.5](../../refs-lang/007-runtime/707-io-and-timer.md#775-타이머-구조)).
 
 표준 라이브러리 측의 권위는 API 시그니처에 한정되며, 알고리듬 본문은 spec 외부의 runtime 및 표준 라이브러리 body 영역에 속한다는 점에 유의해야 합니다.
 

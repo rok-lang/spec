@@ -10,9 +10,9 @@
 
 ```
 type_expr   ::= sum_type
-sum_type    ::= opt_type ("|" opt_type)*
-opt_type    ::= unary_type "?"*                 // T? — optional (2.1.5a)
-unary_type  ::= path_type
+sum_type    ::= unary_type ("|" unary_type)*
+unary_type  ::= base_type "?"*                  // T? — optional (2.1.5a), `??` 는 `?` 두 개
+base_type   ::= path_type
               | fn_type
               | tuple_type
               | array_type
@@ -24,7 +24,7 @@ trait_args  ::= "<" trait_arg ("," trait_arg)* ","? ">"
 trait_arg   ::= type_expr | identifier "=" type_expr
 path_type   ::= identifier ("::" identifier)* type_args?
 type_args   ::= "<" type_expr ("," type_expr)* ","? ">"
-fn_type     ::= "unsafe"? "fn" "( (type_expr ("," type_expr)*)? ")" ("throws" ("(" type_expr ")")?)? ("->" opt_type)? fn_bound*
+fn_type     ::= "unsafe"? "fn" "( (type_expr ("," type_expr)*)? ")" ("throws" ("(" type_expr ")")?)? ("->" unary_type)? fn_bound*
 fn_bound    ::= "+" ("Send" | "Sync")
 tuple_type  ::= "(" ")"
               | "(" type_expr "," ")"
@@ -129,7 +129,9 @@ i32 | none          // 적은 합 — 늘 평평한 i32 | none
 
 - 후위 `?` 는 `|` 보다, 그리고 함수 타입의 `->` 보다 강하게 묶입니다 (2.1.10). `i32 | str?` 는 `i32 | (str?)` 입니다.
 - `fn() -> i32?` 는 optional 을 돌려주는 함수이고, `(fn() -> i32)?` 는 optional 함수입니다.
-- 식의 `x as T?` / `x is T?` 에서 `?` 는 타입에 속합니다. 변환 결과에 `?` 연산자 ([3.14](../003-expressions/314-error-control-flow.md)) 를 쓰려면 `(x as T)?` 로 괄호를 씁니다.
+- 타입 자리에서 `??` 토큰은 `?` 두 개입니다 (`i32??`).
+- 식의 `x as T?` / `x is T?` 에서 끝의 `?` 는 타입에 속합니다. 변환 결과에 `?` 연산자 ([3.14](../003-expressions/314-error-control-flow.md)) 를 쓰려면 `(x as T)?` 로 괄호를 씁니다. `x as T?` 의 변환이 실패하면 진단이 "전파하려면 `(x as T)?` 로 쓰라" 는 힌트를 줍니다.
+- 다만 `as` / `is` 의 대상 뒤의 `??` 는 null 합체 연산자입니다 (`x as i32 ?? 0` 은 `(x as i32) ?? 0`). 두 층 optional 로 변환하려면 `x as (i32??)` 로 씁니다.
 
 ## 2.1.6. 함수 타입
 

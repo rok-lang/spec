@@ -298,7 +298,7 @@ cf.cond_br %overflow, ^slow, ^fast
   ; ...
 ```
 
-위 fast path 에서 `%24` 는 객체 총 크기, `%8` 은 정렬, `%TYPE_ID_POINT` 는 type_id 상수를 의미합니다.
+위 fast path 에서 `%24` 는 객체 총 크기, `%8` 은 정렬, `%TYPE_ID_POINT` 는 type_id 상수를 의미합니다. fast path 는 TLAB 의 bump 포인터를 올린 뒤 헤더의 `type_id` 와 `gc_word` (= 크기) 를 인라인으로 씁니다. 객체를 옮기지 않는 수집기에서는 [8.1.4](801-object-header-abi.md#814-gc_word-offset-8-u64-또는-ptr) 가 `gc_word` 의 이 쓰임을 허용합니다.
 
 slow path 의 경우에는 `rok_gc_alloc_slow` 를 호출하게 됩니다.
 
@@ -313,6 +313,10 @@ llvm.store %TYPE_ID_POINT, %hdr_type_addr : i32
 
 ; gc_flags 초기값 0
 ; ... (slow path 가 채울 수도)
+
+; gc_word = 객체 크기 (객체를 옮기지 않는 수집기, 8.1.4)
+%hdr_word_addr = llvm.getelementptr %p[0, 2] : ...
+llvm.store %24, %hdr_word_addr : i64
 
 ; 필드 채우기
 %x_addr = llvm.getelementptr %p[0, 3] : ...
@@ -359,7 +363,7 @@ cf.cond_br %is_sticky, ^check_q, ^cont
 
 barrier 는 모든 GC 포인터 쓰기에 추가됩니다. fast path 의 비용은 분기 1 ~ 2 개에 load 1 개를 더한 정도이며, 비교적 가벼운 편입니다.
 
-write barrier 의 세부 내용은 GC 구현에 따라 달라지며, Yuasa SATB 또는 Dijkstra-style 등 일부 변형도 가능합니다.
+write barrier 의 세부 내용은 GC 구현에 따라 달라지며, Yuasa SATB 또는 Dijkstra-style 등 일부 변형도 가능합니다. 세대 수집이나 동시 수집을 하지 않는 수집기 (현재 구현) 에서 `rok_gc_wb_slow` 는 아무 일도 하지 않습니다.
 
 ## 8.9.11. Safepoint poll
 
@@ -395,13 +399,13 @@ GC 참조 word 가 2 개 (`%x`, `%y`) 인 함수의 예입니다. 슬롯에는 w
 %y = llvm.alloca %c1 x !llvm.ptr : (i64) -> !llvm.ptr
 llvm.store %null, %x : !llvm.ptr, !llvm.ptr
 llvm.store %null, %y : !llvm.ptr, !llvm.ptr
-%frame = llvm.alloca %c1 x !llvm.struct<(ptr, i32, array<2 x ptr>)> : (i64) -> !llvm.ptr
+%frame = llvm.alloca %c1 x !llvm.struct<(ptr, i64, array<2 x ptr>)> : (i64) -> !llvm.ptr
 %head_ptr = llvm.mlir.addressof @rok_tls_shadow_stack_top : !llvm.ptr
 %head = llvm.load %head_ptr : !llvm.ptr -> !llvm.ptr
 %prev_p = llvm.getelementptr %frame[0, 0] : (!llvm.ptr) -> !llvm.ptr
 llvm.store %head, %prev_p : !llvm.ptr, !llvm.ptr
 %count_p = llvm.getelementptr %frame[0, 1] : (!llvm.ptr) -> !llvm.ptr
-llvm.store %c2_i32, %count_p : i32, !llvm.ptr
+llvm.store %c2_i64, %count_p : i64, !llvm.ptr          ; count: usize
 %s0 = llvm.getelementptr %frame[0, 2, 0] : (!llvm.ptr) -> !llvm.ptr
 llvm.store %x, %s0 : !llvm.ptr, !llvm.ptr          ; 값이 아니라 주소
 %s1 = llvm.getelementptr %frame[0, 2, 1] : (!llvm.ptr) -> !llvm.ptr

@@ -15,8 +15,8 @@ try_into    ::= expr "." "try_into" ("::" "<" type_expr ">")? "(" ")"
 | 구문               | 형태                   | desugar 대상 트레잇         |
 |--------------------|------------------------|-----------------------------|
 | `as` 캐스팅        | `expr as 타입`         | `Cast<Target>::cast`        |
-| `.into()` 호출     | `expr.into()`          | `Into<Target>::into`        |
-| `.try_into()` 호출 | `expr.try_into::<T>()` | `TryInto<Target>::try_into` |
+| `.into()` 호출     | `expr.into()`          | `Target::from` (`Into::into`) |
+| `.try_into()` 호출 | `expr.try_into::<T>()` | `Target::try_from` (`TryInto::try_into`) |
 
 세 트레잇의 정확한 시그니처와 어떤 타입 쌍에 어떤 구현이 등록되는지는 표준 라이브러리의 변환 매트릭스에서 정의합니다. 따라서 본 문서는 언어 수준의 desugar 규칙까지만 책임집니다.
 
@@ -48,11 +48,11 @@ let z: f64 = x as f64;        // Cast<f64>::cast(x)
 expr.into()
 ```
 
-이 구문은 `<typeof(expr) as Into<Target>>::into(expr)` 로 desugar 되며, 좌변 표현식의 타입에 대상 타입으로 가는 `Into` 구현이 있어야 합니다. 대상 타입은 변수의 선언 타입이나 매개변수 타입과 같이 문맥에서 추론합니다.
+이 구문은 `Into::into::<Target>(expr)`, 곧 `Target::from(expr)` 로 desugar 되며, `Target: From<typeof(expr)>` 구현이 있어야 합니다. 대상 타입은 변수의 선언 타입이나 매개변수 타입과 같이 문맥에서 추론합니다.
 
 ```rok
 let x: i64 = 100i64;
-let y: BigInt = x.into();       // Into<BigInt>::into(x)
+let y: BigInt = x.into();       // BigInt::from(x)
 ```
 
 대상 타입을 추론할 수 없는 위치에서는 turbofish 로 명시할 수 있습니다.
@@ -71,7 +71,7 @@ let y = x.into::<BigInt>();
 expr.try_into::<타입>()
 ```
 
-이 구문은 `<typeof(expr) as TryInto<Target>>::try_into(expr)` 로 desugar 됩니다. `try_into` 는 [`throws`](../004-functions/414-throws.md) 메서드로서 성공하면 대상 타입의 값을 돌려주고, 실패하면 에러를 던집니다 (에러 타입은 표준 라이브러리에서 정의합니다). 따라서 호출을 `try` 로 표시해야 하며, 큰 정수를 작은 정수로 옮기거나 부동소수에서 정수로 옮기는 경우처럼 변환이 실패할 수 있을 때 사용합니다.
+이 구문은 `Target::try_from(expr)` 로 desugar 됩니다 (`Target: TryFrom<typeof(expr)>`). `try_into` 는 [`throws`](../004-functions/414-throws.md) 메서드로서 성공하면 대상 타입의 값을 돌려주고, 실패하면 에러를 던집니다 (에러는 `OverflowError`, [stdlib 2.11.4](../../refs-standard-libraries/200-core/211-conversion.md#2114-tryfromu-트레잇--fallible-변환)). 따라서 호출을 `try` 로 표시해야 하며, 큰 정수를 작은 정수로 옮기거나 부동소수에서 정수로 옮기는 경우처럼 변환이 실패할 수 있을 때 사용합니다.
 
 ```rok
 let big: i64 = 10_000_000_000i64;
@@ -88,8 +88,8 @@ let m: i32 | none = try? big.try_into::<i32>();
 | 구문          | 실패 가능?         | 정보 손실 가능?         | 트레잇       |
 |---------------|--------------------|-------------------------|--------------|
 | `as`          | 하지 않습니다      | 가능                    | `Cast<T>`    |
-| `.into()`     | 하지 않습니다      | 하지 않습니다 (값 보존) | `Into<T>`    |
-| `.try_into()` | 가능 (에러를 던짐) | 하지 않습니다 (성공 시) | `TryInto<T>` |
+| `.into()`     | 하지 않습니다      | 하지 않습니다 (값 보존) | `From<S>`    |
+| `.try_into()` | 가능 (에러를 던짐) | 하지 않습니다 (성공 시) | `TryFrom<S>` |
 
 상황별로 어떤 구문을 선택해야 하는지는 다음과 같이 판단합니다. 먼저 비트나 정밀도를 의도적으로 바꾸고 싶을 때는 `as` 를 사용합니다. 정보를 잃지 않는 안전한 확장만 필요하다면 `.into()` 를 선택합니다. 그리고 실패 가능성을 명시적으로 다루고 싶을 때는 `.try_into()` 를 사용하면 됩니다.
 
@@ -110,6 +110,6 @@ let b: i32 = try! a.try_into::<i32>();     // OK — 실패하면 panic
 
 ## 2.14.7. 변환 트레잇의 위치
 
-`Cast<T>`, `Into<T>`, `TryInto<T>` 는 모두 [표준 라이브러리 계층](../000-meta/005-standard-libraries-tiers.md) 의 `rok` 계층에 정의되어 있습니다. 어떤 타입 쌍에 어떤 트레잇이 구현되어 있는지에 대한 전체 매트릭스는 표준 라이브러리 사양에서 정의합니다.
+`Cast<T>`, `From<U>` / `Into`, `TryFrom<U>` / `TryInto` 는 모두 [표준 라이브러리 계층](../000-meta/005-standard-libraries-tiers.md) 의 `rok` 계층에 정의되어 있습니다. 어떤 타입 쌍에 어떤 트레잇이 구현되어 있는지에 대한 전체 매트릭스는 표준 라이브러리 사양에서 정의합니다.
 
 본 문서는 언어가 세 구문의 형태를 제공하고 각각이 위 세 트레잇으로 desugar 된다는 사실까지만 책임집니다.
