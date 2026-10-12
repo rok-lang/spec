@@ -67,7 +67,7 @@ Rust 의 `rlib` 역시 표준 ar archive 에 커스텀 섹션(LLVM bitcode) 을 
 
 LLVM 의 thinLTO 는 `.llvmbc` 커스텀 섹션을 archive 안에 두는데, 링커는 이 섹션을 무시하고 LLVM 만 꺼내 쓰는 구조입니다.
 
-rok 의 `.rok.hir` 도 같은 패턴을 따르고 있습니다. 링커는 이 섹션을 무시하고 `rokc` 만 꺼내 [단형화](../000-meta/007-glossary.md#monomorphization-단형화) 에 활용합니다.
+rok 의 `.rok.hir` 도 같은 패턴을 따르고 있습니다. 링커는 이 섹션을 무시하고 `rok` 만 꺼내 [단형화](../000-meta/007-glossary.md#monomorphization-단형화) 에 활용합니다.
 
 ### 정적 .a 원칙
 
@@ -97,7 +97,7 @@ libfoo.a
 ```
 ROK_META magic       (4 bytes)
 version              (u16)
-rokc_version_hash    (16 bytes)
+rok_version_hash    (16 bytes)
 package_hash         (16 bytes — package hash of [source unit](../000-meta/003-source-units.md))
 abi_version_hash     (16 bytes — ABI hash of chapter 8)
 
@@ -110,15 +110,15 @@ serialized info: name / item / visibility / generic flag / signature, etc.
 
 > package hash of source unit: 소스 단위의 패키지 해시. ABI hash of chapter 8: 8 장의 ABI 해시. continued: 계속. serialized info: 직렬화된 정보. name / item / visibility / generic flag / signature: 이름 / 항목 / 가시성 / generic 여부 / 시그니처.
 
-자세한 형식은 `rokc` 가 결정하도록 되어 있습니다. 본 사양에서는 어떤 정보가 들어가는지만 정의해 두었습니다.
+자세한 형식은 `rok` 가 결정하도록 되어 있습니다. 본 사양에서는 어떤 정보가 들어가는지만 정의해 두었습니다.
 
 ## 9.3.6. 버전 호환 검사
 
-서로 다른 rokc 버전이나 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 버전, 또는 다른 패키지 버전의 archive 를 함께 링크하려고 하면 다음과 같은 절차가 진행됩니다.
+서로 다른 rok 버전이나 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 버전, 또는 다른 패키지 버전의 archive 를 함께 링크하려고 하면 다음과 같은 절차가 진행됩니다.
 
 ```
-rokc build → read .rok.meta of each dep .a
-            → compare rokc_version_hash / abi_version_hash
+rok build → read .rok.meta of each dep .a
+            → compare rok_version_hash / abi_version_hash
             → mismatch → error (rebuild required)
 ```
 
@@ -145,7 +145,7 @@ nm libfoo.a
 
 ## 9.3.9. archive 의 압축 / 최소화
 
-본 사양에서는 archive 의 압축이나 최소화를 강제하지 않습니다. `rokc build --release` 는 작은 산출물을 만들기 위한 추가 옵션을 가질 수 있는데, 이는 구현 결정사항으로 남겨두었습니다.
+본 사양에서는 archive 의 압축이나 최소화를 강제하지 않습니다. `rok build --release` 는 작은 산출물을 만들기 위한 추가 옵션을 가질 수 있는데, 이는 구현 결정사항으로 남겨두었습니다.
 
 ## 9.3.10. 외부 도구를 통한 검사
 
@@ -172,7 +172,7 @@ clang main.o \
   -o my_binary
 ```
 
-링커는 archive 에 들어 있는 모든 .o 중 필요한 심볼만 골라서 링크하고, `.rok.hir` 처럼 rokc 전용 섹션은 무시합니다.
+링커는 archive 에 들어 있는 모든 .o 중 필요한 심볼만 골라서 링크하고, `.rok.hir` 처럼 rok 전용 섹션은 무시합니다.
 
 이 모델 덕분에 rok 코드를 C / C++ 프로젝트에서 직접 링크해 사용할 수 있습니다.
 

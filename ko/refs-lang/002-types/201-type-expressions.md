@@ -10,19 +10,21 @@
 
 ```
 type_expr   ::= sum_type
-sum_type    ::= unary_type ("|" unary_type)*
+sum_type    ::= opt_type ("|" opt_type)*
+opt_type    ::= unary_type "?"*                 // T? — optional (2.1.5a)
 unary_type  ::= path_type
               | fn_type
               | tuple_type
               | array_type
               | any_type
+              | "(" type_expr ")"               // 그룹
 any_type    ::= "any" ( trait_ref | "(" trait_ref ("+" trait_ref)* ")" )?
 trait_ref   ::= identifier ("::" identifier)* trait_args?
 trait_args  ::= "<" trait_arg ("," trait_arg)* ","? ">"
 trait_arg   ::= type_expr | identifier "=" type_expr
 path_type   ::= identifier ("::" identifier)* type_args?
 type_args   ::= "<" type_expr ("," type_expr)* ","? ">"
-fn_type     ::= "unsafe"? "fn" "( (type_expr ("," type_expr)*)? ")" ("throws" ("(" type_expr ")")?)? ("->" type_expr)? fn_bound*
+fn_type     ::= "unsafe"? "fn" "( (type_expr ("," type_expr)*)? ")" ("throws" ("(" type_expr ")")?)? ("->" opt_type)? fn_bound*
 fn_bound    ::= "+" ("Send" | "Sync")
 tuple_type  ::= "(" ")"
               | "(" type_expr "," ")"
@@ -38,6 +40,7 @@ array_type  ::= "[" type_expr ";" const_expr "]"
 | 경로          | `rok::std::time::Duration`                  |
 | 제네릭 적용   | `List<i32>`, `Dict<str, f64>`, `Pair<A, B>` |
 | 합 타입 (`\|`) | `i32 \| f32`, `T \| none`                     |
+| optional (`?`)  | `i32?`, `(i32 \| str)?`, `List<T>?`           |
 | 함수 타입     | `fn(i32, i32) -> i32`, `fn() -> T + Send`   |
 | 튜플 타입     | `(i32, str)`, `(i32,)`                      |
 | 배열 타입     | `[T; N]` (고정 크기)                        |
@@ -112,6 +115,22 @@ A | B | C | D
 
 한편 `|` 토큰의 우선순위는 다른 타입 결합자보다 낮습니다. 따라서 `i32 | List<f32>` 는 `i32 | (List<f32>)` 로 묶이는데, 이는 제네릭 적용이 합 타입보다 강하게 묶이기 때문입니다.
 
+## 2.1.5a. optional 타입 (`T?`)
+
+후위 `?` 는 optional 타입을 만듭니다. `T?` 는 `Maybe<T>` (`type Maybe<T> = T | none;`) 와 똑같이 동작합니다. 곧 `?` 의 피연산자는 제네릭 항이며, [합 타입의 층 규칙](206-sum-types.md#264-집합-의미론) 이 적용됩니다.
+
+```rok
+i32?                // i32 | none
+(i32 | str)?        // i32 | str | none — 겹침 없음, 펼침
+(i32 | none)?       // 두 층 — 바깥 none ≠ 안쪽 none
+i32??               // 두 층 — (i32 | none)? 과 같음
+i32 | none          // 적은 합 — 늘 평평한 i32 | none
+```
+
+- 후위 `?` 는 `|` 보다, 그리고 함수 타입의 `->` 보다 강하게 묶입니다 (2.1.10). `i32 | str?` 는 `i32 | (str?)` 입니다.
+- `fn() -> i32?` 는 optional 을 돌려주는 함수이고, `(fn() -> i32)?` 는 optional 함수입니다.
+- 식의 `x as T?` / `x is T?` 에서 `?` 는 타입에 속합니다. 변환 결과에 `?` 연산자 ([3.14](../003-expressions/314-error-control-flow.md)) 를 쓰려면 `(x as T)?` 로 괄호를 씁니다.
+
 ## 2.1.6. 함수 타입
 
 함수 자체를 가리키는 타입은 다음과 같이 표기합니다.
@@ -172,12 +191,12 @@ any Future<Output = User>
 ```
 strong  ─→  weak
 
-[T; N]   (...)   <...>   ::   .  →  fn(...) -> ...   →   |
+[T; N]   (...)   <...>   ::   .  →  T?  →  fn(...) -> ...   →   |
 ```
 
 > strong: 강하게 묶임. weak: 약하게 묶임.
 
-이를 풀어 설명하면, 경로(`::`), 제네릭 적용(`<...>`), 배열(`[...]`), 그룹화(`(...)`) 가 가장 강하게 묶입니다. 그 다음으로 함수 타입(`fn(...) -> ...`) 이 묶이고, 합 타입(`|`) 이 가장 약하게 묶입니다.
+이를 풀어 설명하면, 경로(`::`), 제네릭 적용(`<...>`), 배열(`[...]`), 그룹화(`(...)`) 가 가장 강하게 묶입니다. 그 다음이 후위 optional(`?`), 그 다음으로 함수 타입(`fn(...) -> ...`) 이 묶이고, 합 타입(`|`) 이 가장 약하게 묶입니다.
 
 그 결과로 `i32 | List<f32>` 는 `i32 | (List<f32>)` 로, `fn(A | B) -> C` 는 `fn((A|B)) -> C` 로 묶입니다.
 

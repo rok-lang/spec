@@ -40,25 +40,25 @@ struct RokMlirPluginV1 {
 각 필드의 책임:
 - **`abi_version`**: rok plugin ABI 버전. 본 사양은 v1 만 정의합니다.
 - **`dialect_namespace`**: `__mlir_op::<"NS.op_name", ...>` 의 `NS` 자리에 들어갈 namespace.
-- **`compatible_llvm`**: 이 plugin 이 빌드된 LLVM major 버전. `rokc` 가 자기 LLVM 버전과 비교하여 mismatch 면 거부.
+- **`compatible_llvm`**: 이 plugin 이 빌드된 LLVM major 버전. `rok` 가 자기 LLVM 버전과 비교하여 mismatch 면 거부.
 - **`register_dialect`**: `MlirContext` 에 dialect 를 등록하는 callback. plugin 작성자가 MLIR C API 를 통해 작성.
 - **`register_passes`**: 다이얼렉트 lowering / 변환 패스를 PassManager 에 등록하는 callback. NULL 이면 패스 등록 단계가 건너뛰어집니다.
 
 ## 1.10.3. plugin 로드
 
-`rokc` 가 plugin 을 로드하는 방식은 두 가지입니다.
+`rok` 가 plugin 을 로드하는 방식은 두 가지입니다.
 
 ### CLI 옵션
 
 ```bash
-rokc build --load-mlir-plugin=/path/to/libmydialect.so main.rok
-rokc build --load-mlir-plugin=mydialect main.rok    # 검색 경로에서 자동 탐색
+rok build --load-mlir-plugin=/path/to/libmydialect.so main.rok
+rok build --load-mlir-plugin=mydialect main.rok    # 검색 경로에서 자동 탐색
 ```
 
 여러 번 사용 가능합니다.
 
 ```bash
-rokc build \
+rok build \
     --load-mlir-plugin=/path/to/libcrypto_dialect.so \
     --load-mlir-plugin=/path/to/libsignal_dialect.so \
     main.rok
@@ -84,13 +84,13 @@ unsafe {
 }
 ```
 
-[1.9 rok::bare::mlir](109-mlir.md) 의 모든 호출 syntax (속성 / region / variadic) 가 그대로 적용됩니다. `rokc` 는 `crypto` namespace 가 등록되어 있는지 확인한 뒤 op 이름과 시그니처를 plugin 에 위임하여 검증합니다.
+[1.9 rok::bare::mlir](109-mlir.md) 의 모든 호출 syntax (속성 / region / variadic) 가 그대로 적용됩니다. `rok` 는 `crypto` namespace 가 등록되어 있는지 확인한 뒤 op 이름과 시그니처를 plugin 에 위임하여 검증합니다.
 
 ## 1.10.5. 안전 책임
 
 plugin 사용자 (라이브러리 작성자 + 그 라이브러리를 쓰는 사용자) 가 부담하는 책임은 다음과 같습니다.
 
-- **LLVM 버전 일치**: plugin 이 빌드된 LLVM major 버전이 `rokc` 와 다르면 로드 거부됩니다. patch 버전 차이는 허용.
+- **LLVM 버전 일치**: plugin 이 빌드된 LLVM major 버전이 `rok` 와 다르면 로드 거부됩니다. patch 버전 차이는 허용.
 - **ABI 안정성**: `RokMlirPluginV1` 의 필드 추가 / 변경은 본 사양의 SemVer 정책을 따릅니다. 다음 ABI 버전이 나오면 v1 / v2 두 entry point 가 공존할 수 있습니다.
 - **op 의미 검증**: rok 컴파일러는 op 이름이 plugin 에 등록되어 있는지만 확인합니다. op 의 의미 / 부수효과 / GC 안전성은 plugin 작성자 책임입니다.
 - **GC root 추적**: plugin op 이 GC heap 객체를 다룰 때는 그 포인터를 shadow stack frame 슬롯에 두는 root 추적 ([refs-lang 7.4.1](../../refs-lang/007-runtime/704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack)) 을 plugin lowering 에서 지켜야 하며, 그렇지 않으면 GC cycle 에서 객체가 회수될 수 있습니다.
@@ -100,7 +100,7 @@ plugin 사용자 (라이브러리 작성자 + 그 라이브러리를 쓰는 사�
 
 `RokMlirPluginV1` 의 `abi_version` 필드는 plugin 이 따르는 ABI 의 메이저 버전을 명시합니다. 정책은 다음과 같이 정리됩니다.
 
-- **거부 조건**: 컴파일러는 로드 시점에 `abi_version` 을 확인하여 자신이 알고 있는 버전 집합과 매칭하지 않으면 거부합니다. 메시지는 "plugin ABI version N is not supported by this rokc (supports: ..)" 형태로 표준화됩니다.
+- **거부 조건**: 컴파일러는 로드 시점에 `abi_version` 을 확인하여 자신이 알고 있는 버전 집합과 매칭하지 않으면 거부합니다. 메시지는 "plugin ABI version N is not supported by this rok (supports: ..)" 형태로 표준화됩니다.
 - **새 버전 신설 기준**: 다음 중 하나라도 발생하면 메이저 버전이 올라갑니다.
   - 기존 함수 포인터의 시그니처 변경
   - 기존 필드 의미 변경 또는 제거
@@ -142,7 +142,7 @@ rok 의 모델은 LLVM 의 pass plugin 과 가장 닮았습니다. 동적 로드
 다음은 본 사양 범위 밖입니다.
 
 - rok 소스 코드 안에서 다이얼렉트 / op 정의 (Mojo 도 안 함)
-- 동일 namespace 의 plugin 두 개를 같이 로드 (충돌 — `rokc` 가 거부)
+- 동일 namespace 의 plugin 두 개를 같이 로드 (충돌 — `rok` 가 거부)
 - 런타임 (실행 시점) 에 다이얼렉트 추가
 - plugin 의 cross-version 호환 (v1 → v2 자동 마이그레이션)
 

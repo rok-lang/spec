@@ -107,7 +107,7 @@ _Y3f8a1c2b_geom_compute_main_           (empty typehash)
 
 > no typehash: typehash 없습니다. empty typehash: 빈 typehash.
 
-자세한 표기 방식은 `rokc` 가 정해 주게 됩니다. 본 사양에서는 제네릭 인자가 없을 때 typehash 를 명확히 식별할 수 있는 형태일 것까지만 요구하고 있습니다.
+자세한 표기 방식은 `rok` 가 정해 주게 됩니다. 본 사양에서는 제네릭 인자가 없을 때 typehash 를 명확히 식별할 수 있는 형태일 것까지만 요구하고 있습니다.
 
 ## 9.5.3. 비교: Rust `_ZN`
 
@@ -130,13 +130,13 @@ Itanium 호환이라는 장점이 있지만, 읽기가 어렵고 길이 prefix �
 심볼을 사람이 읽기 좋게 풀어 보고 싶을 때는 다음 명령을 사용할 수 있습니다.
 
 ```
-rokc demangle <symbol>
+rok demangle <symbol>
 ```
 
 실행 결과는 다음과 같은 모습이 됩니다.
 
 ```
-$ rokc demangle _Y3f8a1c2b_std_vec_push_a7c91d8e44b2f190
+$ rok demangle _Y3f8a1c2b_std_vec_push_a7c91d8e44b2f190
 package:  3f8a1c2b
 path:     rok::std::vec
 name:     push
@@ -190,7 +190,7 @@ _Y + 8 + _ + path (수십) + _ + 이름 (수~수십) + _ + 16
 - 합 타입의 경우 항들을 순서 정규화한 뒤 결합합니다 ([합 타입 (`A | B`)](../002-types/206-sum-types.md) 의 집합 의미론을 따릅니다).
 - `struct` 는 필드 타입들로 구성됩니다 (필드 이름은 무관합니다).
 
-자세한 정규화 알고리듬은 `rokc` 가 결정해 주게 됩니다. 본 사양에서는 결정론적이어야 한다는 점까지만 정해 두고 있습니다.
+자세한 정규화 알고리듬은 `rok` 가 결정해 주게 됩니다. 본 사양에서는 결정론적이어야 한다는 점까지만 정해 두고 있습니다.
 
 ## 9.5.8. `extern` "C" 함수: 맹글링 미적용
 
@@ -222,7 +222,7 @@ WinMain       (Windows GUI)
 _start        (no-OS)
 ```
 
-플랫폼별 진입점은 rokc 가 생성한 wrapper 안에서 사용자가 정의한 main 함수를 호출해 주게 됩니다. wrapper 는 `rok_runtime_init` 과 타입 등록 함수 `rok.register_types` ([8.2.13](../008-abi/802-scan-table.md#8213-등록-시점)) 를 차례로 호출한 뒤 진입 함수를 호출하고, [4.16.4](../004-functions/416-entry-point.md#4164-종료-코드와-미처리-예외) 의 규칙으로 종료 코드를 정한 다음 `rok_runtime_shutdown` 을 거쳐 반환합니다.
+플랫폼별 진입점은 rok 가 생성한 wrapper 안에서 사용자가 정의한 main 함수를 호출해 주게 됩니다. wrapper 는 `rok_runtime_init` 과 타입 등록 함수 `rok.register_types` ([8.2.13](../008-abi/802-scan-table.md#8213-등록-시점)) 를 차례로 호출한 뒤 진입 함수를 호출하고, [4.16.4](../004-functions/416-entry-point.md#4164-종료-코드와-미처리-예외) 의 규칙으로 종료 코드를 정한 다음 `rok_runtime_shutdown` 을 거쳐 반환합니다.
 
 `main.rok` 가 top-level 문으로 이루어진 경우 ([4.16.2](../004-functions/416-entry-point.md#4162-top-level-문의-의미-암묵-main)), 컴파일러가 합성한 암묵 `main` 이 진입 함수가 됩니다. 암묵 `main` 은 일반 함수와 같은 규칙으로 맹글링되지만 사용자 코드에서 이름으로 참조할 수 없으며, wrapper 만이 이를 호출합니다.
 

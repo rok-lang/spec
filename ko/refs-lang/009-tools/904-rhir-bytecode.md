@@ -37,7 +37,7 @@ RHIR file:
 |    body_offset u32                |
 +-----------------------------------+
 |  Producer string                  |  (variable)
-|    "rokc 1.2.3 (abi-hash:abc...)" |
+|    "rok 1.2.3 (abi-hash:abc...)" |
 +-----------------------------------+
 |  String Section                   |  (identifier / string pool)
 +-----------------------------------+
@@ -76,7 +76,7 @@ RHIR file:
 varint(length) | utf8 bytes
 ```
 
-rokc 버전과 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 해시 등을 담아 디버그와 호환 검사에 사용하며, 사용자 친화적인 텍스트입니다.
+rok 버전과 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 해시 등을 담아 디버그와 호환 검사에 사용하며, 사용자 친화적인 텍스트입니다.
 
 ## 9.4.7. VarInt 인코딩
 
@@ -169,7 +169,7 @@ varint(추가 정보)
 재귀 호출 (자식 expr)
 ```
 
-자세한 expr 노드 종류는 `rokc` 가 정합니다.
+자세한 expr 노드 종류는 `rok` 가 정합니다.
 
 ## 9.4.12. Lazy load
 
@@ -191,7 +191,7 @@ RHIR 의 항목 메타 → 맹글링 이름 → archive 의 obj 안 심볼의 �
 
 ## 9.4.14. RHIR 검증 (디버그)
 
-`rokc rhir-text path/to/libfoo.a` 는 RHIR 을 사람이 읽을 수 있는 형식으로 출력합니다.
+`rok rhir-text path/to/libfoo.a` 는 RHIR 을 사람이 읽을 수 있는 형식으로 출력합니다.
 
 ```
 rhir 1.2.3

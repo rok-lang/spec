@@ -1,6 +1,6 @@
 # 9.2. AOT 빌드 파이프라인
 
-이 장에서는 `rokc build` 의 단계별 흐름을 정의합니다. [실행 엔진과 사용자 표면](../000-meta/001-execution-modes.md) 과 [컴파일 파이프라인](../000-meta/002-pipeline.md) 에서 제시한 큰 그림을 구체적인 명령과 파일 흐름으로 구체화하여 명시 표기합니다.
+이 장에서는 `rok build` 의 단계별 흐름을 정의합니다. [실행 엔진과 사용자 표면](../000-meta/001-execution-modes.md) 과 [컴파일 파이프라인](../000-meta/002-pipeline.md) 에서 제시한 큰 그림을 구체적인 명령과 파일 흐름으로 구체화하여 명시 표기합니다.
 
 ## 9.2.1. 단계
 
@@ -28,7 +28,7 @@
 
 ## 9.2.2. 패키지 발견
 
-`rokc build [path]` 의 path 부터 상위 방향으로 탐색하여 `main.rok` 또는 `lib.rok` 을 찾습니다. 만약 `[path]` 자체가 `lib.rok` 이거나 `main.rok` 이라면 그것이 곧 패키지가 되고, 그 외의 경우에는 (path 가 파일이면 그 디렉토리부터) 디렉토리를 위로 한 단계씩 올라가며 찾습니다.
+`rok build [path]` 의 path 부터 상위 방향으로 탐색하여 `main.rok` 또는 `lib.rok` 을 찾습니다. 만약 `[path]` 자체가 `lib.rok` 이거나 `main.rok` 이라면 그것이 곧 패키지가 되고, 그 외의 경우에는 (path 가 파일이면 그 디렉토리부터) 디렉토리를 위로 한 단계씩 올라가며 찾습니다.
 
 찾았다면 그 디렉토리가 패키지 루트가 됩니다 ([소스 단위](../000-meta/003-source-units.md) 참고). 그 밖의 경우는 다음과 같습니다.
 
@@ -42,13 +42,13 @@
 
 이 단계에서는 [경로](../005-modules/507-paths.md) 와 [`use`](../005-modules/505-use.md) 의 외부 패키지 참조 (`use external_pkg::...`) 를 처리합니다.
 
-의존성 명세 자체는 본 사양의 범위 밖이며, 패키지 매니저가 `rok.toml` 같은 메타 파일에서 의존성을 읽어 들여 `.a` 들의 위치를 결정하는 방식으로 다룹니다. 본 사양에서는 의존성 `.a` 파일이 명시적으로 지정된 경우의 처리만 다룹니다.
+의존성은 `rok` 의 패키지 매니저가 다룹니다 ([9.1.4](901-rok-cli.md#rok-add--rok-remove--rok-update-의존성)). 매니페스트의 의존성과 lockfile `rok.lock` 을 따라 path / git 의존 패키지를 가져와 빌드하고, 그 `.a` 들의 위치를 아래 저수준 옵션으로 넘깁니다.
 
 ```
-rokc build --extern foo=path/to/libfoo.a --extern bar=...
+rok build --extern foo=path/to/libfoo.a --extern bar=...
 ```
 
-옵션을 통해 각 의존 패키지의 .a 위치를 명시합니다. 이 자리는 패키지 매니저가 자동으로 채워 주게 될 부분입니다.
+옵션을 통해 각 의존 패키지의 .a 위치를 명시합니다. 보통은 패키지 매니저가 채우며, 다른 빌드 시스템이 직접 쓸 수도 있습니다. 아직 제공하지 않습니다.
 
 ## 9.2.4. 소스 파싱
 
@@ -109,9 +109,9 @@ target/foo.mlir
 
 [8. 런타임 ABI / MLIR lowering](../008-abi/README.md) 의 lowering 규칙에 따라 모든 rok 의미를 표준 다이얼렉트로 변환합니다.
 
-`rokc` 는 MLIR 라이브러리 바인딩 (C++, Rust 등) 을 쓰지 않습니다. MLIR 을 텍스트로 emit 한 뒤, 이어지는 단계에서 외부 도구 `mlir-opt`, `mlir-translate`, `clang` 을 프로세스로 호출합니다.
+`rok` 는 MLIR 라이브러리 바인딩 (C++, Rust 등) 을 쓰지 않습니다. MLIR 을 텍스트로 emit 한 뒤, 이어지는 단계에서 외부 도구 `mlir-opt`, `mlir-translate`, `clang` 을 프로세스로 호출합니다.
 
-여기까지가 `rokc` 의 책임 영역입니다.
+여기까지가 `rok` 의 책임 영역입니다.
 
 ## 9.2.11. mlir-opt 호출
 
@@ -181,7 +181,7 @@ target/
 | 라이브러리      | `target/lib<name>.a` 와 `target/<name>.o`                |
 | `--emit=<kind>` | `target/<name>.<ext>` (`hir` `mir` `mlir` `ll` `s` `o`) |
 
-`-o` 는 산출물 경로를, 환경 변수 `ROKC_TARGET_DIR` 은 `target/` 자체의 위치를 바꿉니다. `foo.hir.o` (RHIR, [9.4](904-rhir-bytecode.md)) 는 아직 만들지 않습니다.
+`-o` 는 산출물 경로를, 환경 변수 `ROK_TARGET_DIR` 은 `target/` 자체의 위치를 바꿉니다. `foo.hir.o` (RHIR, [9.4](904-rhir-bytecode.md)) 는 아직 만들지 않습니다.
 
 > debug 는 디버그를 의미하고, obj of concrete code 는 concrete 코드의 obj, obj containing RHIR bytecode 는 RHIR bytecode 가 담긴 obj 를 가리킵니다. package archive (for lib) 은 lib 인 경우의 패키지 archive 이고, executable (for main) 은 main 인 경우의 실행 파일입니다.
 
@@ -196,21 +196,21 @@ target/
 4. archive 만 재구성.
 ```
 
-이때 캐시 키는 파일 hash 에 `rokc` 버전 hash 와 의존 hash 를 더해 구성합니다.
+이때 캐시 키는 파일 hash 에 `rok` 버전 hash 와 의존 hash 를 더해 구성합니다.
 
-자세한 증분 알고리듬은 `rokc` 가 결정합니다.
+자세한 증분 알고리듬은 `rok` 가 결정합니다.
 
 ## 9.2.17. 컴파일러와 런타임의 분리
 
-이 파이프라인은 코드 의존성 0 원칙을 지킵니다. 즉 `rokc` 는 런타임 (`librokr.a`) 을 빌드 시점에 참조하지 않습니다.
+이 파이프라인은 코드 의존성 0 원칙을 지킵니다. 즉 `rok` 는 런타임 (`librokr.a`) 을 빌드 시점에 참조하지 않습니다.
 
 대신에 `extern "C"` 심볼 ([Extern "C" 심볼](../008-abi/805-extern-symbols.md)) 호출만을 emit 하고, 링크 시점에 가서 사용자 빌드가 `librokr.a` 를 함께 링크하는 방식으로 동작합니다.
 
-이렇게 분리해 둔 덕분에 `rokc` 와 `librokr.a` 가 서로 독립된 SemVer 로 진화할 수 있게 됩니다.
+이렇게 분리해 둔 덕분에 `rok` 와 `librokr.a` 가 서로 독립된 SemVer 로 진화할 수 있게 됩니다.
 
 ## 9.2.18. 외부 도구 의존
 
-`rokc build` 가 정상적으로 동작하려면 다음의 외부 도구들이 PATH 에 등록되어 있어야 합니다.
+`rok build` 가 정상적으로 동작하려면 다음의 외부 도구들이 PATH 에 등록되어 있어야 합니다.
 
 | 도구                       | 역할                 |
 |----------------------------|----------------------|
@@ -218,9 +218,9 @@ target/
 | `mlir-translate`           | MLIR → LLVM IR       |
 | `clang` 또는 `llc` + `lld` | LLVM IR → obj / 링킹 |
 
-`rokc` 는 이들 도구를 호출하기만 할 뿐이며, LLVM 라이브러리에 직접 link 하지는 않습니다 ([컴파일 파이프라인](../000-meta/002-pipeline.md) 참고).
+`rok` 는 이들 도구를 호출하기만 할 뿐이며, LLVM 라이브러리에 직접 link 하지는 않습니다 ([컴파일 파이프라인](../000-meta/002-pipeline.md) 참고).
 
-만약 도구가 설치되어 있지 않은 경우에는 `rokc build` 가 명확한 에러를 내놓습니다 (어떤 도구를 어디에서 받을 수 있는지 함께 안내합니다).
+만약 도구가 설치되어 있지 않은 경우에는 `rok build` 가 명확한 에러를 내놓습니다 (어떤 도구를 어디에서 받을 수 있는지 함께 안내합니다).
 
 ## 9.2.19. 설치 레이아웃
 
@@ -228,7 +228,9 @@ target/
 
 ```
 $ROK_HOME/
-├── bin/rokc
+├── bin/
+│   ├── rok                # toolchain (컴파일러, 패키지 매니저, REPL, LSP, fmt, lint)
+│   └── rokls              # = rok lsp
 └── lib/
     ├── librokr.a              # 런타임
     └── rok/
@@ -237,4 +239,4 @@ $ROK_HOME/
         └── bare/              # rok::bare
 ```
 
-`rokc` 는 런타임과 표준 라이브러리를 이 경로에서 찾습니다. `ROK_HOME` 이 설정되지 않으면 `rokc` 실행 파일이 있는 디렉토리의 상위 (`bin/` 의 `..`) 를 `ROK_HOME` 으로 봅니다. 저장소에서 직접 실행하는 개발 레이아웃은 위 경로에서 찾지 못했을 때의 fallback 으로 유지합니다.
+`rok` 는 런타임과 표준 라이브러리를 이 경로에서 찾습니다. `ROK_HOME` 이 설정되지 않으면 `rok` 실행 파일이 있는 디렉토리의 상위 (`bin/` 의 `..`) 를 `ROK_HOME` 으로 봅니다. 저장소에서 직접 실행하는 개발 레이아웃은 위 경로에서 찾지 못했을 때의 fallback 으로 유지합니다.

@@ -24,7 +24,7 @@ REPL 의 한 줄과 Jupyter 의 한 셀은 그 내용에 따라 처리 방식이
 ## 9.7.2. 실행 흐름: 자세히
 
 ```
-rokc receives input:
+rok receives input:
   ↓
 1. parse  →  AST
   ↓ (on parse error: show immediately, do not add cell)
@@ -48,7 +48,7 @@ rokc receives input:
 11. update last_value, print result
 ```
 
-> rokc receives input: rokc 입력 받음. on parse error: show immediately, do not add cell: parse error 면 즉시 표시, cell 추가하지 않습니다. on type error: show, do not add cell: type error 면 표시, cell 추가하지 않습니다. decide if new item / expr needs specialize: 새 항목 / 식에 specialize 가 필요한지 결정. standard MLIR text: 표준 MLIR 텍스트. in-process lowering via mlir_ee transformer hook: mlir_ee 의 transformer 훅으로 in-process lowering. on link error: rollback: link error 면 롤백. lookup symbol of top-level expr / function: top-level 식 / 함수의 심볼을 lookup. call that function: 그 함수 호출. result + type: 결과 + 타입. update last_value, print result: last_value 갱신, 결과 출력.
+> rok receives input: rok 입력 받음. on parse error: show immediately, do not add cell: parse error 면 즉시 표시, cell 추가하지 않습니다. on type error: show, do not add cell: type error 면 표시, cell 추가하지 않습니다. decide if new item / expr needs specialize: 새 항목 / 식에 specialize 가 필요한지 결정. standard MLIR text: 표준 MLIR 텍스트. in-process lowering via mlir_ee transformer hook: mlir_ee 의 transformer 훅으로 in-process lowering. on link error: rollback: link error 면 롤백. lookup symbol of top-level expr / function: top-level 식 / 함수의 심볼을 lookup. call that function: 그 함수 호출. result + type: 결과 + 타입. update last_value, print result: last_value 갱신, 결과 출력.
 
 각 단계는 transactional 하게 동작하며, 실패하면 직전 상태로 깨끗하게 롤백됩니다.
 
@@ -190,7 +190,7 @@ ORCv2 의 link 단계에서 실패 (alien 심볼 등):
 다음 중 어느 하나에라도 해당하면 캐시는 무효로 처리됩니다.
 
 - `pkg_hash` 변경 (소스 변경).
-- `rokc` 버전 변경.
+- `rok` 버전 변경.
 - `abi_version_hash` 변경.
 
 캐시 항목의 메타가 위 세 가지 hash 를 모두 담고 있으므로, mismatch 가 발생하면 자동으로 폐기됩니다.
@@ -200,7 +200,7 @@ ORCv2 의 link 단계에서 실패 (alien 심볼 등):
 ```
 ~/.cache/rok/
 ├── <pkg_hash_1>/
-│   ├── meta.json                 # rokc version, abi version, etc.
+│   ├── meta.json                 # rok version, abi version, etc.
 │   ├── <typehash_a>.o            # specialize result
 │   ├── <typehash_b>.o
 │   └── ...
@@ -209,9 +209,9 @@ ORCv2 의 link 단계에서 실패 (alien 심볼 등):
 └── ...
 ```
 
-> rokc version, abi version, etc.: rokc 버전, abi 버전 등. specialize result: specialize 결과.
+> rok version, abi version, etc.: rok 버전, abi 버전 등. specialize result: specialize 결과.
 
-`rokc clean --jit-cache` 명령이나 `rm -rf ~/.cache/rok/` 를 사용해 사용자가 수동으로 정리할 수 있습니다.
+`rok clean --jit-cache` 명령이나 `rm -rf ~/.cache/rok/` 를 사용해 사용자가 수동으로 정리할 수 있습니다.
 
 ## 9.7.7. 시각화 / 출력
 
