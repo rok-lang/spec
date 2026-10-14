@@ -327,7 +327,7 @@ llvm.store %2.0, %y_addr : f64
 
 ## 8.9.10. Write Barrier
 
-[배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md) 의 incremental-update 와 SATB 를 살펴보겠습니다.
+[배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md#742-write-barrier-incremental-update) 의 object-remembering barrier 입니다.
 
 ```rok
 *p.field = q;       // GC 객체에 GC 포인터 쓰기
@@ -336,34 +336,28 @@ llvm.store %2.0, %y_addr : f64
 이는 다음과 같은 MLIR 로 lower 됩니다.
 
 ```
-; 1. 일반 store
-%addr = llvm.getelementptr %p[0, 4] : ...
-llvm.store %q, %addr : !llvm.ptr
-
-; 2. write barrier 검사
+; 1. write barrier — 목적지 p 의 헤더만 검사 (store 앞이어도 됨)
 %hdr_flags = llvm.load %p[1] : i32
-%sticky = llvm.and %hdr_flags, %STICKY_BIT : i32
-%is_sticky = arith.cmpi "ne", %sticky, %0 : i32
+%unlogged = llvm.and %hdr_flags, %UNLOGGED_BIT : i32
+%need_log = arith.cmpi "ne", %unlogged, %0 : i32
+cf.cond_br %need_log, ^log, ^store
 
-cf.cond_br %is_sticky, ^check_q, ^cont
+^log:
+  func.call @rok_gc_wb_slow(%p) : (!llvm.ptr) -> ()   ; UNLOGGED 를 atomic 으로 지우고 remembered set 에
+  cf.br ^store
 
-^check_q:
-  %q_flags = llvm.load %q[1] : i32
-  %q_sticky = llvm.and %q_flags, %STICKY_BIT : i32
-  %q_is_young = arith.cmpi "eq", %q_sticky, %0 : i32
-  cf.cond_br %q_is_young, ^add_log, ^cont
-
-^add_log:
-  func.call @rok_gc_wb_slow(%p) : (!llvm.ptr) -> ()
-  cf.br ^cont
-
-^cont:
-  ; ...
+^store:
+  ; 2. 일반 store
+  %addr = llvm.getelementptr %p[0, 4] : ...
+  llvm.store %q, %addr : !llvm.ptr
 ```
 
-barrier 는 모든 GC 포인터 쓰기에 추가됩니다. fast path 의 비용은 분기 1 ~ 2 개에 load 1 개를 더한 정도이며, 비교적 가벼운 편입니다.
+- 저장하는 값 `q` 의 헤더는 읽지 않습니다. `q` 는 `any` 슬롯의 inline 정수나 `str` 의 내부 포인터일 수 있어 헤더로 읽으면 안전하지 않습니다.
+- fast path 는 load 하나와 분기 하나입니다.
+- `rok_gc_wb_slow` 는 safepoint 가 아닙니다. barrier 와 store 사이에 수집이 끼어들지 않습니다.
+- 방금 할당한 객체의 초기화, `static` 에의 store, raw `Ptr<T>` 메모리, 참조가 아닌 atomic 에는 barrier 를 넣지 않습니다.
 
-write barrier 의 세부 내용은 GC 구현에 따라 달라지며, Yuasa SATB 또는 Dijkstra-style 등 일부 변형도 가능합니다. 세대 수집이나 동시 수집을 하지 않는 수집기 (현재 구현) 에서 `rok_gc_wb_slow` 는 아무 일도 하지 않습니다.
+동시 수집을 하는 수집기는 Yuasa SATB 나 Dijkstra-style 같은 다른 barrier 를 쓸 수 있습니다. 어느 쪽이든 저장하는 값의 헤더를 읽지 않아야 합니다.
 
 ## 8.9.11. Safepoint poll
 

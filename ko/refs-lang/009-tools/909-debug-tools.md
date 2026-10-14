@@ -30,33 +30,23 @@ target/debug/build/foo.o
 
 ## 9.9.2. RHIR 검사
 
-> [!NOTE]
-> `rokc rhir-text` 는 아직 제공하지 않습니다 (RHIR, [9.4](904-rhir-bytecode.md) 미구현).
-
 ```
-rokc rhir-text path/to/libfoo.a
+rokc rhir-text path/to/foo.rhir      # 또는 libfoo.a — 옆의 foo.rhir 를 읽음
 ```
 
-위 명령은 [RHIR bytecode](904-rhir-bytecode.md) 를 사람이 읽을 수 있는 형식으로 출력해 줍니다.
+위 명령은 미리 빌드한 라이브러리의 [RHIR](904-rhir-bytecode.md) 을 사람이 읽을 수 있는 형식으로 출력해 줍니다. 버전, producer, meta 다음에 interface 파일마다 `--- <경로>` 와 그 텍스트 (구체 함수 본문이 `;` 로 잘린 소스) 가 이어집니다.
 
 ```
-rhir 1.2.3
-package: foo (hash: 3f8a1c2b)
-rokc version: 1.0.0
-abi version: ...
+rhir 1
+producer: rokc 0.1.0 (1f2a40-17f3a9c2e1b0c4d8)
+package: geom (hash: 3f8a1c2b)
+source: /home/me/geom
+gc types: 4096..4160
 
-types:
-  [0] i32
-  [1] f64
-  [2] struct Point { x: f64; y: f64; }
-  [3] fn (Point, Point) -> f64
-  ...
-
-items:
-  [0] pub fn distance: type [3]
-      generics: [T: Num]
-      body: at offset 1024
-  ...
+--- lib.rok
+pub struct Point { pub x: f64; pub y: f64; }
+pub fn distance(p1: Point, p2: Point) -> f64;
+pub fn id<T>(x: T) -> T { x }
 ```
 
 이 출력은 [RHIR](../000-meta/007-glossary.md#rhir-rok-hir-bytecode) 의 정확성과 호환성을 검증할 때 활용하면 됩니다.
@@ -250,6 +240,14 @@ ROK_GC_LOG=1 ./target/debug/my_binary
 
 이 옵션은 [GC](../000-meta/007-glossary.md#gc-garbage-collector) 사이클마다 pause time, mark count, sweep result 등을 stderr 에 출력합니다.
 
+현재 구현의 런타임은 다음 환경 변수도 읽습니다.
+
+| 변수              | 효과                                                                         |
+|-------------------|------------------------------------------------------------------------------|
+| `ROK_GC_GEN=0`    | 세대 수집 (sticky mark-bit, [7.3.3](../007-runtime/703-gc-algorithm.md#733-사이클-young-과-old-의-교차)) 을 끄고 매번 full 수집 |
+| `ROK_GC_STATS=1`  | 종료 시 수집 횟수 (minor / full) 와 pause 시간을 stderr 에 출력              |
+| `ROK_GC_STRESS=N` | 테스트용. 할당 N 번마다 수집 (그 8 번째마다 full)                            |
+
 ### heap dump
 
 OOM 상황에서는 heap dump 를 남길 수 있습니다.
@@ -350,23 +348,24 @@ rokls
 
 ## 9.9.14. 패키지 검사
 
-패키지 전체 정보를 한 번에 확인할 수 있습니다. 아직 제공하지 않습니다.
+미리 빌드한 라이브러리 패키지의 정보를 한 번에 확인할 수 있습니다.
 
 ```
-rokc inspect path/to/libfoo.a
+rokc inspect path/to/libfoo.a        # 또는 foo.rhir — 짝 파일을 함께 읽음
 ```
 
-이 명령은 [archive](../000-meta/007-glossary.md#archive) 의 전체 정보 (exports, [generic](../000-meta/007-glossary.md#generic--제네릭) items, 의존, 빌드 메타 등) 를 다음과 같이 표시합니다.
+이 명령은 RHIR ([9.4](904-rhir-bytecode.md)) 과 [archive](../000-meta/007-glossary.md#archive) 의 정보를 다음과 같이 표시합니다.
 
 ```
 Package: foo
 Hash: 3f8a1c2b
-rokc version: 1.0.0
-ABI version: ...
+rokc version: 0.1.0
+RHIR version: 1
+GC type ids: 4096..4160
 
 Exports:
-  pub fn distance: fn(Point, Point) -> f64
-  pub struct Point { ... }
+  pub fn distance(p1: Point, p2: Point) -> f64
+  pub struct Point
   ...
 
 Generic items (RHIR):
@@ -374,9 +373,10 @@ Generic items (RHIR):
   ...
 
 Concrete .o files:
-  foo.concrete.o (15 KB)
-  foo.concrete.o.1 (8 KB)
+  foo.o (15 KB)
 ```
+
+`rokc rhir-text <file>` 은 RHIR 의 버전, producer, meta 와 interface 파일 전체를 출력합니다 (9.9.2).
 
 이를 통해 패키지의 외부에 보이는 모습을 한눈에 파악할 수 있습니다.
 

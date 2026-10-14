@@ -83,34 +83,53 @@ slice_expr  := expr? ':' expr? (':' expr?)?
               | expr ',' expr ',' ...           // 콤마면 인덱싱
 ```
 
-기본 형태인 `[start : end]` 는 시작 (포함) 부터 끝 (미포함) 까지의 영역을 의미합니다. 여기에 단계를 더한 `[start : end : step]` 도 쓸 수 있는데, 음수 step 은 정방향 영역 `start:end` 를 뒤에서부터 걷습니다. `start` 를 생략하면 0, `end` 를 생략하면 길이, `step` 을 생략하면 1 입니다.
+기본 형태인 `[start : end]` 는 시작 (포함) 부터 끝 (미포함) 까지의 영역을 의미합니다. 여기에 단계를 더한 `[start : end : step]` 도 쓸 수 있습니다. 의미는 **Python 의 슬라이스와 같습니다**.
 
-부호 있는 정수 경계가 음수이면 인덱싱과 같이 끝에서부터 셉니다 (`len + i`). Python 과 달리 **잘라 맞추지 (clamp) 않습니다**. 조정한 뒤에도 범위를 벗어나거나 `start > end` 이면 panic 입니다.
+- 경계는 길이에 맞춰 잘라 맞춥니다 (clamp). 슬라이싱은 범위 때문에 panic 하지 않습니다. `xs[5:100]` 은 가능한 만큼, `start >= end` (양수 step) 이면 빈 결과입니다.
+- 부호 있는 정수 경계가 음수이면 끝에서부터 센 뒤 (`len + i`) 잘라 맞춥니다. `xs[-10:]` 은 전체, `xs[:-10]` 은 빈 결과입니다.
+- step 이 양수이면 생략한 `start` 는 0, 생략한 `end` 는 길이입니다. step 을 생략하면 1 입니다.
+- step 이 음수이면 경계를 Python 처럼 읽습니다. `start` 에서 시작해 `end` 바로 앞까지 거꾸로 걷습니다. 생략한 `start` 는 마지막 원소, 생략한 `end` 는 첫 원소 앞입니다.
+- step 이 0 이면 panic 입니다 (`slice step must not be zero`).
 
 ```rok
 let xs = [1, 2, 3, 4, 5];
 xs[-2:];               // [4, 5]
 xs[1:-1];              // [2, 3, 4]
+xs[5:100];             // [] — clamp
+xs[-10:];              // [1, 2, 3, 4, 5]
+xs[:-10];              // []
+xs[3:1];               // [] — start >= end
 xs[::-1];              // [5, 4, 3, 2, 1]
-xs[1:-1:-1];           // [4, 3, 2] — 정방향 영역 1:-1 을 거꾸로 (Python 의 xs[-2:0:-1])
-xs[-10:];              // panic — clamp 하지 않음
+xs[-1:0:-1];           // [5, 4, 3, 2]
+xs[3:1:-1];            // [4, 3] — 위치 3, 2
+xs[1:4:-2];            // []
+xs[::0];               // panic — step 0
 ```
 
-`str` / `StrBuf` 의 경계는 바이트 offset 이며, 음수 경계도 바이트 기준입니다. 조정한 위치가 문자 경계가 아니면 panic 입니다.
+단일 원소 인덱싱 (3.6.1) 은 다릅니다. 음수는 끝에서부터 세지만, 범위를 벗어나면 panic 입니다.
+
+`str` / `StrBuf` 의 경계는 바이트 offset 이며, 먼저 잘라 맞춘 뒤 그 위치가 UTF-8 문자 중간이면 panic 입니다. `str` 슬라이스에는 step 이 없습니다 (`s[::2]` 는 타입 에러).
 
 ### desugar
 
 슬라이싱은 범위와 `Sliceable` 트레잇 ([stdlib 2.3.4](../../refs-standard-libraries/200-core/203-ops.md#234-인덱싱-트레잇)) 호출로 desugar 됩니다.
 
 ```
-arr[a : b]            →   arr.slice(a..b)
-arr[a : b : k]        →   arr.slice(a..b).step(k)
-arr[: b]              →   arr.slice(0..b)
-arr[a :]              →   arr.slice(a..arr.len())      // arr 은 한 번만 평가
-arr[a..b] / arr[..]   →   arr.slice(a..b) / arr.slice(0..arr.len())
+arr[a : b]            →   arr.slice(a..b)                       // 부호 없는 경계, step 없음
+arr[a : b]            →   arr.slice(slice_bound(a, n)..slice_bound(b, n))   // 부호 있는 경계
+arr[a : b : k]        →   arr.slice(slice_range(a, b, k, n)).step(k)
+arr[: b] / arr[a :]   →   생략한 경계는 위의 기본값 (step 이 있으면 slice_range 의 none)
+arr[a..b] / arr[..]   →   arr.slice(a..b) / arr.slice(0..n)
 ```
 
-`arr` 은 한 번만 평가됩니다. 음수 경계는 `slice` 를 부르기 전에 `len + i` 로 바뀝니다. 범위가 길이를 벗어나거나 `start > end` 이면 panic 입니다. `step(0)` 도 panic 입니다.
+`n` 은 `arr.len()` 이며 `arr` 은 한 번만 평가됩니다. 모든 `Sliceable<Range<usize>>` 구현은 범위를 `clamp_range` 로 잘라 맞추므로 `arr.slice(9..2)` 를 직접 불러도 panic 하지 않습니다. 쓰이는 helper 는 `rok::core::index` 에 있습니다.
+
+| helper                                                         | 의미                                                               |
+|----------------------------------------------------------------|--------------------------------------------------------------------|
+| `clamp_range(r: Range<usize>, n: usize) -> Range<usize>`       | 끝을 `n` 으로, 시작을 끝으로 잘라 맞춤                              |
+| `slice_bound(i: isize, len: usize) -> usize`                   | 음수면 `len + i`, 0 아래는 0                                       |
+| `slice_range(start: isize \| none, stop: isize \| none, step: isize, len: usize) -> Range<usize>` | Python `slice.indices` 와 같은 정방향 범위. `.step(step)` 을 붙이면 `arr[start:stop:step]` |
+| `index_from_end(i: isize, len: usize) -> usize`                | 단일 인덱스용. 음수면 `len + i`, 넘치면 panic                      |
 
 ### 슬라이스 결과의 종류
 

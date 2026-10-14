@@ -56,6 +56,8 @@ bit  5  : IMMORTAL   (수집 안 함)
 bit  6 ~ 31 : 예약 / GC 구현 결정
 ```
 
+현재 구현은 bit 6 을 `UNLOGGED` 로 씁니다 (구현 예약 범위). 수집에서 살아남은 객체에 `STICKY` 와 함께 켜며, write barrier 가 그 객체를 remembered set 에 처음 기록할 때 지웁니다 ([7.4.2](../007-runtime/704-barriers-and-roots.md#742-write-barrier-incremental-update)).
+
 비트 검사와 설정은 atomic 연산이 필요한 경우 `u32` atomic 으로 수행됩니다 (mark / sweep 동시 수집 시).
 
 ### atomic 요구

@@ -372,13 +372,13 @@ impl<T> Slice<T> {
     fn get(self, i: usize) -> T | none;
     fn first(self) -> T | none;
     fn last(self) -> T | none;
-    fn step(self, k: isize) -> Slice<T>;     // k 번째마다, k < 0 이면 뒤에서부터. k == 0 은 panic
+    fn step(self, k: isize) -> Slice<T>;     // k 번째마다, k < 0 이면 끝에서부터. k == 0 은 panic
     fn iter(self) -> SliceIter<T>;
     fn to_list(self) -> List<T>;             // 새 List 할당
 }
 
 impl<T> Index<usize> for Slice<T> { ... }               // s[i] — 범위 밖이면 panic
-impl<T> Sliceable<Range<usize>> for Slice<T> { ... }    // s[a:b] — view 의 view
+impl<T> Sliceable<Range<usize>> for Slice<T> { ... }    // s[a:b] — view 의 view, 범위는 길이에 맞춰 잘라 맞춤
 impl<T> IntoIterator for Slice<T> { ... }
 impl<T: PartialEq> PartialEq for Slice<T> { ... }
 impl<T: Debug> Debug for Slice<T> { ... }

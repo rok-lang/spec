@@ -14,6 +14,7 @@
 | `toolchain`                                                       | toolchain (9.10.6)                      |
 | `build`, `check`, `run`, `test`, `emit`, `clean`                  | 의존성을 해소한 뒤 `rokc` 에 위임       |
 | `fmt`, `repl`, `lsp`, `demangle`                                  | 의존성을 해소한 뒤 `rokc` 에 위임       |
+| `jupyter`                                                         | 커널 실행 (`--connection-file`) 은 위임, `jupyter install [--user]` 은 kernelspec 설치 ([9.8.3](908-jupyter-integration.md#983-kernelspec-설치)) |
 | `bench`, `doc`, `lint`                                            | 의존성을 해소한 뒤 `rokc` 에 위임       |
 | `version`, `help`                                                 |                                         |
 | (없음)                                                            | `rok repl` 과 같음 — REPL 시작          |

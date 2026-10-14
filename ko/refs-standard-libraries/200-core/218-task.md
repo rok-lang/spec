@@ -59,9 +59,10 @@ struct Blocking<T> { /* 결과 슬롯 */ }
 impl<T> Future for Blocking<T> { type Output = T; ... }
 ```
 
-`spawn_blocking(f)` 는 `f` 를 executor 의 worker 가 아닌 별도 OS 스레드에서 실행하고, 그 결과로 끝나는 future 를 돌려줍니다. readiness 로 기다릴 수 없는 blocking syscall (일반 파일 I/O 등, [stdlib 3.1.4a](../300-std/301-fs.md#314a-비동기-파일-io-_async)) 을 task 안에서 기다릴 때 씁니다.
+`spawn_blocking(f)` 는 `f` 를 executor 의 worker 가 아닌 blocking pool 의 OS 스레드에서 실행하고, 그 결과로 끝나는 future 를 돌려줍니다. readiness 로 기다릴 수 없는 blocking syscall (일반 파일 I/O 등, [stdlib 3.1.4a](../300-std/301-fs.md#314a-비동기-파일-io-_async)) 을 task 안에서 기다릴 때 씁니다.
 
-- `f` 는 첫 poll 이 아니라 **호출하는 즉시** 시작합니다.
+- `f` 는 첫 poll 이 아니라 **호출하는 즉시** 시작합니다 (pool 이 가득 차면 먼저 큐에 들어감).
+- blocking pool 은 프로세스 전역 하나이며, 필요할 때 스레드를 늘리고 (상한 있음) 한동안 일이 없는 스레드는 끝냅니다. 작업은 들어온 순서 (FIFO) 로 처리합니다. 상한과 유지 시간은 구현이 정하며, 현재 구현은 스레드 512 개, 유휴 10 초 뒤 종료, 상한에 닿으면 작업을 큐에 쌓습니다.
 - `await` 하던 task 가 취소되어도 `f` 는 끝까지 실행되며, 결과만 버려집니다.
 
 ```rok

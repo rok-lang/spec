@@ -7,7 +7,7 @@
 - [9.1. `rokc` CLI 인터페이스](901-rokc-cli.md)
 - [9.2. AOT 빌드 파이프라인](902-aot-pipeline.md)
 - [9.3. 패키지 아카이브 (.a) 포맷](903-package-archive.md)
-- [9.4. RHIR bytecode 포맷](904-rhir-bytecode.md)
+- [9.4. RHIR 포맷](904-rhir-bytecode.md)
 - [9.5. 심볼 맹글링 스킴](905-symbol-mangling.md)
 - [9.6. JIT 엔진 (RokJitSession)](906-jit-engine.md)
 - [9.7. JIT 셀 실행 흐름과 상태 관리](907-jit-cells.md)
@@ -43,12 +43,12 @@ rokc  (compiler)
   │
   ├── interactive
   │   ├── rokc repl       : terminal REPL (each cell runs once)
-  │   └── rokc jupyter    : Jupyter kernel (JIT engine + ZMQ wire)      [planned]
+  │   └── rokc jupyter    : Jupyter kernel (REPL cell session + ZMQ)
   │
   ├── debug / diagnostic
   │   ├── rokc demangle   : symbol demangle
-  │   ├── rokc rhir-text  : RHIR bytecode text dump                     [planned]
-  │   └── rokc inspect    : package inspect                             [planned]
+  │   ├── rokc rhir-text  : RHIR interface text dump
+  │   └── rokc inspect    : package inspect
   │
   └── rokc version / help
 
@@ -56,7 +56,7 @@ rokls  (= rok lsp, for editors)
 librokr.a  (runtime, rokr)
 ```
 
-> front-end, cargo-like: cargo 식 front-end. resolve deps, then call rokc: 의존성을 해소한 뒤 rokc 를 호출. dep roots: 의존 패키지 루트. compiler: 컴파일러. build / run: 빌드 / 실행. tools: 도구. interactive: 인터랙티브. debug / diagnostic: 디버그 / 진단. AOT compile: AOT 컴파일. compile then run immediately: AOT 컴파일 후 즉시 실행. collect + run: 수집 + 실행. no native build: native 빌드 없이. remove build artifacts: 빌드 산출물 제거. formatter: 포매터. linter: 린터. API documentation: API 문서. LSP server: LSP 서버. terminal REPL: 터미널 REPL. each cell runs once: 각 셀을 한 번만 실행. Jupyter kernel: Jupyter 커널. symbol demangle: 심볼 demangle. RHIR bytecode text dump: RHIR bytecode 텍스트 출력. package inspect: 패키지 검사. for editors: 편집기용. runtime: 런타임. planned: 계획 — 아직 제공하지 않음.
+> front-end, cargo-like: cargo 식 front-end. resolve deps, then call rokc: 의존성을 해소한 뒤 rokc 를 호출. dep roots: 의존 패키지 루트. compiler: 컴파일러. build / run: 빌드 / 실행. tools: 도구. interactive: 인터랙티브. debug / diagnostic: 디버그 / 진단. AOT compile: AOT 컴파일. compile then run immediately: AOT 컴파일 후 즉시 실행. collect + run: 수집 + 실행. no native build: native 빌드 없이. remove build artifacts: 빌드 산출물 제거. formatter: 포매터. linter: 린터. API documentation: API 문서. LSP server: LSP 서버. terminal REPL: 터미널 REPL. each cell runs once: 각 셀을 한 번만 실행. Jupyter kernel: Jupyter 커널. REPL cell session: REPL 과 같은 셀 세션. symbol demangle: 심볼 demangle. RHIR interface text dump: RHIR 인터페이스 텍스트 출력. package inspect: 패키지 검사. for editors: 편집기용. runtime: 런타임. planned: 계획 — 아직 제공하지 않음.
 
 toolchain 은 컴파일러 `rokc` (rustc 에 해당), cargo 식 front-end `rok`, 편집기용 LSP 실행 파일 `rokls`, 런타임 `librokr.a` 로 이루어집니다. `rok` 는 매니페스트 `Rok.toml` / `Rok.lock`, 의존성, 환경, toolchain 고정을 맡고, 빌드와 도구 명령은 해소한 의존 패키지를 `--extern` 으로 붙여 `rokc` 에 위임합니다 ([9.10](910-rok-frontend.md)). 별도 도구 (`rok-fmt` 등) 는 두지 않습니다.
 
@@ -92,7 +92,7 @@ AOT direct exec      rokc build → run artifact
 
 ## 패키지 빌드 산출물
 
-[소스 단위](../000-meta/003-source-units.md) 의 패키지가 `libfoo.a` 한 개로 컴파일되고 있습니다.
+[소스 단위](../000-meta/003-source-units.md) 의 라이브러리 패키지는 `libfoo.a` 와 인터페이스 `foo.rhir` 로 컴파일됩니다.
 
 ```
 foo/
@@ -101,19 +101,20 @@ foo/
        v rokc build
 foo/target/debug/
 ├── libfoo.a                 <- artifact (static archive)
+├── foo.rhir                 <- interface (RHIR)
 ├── build/                   <- intermediates (foo.o, ...)
 └── ...
 ```
 
-> input: 입력. artifact (static archive): 산출물 (정적 archive). intermediates: 중간 산출물. profile 별 레이아웃은 [9.2.15](902-aot-pipeline.md#9215-산출물) 를 참조합니다.
+> input: 입력. artifact (static archive): 산출물 (정적 archive). interface (RHIR): 인터페이스 (RHIR). intermediates: 중간 산출물. profile 별 레이아웃은 [9.2.15](902-aot-pipeline.md#9215-산출물) 를 참조합니다.
 
 [archive](../000-meta/007-glossary.md#archive) 안의 구체적 형식은 [패키지 아카이브](903-package-archive.md) 에서 정의하고 있습니다.
 
 ## RHIR: 제네릭 함수의 휴대용 IR
 
-제네릭 함수는 호출 지점에서 [단형화](../000-meta/007-glossary.md#monomorphization-단형화) 해야 하므로 바이너리 코드만으로는 부족합니다. 따라서 직렬화된 IR 인 RHIR (rok [HIR](../000-meta/007-glossary.md#hir-high-level-ir--mir-mid-level-ir)) bytecode 를 archive 안에 함께 포함하고 있습니다.
+제네릭 함수는 호출 지점에서 [단형화](../000-meta/007-glossary.md#monomorphization-단형화) 해야 하므로 바이너리 코드만으로는 부족합니다. 따라서 라이브러리 옆에 인터페이스 파일 RHIR 을 둡니다. 현재 구현의 RHIR 은 구체 함수 본문을 잘라 낸 패키지 소스를 담습니다 (단형화가 AST 를 입력으로 쓰므로).
 
-자세한 형식은 [RHIR bytecode 포맷](904-rhir-bytecode.md) 에서 정의하고 있습니다.
+자세한 형식은 [RHIR 포맷](904-rhir-bytecode.md) 에서 정의하고 있습니다.
 
 ## 단일 의존성: `librokr.a`
 

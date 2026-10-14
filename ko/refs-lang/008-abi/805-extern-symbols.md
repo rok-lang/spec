@@ -127,7 +127,7 @@ extern "C" {
 }
 ```
 
-호출하면 즉시 GC 사이클이 시작됩니다. 동시 수집 방식이므로 호출자도 mutator 로서 계속 작동하게 됩니다.
+호출하면 즉시 full GC 사이클이 시작됩니다. 동시 수집 방식이면 호출자도 mutator 로서 계속 작동합니다 (현재 구현은 stop-the-world 이므로 수집이 끝난 뒤 돌아옵니다).
 
 ## 8.5.2. Runtime 영역
 
@@ -628,6 +628,9 @@ extern "C" {
 
     // 테스트
     fn rok_assert(cond: i32) -> i32;                       // 0 이면 "assertion failed" 출력 후 종료 코드 101
+
+    // GC
+    fn rok_gc_collect_young();                             // minor 수집을 강제 (세대 수집이 켜져 있을 때)
 }
 ```
 

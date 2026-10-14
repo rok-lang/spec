@@ -12,7 +12,7 @@ AOT 는 소스를 미리 컴파일하여 정적 산출물(`.a` 또는 실행 파
 
 ## archive
 
-archive 는 컴파일된 패키지의 산출물로서, 표준 ar 형식의 `.a` 파일입니다. rok 의 obj, RHIR bytecode, 메타가 하나의 archive 안에 함께 담깁니다.
+archive 는 컴파일된 패키지의 산출물로서, 표준 ar 형식의 `.a` 파일입니다. concrete 코드의 obj 를 담으며, 라이브러리의 인터페이스 (RHIR) 는 그 옆의 `<name>.rhir` 파일입니다.
 
 ## block (블록)
 
@@ -72,7 +72,7 @@ LOS 는 GC 의 큰 객체 전용 공간입니다. 임계(8 KB / 2 KB) 이상의 
 
 ## RHIR (rok HIR bytecode)
 
-RHIR 은 rok HIR 을 직렬화한 형식입니다. archive 의 `.rok.hir` 섹션에 포함되며, 다운스트림 패키지가 generic fn 을 specialize 할 수 있게 해 줍니다.
+RHIR 은 미리 빌드한 라이브러리 패키지의 인터페이스 파일 (`<name>.rhir`) 입니다. archive 옆에 놓이며, 다운스트림 패키지가 선언을 읽고 generic fn 을 specialize 할 수 있게 해 줍니다. 현재 구현의 body 는 HIR 이 아니라 구체 함수 본문을 잘라 낸 패키지 소스입니다 ([9.4](../009-tools/904-rhir-bytecode.md)).
 
 ## niche optimization
 

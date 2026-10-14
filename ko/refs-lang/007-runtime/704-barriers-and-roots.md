@@ -60,7 +60,7 @@ GC 는 mark 시에 모든 thread 의 체인 머리에서 출발해 frame 을 wal
 
 ### 초기 구현
 
-이 장의 GC 설계 (Immix, sticky mark-bit, 동시 수집) 는 목표 설계입니다. 현재 구현의 heap 은 객체를 옮기지 않는 Immix 식 mark-region 입니다 (32 KiB block, 128 B line, thread 별 TLAB bump 할당, [7.1.2](701-object-layout.md#712-메모리-공간)). evacuation 과 세대 수집 (sticky mark-bit) 은 구현의 선택 사항이며, 이를 쓰지 않는 수집기에서 write barrier 의 slow path 는 아무 일도 하지 않습니다. 단, 루트 (이 절의 shadow stack) 와 write barrier ([7.4.2](#742-write-barrier-incremental-update)) 는 이 사양의 계약대로 emit 해야 합니다. 그래야 컴파일러 산출물을 바꾸지 않고 수집기를 교체할 수 있습니다.
+이 장의 GC 설계 (Immix, sticky mark-bit, 동시 수집) 는 목표 설계입니다. 현재 구현의 heap 은 객체를 옮기지 않는 Immix 식 mark-region 이며 (32 KiB block, 128 B line, thread 별 TLAB bump 할당, [7.1.2](701-object-layout.md#712-메모리-공간)), sticky mark-bit 세대 수집 (7.4.2 의 object-remembering barrier) 을 기본으로 켭니다. 아직 없는 것은 evacuation (객체 이동), 동시 mark, card marking 입니다. card marking 이 없으므로 큰 old 버퍼에 한 번 쓰면 이후 minor 수집마다 그 객체 전체를 다시 훑습니다. 단, 루트 (이 절의 shadow stack) 와 write barrier ([7.4.2](#742-write-barrier-incremental-update)) 는 이 사양의 계약대로 emit 해야 합니다. 그래야 컴파일러 산출물을 바꾸지 않고 수집기를 교체할 수 있습니다.
 
 ### 에러 전파와의 공존
 
@@ -76,40 +76,39 @@ young GC 는 sticky 객체를 건너뜁니다. 그렇다면 sticky (old) 객체�
 
 이 문제를 해결하기 위한 장치가 바로 write barrier 입니다. old 가 young 을 가리키게 되는 순간을 GC 에 알리는 역할을 합니다.
 
-### Incremental-Update 방식
+### Object-remembering 방식
+
+barrier 는 **목적지 객체 `p` 의 헤더만** 검사합니다. 살아남은 (old) 객체에는 `STICKY` 와 함께 `UNLOGGED` 비트 ([8.1.3](../008-abi/801-object-header-abi.md#813-gc_flags-offset-4-u32)) 가 켜져 있으며, 처음 그 객체에 쓰는 순간 객체 전체를 remembered set 에 기록합니다.
 
 ```
-*p = q;                        // p (old) now points to q (young)
-                                // ↓ barrier
-if (p.sticky && !q.sticky) {
-    // p is sticky but q is young → log
-    remembered_set.add(p);
+*p = q;
+                                // ↓ barrier (store 앞이어도 됨)
+if (p.gc_flags & UNLOGGED) {
+    rok_gc_wb_slow(p);          // UNLOGGED 를 지우고 p 를 remembered set 에
 }
 ```
 
-> p (old) now points to q (young): p (old) 가 q (young) 를 가리키게 됨. p is sticky but q is young: p 가 sticky 인데 q 가 young.
+- 저장하는 값 `q` 의 헤더 (`q.sticky` 등) 는 **읽지 않습니다**. `q` 는 `any` 슬롯의 inline 정수이거나 `str` 의 내부 포인터일 수 있어, 객체 헤더로 읽으면 안전하지 않습니다.
+- barrier 는 store 앞에 두어도 됩니다.
+- slow path `rok_gc_wb_slow(obj)` 는 `UNLOGGED` 를 atomic `fetch_and` 로 지웁니다. 그래서 여러 스레드가 동시에 써도 한 스레드만 그 객체를 기록합니다. slow path 는 safepoint 가 아니어야 합니다 (그 안에서 수집이 시작되면 안 됨).
+- young GC 는 remembered set 의 객체를 root 로 보고, 그 객체가 가리키는 young 객체까지 mark 합니다. 수집이 끝나면 기록된 객체에 다시 `UNLOGGED` 를 켭니다.
 
-매 포인터 쓰기마다 위와 같은 검사가 인라인으로 들어가게 됩니다.
+barrier 가 필요 없는 store 는 다음과 같습니다.
 
-이 barrier 가 가져오는 효과는 다음과 같습니다. young GC 는 remembered_set 도 root 로 처리하게 되며, remembered_set 에 등록된 객체부터 mark 를 시작하면 그 객체가 가리키는 young 객체까지 함께 mark 됩니다.
+| store                          | 이유                                        |
+|--------------------------------|---------------------------------------------|
+| 방금 할당한 객체의 초기화      | 할당과 store 사이에 GC 가 없어 young 그대로 |
+| `static` 에 쓰기               | static 은 root                              |
+| raw `Ptr<T>` 메모리            | GC 가 추적하지 않음                         |
+| atomic (참조가 아닌 값)        | GC 참조가 아님                              |
 
-### Remembered Set: TLS 버퍼
+### Remembered Set
 
-remembered set 은 thread-local 버퍼에서 시작합니다. 각 thread 는 자기 log buffer 에 add 하는 방식으로 동작하고, 버퍼가 꽉 차면 flush 하여 전역 remembered set 으로 옮기는 식입니다. 이렇게 함으로써 thread 간 동기화 비용을 최소화할 수 있습니다.
+remembered set 은 thread-local 버퍼로 시작해 가득 차면 전역 set 으로 옮겨도 되고 (TLS 슬롯 `rok_tls_wb_log_*`), 처음부터 전역 set 하나를 두어도 됩니다. 현재 구현은 spin lock 으로 지키는 전역 log 하나를 두며, wb log TLS 슬롯은 null 로 남습니다.
 
-flush 의 동시성 안전성은 GC 의 lock-free 구조로 처리됩니다 (정확한 구현은 런타임이 결정합니다).
+### 인라인 비용
 
-### sticky 비트 검사의 인라인 비용
-
-위 barrier 는 모든 포인터 쓰기마다 추가 비용이 들어갑니다.
-
-```
-*p = q  →  store + branch + (may add to log)
-```
-
-이 추가 비용은 sticky 비트 인라인 체크 분기 1 개에 해당하며, 대부분의 경우 `false` 가 됩니다 (한쪽 분기는 거의 일어나지 않습니다).
-
-따라서 대부분의 쓰기는 barrier 를 그대로 통과하게 됩니다 (sticky 가 켜지지 않았거나 q 도 sticky 인 경우입니다). 명령어로 환산하면 5 ~ 6 개 정도의 수준입니다.
+fast path 는 `p` 헤더의 load 하나와 분기 하나이며, 대부분 `UNLOGGED` 가 꺼져 있어 (young 객체이거나 이미 기록됨) 그대로 통과합니다.
 
 ### 컴파일러의 emit
 
@@ -117,7 +116,7 @@ flush 의 동시성 안전성은 GC 의 lock-free 구조로 처리됩니다 (정
 
 ```
 extern "C" {
-    fn rok_gc_wb_slow(obj: Ptr<u8>);   // remembered set 에 add (slow path)
+    fn rok_gc_wb_slow(obj: Ptr<u8>);   // UNLOGGED 를 지우고 remembered set 에 add (slow path, safepoint 아님)
 }
 ```
 

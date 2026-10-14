@@ -8,7 +8,7 @@
 
 ```
 1. package discovery       (find package root)
-2. dependency resolve      (resolve deps to their .a)
+2. dependency resolve      (resolve deps to sources or prebuilt .rhir + .a)
 3. source parse            (.rok → AST)
 4. name / visibility       (resolve)
 5. type check              (type check)
@@ -45,16 +45,42 @@
 `rokc` 는 의존성을 스스로 해소하지 않습니다. front-end `rok` ([9.10](910-rok-frontend.md)) 가 `Rok.toml` / `Rok.lock` 을 따라 path / git 의존 패키지를 준비하고, 각 패키지의 루트를 `--extern` 으로 `rokc` 에 넘깁니다.
 
 ```
-rokc build --extern util=../util --extern parser=$ROK_HOME/cache/git/checkouts/<commit>/lib.rok
+rokc build --extern util=../util --extern parser=target/debug/deps/libparser.a
 ```
 
-`--extern name=<dir | lib.rok>` 는 의존 패키지의 `lib.rok` 를 같은 빌드에서 **소스로 함께 컴파일** 하고, 그 패키지를 최상위 경로 `name` 에 mount 합니다. `name` 은 `Rok.toml` 의 의존성 이름 (키) 입니다.
+`--extern name=<경로>` 는 의존 패키지 하나를 최상위 경로 `name` 에 mount 합니다. `name` 은 `Rok.toml` 의 의존성 이름 (키) 입니다. 경로는 두 형태입니다.
+
+| 경로                              | 의존 패키지                                                                  |
+|-----------------------------------|------------------------------------------------------------------------------|
+| `<dir>` / `<dir>/lib.rok`         | 소스. 그 `lib.rok` 를 같은 빌드에서 함께 컴파일                               |
+| `<name>.rhir` / `lib<name>.a`     | 미리 빌드한 패키지. 둘 중 하나를 주면 같은 디렉토리의 짝 파일을 찾음. RHIR ([9.4](904-rhir-bytecode.md)) 을 읽어 선언과 제네릭을 얻고 archive 를 링크 |
 
 - 사용자 코드는 `use name::..` 로 그 패키지의 항목을 씁니다.
 - 의존 패키지 안의 `pkg::` 는 그 의존 패키지 자신을 가리킵니다.
 - 의존 패키지는 별개의 패키지입니다. `pub` 항목만 바깥에서 쓸 수 있고, `pub(pkg)` / `pub(sub)` / 비공개 항목은 쓸 수 없습니다 ([5.7.14](../005-modules/507-paths.md#5714-패키지-사이-경로)).
 - 사용자 패키지의 모듈이 의존 패키지와 같은 이름이면 에러입니다.
-- 미리 빌드한 archive (`.a`) 를 넘기는 것은 아직 지원하지 않습니다 ("not supported yet" 에러). 그래서 의존 패키지는 빌드마다 함께 다시 컴파일됩니다.
+
+라이브러리 패키지를 `rokc build` 하면 `lib<name>.a` 와 `<name>.rhir` 를 함께 만듭니다. `--name <n>` 은 패키지 이름 (산출물 이름과 mount 이름) 을 정하며, 기본은 디렉토리 이름입니다.
+
+### `rok` 의 의존 패키지 캐시
+
+`rok build` / `run` / `test` / `bench` 는 의존 패키지를 의존 순서대로 **한 번씩** 미리 빌드해 `target/<profile>/deps/` 에 둡니다.
+
+```
+target/<profile>/deps/
+├── lib<name>.a
+├── <name>.rhir
+└── <name>.fp               # fingerprint
+```
+
+fingerprint 가 같으면 다시 빌드하지 않고 씁니다. fingerprint 에 들어가는 것은 다음입니다.
+
+- `rokc` 의 정체 (RHIR producer 와 같은 값)
+- 빌드 옵션: `--release` / `-O*`, `-g`, `--target`, `--cfg`, `--bootstrap`
+- 그 의존 패키지의 모든 `.rok` 파일과 `Rok.toml`
+- 그보다 먼저 빌드한 의존 패키지들의 fingerprint
+
+`check` / `lint` / `doc` / `lsp` / `repl`, 단일 파일 스크립트, 이름 있는 환경은 지금도 의존 패키지를 소스로 함께 컴파일합니다. 표준 라이브러리는 미리 빌드하지 않고 빌드마다 소스로 bootstrap 합니다.
 
 보통은 `rok` 가 `--extern` 을 채우며, 다른 빌드 시스템이 직접 쓸 수도 있습니다.
 
@@ -148,10 +174,10 @@ mlir-translate --mlir-to-llvmir target/debug/build/foo.opt.mlir > target/debug/b
 
 ```
 clang -O2 -c target/debug/build/foo.ll -o target/debug/build/foo.o
-ar rcs target/debug/libfoo.a target/debug/build/foo.o target/debug/build/foo.hir.o
+ar rcs target/debug/libfoo.a target/debug/build/foo.o
 ```
 
-여기서 `foo.hir.o` 는 [RHIR bytecode 포맷](904-rhir-bytecode.md) 의 [RHIR](../000-meta/007-glossary.md#rhir-rok-hir-bytecode) 섹션을 담고 있는 obj 입니다.
+라이브러리 패키지는 archive 옆에 인터페이스 파일 `foo.rhir` ([RHIR 포맷](904-rhir-bytecode.md)) 도 씁니다.
 
 ## 9.2.14. 링킹 (실행 파일의 경우)
 
@@ -176,9 +202,10 @@ target/
 ├── debug/                      # profile (기본)
 │   ├── foo                     # executable (for main)
 │   ├── libfoo.a                # package archive (for lib)
+│   ├── foo.rhir                # interface (for lib, 9.4)
 │   ├── foo.o                   # the archive's object (for lib)
 │   ├── build/                  # intermediates and --emit output (foo.mlir, ...)
-│   └── deps/                   # compiled dependencies (reserved)
+│   └── deps/                   # prebuilt dependencies (lib<dep>.a, <dep>.rhir, <dep>.fp)
 ├── release/                    # --release
 │   └── ...
 ├── aarch64-unknown-linux-gnu/  # cross build (--target=<triple>)
@@ -194,11 +221,11 @@ target/
 | 라이브러리      | `target/<profile>/lib<name>.a` 와 `target/<profile>/<name>.o`     |
 | `--emit=<kind>` | `target/<profile>/build/<name>.<ext>` (`hir` `mir` `mlir` `ll` `s` `o`) |
 | 중간 산출물     | `target/<profile>/build/`                                         |
-| 의존 패키지     | `target/<profile>/deps/` — 예약 (지금은 의존 패키지를 소스로 함께 컴파일, 9.2.3) |
+| 의존 패키지     | `target/<profile>/deps/` (`lib<dep>.a`, `<dep>.rhir`, `<dep>.fp`, 9.2.3) |
 | 교차 빌드       | `target/<triple>/<profile>/...` (위와 같은 구조)                  |
 | 문서            | `target/doc/` (계획)                                              |
 
-이름 `foo` 는 패키지 이름입니다 (9.2.2). `-o` 는 산출물 하나의 경로를, `--target-dir=<dir>` 와 환경 변수 `ROKC_TARGET_DIR` 은 `target/` 자체의 위치를 바꿉니다. `rokc clean` / `rok clean` 은 `target/` 전체를 지웁니다. `foo.hir.o` (RHIR, [9.4](904-rhir-bytecode.md)) 는 아직 만들지 않습니다.
+이름 `foo` 는 패키지 이름입니다 (9.2.2). `-o` 는 산출물 하나의 경로를, `--target-dir=<dir>` 와 환경 변수 `ROKC_TARGET_DIR` 은 `target/` 자체의 위치를 바꿉니다. `rokc clean` / `rok clean` 은 `target/` 전체를 지웁니다. 라이브러리의 RHIR 은 archive 옆의 `foo.rhir` 입니다 ([9.4](904-rhir-bytecode.md)).
 
 ## 9.2.16. 증분 빌드
 

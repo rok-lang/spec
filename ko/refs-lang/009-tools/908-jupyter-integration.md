@@ -4,29 +4,36 @@
 
 ## 9.8.1. 두 배포 형태
 
-먼저 첫 번째 형태인 로컬 네이티브 커널은 기본 형태에 해당합니다. 사용자 PC 의 Jupyter 가 별도 프로세스로 rokc 커널 바이너리를 실행하며, ZeroMQ 기반 Jupyter 5.5 wire protocol 로 통신합니다. 이 형태에서는 OS 자원, 즉 파일과 네트워크와 외부 프로세스를 모두 사용할 수 있습니다.
+먼저 첫 번째 형태인 로컬 네이티브 커널은 기본 형태에 해당합니다. 사용자 PC 의 Jupyter 가 별도 프로세스로 rok 커널을 실행하며, ZeroMQ 기반 Jupyter wire protocol 로 통신합니다. 커널은 `protocol_version` 을 `"5.3"` 으로 알립니다 (`jupyter_client` 가 기대하는 값, 5.3 이상의 클라이언트와 동작). 이 형태에서는 OS 자원, 즉 파일과 네트워크와 외부 프로세스를 모두 사용할 수 있습니다.
 
-두 번째 형태인 브라우저 WASM 커널은 부가 형태에 해당합니다. JupyterLite 구도를 따르며 모든 것이 브라우저 안에서 동작합니다. rokc 커널을 wasm32 으로 빌드해서 페이지에 로드하며, 통신은 브라우저 메시지 채널인 Web Worker 와 SharedArrayBuffer 를 사용합니다. 다만 OS 자원이 없기 때문에 file 과 net 사용에 제한이 따릅니다.
+두 번째 형태인 브라우저 WASM 커널은 부가 형태이며 아직 구현되지 않았습니다 (9.8.7).
 
-두 형태는 같은 RokJitSession 엔진 ([JIT 엔진 (RokJitSession)](906-jit-engine.md)) 위에 서로 다른 통신 계층을 추가하는 구조입니다.
+커널은 터미널 REPL 과 **같은 셀 세션** 위에서 동작하며 [9.7.0](907-jit-cells.md#970-셀-세션의-규칙) 의 규칙을 따릅니다. 각 셀은 한 번만 실행되고, 바인딩과 항목은 이후 셀로 이어지며, 실패한 셀은 바인딩에 흔적을 남기지 않습니다. [JIT 엔진 (RokJitSession)](906-jit-engine.md) 의 ORCv2 구조는 향후 설계입니다.
+
+### 노트북 셀과 REPL 셀
+
+노트북 셀 하나는 터미널 REPL 이 입력을 나누는 것과 같은 규칙으로 REPL 셀 여러 개로 나뉘어 차례로 실행됩니다. 결과로는 IPython 처럼 **마지막 값만** 표시합니다. 노트북 셀의 뒷부분이 실패하면, 앞부분 (앞선 REPL 셀) 의 효과는 그대로 남습니다.
 
 ## 9.8.2. 로컬 네이티브 커널: 동작
 
-로컬 네이티브 커널의 동작 흐름을 살펴보겠습니다. 먼저 사용자 PC 에서 jupyter notebook 또는 jupyter lab 을 실행합니다. 이어서 사용자가 새 노트북을 생성하면서 kernel 로 "rok" 를 선택하면, Jupyter 가 `rokc jupyter --connection-file <path>` 를 별도 프로세스로 실행합니다. 그러면 rokc 가 connection file 의 ZMQ port 정보를 읽고 5 개 소켓에 연결합니다. 이때부터 Jupyter 와 rokc 사이에서 Jupyter wire protocol 5.5 메시지가 교환됩니다. 사용자가 셀을 실행하면 execute_request 메시지가 전달되고, rokc 가 RokJitSession 으로 처리한 뒤 결과 메시지를 돌려보내게 됩니다.
+사용자가 노트북의 kernel 로 "rok" 를 고르면 Jupyter 가 kernelspec (9.8.3) 의 명령을 별도 프로세스로 실행합니다.
 
-### 5 개 ZMQ 소켓 채널
+```
+rokc jupyter --connection-file <path>       # --extern 등 rokc 옵션도 받음
+rok jupyter --connection-file <path>        # 의존성을 해소한 뒤 rokc jupyter 를 실행
+```
 
-다음 표는 Jupyter wire protocol 의 표준 5 채널을 정리한 것입니다.
+커널은 connection file 의 ZMQ port 와 key 를 읽고 소켓에 연결합니다. 전송은 `tcp` 만 지원하며 (`ipc` 없음), CURVE 암호화는 쓰지 않습니다. 메시지는 connection file 의 key 로 HMAC 서명합니다.
 
-| 채널        | 용도                                             |
-|-------------|--------------------------------------------------|
-| `shell`     | 실행 요청 (execute_request, complete_request 등) |
-| `iopub`     | 출력 broadcast (display_data, stream, error 등)  |
-| `stdin`     | 사용자 입력 요청 (input_request)                 |
-| `control`   | 제어 (interrupt, shutdown)                       |
-| `heartbeat` | 연결 유지                                        |
+### 소켓 채널
 
-각 메시지는 connection file 의 key 를 사용해 HMAC 서명을 통과하게 됩니다.
+| 채널        | 용도                                                       |
+|-------------|------------------------------------------------------------|
+| `shell`     | 요청 (execute, kernel_info, complete, is_complete 등)      |
+| `iopub`     | 출력과 상태 broadcast (status, stream, execute_result 등) |
+| `stdin`     | 쓰지 않음 — 입력 요청을 보내지 않음 (stdin 은 `/dev/null`) |
+| `control`   | interrupt, shutdown                                        |
+| `heartbeat` | 받은 것을 그대로 돌려보냄 (echo)                           |
 
 ### 메시지 형식
 
@@ -40,77 +47,61 @@
  b"{parent_header}",   # 부모 헤더 JSON
  b"{metadata}",        # 메타데이터 JSON
  b"{content}",         # 콘텐츠 JSON
- b"\xf0\x9f\x90\xb1"   # 추가 raw 데이터 buffer (선택)
 ]
 ```
 
-자세한 형식은 Jupyter wire protocol 5.5 표준 문서를 따르고 있습니다.
+자세한 형식은 Jupyter wire protocol 표준 문서를 따릅니다. 모든 요청은 iopub 의 `status: busy` 와 `status: idle` 로 감쌉니다.
 
-### `execute_request` 처리
+### 지원하는 메시지
 
-사용자가 셀을 실행할 때의 처리 흐름은 다음과 같습니다. 먼저 shell 소켓에 execute_request 가 도착하는데, 그 content 에는 `{ code: "...", silent: false, store_history: true, ... }` 형태의 정보가 담겨 있습니다. 이를 받은 rokc 는 RokJitSession 의 cell 처리 흐름 ([JIT 셀 실행 흐름과 상태 관리](907-jit-cells.md)) 을 시작합니다. cell 시작 시점에 iopub 으로 status: busy 메시지가 전달되고, 진행 중에 발생하는 print() 등의 출력은 iopub stream 메시지로 전송됩니다. 결과 식의 값은 iopub 의 execute_result 메시지로 전달되며, 셀이 완료되면 shell 에 execute_reply 응답이 돌아갑니다. 마지막으로 iopub 에 status: idle 메시지가 발신되어 처리가 마무리됩니다.
+| 요청                   | 응답                                                                                   |
+|------------------------|----------------------------------------------------------------------------------------|
+| `kernel_info_request`  | `language_info` 의 name `rok`, mimetype `text/x-rok`, file_extension `.rok`, `protocol_version` `"5.3"` |
+| `execute_request`      | 아래 "실행" 참조                                                                       |
+| `is_complete_request`  | REPL 의 이어 쓰기 규칙으로 `complete` / `incomplete` 판정                              |
+| `complete_request`     | 세션의 바인딩과 항목 이름만 후보로                                                     |
+| `inspect_request`      | 늘 `found: false`                                                                      |
+| `history_request`      | 빈 목록                                                                                |
+| `comm_info_request`    | 빈 목록                                                                                |
+| `shutdown_request`     | shell 이나 control 에서. 응답 후 종료                                                  |
+| `interrupt_request`    | control 에서 (9.8.4)                                                                   |
 
-### `display_data`: 풍부한 출력
+### 실행
 
-표준 라이브러리의 시각화나 표 출력은 `display_data` 메시지로 MIME 형식을 지정합니다.
+`execute_request` 를 받으면 다음을 보냅니다.
 
-```
-display_data:
-  content:
-    data:
-      "text/plain": "..."
-      "image/png": "..." (base64)
-      "application/vnd.rok.dataframe+json": "..."
-    metadata: { ... }
-```
+1. iopub `execute_input` (코드와 실행 번호).
+2. 셀이 **끝난 뒤** 그 출력: stdout / stderr 는 iopub `stream` 으로. 실행 중에 조금씩 보내지 않습니다.
+3. 값이 있으면 iopub `execute_result`: `text/plain` 에 REPL 과 같은 `타입: 값` (9.7.7).
+4. 실패하면 iopub `error`: `evalue` 는 stderr 의 첫 줄, `traceback` 은 stderr 의 줄들.
+5. shell `execute_reply` (`execution_count` 포함, 성공 / 실패 status).
 
-Jupyter 가 각 MIME 타입을 적절한 renderer 로 표시해 줍니다.
-
-### `kernel_info`
-
-Jupyter 가 시작될 때 kernel 정보를 묻는 `kernel_info_request` 가 들어오게 되는데, 이에 대해 rokc 는 다음과 같이 응답합니다.
-
-```
-{
-  "language": "rok",
-  "language_version": "1.0",
-  "implementation": "rokc",
-  "implementation_version": "1.0.0",
-  "protocol_version": "5.5",
-  "banner": "rok REPL ...",
-  "language_info": {
-    "name": "rok",
-    "file_extension": ".rok",
-    "mimetype": "text/x-rok",
-    ...
-  }
-}
-```
+출력 MIME 은 `text/plain` 하나입니다. 이미지나 표 같은 `display_data` 는 아직 없습니다.
 
 ## 9.8.3. kernelspec 설치
 
-Jupyter 는 kernelspec 디렉토리에 설치된 kernel 만 인식합니다. 따라서 `rokc jupyter --install-kernel` 을 실행하면 다음과 같은 구조가 만들어집니다.
+Jupyter 는 kernelspec 디렉토리에 설치된 kernel 만 인식합니다.
 
 ```
-~/.local/share/jupyter/kernels/rok/
-├── kernel.json
-└── (optional) logo-32x32.png, logo-64x64.png
+rokc jupyter --install-kernel [--user]
+rok [--env <name>] jupyter install [--user]
 ```
 
-> optional: 선택.
+kernelspec 은 다음 디렉토리 아래의 `kernels/rok/kernel.json` 입니다. `rok --env <name>` 으로 설치하면 `kernels/rok-<name>/` 이며, 표시 이름은 `rok (<name>)`, 실행 명령은 `rok --env <name> jupyter ...` 입니다.
 
-이때 `kernel.json` 의 내용은 다음과 같이 구성됩니다.
+1. `$JUPYTER_DATA_DIR` 이 있으면 그 디렉토리
+2. macOS 이면 `~/Library/Jupyter`
+3. 그 밖에는 `$XDG_DATA_HOME/jupyter`, 없으면 `~/.local/share/jupyter`
+
+`kernel.json` 의 내용은 다음과 같습니다. 설치할 때 `ROK_HOME` 이 설정되어 있었으면 `env` 에 함께 기록합니다.
 
 ```json
 {
-  "argv": [
-    "/path/to/rokc",
-    "jupyter",
-    "--connection-file",
-    "{connection_file}"
-  ],
+  "argv": ["/path/to/rokc", "jupyter", "--connection-file", "{connection_file}"],
   "display_name": "rok",
-  "language": "rok"
+  "language": "rok",
+  "interrupt_mode": "message",
+  "env": { "ROK_HOME": "/path/to/rok-home" }
 }
 ```
 
@@ -118,29 +109,26 @@ Jupyter 는 kernelspec 디렉토리에 설치된 kernel 만 인식합니다. 따
 
 ## 9.8.4. 인터럽트 / 종료
 
-### 인터럽트 (Ctrl+C)
+### 인터럽트
 
-`control` 소켓에 `interrupt_request` 가 도착하면, 먼저 진행 중인 cell 의 cooperative cancellation 을 시도합니다. 이어서 rok 의 task 들이 cancellation token 을 검사하게 됩니다. 협력하지 않는 task 는 강제 종료되며, 이 부분은 구현 결정 사항으로 남겨 두었습니다. 마지막으로 control 소켓에 interrupt_reply 응답을 돌려보냅니다.
+`interrupt_mode` 가 `"message"` 이므로 인터럽트는 control 소켓의 `interrupt_request` 로 옵니다. 실행 중인 셀을 끝내고, 세션은 그 셀 이전의 상태로 계속됩니다 (실패한 셀과 같음, [9.7.0](907-jit-cells.md#970-셀-세션의-규칙)). 아직 컴파일 중인 셀은 인터럽트할 수 없습니다.
 
 ### 종료 (kernel restart)
 
-`control` 소켓에 `shutdown_request` 가 도착할 경우의 처리 순서는 다음과 같습니다. 먼저 모든 진행 중 task 를 cancel 하고, 이어서 RokJitSession 을 정리합니다. 그다음 ORCv2 dylib 를 해제하고 마지막으로 프로세스를 종료하게 됩니다.
-
-restart 의 경우에는 Jupyter 가 자동으로 다시 띄워 줍니다.
+shell 이나 control 소켓의 `shutdown_request` 에 응답한 뒤 세션을 정리하고 프로세스를 종료합니다. restart 의 경우에는 Jupyter 가 자동으로 다시 띄워 줍니다.
 
 ## 9.8.5. 코드 자동 완성
 
-`shell` 의 `complete_request` 처리 흐름을 살펴보면 다음과 같습니다. 먼저 입력과 커서 위치를 받은 뒤, rokc 가 그 위치의 유효한 식별자 후보를 추론합니다. 그러고 나서 `{ matches: [...], cursor_start, cursor_end }` 형태의 complete_reply 를 응답으로 돌려보냅니다.
-
-자동 완성은 RokJitSession 의 hir_env 를 활용하고 있어서, 이미 정의된 변수와 가시 모듈의 항목, 키워드 등이 후보에 포함됩니다.
+`complete_request` 는 커서 앞의 식별자 조각을 세션의 바인딩과 항목 이름에 맞춰 `{ matches, cursor_start, cursor_end }` 로 응답합니다. 모듈 경로, 멤버, 키워드 완성은 아직 없습니다.
 
 ## 9.8.6. inspect_request: 도움말
 
-`shell` 의 `inspect_request` 는 Jupyter 에서 Shift+Tab 으로 호출됩니다. 처리 순서는 우선 커서 위치의 식별자 또는 식을 식별하고, 그 항목의 시그니처와 문서 주석, 예시를 추출한 뒤 inspect_reply 로 응답하는 흐름입니다.
-
-문서 주석은 [어휘 구조](../001-lexical/102-lexical-structure.md) 에서 정의한 `///` 와 `//!` 가 항목에 부착된 결과를 활용합니다.
+`inspect_request` (Shift+Tab) 는 아직 내용을 주지 않으며 늘 `found: false` 로 응답합니다. 시그니처와 문서 주석 ([어휘 구조](../001-lexical/102-lexical-structure.md) 의 `///` / `//!`) 을 보여 주는 것은 향후 설계입니다.
 
 ## 9.8.7. 브라우저 WASM 커널
+
+> [!NOTE]
+> 브라우저 WASM 커널은 아직 구현되지 않았습니다. 이 절은 설계입니다.
 
 JupyterLite 구도를 따르며 모든 것이 브라우저에서 동작합니다.
 
@@ -188,7 +176,7 @@ Web Worker (rokc as wasm)
 
 ## 9.8.8. REPL 과 Jupyter 의 코드 공유
 
-REPL 에서 작성한 코드는 그대로 Jupyter 셀로 옮길 수 있고, 반대 방향도 마찬가지로 가능합니다. 같은 RokJitSession 엔진과 같은 의미론을 따르고 있기 때문입니다.
+REPL 에서 작성한 코드는 그대로 Jupyter 셀로 옮길 수 있고, 반대 방향도 마찬가지로 가능합니다. 같은 셀 세션과 같은 의미론 ([9.7.0](907-jit-cells.md#970-셀-세션의-규칙)) 을 따르고 있기 때문입니다.
 
 ### 차이
 
@@ -197,7 +185,7 @@ REPL 에서 작성한 코드는 그대로 Jupyter 셀로 옮길 수 있고, 반�
 | 측면        | REPL          | Jupyter               |
 |-------------|---------------|-----------------------|
 | 입력        | 한 줄 / 한 식 | 한 셀 (여러 줄)       |
-| 출력        | text only     | text + 시각화         |
+| 출력        | text only     | text (`text/plain`)   |
 | undo        | 없음          | 셀 삭제               |
 | 상태 보존   | 종료 시 폐기  | 노트북 파일에 셀 보존 |
 | 디스크 캐시 | 옵션          | 옵션                  |

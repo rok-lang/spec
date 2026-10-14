@@ -106,7 +106,10 @@ Young → Young → Young → Young → ... → Old → Young → Young → ...
 
 대부분의 사이클은 young 으로 처리되며, 특정 조건에서만 old 가 일어나게 됩니다.
 
-trigger 조건은 다음과 같이 정리할 수 있습니다. 첫째, young GC 횟수 임계가 있는데, young 이 N 번 일어날 때마다 한 번씩 old 가 트리거됩니다. 둘째, heap 점유율로, old 공간이 차오르면 (즉 sticky 객체가 많아지면) old 가 트리거됩니다. 셋째, 수동 호출인데, 사용자나 시스템이 명시적으로 호출하는 경우입니다 (드물게 사용됩니다).
+trigger 조건은 구현이 정합니다. 현재 구현은 다음과 같습니다.
+
+- **minor (young)** 수집은 root 와 remembered set ([7.4.2](704-barriers-and-roots.md#742-write-barrier-incremental-update)) 에서만 mark 하고, old (sticky) 객체 안으로는 따라 들어가지 않습니다. sweep 은 지난 수집 이후 나눠 준 line 만 합니다.
+- **full (old)** 수집은 old 객체의 바이트가 `max(4 MiB, 직전 full 수집 뒤 live × 2)` 에 닿을 때, 또는 `rok_gc_collect` 를 명시적으로 부를 때 일어납니다. "minor N 번마다 full" 같은 규칙은 없습니다.
 
 ## 7.3.4. 객체 mark 의 절차
 

@@ -41,7 +41,7 @@ option          ::= "--" identifier ("=" value)?
 | 그 밖           | `version`, `help`                                     |
 
 > [!NOTE]
-> 아직 제공하지 않는 것은 `jupyter`, `rhir-text`, `inspect` 서브명령과 `--emit=expanded`, `--load-mlir-plugin`, `--extern` 의 `.a`, `repl --package` 입니다. 이 절의 해당 항목은 계획된 인터페이스입니다.
+> 아직 제공하지 않는 것은 `--emit=expanded`, `--load-mlir-plugin`, `repl --package` 입니다. 이 절의 해당 항목은 계획된 인터페이스입니다.
 
 ### 패키지 지정 (`path`)
 
@@ -67,13 +67,14 @@ option          ::= "--" identifier ("=" value)?
 rokc build [path]
 ```
 
-`[path]` 는 위의 패키지 지정 규칙을 따릅니다. 산출물은 [9.2.15](902-aot-pipeline.md#9215-산출물) 의 profile 별 `target/` 에 놓입니다. 실행 패키지는 `target/<profile>/<name>`, 라이브러리 패키지는 `target/<profile>/lib<name>.a` (와 `<name>.o`) 입니다. profile 은 `-O2` / `-O3` / `-Os` (`--release` 포함) 이면 `release`, 그 밖에는 `debug` 이며, `--target=<triple>` 이면 `target/<triple>/<profile>/` 입니다. `--target-dir=<dir>` 나 `ROKC_TARGET_DIR` 이 있으면 `target/` 대신 그 디렉토리를 씁니다.
+`[path]` 는 위의 패키지 지정 규칙을 따릅니다. 산출물은 [9.2.15](902-aot-pipeline.md#9215-산출물) 의 profile 별 `target/` 에 놓입니다. 실행 패키지는 `target/<profile>/<name>`, 라이브러리 패키지는 `target/<profile>/lib<name>.a` (와 `<name>.o`) 와 인터페이스 `target/<profile>/<name>.rhir` ([9.4](904-rhir-bytecode.md)) 입니다. profile 은 `-O2` / `-O3` / `-Os` (`--release` 포함) 이면 `release`, 그 밖에는 `debug` 이며, `--target=<triple>` 이면 `target/<triple>/<profile>/` 입니다. `--target-dir=<dir>` 나 `ROKC_TARGET_DIR` 이 있으면 `target/` 대신 그 디렉토리를 씁니다.
 
 옵션은 다음과 같습니다.
 
 - `--release` 는 최적화 빌드 (`-O2` 와 같음) 를 `release` profile 로 수행하며, 기본값은 `debug` profile 의 디버그 빌드 (`-O0`) 입니다.
 - `--target-dir=<dir>` 는 `target/` 의 위치를 바꿉니다 (`ROKC_TARGET_DIR` 과 같음).
-- `--extern <name>=<dir | lib.rok>` 는 의존 패키지 하나를 붙입니다. 그 패키지의 `lib.rok` 를 같은 빌드에서 소스로 컴파일해 최상위 경로 `name` 에 mount 합니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 여러 번 쓸 수 있고, 보통 `rok` 가 채웁니다. `name` 은 식별자여야 하며, 미리 빌드한 `.a` 는 아직 받지 않습니다.
+- `--extern <name>=<dir | lib.rok | <name>.rhir | lib<name>.a>` 는 의존 패키지 하나를 최상위 경로 `name` 에 mount 합니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 소스 (`dir` / `lib.rok`) 는 같은 빌드에서 함께 컴파일하고, 미리 빌드한 패키지 (`.rhir` / `.a`, 하나를 주면 옆의 짝을 찾음) 는 RHIR 을 읽고 archive 를 링크합니다. 여러 번 쓸 수 있고, 보통 `rok` 가 채웁니다. `name` 은 식별자여야 합니다.
+- `--name <n>` 은 라이브러리 패키지의 이름 (산출물 이름 `lib<n>.a` / `<n>.rhir` 과 RHIR 의 mount 이름) 을 정합니다. 기본은 디렉토리 이름입니다.
 - `-O0` / `-O1` / `-O2` / `-O3` / `-Os` 는 최적화 단계를 명시적으로 지정합니다.
 - `--target=<triple>` 은 타깃 플랫폼을 지정하며, [플랫폼 타깃](../000-meta/006-platform-targets.md) 의 13 개 Tier 1 중 하나를 사용합니다.
 - `-o` / `--out=<path>` 는 출력 위치를 지정합니다.
@@ -194,17 +195,18 @@ REPL 의 키바인드와 명령은 본 사양의 범위 바깥이며, 구현 측
 rokc jupyter [--connection-file <path>]
 ```
 
-이 명령은 Jupyter 가 호출하는 커널 모드이므로 사용자가 직접 실행하지는 않습니다. `--connection-file` 은 Jupyter 가 제공하는 ZMQ 연결 정보 파일의 경로를 받습니다. 자세한 통합 내용은 [Jupyter 통합](908-jupyter-integration.md) 에서 정의합니다.
+이 명령은 Jupyter 가 호출하는 커널 모드이므로 사용자가 직접 실행하지는 않습니다. `--connection-file` 은 Jupyter 가 제공하는 ZMQ 연결 정보 파일의 경로를 받으며, `--extern` 같은 빌드 옵션도 함께 받습니다. 커널은 REPL 과 같은 셀 세션 ([9.7.0](907-jit-cells.md#970-셀-세션의-규칙)) 위에서 동작합니다. 의존성을 해소해 실행하려면 `rok jupyter --connection-file <path>` ([9.10](910-rok-frontend.md)) 를 씁니다. 자세한 통합 내용은 [Jupyter 통합](908-jupyter-integration.md) 에서 정의합니다.
 
 #### 커널 등록
 
 커널 등록은 다음과 같이 수행합니다.
 
 ```
-rokc jupyter --install-kernel
+rokc jupyter --install-kernel [--user]
+rok [--env <name>] jupyter install [--user]
 ```
 
-이 명령은 Jupyter 의 kernelspec 을 등록해 주며, `~/.local/share/jupyter/kernels/rok/kernel.json` 을 생성합니다. 한 번만 실행하면 그 이후로는 Jupyter 가 자동으로 인식해 줍니다.
+이 명령은 Jupyter 의 kernelspec (`kernels/rok/kernel.json`, `--env` 이면 `kernels/rok-<name>/`) 을 Jupyter 데이터 디렉토리에 만듭니다 ([9.8.3](908-jupyter-integration.md#983-kernelspec-설치)). 한 번만 실행하면 그 이후로는 Jupyter 가 자동으로 인식해 줍니다.
 
 ### `rokc fmt`: 포매터
 
@@ -289,23 +291,23 @@ rokc demangle <symbol>...
 
 ### `rokc rhir-text`: [RHIR](../000-meta/007-glossary.md#rhir-rok-hir-bytecode) 텍스트 출력
 
-`rokc rhir-text` 는 archive 안에 들어 있는 RHIR bytecode 를 텍스트로 출력해 줍니다.
+`rokc rhir-text` 는 미리 빌드한 라이브러리의 RHIR 을 텍스트로 출력해 줍니다.
 
 ```
-rokc rhir-text path/to/libfoo.a
+rokc rhir-text path/to/foo.rhir      # 또는 libfoo.a — 옆의 foo.rhir 를 읽음
 ```
 
-[archive](../000-meta/007-glossary.md#archive) 안의 RHIR bytecode 를 텍스트로 출력해 주며, 자세한 포맷은 [RHIR bytecode 포맷](904-rhir-bytecode.md) 에 기술되어 있습니다.
+header 필드, producer, meta 와 interface 파일들을 출력하며, 포맷은 [RHIR 포맷](904-rhir-bytecode.md) 에 기술되어 있습니다.
 
 ### `rokc inspect`: 패키지 검사
 
 `rokc inspect` 는 archive 의 내용을 한눈에 살펴볼 수 있도록 해 줍니다.
 
 ```
-rokc inspect path/to/libfoo.a
+rokc inspect path/to/libfoo.a        # 또는 foo.rhir
 ```
 
-archive 의 exports, [generic](../000-meta/007-glossary.md#generic--제네릭) items, 의존, 빌드 메타 등을 한 번에 표시해 줍니다.
+패키지 이름과 해시, rokc 버전, RHIR 버전, GC type id 구간, exports, [generic](../000-meta/007-glossary.md#generic--제네릭) items, archive 멤버와 크기를 한 번에 표시해 줍니다 ([9.9.14](909-debug-tools.md#9914-패키지-검사)).
 
 ## 9.1.4. 보조 서브명령
 

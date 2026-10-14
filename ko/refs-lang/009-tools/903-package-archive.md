@@ -2,8 +2,14 @@
 
 이 장에서는 [AOT 빌드 파이프라인](902-aot-pipeline.md) 의 산출물인 `libfoo.a` 의 내부 구조를 정의합니다.
 
-> [!NOTE]
-> 현재 구현의 `libfoo.a` 는 concrete 코드의 `foo.o` 만 담습니다. RHIR 멤버 (`foo.hir.o`, [9.4](904-rhir-bytecode.md)), `rokc inspect`, 그리고 미리 빌드한 `.a` 를 의존 패키지로 쓰는 것 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)) 은 아직 구현되지 않았습니다. 의존 패키지는 소스로 함께 컴파일됩니다.
+라이브러리 패키지의 빌드 산출물은 두 파일입니다.
+
+| 파일          | 내용                                                                          |
+|---------------|-------------------------------------------------------------------------------|
+| `libfoo.a`    | concrete 코드의 object (`foo.o`) 를 담은 표준 `ar` archive                     |
+| `foo.rhir`    | 다운스트림이 단형화와 이름 해소에 쓰는 인터페이스 ([9.4](904-rhir-bytecode.md)) |
+
+RHIR 은 archive 의 멤버 (`foo.hir.o`) 가 아니라 **옆 파일** 입니다. 두 파일은 같은 디렉토리에 놓이며, `--extern foo=libfoo.a` 와 `--extern foo=foo.rhir` 는 서로 짝을 찾습니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 아래에서 `foo.hir.o` 와 `.rok.meta` 를 다루는 부분은 그 결정 전의 설계이며, 버전 / 해시 같은 메타는 지금 RHIR 의 header 와 meta 에 있습니다.
 
 ## 9.3.1. 표준 ar archive
 
@@ -11,11 +17,10 @@
 
 ```
 ar t libfoo.a
-foo.concrete.o
-foo.hir.o
-foo.concrete.o.1     (큰 패키지의 경우 추가 TU)
-...
+foo.o
 ```
+
+현재 구현은 패키지 하나를 object 하나 (`foo.o`) 로 만듭니다. 아래의 `foo.concrete.o` 는 그 object 를, TU 분할 (`foo.concrete.o.1` ..) 은 설계상의 선택지를 가리킵니다.
 
 ## 9.3.2. 두 종류의 .o 파일
 
@@ -43,7 +48,10 @@ foo.concrete.o.1     (큰 패키지의 경우 추가 TU)
 
 이 특별 섹션들은 링커가 표준 절차대로 처리하지만, 실제로는 rok 부팅 시점에 사용됩니다.
 
-### `foo.hir.o`: 제네릭 `fn` 의 [RHIR](../000-meta/007-glossary.md#rhir-rok-hir-bytecode) bytecode
+### `foo.hir.o`: 제네릭 `fn` 의 [RHIR](../000-meta/007-glossary.md#rhir-rok-hir-bytecode) bytecode (대체됨)
+
+> [!NOTE]
+> 현재 RHIR 은 archive 멤버가 아니라 옆 파일 `foo.rhir` 입니다 ([9.4](904-rhir-bytecode.md)). 이 절은 이전 설계입니다.
 
 이 파일은 [AOT 빌드 파이프라인](902-aot-pipeline.md) 의 단계 6 ~ 7 결과 중 [generic](../000-meta/007-glossary.md#generic--제네릭) 함수의 [HIR](../000-meta/007-glossary.md#hir-high-level-ir--mir-mid-level-ir) 을 직렬화한 결과입니다.
 
@@ -127,7 +135,7 @@ rokc build → read .rok.meta of each dep .a
 
 > read .rok.meta of each dep .a: 각 의존 .a 의 .rok.meta 읽음. compare: 비교. mismatch → error: 불일치면 에러.
 
-이러한 검사 덕분에 Swift binary swiftmodule 이 버전 간 불안정했던 전철을 피할 수 있습니다. 명확한 에러 메시지를 통해 사용자에게 무엇을 다시 빌드해야 하는지 안내합니다.
+현재 구현에서 이 검사는 RHIR 의 `version` 과 producer (그 RHIR 을 만든 `rokc`) 비교로 이루어집니다 ([9.4.9](904-rhir-bytecode.md#949-읽기와-거부)). 이러한 검사 덕분에 Swift binary swiftmodule 이 버전 간 불안정했던 전철을 피할 수 있습니다. 명확한 에러 메시지를 통해 사용자에게 무엇을 다시 빌드해야 하는지 안내합니다.
 
 ## 9.3.7. 심볼 노출
 
@@ -144,7 +152,7 @@ nm libfoo.a
 
 ## 9.3.8. 표준 라이브러리 archive
 
-`librok_bare.a`, `librok_core.a`, `librok_std.a` 도 모두 같은 형식을 따르고 있습니다. 표준 라이브러리 또한 일반 패키지와 다를 바 없는 archive 로 제공됩니다.
+`librok_bare.a`, `librok_core.a`, `librok_std.a` 도 모두 같은 형식을 따르도록 설계되어 있습니다. 다만 현재 구현은 표준 라이브러리를 미리 빌드하지 않고, 빌드마다 소스로 bootstrap 합니다.
 
 ## 9.3.9. archive 의 압축 / 최소화
 
@@ -156,7 +164,7 @@ nm libfoo.a
 
 ```
 ar t libfoo.a            # 내용 목록
-ar x libfoo.a foo.hir.o   # 추출
+ar x libfoo.a foo.o       # 추출
 nm libfoo.a              # 심볼 목록
 objdump -h libfoo.a       # 섹션 정보
 ```

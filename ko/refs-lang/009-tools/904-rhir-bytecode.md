@@ -1,89 +1,61 @@
-# 9.4. RHIR bytecode 포맷
+# 9.4. RHIR 포맷
 
-[패키지 아카이브](903-package-archive.md) 의 `.rok.hir` 섹션에 들어가는, 제네릭 함수의 rok-hir 직렬화 형식인 [RHIR](../000-meta/007-glossary.md#rhir-rok-hir-bytecode) bytecode 를 정의합니다.
-
-> [!NOTE]
-> RHIR 은 아직 구현되지 않았습니다 (`.a` 에 `foo.hir.o` 를 넣지 않고, `rokc rhir-text` / `rokc inspect` 와 미리 빌드한 `.a` 의존도 아직 없음). 현재 구현은 제네릭을 HIR 이 아니라 AST 에서 단형화하므로, RHIR 을 만든다면 body section 에는 HIR 이 아니라 단형화의 입력 (AST) 을 담게 됩니다. 이 장의 형식은 그 결정 전의 설계입니다.
+미리 빌드한 라이브러리 패키지의 인터페이스 파일 `<name>.rhir` 를 정의합니다. [RHIR](../000-meta/007-glossary.md#rhir-rok-hir-bytecode) 파일은 그 패키지의 `lib<name>.a` ([패키지 아카이브](903-package-archive.md)) 옆에 놓이며, archive 의 멤버가 아닙니다.
 
 ## 9.4.1. 동기
 
-[AOT 빌드 파이프라인](902-aot-pipeline.md) 의 단형화는 호출 지점의 구체 타입을 기준으로 [specialize](../000-meta/007-glossary.md#specialize) 합니다. 따라서 다른 패키지가 한 패키지의 [generic](../000-meta/007-glossary.md#generic--제네릭) `fn` 을 호출하면 그 호출 지점에서 specialize 가 일어나야 합니다.
+[AOT 빌드 파이프라인](902-aot-pipeline.md) 의 단형화는 호출 지점의 구체 타입을 기준으로 [specialize](../000-meta/007-glossary.md#specialize) 합니다. 따라서 다른 패키지가 한 패키지의 [generic](../000-meta/007-glossary.md#generic--제네릭) `fn` 을 호출하면 그 호출 지점에서 specialize 가 일어나야 합니다. [concrete fn](../000-meta/007-glossary.md#concrete-fn--generic-fn) 의 obj 만으로는 부족하므로, 다운스트림이 읽을 인터페이스를 따로 둡니다.
 
-이때 호출되는 패키지의 generic `fn` 에 대한 [HIR](../000-meta/007-glossary.md#hir-high-level-ir--mir-mid-level-ir) 이 필요한데, [concrete fn](../000-meta/007-glossary.md#concrete-fn--generic-fn) 의 obj 만으로는 부족합니다.
-
-해결책은 [archive](../000-meta/007-glossary.md#archive) 안에 generic `fn` 의 HIR 을 직렬화해 함께 담는 것이고, 다운스트림은 이를 읽어 specialize 합니다.
+현재 구현은 제네릭을 AST 에서 단형화합니다. 그래서 RHIR 의 body 는 HIR 트리가 아니라 **단형화의 입력, 곧 잘라 낸 패키지 소스** 이며, 다운스트림의 파서가 그 리더 역할을 합니다.
 
 ## 9.4.2. 외부 라이브러리 미사용
 
-의존성 0 원칙에 따라 직렬화 라이브러리도 사용하지 않으며, RHIR 은 직접 설계합니다. 수백 줄 수준의 단순한 형식만으로도 충분합니다.
+의존성 0 원칙에 따라 직렬화 라이브러리도 사용하지 않으며, RHIR 은 직접 설계합니다.
 
-## 9.4.3. 형식 영감
-
-MLIR bytecode 포맷의 구조를 차용합니다.
-
-- magic + version: 버전 호환 검사.
-- string section: 식별자 중복 제거.
-- type section: 타입 표 (구조적 공유).
-- item section: `fn` / `struct` / `enum` 등의 메타.
-- body section: 각 `fn` body 의 expr tree (lazy load 가능).
-- VarInt 인코딩: LEB128 변형 (PrefixVarInt).
-
-## 9.4.4. 전체 레이아웃
+## 9.4.3. 전체 레이아웃
 
 ```
-RHIR file:
+RHIR file (little-endian):
 +-----------------------------------+
 |  Header                           |  (16 bytes fixed)
 |    magic       "RHIR"  (4 bytes)  |
-|    version     u32                |
+|    version     u32  (= 1)         |
 |    flags       u32                |
 |    body_offset u32                |
 +-----------------------------------+
-|  Producer string                  |  (variable)
-|    "rokc 1.2.3 (abi-hash:abc...)" |
+|  Producer string        str       |  "rokc <version> (<compiler id>)"
 +-----------------------------------+
-|  String Section                   |  (identifier / string pool)
+|  Meta                             |
+|    name                 str       |  mount name (--extern <name>=)
+|    hash                 str       |  package hash (0.3.3)
+|    source dir           str       |
+|    gc type offset       varint    |
+|    gc type count        varint    |
 +-----------------------------------+
-|  Type Section                     |  (type table)
-+-----------------------------------+
-|  Item Section                     |  (fn / struct / enum metadata)
-+-----------------------------------+
-|  Body Section                     |  (HIR expr tree of each fn)
+|  Body (at body_offset)            |
+|    file count           varint    |
+|    file × n: path str, text str   |
 +-----------------------------------+
 ```
 
-> 16 bytes fixed: 16 바이트 고정. variable: 가변. identifier / string pool: 식별자 / 문자열 풀. type table: 타입 표. metadata: 메타. HIR expr tree of each fn: 각 fn 의 HIR expr tree.
+> little-endian: 리틀 엔디언. 16 bytes fixed: 16 바이트 고정. mount name: 마운트 이름. package hash: 패키지 해시. source dir: 소스 디렉토리.
 
-## 9.4.5. Header
+`str` 은 PrefixVarInt 길이 (9.4.5) 뒤의 UTF-8 바이트입니다. string / type / item section 은 두지 않습니다.
 
-```
-+--------+---------+---------+
-| offset |  size   | field   |
-+--------+---------+---------+
-|   0    |    4    | magic   |     "RHIR"
-|   4    |    4    | version |     u32 - format version
-|   8    |    4    | flags   |     u32 - option flags
-|  12    |    4    | body_offset | u32 - start offset of body section
-+--------+---------+---------+
-```
+## 9.4.4. Header 와 Producer
 
-> format version: 포맷 버전. option flags: 옵션 플래그. start offset of body section: body section 의 시작 offset.
+| 필드          | 크기 | 의미                                                         |
+|---------------|------|--------------------------------------------------------------|
+| `magic`       | 4    | `"RHIR"`                                                     |
+| `version`     | u32  | 포맷 버전. 현재 `1`. 레이아웃이나 body 의 내용이 바뀌면 올림 |
+| `flags`       | u32  | 예약 (0)                                                     |
+| `body_offset` | u32  | body 의 시작 offset                                          |
 
-`magic` 으로 파일이 RHIR 인지 빠르게 확인하며, 잘못된 파일은 즉시 reject 합니다.
+producer 문자열은 `rokc <버전> (<compiler id>)` 입니다. compiler id 는 그 `rokc` 실행 파일을 가리키는 값이며, 현재 구현은 실행 파일의 크기와 수정 시각 (`<size>-<mtime>`, 16 진수) 을 씁니다.
 
-`body_offset` 은 lazy load 를 위해 body 의 위치를 직접 가리키므로, 메타만 읽고 body 는 필요할 때 로드합니다.
+## 9.4.5. VarInt 인코딩
 
-## 9.4.6. Producer String
-
-```
-varint(length) | utf8 bytes
-```
-
-rokc 버전과 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 해시 등을 담아 디버그와 호환 검사에 사용하며, 사용자 친화적인 텍스트입니다.
-
-## 9.4.7. VarInt 인코딩
-
-MLIR bytecode 와 같은 PrefixVarInt 이며 LEB128 의 변형입니다.
+MLIR bytecode 와 같은 PrefixVarInt 이며 LEB128 의 변형입니다. 첫 바이트의 앞쪽 1 비트 개수가 뒤따르는 바이트 수이고, 값은 나머지 비트에 big-endian 으로 놓입니다.
 
 ```
 1-byte int  : 0xxxxxxx                    (0 ~ 127)
@@ -92,139 +64,49 @@ MLIR bytecode 와 같은 PrefixVarInt 이며 LEB128 의 변형입니다.
 ...
 ```
 
-작은 정수는 1 바이트로, 큰 정수는 더 많은 바이트로 인코딩합니다.
+## 9.4.6. Meta
 
-대부분의 정수 (offset, count, index) 는 값이 작아 평균 1 ~ 2 바이트로 인코딩됩니다.
+| 필드             | 의미                                                                              |
+|------------------|-----------------------------------------------------------------------------------|
+| name             | 패키지의 mount 이름. 심볼에 들어가므로 `--extern <name>=` 과 같아야 함            |
+| hash             | 패키지 해시 ([0.3.3](../000-meta/003-source-units.md#033-패키지-식별자)). 심볼 맹글링에 쓰인 값 |
+| source dir       | 빌드 때 패키지 소스가 있던 디렉토리. body 의 파일 경로의 기준이며, 다운스트림은 디스크가 아니라 body 를 읽음 |
+| gc type offset / count | 이 패키지의 GC type id 구간 `[offset, offset + count)` (9.4.8)              |
 
-## 9.4.8. String Section
+## 9.4.7. Body
 
-식별자와 문자열의 공유 풀입니다.
+body 는 패키지의 **모든 소스 파일** 을 (경로, 텍스트) 쌍으로 담습니다. 각 파일은 다음과 같이 잘려 있습니다.
 
-```
-varint(num_strings)
-for each string:
-    varint(length)
-    utf8 bytes
-```
+- 구체 (concrete) 함수의 본문은 `;` 로 잘라 냅니다. 줄바꿈은 남기므로 진단의 줄 번호가 원본과 같습니다. 이 함수들은 archive 의 심볼로 링크됩니다.
+- 다운스트림이 단형화하거나 inline 해야 하는 본문은 남깁니다: 제네릭 함수, `async` / `yield` 함수, `#[inline]` 함수, `extern "C"` 정의, 트레잇의 기본 메서드, 제네릭 `impl` 의 메서드.
+- 시그니처, 타입, 트레잇, `impl`, `use` 같은 선언은 그대로 둡니다.
 
-다른 섹션은 index 로 참조하며, 같은 식별자가 여러 번 등장해도 한 번만 저장합니다.
+## 9.4.8. 분리 컴파일을 위한 규칙
 
-## 9.4.9. Type Section
+라이브러리를 미리 빌드하면 프로그램 전체를 한 번에 보지 못하므로, 다음 규칙으로 패키지 사이를 맞춥니다.
 
-타입 표입니다.
+- **`any` tag.** `any` 슬롯의 tag 는 타입 이름의 31 비트 해시입니다. 그래서 따로 빌드한 패키지가 같은 타입에 같은 tag 를 씁니다.
+- **`any` seed.** 라이브러리가 `any` 에 넣는 타입을 프로그램이 알도록, 라이브러리는 그 타입들을 쓰는 작은 rok 함수를 body 끝에 덧붙입니다. 프로그램의 닫힌 세계 `any` dispatcher 가 이 타입들도 포함하게 됩니다.
+- **dispatcher 심볼.** `any` dispatcher 는 `rok.any.<hash>` 심볼이며, 라이브러리 안에서는 weak, 프로그램에서는 strong 으로 정의됩니다. 링크하면 프로그램의 것이 이깁니다.
+- **GC type id.** 패키지마다 GC type id 구간 (9.4.6) 을 따로 가집니다. 한 프로그램에서 두 패키지의 구간이 겹치면 에러입니다.
+- **메서드 심볼.** 의존 패키지의 메서드는 안정된 경로 `<모듈>::<타입>.<메서드>[__by_<트레잇>]` 으로 맹글링됩니다 ([9.5](905-symbol-mangling.md)).
 
-```
-varint(num_types)
-for each type:
-    type_kind (1 byte)         // primitive / struct / enum / sum / fn / ...
-    추가 필드 (kind 별)
-```
+## 9.4.9. 읽기와 거부
 
-타입은 재귀적 구조이며, 다른 타입을 `index` 로 참조합니다.
+`--extern name=<name>.rhir` 나 `--extern name=lib<name>.a` 는 서로 옆의 짝 파일을 찾습니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 다운스트림은 body 를 소스 overlay 로 파싱해 선언을 얻고, 잘린 함수는 미리 빌드된 심볼로 선언하며, 제네릭은 그 자리에서 단형화한 뒤 archive 를 링크합니다.
 
-| kind | 의미          | 추가 필드                                   |
-|------|---------------|---------------------------------------------|
-| 0    | primitive     | `prim_id` (i8 ~ f64 등)                     |
-| 1    | `struct`      | item_index, generic_args...                 |
-| 2    | `enum`        | item_index, generic_args...                 |
-| 3    | sum (`A \| B`) | element_count, element_indices...           |
-| 4    | tuple         | element_count, element_indices...           |
-| 5    | array         | element_index, length                       |
-| 6    | `fn`          | param_count, param_indices..., return_index |
-| 7    | `any`         | (없음)                                      |
-| 8    | generic_param | param_id                                    |
-| ...  | ...           | ...                                         |
+다음이 하나라도 다르면 RHIR 을 거부하고 "다시 빌드하라 (rebuild)" 는 에러를 냅니다.
 
-## 9.4.10. Item Section
+- `version`
+- producer (다른 `rokc` 가 만든 RHIR)
+- name (`--extern` 이름과 RHIR 의 mount 이름)
 
-함수, 타입, 트레잇, `impl` 등의 항목 메타입니다.
+## 9.4.10. RHIR 검사
 
-```
-varint(num_items)
-for each item:
-    item_kind (1 byte)            // fn / struct / enum / trait / impl / ...
-    name_index (varint)
-    visibility (1 byte)
-    generics_info (varint)
-    signature_info (varint)
-    body_offset (u32)              // body section 안의 시작 위치 (fn 의 경우)
-    추가 필드 (kind 별)
-```
+`rokc rhir-text <file>` 은 RHIR 의 버전, producer, meta 와 interface 파일들의 경로와 텍스트를 출력합니다 ([9.9.2](909-debug-tools.md#992-rhir-검사)). `rokc inspect` ([9.9.14](909-debug-tools.md#9914-패키지-검사)) 는 archive 와 함께 요약을 보여 줍니다.
 
-각 항목의 body 는 별도의 body section 에 두고 lazy load 합니다.
+## 9.4.11. 안정성
 
-## 9.4.11. Body Section
+RHIR 은 같은 `rokc` 가 만든 것만 읽습니다 (9.4.9). 포맷이 바뀌면 `version` 을 올리며, 버전이 다르면 다시 빌드해야 합니다. [개요](../008-abi/README.md) 의 안정성 정책을 적용합니다.
 
-각 `fn` 의 HIR expression tree 직렬화입니다.
-
-```
-for each fn body:
-    // body_offset 으로 점프해서 시작
-    varint(num_locals)
-    serialize_expr_tree(...)
-```
-
-expression tree 의 직렬화는 재귀적 노드와 index 참조의 형태입니다.
-
-```
-expr_kind (1 byte)
-varint(추가 정보)
-재귀 호출 (자식 expr)
-```
-
-자세한 expr 노드 종류는 `rokc` 가 정합니다.
-
-## 9.4.12. Lazy load
-
-다운스트림이 RHIR 을 읽을 때는 다음 순서를 따릅니다.
-
-1. Header + Producer + String + Type + Item 은 처음부터 읽습니다.
-2. Body 는 그 `fn` 이 실제로 호출되어 specialize 가 필요할 때만 읽습니다.
-3. body_offset 으로 직접 random access 하며, 전체 파일을 읽지는 않습니다.
-
-`mmap` 을 사용하면 OS 가 필요한 페이지만 자동으로 로드해 줍니다.
-
-## 9.4.13. RHIR 의 심볼 매핑
-
-각 항목은 맹글링 이름과 매핑됩니다.
-
-RHIR 의 항목 메타 → 맹글링 이름 → archive 의 obj 안 심볼의 흐름으로 이어집니다.
-
-이 매핑을 통해 concrete `fn` 은 맹글링 심볼로 찾고, generic `fn` 은 RHIR 안의 항목으로 찾습니다.
-
-## 9.4.14. RHIR 검증 (디버그)
-
-`rokc rhir-text path/to/libfoo.a` 는 RHIR 을 사람이 읽을 수 있는 형식으로 출력합니다.
-
-```
-rhir 1.2.3
-package: foo (hash: 3f8a1c2b)
-
-types:
-  [0] i32
-  [1] f64
-  [2] struct Point { x: f64; y: f64; }
-  ...
-
-items:
-  [0] fn distance(p1: Point, p2: Point) -> f64
-      body: at offset 1024
-  ...
-```
-
-이 도구로 RHIR 이 정확히 직렬화 / 역직렬화되는지 검증합니다.
-
-## 9.4.15. 안정성
-
-RHIR 포맷의 `version` 필드로 호환을 검사합니다.
-
-- `version` 같음 → 호환.
-- `version` 다름 → fail with clear error (rebuild required).
-
-[개요](../008-abi/README.md) 의 안정성 정책을 적용합니다.
-
-## 9.4.16. 크기
-
-작은 패키지의 RHIR 은 보통 수십 KB 이하이며, 의존성이 많은 패키지도 수백 KB 에서 수 MB 수준입니다.
-
-archive 전체에서 `.rok.hir` 섹션이 가장 큰 부분일 수 있으며, concrete .o 보다도 커질 수 있습니다.
+표준 라이브러리 (`rok::core` / `std` / `bare`) 는 미리 빌드하지 않고 빌드마다 소스로 bootstrap 합니다.

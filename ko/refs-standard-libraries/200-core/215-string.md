@@ -152,10 +152,11 @@ s.chars().count();             //→ 10  (char 개수)
 
 let s2 = s[7:13];              //→ "세계"  (byte boundary OK)
 let s3 = s[8:9];               // panic — UTF-8 sequence 중간 byte
-                               //         IndexError("not a char boundary")
+let s4 = s[7:100];             //→ "세계!" (끝은 길이로 잘라 맞춤)
+let s5 = s[-1:];               //→ "!"
 ```
 
-`Sliceable` 트레잇 impl 이 byte boundary 를 검증한 후 새 str 을 반환합니다 (`str` 은 C 문자열로 남아야 하므로 view 가 아니라 사본). 잘못된 경계에서는 panic 이 발생합니다.
+`str` / `StrBuf` 의 경계는 바이트 offset 입니다. 경계는 먼저 Python 처럼 잘라 맞추고 (음수는 끝에서부터, [refs-lang 3.6.2](../../refs-lang/003-expressions/306-indexing-and-slicing.md#362-슬라이싱-arrstartend)), 그 위치가 UTF-8 sequence 중간이면 panic 합니다. `Sliceable` 트레잇 impl 은 경계를 검증한 후 새 str 을 반환합니다 (`str` 은 C 문자열로 남아야 하므로 view 가 아니라 사본). `str` 슬라이스에는 step 이 없으며 `s[::2]` 는 타입 에러입니다.
 
 ### 직접 indexing 거부
 
