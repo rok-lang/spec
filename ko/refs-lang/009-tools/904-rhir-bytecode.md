@@ -2,6 +2,9 @@
 
 [패키지 아카이브](903-package-archive.md) 의 `.rok.hir` 섹션에 들어가는, 제네릭 함수의 rok-hir 직렬화 형식인 [RHIR](../000-meta/007-glossary.md#rhir-rok-hir-bytecode) bytecode 를 정의합니다.
 
+> [!NOTE]
+> RHIR 은 아직 구현되지 않았습니다 (`.a` 에 `foo.hir.o` 를 넣지 않고, `rokc rhir-text` / `rokc inspect` 와 미리 빌드한 `.a` 의존도 아직 없음). 현재 구현은 제네릭을 HIR 이 아니라 AST 에서 단형화하므로, RHIR 을 만든다면 body section 에는 HIR 이 아니라 단형화의 입력 (AST) 을 담게 됩니다. 이 장의 형식은 그 결정 전의 설계입니다.
+
 ## 9.4.1. 동기
 
 [AOT 빌드 파이프라인](902-aot-pipeline.md) 의 단형화는 호출 지점의 구체 타입을 기준으로 [specialize](../000-meta/007-glossary.md#specialize) 합니다. 따라서 다른 패키지가 한 패키지의 [generic](../000-meta/007-glossary.md#generic--제네릭) `fn` 을 호출하면 그 호출 지점에서 specialize 가 일어나야 합니다.

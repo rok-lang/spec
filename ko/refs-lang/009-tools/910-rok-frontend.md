@@ -76,7 +76,7 @@ nonstandard_style = "deny"
 
 - 의존성 이름 (키) 은 식별자여야 합니다 (`-` 불가). 이 이름이 코드에서 그 패키지를 가리키는 최상위 경로입니다 (`use parser::Token;`).
 - 의존 패키지는 `lib.rok` 를 가진 라이브러리 패키지여야 합니다. 전이 의존은 의존 패키지의 `[deps]` 입니다 (`[dev-deps]` 는 제외).
-- `[lints]` 는 lint 수준을 정합니다 (`name = "allow" | "warn" | "deny"`, name 은 lint 나 그룹, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). `rokc lint -A/-W/-D` 와 같은 효과이며, 코드의 속성이 우선합니다.
+- `[lints]` 는 lint 수준을 정합니다 (`name = "allow" | "warn" | "deny"`, name 은 lint 나 그룹, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). `rokc lint` 의 CLI 플래그 앞에 붙은 것처럼 다뤄지므로, CLI `-A/-W/-D` 와 코드의 속성이 이를 덮습니다.
 - 모르는 키는 에러입니다.
 
 | 의존성 출처 | 형태                                                     | `Rok.lock` 에 고정 |

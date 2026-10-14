@@ -86,17 +86,21 @@ async yield fn ticks(interval: Duration) -> Instant {
 
 ## 2.8.5. Stream 어댑터
 
-`Iterator` 와 비슷하게 다양한 어댑터가 제공됩니다.
+`Iterator` 와 비슷하게 다양한 어댑터가 `Stream` 트레잇의 기본 메서드로 제공됩니다. 그래서 `Stream` 을 구현한 모든 타입 (`AsyncStream<T>`, `Receiver<T>`, 사용자 타입) 이 같은 어댑터를 가집니다.
 
 ```rok
-impl Stream {
+trait Stream {
+    type Item;
+    fn poll_next(ref self, ref ctx: Context) -> Poll<Item | none>;
+
+    // 기본 메서드
     fn map<U>(self, f: fn(Item) -> U) -> Map<Self, U>;
     fn filter(self, pred: fn(Item) -> bool) -> Filter<Self>;
     fn take(self, n: usize) -> Take<Self>;
     fn skip(self, n: usize) -> Skip<Self>;
 
-    fn collect<C: FromStream<Item>>(self) -> C;     // await 까지 포함
-    fn for_each(self, f: fn(Item));                 // await 까지 포함
+    async fn collect<C: FromStream<Item> = List<Item>>(self) -> C;   // 슬롯이 정하지 않으면 List<Item>
+    async fn for_each(self, f: fn(Item));
 
     // async-specific
     fn buffer_unordered(self, n: usize) -> BufferUnordered<Self>;
@@ -105,7 +109,10 @@ impl Stream {
 }
 ```
 
-반환 타입은 [2.7 iter](207-iter.md) 의 어댑터처럼 이름 있는 구체 struct 이며, `rok::core::stream` 모듈에 있습니다 (`stream::Map<S, U>` 는 `iter::Map` 과 별개입니다). `Map<Self, U>` 는 `Stream<Item = U>` 를, 나머지는 `Stream<Item = Item>` 을 구현합니다.
+반환 타입은 [2.7 iter](207-iter.md) 의 어댑터처럼 이름 있는 구체 struct 이며, `rok::core::stream` 모듈에 있습니다 (`stream::Map<S, U>`, `stream::Filter<S>`, ...). `Map<Self, U>` 는 `Stream<Item = U>` 를, 나머지는 `Stream<Item = Item>` 을 구현합니다.
+
+> [!NOTE]
+> `stream::Map` / `Filter` / `Take` / `Skip` / `Zip` 은 `iter::Map` 등과 이름이 같습니다. 묵시 `use rok::core::**;` 아래에서 맨 이름 `Map` 은 모호하므로 ([refs-lang 5.5.6](../../refs-lang/005-modules/505-use.md)) 타입을 적어야 할 때는 `stream::Map` 처럼 경로를 쓰거나 명시 `use` 로 가져옵니다.
 
 이 가운데 `buffer_unordered(n)` 와 `buffered(n)` 는 N개의 future 를 동시에 처리하는 concurrency control 수단으로 동작합니다.
 
@@ -117,7 +124,13 @@ impl Stream {
 trait FromStream<T> {
     async fn from_stream<S: IntoStream<Item = T>>(stream: S) -> Self;
 }
+
+impl<T> FromStream<T> for List<T> { ... }
+impl<T: Hash> FromStream<T> for Set<T> { ... }
+impl<K: Hash, V> FromStream<(K, V)> for Dict<K, V> { ... }
 ```
+
+`collect` 의 대상은 받는 슬롯이 정하며, 정하지 않으면 `List<Item>` 입니다.
 
 `Stream::collect` 가 호출되면 대상 컬렉션의 `from_stream` 이 호출되며, stream 의 모든 원소가 await 후 누적되어 컬렉션을 만듭니다.
 
@@ -126,7 +139,7 @@ let v: List<i32> = await (0..).take(5).map(|x| async { x * 2 }).buffered(3).coll
 //   = await List::from_stream(...)
 ```
 
-`List`, `Dict`, `Set`, `String` 등 모든 collectable 컨테이너가 `FromIterator` 와 `FromStream` 을 함께 impl 하여 sync / async 양쪽에서 같은 패턴을 따릅니다.
+`List`, `Dict`, `Set` 은 `FromIterator` 와 `FromStream` 을 함께 구현하여 sync / async 양쪽에서 같은 패턴을 따릅니다.
 
 ## 2.8.7. `Channel` ↔ `Stream`
 
@@ -150,7 +163,7 @@ for await event in rx {
 ```rok
 fn merge<S1: Stream, S2: Stream>(a: S1, b: S2) -> Merge<S1, S2>;    // Stream<Item = S1::Item | S2::Item>
 fn zip<S1: Stream, S2: Stream>(a: S1, b: S2) -> Zip<S1, S2>;        // Stream<Item = (S1::Item, S2::Item)>
-fn select<S1: Stream, S2: Stream>(a: S1, b: S2) -> Select<S1, S2>;  // Stream<Item = S1::Item>, 첫 ready
+fn select<S1: Stream, S2: Stream>(a: S1, b: S2) -> Select<S1, S2>;  // Stream<Item = S1::Item | S2::Item>, 먼저 준비된 쪽
 ```
 
 각 함수의 의미를 정리하면, `merge` 는 두 stream 의 union 을 만들고, `zip` 은 두 stream 을 pair 로 묶으며, `select` 는 race 식으로 먼저 준비되는 쪽을 취합니다.
@@ -165,12 +178,6 @@ impl<T> Stream for AsyncStream<T> {
     type Item = T;
     fn poll_next(ref self, ref ctx: Context) -> Poll<T | none>;
 }
-impl<T> AsyncStream<T> {
-    fn map<U>(self, f: fn(T) -> U) -> AsyncStream<U>;
-    fn filter(self, pred: fn(T) -> bool) -> AsyncStream<T>;
-    fn take(self, n: usize) -> AsyncStream<T>;
-    async fn collect(self) -> List<T>;
-}
 
 struct TryAsyncStream<T, E> { /* 비공개 */ }    // async yield fn .. throws (E)
 impl<T, E> TryAsyncStream<T, E> {
@@ -178,7 +185,7 @@ impl<T, E> TryAsyncStream<T, E> {
 }
 ```
 
-`TryAsyncStream` 은 `poll_next` 가 던지므로 `Stream` 을 구현하지 않으며 `try for await` 로 소비합니다. 비공개 필드는 사양으로 정하지 않습니다. 복사본은 같은 코루틴 frame 을 공유하므로 진행 위치도 공유합니다.
+`AsyncStream<T>` 의 어댑터 (`map`, `filter`, `collect` 등) 는 `Stream` 의 기본 메서드입니다 (2.8.5). `TryAsyncStream` 은 `poll_next` 가 던지므로 `Stream` 을 구현하지 않으며 `try for await` 로 소비합니다. 비공개 필드는 사양으로 정하지 않습니다. 복사본은 같은 코루틴 frame 을 공유하므로 진행 위치도 공유합니다.
 
 ## 2.8.9. 모듈 매핑
 

@@ -207,6 +207,10 @@ let f2: f32 = 3.14f64 as f32;     // 3.14 → f32 (IEEE 754 narrowing)
 | 정수 → 부동소수                            | IEEE 754 표현으로 (정밀도 손실 가능)               |
 | 부동소수 → 정수                            | 절삭 (truncate toward zero), NaN → 0, ±∞ → MIN/MAX |
 | 부동소수 → 같은/다른 폭 부동소수           | IEEE 754 round                                     |
+| `u8` → `char`                              | 그 code point (U+0000..=U+00FF)                    |
+| `char` → 정수                              | code point (좁은 정수면 절삭)                      |
+
+`char` 로의 `as` 는 `u8` 에서만 됩니다. 다른 정수 / 부동소수 / `bool` / `c_char` 는 타입 에러이며, 넓은 값은 `char::from_u32(n)` (`char | none`) 으로 바꿉니다 ([2.15.4](215-string.md)).
 
 ### `as` 의 한계
 

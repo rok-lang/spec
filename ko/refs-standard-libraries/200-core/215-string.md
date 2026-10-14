@@ -66,11 +66,16 @@ impl str {
     fn find(self, pat: str) -> usize | none;
     fn rfind(self, pat: str) -> usize | none;
 
+    fn strip_prefix(self, prefix: str) -> str | none;   // 접두가 있으면 뗀 나머지
+    fn strip_suffix(self, suffix: str) -> str | none;
+    fn split_once(self, sep: str) -> (str, str) | none; // 처음 sep 의 앞 / 뒤
+    fn repeat(self, n: usize) -> str;
+
     fn trim(self) -> str;                   // 새 str 반환 (필요 시)
     fn trim_start(self) -> str;
     fn trim_end(self) -> str;
 
-    fn to_lowercase(self) -> str;           // 새 str (Unicode 변환)
+    fn to_lowercase(self) -> str;           // 새 str (Unicode 전체 매핑 — 1:N, 문맥 규칙 포함)
     fn to_uppercase(self) -> str;
     fn replace(self, from: str, to: str) -> str;
 
@@ -150,7 +155,7 @@ let s3 = s[8:9];               // panic — UTF-8 sequence 중간 byte
                                //         IndexError("not a char boundary")
 ```
 
-`Slice` 트레잇 impl 이 byte boundary 를 검증한 후 새 str 을 반환합니다. 잘못된 경계에서는 panic 이 발생합니다.
+`Sliceable` 트레잇 impl 이 byte boundary 를 검증한 후 새 str 을 반환합니다 (`str` 은 C 문자열로 남아야 하므로 view 가 아니라 사본). 잘못된 경계에서는 panic 이 발생합니다.
 
 ### 직접 indexing 거부
 
@@ -183,23 +188,62 @@ let c: char = 'A';                   //→ U+0041
 let k: char = '한';                  //→ U+D55C
 let e: char = '😀';                  //→ U+1F600
 
-c.to_lowercase();                    //→ 'a'  (Unicode 변환)
+c.to_lowercase();                    //→ 'a'
 c.is_alphabetic();                   //→ true
 c.is_ascii();                        //→ true
-try '1'.to_digit(10);                //→ 1 (u32, 실패 시 throw)
+try '1'.to_digit(10);                //→ 1 (u32, 실패 시 ValueError)
 c.len_utf8();                        //→ 1 (UTF-8 인코딩 시 byte 수)
 e.len_utf8();                        //→ 4
 ```
 
+```rok
+impl char {
+    fn from_u32(n: u32) -> char | none;                  // surrogate / 범위 밖이면 none
+    unsafe fn from_u32_unchecked(n: u32) -> char;        // 검사 없음 — 호출자가 scalar value 를 보장
+    fn from_digit(d: u32, radix: u32) -> char;           // d >= radix 나 radix 가 2..=36 밖이면 panic
+    fn to_digit(self, radix: u32) throws (ValueError) -> u32;
+    fn is_digit(self, radix: u32) -> bool;
+    fn len_utf8(self) -> usize;
+    fn len_utf16(self) -> usize;
+
+    // Unicode 속성
+    fn is_alphabetic(self) -> bool;
+    fn is_lowercase(self) -> bool;
+    fn is_uppercase(self) -> bool;
+    fn is_whitespace(self) -> bool;
+    fn is_numeric(self) -> bool;
+    fn is_alphanumeric(self) -> bool;
+    fn is_control(self) -> bool;
+    fn to_lowercase(self) -> char;       // 1:1 매핑만
+    fn to_uppercase(self) -> char;
+
+    // ASCII
+    fn is_ascii(self) -> bool;
+    fn is_ascii_uppercase(self) -> bool;     fn is_ascii_lowercase(self) -> bool;
+    fn is_ascii_alphabetic(self) -> bool;    fn is_ascii_digit(self) -> bool;
+    fn is_ascii_alphanumeric(self) -> bool;  fn is_ascii_hexdigit(self) -> bool;
+    fn is_ascii_whitespace(self) -> bool;    fn is_ascii_control(self) -> bool;
+    fn is_ascii_graphic(self) -> bool;       fn is_ascii_punctuation(self) -> bool;
+    fn to_ascii_uppercase(self) -> char;     fn to_ascii_lowercase(self) -> char;
+    fn eq_ignore_ascii_case(self, other: char) -> bool;
+}
+```
+
+`char` 의 `to_lowercase` / `to_uppercase` 는 한 문자를 돌려주므로 1:1 매핑만 적용합니다. 한 문자가 여러 문자로 바뀌는 경우는 그대로 둡니다 (`'ß'.to_uppercase() == 'ß'`). `str` 의 `to_lowercase` / `to_uppercase` 는 1:N 과 문맥 규칙 (그리스어 끝 시그마 `Σ` → `ς`) 까지 포함한 전체 매핑입니다 (`"ß".to_uppercase() == "SS"`).
+
+Unicode 속성과 대소문자 표는 UCD 18.0.0 입니다.
+
 ### 변환
 
 ```rok
-try char::from_u32(0x41);            //→ 'A' (surrogate 는 throw 로 거부)
+char::from_u32(0x41);                //→ 'A' (char | none — surrogate 는 none)
 char::from_digit(5, 10);             //→ '5'
 
 let n: u32 = c as u32;               //→ 65 (lossless)
-let c2: char = n as char;            //→ ERROR — `as` 거부 (try_into 권장)
-let c3 = try char::try_from(n);      //→ char (실패 시 throw)
+let c2: char = n as char;            //→ ERROR — u8 만 `as char` 가능
+let b: u8 = 0x41;
+let c4: char = b as char;            //→ 'A' (u8 은 늘 scalar value)
+let c3 = try char::try_from(n);      //→ char (TryFrom<u32> — from_u32 를 써서, none 이면 OverflowError)
 ```
 
 ### 트레잇 구현

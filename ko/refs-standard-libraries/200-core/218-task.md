@@ -12,6 +12,7 @@
 fn block_on<F: Future>(f: F) -> F::Output;              // sync 진입점 — pool 을 띄워 f 를 끝까지 실행
 fn spawn<F: Future + Send>(f: F) -> Task<F::Output> where F::Output: Send;
 fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future — 현재 worker 에 고정
+fn spawn_blocking<T: Send>(f: fn() -> T + Send) -> Blocking<T>;   // blocking 작업을 executor 밖 OS 스레드에서
 fn workers() -> usize;                                  // 실행 중 pool 의 worker 수 (block_on 밖에서는 1)
 fn cpu_count() -> usize;                                // 온라인 CPU 수 — pool 크기
 async fn race<T>(tasks: List<Task<T>>) -> T;            // 첫 완료 task 결과
@@ -50,6 +51,22 @@ await task::yield_now();
 ```
 
 `spawn` 은 클로저가 아니라 future 를 받으므로 `task::spawn(async { ... })` 처럼 `async` 블록이나 `async fn` 호출 결과를 넘깁니다. `Send` 가 아닌 future 는 `spawn_local` 로 현재 스레드에서 실행합니다. `join` / `race` / `timeout` 은 `await` 해서 결과를 받습니다.
+
+### `spawn_blocking` — blocking 작업
+
+```rok
+struct Blocking<T> { /* 결과 슬롯 */ }
+impl<T> Future for Blocking<T> { type Output = T; ... }
+```
+
+`spawn_blocking(f)` 는 `f` 를 executor 의 worker 가 아닌 별도 OS 스레드에서 실행하고, 그 결과로 끝나는 future 를 돌려줍니다. readiness 로 기다릴 수 없는 blocking syscall (일반 파일 I/O 등, [stdlib 3.1.4a](../300-std/301-fs.md#314a-비동기-파일-io-_async)) 을 task 안에서 기다릴 때 씁니다.
+
+- `f` 는 첫 poll 이 아니라 **호출하는 즉시** 시작합니다.
+- `await` 하던 task 가 취소되어도 `f` 는 끝까지 실행되며, 결과만 버려집니다.
+
+```rok
+let n = await task::spawn_blocking(|| heavy_checksum(path));
+```
 
 ### `spawn` 의 `Send` 검사
 
@@ -132,6 +149,7 @@ t.cancel();              // 협력적 신호 — task 가 cancellation point 에
 - 모든 `await` 가 cancellation point 입니다. 취소된 task 는 다음 `await` 에서 `return` 처럼 본문을 떠나며, 지나는 `finally` 와 `using` 정리가 안쪽부터 실행됩니다.
 - 취소는 task 안에서 `catch` 할 수 있는 에러가 아닙니다. task 안으로 `CancellationError` 가 던져지지 않습니다.
 - blocking syscall 은 cancellation point 가 아닙니다. 그 호출이 끝난 뒤 다음 `await` 에서 떠납니다.
+- `spawn_blocking` 과 그 위의 `fs::*_async` 를 기다리던 중 취소되면, 이미 시작된 작업은 백그라운드에서 끝까지 실행되고 결과만 버려집니다. 쓰기 같은 부수 효과는 일어납니다.
 - `CancellationError` 는 기다리는 쪽이 받습니다. 취소된 task 를 `try await t.join()` 으로 기다리면 `CancellationError` 가 던져지고, `await t` 로 기다리면 panic 입니다.
 
 ```rok

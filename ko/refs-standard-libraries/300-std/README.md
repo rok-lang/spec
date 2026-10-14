@@ -53,7 +53,7 @@ async fn fetch_async(addr: str) throws (IoError) -> List<u8> {
 }
 ```
 
-`AsyncRead` / `AsyncWrite` 트레잇은 **두지 않습니다**. async 판은 타입의 고유 메서드이며, 아직 소켓에만 있습니다. 일반 파일의 async I/O 는 제공하지 않습니다.
+`AsyncRead` / `AsyncWrite` 트레잇은 **두지 않습니다**. async 판은 타입의 고유 메서드와 함수입니다. 소켓은 I/O 드라이버의 readiness 를 기다리고 ([3.2.0](302-net.md#320-공통-규칙)), 일반 파일은 blocking 호출을 다른 OS 스레드에서 돌립니다 ([3.1.4a](301-fs.md#314a-비동기-파일-io-_async)).
 
 ### 2. I/O backend — runtime detail
 

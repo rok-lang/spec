@@ -2,6 +2,9 @@
 
 이 장에서는 [AOT 빌드 파이프라인](902-aot-pipeline.md) 의 산출물인 `libfoo.a` 의 내부 구조를 정의합니다.
 
+> [!NOTE]
+> 현재 구현의 `libfoo.a` 는 concrete 코드의 `foo.o` 만 담습니다. RHIR 멤버 (`foo.hir.o`, [9.4](904-rhir-bytecode.md)), `rokc inspect`, 그리고 미리 빌드한 `.a` 를 의존 패키지로 쓰는 것 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)) 은 아직 구현되지 않았습니다. 의존 패키지는 소스로 함께 컴파일됩니다.
+
 ## 9.3.1. 표준 ar archive
 
 `libfoo.a` 는 표준 Unix `ar` 아카이브 형식을 그대로 따르고 있습니다. 따라서 `ar`, `ranlib`, `lld` 같은 표준 도구로 별도의 변환 없이 처리할 수 있습니다.

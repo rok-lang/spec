@@ -524,6 +524,16 @@ extern "C" {
 
 `fatal error: out of memory` 를 stderr 에 출력하고 종료 코드 `101` 로 종료합니다. 런타임 안의 할당 실패와 core 의 `oom()` 이 모두 이 심볼을 거칩니다. 런타임은 rok 함수를 이름으로 부를 수 없으므로, 할당 실패 시 `oom_fn` 슬롯의 함수를 부르지 않고 이 심볼을 직접 씁니다.
 
+### 스택 오버플로
+
+스레드의 스택이 넘치면 런타임은 stdout 을 (가능하면) flush 하고 stderr 에 다음을 출력한 뒤 abort (SIGABRT) 합니다. panic 과 달리 unwind 나 `finally` 실행은 없습니다.
+
+```
+thread '<name>' has overflowed its stack
+```
+
+main 스레드 (`rok_runtime_init`), `rok_thread_spawn` 스레드 (executor worker 포함, 깊은 `await` 사슬도), `rok_thread_init` 을 부른 C 스레드가 모두 대상입니다. 런타임은 각 스레드의 스택 아래 guard 범위를 TLS 슬롯 `rok_tls_stack_guard` ([8.3.1](803-tls-slots.md#831-tls-슬롯-구조)) 에 기록하고 대체 신호 스택 (`sigaltstack`) 을 둡니다. 그 범위 안의 SIGSEGV / SIGBUS 만 스택 오버플로로 보고, 그 밖의 fault 는 기본 동작을 따릅니다.
+
 ## 8.5.8. 심볼 명명 규약
 
 심볼의 접두사별 영역은 다음 표와 같이 정리됩니다.

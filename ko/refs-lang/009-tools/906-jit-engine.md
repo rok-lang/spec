@@ -2,6 +2,9 @@
 
 이 절에서는 REPL 과 Jupyter 가 사용하는 JIT 실행 엔진의 구조를 정의합니다. [실행 엔진과 사용자 표면](../000-meta/001-execution-modes.md) 에서 정한 JIT 엔진의 구체적인 구현에 해당합니다.
 
+> [!NOTE]
+> 이 장의 ORCv2 기반 엔진은 아직 구현되지 않았습니다. 현재 `rokc repl` 은 셀마다 AOT 파이프라인으로 동적 라이브러리를 만들어 오래 사는 host 프로세스에 올리는 방식으로 셀 세션의 규칙 ([9.7.0](907-jit-cells.md#970-셀-세션의-규칙)) 을 구현합니다. 셀은 한 번만 실행되고 바인딩과 항목은 host 안에 유지됩니다.
+
 ## 9.6.1. MLIR ExecutionEngine
 
 JIT 의 핵심은 MLIR 의 `MlirExecutionEngine` (ORCv2 기반) 입니다.

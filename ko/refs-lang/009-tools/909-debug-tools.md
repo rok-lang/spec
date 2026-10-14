@@ -195,9 +195,9 @@ span 은 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_p
 
 `rokc build --debug` 또는 `-g` 옵션을 사용하면 DWARF 디버그 정보를 emit 합니다. 이때 다음과 같은 특성을 갖습니다.
 
-- 함수 이름은 demangled 형태로 표시됩니다 (디버거가 이해합니다).
-- 변수 이름과 타입은 원본 rok 식별자 그대로 유지됩니다.
+- 함수의 `DW_AT_name` 은 rok 경로 (`geom::distance`) 이며, linkage name (맹글링된 심볼) 은 두지 않습니다.
 - 줄 번호는 원본 .rok 파일의 줄을 가리킵니다.
+- 원시 타입 (정수, 부동소수, `bool`, `char`) 의 지역 변수는 원본 이름과 타입으로 보입니다. 디버거의 `print x` 는 현재 원시 타입 변수에만 동작합니다. struct / 컬렉션 / GC 객체의 표시는 아직 없습니다.
 
 ### gdb / lldb 사용
 

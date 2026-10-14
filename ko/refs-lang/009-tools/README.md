@@ -42,7 +42,7 @@ rokc  (compiler)
   │   └── rokc lsp        : LSP server (IDE integration)
   │
   ├── interactive
-  │   ├── rokc repl       : terminal REPL (JIT engine or replay)
+  │   ├── rokc repl       : terminal REPL (each cell runs once)
   │   └── rokc jupyter    : Jupyter kernel (JIT engine + ZMQ wire)      [planned]
   │
   ├── debug / diagnostic
@@ -56,7 +56,7 @@ rokls  (= rok lsp, for editors)
 librokr.a  (runtime, rokr)
 ```
 
-> front-end, cargo-like: cargo 식 front-end. resolve deps, then call rokc: 의존성을 해소한 뒤 rokc 를 호출. dep roots: 의존 패키지 루트. compiler: 컴파일러. build / run: 빌드 / 실행. tools: 도구. interactive: 인터랙티브. debug / diagnostic: 디버그 / 진단. AOT compile: AOT 컴파일. compile then run immediately: AOT 컴파일 후 즉시 실행. collect + run: 수집 + 실행. no native build: native 빌드 없이. remove build artifacts: 빌드 산출물 제거. formatter: 포매터. linter: 린터. API documentation: API 문서. LSP server: LSP 서버. terminal REPL: 터미널 REPL. JIT engine or replay: JIT 엔진 또는 재실행. Jupyter kernel: Jupyter 커널. symbol demangle: 심볼 demangle. RHIR bytecode text dump: RHIR bytecode 텍스트 출력. package inspect: 패키지 검사. for editors: 편집기용. runtime: 런타임. planned: 계획 — 아직 제공하지 않음.
+> front-end, cargo-like: cargo 식 front-end. resolve deps, then call rokc: 의존성을 해소한 뒤 rokc 를 호출. dep roots: 의존 패키지 루트. compiler: 컴파일러. build / run: 빌드 / 실행. tools: 도구. interactive: 인터랙티브. debug / diagnostic: 디버그 / 진단. AOT compile: AOT 컴파일. compile then run immediately: AOT 컴파일 후 즉시 실행. collect + run: 수집 + 실행. no native build: native 빌드 없이. remove build artifacts: 빌드 산출물 제거. formatter: 포매터. linter: 린터. API documentation: API 문서. LSP server: LSP 서버. terminal REPL: 터미널 REPL. each cell runs once: 각 셀을 한 번만 실행. Jupyter kernel: Jupyter 커널. symbol demangle: 심볼 demangle. RHIR bytecode text dump: RHIR bytecode 텍스트 출력. package inspect: 패키지 검사. for editors: 편집기용. runtime: 런타임. planned: 계획 — 아직 제공하지 않음.
 
 toolchain 은 컴파일러 `rokc` (rustc 에 해당), cargo 식 front-end `rok`, 편집기용 LSP 실행 파일 `rokls`, 런타임 `librokr.a` 로 이루어집니다. `rok` 는 매니페스트 `Rok.toml` / `Rok.lock`, 의존성, 환경, toolchain 고정을 맡고, 빌드와 도구 명령은 해소한 의존 패키지를 `--extern` 으로 붙여 `rokc` 에 위임합니다 ([9.10](910-rok-frontend.md)). 별도 도구 (`rok-fmt` 등) 는 두지 않습니다.
 
@@ -69,7 +69,7 @@ JIT engine  ──  used by rokc repl / jupyter
 AOT engine  ──  used by rokc build / run / test
 ```
 
-> JIT engine or replay: JIT 엔진 또는 재실행. AOT engine: AOT 엔진. used by: 사용.
+> JIT engine: JIT 엔진. AOT engine: AOT 엔진. used by: 사용.
 
 두 엔진은 같은 컴파일 파이프라인 (rok-hir → rok-mir → 표준 MLIR) 을 거치고 있으며, 마지막 중간 표현 이후에만 갈라지고 있습니다. 자세한 내용은 [실행 엔진과 사용자 표면](../000-meta/001-execution-modes.md) 과 [컴파일 파이프라인](../000-meta/002-pipeline.md) 에서 다루고 있습니다.
 

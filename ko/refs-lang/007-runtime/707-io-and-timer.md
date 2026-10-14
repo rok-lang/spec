@@ -39,7 +39,7 @@ fn writable(fd: i32) -> IoReady;
 
 blocking 호출 (`TcpStream::read` 등) 은 이 경로를 쓰지 않고 호출한 OS 스레드를 막습니다. task 를 중단하는 I/O 는 표준 라이브러리의 `*_async` 메서드입니다 ([stdlib 3.2.0](../../refs-standard-libraries/300-std/302-net.md#320-공통-규칙)).
 
-일반 파일은 readiness 모델로 기다릴 수 없으므로 (epoll / kqueue 에서 늘 준비됨), 일반 파일의 async I/O 는 아직 제공하지 않습니다. io_uring 이나 blocking pool 이 생기면 제공합니다.
+일반 파일은 readiness 모델로 기다릴 수 없습니다 (epoll / kqueue 에서 늘 준비됨). 그래서 일반 파일의 async I/O (`fs::*_async`, [stdlib 3.1.4a](../../refs-standard-libraries/300-std/301-fs.md#314a-비동기-파일-io-_async)) 는 blocking syscall 을 다른 OS 스레드에서 실행하고 (`task::spawn_blocking`) 그동안 task 를 중단합니다. io_uring 이 들어오면 그 위로 옮길 수 있습니다.
 
 ## 7.7.3. io_uring / IOCP
 

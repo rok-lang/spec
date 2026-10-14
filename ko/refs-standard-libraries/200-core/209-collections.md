@@ -131,7 +131,7 @@ let total: i32 = ys.into_iter().sum();   //→ 60
 | `FromIterator<T>`     | 항상                | `(0..5).collect::<List<i32>>()` |
 | `Index<usize>`        | 항상                | `xs[i]`                         |
 | `IndexSet<usize, T>`  | 항상                | `xs[i] = v`                     |
-| `Slice<Range<usize>>` | 항상                | `xs[1:3]`                       |
+| `Sliceable<Range<usize>>` | 항상            | `xs[1:3]`                       |
 | `Display`             | **아님**            | **수동 출력 권장**              |
 | `Debug`               | `T: Debug`          | `f"{xs:?}"` → `[1, 2, 3]`       |
 | `Clone`               | `T: Clone`          | 깊은 복제                       |
@@ -174,7 +174,27 @@ impl<K: Hash + Eq, V> Dict<K, V> {
     fn values(self) -> ValuesIter<K, V>;
     fn entries(self) -> EntriesIter<K, V>;            // (K, V) 쌍
 
-    fn entry(self, k: K) -> Entry<K, V>;          // or_insert / and_modify
+    fn entry(self, k: K) -> Entry<K, V>;          // 그 키의 자리 (있든 없든)
+}
+
+struct Entry<K, V> { /* dict + key */ }
+
+impl<K: Hash + Eq, V> Entry<K, V> {
+    fn key(self) -> K;
+    fn or_insert(self, v: V) -> V;                   // 없으면 v 를 넣고, 그 값
+    fn or_insert_with(self, f: fn() -> V) -> V;      // 없으면 f() 를 넣고, 그 값
+    fn and_modify(self, f: fn(V) -> V) -> Entry<K, V>;   // 있으면 f(값) 으로 바꿈
+}
+
+impl<K: Hash + Eq, V: Default> Entry<K, V> {
+    fn or_default(self) -> V;                         // 없으면 V::default() 를 넣고, 그 값
+}
+```
+
+```rok
+let counts: Dict<str, i32> = {};
+for w in words {
+    counts.entry(w).and_modify(|n| n + 1).or_insert(1);
 }
 ```
 
@@ -262,7 +282,11 @@ struct OrderedDict<K: Hash + Eq, V> { /* ... */ }
 struct OrderedSet<T: Hash + Eq> { /* ... */ }
 ```
 
-config, JSON-like 구조, 출력 reproducibility 처럼 순서 보존이 필요한 상황에서 사용하면 적합하며, linked list 또는 indices vector 사용으로 인해 약간의 오버헤드가 발생합니다.
+config, JSON-like 구조, 출력 reproducibility 처럼 순서 보존이 필요한 상황에서 사용하면 적합하며, 순서를 담는 indices vector 때문에 약간의 오버헤드가 발생합니다.
+
+- `OrderedDict` 는 `new` / `with_capacity` / `from` / `len` / `is_empty` / `insert` / `get` / `contains_key` / `remove` / `clear` / `keys` / `values` / `entries` 와 `d[k]`, `d[k] = v` 를 가집니다. `keys` / `values` / `entries` 는 삽입 순서로 돕니다. 이미 있는 키에 `insert` 하면 값만 바뀌고 순서는 그대로입니다.
+- `OrderedSet` 은 `new` / `from` / `len` / `is_empty` / `insert` / `remove` / `contains` / `iter` / `to_list` 와 집합 연산 `union` / `intersection` / `difference` / `symmetric_difference` / `is_subset` / `is_superset` / `is_disjoint` 를 가집니다. 집합 연산의 결과는 왼쪽 피연산자의 순서를 먼저 따릅니다.
+- 둘 다 `Default`, `Clone`, `IntoIterator`, `FromIterator`, `PartialEq` (순서 무관), `Debug` 를 구현합니다.
 
 ### 생성
 
@@ -323,17 +347,21 @@ fn divmod(a: i32, b: i32) -> (i32, i32) {
 let (q, r) = divmod(17, 5);     //→ q = 3, r = 2
 ```
 
-## 2.9.7. `Slice<T>` — zero-copy view
+## 2.9.7. `Slice<T>` — view
 
 ```rok
 struct Slice<T> {
-    ptr: ConstPtr<T>;
-    len: usize;
-    stride: isize;       // 1 = contiguous, n = step (`xs[::n]`), -1 = reverse
+    // GC 버퍼 + 시작 위치 + 길이 + stride (1 = 연속, k = step, 음수 = 역순)
 }
 ```
 
-`xs[1:3]` / `xs[::2]` / `xs[1:]` 와 같은 표현이 desugar 된 결과이며, 별도의 할당 없이 원본의 view 로 동작합니다.
+`xs[1:3]` / `xs[::2]` / `xs[1:]` 와 같은 표현의 결과입니다 ([2.3.4 `Sliceable`](203-ops.md#234-인덱싱-트레잇)). view 는 원소를 복사하지 않고 원본의 GC 버퍼를 가리키며, view 가 살아 있는 동안 그 버퍼도 살아 있습니다.
+
+| 원본       | view 가 보는 것                                                                 |
+|------------|---------------------------------------------------------------------------------|
+| `List<T>`  | 리스트의 현재 버퍼. 원소 쓰기는 보이고, 리스트가 자라 버퍼를 옮긴 뒤의 변경은 보이지 않음 |
+| `Slice<T>` | 같은 버퍼 (view 의 view)                                                        |
+| `[T; N]`   | 배열의 사본 (배열은 값)                                                         |
 
 ### 핵심 메서드
 
@@ -341,13 +369,22 @@ struct Slice<T> {
 impl<T> Slice<T> {
     fn len(self) -> usize;
     fn is_empty(self) -> bool;
-    fn iter(self) -> SliceIter<T>;
-    fn to_list(self) -> List<T>;             // 새 List 할당
+    fn get(self, i: usize) -> T | none;
     fn first(self) -> T | none;
     fn last(self) -> T | none;
-    fn get(self, i: usize) -> T | none;
+    fn step(self, k: isize) -> Slice<T>;     // k 번째마다, k < 0 이면 뒤에서부터. k == 0 은 panic
+    fn iter(self) -> SliceIter<T>;
+    fn to_list(self) -> List<T>;             // 새 List 할당
 }
+
+impl<T> Index<usize> for Slice<T> { ... }               // s[i] — 범위 밖이면 panic
+impl<T> Sliceable<Range<usize>> for Slice<T> { ... }    // s[a:b] — view 의 view
+impl<T> IntoIterator for Slice<T> { ... }
+impl<T: PartialEq> PartialEq for Slice<T> { ... }
+impl<T: Debug> Debug for Slice<T> { ... }
 ```
+
+`Slice` 는 읽기 전용입니다 (`IndexSet` 없음). 음수 인덱스는 끝에서부터 셉니다 ([refs-lang 3.6.1](../../refs-lang/003-expressions/306-indexing-and-slicing.md#361-인덱싱-arri)).
 
 ### 사용 예
 
@@ -359,8 +396,10 @@ let s3: Slice<i32> = xs[..];            //→ view of all
 
 s1.len();                               //→ 3
 s1.iter().sum::<i32>();                 //→ 9
+xs[2] = 30;
+s1[1];                                  //→ 30 — 리스트의 원소 쓰기가 보임
 
-let owned: List<i32> = s1.to_list();    //→ [2, 3, 4] (새 List)
+let owned: List<i32> = s1.to_list();    //→ [2, 30, 4] (새 List)
 ```
 
 ### variadic args 와의 통합
@@ -379,18 +418,19 @@ fn sum(xs: ...i32) -> i32 {
 sum(1, 2, 3);                //→ 6 (xs: [i32; 3])
 ```
 
-## 2.9.8. `Index` / `IndexSet` / `Slice` 트레잇 매핑
+## 2.9.8. `Index` / `IndexSet` / `Sliceable` 트레잇 매핑
 
 [2.3 ops](203-ops.md) 의 트레잇이 컨테이너의 `[]`, `[i] = v`, `[a:b]` 의 의미를 정의합니다.
 
-| 컨테이너     | `Index<I>`                     | `IndexSet<I, V>`          | `Slice<R>`                              |
+| 컨테이너     | `Index<I>`                     | `IndexSet<I, V>`          | `Sliceable<R>`                          |
 |--------------|--------------------------------|---------------------------|-----------------------------------------|
-| `List<T>`    | `Index<usize>` → T             | `IndexSet<usize, T>`      | `Slice<Range<usize>>`                   |
+| `List<T>`    | `Index<usize>` → T             | `IndexSet<usize, T>`      | `Sliceable<Range<usize>>` → `Slice<T>`  |
 | `Dict<K, V>` | `Index<K>` → V                 | `IndexSet<K, V>`          | **없음**                                |
 | `Set<T>`     | **없음**                       | **없음**                  | **없음**                                |
 | `Tuple<...>` | **컴파일러 직접** (`.0`/.1)    | **컴파일러 직접**         | **없음**                                |
-| `Slice<T>`   | `Index<usize>` → T             | **없음** (read-only view) | `Slice<Range<usize>>`                   |
-| `str`        | **없음** (직접 byte 접근 거부) | **없음**                  | `Slice<Range<usize>>` (UTF-8 안전 검증) |
+| `[T; N]`     | `Index<usize>` → T             | `IndexSet<usize, T>`      | `Sliceable<Range<usize>>` → `Slice<T>` (사본) |
+| `Slice<T>`   | `Index<usize>` → T             | **없음** (read-only view) | `Sliceable<Range<usize>>` → `Slice<T>`  |
+| `str`        | **없음** (직접 byte 접근 거부) | **없음**                  | `Sliceable<Range<usize>>` → `str` (사본, UTF-8 경계 검사) |
 
 `str` 의 `s[10]` 은 UTF-8 멀티바이트 문자의 안전성을 위해 의도적으로 제공되지 않습니다. 따라서 문자 단위 접근에는 `s.chars()` 를, 부분 추출에는 `s[10..15]` (slice 로서 멀티바이트 경계가 검증됩니다) 를 사용합니다.
 

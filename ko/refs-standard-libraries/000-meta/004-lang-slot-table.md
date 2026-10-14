@@ -56,7 +56,7 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 | `into_iterator_trait` | `for x in xs` 의 시작      | `rok::core::iter::IntoIterator` | 2.7  |
 | `index_trait`         | `arr[i]` 읽기              | `rok::core::ops::Index`         | 2.3  |
 | `index_set_trait`     | `arr[i] = v` 쓰기          | `rok::core::ops::IndexSet`      | 2.3  |
-| `slice_trait`         | `s[1:3]` 슬라이싱          | `rok::core::ops::Slice`         | 2.3  |
+| `slice_trait`         | `s[1:3]` 슬라이싱          | `rok::core::ops::Sliceable`     | 2.3  |
 | `display_trait`       | `f"{x}"` 기본 포맷         | `rok::core::fmt::Display`       | 2.10 |
 | `debug_trait`         | `f"{x:?}"` 디버그 포맷     | `rok::core::fmt::Debug`         | 2.10 |
 | `future_trait`        | `await expr` 의 단계 진행  | `rok::core::future::Future`     | 2.20 |

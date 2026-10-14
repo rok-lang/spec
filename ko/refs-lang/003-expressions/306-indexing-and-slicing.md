@@ -35,9 +35,23 @@ matrix[i, j]           →   <typeof(matrix) as Index<(typeof(i), typeof(j))>>::
 
 ### 음수 인덱스
 
-음수 인덱스의 의미 (예컨대 뒤에서부터 세는 Python 식 동작) 는 표준 라이브러리의 `Index` 구현에 달려 있습니다. 언어 자체는 `[-1]` 을 유효한 식 자리로 받아들이고, 이를 `Index<i32>` (또는 음수가 가능한 적절한 타입) 의 호출로 desugar 할 뿐입니다.
+위치로 인덱싱하는 타입 (`List`, `Slice`, 고정 배열 `[T; N]`, 그리고 `str` / `StrBuf` 의 슬라이스 경계) 에서 **부호 있는 정수** 인덱스가 음수이면 끝에서부터 셉니다. 실제 위치는 `len + i` 입니다.
 
-따라서 음수 인덱스의 지원 여부와 동작은 컬렉션마다 달라질 수 있습니다. 예를 들어 `List` 는 음수 인덱스를 지원하지만, `Dict` 는 키 자리이므로 의미가 다르게 해석됩니다.
+```rok
+let xs = [10, 20, 30];
+xs[-1];                // 30
+let i = -2;
+xs[i];                 // 20 — 리터럴뿐 아니라 변수도
+xs[-4];                // panic: index -4 out of bounds for length 3
+```
+
+- 부호 없는 정수 인덱스는 그대로의 위치이며, 끝에서 세는 추가 비용이 없습니다.
+- 타입 없는 음수 리터럴 인덱스는 `isize` 입니다.
+- `len + i < 0` 이면 panic 입니다 (`index -4 out of bounds for length 3`).
+- 키로 인덱싱하는 타입 (`Dict`) 은 영향이 없습니다. 음수 키는 그대로 키입니다.
+- 변환에는 `rok::core::index::index_from_end(i: isize, len: usize) -> usize` 가 쓰입니다.
+
+평가 순서는 대상, 인덱스, (대입이면) 값 순이며 대상은 한 번만 평가됩니다.
 
 ### 경계 검사와 실패
 
@@ -56,44 +70,62 @@ let tail = arr[5:];
 let all = arr[:];
 let stepped = arr[::2];
 let reverse = arr[::-1];
-let neg = arr[-3:-1];
 let full = arr[a:b:s];
+let same = arr[1..3];        // 범위로도 — arr[1:3] 과 같음
+let whole = arr[..];         // arr[:] 과 같음
 ```
 
 대괄호 안에 슬라이스 형태가 들어가면 슬라이싱으로 처리되며, 그 형태는 다음 BNF 를 따릅니다.
 
 ```
 slice_expr  := expr? ':' expr? (':' expr?)?
+              | range_expr                      // arr[a..b], arr[..]
               | expr ',' expr ',' ...           // 콤마면 인덱싱
 ```
 
-기본 형태인 `[start : end]` 는 시작 (포함) 부터 끝 (미포함) 까지의 영역을 의미합니다. 여기에 단계를 더한 `[start : end : step]` 도 쓸 수 있는데, 이때 음수 step 을 주면 역순으로 잘라낼 수 있습니다. 각 부분은 생략할 수 있으며, 생략하면 처음 / 끝 / 1 이 기본값으로 적용됩니다.
+기본 형태인 `[start : end]` 는 시작 (포함) 부터 끝 (미포함) 까지의 영역을 의미합니다. 여기에 단계를 더한 `[start : end : step]` 도 쓸 수 있는데, 음수 step 은 정방향 영역 `start:end` 를 뒤에서부터 걷습니다. `start` 를 생략하면 0, `end` 를 생략하면 길이, `step` 을 생략하면 1 입니다.
+
+부호 있는 정수 경계가 음수이면 인덱싱과 같이 끝에서부터 셉니다 (`len + i`). Python 과 달리 **잘라 맞추지 (clamp) 않습니다**. 조정한 뒤에도 범위를 벗어나거나 `start > end` 이면 panic 입니다.
+
+```rok
+let xs = [1, 2, 3, 4, 5];
+xs[-2:];               // [4, 5]
+xs[1:-1];              // [2, 3, 4]
+xs[::-1];              // [5, 4, 3, 2, 1]
+xs[1:-1:-1];           // [4, 3, 2] — 정방향 영역 1:-1 을 거꾸로 (Python 의 xs[-2:0:-1])
+xs[-10:];              // panic — clamp 하지 않음
+```
+
+`str` / `StrBuf` 의 경계는 바이트 offset 이며, 음수 경계도 바이트 기준입니다. 조정한 위치가 문자 경계가 아니면 panic 입니다.
 
 ### desugar
 
-슬라이싱 역시 트레잇 호출로 desugar 됩니다.
+슬라이싱은 범위와 `Sliceable` 트레잇 ([stdlib 2.3.4](../../refs-standard-libraries/200-core/203-ops.md#234-인덱싱-트레잇)) 호출로 desugar 됩니다.
 
 ```
-arr[a : b]            →   <typeof(arr) as Slice<typeof(a), typeof(b)>>::slice(arr, a, b, 1)
-arr[a : b : s]        →   <typeof(arr) as Slice<typeof(a), typeof(b)>>::slice(arr, a, b, s)
-arr[: b]              →   동일. 생략된 자리는 표준 라이브러리가 정의한 기본값
+arr[a : b]            →   arr.slice(a..b)
+arr[a : b : k]        →   arr.slice(a..b).step(k)
+arr[: b]              →   arr.slice(0..b)
+arr[a :]              →   arr.slice(a..arr.len())      // arr 은 한 번만 평가
+arr[a..b] / arr[..]   →   arr.slice(a..b) / arr.slice(0..arr.len())
 ```
 
-생략된 자리의 기본값 (`start` 가 생략되면 0, `end` 가 생략되면 길이, `step` 이 생략되면 1, 음수 step 일 때 end 가 길이-1 이 되는 등) 은 표준 라이브러리의 `Slice` 구현이 결정합니다.
+`arr` 은 한 번만 평가됩니다. 음수 경계는 `slice` 를 부르기 전에 `len + i` 로 바뀝니다. 범위가 길이를 벗어나거나 `start > end` 이면 panic 입니다. `step(0)` 도 panic 입니다.
 
 ### 슬라이스 결과의 종류
 
-슬라이스 결과는 보통 원본의 뷰 (zero-copy view) 입니다. 즉 원소를 복사하지 않고 영역을 가리키기만 합니다. 정확한 반환 타입은 표준 라이브러리에 정의된 `Slice` 의 연관 타입에 따라 달라지게 됩니다.
+결과 타입은 `Sliceable` 의 연관 타입이 정합니다. 표준 라이브러리에서는 다음과 같습니다 ([stdlib 2.9.7](../../refs-standard-libraries/200-core/209-collections.md#297-slicet--view)).
+
+| 대상                 | 결과                                                                 |
+|----------------------|----------------------------------------------------------------------|
+| `List<T>`            | `Slice<T>` — 리스트 버퍼의 view (원소 쓰기가 보임)                   |
+| `Slice<T>`           | `Slice<T>` — view 의 view                                            |
+| `[T; N]`             | `Slice<T>` — 배열 사본의 view (배열은 값)                            |
+| `str`, `StrBuf`      | 새 `str` — 바이트 사본 (`str` 은 C 문자열로 남아야 하므로), UTF-8 경계 검사 |
 
 ### 슬라이스 대입
 
-슬라이스에 직접 대입하는 것도 가능합니다 (지원 여부는 트레잇 구현에 따라 다릅니다).
-
-```rok
-arr[1:3] = other;
-```
-
-이렇게 하면 해당 영역의 원소들을 한꺼번에 갱신하게 됩니다. desugar 는 별개의 **SliceSet** 트레잇으로 처리되며, 결국 `Slice` 와 `SliceSet` 두 트레잇이 읽기와 쓰기를 분리해서 담당하는 셈입니다.
+슬라이스 대입 (`arr[1:3] = other;`) 은 지원하지 않습니다. 원소를 하나씩 대입하거나 컬렉션 메서드를 씁니다.
 
 ## 3.6.3. 인덱싱과 슬라이싱의 토큰 분리
 
@@ -121,6 +153,6 @@ arr[: : :]          // ERROR: 콜론 셋
 
 ## 3.6.5. 인덱싱과 슬라이싱은 `trait` 의존
 
-언어 자체는 어떤 타입에 인덱싱이나 슬라이싱이 가능한지를 직접 결정하지 않습니다. 표준 라이브러리가 `Index`, `IndexSet`, `Slice`, `SliceSet` 를 적절한 타입에 구현해 두면, 그제서야 `arr[i]` 와 `arr[1:3]` 이 그 타입에 대해 동작하게 됩니다.
+언어 자체는 어떤 타입에 인덱싱이나 슬라이싱이 가능한지를 직접 결정하지 않습니다. 표준 라이브러리가 `Index`, `IndexSet`, `Sliceable` 을 적절한 타입에 구현해 두면, 그제서야 `arr[i]` 와 `arr[1:3]` 이 그 타입에 대해 동작하게 됩니다.
 
 요컨대 언어가 정의하는 것은 대괄호의 토큰 형태와 desugar 규칙까지이고, 그 의미는 라이브러리의 몫이라고 보면 됩니다.

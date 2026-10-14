@@ -17,6 +17,7 @@ TLS 슬롯은 하나의 블록이 아니라, 슬롯마다 런타임이 export �
 | `rok_tls_mutator_state`     | u8   | mutator 상태                            |
 | `rok_tls_worker_id`         | u64  | worker id                               |
 | `rok_tls_task_exec`         | ptr  | 이 스레드에서 실행 중인 task executor (GC 객체, 없으면 0) |
+| `rok_tls_stack_guard`       | [usize; 2] | `[lo, hi)` — 이 범위의 fault 는 이 스레드의 스택 오버플로 (`[0, 0)` 이면 모름, [8.5.7](805-extern-symbols.md#스택-오버플로)) |
 
 **ABI 계약** 은 위 표의 심볼 이름, 타입, 의미입니다. 슬롯 사이의 배치와 offset 은 링커와 LLVM 의 TLS 모델이 정하며 ABI 에 속하지 않습니다.
 
@@ -121,6 +122,7 @@ rok_thread_init():
   rok_tls_mutator_state = RUNNING
   rok_tls_worker_id = (allocated)
   rok_tls_task_exec = 0
+  rok_tls_stack_guard = [guard_lo, guard_hi)   // 스택 아래의 guard 범위
 ```
 
 `rok_thread_init` 은 스케줄러가 worker 시작 시 호출하며, 이 함수는 [extern 심볼](805-extern-symbols.md) 의 일부에 해당합니다.
