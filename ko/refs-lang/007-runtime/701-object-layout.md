@@ -9,7 +9,7 @@
 ```
 offset  0 :  type_id    u32       // 타입 식별자
 offset  4 :  gc_flags   u32       // GC 상태 비트
-offset  8 :  gc_word    u64       // forwarding 포인터 또는 LOS 크기
+offset  8 :  gc_word    u64       // 객체 총 크기 (evacuation 중에는 새 주소)
 offset 16 :  payload ...           // 객체의 실제 필드들
 ```
 
@@ -41,7 +41,7 @@ GC 상태를 나타내는 비트들입니다.
 
 ### `gc_word` (offset 8, 8 bytes)
 
-상황에 따라 두 가지 의미를 갖습니다. 일반 객체, 즉 [Immix](../000-meta/007-glossary.md#immix) 공간에 있는 객체의 경우에는 evacuate 시의 forwarding 포인터로 쓰이며, `forwarded` 비트가 켜지면 이 슬롯이 새 위치를 가리키게 됩니다. 한편 LOS 객체에서는 객체의 크기, 즉 페이로드의 바이트 수를 담습니다. LOS 는 객체마다 크기가 다르기 때문에 헤더에 직접 저장해 둡니다.
+객체의 총 크기 (헤더 포함) 입니다. evacuation 중 옮겨진 객체는 `forwarded` 비트가 켜지고 이 슬롯이 새 위치를 가리킵니다 ([8.1.4](../008-abi/801-object-header-abi.md#814-gc_word-offset-8-u64-또는-ptr)).
 
 ### `payload` (offset 16+)
 
@@ -65,22 +65,11 @@ GC 는 객체를 다음 네 공간 중 하나에 배치합니다.
 
 대부분의 일반 객체가 사는 공간으로, Immix mark-region 알고리듬을 사용합니다.
 
-OS 로부터는 32 KB [block](../000-meta/007-glossary.md#block-블록) 단위로 메모리를 받아오며, 각 block 은 다시 128 B line 단위로 분할됩니다. 기본 동작은 mark-sweep 이고, 단편화가 심할 때에 한해 opportunistic evacuation 으로 복사가 일어납니다. 또한 sticky mark-bit 을 통해 세대를 추적합니다.
-
-자세한 알고리듬은 [GC 알고리듬](703-gc-algorithm.md) 에서 정의합니다.
+32 KiB [block](../000-meta/007-glossary.md#block-블록) 과 128 B line 으로 나눕니다. mark-sweep 이 기본이고, full 수집이 단편화된 block 의 객체를 옮길 수 있습니다 (opportunistic evacuation). 세대는 sticky mark-bit 으로 나눕니다 ([7.3](703-gc-algorithm.md)).
 
 ### 3. Large Object Space (LOS)
 
-특정 크기 이상의 객체는 이동시키지 않고 별도의 공간에 둡니다.
-
-| 비트 폭 | LOS 임계 |
-|---------|----------|
-| 64-bit  | ≥ 8 KB   |
-| 32-bit  | ≥ 2 KB   |
-
-이 공간은 non-moving mark-sweep 으로 동작하므로 수집은 수행하지만 evacuate 는 하지 않습니다. 한 객체가 한 page 에 대응되며, mmap 으로 직접 할당됩니다. 또한 `gc_flags` 의 `large` 비트가 켜집니다.
-
-큰 객체를 evacuate 하면 복사 비용이 막대해지기 때문에, 큰 객체는 제자리에 그대로 두고 mark-sweep 만 수행하는 것입니다.
+8 KiB 이상이거나 8 바이트보다 큰 정렬을 요구하는 객체는 LOS 에 하나씩 따로 할당하며, `gc_flags` 의 `LARGE` 비트를 켭니다. LOS 는 mark-sweep 으로 수집하고 객체를 옮기지 않습니다. old LOS 객체는 card table 을 가집니다 ([7.4.2](704-barriers-and-roots.md#742-write-barrier-incremental-update)).
 
 ### 4. 고정된 객체 (FFI pinned)
 
@@ -90,18 +79,14 @@ OS 로부터는 32 KB [block](../000-meta/007-glossary.md#block-블록) 단위�
 
 ## 7.1.3. 공간 사이의 이동
 
-GC 는 다음과 같은 경로로 객체를 이동시킵니다.
-
 ```
 TLAB (할당) → Immix
-Immix → Immix (evacuate, 단편화 시)
-Immix → LOS (큰 객체 승급 — 이론상 가능, 일반적으론 처음부터 LOS)
-Immix / LOS → 고정 (pin 호출 시, 제자리)
-고정 → Immix / LOS (unpin 호출 시)
-Immortal — 진입 / 이동 없음
+Immix → Immix         (full 수집의 evacuation)
+Immix / LOS ↔ 고정    (pin / unpin, 제자리)
+Immortal              (이동 없음)
 ```
 
-대부분의 객체는 자기 공간 안에 머무르며 사는 동안 이동하지 않습니다.
+객체는 공간을 옮겨 다니지 않습니다. 주소가 바뀌는 것은 evacuation 뿐입니다.
 
 ## 7.1.4. 헤더 비트 폭의 동기
 

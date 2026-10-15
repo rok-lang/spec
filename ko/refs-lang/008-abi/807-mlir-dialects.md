@@ -38,11 +38,9 @@ LLVM IR
 네이티브 바이너리
 ```
 
-본 ABI 블록에서는 이 가운데 rok-mir 에서 표준 MLIR 텍스트로 가는 단계의 lowering 규칙을 정의하고 있습니다.
+본 ABI 블록에서는 이 가운데 rok-mir 에서 표준 MLIR 텍스트로 가는 단계의 lowering 규칙을 정의합니다.
 
 ## 8.7.3. 다이얼렉트 별 핵심 op
-
-각 다이얼렉트에서 rok 이 실제로 사용하는 핵심 op 들을 차례로 살펴보겠습니다.
 
 ### `func`
 
@@ -105,7 +103,7 @@ memref.store %v, %ref[] : memref<i32>
 %loaded = memref.load %ref[] : memref<i32>
 ```
 
-객체의 필드 슬롯을 표현할 때 사용합니다. GC 객체는 heap memref 형태로 lower 되며, 자세한 내용은 [lowering 타입](808-lowering-types.md) 문서에서 별도로 정의하고 있습니다.
+객체의 필드 슬롯을 표현할 때 사용합니다. GC 객체는 heap memref 형태로 lower 되며, 자세한 내용은 [lowering 타입](808-lowering-types.md) 문서에서 별도로 정의합니다.
 
 ### `index`
 
@@ -147,7 +145,7 @@ coroutine 과 저수준 intrinsic 등은 `llvm` 다이얼렉트의 영역에 속
 
 같은 의미를 여러 다이얼렉트로 표현할 수 있는 경우에는 `scf` 나 `arith` 같은 고차원 다이얼렉트를 우선해서 사용합니다. `llvm` 은 그것들로 도저히 표현할 수 없을 때에만 꺼내 쓰는 것이 원칙입니다.
 
-이러한 우선순위를 따르면 MLIR 의 표준 패스가 한층 더 효과적으로 최적화를 수행할 수 있게 됩니다.
+이러한 우선순위를 따르면 MLIR 의 표준 패스가 한층 더 효과적으로 최적화를 수행할 수 있습니다.
 
 ## 8.7.5. 라이브러리 / 가속 영역 다이얼렉트
 
@@ -190,7 +188,7 @@ llvm.mlir.global thread_local @rok_tls_tlab_cursor(0 : i64) : i64
 %flag = llvm.load %flag_ptr : !llvm.ptr -> i8
 ```
 
-타깃별 TLS 명령어로의 변환은 LLVM 백엔드가 자동으로 lower 해 줍니다.
+타깃별 TLS 명령어로의 변환은 LLVM 백엔드가 자동으로 lower 합니다.
 
 ## 8.7.8. 각 단계의 책임
 
@@ -209,4 +207,4 @@ clang/lld:      LLVM IR → 네이티브  (외부 도구)
 
 `tests/integration/` 아래의 end-to-end 테스트는 사용자가 작성한 .rok 파일을 빌드해서 실행한 결과를 가지고 검증을 수행합니다.
 
-이 검증을 통해 본 블록에서 정의한 lowering 규칙이 정확하다는 점을 보증하게 됩니다.
+이 검증을 통해 본 블록에서 정의한 lowering 규칙이 정확하다는 점을 보증합니다.

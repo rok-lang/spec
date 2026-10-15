@@ -1,6 +1,6 @@
 # 1.4. raw allocation — `alloc` / `dealloc` / `realloc`
 
-`rok::bare::alloc` 모듈은 GC 가 관여하지 않는 외부 영역에서 메모리를 직접 할당하고 해제하기 위한 API 를 제공합니다. rok 의 일반 코드는 GC 가 알아서 관리해 주지만, FFI 경계에서 C 측에 메모리를 넘겨야 하거나 large buffer, mmap 처럼 GC 가 다루기에 적절치 않은 자리에서는 이 모듈을 사용하게 됩니다.
+`rok::bare::alloc` 모듈은 GC 가 관여하지 않는 외부 영역에서 메모리를 직접 할당하고 해제하기 위한 API 를 제공합니다. rok 의 일반 코드는 GC 가 알아서 관리해 주지만, FFI 경계에서 C 측에 메모리를 넘겨야 하거나 large buffer, mmap 처럼 GC 가 다루기에 적절치 않은 자리에서는 이 모듈을 사용합니다.
 
 ## 1.4.1. API
 

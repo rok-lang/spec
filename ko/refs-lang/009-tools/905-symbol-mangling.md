@@ -4,7 +4,7 @@
 
 ## 9.5.1. 형태
 
-심볼의 전체적인 문법은 다음과 같이 정리할 수 있습니다.
+심볼의 전체적인 문법은 다음과 같습니다.
 
 ```
 mangled_symbol  ::= "_Y" pkg_hash "_" mod_path "_" item_name "_" type_hash
@@ -32,11 +32,7 @@ _Y3f8a1c2b_std_vec_push_a7c91d8e44b2f190
    +-- pkg hash (8 chars)
 ```
 
-> 16 chars, hash of generic args: 16 글자, 제네릭 인자 hash. name: 이름. path: 경로. pkg hash: 패키지 해시.
-
 ## 9.5.2. 부분별 의미
-
-각 부분이 어떤 역할을 하는지 차례대로 살펴보겠습니다.
 
 ### `_Y`: rok 심볼 prefix
 
@@ -97,11 +93,9 @@ call id(42i32)   → typehash = SHA-256("(i32)")[0..16]
 call id(3.14f64) → typehash = SHA-256("(f64)")[0..16]
 ```
 
-> call: 호출.
-
 ### concrete `fn` 의 typehash
 
-제네릭 인자를 받지 않는 함수의 경우 typehash 를 빈 문자열로 두거나 아예 생략하게 됩니다.
+제네릭 인자를 받지 않는 함수의 경우 typehash 를 빈 문자열로 두거나 아예 생략합니다.
 
 ```
 _Y3f8a1c2b_geom_compute_main           (no typehash)
@@ -109,9 +103,7 @@ or
 _Y3f8a1c2b_geom_compute_main_           (empty typehash)
 ```
 
-> no typehash: typehash 없습니다. empty typehash: 빈 typehash.
-
-자세한 표기 방식은 `rokc` 가 정해 주게 됩니다. 본 사양에서는 제네릭 인자가 없을 때 typehash 를 명확히 식별할 수 있는 형태일 것까지만 요구하고 있습니다.
+자세한 표기 방식은 `rokc` 가 정해 주게 됩니다. 본 사양에서는 제네릭 인자가 없을 때 typehash 를 명확히 식별할 수 있는 형태일 것까지만 요구합니다.
 
 ## 9.5.3. 비교: Rust `_ZN`
 
@@ -171,11 +163,11 @@ _Y + 8 + _ + path (수십) + _ + 이름 (수~수십) + _ + 16
 ≈ 30 ~ 80 글자
 ```
 
-매우 큰 path 와 깊은 [generic](../000-meta/007-glossary.md#generic--제네릭) 이 결합되는 경우 100 글자를 넘어갈 수도 있습니다. 디버거나 도구들은 이 정도 길이는 무리 없이 처리해 주게 됩니다 (보통은 2KB 이하를 권장하고 있습니다).
+매우 큰 path 와 깊은 [generic](../000-meta/007-glossary.md#generic--제네릭) 이 결합되는 경우 100 글자를 넘어갈 수도 있습니다. 디버거나 도구들은 이 정도 길이는 무리 없이 처리해 주게 됩니다 (보통은 2KB 이하를 권장합니다).
 
 ## 9.5.7. 충돌 회피: typehash 의 안정성
 
-제네릭 인자의 타입 튜플은 결정론적인 방식으로 직렬화한 뒤 SHA-256 으로 해싱하게 됩니다.
+제네릭 인자의 타입 튜플은 결정론적인 방식으로 직렬화한 뒤 SHA-256 으로 해싱합니다.
 
 ```
 타입 튜플 → canonical 직렬화 → SHA-256 → 앞 16 글자

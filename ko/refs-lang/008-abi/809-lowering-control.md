@@ -298,9 +298,9 @@ cf.cond_br %overflow, ^slow, ^fast
   ; ...
 ```
 
-위 fast path 에서 `%24` 는 객체 총 크기, `%8` 은 정렬, `%TYPE_ID_POINT` 는 type_id 상수를 의미합니다. fast path 는 TLAB 의 bump 포인터를 올린 뒤 헤더의 `type_id` 와 `gc_word` (= 크기) 를 인라인으로 씁니다. 객체를 옮기지 않는 수집기에서는 [8.1.4](801-object-header-abi.md#814-gc_word-offset-8-u64-또는-ptr) 가 `gc_word` 의 이 쓰임을 허용합니다.
+위 fast path 에서 `%24` 는 객체 총 크기, `%8` 은 정렬, `%TYPE_ID_POINT` 는 type_id 상수를 의미합니다. fast path 는 TLAB 의 bump 포인터를 올린 뒤 헤더의 `type_id` 와 `gc_word` (= 크기, [8.1.4](801-object-header-abi.md#814-gc_word-offset-8-u64-또는-ptr)) 를 인라인으로 씁니다.
 
-slow path 의 경우에는 `rok_gc_alloc_slow` 를 호출하게 됩니다.
+slow path 의 경우에는 `rok_gc_alloc_slow` 를 호출합니다.
 
 ### 헤더 채우기
 
@@ -314,7 +314,7 @@ llvm.store %TYPE_ID_POINT, %hdr_type_addr : i32
 ; gc_flags 초기값 0
 ; ... (slow path 가 채울 수도)
 
-; gc_word = 객체 크기 (객체를 옮기지 않는 수집기, 8.1.4)
+; gc_word = 객체 크기 (8.1.4)
 %hdr_word_addr = llvm.getelementptr %p[0, 2] : ...
 llvm.store %24, %hdr_word_addr : i64
 
@@ -357,8 +357,6 @@ cf.cond_br %need_log, ^log, ^store
 - `rok_gc_wb_slow` 는 safepoint 가 아닙니다. barrier 와 store 사이에 수집이 끼어들지 않습니다.
 - 방금 할당한 객체의 초기화, `static` 에의 store, raw `Ptr<T>` 메모리, 참조가 아닌 atomic 에는 barrier 를 넣지 않습니다.
 
-동시 수집을 하는 수집기는 Yuasa SATB 나 Dijkstra-style 같은 다른 barrier 를 쓸 수 있습니다. 어느 쪽이든 저장하는 값의 헤더를 읽지 않아야 합니다.
-
 ## 8.9.11. Safepoint poll
 
 [Safepoint 프로토콜](804-safepoint.md) 도 살펴보겠습니다.
@@ -379,11 +377,11 @@ cf.cond_br %need_yield, ^slow, ^cont
   ; ... 계속 ...
 ```
 
-컴파일러는 함수의 진입 지점과 루프의 back-edge 에 위 코드를 emit 해 줍니다.
+컴파일러는 함수의 진입 지점과 루프의 back-edge 에 위 코드를 emit 합니다.
 
 ## 8.9.12. Shadow stack frame
 
-[배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack) 을 함께 참고해 주세요. 컴파일러는 LLVM 의 `gc "shadow-stack"` 전략이나 `llvm.gcroot` 를 쓰지 않고, frame 의 link / unlink 를 직접 emit 합니다. LLVM 의 체인 머리 `llvm_gc_root_chain` 은 프로세스 전역 하나뿐이라 thread 별 체인을 만들 수 없기 때문입니다.
+[배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack) 을 함께 참고합니다. 컴파일러는 LLVM 의 `gc "shadow-stack"` 전략이나 `llvm.gcroot` 를 쓰지 않고, frame 의 link / unlink 를 직접 emit 합니다. LLVM 의 체인 머리 `llvm_gc_root_chain` 은 프로세스 전역 하나뿐이라 thread 별 체인을 만들 수 없기 때문입니다.
 
 GC 참조 word 가 2 개 (`%x`, `%y`) 인 함수의 예입니다. 슬롯에는 word 의 주소를 넣으므로, 변수 대입은 평소처럼 `%x` 에 store 하는 것으로 끝납니다.
 
@@ -450,6 +448,4 @@ arr[5]
 - write barrier (필요 시): load / and / icmp / cond_br + (slow) call (4 ~ 6 명령어)
 - safepoint poll (필요 시): load / icmp / cond_br (3 명령어)
 
-작은 객체의 할당과 채우기는 대략 10 ~ 20 명령어 정도가 소요됩니다. 이 정도의 비용이 자체 GC 와 동시 수집의 일반적인 오버헤드라고 보면 됩니다.
-
-이에 더해 LLVM 의 최적화 (인라인, mem2reg, simplification) 가 일부 명령어를 추가로 제거해 줍니다.
+작은 객체의 할당과 채우기는 대략 10 ~ 20 명령어입니다. LLVM 최적화 (인라인, mem2reg, simplification) 가 일부를 더 지웁니다.

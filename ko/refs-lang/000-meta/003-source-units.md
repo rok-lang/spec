@@ -8,15 +8,13 @@ rok 의 컴파일 단위는 **패키지**입니다. 패키지는 파일 시스�
 
 ### 실행 패키지: `main.rok`
 
-먼저 실행 패키지를 살펴보겠습니다. 루트 디렉토리에 `main.rok` 가 있으면 실행 패키지로 인식됩니다.
+루트 디렉토리에 `main.rok` 가 있으면 실행 패키지로 인식됩니다.
 
 ```
 my_app/
 ├── main.rok          <- entry point
 ├── ...               <- other files
 ```
-
-> entry point: 진입점. other files: 부속 파일들.
 
 `main.rok` 는 진입 모듈로서, 명시적인 `fn main` 이나 top-level 문 가운데 한 가지 형태로 진입점을 제공합니다. 진입점의 정확한 형태와 top-level 문의 의미는 [4.16 진입점](../004-functions/416-entry-point.md) 에서 정의합니다. 패키지에 속하지 않은 단일 파일을 실행하면 그 파일이 익명 패키지의 `main.rok` 로 취급됩니다 ([4.16.8](../004-functions/416-entry-point.md#4168-단일-파일-실행)).
 
@@ -30,13 +28,11 @@ my_lib/
 ├── ...
 ```
 
-> library root: 라이브러리 루트.
-
 라이브러리 패키지에는 진입점이 없으며, 외부에서 불러서 쓰는 정의 묶음의 역할을 합니다. `lib.rok` 를 포함한 `main.rok` 이외의 모든 모듈 파일은 항목만 담을 수 있고 top-level 문을 둘 수 없으므로, 모듈을 가져오는 일은 어떤 코드도 실행하지 않습니다 ([4.16.6](../004-functions/416-entry-point.md#4166-모듈은-정의-전용)). 또한 `main.rok` 와 `lib.rok` 는 한 패키지에서 동시에 존재할 수 없습니다.
 
 ## 0.3.2. 파일과 모듈
 
-이제 패키지 내부의 모듈 구성을 살펴보겠습니다. 패키지 안의 추가 모듈은 두 형태 중 하나를 택합니다.
+패키지 안의 추가 모듈은 두 형태 중 하나를 택합니다.
 
 ```
 foo.rok                <- single-file module (no submodules)
@@ -50,8 +46,6 @@ foo/                   <- foo's submodules
 ├── bar.rok                foo::bar submodule
 └── baz.rok                foo::baz submodule
 ```
-
-> single-file module: 단일 파일 모듈 (서브모듈 없음). module body: 모듈 본체. foo's submodules: foo 의 서브모듈들.
 
 폴더 형태에서는 본체 파일 (`foo.rok`) 과 같은 이름의 폴더 (`foo/`) 가 함께 놓입니다. 이때 본체 안에 `mod 이름;` 으로 선언된 서브모듈만 폴더 안의 파일과 매핑됩니다. Rust 2018+ 와 같은 규칙이며, 자세한 매핑 규칙은 [모듈](../005-modules/504-modules.md) 에서 정의합니다.
 

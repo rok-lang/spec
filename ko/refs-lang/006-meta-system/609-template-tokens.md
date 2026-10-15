@@ -13,7 +13,7 @@ template_token  ::= "@" identifier
                   | "@" identifier "(" <args> ")" "{" <body> "}"
 ```
 
-모든 템플릿 토큰은 `@` 토큰 ([구두점과 연산자 토큰](../001-lexical/110-punctuation-and-operator-tokens.md)) 으로 시작합니다. 대표적인 예를 살펴보면 다음과 같습니다.
+모든 템플릿 토큰은 `@` 토큰 ([구두점과 연산자 토큰](../001-lexical/110-punctuation-and-operator-tokens.md)) 으로 시작합니다. 대표적인 예는 다음과 같습니다.
 
 ```
 @Self                   대상 타입 이름
@@ -46,7 +46,7 @@ template_token  ::= "@" identifier
 | `@attribute`                                             | 사용처의 attribute 인자 (attribute 전용)    | 6.9.7 |
 | `<이름 토큰>.as_str()`                                   | 이름의 문자열 리터럴                        | 6.9.3 |
 
-`@where_for_fields(pred)` 는 예약된 이름이며 아직 제공하지 않습니다. 목록에 없는 `@이름` 은 에러입니다.
+목록에 없는 `@이름` 은 에러입니다. `@where_for_fields` 는 예약된 이름이며, 써도 에러입니다.
 
 ## 6.9.2. 타입 컨텍스트
 
@@ -158,7 +158,7 @@ fn typed<T>() where T == @field.type { ... }
 
 ### `@for_variants { ... }`
 
-`@for_variants` 는 `enum` 의 각 variant 에 대해 블록을 반복해 줍니다.
+`@for_variants` 는 `enum` 의 각 variant 에 대해 블록을 반복합니다.
 
 ```rok
 @for_variants {
@@ -261,7 +261,7 @@ variant 안의 필드들에 대해 반복할 때는 `@for_variant_fields` 를 �
 
 ### `@where_all(Trait)`
 
-`@where_all` 은 모든 필드 타입이 `Trait` 를 충족해야 한다는 조건을 자동 where 절로 추가해 줍니다.
+`@where_all` 은 모든 필드 타입이 `Trait` 를 충족해야 한다는 조건을 자동 where 절로 추가합니다.
 
 ```rok
 #[impl_derive(Eq)] pub @derive {
@@ -278,10 +278,6 @@ variant 안의 필드들에 대해 반복할 때는 `@for_variant_fields` 를 �
 ```
 
 이렇게 하면 생성되는 `impl` 에는 대상 타입의 타입 파라미터마다 `T: Eq` 가 추가됩니다. 구체 필드 타입에 대한 절은 넣지 않으며, 그 필드들이 `Eq` 를 구현하는지는 생성된 본문의 타입 검사가 봅니다. 템플릿의 `impl` 뒤에는 대상 타입의 제네릭 파라미터가 들어가며, 바운드는 `@where_all` 이 붙인 것뿐입니다.
-
-### `@where_for_fields(pred)` (예약)
-
-특정 조건의 필드에만 where 절을 적용하는 토큰으로 예약되어 있으며, 아직 제공하지 않습니다.
 
 ## 6.9.6. derive_attribute 토큰
 

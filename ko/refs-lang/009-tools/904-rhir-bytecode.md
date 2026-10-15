@@ -6,7 +6,7 @@
 
 [AOT 빌드 파이프라인](902-aot-pipeline.md) 의 단형화는 호출 지점의 구체 타입을 기준으로 [specialize](../000-meta/007-glossary.md#specialize) 합니다. 따라서 다른 패키지가 한 패키지의 [generic](../000-meta/007-glossary.md#generic--제네릭) `fn` 을 호출하면 그 호출 지점에서 specialize 가 일어나야 합니다. [concrete fn](../000-meta/007-glossary.md#concrete-fn--generic-fn) 의 obj 만으로는 부족하므로, 다운스트림이 읽을 인터페이스를 따로 둡니다.
 
-현재 구현은 제네릭을 AST 에서 단형화합니다. 그래서 RHIR 의 body 는 HIR 트리가 아니라 **단형화의 입력, 곧 잘라 낸 패키지 소스** 이며, 다운스트림의 파서가 그 리더 역할을 합니다.
+단형화의 입력은 AST 입니다. 그래서 RHIR 의 body 는 **잘라 낸 패키지 소스** 이며, 다운스트림의 파서가 그것을 읽습니다.
 
 ## 9.4.2. 외부 라이브러리 미사용
 
@@ -38,8 +38,6 @@ RHIR file (little-endian):
 +-----------------------------------+
 ```
 
-> little-endian: 리틀 엔디언. 16 bytes fixed: 16 바이트 고정. mount name: 마운트 이름. package hash: 패키지 해시. source dir: 소스 디렉토리.
-
 `str` 은 PrefixVarInt 길이 (9.4.5) 뒤의 UTF-8 바이트입니다. string / type / item section 은 두지 않습니다.
 
 ## 9.4.4. Header 와 Producer
@@ -47,11 +45,11 @@ RHIR file (little-endian):
 | 필드          | 크기 | 의미                                                         |
 |---------------|------|--------------------------------------------------------------|
 | `magic`       | 4    | `"RHIR"`                                                     |
-| `version`     | u32  | 포맷 버전. 현재 `1`. 레이아웃이나 body 의 내용이 바뀌면 올림 |
+| `version`     | u32  | 포맷 버전 (`1`). 레이아웃이나 body 의 내용이 바뀌면 올림     |
 | `flags`       | u32  | 예약 (0)                                                     |
 | `body_offset` | u32  | body 의 시작 offset                                          |
 
-producer 문자열은 `rokc <버전> (<compiler id>)` 입니다. compiler id 는 그 `rokc` 실행 파일을 가리키는 값이며, 현재 구현은 실행 파일의 크기와 수정 시각 (`<size>-<mtime>`, 16 진수) 을 씁니다.
+producer 문자열은 `rokc <버전> (<compiler id>)` 입니다. compiler id 는 그 `rokc` 실행 파일의 크기와 수정 시각 (`<size>-<mtime>`, 16 진수) 입니다.
 
 ## 9.4.5. VarInt 인코딩
 
@@ -86,7 +84,7 @@ body 는 패키지의 **모든 소스 파일** 을 (경로, 텍스트) 쌍으로
 라이브러리를 미리 빌드하면 프로그램 전체를 한 번에 보지 못하므로, 다음 규칙으로 패키지 사이를 맞춥니다.
 
 - **`any` tag.** `any` 슬롯의 tag 는 타입 이름의 31 비트 해시입니다. 그래서 따로 빌드한 패키지가 같은 타입에 같은 tag 를 씁니다.
-- **`any` seed.** 라이브러리가 `any` 에 넣는 타입을 프로그램이 알도록, 라이브러리는 그 타입들을 쓰는 작은 rok 함수를 body 끝에 덧붙입니다. 프로그램의 닫힌 세계 `any` dispatcher 가 이 타입들도 포함하게 됩니다.
+- **`any` seed.** 라이브러리가 `any` 에 넣는 타입을 프로그램이 알도록, 라이브러리는 그 타입들을 쓰는 작은 rok 함수를 body 끝에 덧붙입니다. 프로그램의 닫힌 세계 `any` dispatcher 가 이 타입들도 포함합니다.
 - **dispatcher 심볼.** `any` dispatcher 는 `rok.any.<hash>` 심볼이며, 라이브러리 안에서는 weak, 프로그램에서는 strong 으로 정의됩니다. 링크하면 프로그램의 것이 이깁니다.
 - **GC type id.** 패키지마다 GC type id 구간 (9.4.6) 을 따로 가집니다. 한 프로그램에서 두 패키지의 구간이 겹치면 에러입니다.
 - **메서드 심볼.** 의존 패키지의 메서드는 안정된 경로 `<모듈>::<타입>.<메서드>[__by_<트레잇>]` 으로 맹글링됩니다 ([9.5](905-symbol-mangling.md)).
@@ -109,4 +107,4 @@ body 는 패키지의 **모든 소스 파일** 을 (경로, 텍스트) 쌍으로
 
 RHIR 은 같은 `rokc` 가 만든 것만 읽습니다 (9.4.9). 포맷이 바뀌면 `version` 을 올리며, 버전이 다르면 다시 빌드해야 합니다. [개요](../008-abi/README.md) 의 안정성 정책을 적용합니다.
 
-표준 라이브러리 (`rok::core` / `std` / `bare`) 는 미리 빌드하지 않고 빌드마다 소스로 bootstrap 합니다.
+표준 라이브러리는 RHIR 로 배포하지 않습니다 ([9.3.6](903-package-archive.md#936-표준-라이브러리)).

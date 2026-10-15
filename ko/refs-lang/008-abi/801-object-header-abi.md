@@ -56,7 +56,7 @@ bit  5  : IMMORTAL   (수집 안 함)
 bit  6 ~ 31 : 예약 / GC 구현 결정
 ```
 
-현재 구현은 구현 예약 범위의 세 비트를 씁니다 ([7.4.2](../007-runtime/704-barriers-and-roots.md#742-write-barrier-incremental-update)).
+구현 예약 범위에서 다음 세 비트를 씁니다 ([7.4.2](../007-runtime/704-barriers-and-roots.md#742-write-barrier-incremental-update)).
 
 | 비트 | 이름       | 의미                                                                                       |
 |------|------------|--------------------------------------------------------------------------------------------|
@@ -64,50 +64,17 @@ bit  6 ~ 31 : 예약 / GC 구현 결정
 | 7    | `CARDED`   | 8 KiB 이상의 old 객체에 `UNLOGGED` 대신 켬. barrier 가 512 B card 를 dirty 로 표시. card table 포인터는 헤더 바로 앞 word |
 | 8    | `NOMOVE`   | 주소를 수로 쓴 객체. 수명과 무관하게 영구히 옮기지 않음. `rok_task_key_*` ([8.5](805-extern-symbols.md)) 가 켬 |
 
-비트 검사와 설정은 atomic 연산이 필요한 경우 `u32` atomic 으로 수행됩니다 (mark / sweep 동시 수집 시).
-
 ### atomic 요구
 
-각 비트별 atomic 요구사항은 다음과 같습니다.
-
-| 연산                | atomic 필요?                                           |
-|---------------------|--------------------------------------------------------|
-| `MARK` set / read   | yes. concurrent mark 중                                |
-| `STICKY` set / read | sticky 비트 갱신은 mark 후 STW 단계에서. non-atomic OK |
-| `FORWARDED` set     | yes. concurrent evacuate 중                            |
-| 다른 비트           | 보통 non-atomic OK                                     |
-
-자세한 메모리 모델은 GC 구현이 결정하며, 본 사양은 어떤 비트가 어디에 위치하는지만 정의합니다.
+수집은 STW 안에서 진행하므로 `MARK` / `STICKY` / `FORWARDED` 는 non-atomic 으로 다룹니다. mutator 끼리 경쟁하는 `UNLOGGED` 의 해제는 atomic `fetch_and` 입니다 ([7.4.2](../007-runtime/704-barriers-and-roots.md#742-write-barrier-incremental-update)).
 
 ## 8.1.4. `gc_word` (offset 8, u64 또는 ptr)
 
-`gc_word` 는 상황에 따라 두 가지 의미를 갖습니다.
+`gc_word` 는 객체의 총 크기 (헤더 16 바이트 포함, 8 의 배수) 입니다. Immix 객체와 LOS 객체에 같이 적용되며, 할당 fast path 가 인라인으로 씁니다 ([8.9.9](809-lowering-control.md#899-gc-alloc-fast--slow-path)).
 
-| `LARGE` 비트                                                       | `gc_word` 의미                          |
-|--------------------------------------------------------------------|-----------------------------------------|
-| 0 ([Immix](../000-meta/007-glossary.md#immix) 객체)                | forwarding 포인터 (or 0 / self-pointer) |
-| 1 ([LOS](../000-meta/007-glossary.md#los-large-object-space) 객체) | 객체 크기 (페이로드 바이트 수)          |
+full 수집의 evacuation 중에만 옮겨진 객체의 `FORWARDED` 비트가 켜지고 `gc_word` 가 새 주소를 가리킵니다. 같은 수집 안에서 모든 참조를 고친 뒤 ([7.3.1](../007-runtime/703-gc-algorithm.md#731-immix-mark-region)) 옛 자리는 버리므로, mutator 는 forwarding 을 보지 않습니다.
 
-### Immix 객체의 forwarding
-
-객체를 옮기지 않는 수집기에게 `gc_word` 는 자유 영역이며, 수집기가 원하는 용도로 써도 됩니다. 예를 들어 현재 구현 (non-moving mark-region) 은 모든 객체의 `gc_word` 에 객체 크기를 두고, 할당 fast path 가 그것을 인라인으로 씁니다 ([8.9.9](809-lowering-control.md#899-gc-alloc-fast--slow-path)). block 안의 객체는 `type_id` 0 을 갖지 않으므로, 수집기는 0 을 빈 자리의 표시로 쓸 수 있습니다. 아래 forwarding / LOS size 의미는 Immix 설계 기준입니다.
-
-Immix 객체가 evacuate 되지 않은 경우에는 `FORWARDED` 비트가 0 이고 `gc_word` 가 0 (또는 self-pointer 로, 구현에 따라 결정됩니다) 입니다. evacuate 된 경우에는 `FORWARDED` 비트가 1 이 되고, `gc_word` 에 새 위치의 포인터가 8 바이트 정렬로 저장됩니다.
-
-mutator 가 객체에 접근할 때에는 다음과 같은 절차를 따릅니다.
-
-```
-load forwarded_bit
-if forwarded:
-    load new_ptr from gc_word
-    redirect access
-else:
-    access here
-```
-
-### LOS 객체의 size
-
-LOS 객체에서 `gc_word` 는 객체의 payload 크기를 바이트 단위로 담고 있으며, 헤더는 포함하지 않습니다. 64 비트 unsigned 값으로 little-endian 형식으로 저장되며, 객체의 총 크기는 16 (헤더) + gc_word 로 계산됩니다.
+block 안의 객체는 `type_id` 0 을 갖지 않습니다. 수집기는 0 을 빈 자리의 표시로 씁니다.
 
 ### 수집기 전용 정보
 

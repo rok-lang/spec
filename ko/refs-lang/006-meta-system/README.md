@@ -1,6 +1,6 @@
 # 6. 메타 시스템 개요
 
-본 블록에서는 rok 의 메타 시스템, 즉 속성 (attribute), 매직 (magic), 메타 [블록](../000-meta/007-glossary.md#block-블록) (meta block) 을 정의합니다. 이 시스템은 [언어와 표준 라이브러리의 경계](../000-meta/004-language-vs-standard-libraries.md) 모델을 가능하게 하는 핵심 메커니즘으로서, 언어가 작은 코어를 제공하고 표준 라이브러리가 그 의미를 채워 넣는 형태로 동작하게 됩니다.
+본 블록에서는 rok 의 메타 시스템, 즉 속성 (attribute), 매직 (magic), 메타 [블록](../000-meta/007-glossary.md#block-블록) (meta block) 을 정의합니다. 이 시스템은 [언어와 표준 라이브러리의 경계](../000-meta/004-language-vs-standard-libraries.md) 모델을 가능하게 하는 핵심 메커니즘으로서, 언어가 작은 코어를 제공하고 표준 라이브러리가 그 의미를 채워 넣는 형태로 동작합니다.
 
 ## 목차
 
@@ -28,10 +28,6 @@ meta block — user-defined derive / attribute definitions
   └── template token (@Self, @field, ...)
 ```
 
-> attribute: 속성. plain attribute: 일반 속성. magic: 매직. meta block: 메타 블록. template token: 템플릿 토큰. hints / metadata for compiler / tools: 컴파일러 / 도구에 힌트 / 메타데이터 부착. channel where the library binds to language meaning: 라이브러리가 언어 의미와 결합되는 통로. user-defined derive / attribute definitions: 사용자 정의 derive / attribute 의 정의.
-
-각 단계가 맡는 역할은 다음에서 차례로 살펴보겠습니다.
-
 ### 속성 (attribute)
 
 속성은 다음과 같은 모습을 가집니다.
@@ -47,11 +43,11 @@ fn fast() { ... }
 fn linux_only() { ... }
 ```
 
-속성은 `#[...]` 또는 `#![...]` 형태로 항목에 부착되며, 컴파일러가 인식하는 내장 속성 (예를 들어 `#[derive]`, `#[repr]`, `#[cfg]` 등) 과 사용자 정의 속성이 같은 형태를 공유하게 됩니다. 자세한 형태는 [속성 문법](601-attribute-syntax.md) 과 [내장 속성](602-built-in-attributes.md) 에서 정의하고 있습니다.
+속성은 `#[...]` 또는 `#![...]` 형태로 항목에 부착되며, 컴파일러가 인식하는 내장 속성 (예를 들어 `#[derive]`, `#[repr]`, `#[cfg]` 등) 과 사용자 정의 속성이 같은 형태를 공유합니다. 자세한 형태는 [속성 문법](601-attribute-syntax.md) 과 [내장 속성](602-built-in-attributes.md) 에서 정의합니다.
 
 ### 매직 (magic)
 
-매직은 언어와 라이브러리를 연결해 주는 특별한 속성을 가리킵니다.
+매직은 언어와 라이브러리를 연결하는 특별한 속성을 가리킵니다.
 
 ```rok
 #[lang(slot_name)]              // 표준 라이브러리 항목 ↔ 컴파일러 슬롯 연결
@@ -67,11 +63,11 @@ fn linux_only() { ... }
 #[infix("⊕", like = "+")]
 ```
 
-이 매직들이 `1 + 2` 와 같은 언어 토큰을 라이브러리 트레잇 메서드 호출로 연결해 주는 역할을 담당합니다. 자세한 내용은 [`#[literal]` 매직](605-literal-magic.md) 부터 [연산자 매직](607-operator-magic.md) 까지에 걸쳐 정의되어 있습니다.
+이 매직들이 `1 + 2` 와 같은 언어 토큰을 라이브러리 트레잇 메서드 호출로 연결하는 역할을 담당합니다. 자세한 내용은 [`#[literal]` 매직](605-literal-magic.md) 부터 [연산자 매직](607-operator-magic.md) 까지에 걸쳐 정의됩니다.
 
 ### 메타 블록 (meta block)
 
-메타 블록은 사용자가 자신만의 derive 또는 attribute 를 정의할 수 있도록 해 주는 코드 생성기로서, Rust 의 proc macro 자리에 해당하는 개념입니다.
+메타 블록은 사용자가 자신만의 derive 또는 attribute 를 정의할 수 있도록 하는 코드 생성기로서, Rust 의 proc macro 자리에 해당하는 개념입니다.
 
 ```rok
 #[impl_derive(MyTrait)] pub @derive {
@@ -83,7 +79,7 @@ fn linux_only() { ... }
 }
 ```
 
-메타 블록에는 `#[impl_derive]`, `#[impl_attribute]`, `#[impl_derive_attribute]` 의 세 종류가 있으며, 본체에 `@Self`, `@field`, `@for_fields` 와 같은 템플릿 토큰을 사용해 코드 생성 규칙을 작성하게 됩니다. proc macro 스타일의 토큰 스트림 조작은 도입하지 않으며, 템플릿 토큰만으로도 충분한 표현력을 제공합니다. 자세한 정의는 [메타 블록](608-meta-blocks.md) 에서 다룹니다.
+메타 블록에는 `#[impl_derive]`, `#[impl_attribute]`, `#[impl_derive_attribute]` 의 세 종류가 있으며, 본체에 `@Self`, `@field`, `@for_fields` 와 같은 템플릿 토큰을 사용해 코드 생성 규칙을 작성합니다. proc macro 스타일의 토큰 스트림 조작은 도입하지 않으며, 템플릿 토큰만으로도 충분한 표현력을 제공합니다. 자세한 정의는 [메타 블록](608-meta-blocks.md) 에서 다룹니다.
 
 ## 핵심 원칙
 

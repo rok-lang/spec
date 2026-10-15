@@ -1,6 +1,6 @@
 # 2.11. 변환 트레잇
 
-`rok::core::convert` 모듈은 값을 한 타입에서 다른 타입으로 옮기는 트레잇 패밀리를 정의합니다. rok 의 변환 정책에서 가장 핵심이 되는 원칙은 silent 정보 손실을 거부하는 것입니다. 따라서 `.into()` 는 lossless 한 변환만을 허용하며, 손실이 발생할 수 있는 변환의 경우에는 사용자가 명시적으로 그 정책을 선택하도록 설계되어 있습니다.
+`rok::core::convert` 모듈은 값을 한 타입에서 다른 타입으로 옮기는 트레잇 패밀리를 정의합니다. rok 의 변환 정책에서 가장 핵심이 되는 원칙은 silent 정보 손실을 거부하는 것입니다. 따라서 `.into()` 는 lossless 한 변환만을 허용하며, 손실이 발생할 수 있는 변환의 경우에는 사용자가 명시적으로 그 정책을 선택하도록 설계됩니다.
 
 [refs-lang 2.14 형 변환](../../refs-lang/002-types/214-cast-and-conversion.md) 의 syntax 는 본 트레잇으로 dispatch 됩니다.
 
@@ -15,7 +15,7 @@ rok 은 변환의 **의도** 에 따라 네 갈래로 분리해 다룹니다. �
 | **saturate** | `.saturating_into::<T>()`           | 범위 밖이면 i32::MAX / MIN 으로 clamp | 명시 saturate (사용자 선택) |
 | **bit**      | `.wrapping_into::<T>()` 또는 `as T` | bit 재해석 — 모듈러 산술 / 비트 패턴  | 명시 wrap (사용자 선택)     |
 
-각 갈래의 메서드 이름이 그 자체로 의도를 명시해 줍니다. 예를 들어 사용자가 `.into()` 를 적으면 **lossless** 의도이고, `.saturating_into()` 를 적으면 **saturate** 의도가 됩니다. 컴파일러는 어떤 의미인지를 추측하지 않습니다.
+각 갈래의 메서드 이름이 그 자체로 의도를 명시합니다. 예를 들어 사용자가 `.into()` 를 적으면 **lossless** 의도이고, `.saturating_into()` 를 적으면 **saturate** 의도가 됩니다. 컴파일러는 어떤 의미인지를 추측하지 않습니다.
 
 ### 디자인 근거
 
@@ -142,7 +142,7 @@ let small: i32 = try big.try_into();     // = try i32::try_from(big)
 
 ## 2.11.5. `saturating_into` / `wrapping_into` — 명시 정책
 
-손실이 가능한 변환에 대해서는 사용자가 값 변형 정책을 직접 명시하게 됩니다. 그 수단으로 다음 두 메서드가 제공됩니다.
+손실이 가능한 변환에 대해서는 사용자가 값 변형 정책을 직접 명시합니다. 그 수단으로 다음 두 메서드가 제공됩니다.
 
 ```rok
 trait SaturatingFrom<U> {
@@ -198,7 +198,7 @@ let i: i32 = f as i32;            // 1 (절삭, IEEE 754 → integer)
 let f2: f32 = 3.14f64 as f32;     // 3.14 → f32 (IEEE 754 narrowing)
 ```
 
-`as` 의 동작은 다음과 같이 정리할 수 있습니다.
+`as` 의 동작은 다음과 같습니다.
 
 | 변환                                       | 의미                                               |
 |--------------------------------------------|----------------------------------------------------|
@@ -223,7 +223,7 @@ let v = Vec3 { x: 1.0, y: 2.0, z: 3.0 };
 let s: str = v as str;     // 컴파일 에러 — `as` 는 user struct 거부
 ```
 
-user 타입 사이의 변환은 `From` / `Into` 트레잇으로 명시해 주셔야 합니다.
+user 타입 사이의 변환은 `From` / `Into` 트레잇으로 명시해야 합니다.
 
 ## 2.11.7. literal context auto-From — 컴파일 타임 range check
 
@@ -236,7 +236,7 @@ let z: f32 = 3.14;           // OK — round to nearest f32
 let w: u8 = 256;             // 컴파일 에러 — 256 ∉ u8 0..=255
 ```
 
-`T::from(1)` / `1.into()` 처럼 리터럴로 impl 을 고르는 규칙은 [refs-lang 3.1.3](../../refs-lang/003-expressions/301-operator-dispatch.md#impl-고르기) 을 따릅니다. 이러한 메커니즘이 가능한 이유는 literal 자체가 컴파일 타임에 알려진 값이기 때문입니다. runtime 값을 변환하는 경우에는 `from`, `into`, `try_into`, `as` 중 하나를 반드시 명시해 주셔야 합니다.
+`T::from(1)` / `1.into()` 처럼 리터럴로 impl 을 고르는 규칙은 [refs-lang 3.1.3](../../refs-lang/003-expressions/301-operator-dispatch.md#impl-고르기) 을 따릅니다. 이러한 메커니즘이 가능한 이유는 literal 자체가 컴파일 타임에 알려진 값이기 때문입니다. runtime 값을 변환하는 경우에는 `from`, `into`, `try_into`, `as` 중 하나를 반드시 명시해야 합니다.
 
 ## 2.11.8. `From` impl 매트릭스 — primitive 사이
 
@@ -271,7 +271,7 @@ let w: u8 = 256;             // 컴파일 에러 — 256 ∉ u8 0..=255
 | `u32`     |    |     |     | ✓   | ✓   |
 | `u64`     |    |     |     |     | ✓   |
 
-unsigned 에서 같거나 더 좁은 signed 로의 변환 (예를 들어 u32 → i32) 은 lossless 가 보장되지 않으므로, 이 경우에는 `try_into` 또는 `as` 를 사용해 주셔야 합니다.
+unsigned 에서 같거나 더 좁은 signed 로의 변환 (예를 들어 u32 → i32) 은 lossless 가 보장되지 않으므로, 이 경우에는 `try_into` 또는 `as` 를 사용해야 합니다.
 
 ### 정수 → 부동소수
 
@@ -291,7 +291,7 @@ f32 는 24-bit mantissa, f64 는 53-bit mantissa 이므로 그 비트 폭 안에
 | `f32`     |     | ✓   | ✓     |
 | `f64`     |     |     | ✓     |
 
-f64 → f32 는 narrowing 변환이므로 `try_into`, `saturating_into`, `as` 중 하나를 사용해 주셔야 합니다.
+f64 → f32 는 narrowing 변환이므로 `try_into`, `saturating_into`, `as` 중 하나를 사용해야 합니다.
 
 ### int / float 와 fixed primitive
 
@@ -302,7 +302,7 @@ f64 → f32 는 narrowing 변환이므로 `try_into`, `saturating_into`, `as` �
 
 `From<int> for f64` 와 `From<float> for f64` 는 2.11.2 의 "From 은 lossless" 에 대한 **문서화된 예외** 입니다. `int` 는 가장 가까운 f64 로 반올림하고, 지수가 f64 범위 밖으로 promote 된 `float` 는 f64 로 표현할 수 없어 손실됩니다. 손실이 드러나야 하는 자리에서는 `to_f64()` 나 `as f64` 를 쓰기를 권장합니다.
 
-`int → fixed` 의 경우 lossless 가 보장되지 않습니다 (int 가 fixed 범위 밖일 수 있기 때문입니다). 따라서 `try_into` 또는 `saturating_into` 를 사용해 주셔야 합니다.
+`int → fixed` 의 경우 lossless 가 보장되지 않습니다 (int 가 fixed 범위 밖일 수 있기 때문입니다). 따라서 `try_into` 또는 `saturating_into` 를 사용해야 합니다.
 
 반면 `fixed → int` 는 항상 lossless 입니다 (`From<i32> for int` 등이 모두 impl 되어 있습니다).
 
@@ -368,7 +368,7 @@ let auto: i64 = (a + b).into();  // From<i32> for i64 (lossless) 명시
 | Python | `int(x)`/`float(x)` 함수 — 항상 무한 정밀도             | rok 의 `int` / `float` 는 같은 정신, fixed primitive 는 별개 세계                 |
 | C      | implicit conversion (`int` → `long` 자동)               | rok 명시 거부 — silent type mixing 차단                                           |
 
-이러한 비교를 토대로 rok 이 채택한 핵심 디자인 결정은 다음과 같이 정리할 수 있습니다. 먼저 silent 정보 손실을 거부합니다 (Rust 의 영향을 받았습니다). 다음으로 4 갈래 (`into`, `try_into`, `saturating_into`, `as`) 를 명시함으로써 의도 표현을 강제합니다. 또한 literal context 에서만 auto-From 을 허용하며, runtime value 의 경우에는 명시를 강제합니다. 마지막으로 `int` / `float` 의 auto-promote 와 fixed primitive 를 분리하는데, 이는 Python 과 Smalltalk 의 영향에서 나온 결정입니다.
+이러한 비교를 토대로 rok 이 채택한 핵심 디자인 결정은 다음과 같습니다. 먼저 silent 정보 손실을 거부합니다 (Rust 의 영향을 받았습니다). 다음으로 4 갈래 (`into`, `try_into`, `saturating_into`, `as`) 를 명시함으로써 의도 표현을 강제합니다. 또한 literal context 에서만 auto-From 을 허용하며, runtime value 의 경우에는 명시를 강제합니다. 마지막으로 `int` / `float` 의 auto-promote 와 fixed primitive 를 분리하는데, 이는 Python 과 Smalltalk 의 영향에서 나온 결정입니다.
 
 ## 2.11.12. 모듈 매핑
 
@@ -392,4 +392,4 @@ impl From<i32> for i64 {
 }
 ```
 
-`as T` 의 numeric cast 도 같은 intrinsic 을 사용하며, lossless 와 wrapping 사이의 분기는 컴파일러가 선택하게 됩니다.
+`as T` 의 numeric cast 도 같은 intrinsic 을 사용하며, lossless 와 wrapping 사이의 분기는 컴파일러가 선택합니다.

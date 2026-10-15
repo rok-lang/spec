@@ -1,6 +1,6 @@
 # 6.4. `#[lang(...)]` 매직
 
-`#[lang(slot_name)]` 속성은 표준 라이브러리의 항목을 컴파일러가 직접 인식하는 슬롯에 연결하는 장치입니다. 컴파일러와 런타임이 어떤 항목이 어떤 의미를 갖는지 알 수 있도록 해 주는 통로 역할을 합니다.
+`#[lang(slot_name)]` 속성은 표준 라이브러리의 항목을 컴파일러가 직접 인식하는 슬롯에 연결하는 장치입니다. 컴파일러와 런타임이 어떤 항목이 어떤 의미를 갖는지 알 수 있도록 하는 통로 역할을 합니다.
 
 ## 6.4.1. 동기
 
@@ -14,8 +14,6 @@ library item            ← trait / type / fn defined by standard libraries
 
   ←── #[lang(slot)] connects the two sides ──→
 ```
-
-> compiler slot: 컴파일러 슬롯. language-known anchor: 언어가 미리 알고 있는 자리. add trait: 더하기 트레잇. option slot: 옵션 자리. iterator trait: iterator 트레잇. library item: 라이브러리 항목. defined by standard libraries: 표준 라이브러리가 정의. connects the two sides: 두 쪽을 연결.
 
 ## 6.4.2. 형태
 
@@ -89,7 +87,7 @@ a + b    →    <typeof(a) as 그_트레잇<typeof(b)>>::add(a, b)
 #[lang("add_trait")] trait OtherAdd { ... }    // ERROR — 슬롯 중복
 ```
 
-각 슬롯은 오직 하나의 항목에만 유일하게 매핑되도록 설계되어 있습니다. 이 유일성은 프로그램 전체 (링크되는 모든 패키지) 기준입니다. 따라서 `rok::core` 가 정의한 슬롯 (`panic_fn`, `oom_fn`, `unreachable_fn` 등) 을 사용자 패키지가 다시 부착해 바꿀 수 없으며, 부착하면 컴파일 에러입니다.
+각 슬롯은 오직 하나의 항목에만 유일하게 매핑되도록 설계됩니다. 이 유일성은 프로그램 전체 (링크되는 모든 패키지) 기준입니다. 따라서 `rok::core` 가 정의한 슬롯 (`panic_fn`, `oom_fn`, `unreachable_fn` 등) 을 사용자 패키지가 다시 부착해 바꿀 수 없으며, 부착하면 컴파일 에러입니다.
 
 ## 6.4.7. 슬롯의 시그니처 검사
 
@@ -146,6 +144,6 @@ trait Add<Rhs = Self> {
 }
 ```
 
-여기서 `#[lang("add_trait")]` 는 이 트레잇이 덧셈 의미가 자리 잡는 곳임을 알려 주고, `#[infix("+", ...)]` 는 이 메서드가 `+` 토큰의 디스패치 대상임을 표시해 줍니다. 이렇게 두 매직이 함께 작동하면서 언어와 라이브러리를 양방향으로 연결해 주게 됩니다.
+여기서 `#[lang("add_trait")]` 는 이 트레잇이 덧셈 의미가 자리 잡는 곳임을 알려 주고, `#[infix("+", ...)]` 는 이 메서드가 `+` 토큰의 디스패치 대상임을 표시합니다. 이렇게 두 매직이 함께 작동하면서 언어와 라이브러리를 양방향으로 연결해 주게 됩니다.
 
 `#[literal]` 과 `#[keyword]` 또한 각각 리터럴 자리와 키워드 등록 슬롯에 연결되는 도구로 이해할 수 있습니다.

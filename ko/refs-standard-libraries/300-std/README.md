@@ -64,10 +64,8 @@ async fn fetch_async(addr: str) throws (IoError) -> List<u8> {
 |-----------------|-----------------------------|
 | Linux           | epoll (edge-triggered)      |
 | macOS / FreeBSD | kqueue (`EV_CLEAR`)         |
-| Windows         | IOCP (향후)                 |
-| WASI            | poll_oneoff (향후)          |
-
-io_uring 과 IOCP 같은 completion 모델 backend 는 향후 과제입니다.
+| Windows         | IOCP                        |
+| WASI            | `poll_oneoff`               |
 
 ### 3. TLS 1.3 in std — HTTP out
 

@@ -1,177 +1,78 @@
 # 7.8. 코루틴
 
-[제너레이터](../004-functions/411-generators.md), [비동기](../004-functions/412-async.md), [스트림](../004-functions/413-stream.md) 이라는 세 형태는 모두 동일한 코루틴 인프라 위에서 작동합니다. 본 문서는 그 구현 메커니즘을 정의합니다.
+[제너레이터](../004-functions/411-generators.md), [비동기](../004-functions/412-async.md), [스트림](../004-functions/413-stream.md) 은 같은 코루틴 lowering 을 씁니다.
 
-## 7.8.1. LLVM Coroutine Intrinsic
+## 7.8.1. 상태 기계 lowering
 
-> [!IMPORTANT]
-> rok 의 코루틴은 LLVM coroutine intrinsic (`llvm.coro.*`) 을 직접 사용합니다.
-> Stackless, heap-allocated frame, arch-independent.
-
-이 방식의 특징을 살펴보면, 먼저 stackless 라는 점에서 별도의 스택 할당이 발생하지 않습니다. 또한 heap-allocated frame 이기 때문에 코루틴의 지역 변수가 하나의 frame 객체 안에 모두 담깁니다. 마지막으로 arch-independent 한 성격을 지니므로 LLVM 이 모든 백엔드에 알아서 lower 해 줍니다.
-
-이러한 선택 덕분에 [플랫폼 타깃](../000-meta/006-platform-targets.md) 에서 정의하는 13 개 Tier 1 플랫폼 모두에서 자동으로 작동합니다. arch 별로 별도의 context-switch 어셈블리를 작성할 필요가 전혀 없습니다.
-
-> [!NOTE]
-> **구현 노트 — 상태 기계 lowering.** 구현은 `llvm.coro.*` 대신 컴파일러가 직접 만든 상태 기계로 코루틴을 lower 해도 됩니다. 이때 frame 은 `rok_gc_alloc_slow` 로 할당하는 GC 객체이며, 중단된 동안에는 frame 의 ScanTable 로, 실행 중에는 shadow stack ([7.4.1](704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack)) 으로 root 가 잡힙니다. 관찰 가능한 의미는 같습니다.
-
-## 7.8.2. 컴파일 흐름
+rok 의 코루틴은 stackless 이며, 컴파일러가 직접 만든 상태 기계로 lower 합니다. LLVM coroutine intrinsic (`llvm.coro.*`) 은 쓰지 않습니다. frame 의 레이아웃을 컴파일러가 알아야 frame 의 ScanTable 을 만들 수 있기 때문입니다. arch 별 context-switch 코드는 없으며, 모든 Tier 1 타깃에서 같습니다.
 
 ```
-yield/async/async-yield fn  →  state machine
-                                ↓
-                          rok_coro_frame_alloc(size, type_id)   (extern "C")
-                                ↓
-                          llvm.coro.* intrinsic
-                                ↓
-                          기계어 (state machine 으로)
+yield / async / async yield 블록
+  → body 함수로 들어 올림 (HIR, 클로저처럼)
+  → 상태 기계 (MIR): resume 함수 + frame 타입
+  → 일반 MLIR / LLVM
 ```
 
-컴파일러는 각 코루틴 함수를 상태 머신으로 변환하며, LLVM 은 그 상태 머신을 효율적으로 lower 해 줍니다.
+`yield fn` / `async fn` 은 본문을 그런 블록으로 감싸고 래퍼 타입을 돌려주는 `fn` 입니다.
 
-## 7.8.3. 코루틴 프레임
-
-각 코루틴은 자신만의 frame 객체를 가집니다.
+## 7.8.2. 코루틴 프레임
 
 ```
 Frame {
-    state         : u32        // 현재 실행 위치 (어느 yield/await 후인지)
-    locals        : ...        // 코루틴의 지역 변수들
-    waker         : Waker      // 누가 깨울지 (async 의 경우)
-    parent        : Frame ptr   // 호출자 frame (필요 시)
+    state  : i32        // 다음에 이어갈 suspend 지점
+    locals : ...        // suspend 지점을 넘어 살아 있는 지역만
 }
 ```
 
-LLVM 이 코루틴 안에 흩어져 있는 `alloca` 들을 한데 모아 frame 레이아웃을 구성합니다.
+- frame 은 일반 GC 객체이며, 할당 fast / slow path ([7.2](702-allocation.md)) 로 만듭니다. 타입마다 frame 의 [ScanTable](../008-abi/802-scan-table.md) 이 있습니다.
+- 중단된 동안 frame 의 GC 참조는 ScanTable 로, resume 함수가 도는 동안의 지역은 shadow stack ([7.4.1](704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack)) 으로 추적합니다.
+- 오래 사는 task 의 frame 은 sticky mark-bit 으로 old 가 됩니다 ([7.3.2](703-gc-algorithm.md#732-sticky-mark-bit-세대-수집)).
+- 호출 결과 (`GenIter<T>`, `AsyncFuture<T>`, `AsyncStream<T>` 와 그 `Try*` 변형) 는 frame 을 감싼 값입니다 ([4.1.11](../004-functions/401-function-declaration.md#코루틴-함수의-결과-타입)).
 
-## 7.8.4. Frame 은 GC 객체
-
-코루틴 frame 은 일반 GC 객체로 다뤄집니다 ([객체 레이아웃과 메모리 공간](701-object-layout.md) 참고).
-
-구체적인 동작 방식은 다음과 같습니다. llvm.coro.alloc 이 호출되면 `rok_coro_frame_alloc` (`extern` "C") 으로 이어지고, `rok_coro_frame_alloc` 은 [GC](../000-meta/007-glossary.md#gc-garbage-collector) 의 [TLAB](../000-meta/007-glossary.md#tlab-thread-local-allocation-buffer) 을 통해 frame 을 할당합니다. 이때 frame 의 type_id 는 코루틴 함수마다 고유하게 부여되며, frame 의 [scan_table](../000-meta/007-glossary.md#scan_table) 은 자식 GC 포인터들의 offset 목록을 담고 있습니다.
-
-이 통합이 가져오는 효과는 다음과 같습니다.
-
-- frame 이 자동으로 GC root 역할을 수행하며, 누군가 frame 을 가리키는 동안에는 살아 있습니다.
-- sticky 비트를 통해 long-lived `async` task 가 자연스럽게 추적됩니다 ([GC 알고리듬](703-gc-algorithm.md) 참고).
-- 호출 결과 (`GenIter<T>`, `AsyncFuture<T>`, `AsyncStream<T>` 와 그 `Try*` 변형) 는 이 frame 을 감싼 값입니다 ([4.1.11](../004-functions/401-function-declaration.md#코루틴-함수의-결과-타입)).
-
-## 7.8.5. Generator 와 Async 의 두 lowering
-
-LLVM coroutine 은 두 가지 lowering 방식을 지원합니다.
-
-### Generator: returned-continuation
+## 7.8.3. Generator
 
 ```
-yield fn count() -> i32 {
-    yield 1;
-    yield 2;
-}
+1. count() 호출 → frame 할당, 래퍼 반환.
+2. next() → resume 함수가 state 에서 이어 진행. yield 에서 값과 state 를 저장하고 돌아옴.
+3. 다음 next() → 저장된 state 에서 이어 진행. 끝나면 none.
 ```
 
-lowering 은 다음과 같이 진행됩니다.
+호출자가 진행을 주도합니다 (`for x in g { .. }`).
+
+## 7.8.4. Async
 
 ```
-1. call count() → frame 할당, 즉시 frame ptr 반환.
-2. frame.next() 호출.
-   - state machine 진행.
-   - yield 만나면 — 값 반환 + state 저장 후 return.
-3. 다음 frame.next() 호출 — 저장된 state 에서 이어서 진행.
+1. fetch() 호출 → frame 할당, Future 반환.
+2. poll → resume 함수가 진행. await 한 future 가 Pending 이면 state 를 저장하고 Pending.
+3. 깨움 (parking registry, I/O driver, timer) → task 가 다시 큐에 들어가고 worker 가 poll.
 ```
 
-호출자가 명시적으로 next() 를 호출하며, 호출과 호출 사이마다 control 이 호출자에게 다시 돌아옵니다.
+스케줄러와 runtime 이 진행을 주도합니다 ([7.6](706-scheduler.md)).
 
-이 모델은 `for x in iterator { ... }` 처럼 호출자가 주도하는 패턴에 해당합니다.
+## 7.8.5. Stream
 
-### Async: switched-resume
+`async yield` 는 둘을 합친 것입니다. 같은 frame 안에서 `yield` 는 값을 내고, `await` 는 Pending 으로 중단합니다.
 
-```
-async fn fetch() -> Data {
-    let r = await op1();
-    process(r)
-}
-```
+## 7.8.6. 할당 생략
 
-lowering 은 다음과 같이 진행됩니다.
+frame 은 코루틴을 부를 때마다 할당합니다. 호출자가 곧바로 끝까지 진행하는 경우의 할당 생략은 없습니다.
 
-```
-1. call fetch() → frame 할당, 즉시 Future ptr 반환.
-2. Future.poll(waker) 호출.
-   - state machine 진행.
-   - await 만나면 — Future 를 등록하고 Pending 을 반환.
-3. Future 가 ready 되면 — waker 가 task 큐에 다시 push.
-4. 어떤 worker 가 fetch frame 을 다시 poll — 이어서 진행.
-```
+## 7.8.7. `yield` / `await` 의 lowering
 
-호출자는 `await` 으로 제어를 양보하며, 다른 곳 (스케줄러 또는 I/O driver) 이 결과를 준비해 두면 다시 깨워 줍니다.
+| 키워드         | lowering                                                                  |
+|----------------|---------------------------------------------------------------------------|
+| `yield expr;`  | state 저장 + 값 반환 (Iterator) / `Ready(값)` 반환 (Stream)               |
+| `await expr;`  | 대상 future poll. Pending 이면 state 저장 + `Pending` 반환                 |
+| `return expr;` | 상태 기계 종료 + 결과 반환                                                 |
 
-이 모델은 스케줄러나 runtime 이 주도하는 패턴에 해당합니다.
+## 7.8.8. 런타임 심볼
 
-## 7.8.6. Stream: `async` + `yield` 결합
+`await` 의 대기와 깨움은 `rok::core::task` 의 parking registry 가 맡습니다 (`rok_task_parking_*`, [8.5.4](../008-abi/805-extern-symbols.md#854-scheduler-영역)). 런타임의 `rok_coro_frame_alloc` / `rok_coro_park` / `rok_coro_unpark` 는 C 와 저수준 코드용이며 컴파일러는 쓰지 않습니다 ([8.5](../008-abi/805-extern-symbols.md)).
 
-[스트림](../004-functions/413-stream.md) 의 `async yield` 는 앞서 살펴본 두 lowering 을 결합한 것입니다.
+## 7.8.9. 스택 깊이
 
-`yield` 시점에는 generator 처럼 값을 산출하고, `await` 시점에는 `async` 처럼 일시 중단했다가 재개합니다. 같은 frame 안에 두 메커니즘이 공존하며, coroutine state machine 이 어느 종류의 일시 중단인지를 state 비트로 추적합니다.
+중첩된 `await` 는 바깥 resume 함수가 안쪽 future 의 poll 을 부르는 native 호출로 진행합니다. 그래서 `await` 재귀의 깊이는 native stack 에 묶이며, 매우 깊은 재귀는 stack overflow 가 됩니다 ([런타임 오류](README.md#런타임-오류-스택-오버플로)). 깊은 재귀가 필요하면 task 로 나눕니다.
 
-## 7.8.7. CoroElide: 인라인 가능한 경우 비용 0
+## 7.8.10. 코루틴 프레임의 수명
 
-LLVM 은 코루틴 호출을 인라인할 수 있다고 판단하면 frame 할당 자체를 생략합니다 (CoroElide).
-
-다음 조건이 충족되어야 합니다.
-
-- 호출자가 그 코루틴을 `await` 또는 next 로 직접 끝까지 진행시킵니다.
-- 코루틴이 escape 하지 않습니다 (즉, frame 이 다른 task 로 넘어가지 않아야 합니다).
-
-이 조건이 만족되면 frame 의 heap 할당은 0 이 되고, 일반 함수 호출과 동일한 비용으로 처리됩니다.
-
-따라서 자주 일어나는 짧은 `async` `fn` 호출은 사실상 비용 0 으로 처리할 수 있습니다.
-
-## 7.8.8. 핵심 ABI 함수
-
-```
-extern "C" {
-    fn rok_coro_frame_alloc(size: usize, type_id: u32) -> Ptr<u8>;
-    fn rok_coro_park(frame: Ptr<u8>, waker: Ptr<u8>);   // waker: 불투명 Waker 포인터
-    fn rok_coro_unpark(frame: Ptr<u8>);
-}
-```
-
-각 함수의 역할은 다음과 같습니다. `rok_coro_frame_alloc` 은 TLAB 을 통해 frame 을 할당하고, `rok_coro_park` 은 `frame` 의 주소를 key 로 waker 를 등록하며, `rok_coro_unpark` 은 그 key 에 등록된 waker 를 모두 깨웁니다. `frame` 은 아무 GC 객체여도 됩니다. 컴파일러는 `park` / `unpark` 을 emit 하지 않으며 (`await` 는 task 의 parking registry 를 씀), 두 함수는 C 나 저수준 코드용입니다.
-
-자세한 시그니처는 [extern 심볼](../008-abi/805-extern-symbols.md) 에서 정의합니다.
-
-## 7.8.9. `yield` / `await` 의 효과 정리
-
-| 키워드         | lowering                                                                          |
-|----------------|-----------------------------------------------------------------------------------|
-| `yield expr;`  | state 저장 + `return` expr (Iterator 의 경우) / `return` Pending (Stream 의 경우) |
-| `await expr;`  | Future 등록 + state 저장 + `return` Pending                                       |
-| `return expr;` | state machine 종료 + 결과 expr 반환                                               |
-
-각 키워드마다 컴파일러가 llvm.coro intrinsic 을 emit 하는 방식이 결정됩니다.
-
-## 7.8.10. Tail Recursion / 스택 깊이
-
-stackless 코루틴이기 때문에 깊은 재귀에서도 OS stack 을 소모하지 않습니다.
-
-```
-async fn deep(n: i32) -> i32 {
-    if n == 0 { 0 }
-    else { 1 + await deep(n - 1) }
-}
-```
-
-위 코드는 호출이 일어날 때마다 frame 을 새로 할당할 뿐, 일반 stack 은 전혀 쓰지 않습니다. 그래서 수십만 깊이까지도 가능합니다 (다만 heap 사용량은 그만큼 늘어납니다).
-
-이는 일반 함수가 안고 있는 stack overflow 위험과 뚜렷하게 구분되는 코루틴의 장점입니다.
-
-> [!NOTE]
-> **구현 노트.** 상태 기계 lowering 을 쓰는 구현은 중첩된 `await` 를 native stack 위의 호출로 진행할 수 있습니다. 이 경우 위 깊이 보장은 약해지며, 매우 깊은 `await` 재귀는 stack overflow 가 될 수 있습니다.
-
-## 7.8.11. 코루틴 프레임의 수명
-
-코루틴 frame 은 살아 있는 동안 GC 가 보존해 줍니다.
-
-각 상황에서의 참조 관계를 정리하면 다음과 같습니다. task 가 진행 중일 때는 frame 이 task queue 에서 참조되고, task 가 `await` 중일 때는 frame 이 I/O driver 또는 timer 큐에서 참조됩니다. task 결과를 기다리는 쪽이 있다면 그쪽의 frame 이 이 frame 을 참조하게 됩니다. 그리고 어디에서도 참조되지 않는 시점이 오면 GC 가 회수합니다.
-
-이렇게 GC 와 자연스럽게 통합되어 있어, 명시적인 cleanup 코드가 거의 필요 없습니다.
+frame 은 다른 GC 객체처럼 도달 가능한 동안 삽니다. 진행 중인 task 는 task 큐가, 대기 중인 task 는 parking registry 가, 결과를 기다리는 쪽은 그 쪽의 frame 이 참조합니다. 어디서도 참조하지 않으면 GC 가 회수합니다. 명시적 해제는 없습니다.

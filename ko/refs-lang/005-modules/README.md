@@ -25,8 +25,6 @@ package
               └── local variable
 ```
 
-> package: 패키지. module: 모듈. item: 항목. local variable: 지역 변수.
-
 위에서 아래로 내려가는 포함 관계입니다. 하나의 패키지는 여러 개의 모듈을 가지며, 하나의 모듈은 여러 개의 항목 (함수, 타입, 트레잇, `const`, `static`) 을 가지고, 하나의 항목 (특히 함수 본체) 은 여러 개의 지역 변수를 가지게 됩니다.
 
 각 단계의 경계 규칙은 이어지는 문서들에서 차례로 정의됩니다.
@@ -50,8 +48,6 @@ my_pkg/
     ├── lexer.rok                parsing::lexer
     └── parser.rok               parsing::parser
 ```
-
-> root module body: 루트 모듈 본체. single-file: 단일 파일. parsing module body: parsing 모듈 본체. parsing's submodules: parsing 의 서브모듈들.
 
 ## 항목: 모듈 안의 명명된 정의
 

@@ -25,7 +25,7 @@ silent wrap 되어 황당한 결과를 내는 일이 없습니다.
 반면 fixed primitive 는 하드웨어에 가까운 세계입니다. `i32` / `f64` 등 14
 종으로 구성되며, syntax 는 [refs-lang 2.1 타입 표현식](../../refs-lang/002-types/201-type-expressions.md) 이
 정의합니다. 메모리와 성능을 정밀하게 제어해야 하는 상황 (FFI 인터페이스, SIMD,
-큰 array, 핫 루프) 에 적합하고, overflow 정책이 명시되어 있습니다 ([2.3 ops
+큰 array, 핫 루프) 에 적합하고, overflow 정책이 명시됩니다 ([2.3 ops
 산술](203-ops.md) 의 fixed-width 산술 절을 참고합니다).
 
 ### 어느 쪽이 default 인가
@@ -64,17 +64,14 @@ impl Int {
 `Int` 는 `rok::core::num::bigint::Int` 에 정의됩니다 (`Float` 는
 `rok::core::num::bigfloat::Float`). `#[keyword("int")]` 가 식별자 `int` 를 타입 키워드로
 등록하며, 이 등록은 모든 패키지에 적용됩니다. 그래서 사용자 코드에서는 PascalCase
-`Int` 가 아닌 lowercase `int` 로 타입을 표기하게 됩니다
+`Int` 가 아닌 lowercase `int` 로 타입을 표기합니다
 ([refs-lang 6.6](../../refs-lang/006-meta-system/606-keyword-magic.md) 가
 권위입니다). 그리고 `#[lang("int_type")]` 로 컴파일러가 `int` 타입을 찾습니다.
 
-`int` 의 핵심 특성을 정리해 보면 다음과 같습니다. 메모리 표현 측면에서 작은
+`int` 의 핵심 특성은 다음과 같습니다. 메모리 표현 측면에서 작은
 값은 64-bit word 안에 직접 저장되는 small-int optimization 을 거치고, 큰 값은
 heap 의 BigInt 표현으로 자동 promote 되며, 이 모든 과정은 사용자에게
-투명하게 처리됩니다. **promote 시점** 은 산술 결과가 small-int 범위 (`-2^62 ~
-2^62-1` 정도) 를 벗어날 때입니다. 표현은 항상 정규형이어서, 같은 값은 같은
-표현을 가집니다 (구현 참고: 현재 구현은 결과가 다시 작아져도 small-int 로
-demote 하지 않습니다. 이는 관찰할 수 없는 차이입니다). **lang slot** 으로는 `int_type` ([0.4 lang slot
+투명하게 처리됩니다. 표현은 항상 정규형입니다. 값이 i64 범위에 들어가면 small 형태, 벗어나면 BigInt 이며, 산술 결과가 다시 i64 범위로 돌아오면 small 형태로 돌아갑니다. 같은 값은 같은 표현을 가집니다. **lang slot** 으로는 `int_type` ([0.4 lang slot
 표](../000-meta/004-lang-slot-table.md)) 이 사용됩니다. 접미사 없는 정수 리터럴은 기대 타입이 `int` 일 때만 `int` 가 됩니다.
 
 ### 산술
@@ -97,9 +94,9 @@ big = big * big;
 ```
 
 산술 트레잇 ([2.3 ops](203-ops.md)) 의 `Add`, `Sub`, `Mul`, `Div`, `Rem` 이
-모두 구현되어 있습니다. 여기서 `Div` 는 정수 나눗셈 (절삭) 으로 동작하므로,
+모두 구현됩니다. 여기서 `Div` 는 정수 나눗셈 (절삭) 으로 동작하므로,
 `7 / 2 = 3`, `-7 / 2 = -3` 과 같이 계산됩니다. 비교 트레잇 ([2.5
-cmp](205-cmp.md)) 도 `Eq`, `Ord`, `Hash` 가 모두 구현되어 있습니다.
+cmp](205-cmp.md)) 도 `Eq`, `Ord`, `Hash` 가 모두 구현됩니다.
 
 ### 주요 사용처
 
@@ -338,7 +335,7 @@ impl f64 {
 
 ## 2.1.5. literal → 어느 타입?
 
-[refs-lang 1.6 숫자 리터럴](../../refs-lang/001-lexical/106-numeric-literals.md) 의 규칙을 정리하면 다음과 같습니다.
+[refs-lang 1.6 숫자 리터럴](../../refs-lang/001-lexical/106-numeric-literals.md) 의 규칙은 다음과 같습니다.
 
 | 형태      | 결정 타입                                         |
 |-----------|---------------------------------------------------|
@@ -367,7 +364,7 @@ let i: i32 = 1.5;           // 컴파일 에러 — 실수 리터럴은 정수 �
 let big: int = 9999999999;  // int
 ```
 
-자세한 변환 매트릭스는 [2.11 변환](211-conversion.md) 에 정리되어 있습니다.
+자세한 변환 매트릭스는 [2.11 변환](211-conversion.md) 에 정리됩니다.
 
 ### `Zero` / `One`
 
@@ -492,9 +489,9 @@ rational / real) 도 중요한 참고가 됩니다. 또한 **Python int** 는 �
 default 로 두지만 fixed primitive 가 없다는 차이가 있고, **Julia** 는 fixed
 primitive 를 default 로 둡니다. rok 도 리터럴의 기본은 fixed (`i32` / `f64`) 이고, `int` 는 opt-in 입니다.
 
-각 언어와의 차이를 정리하면 다음과 같습니다. **Python** 은 int 만 제공하며,
+각 언어와의 차이는 다음과 같습니다. **Python** 은 int 만 제공하며,
 fixed-width 가 없어서 FFI 나 성능 critical 한 상황에서는 NumPy 에 의존하게
 됩니다. **Julia** 는 rok 과 같이 fixed 가 default 이며, 무한 정밀도가
 필요하면 `BigInt` 를 명시합니다. **Rust** 는 fixed only 라서 매번
 사용자가 type 을 적어야만 합니다. **rok** 는 두 세계가 공존하도록
-하여, 리터럴은 기대 타입을 따르고 (없으면 `i32` / `f64`), 무한 정밀도가 필요한 자리에서 `int` / `float` 를 적도록 설계되어 있습니다.
+하여, 리터럴은 기대 타입을 따르고 (없으면 `i32` / `f64`), 무한 정밀도가 필요한 자리에서 `int` / `float` 를 적도록 설계됩니다.

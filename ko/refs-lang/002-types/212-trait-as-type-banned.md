@@ -5,8 +5,6 @@
 
 ## 2.12.1. 금지 항목
 
-먼저 어떤 코드가 금지되는지 살펴보겠습니다.
-
 ```rok
 let a: Number = 32i32;                          // ERROR — Number 는 트레잇
 fn process(x: Display) -> str { ... }            // ERROR

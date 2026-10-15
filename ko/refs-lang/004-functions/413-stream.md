@@ -50,7 +50,7 @@ async yield fn read_lines(file: str) -> str {
 }
 ```
 
-여기서 `await expr;` 는 Future 가 완료될 때까지 함수를 일시 중단시키며, `yield expr;` 는 값을 산출하고 Stream 의 다음 단계로 진행하기 전까지 일시 중단시킵니다. 이렇게 두 일시 중단 메커니즘이 한 함수 안에 공존하게 되는데, 어떤 시점에 어떤 종류로 중단되었는지는 코루틴 프레임이 추적해 줍니다.
+여기서 `await expr;` 는 Future 가 완료될 때까지 함수를 일시 중단시키며, `yield expr;` 는 값을 산출하고 Stream 의 다음 단계로 진행하기 전까지 일시 중단시킵니다. 이렇게 두 일시 중단 메커니즘이 한 함수 안에 공존하게 되는데, 어떤 시점에 어떤 종류로 중단되었는지는 코루틴 프레임이 추적합니다.
 
 ## 4.13.4. 호출과 소비
 
@@ -104,7 +104,7 @@ async yield fn paginate() -> Page {
 
 ## 4.13.7. Stream 트레잇
 
-이 결과 객체는 표준 라이브러리의 `AsyncStream<T>` (`Stream<Item = T>` 구현) 입니다. 의미상으로는 Iterator 와 Future 가 결합된 형태이며, 다음 값을 기다리는 메커니즘이라고 할 수 있습니다.
+이 결과 객체는 표준 라이브러리의 `AsyncStream<T>` (`Stream<Item = T>` 구현) 입니다. 의미상으로는 Iterator 와 Future 가 결합된 형태이며, 다음 값을 기다리는 메커니즘입니다.
 
 자세한 시그니처와 메서드 (`map`, `filter`, `take`, `merge`, `zip` 등) 는 표준 라이브러리에서 정의됩니다.
 

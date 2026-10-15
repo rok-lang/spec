@@ -1,12 +1,10 @@
 # 9.8. Jupyter 커널 통합
 
-이 장에서는 [실행 엔진과 사용자 표면](../000-meta/001-execution-modes.md) 에서 다룬 Jupyter 표면의 두 배포 형태, 즉 로컬 네이티브 커널과 브라우저 WASM 커널에 대한 구체적인 통합 방식을 정의합니다.
+[Jupyter 표면](../000-meta/001-execution-modes.md) 의 rok 커널을 정의합니다.
 
-## 9.8.1. 두 배포 형태
+## 9.8.1. 커널
 
-먼저 첫 번째 형태인 로컬 네이티브 커널은 기본 형태에 해당합니다. 사용자 PC 의 Jupyter 가 별도 프로세스로 rok 커널을 실행하며, ZeroMQ 기반 Jupyter wire protocol 로 통신합니다. 커널은 `protocol_version` 을 `"5.3"` 으로 알립니다 (`jupyter_client` 가 기대하는 값, 5.3 이상의 클라이언트와 동작). 이 형태에서는 OS 자원, 즉 파일과 네트워크와 외부 프로세스를 모두 사용할 수 있습니다.
-
-두 번째 형태인 브라우저 WASM 커널은 부가 형태이며 아직 구현되지 않았습니다 (9.8.7).
+Jupyter 가 rok 커널을 별도 프로세스로 실행하며, ZeroMQ 기반 Jupyter wire protocol 로 통신합니다. 커널은 `protocol_version` 을 `"5.3"` 으로 알립니다 (`jupyter_client` 가 기대하는 값, 5.3 이상의 클라이언트와 동작). 이 형태에서는 OS 자원, 즉 파일과 네트워크와 외부 프로세스를 모두 사용할 수 있습니다.
 
 커널은 터미널 REPL 과 **같은 셀 세션** 위에서 동작하며 [9.7.0](907-jit-cells.md#970-셀-세션의-규칙) 의 규칙을 따릅니다. 각 셀은 한 번만 실행되고, 바인딩과 항목은 이후 셀로 이어지며, 실패한 셀은 바인딩에 흔적을 남기지 않습니다. 커널의 엔진은 REPL 과 같은 [JIT 세션](906-jit-engine.md) 이며, libLLVM 이 필요합니다.
 
@@ -76,18 +74,17 @@ rok jupyter --connection-file <path>        # 의존성을 해소한 뒤 rokc ju
 4. 실패하면 iopub `error`: `evalue` 는 stderr 의 첫 줄, `traceback` 은 stderr 의 줄들.
 5. shell `execute_reply` (`execution_count` 포함, 성공 / 실패 status).
 
-출력 MIME 은 `text/plain` 하나입니다. 이미지나 표 같은 `display_data` 는 아직 없습니다.
+출력 MIME 은 `text/plain` 하나입니다.
 
 ## 9.8.3. kernelspec 설치
 
 Jupyter 는 kernelspec 디렉토리에 설치된 kernel 만 인식합니다.
 
 ```
-rokc jupyter --install-kernel [--user]
-rok [--env <name>] jupyter install [--user]
+rok jupyter install [--env <name>]
 ```
 
-kernelspec 은 다음 디렉토리 아래의 `kernels/rok/kernel.json` 입니다. `rok --env <name>` 으로 설치하면 `kernels/rok-<name>/` 이며, 표시 이름은 `rok (<name>)`, 실행 명령은 `rok --env <name> jupyter ...` 입니다.
+kernelspec 은 다음 디렉토리 아래의 `kernels/rok/kernel.json` 입니다. `--env <name>` 으로 설치하면 `kernels/rok-<name>/` 이며, 표시 이름은 `rok (<name>)`, 실행 명령은 `rok --env <name> jupyter ...` 입니다.
 
 1. `$JUPYTER_DATA_DIR` 이 있으면 그 디렉토리
 2. macOS 이면 `~/Library/Jupyter`
@@ -97,7 +94,7 @@ kernelspec 은 다음 디렉토리 아래의 `kernels/rok/kernel.json` 입니다
 
 ```json
 {
-  "argv": ["/path/to/rokc", "jupyter", "--connection-file", "{connection_file}"],
+  "argv": ["/path/to/rok", "jupyter", "--connection-file", "{connection_file}"],
   "display_name": "rok",
   "language": "rok",
   "interrupt_mode": "message",
@@ -119,62 +116,13 @@ shell 이나 control 소켓의 `shutdown_request` 에 응답한 뒤 세션을 �
 
 ## 9.8.5. 코드 자동 완성
 
-`complete_request` 는 커서 앞의 식별자 조각을 세션의 바인딩과 항목 이름에 맞춰 `{ matches, cursor_start, cursor_end }` 로 응답합니다. 모듈 경로, 멤버, 키워드 완성은 아직 없습니다.
+`complete_request` 는 커서 앞의 조각을 세션의 바인딩, 항목, 모듈 경로, 멤버, 키워드에 맞춰 `{ matches, cursor_start, cursor_end }` 로 응답합니다.
 
 ## 9.8.6. inspect_request: 도움말
 
-`inspect_request` (Shift+Tab) 는 아직 내용을 주지 않으며 늘 `found: false` 로 응답합니다. 시그니처와 문서 주석 ([어휘 구조](../001-lexical/102-lexical-structure.md) 의 `///` / `//!`) 을 보여 주는 것은 향후 설계입니다.
+`inspect_request` (Shift+Tab) 는 커서의 이름의 시그니처와 문서 주석 ([어휘 구조](../001-lexical/102-lexical-structure.md) 의 `///` / `//!`) 을 `text/plain` 으로 응답합니다. 모르는 이름이면 `found: false` 입니다.
 
-## 9.8.7. 브라우저 WASM 커널
-
-> [!NOTE]
-> 브라우저 WASM 커널은 아직 구현되지 않았습니다. 이 절은 설계입니다.
-
-JupyterLite 구도를 따르며 모든 것이 브라우저에서 동작합니다.
-
-### wasm32 빌드
-
-다음 명령으로 wasm32 빌드를 수행합니다.
-
-```
-rokc build --target=wasm32-unknown-unknown --out=rokc-kernel.wasm
-```
-
-빌드한 wasm 모듈은 Jupyter 의 web kernel 로 로드해서 사용하면 됩니다.
-
-### 브라우저 메시지 채널
-
-Web Worker 안에서 `postMessage` 로 메시지를 주고받습니다. ZMQ 가 아니라 브라우저 네이티브 채널을 사용하는 점이 특징입니다.
-
-```
-Jupyter Frontend (UI)
-    ↕  postMessage
-Web Worker (rokc as wasm)
-```
-
-> rokc as wasm: rokc 의 wasm.
-
-메시지 내용은 Jupyter wire protocol 과 동일한 JSON 형식이며, 다만 전송 매체만 다릅니다.
-
-### SharedArrayBuffer
-
-이미지나 dataframe 같은 대량 데이터는 `SharedArrayBuffer` 로 zero-copy 전달합니다.
-
-이때 CORS 와 Cross-Origin-Embedder-Policy 등의 브라우저 보안 정책을 만족해야 하며, 자세한 사양은 JupyterLite 문서를 참조하면 좋습니다.
-
-### OS 자원 제한
-
-브라우저 안의 rok 에는 다음과 같은 라이브러리 영역이 존재하지 않습니다 ([표준 라이브러리 계층](../000-meta/005-standard-libraries-tiers.md)).
-
-- `rok::std::fs`: 파일 시스템.
-- `rok::std::net`: 네트워크 (TCP / UDP).
-- `rok::std::process`: 프로세스 생성.
-
-다만 `rok` 영역의 모든 것, 즉 일반 rok 코드와 컬렉션, 동시성 primitive 는 정상적으로 동작합니다.
-
-브라우저의 fetch 나 IndexedDB 등은 별도 라이브러리로 추가할 수 있는데, 이 부분은 사양 외의 영역에 해당합니다.
-
-## 9.8.8. REPL 과 Jupyter 의 코드 공유
+## 9.8.7. REPL 과 Jupyter 의 코드 공유
 
 REPL 에서 작성한 코드는 그대로 Jupyter 셀로 옮길 수 있고, 반대 방향도 마찬가지로 가능합니다. 같은 셀 세션과 같은 의미론 ([9.7.0](907-jit-cells.md#970-셀-세션의-규칙)) 을 따르고 있기 때문입니다.
 
@@ -186,18 +134,12 @@ REPL 에서 작성한 코드는 그대로 Jupyter 셀로 옮길 수 있고, 반�
 |-------------|---------------|-----------------------|
 | 입력        | 한 줄 / 한 식 | 한 셀 (여러 줄)       |
 | 출력        | text only     | text (`text/plain`)   |
-| undo        | 없음          | 셀 삭제               |
 | 상태 보존   | 종료 시 폐기  | 노트북 파일에 셀 보존 |
-| 디스크 캐시 | 옵션          | 옵션                  |
 
-## 9.8.9. 보안 / 격리
+## 9.8.8. 보안 / 격리
 
-로컬 커널은 사용자 권한으로 실행되므로 임의 코드를 실행할 수 있으며, 이는 사용자의 책임 영역으로 남게 됩니다.
+커널은 사용자 권한으로 임의 코드를 실행합니다. 격리는 하지 않습니다.
 
-반면 브라우저 커널은 브라우저 샌드박스 안에서 동작하기 때문에 OS 자원에 대한 접근이 제한됩니다.
-
-자세한 보안 모델은 Jupyter 표준 문서를 참조합니다.
-
-## 9.8.10. 다음
+## 9.8.9. 다음
 
 이어지는 [디버그 / 진단 도구](909-debug-tools.md) 에서는 gdb 친화 기능과 profile, `--emit` 등을 정의합니다.

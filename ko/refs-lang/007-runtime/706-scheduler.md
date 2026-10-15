@@ -4,23 +4,16 @@ rok 의 스케줄러는 M:N [work-stealing](../000-meta/007-glossary.md#work-ste
 
 ## 7.6.1. 통합된 worker 모델
 
-기본은 N 개의 OS thread 로 구성되며 보통 CPU 코어 수에 맞추고, 각 thread 는 다음 네 가지 역할을 동시에 수행합니다.
+worker 는 CPU 수만큼의 OS thread 입니다. pool 은 `task::block_on` 이 띄우며, 부른 스레드가 worker 0 입니다. `par::*` 도 같은 pool 위에서 돕니다 ([stdlib 2.18.3](../../refs-standard-libraries/200-core/218-task.md#2183-스케줄러-모델--work-stealing)). 각 worker 는 다음 역할을 겸합니다.
 
 ```
-OS Thread = {
-    Scheduler Worker      // task queue (work-stealing)
-    Mutator Context       // TLAB + shadow stack (see 701/702/704)
-    I/O Driver Handle     // poll / epoll / iouring / kqueue / IOCP / wasi
-    GC Worker Context     // participates in parallel mark / evacuate
+worker = {
+    scheduler   // task 큐 (work-stealing)
+    mutator     // TLAB + shadow stack (701 / 702 / 704)
 }
 ```
 
-> see 701/702/704: [객체 레이아웃과 메모리 공간](701-object-layout.md) / [할당](702-allocation.md) / [배리어와 루트 추적](704-barriers-and-roots.md). participates in parallel mark / evacuate: parallel mark / evacuate 참여.
-
-이렇게 역할을 통합한 덕분에 추가로 thread 를 분리하지 않고도 모든 런타임 활동이 하나의 풀에서 처리될 수 있습니다.
-
-> [!NOTE]
-> 현재 구현에서 pool 은 `task::block_on` 이 띄우며, worker 수는 CPU 수이고 호출 스레드가 worker 0 입니다. `par::*` 도 같은 pool 위에서 돕니다 ([stdlib 2.18.3](../../refs-standard-libraries/200-core/218-task.md#2183-스케줄러-모델--work-stealing)). I/O driver 는 worker 가 겸하지 않고 프로세스당 reactor thread 하나로 둡니다 ([7.7.1](707-io-and-timer.md#771-io-멀티플렉싱)).
+I/O driver 는 worker 가 겸하지 않습니다. 프로세스당 reactor thread 하나가 맡습니다 ([7.7.1](707-io-and-timer.md#771-io-멀티플렉싱)). GC 는 수집을 시작한 thread 가 진행합니다 (7.6.10).
 
 ## 7.6.2. Work-Stealing 구조
 
@@ -31,8 +24,6 @@ Worker:
   ├── local_deque : growable ring    (this worker's tasks, GC-traced)
   └── ...
 ```
-
-> this worker's tasks, GC-traced: 자신의 task 들, GC 가 추적.
 
 새로 깨어나거나 spawn 된 task 는 그 worker 의 deque 끝 (bottom) 에 들어갑니다. **소유 worker 도 thief 도 가장 오래된 task (top) 부터** 꺼냅니다. 소유자가 가장 새 task 부터 꺼내면, 스스로를 다시 깨우는 task (`await task::yield_now()` 를 도는 task 등) 가 자기 뒤에 쌓인 task 들을 굶길 수 있기 때문입니다.
 
@@ -47,8 +38,6 @@ Global injector:
   - receives tasks spawned from outside (e.g. extern callback).
   - when a worker's local queue is empty — pull from global.
 ```
-
-> receives tasks spawned from outside: 외부에서 spawn 된 task 가 들어갑니다. when a worker's local queue is empty: worker 의 local queue 가 비면.
 
 이 큐는 worker 풀 바깥에서 들어오는 task 의 진입점 역할을 맡고 있습니다.
 
@@ -110,9 +99,7 @@ work-stealing 모델은 task 가 blocking syscall 을 호출하면 그 worker �
 
 ## 7.6.10. 통합 GC Worker 역할
 
-GC 사이클이 도는 동안 각 worker 는 parallel mark / evacuate 작업에도 함께 참여합니다. 별도의 GC thread 풀을 두지 않고, 같은 worker 가 mutator 와 GC worker 의 역할을 모두 맡는 구조입니다. 사이클이 시작되면 worker 가 GC 협력 모드로 전환되었다가, 사이클이 끝나면 다시 task 실행으로 복귀합니다.
-
-이러한 통합 모델은 [동시 수집](705-concurrent-collection.md) 의 concurrent 진행과 결합되어 worker 를 적절히 활용할 수 있도록 해 줍니다.
+별도의 GC thread 는 없습니다. 수집은 할당이나 `rok_gc_collect` 에서 수집을 시작한 thread 가 진행하고, 다른 worker 는 safepoint 에서 멈춰 기다립니다 ([7.4.3](704-barriers-and-roots.md#743-safepoint-polling)). 수집이 끝나면 worker 는 task 실행으로 돌아갑니다.
 
 ## 7.6.11. Scheduler 와 Coroutine 의 관계
 
@@ -141,5 +128,3 @@ resume:       pop frame and continue execution
   ↓ (on normal termination)
 result:       delivered as Output of Task<T> (Task<T>: Future<Output = T>)
 ```
-
-> user code: 사용자 코드. compiler: 컴파일러. create coroutine frame + push to queue: coroutine frame 생성 + 큐 push. pop task from deque/lifo and execute: deque/lifo 에서 task 꺼내 실행. on await / yield: await / yield 만나면. requeue frame, run another task: frame 을 큐에 다시, 다른 task 진행. some worker: 어떤 worker 가. resume: 재개. pop frame and continue execution: frame 꺼내 이어서 실행. on normal termination: 정상 종료 시. result: 결과. delivered as Output of Task<T> (Task<T>: Future<Output = T>): `Future<Output = T>` 를 구현하는 `Task<T>` 의 결과로 전달.

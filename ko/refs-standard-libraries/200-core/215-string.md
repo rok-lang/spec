@@ -346,7 +346,7 @@ let c: Color = try "red".parse();
 
 ## 2.15.8. 모듈 매핑
 
-세 타입의 등록 방식과 구현 위치는 다음 표에 정리되어 있습니다.
+세 타입의 등록 방식과 구현 위치는 다음 표에 정리됩니다.
 
 | 타입     | struct 이름          | 등록                 | 구현            |
 |----------|----------------------|----------------------|-----------------|
@@ -369,4 +369,4 @@ intrinsic 부착에 관해서는, `str` 메서드 본문 일부와 `char` 메서
 | len 의미     | byte len          | char count              | UTF-16 code unit        | byte len (`.chars().count()` 명시) |
 | index `s[i]` | **없음**          | char (Python str)       | UTF-16 code unit        | **없음** (chars/bytes 명시)        |
 
-이 비교를 토대로 rok 의 **가장 큰 결정**들을 정리해 보겠습니다. 먼저 `str` 을 불변 `(ptr, len)` 값으로 두고 가변 buffer 는 `StrBuf` 로 분리했습니다. GC 가 있으므로 Rust 와 달리 수명 구분은 필요 없습니다. 다음으로 `len()` 이 **byte length** 를 의미하도록 하여 Rust 와 동형으로 맞추었고, char 개수는 `chars().count()` 로 따로 얻습니다. 또한 `s[i]` 를 **제공하지 않음**으로써 Rust 와 동형을 유지하고 byte vs char 모호성을 회피합니다. `char` 를 4B Unicode scalar 로 정의함으로써 Java 의 2B UTF-16 code unit 이 야기하는 surrogate 함정을 피할 수 있게 되었습니다. 마지막으로 `c_char` 를 별도 타입으로 두어 `char` 와 ABI 를 명확히 구분합니다.
+먼저 `str` 을 불변 `(ptr, len)` 값으로 두고 가변 buffer 는 `StrBuf` 로 분리했습니다. GC 가 있으므로 Rust 와 달리 수명 구분은 필요 없습니다. 다음으로 `len()` 이 **byte length** 를 의미하도록 하여 Rust 와 동형으로 맞추었고, char 개수는 `chars().count()` 로 따로 얻습니다. 또한 `s[i]` 를 **제공하지 않음**으로써 Rust 와 동형을 유지하고 byte vs char 모호성을 회피합니다. `char` 를 4B Unicode scalar 로 정의함으로써 Java 의 2B UTF-16 code unit 이 야기하는 surrogate 함정을 피할 수 있게 되었습니다. 마지막으로 `c_char` 를 별도 타입으로 두어 `char` 와 ABI 를 명확히 구분합니다.

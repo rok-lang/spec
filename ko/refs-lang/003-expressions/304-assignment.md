@@ -67,7 +67,7 @@ counter = counter + 1;     // counter 가 선언되어 있어야 OK
 coutner = ...;             // ERROR: 'coutner' not declared. Did you mean 'counter'?
 ```
 
-이러한 강제는 오타가 새 변수를 만들어 버리는 함정 (Julia 와 Python 에서 흔한 버그) 을 차단해 줍니다.
+이러한 강제는 오타가 새 변수를 만들어 버리는 함정 (Julia 와 Python 에서 흔한 버그) 을 차단합니다.
 
 ## 3.4.3. 복합 대입
 

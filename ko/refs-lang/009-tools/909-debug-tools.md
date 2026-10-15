@@ -38,7 +38,7 @@ target/debug/build/foo.expanded.rok
 rokc rhir-text path/to/foo.rhir      # 또는 libfoo.a — 옆의 foo.rhir 를 읽음
 ```
 
-위 명령은 미리 빌드한 라이브러리의 [RHIR](904-rhir-bytecode.md) 을 사람이 읽을 수 있는 형식으로 출력해 줍니다. 버전, producer, meta 다음에 interface 파일마다 `--- <경로>` 와 그 텍스트 (구체 함수 본문이 `;` 로 잘린 소스) 가 이어집니다.
+위 명령은 미리 빌드한 라이브러리의 [RHIR](904-rhir-bytecode.md) 을 사람이 읽을 수 있는 형식으로 출력합니다. 버전, producer, meta 다음에 interface 파일마다 `--- <경로>` 와 그 텍스트 (구체 함수 본문이 `;` 로 잘린 소스) 가 이어집니다.
 
 ```
 rhir 1
@@ -62,7 +62,7 @@ rokc demangle <symbol>
 rokc demangle _Y3f8a1c2b_geom_distance_a7c91d8e44b2f190
 ```
 
-이 명령은 [심볼 맹글링](905-symbol-mangling.md) 의 mangled 심볼을 원본 형식으로 출력해 줍니다. 심볼을 여러 개 주면 블록을 빈 줄로 나눕니다. 맹글링은 루트 `rok::` 를 남기지 않으므로, 경로의 첫 세그먼트가 `core` / `std` / `bare` 이면 `rok::` 를 붙여 표준 라이브러리 경로로 보여 줍니다.
+이 명령은 [심볼 맹글링](905-symbol-mangling.md) 의 mangled 심볼을 원본 형식으로 출력합니다. 심볼을 여러 개 주면 블록을 빈 줄로 나눕니다. 맹글링은 루트 `rok::` 를 남기지 않으므로, 경로의 첫 세그먼트가 `core` / `std` / `bare` 이면 `rok::` 를 붙여 표준 라이브러리 경로로 보여 줍니다.
 
 ```
 package:  3f8a1c2b
@@ -129,7 +129,7 @@ span 은 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_p
 | `E400` ~ `E499` | 빌드 / 링크        |
 | `E500` ~        | 추가 카테고리      |
 
-현재 코드는 에러 종류마다 하나로 고정되어 있습니다. 같은 종류의 진단은 같은 코드를 가지며, 개별 진단 코드는 아직 없습니다.
+코드는 에러 종류마다 하나입니다. 같은 종류의 진단은 같은 코드를 가집니다.
 
 | 코드   | `kind`        | 종류                         |
 |--------|---------------|------------------------------|
@@ -144,7 +144,7 @@ span 은 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_p
 | `E400` | `lowering`    | HIR / MIR lowering           |
 | `E401` | `codegen`     | 코드 생성                    |
 | `E402` | `linkage`     | 외부 도구 / 링크             |
-| `E500` | `unsupported` | 아직 지원하지 않는 구문      |
+| `E500` | `unsupported` | 컴파일러가 처리하지 않는 구문 |
 | `E501` | `internal`    | 컴파일러 내부                |
 | `E502` | `other`       | 그 밖                        |
 | `E503` | `lint`        | lint ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어), `rokc lint`) |
@@ -177,11 +177,11 @@ span 은 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_p
     Finished in 0.95s
 ```
 
-각 단계의 시간을 표시하므로, 빌드 병목을 진단할 때 유용합니다. 단계를 얼마나 잘게 나눌지는 `rokc` 가 정합니다 (예: parse, type-check, specialize, mlir-opt, clang). 현재는 `front end` 와 `codegen + link` (`--emit` 이면 `emit <ext>`) 입니다.
+각 단계의 시간을 표시하므로, 빌드 병목을 진단할 때 유용합니다. 단계는 `front end` 와 `codegen + link` (`--emit` 이면 `emit <ext>`) 입니다.
 
 ### `-vv` (매우 자세히)
 
-이 모드에서는 각 단계의 내부 정보 (처리한 파일 목록, [specialize](../000-meta/007-glossary.md#specialize) 의 (item, type) 쌍 등) 를 함께 출력합니다. 현재는 `-v` 와 같은 출력입니다.
+`-v` 에 더해 처리한 파일 목록과 [specialize](../000-meta/007-glossary.md#specialize) 한 (item, type) 쌍을 출력합니다.
 
 ## 9.9.6. 디버거 통합: gdb / lldb
 
@@ -235,59 +235,28 @@ perf report
 
 ## 9.9.8. 메모리 / GC 도구
 
-### GC 로그
+런타임은 다음 환경 변수를 읽습니다.
 
-런타임 환경 변수를 통해 GC 로그를 활성화할 수 있습니다.
-
-```
-ROK_GC_LOG=1 ./target/debug/my_binary
-```
-
-이 옵션은 [GC](../000-meta/007-glossary.md#gc-garbage-collector) 사이클마다 pause time, mark count, sweep result 등을 stderr 에 출력합니다.
-
-현재 구현의 런타임은 다음 환경 변수도 읽습니다.
-
-| 변수              | 효과                                                                         |
-|-------------------|------------------------------------------------------------------------------|
-| `ROK_GC_GEN=0`    | 세대 수집 (sticky mark-bit, [7.3.3](../007-runtime/703-gc-algorithm.md#733-사이클-young-과-old-의-교차)) 을 끄고 매번 full 수집 |
-| `ROK_GC_STATS=1`  | 종료 시 수집 횟수 (minor / full), pause 시간, 수집기 CPU 시간을 stderr 에 출력. 둘째 줄은 block 수 / 상주 크기 / evacuation 횟수 / 옮긴 바이트 |
+| 변수                      | 효과                                                                         |
+|---------------------------|------------------------------------------------------------------------------|
+| `ROK_GC_LOG=1`            | 수집마다 종류 (minor / full), pause 시간, mark 수, sweep 결과를 stderr 에 출력 |
+| `ROK_GC_STATS=1`          | 종료 시 수집 횟수 (minor / full), pause 시간, 수집기 CPU 시간을 stderr 에 출력. 둘째 줄은 block 수 / 상주 크기 / evacuation 횟수 / 옮긴 바이트 |
+| `ROK_GC_GEN=0`            | 세대 수집 ([7.3.2](../007-runtime/703-gc-algorithm.md#732-sticky-mark-bit-세대-수집)) 을 끄고 매번 full 수집 |
 | `ROK_GC_EVAC=always\|off` | full 수집의 evacuation 을 매번 하거나 끔. 기본은 자동 ([7.3.1](../007-runtime/703-gc-algorithm.md#731-immix-mark-region)) |
-| `ROK_GC_STRESS=N` | 테스트용. 할당 N 번마다 수집 (그 8 번째마다 full)                            |
-
-### heap dump
-
-OOM 상황에서는 heap dump 를 남길 수 있습니다.
-
-```
-ROK_HEAP_DUMP=on_oom ./target/debug/my_binary
-```
-
-OOM 시 heap 의 객체 분포와 큰 객체 등을 dump 하며, 자세한 형식은 GC 구현이 결정합니다.
+| `ROK_GC_STRESS=N`         | 테스트용. 할당 N 번마다 수집 (그 8 번째마다 full)                            |
+| `ROK_HEAP_DUMP=on_oom`    | OOM 시 heap 의 객체 분포와 큰 객체를 stderr 에 출력. 형식은 런타임이 정함    |
 
 ## 9.9.9. REPL / Jupyter 디버그
 
-### JIT 모듈 dump
+| 수단                 | 효과                                                                 |
+|----------------------|----------------------------------------------------------------------|
+| `:type <식>`         | 식의 타입을 출력 (실행하지 않음)                                     |
+| `:reset`             | 세션을 처음 상태로 (`--package` 의 `use` 는 다시 넣음)               |
+| `:add <dep> ..`      | 현재 환경에 의존성을 추가하고 세션에 붙임 (`rok` 경유, [9.10.5](910-rok-frontend.md#9105-환경)) |
+| `:help`, `:quit`     | 도움말, 종료                                                         |
+| `ROK_REPL_TIME=1`    | 셀마다 단계별 시간과, 새로 컴파일한 함수 / 앞 셀에서 재사용한 함수 수 ([9.6.4](906-jit-engine.md#964-라이브러리-코드의-재사용)) |
 
-REPL / Jupyter 안에서는 다음과 같은 명령으로 JIT 산출물을 확인할 수 있습니다.
-
-```
-:dump_mlir         # 마지막 cell 의 MLIR
-:dump_llvmir       # 마지막 cell 의 LLVM IR
-:dump_asm          # 마지막 cell 의 어셈블리
-```
-
-이를 통해 [JIT](../000-meta/007-glossary.md#jit-just-in-time) 의 내부 단계를 대화식으로 확인할 수 있습니다.
-
-### specialize 캐시 inspect
-
-캐시 동작도 명령으로 점검할 수 있습니다.
-
-```
-:spec_cache        # 현재 spec_cache 의 항목 목록
-:spec_cache clear   # 캐시 비우기 (강제 재컴파일)
-```
-
-이 명령들은 JIT 의 캐시 동작 디버그에 사용합니다.
+셀의 MLIR / LLVM IR 을 보려면 같은 코드를 `main.rok` 로 두고 `rokc build --emit=mlir,llvmir` 을 씁니다 (9.9.1).
 
 ## 9.9.10. 메타 블록 디버그
 
@@ -394,4 +363,4 @@ Concrete .o files:
 
 지금까지 살펴본 도구들이 rok 의 개발과 디버그 경험의 핵심을 이룹니다. 표준 도구 (gdb, perf, jupyter) 와의 통합과 rok 고유 도구 (`rokc demangle`, `rokc rhir-text` 등) 가 결합되어 풍부한 진단 환경을 제공합니다.
 
-이로써 9 장 (실행과 툴) 을 마무리하며, 본 사양 전체가 큰 그림을 완성하게 됩니다.
+이로써 9 장 (실행과 툴) 을 마무리하며, 본 사양 전체가 큰 그림을 완성합니다.

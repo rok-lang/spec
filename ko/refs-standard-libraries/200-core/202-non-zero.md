@@ -67,7 +67,7 @@ impl<T: Primitive> Mul<NonZero<T>> for NonZero<T> {
 }
 ```
 
-`NonZero × NonZero` 은 다시 `NonZero` 가 되어 수학적 보존이 성립합니다. 반면 `NonZero + NonZero` 는 결과가 **0 이 될 수 있기** 때문에 `NonZero` 를 반환할 수 없으며, 따라서 `T` 를 반환하게 됩니다.
+`NonZero × NonZero` 은 다시 `NonZero` 가 되어 수학적 보존이 성립합니다. 반면 `NonZero + NonZero` 는 결과가 **0 이 될 수 있기** 때문에 `NonZero` 를 반환할 수 없으며, 따라서 `T` 를 반환합니다.
 
 | 연산                      | 결과 타입            |
 |---------------------------|----------------------|

@@ -13,15 +13,13 @@
 5. **실패한 셀.** panic 하거나 프로세스를 끝내거나 죽은 셀은 바인딩에 부분 효과를 남기지 않습니다. 세션은 그 셀 이전의 상태로 계속됩니다. 이미 일어난 외부 효과 (I/O 등) 는 되돌리지 않습니다.
 6. **표시.** 식 셀은 값을 `타입: 값` (Debug) 으로 출력하고, `Debug` 가 없으면 타입만 출력합니다 (9.7.7).
 
-다음은 구현이 정합니다 (implementation-defined).
+다음 바인딩과 효과는 다룰 수 없습니다.
 
-- 최상위에서 이름을 적을 수 없는 타입 (클로저, 비공개 타입 등) 의 바인딩. 구현은 그런 바인딩을 만들 때 거부할 수 있습니다.
-- 프로세스 수준의 효과: 셀 안의 `exit()`, 실패한 셀 뒤에 남은 앞 셀의 스레드 등. 현재 구현에서 `exit()` 를 부른 셀은 실패한 셀로 다룹니다.
+- 최상위에서 이름을 적을 수 없는 타입 (클로저, 비공개 타입 등) 의 바인딩. 만드는 셀에서 거부하고 `--replay` 를 안내합니다.
+- 셀 안의 `exit()`. 그 셀은 실패한 셀로 다룹니다 (규칙 5).
+- 실패한 셀이 띄운 스레드. 셀과 함께 사라집니다.
 
-> [!NOTE]
-> **현재 구현.** `rokc repl` (과 `rok`, `rok repl`, Jupyter 커널) 은 9.6 의 JIT host 를 씁니다. 환경 변수 `ROK_REPL_TIME=1` 은 셀마다 단계별 시간과 새로 컴파일한 / 재사용한 함수 수를 출력합니다. 이름을 적을 수 없는 타입의 바인딩은 거부하고 `--replay` 를 안내합니다.
->
-> `--replay` 모드 (9.6.6) 는 셀마다 지금까지의 세션 전체를 하나의 익명 `main.rok` 로 다시 컴파일해 버리는 자식 프로세스에서 처음부터 실행하고, 새 셀의 출력만 보여 줍니다. 클로저 같은 바인딩도 유지할 수 있지만 규칙 1 을 지키지 않습니다 (앞 셀의 부수 효과가 되풀이됨).
+`--replay` 모드 ([9.6.6](906-jit-engine.md#966---replay)) 는 셀마다 세션 전체를 다시 실행합니다. 이름을 적을 수 없는 바인딩도 유지하지만 규칙 1 을 지키지 않습니다 (앞 셀의 부수 효과가 되풀이됨).
 
 ## 9.7.1. Cell 의 종류
 
@@ -34,8 +32,6 @@ REPL 의 한 줄과 Jupyter 의 한 셀은 그 내용에 따라 처리 방식이
 4. import (use / mod)        → update the session's visible names
 5. meta / attribute          → handle as appropriate
 ```
-
-> expression: 표현식. evaluate: 평가. store last_value: last_value 저장. print: 출력. statement: 문장. let / call: let / 함수 호출. execute: 실행. return value is unit: 반환값은 unit. definition: 정의. add to the session's items: 세션의 항목에 추가. update the session's visible names: 세션의 가시 이름 갱신. meta / attribute: 메타 / 속성. handle as appropriate: 적절한 처리.
 
 다섯 가지 모두 같은 cell 처리 흐름을 따르며, 마지막 출력만 달라집니다.
 
@@ -73,8 +69,6 @@ heap payload                → register GC root
                              (compiler-emitted shadow stack frame,
                               linked into rokr shadow stack chain)
 ```
-
-> LLVM global of struct: 구조 LLVM global. LLVM global of that type: 해당 타입 LLVM global. register GC root: GC root 등록. linked into rokr shadow stack chain: rokr 의 shadow stack 체인 연결.
 
 각 top-level 변수는 LLVM global 로 저장되며, 다음 cell 이 같은 변수를 참조할 때 그 global 주소를 통해 찾아갑니다.
 
@@ -181,8 +175,6 @@ i32: 3
 ... 42i32;          (continued input)
 i32: 42
 ```
-
-> continued input: 계속 입력.
 
 식이나 블록이 닫히지 않았다면 `...` 프롬프트를 표시하며 입력을 계속 받습니다.
 

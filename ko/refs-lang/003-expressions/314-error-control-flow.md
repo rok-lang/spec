@@ -188,7 +188,7 @@ fn parse(s: str) throws (A | B | C) -> i32 { ... }  // 합 타입
 
 시그니처에 `throws` 가 없는 함수 밖으로는 에러가 나갈 수 없습니다. `throws (T)` 의 `T` 가 합 타입인 경우, 그 함수가 던질 수 있는 에러의 닫힌 집합이 되며, 호출자가 `catch` 를 작성하고 완전성을 검사하는 데 쓰입니다.
 
-자세한 함수 시그니처와 `throws` 의 의미는 [`throws` 시그니처](../004-functions/414-throws.md) 에서 정의하고 있습니다.
+자세한 함수 시그니처와 `throws` 의 의미는 [`throws` 시그니처](../004-functions/414-throws.md) 에서 정의합니다.
 
 ## 3.14.8. panic 과 fatal 에러
 

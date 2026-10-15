@@ -4,7 +4,7 @@
 
 ## 2.12.1. 두 단계 트레잇
 
-reflection 은 두 단계 트레잇으로 분리되어 있습니다.
+reflection 은 두 단계 트레잇으로 분리됩니다.
 
 | 트레잇    | 자동 구현 / opt-in            | 제공 항목                         | 사용 자리                                        |
 |-----------|-------------------------------|-----------------------------------|--------------------------------------------------|
@@ -61,7 +61,7 @@ typeof(x);                 // ERROR — 글로벌 typeof 없음
 sizeof(T);                 // ERROR — 글로벌 sizeof 없음
 ```
 
-대신 메서드로 일관되게 통일되어 있습니다.
+대신 메서드로 일관되게 통일됩니다.
 
 ```rok
 x.type_name_of()           // 인스턴스
@@ -70,7 +70,7 @@ T::size()
 T::align()
 ```
 
-이는 [refs-lang 3.5 멤버 접근과 메서드 호출](../../refs-lang/003-expressions/305-member-access-and-method-call.md) 의 일부로, 모든 introspection 이 메서드 형태로 통합되어 있습니다.
+이는 [refs-lang 3.5 멤버 접근과 메서드 호출](../../refs-lang/003-expressions/305-member-access-and-method-call.md) 의 일부로, 모든 introspection 이 메서드 형태로 통합됩니다.
 
 ## 2.12.3. `Inspect` — opt-in 필드 / 메서드
 

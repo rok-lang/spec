@@ -54,7 +54,7 @@ trait IntoStream {
 }
 ```
 
-`for await` 의 시작 자리에서는 `IntoStream::into_stream` 을 호출한 뒤 `Stream::poll_next` 를 반복하게 됩니다. 구체적인 변환 형태는 다음과 같습니다.
+`for await` 의 시작 자리에서는 `IntoStream::into_stream` 을 호출한 뒤 `Stream::poll_next` 를 반복합니다. 구체적인 변환 형태는 다음과 같습니다.
 
 ```rok
 for await event in event_source { ... }
@@ -189,7 +189,7 @@ impl<T, E> TryAsyncStream<T, E> {
 
 ## 2.8.9. 모듈 매핑
 
-각 항목이 자리 잡는 모듈은 다음 표에 정리되어 있습니다.
+각 항목이 자리 잡는 모듈은 다음 표에 정리됩니다.
 
 | 항목                          | 모듈                            | 형태                         |
 |-------------------------------|---------------------------------|------------------------------|

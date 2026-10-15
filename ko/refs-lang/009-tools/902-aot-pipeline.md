@@ -62,9 +62,9 @@ rokc build --extern util=../util --extern parser=target/debug/deps/libparser.a
 
 라이브러리 패키지를 `rokc build` 하면 `lib<name>.a` 와 `<name>.rhir` 를 함께 만듭니다. `--name <n>` 은 패키지 이름 (산출물 이름과 mount 이름) 을 정하며, 기본은 디렉토리 이름입니다.
 
-### `rok` 의 의존 패키지 캐시
+### 미리 빌드한 의존 패키지
 
-`rok build` / `run` / `test` / `bench` 는 의존 패키지를 의존 순서대로 **한 번씩** 미리 빌드해 `target/<profile>/deps/` 에 둡니다.
+`rokc` 는 소스로 받은 `--extern` 을 주어진 순서대로 **한 번씩** 미리 빌드해 `target/[<triple>/]<profile>/deps/` 에 둡니다. 각 의존 패키지는 앞서 빌드한 의존 패키지를 모두 봅니다. 그 뒤의 컴파일은 소스 대신 이 `lib<name>.a` 와 `<name>.rhir` 를 씁니다.
 
 ```
 target/<profile>/deps/
@@ -73,16 +73,16 @@ target/<profile>/deps/
 └── <name>.fp               # fingerprint
 ```
 
-fingerprint 가 같으면 다시 빌드하지 않고 씁니다. fingerprint 에 들어가는 것은 다음입니다.
+fingerprint 가 같으면 다시 빌드하지 않습니다. fingerprint 에 들어가는 것은 다음입니다.
 
 - `rokc` 의 정체 (RHIR producer 와 같은 값)
 - 빌드 옵션: `--release` / `-O*`, `-g`, `--target`, `--cfg`, `--bootstrap`
 - 그 의존 패키지의 모든 `.rok` 파일과 `rok.rokon`
 - 그보다 먼저 빌드한 의존 패키지들의 fingerprint
 
-`check` / `lint` / `doc` / `lsp` / `repl`, 단일 파일 스크립트, 이름 있는 환경은 지금도 의존 패키지를 소스로 함께 컴파일합니다. 표준 라이브러리는 미리 빌드하지 않고 빌드마다 소스로 bootstrap 합니다.
+컴파일하는 모든 명령이 이 경로를 씁니다: `build` / `run` / `test` / `bench` / `check` / `lint` / `doc` / `lsp` / `repl` / `jupyter`, 단일 파일 스크립트, 이름 있는 환경. REPL host 도 미리 빌드한 archive 를 링크합니다. 패키지도 `--target-dir` 도 없으면 시스템 임시 디렉토리의 `rokc-target/` 아래에 둡니다.
 
-보통은 `rok` 가 `--extern` 을 채우며, 다른 빌드 시스템이 직접 쓸 수도 있습니다.
+표준 라이브러리는 미리 빌드하지 않고 빌드마다 소스로 bootstrap 합니다 ([9.3.6](903-package-archive.md#936-표준-라이브러리)).
 
 ## 9.2.4. 소스 파싱
 
@@ -112,7 +112,7 @@ fingerprint 가 같으면 다시 빌드하지 않고 씁니다. fingerprint 에 
 
 타입 검사가 끝난 AST 를 rok-hir ([HIR](../000-meta/007-glossary.md#hir-high-level-ir--mir-mid-level-ir)) 자료구조로 변환합니다.
 
-HIR 은 타입 정보가 풍부하게 담긴 중간 표현이며, 위 4 ~ 5 단계의 결과를 모두 반영한 형태입니다. 이때 구조적으로 압축하여 같은 타입과 식별자는 공유 표현을 사용하게 됩니다.
+HIR 은 타입 정보가 풍부하게 담긴 중간 표현이며, 위 4 ~ 5 단계의 결과를 모두 반영한 형태입니다. 이때 구조적으로 압축하여 같은 타입과 식별자는 공유 표현을 사용합니다.
 
 ## 9.2.8. specialize: 단형화
 
@@ -127,7 +127,7 @@ HIR 은 타입 정보가 풍부하게 담긴 중간 표현이며, 위 4 ~ 5 단�
 
 프로그램의 root (`main`, export 된 심볼, `#[export_name]` 항목, 런타임이 참조하는 심볼) 에서 도달할 수 없는 함수는 emit 하지 않습니다. 라이브러리 빌드에서도 같아서, 패키지의 `pub` 항목과 그 root 에서 닿지 않는 함수는 archive 에 넣지 않습니다.
 
-이 단계 덕분에 [AOT](../000-meta/007-glossary.md#aot-ahead-of-time) 가 vtable 없는 직접 호출을 할 수 있게 됩니다 ([트레잇-as-타입 금지](../002-types/212-trait-as-type-banned.md) 참고).
+이 단계 덕분에 [AOT](../000-meta/007-glossary.md#aot-ahead-of-time) 가 vtable 없는 직접 호출을 할 수 있습니다 ([트레잇-as-타입 금지](../002-types/212-trait-as-type-banned.md) 참고).
 
 ## 9.2.9. rok-mir 생성
 
@@ -215,8 +215,6 @@ target/
 └── doc/                        # rok doc / rokc doc
 ```
 
-> profile: 빌드 종류. executable (for main): 실행 패키지의 실행 파일. package archive (for lib): 라이브러리 패키지의 archive. intermediates: 중간 산출물. compiled dependencies: 빌드된 의존 패키지. cross build: 교차 빌드.
-
 | 산출물          | 경로                                                              |
 |-----------------|-------------------------------------------------------------------|
 | 실행 파일       | `target/<profile>/<name>`                                         |
@@ -225,7 +223,7 @@ target/
 | 중간 산출물     | `target/<profile>/build/`                                         |
 | 의존 패키지     | `target/<profile>/deps/` (`lib<dep>.a`, `<dep>.rhir`, `<dep>.fp`, 9.2.3) |
 | 교차 빌드       | `target/<triple>/<profile>/...` (위와 같은 구조)                  |
-| 문서            | `target/doc/` (계획)                                              |
+| 문서            | `target/doc/`                                                     |
 
 이름 `foo` 는 패키지 이름입니다 (9.2.2). `-o` 는 산출물 하나의 경로를, `--target-dir=<dir>` 와 환경 변수 `ROKC_TARGET_DIR` 은 `target/` 자체의 위치를 바꿉니다. `rokc clean` / `rok clean` 은 `target/` 전체를 지웁니다. 라이브러리의 RHIR 은 archive 옆의 `foo.rhir` 입니다 ([9.4](904-rhir-bytecode.md)).
 
@@ -233,12 +231,12 @@ target/
 
 증분 빌드는 패키지 단위입니다. `rokc build` / `rokc run` 은 이전 빌드의 fingerprint 와 지금의 것이 같으면 `Fresh` 를 출력하고 빌드를 건너뜁니다. fingerprint 는 다음을 포함합니다.
 
-- 컴파일러 자체, 빌드 옵션, 입력 / 출력 경로, `PATH`
+- 컴파일러의 정체 (RHIR producer 와 같은 값), 빌드 옵션, 진단 형식 (`--message-format`, 색), 입력 / 출력 경로, `PATH`
 - 패키지와 의존성에서 읽을 수 있는 모든 `.rok` 파일과 `rok.rokon`
 - 미리 빌드한 의존성의 `.a`, MLIR plugin 파일
 - 산출물의 크기와 수정 시각
 
-경고가 난 빌드는 경고를 다시 보여 주도록 항상 다시 빌드합니다. 파일 단위나 specialization 단위의 더 잘게 쪼갠 증분은 `rokc` 가 결정합니다.
+빌드가 낸 경고는 기록해 두며, `Fresh` 인 빌드는 그 경고를 다시 출력합니다.
 
 ## 9.2.17. 컴파일러와 런타임의 분리
 
@@ -246,7 +244,7 @@ target/
 
 대신에 `extern "C"` 심볼 ([Extern "C" 심볼](../008-abi/805-extern-symbols.md)) 호출만을 emit 하고, 링크 시점에 가서 사용자 빌드가 `librokr.a` 를 함께 링크하는 방식으로 동작합니다.
 
-이렇게 분리해 둔 덕분에 `rokc` 와 `librokr.a` 가 서로 독립된 SemVer 로 진화할 수 있게 됩니다.
+이렇게 분리해 둔 덕분에 `rokc` 와 `librokr.a` 가 서로 독립된 SemVer 로 진화할 수 있습니다.
 
 ## 9.2.18. 외부 도구 의존
 

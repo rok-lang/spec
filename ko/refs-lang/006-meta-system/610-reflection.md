@@ -11,7 +11,7 @@ Inspect    opt-in via #[derive(Inspect)] — 풍부한 필드/메서드 명세
 
 ## 6.10.1. `Reflect` — 자동 구현 트레잇
 
-`Reflect` 는 모든 타입에 자동으로 부착되는 minimal 한 type introspection 입니다. 사용자가 `#[derive(Reflect)]` 를 따로 적지 않아도, 컴파일러가 모든 타입에 대해 자동으로 impl 을 합성해 줍니다.
+`Reflect` 는 모든 타입에 자동으로 부착되는 minimal 한 type introspection 입니다. 사용자가 `#[derive(Reflect)]` 를 따로 적지 않아도, 컴파일러가 모든 타입에 대해 자동으로 impl 을 합성합니다.
 
 ```rok
 trait Reflect {
@@ -38,7 +38,7 @@ let v: i32 | f64 = pick();
 v.type_name_of()                  // "i32" 또는 "f64" — 합 타입 variant 검사
 ```
 
-자동 구현이라 사용자 코드를 따로 작성할 필요는 없습니다. 컴파일러가 모든 타입의 `type_name`, `size`, `align` 정보를 이미 알고 있어서, 비용 0 으로 합성해 줍니다.
+자동 구현이라 사용자 코드를 따로 작성할 필요는 없습니다. 컴파일러가 모든 타입의 `type_name`, `size`, `align` 정보를 이미 알고 있어서, 비용 0 으로 합성합니다.
 
 `Reflect` 는 컴파일러가 모든 타입에 제공하며, 소스에 impl 이 없습니다.
 
@@ -49,7 +49,7 @@ v.type_name_of()                  // "i32" 또는 "f64" — 합 타입 variant �
 
 ## 6.10.2. `Inspect` — opt-in 트레잇
 
-`Inspect` 는 `#[derive(Inspect)]` 로 opt-in 하는 풍부한 리플렉션입니다. 필드 이름, 동적 필드 접근과 수정, 그리고 메서드 명세까지 노출해 줍니다.
+`Inspect` 는 `#[derive(Inspect)]` 로 opt-in 하는 풍부한 리플렉션입니다. 필드 이름, 동적 필드 접근과 수정, 그리고 메서드 명세까지 노출합니다.
 
 ```rok
 trait Inspect: Reflect {
@@ -148,7 +148,7 @@ fn classify(v: i32 | f64) -> str {
 }
 ```
 
-타입 검사 패턴 (`v: T => ...`) 은 컴파일러가 `Reflect` 의 tag 검사로 desugar 해 줍니다.
+타입 검사 패턴 (`v: T => ...`) 은 컴파일러가 `Reflect` 의 tag 검사로 desugar 합니다.
 
 ## 6.10.6. 단계 간 관계
 

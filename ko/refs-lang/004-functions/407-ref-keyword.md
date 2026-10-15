@@ -152,8 +152,6 @@ let r: SomePointerType = ref x;   // ERROR
 
 ## 4.7.8. 값 pass 와 `ref` pass 의 의미론 정리
 
-같은 호출 시점에서의 두 형태를 비교해 보겠습니다.
-
 ```rok
 fn by_value(x: i32) { x = 10i32; }
 fn by_ref(ref x: i32) { x = 10i32; }

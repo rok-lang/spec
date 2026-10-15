@@ -23,7 +23,7 @@ JIT 와 AOT 라는 약어는 [용어집](007-glossary.md) 에 있는 그대로 �
 
 ### 같은 파이프라인을 공유합니다
 
-JIT 와 AOT 모두 동일한 컴파일 파이프라인을 통과합니다. 소스에서 시작하여 표준 중간 표현 ([0.2. 컴파일 파이프라인](002-pipeline.md)) 의 텍스트가 나올 때까지 두 엔진은 같은 코드를 실행합니다. 분기는 그 마지막 중간 표현 이후에만 일어납니다. 구체적으로 살펴보면, **JIT 엔진** 은 중간 표현을 LLVM IR 로 옮겨 세션 동안 사는 JIT host 프로세스 (libLLVM 의 ORC) 에 넘기고, host 가 즉시 기계어로 옮겨 호출하며 ([9.6](../009-tools/906-jit-engine.md)), **AOT 엔진** 은 같은 중간 표현을 표준 도구 체인에 넘겨 네이티브 바이너리로 빌드합니다.
+JIT 와 AOT 모두 동일한 컴파일 파이프라인을 통과합니다. 소스에서 시작하여 표준 중간 표현 ([0.2. 컴파일 파이프라인](002-pipeline.md)) 의 텍스트가 나올 때까지 두 엔진은 같은 코드를 실행합니다. 분기는 그 마지막 중간 표현 이후에만 일어납니다. **JIT 엔진** 은 중간 표현을 LLVM IR 로 옮겨 세션 동안 사는 JIT host 프로세스 (libLLVM 의 ORC) 에 넘기고, host 가 즉시 기계어로 옮겨 호출하며 ([9.6](../009-tools/906-jit-engine.md)), **AOT 엔진** 은 같은 중간 표현을 표준 도구 체인에 넘겨 네이티브 바이너리로 빌드합니다.
 
 이러한 구조에서는 하나의 컴파일러 구현이 두 엔진을 모두 담당합니다. 따라서 동작 차이가 발생한다면 그 원인은 컴파일러가 아니라 실행 시점의 환경, 즉 메모리, 스레드, OS 자원에 있다고 보아야 합니다.
 
@@ -39,19 +39,7 @@ REPL 표면에서는 터미널에서 한 줄 또는 한 식을 입력하면 즉�
 
 Jupyter 표면은 Jupyter / JupyterLab 의 rok 커널로 동작합니다. 한 셀 단위로 평가하며, 결과는 노트북 안에 시각화, 테이블, 텍스트로 남습니다. 이를 통해 데이터 분석의 표준 작업 흐름을 지원하며, 셀을 재실행하면 이전 정의가 교체됩니다.
 
-엔진은 JIT 이고, 입력 단위는 한 셀입니다. Jupyter 표면은 다음과 같이 두 가지 배포 형태로 제공됩니다.
-
-#### 로컬 네이티브 커널
-
-로컬 네이티브 커널 형태에서는 사용자 PC 의 Jupyter 프론트엔드 (JupyterLab, classic Notebook, VS Code 등) 가 별개 프로세스로 rok 커널 바이너리를 실행하고, ZeroMQ 기반 Jupyter 5.5 wire protocol 로 통신합니다. 이때 5 개의 ZMQ 소켓 채널인 shell, iopub, control, stdin, heartbeat 위에서 메시지를 주고받으며, 각 메시지는 HMAC 으로 서명됩니다. 또한 rok 과 함께 배포되는 kernelspec JSON 이 커널 바이너리의 위치와 인자를 Jupyter 에 알려 줍니다. 커널 바이너리는 자신이 도는 OS 의 모든 기능, 즉 파일 시스템, 네트워크, 표준 출력, 외부 프로세스를 그대로 사용할 수 있습니다.
-
-이 형태는 IPython, IJulia, IHaskell, xeus-cling 등 네이티브 Jupyter 커널의 표준 모델이며, rok 도 같은 방식을 따릅니다.
-
-#### 브라우저 WASM 커널
-
-브라우저 WASM 커널은 JupyterLite 구도를 따릅니다. 모든 것이 브라우저 안에서 동작하며 OS 가 매개되지 않습니다. rok 커널이 WebAssembly 로 빌드되어 페이지에 로드되며, 그 빌드 타깃 식별자는 [0.6. 플랫폼 타깃](006-platform-targets.md) 에서 정의합니다. 통신에는 브라우저 메시지 채널인 Web Worker 와 SharedArrayBuffer 를 사용합니다. 한편 OS 자원이 없으므로 파일 시스템, 네트워크, 외부 프로세스 관련 라이브러리는 빌드에 포함되지 않습니다.
-
-이 형태는 설치 없이 노트북을 데모, 교육, 임시 환경에서 실행하는 용도로 쓰입니다. 사용자 비중은 로컬 커널보다 작지만, 본 사양은 두 형태를 모두 정식 지원 대상으로 봅니다.
+엔진은 JIT 이고, 입력 단위는 한 셀입니다. Jupyter 프론트엔드 (JupyterLab, Notebook, VS Code 등) 가 rok 커널을 별도 프로세스로 실행하고 ZeroMQ 기반 Jupyter wire protocol 로 통신합니다 ([9.8](../009-tools/908-jupyter-integration.md)). 커널은 OS 의 파일 시스템, 네트워크, 외부 프로세스를 그대로 씁니다.
 
 ### AOT 산출물
 
@@ -64,24 +52,13 @@ AOT 산출물 표면에서는 소스를 빌드한 실행 파일을 직접 실행
 ```
               ┌── REPL (terminal)
    JIT  ──────┤
-              └── Jupyter ──┬── local native kernel (ZMQ)
-                            └── browser WASM kernel
+              └── Jupyter (kernel, ZMQ)
 
    AOT  ────── direct artifact execution
 ```
 
-> JIT: JIT 엔진. AOT: AOT 엔진. REPL: 터미널 인터랙티브 셸. Jupyter: 노트북 표면.
-> local native kernel: 로컬 네이티브 커널. browser WASM kernel: 브라우저 WASM 커널.
-> direct artifact execution: 산출물 직접 실행.
+세 표면이 두 엔진을 공유합니다.
 
-이렇게 세 표면이 두 엔진을 공유합니다.
+## 0.1.4. 의미의 기준
 
-## 0.1.4. 구현 우선순위
-
-본 사양과 초기 구현은 다음 순서를 따릅니다.
-
-1. AOT 엔진. 가장 단순한 종착점이며 모든 의미론의 기준이 됩니다.
-2. JIT 엔진. AOT 위에 얹는 증분 레이어입니다.
-3. 표면. REPL, 로컬 Jupyter 커널, 브라우저 Jupyter 커널의 순서로 구현됩니다.
-
-사양이 모호한 지점에서는 AOT 의미가 우선합니다. JIT 는 AOT 의 의미를 증분으로 재현하는 역할을 맡습니다.
+사양이 모호한 지점에서는 AOT 의미가 우선합니다. JIT 는 AOT 의 의미를 셀 단위로 재현합니다.

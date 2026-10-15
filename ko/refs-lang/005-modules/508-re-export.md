@@ -20,8 +20,6 @@ pub(sub) use sup::shared;
 
 ## 5.8.2. 의미
 
-내부 깊숙이 정의된 항목을 루트에서 다시 노출하는 예시를 살펴보겠습니다.
-
 ```rok
 // pkg::deep::Item
 mod deep {

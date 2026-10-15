@@ -35,15 +35,15 @@ TLS 슬롯은 하나의 블록이 아니라, 슬롯마다 런타임이 export �
 | Windows x86_64 | TEB (Thread Environment Block) offset |
 | WASM           | `__tls_base` global + offset          |
 
-컴파일러는 타깃별로 적절한 명령어를 emit 하게 되며, LLVM 의 `__thread` 와 TLS 모델이 이를 자동으로 처리해 줍니다.
+컴파일러는 타깃별로 적절한 명령어를 emit 하게 되며, LLVM 의 `__thread` 와 TLS 모델이 이를 자동으로 처리합니다.
 
 ## 8.3.3. 슬롯별 의미
 
 ### `rok_tls_yield_flag` (u8)
 
-[GC](../000-meta/007-glossary.md#gc-garbage-collector) 가 safepoint 시점에 set 하는 플래그이며, mutator 는 poll 단계에서 이를 검사합니다. 값이 `0` 이면 정상 실행 상태이고, `1` 이면 `yield` 해야 하는 상태로서 다음 poll 에서 `rok_runtime_yield` 를 호출하게 됩니다.
+[GC](../000-meta/007-glossary.md#gc-garbage-collector) 가 safepoint 시점에 set 하는 플래그이며, mutator 는 poll 단계에서 이를 검사합니다. 값이 `0` 이면 정상 실행 상태이고, `1` 이면 `yield` 해야 하는 상태로서 다음 poll 에서 `rok_runtime_yield` 를 호출합니다.
 
-자세한 메커니즘은 [배리어와 루트](../007-runtime/704-barriers-and-roots.md) 의 Safepoint Polling 항목에서 정의하고 있습니다.
+자세한 메커니즘은 [배리어와 루트](../007-runtime/704-barriers-and-roots.md) 의 Safepoint Polling 항목에서 정의합니다.
 
 ### `rok_tls_tlab_cursor` (ptr)
 
@@ -63,7 +63,7 @@ allocate(size):
 
 ### `rok_tls_tlab_limit` (ptr)
 
-TLAB 의 끝을 가리킵니다. cursor 가 이 값을 넘어서면 slow path 로 진입하게 됩니다.
+TLAB 의 끝을 가리킵니다. cursor 가 이 값을 넘어서면 slow path 로 진입합니다.
 
 ### `rok_tls_shadow_stack_top` (ptr)
 
@@ -82,7 +82,7 @@ write_barrier(p, q):
 
 대부분의 동작은 non-atomic 이며 thread-local 로 처리됩니다.
 
-전역 remembered set 하나를 쓰는 런타임은 이 두 슬롯을 null 로 둘 수 있습니다. 현재 구현은 이 슬롯으로 스레드마다 4 KiB log chunk 를 가리키며, 가득 찬 chunk 는 수집기가 비우는 lock-free stack 에 올립니다 ([7.4.2](../007-runtime/704-barriers-and-roots.md#742-write-barrier-incremental-update)).
+두 슬롯은 스레드마다의 4 KiB log chunk 를 가리킵니다. 가득 찬 chunk 는 수집기가 비우는 lock-free stack 에 올립니다 ([7.4.2](../007-runtime/704-barriers-and-roots.md#742-write-barrier-incremental-update)).
 
 ### `rok_tls_mutator_state` (u8)
 

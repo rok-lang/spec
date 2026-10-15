@@ -10,7 +10,7 @@
 - [7.2. 할당](702-allocation.md)
 - [7.3. GC 알고리듬](703-gc-algorithm.md)
 - [7.4. 배리어와 루트 추적](704-barriers-and-roots.md)
-- [7.5. 동시 수집](705-concurrent-collection.md)
+- [7.5. 동시 수집 (없음)](705-concurrent-collection.md)
 - [7.6. 스케줄러](706-scheduler.md)
 - [7.7. I/O 드라이버와 타이머](707-io-and-timer.md)
 - [7.8. 코루틴](708-coroutine.md)
@@ -45,8 +45,6 @@ Coroutine   LLVM coroutine intrinsic (stackless)
 OS Thread (worker) x N  ──── rok task / coroutine x M
                                    (typically M >> N)
 ```
-
-> x N: N 개. x M: M 개. typically M >> N: 일반적으로 M >> N 입니다.
 
 이 모델의 운용 방식은 다음과 같습니다. 기본 N 은 CPU 코어 수이며, 런타임 설정으로 조정할 수 있습니다. 또한 한 OS thread 가 여러 역할을 동시에 수행하는데, 그 역할은 Scheduler Worker, Mutator, I/O Driver, GC Worker 입니다. 다만 I/O driver 는 현재 별도의 reactor thread 하나가 맡습니다 ([7.7](707-io-and-timer.md)).
 

@@ -30,8 +30,6 @@ parent/
 └── foo.rok                   <- foo module body, no submodules
 ```
 
-> where `mod foo;` appears: `mod foo;` 가 등장하는 곳입니다. foo module body, no submodules: foo 모듈의 본체이며 서브모듈은 없습니다.
-
 이 경우 `foo.rok` 한 파일의 내용이 곧 foo 모듈의 본체가 됩니다.
 
 ### 형태 2: 폴더 (`foo.rok` + `foo/`)
@@ -46,8 +44,6 @@ parent/
     ├── bar.rok                   declared as `mod bar;` inside foo.rok
     └── baz.rok                   declared as `mod baz;` inside foo.rok
 ```
-
-> foo module body: foo 모듈의 본체입니다. foo's submodules: foo 의 서브모듈들입니다. declared as `mod bar;` inside foo.rok: foo.rok 안에 `mod bar;` 로 선언됩니다.
 
 여기서 `foo.rok` 는 foo 모듈의 본체이며, 일반 항목과 `mod bar;` 같은 서브모듈 선언, 그리고 가시성 등을 포함합니다. `foo/` 디렉토리에 들어 있는 각 `.rok` 파일은 foo 의 서브모듈이 되며, 본체 안에 `mod 이름;` 으로 명시 선언되어 있어야 합니다. 만약 `foo/` 만 있고 `foo.rok` 가 없다면 ERROR 입니다. 본체 파일은 반드시 있어야 합니다.
 
@@ -88,8 +84,6 @@ foo/
 └── baz.rok                   <- foo::baz submodule
 ```
 
-> module body (the code above): 본체이며 위의 코드입니다. foo::bar submodule: foo::bar 서브모듈입니다. foo::baz submodule: foo::baz 서브모듈입니다.
-
 서브모듈 자체도 단일 파일 또는 폴더 형태 중 어느 쪽이든 자유롭게 선택할 수 있습니다.
 
 ```
@@ -101,8 +95,6 @@ foo/
     ├── x.rok                     foo::baz::x
     └── y.rok                     foo::baz::y
 ```
-
-> foo::bar (single-file): foo::bar 는 단일 파일입니다. foo::baz body: foo::baz 의 본체입니다. foo::baz submodules: foo::baz 의 서브모듈들입니다.
 
 이 패턴은 임의의 깊이로 재귀적으로 적용되며, 각 모듈은 독립적으로 단일 파일 형태와 폴더 형태 중 하나를 선택할 수 있습니다.
 
@@ -132,8 +124,6 @@ my_pkg/
     ├── lexer.rok                 parsing::lexer
     └── parser.rok                parsing::parser
 ```
-
-> root module body: 루트 모듈의 본체입니다. single-file: 단일 파일입니다. parsing module body: parsing 모듈의 본체입니다. parsing's submodules: parsing 의 서브모듈들입니다.
 
 루트 모듈은 항상 폴더 형태이며, 패키지 디렉토리가 그 폴더가 되고 `lib.rok` (라이브러리) 또는 `main.rok` (실행) 이 본체 파일이 됩니다. 패키지 루트는 별도의 `lib/` 같은 폴더를 두지 않습니다.
 
@@ -242,8 +232,6 @@ foo/
 ├── core.rok                  <- core items
 └── ext.rok                   <- extension items
 ```
-
-> module body (re-exports only): 본체이며 재내보내기만 합니다. core items: 핵심 항목입니다. extension items: 확장 항목입니다.
 
 이 패턴을 사용하면 사용자는 `foo::item` 형태로 모든 항목에 접근할 수 있고, 본체 파일은 작게 유지되며 실제 코드는 서브모듈에 분산됩니다. Rust 의 `pub use` 재내보내기 패턴과 같은 방식입니다.
 

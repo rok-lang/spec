@@ -12,14 +12,20 @@
 | `add`, `remove`, `update`, `deps`                                 | 의존성 (9.10.4)                         |
 | `env`                                                             | 환경 (9.10.5)                           |
 | `toolchain`                                                       | toolchain (9.10.6)                      |
-| `build`, `check`, `run`, `test`, `emit`, `clean`                  | 의존성을 해소한 뒤 `rokc` 에 위임       |
-| `fmt`, `repl`, `lsp`, `demangle`                                  | 의존성을 해소한 뒤 `rokc` 에 위임       |
-| `jupyter`                                                         | 커널 실행 (`--connection-file`) 은 위임, `jupyter install [--user]` 은 kernelspec 설치 ([9.8.3](908-jupyter-integration.md#983-kernelspec-설치)) |
-| `bench`, `doc`, `lint`                                            | 의존성을 해소한 뒤 `rokc` 에 위임       |
+| `build`, `check`, `run`, `test`, `bench`, `emit`                  | 의존성을 붙여 `rokc` 에 위임            |
+| `doc`, `lint`, `repl`, `lsp`                                      | 의존성을 붙여 `rokc` 에 위임            |
+| `fmt`, `clean`, `demangle`                                        | 의존성 없이 `rokc` 에 위임              |
+| `jupyter`                                                         | 커널 실행 (`--connection-file`) 은 위임, `jupyter install [--env <name>]` 은 kernelspec 설치 ([9.8.3](908-jupyter-integration.md#983-kernelspec-설치)) |
 | `version`, `help`                                                 |                                         |
 | (없음)                                                            | `rok repl` 과 같음 — REPL 시작          |
 
-위임하는 서브명령은 `rok.lock` 을 따라 의존 패키지를 준비한 뒤, 의존 패키지마다 `--extern name=<lib.rok>` 를 붙여 같은 이름의 `rokc` 서브명령을 실행합니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 그 밖의 인자는 `rokc` 에 그대로 넘어가며, 옵션과 출력, 종료 코드는 `rokc` 의 것 ([9.1](901-rokc-cli.md)) 을 따릅니다. `rokls` 는 `rok lsp` 와 같은 독립 실행 파일입니다.
+위임하는 서브명령은 같은 이름의 `rokc` 서브명령을 실행합니다. `rok` 는 자기 전역 옵션 (`--env` / `--offline` / `--locked` / `--cwd`, `--` 앞 어디든) 만 소비하고, 나머지 인자는 그대로 넘기며 다음을 더합니다.
+
+- 의존 패키지마다 `--extern name=<소스 디렉토리>`. `rok.lock` 을 따라 준비하며, 의존되는 쪽이 의존하는 쪽보다 앞입니다 (`rok deps` 가 출력하는 순서). 미리 빌드는 `rokc` 가 합니다 ([9.2.3](902-aot-pipeline.md#미리-빌드한-의존-패키지)).
+- 매니페스트의 `lints` 를 `-A` / `-W` / `-D` 로 (인자 앞에).
+- 패키지 밖 (환경, 스크립트) 이면 `--target-dir` 에 그 환경이나 스크립트의 `target/`.
+
+옵션과 출력, 종료 코드는 `rokc` 의 것 ([9.1](901-rokc-cli.md)) 을 따릅니다. `rokls` 는 `rok lsp` 와 같은 독립 실행 파일입니다.
 
 서브명령 없이 `rok [옵션]` 만 실행하면 `rok repl` 과 같이 REPL 을 시작합니다.
 
@@ -47,11 +53,11 @@ rok new [--lib | --bin] <name>
 rok init [--lib | --bin] [dir]
 ```
 
-`rok new` 는 `<name>` 디렉토리를 만들고 그 안에 기본 파일을 채워 줍니다. `--bin` (기본값) 은 인사말을 출력하는 `main.rok` 를, `--lib` 는 예시 함수와 `#[test]` 하나를 담은 `lib.rok` 를 만듭니다. `<name>` 이 이미 있으면 에러입니다.
+`rok new` 는 `<name>` 디렉토리를 만들고 기본 파일을 채웁니다. `--bin` (기본값) 은 인사말을 출력하는 `main.rok` 를, `--lib` 는 예시 함수와 `#[test]` 하나를 담은 `lib.rok` 를 만듭니다. `<name>` 이 이미 있으면 에러입니다.
 
 `rok init` 은 이미 있는 디렉토리 (생략하면 현재 디렉토리) 를 패키지로 만듭니다. 그 디렉토리에 `main.rok` 나 `lib.rok` 가 이미 있으면 에러입니다.
 
-두 명령은 패키지 파일을 `rokc new` / `rokc init` ([9.1.4](901-rokc-cli.md#914-보조-서브명령)) 으로 만들고, 거기에 `rok.rokon` 을 더합니다.
+두 명령은 정규 형식 ([RokON 3.9.4](../../refs-standard-libraries/300-std/309-rokon.md#394-정규-형식)) 의 `rok.rokon` 도 씁니다.
 
 ## 9.10.3. `rok.rokon` / `rok.lock`
 
@@ -115,7 +121,7 @@ Lock {
 
 | 필드      | 뜻                                                                   |
 |-----------|----------------------------------------------------------------------|
-| `version` | lock 형식 버전. 지금은 `1`                                           |
+| `version` | lock 형식 버전 (`1`)                                                 |
 | `name`    | `rok.rokon` 의 `deps` 키                                             |
 | `source`  | `rok.rokon` 에 적은 `Dep::git(..)` 그대로 (`rev` / `tag` / `branch` 포함) |
 | `commit`  | 해소된 커밋 (40 자리 16 진수)                                        |
@@ -138,7 +144,7 @@ rok deps [--dev]
 
 - `add` / `remove` 는 `rok.rokon` 을 고치며, 주석과 배치를 보존합니다. `--dev` 는 `dev_deps` 에 넣고, `--env` 는 그 이름 있는 환경의 `rok.rokon` 을 고칩니다.
 - 빌드는 `rok.lock` 의 커밋을 씁니다. 새로 선언된 의존은 lock 에 더하고 지운 의존은 정리하지만, 이미 고정된 커밋을 옮기는 것은 `update` 뿐입니다. `update` 는 이름을 주면 그 패키지만, 없으면 모든 git 의존을 다시 해소합니다.
-- `deps` 는 해소한 의존 패키지를 `name=<lib.rok 경로>` 줄로 출력합니다 (`--dev` 는 dev 의존 포함). 도구 연동과 REPL 이 씁니다.
+- `deps` 는 해소한 의존 패키지를 `name=<lib.rok 경로>` 줄로, 의존되는 쪽이 먼저 오는 순서로 출력합니다 (`--dev` 는 dev 의존 포함).
 - `rok.lock` 은 버전 관리에 함께 넣습니다.
 
 ### 캐시
@@ -182,7 +188,7 @@ rok toolchain install <version> --from <dir | .tar | .tar.gz>
 rok toolchain remove <version>
 ```
 
-설치본은 `$ROK_HOME/toolchains/<version>/` (`bin/rokc`, `lib/`) 입니다. 다운로드 서버는 아직 없으므로 `--from` 으로 디렉토리나 tarball 을 줍니다.
+설치본은 `$ROK_HOME/toolchains/<version>/` (`bin/rokc`, `lib/`) 입니다. `install` 은 `--from` 이 필수입니다.
 
 ## 9.10.7. 단일 파일 스크립트의 inline 매니페스트
 

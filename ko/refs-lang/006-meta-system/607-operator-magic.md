@@ -1,6 +1,6 @@
 # 6.7. 연산자 매직
 
-`#[infix]`, `#[prefix]`, `#[postfix]` 이 세 속성은 연산자 토큰을 트레잇 메서드에 연결해 주는 역할만 합니다. 우선순위와 결합성은 [3.2.3](../003-expressions/302-precedence-and-associativity.md#323-우선순위와-결합성-표) 의 표가 언어 차원에서 고정하며, 이 속성으로 정하거나 바꿀 수 없습니다. [연산자 디스패치](../003-expressions/301-operator-dispatch.md) 의 desugar 메커니즘이 동작하기 위해서 반드시 필요한 핵심 매직이라고 할 수 있습니다.
+`#[infix]`, `#[prefix]`, `#[postfix]` 이 세 속성은 연산자 토큰을 트레잇 메서드에 연결하는 역할만 합니다. 우선순위와 결합성은 [3.2.3](../003-expressions/302-precedence-and-associativity.md#323-우선순위와-결합성-표) 의 표가 언어 차원에서 고정하며, 이 속성으로 정하거나 바꿀 수 없습니다. [연산자 디스패치](../003-expressions/301-operator-dispatch.md) 의 desugar 메커니즘이 동작하기 위해서 반드시 필요한 핵심 매직입니다.
 
 ```
 infix_attr      ::= "#" "[" "infix" "(" string_lit ("," like_arg)? ("," "swap")? ")" "]"
@@ -209,6 +209,6 @@ fn my_concat(a: str, b: str) -> str { ... }
 
 ## 6.7.14. 정리
 
-연산자 매직은 `#[lang]` 과 더불어 [언어와 표준 라이브러리의 경계](../000-meta/004-language-vs-standard-libraries.md) 에서 언어 토큰과 라이브러리 트레잇의 결합을 구현해 주는 핵심 메커니즘입니다.
+연산자 매직은 `#[lang]` 과 더불어 [언어와 표준 라이브러리의 경계](../000-meta/004-language-vs-standard-libraries.md) 에서 언어 토큰과 라이브러리 트레잇의 결합을 구현하는 핵심 메커니즘입니다.
 
-표준 라이브러리의 연산자 사양은 바로 이 매직을 통해서 모든 토큰의 의미를 결정하게 됩니다.
+표준 라이브러리의 연산자 사양은 바로 이 매직을 통해서 모든 토큰의 의미를 결정합니다.

@@ -1,6 +1,6 @@
 # 8.5. Extern "C" 심볼
 
-이 절에서는 `librokr.a` 가 외부에 노출하는 모든 [extern "C" 심볼](../000-meta/007-glossary.md#extern-c-심볼) 의 시그니처를 정의합니다. 컴파일러가 생성한 코드는 이 심볼들을 호출하게 됩니다.
+이 절에서는 `librokr.a` 가 외부에 노출하는 모든 [extern "C" 심볼](../000-meta/007-glossary.md#extern-c-심볼) 의 시그니처를 정의합니다. 컴파일러가 생성한 코드는 이 심볼들을 호출합니다.
 
 > [!IMPORTANT]
 > 모든 심볼은 `rok_` 접두사로 시작합니다. 이는 외부 라이브러리나 사용자 코드와의 심볼 충돌을 회피하기 위함입니다.
@@ -127,7 +127,7 @@ extern "C" {
 }
 ```
 
-호출하면 즉시 full GC 사이클이 시작됩니다. 동시 수집 방식이면 호출자도 mutator 로서 계속 작동합니다 (현재 구현은 stop-the-world 이므로 수집이 끝난 뒤 돌아옵니다).
+full 수집을 하고, 수집이 끝난 뒤 돌아옵니다.
 
 ## 8.5.2. Runtime 영역
 
@@ -223,8 +223,7 @@ extern "C" {
 
 ### `rok_coro_park` / `rok_coro_unpark`
 
-> [!NOTE]
-> 컴파일러는 이 두 심볼을 emit 하지 않습니다 (`await` 는 `rok::core::task` 의 parking registry 를 씁니다). 런타임은 C 나 저수준 코드를 위해 제공합니다. `frame` (아무 GC 객체) 의 주소가 parking key 이며, `rok_coro_unpark(frame)` 은 그 key 에 park 한 waker 를 모두 깨웁니다. task executor 밖에서 부르면 abort 합니다.
+컴파일러는 이 두 심볼을 emit 하지 않습니다 (`await` 는 `rok::core::task` 의 parking registry 를 씁니다). 런타임은 C 나 저수준 코드를 위해 제공합니다. `frame` (아무 GC 객체) 의 주소가 parking key 이며, `rok_coro_unpark(frame)` 은 그 key 에 park 한 waker 를 모두 깨웁니다. task executor 밖에서 부르면 abort 합니다.
 
 **Thread-safety: `rok_coro_park` 는 `caller-thread-only`** (호출자 코루틴 자신을 park), **`rok_coro_unpark` 는 `thread-safe`** (다른 thread 에서 호출 가능).
 
@@ -241,46 +240,7 @@ extern "C" {
 
 ## 8.5.4. Scheduler 영역
 
-### `rok_task_spawn` / `rok_task_await` / `rok_task_cancel` (예약)
-
-> [!NOTE]
-> 현재 구현은 이 세 심볼을 쓰지 않습니다. task 런타임 (spawn, join, cancel, executor) 은 `rok::core::task` 의 rok 코드이며, 런타임에는 아래의 `rok_task_exec_*` / `rok_task_parking_*` 와 스레드 심볼만 있습니다. 세 이름은 예약으로 남깁니다.
-
-#### `rok_task_spawn`
-
-[스케줄러](../007-runtime/706-scheduler.md) 의 task spawn 에 해당합니다. **Thread-safety: `thread-safe`**.
-
-```
-extern "C" {
-    fn rok_task_spawn(coro_frame: Ptr<u8>) -> Ptr<u8>;   // TaskHandle
-}
-```
-
-`coro_frame` 은 `async fn` 의 frame 이며, 반환값은 `await` 할 수 있는 객체인 task handle 입니다.
-
-#### `rok_task_await`
-
-**Thread-safety: `caller-thread-only`** (호출자 코루틴이 직접 대기 / 일시 중단되는 흐름).
-
-```
-extern "C" {
-    fn rok_task_await(handle: Ptr<u8>) -> Ptr<u8>;       // 결과 객체
-}
-```
-
-task 의 결과를 기다립니다. 호출자도 코루틴이므로 결과가 나오지 않으면 호출자가 일시 중단됩니다.
-
-#### `rok_task_cancel`
-
-**Thread-safety: `thread-safe`**.
-
-```
-extern "C" {
-    fn rok_task_cancel(handle: Ptr<u8>);
-}
-```
-
-task 의 취소를 요청합니다. task 는 다음 `await` 에서 정리 코드를 실행하며 끝나고, 그 task 를 `join` 으로 기다리는 쪽은 `CancellationError` 를 받습니다 ([7.7.10](../007-runtime/707-io-and-timer.md#7710-cancellation)).
+task 런타임 (spawn, join, cancel, executor) 은 `rok::core::task` 의 rok 코드입니다 ([stdlib 2.18](../../refs-standard-libraries/200-core/218-task.md)). 런타임은 아래의 executor 슬롯, 스레드, parking 심볼만 제공합니다.
 
 ### `rok_task_exec_*` / `rok_time_now_ns`
 
@@ -551,7 +511,7 @@ thread '<name>' has overflowed its stack
 | `rok_timer_*`   | 타이머         |
 | `rok_panic`     | 진단           |
 
-이러한 접두사 규약을 통해 외부 라이브러리나 사용자 코드와의 심볼 충돌을 피하게 됩니다.
+이러한 접두사 규약을 통해 외부 라이브러리나 사용자 코드와의 심볼 충돌을 피합니다.
 
 ## 8.5.9. 함수 시그니처의 호환성
 
@@ -594,7 +554,7 @@ cont:
 ## 8.5.12. 부트스트랩 / 테스트 보조 심볼 (부록, 비규범)
 
 > [!IMPORTANT]
-> 이 절은 **비규범 (non-normative)** 입니다. 아래 심볼은 표준 라이브러리의 `Display` / f-string 출력, `rok::bare::alloc`, `str` 표면이 완성되기 전까지 컴파일러 부트스트랩과 테스트 스위트를 지탱하기 위해 참조 런타임 (`rokr`) 이 내보내는 보조 심볼입니다. ABI 본 표 (8.5.1 ~ 8.5.11) 의 일부가 아니며, 안정성 약속도 없습니다. 다른 구현은 이 심볼을 제공하지 않아도 사양을 준수한 것으로 봅니다.
+> 이 절은 **비규범 (non-normative)** 입니다. 아래 심볼은 참조 런타임 (`rokr`) 이 내보내는 보조 심볼입니다. ABI 본 표 (8.5.1 ~ 8.5.11) 의 일부가 아니며 안정성 약속이 없습니다.
 
 시그니처는 본문과 같은 표기 (`Ptr<T>` = 가변 raw 포인터, `ConstPtr<T>` = 읽기 전용 raw 포인터) 를 따릅니다. 문자열 인자는 NUL 종료 C 문자열이며, `bool` 은 C ABI 에 안정된 1 비트 표현이 없으므로 `i32` (0 = false, 그 외 = true) 로 전달합니다. 출력 계열 함수는 식 안에서 조합되도록 항상 `0` 을 반환합니다.
 

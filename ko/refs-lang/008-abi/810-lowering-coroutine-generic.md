@@ -2,31 +2,16 @@
 
 이 절에서는 [제너레이터](../004-functions/411-generators.md), [비동기](../004-functions/412-async.md), [스트림](../004-functions/413-stream.md) 에 해당하는 코루틴 lowering 과 [제네릭](../002-types/210-generics.md), [const 제네릭](../002-types/211-const-generics.md) 의 단형화 lowering 을 정의합니다.
 
-## 8.10.1. LLVM Coroutine Intrinsic
+## 8.10.1. 상태 기계
 
-[코루틴](../007-runtime/708-coroutine.md) 의 lowering 은 LLVM coroutine intrinsic 을 직접 사용합니다.
+[코루틴](../007-runtime/708-coroutine.md) 은 컴파일러가 만든 상태 기계로 lower 합니다. `llvm.coro.*` 는 쓰지 않습니다.
 
-핵심 intrinsic 은 다음과 같습니다.
+1. HIR: `yield` / `async` / `async yield` 블록을 클로저처럼 body 함수로 들어 올립니다. 블록 자리에는 frame 을 만드는 식이 남습니다.
+2. MIR: body 함수를 resume 함수로 바꿉니다. suspend 지점마다 state 번호를 매기고, 그 지점을 넘어 살아 있는 지역을 frame 필드로 옮깁니다.
+3. frame 타입은 `(i32 state, locals..)` 이며 ScanTable 을 가집니다. frame 은 일반 할당 경로로 만듭니다 ([8.9.9](809-lowering-control.md#899-gc-alloc-fast--slow-path)).
+4. resume 함수의 입구는 `state` 로 분기 (`switch`) 합니다.
 
-| Intrinsic           | 의미                      |
-|---------------------|---------------------------|
-| `llvm.coro.id`      | 이 함수가 코루틴임을 표시 |
-| `llvm.coro.alloc`   | frame 할당 필요 여부      |
-| `llvm.coro.size`    | frame 크기                |
-| `llvm.coro.begin`   | frame 초기화              |
-| `llvm.coro.suspend` | 일시 중단 지점            |
-| `llvm.coro.end`     | 코루틴 종료               |
-| `llvm.coro.resume`  | 코루틴 재개               |
-| `llvm.coro.destroy` | frame 해제                |
-
-컴파일러가 이 intrinsic들을 emit 하면, LLVM 백엔드가 이를 상태 머신으로 lower해 줍니다.
-
-> [!NOTE]
-> **구현 노트 — 상태 기계 lowering.** 구현은 `llvm.coro.*` 대신 컴파일러가 직접 만든 상태 기계로 코루틴을 lower 해도 됩니다. 이때 frame 은 `rok_gc_alloc_slow` 로 할당하는 GC 객체이며, 중단된 동안에는 frame 의 ScanTable 로, 실행 중에는 shadow stack ([7.4.1](../007-runtime/704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack)) 으로 root 가 잡힙니다. 관찰 가능한 의미는 같습니다.
-
-## 8.10.2. Generator (`yield fn`) lowering
-
-다음과 같은 제너레이터가 있다고 가정해 보겠습니다.
+## 8.10.2. Generator (`yield fn`)
 
 ```rok
 yield fn count_up_to(n: i32) -> i32 {
@@ -38,57 +23,25 @@ yield fn count_up_to(n: i32) -> i32 {
 }
 ```
 
-이는 개념적으로 다음과 같은 MLIR 로 lowering 됩니다.
+개념적인 resume 함수 (`next`) 는 다음과 같습니다.
 
-```mlir
-func.func @count_up_to(%n: i32) -> !llvm.ptr {
-  %id = llvm.intr.coro.id(...) : ...
-  %size = llvm.intr.coro.size : i64
-  %frame = func.call @rok_coro_frame_alloc(%size, %TYPE_ID_COUNT_UP_TO_FRAME) : (i64, i32) -> !llvm.ptr
-  %hdl = llvm.intr.coro.begin(%id, %frame) : ...
-
-  ; 본체 시작
-  %i_ref = ; ... i 변수
-  llvm.store %0, %i_ref : i32
-
-  cf.br ^loop
-
-^loop:
-  %i = llvm.load %i_ref : i32
-  %check = arith.cmpi "slt", %i, %n : i32
-  cf.cond_br %check, ^body, ^done
-
-^body:
-  ; yield i;
-  %i_val = llvm.load %i_ref : i32
-  llvm.store %i_val, %frame_yield_slot : i32
-  %suspend = llvm.intr.coro.suspend(...) : i8
-  ; 분기: 0 = 재개, 1 = destroy, 그 외 = 정상 진행
-  cf.switch %suspend, [
-    default: ^continue,
-    0: ^continue,        ; 재개
-    1: ^cleanup          ; destroy
-  ]
-
-^continue:
-  %i_inc = arith.addi %i, %1 : i32
-  llvm.store %i_inc, %i_ref : i32
-  cf.br ^loop
-
-^done:
-  cf.br ^cleanup
-
-^cleanup:
-  llvm.intr.coro.end(%hdl, ...) : ...
-  func.return %hdl
-}
+```
+next(frame) -> i32 | none:
+    switch frame.state:
+      0: frame.i = 0; goto loop
+      1: frame.i = frame.i + 1; goto loop
+      2: return none
+    loop:
+      if frame.i < frame.n:
+          frame.state = 1
+          return frame.i          // yield i
+      frame.state = 2
+      return none
 ```
 
-코드가 다소 복잡해 보이지만, 컴파일러는 intrinsic 만 emit 하면 LLVM 이 알아서 state machine 을 만들어 주기 때문에 실질적인 부담은 크지 않습니다. `yield i` 의 desugar 는 frame 의 `yield` 슬롯에 값을 저장한 뒤 suspend 하는 동작으로 풀립니다. 호출자가 (`for x in iter` 처럼) `iter.next()` 를 호출해 코루틴을 resume 하면, next 는 frame 의 `yield` 슬롯 값을 반환하게 됩니다.
+`count_up_to(n)` 은 frame 을 할당하고 `state = 0` 으로 둔 래퍼 (`GenIter<i32>`) 를 돌려줍니다.
 
-## 8.10.3. Async (`async fn`) lowering
-
-비동기 함수의 예를 살펴보겠습니다.
+## 8.10.3. Async (`async fn`)
 
 ```rok
 async fn fetch() -> Data {
@@ -97,66 +50,26 @@ async fn fetch() -> Data {
 }
 ```
 
-이는 개념적으로 다음과 같은 MLIR 로 변환됩니다.
-
-```mlir
-func.func @fetch() -> !llvm.ptr {
-  %id = llvm.intr.coro.id(...) : ...
-  %size = llvm.intr.coro.size : i64
-  %frame = func.call @rok_coro_frame_alloc(%size, %TYPE_ID_FETCH_FRAME) : ...
-  %hdl = llvm.intr.coro.begin(%id, %frame) : ...
-
-  ; let r = await op1();
-  %op1_fut = func.call @op1() : () -> !llvm.ptr
-
-  ; await — Future poll 시작
-  %suspend1 = llvm.intr.coro.suspend(%op1_fut, ...) : i8
-  cf.switch %suspend1, [...]
-
-^after_await1:
-  %r = ; op1 결과 ...
-  ; process(r)
-  %result = func.call @process(%r) : ...
-
-  ; 결과를 frame 에 저장
-  llvm.store %result, %frame_result_slot : ...
-
-  llvm.intr.coro.end(%hdl, ...) : ...
-  func.return %hdl
-}
+```
+poll(frame, cx) -> Poll<Data>:
+    switch frame.state:
+      0: frame.fut = op1(); frame.state = 1; goto await1
+      1: goto await1
+    await1:
+      match frame.fut.poll(cx):
+        Pending  => return Pending
+        Ready(r) => frame.state = 2; return Ready(process(r))
 ```
 
-호출자가 `await fetch()` 를 수행하면 Future 의 `poll` 이 호출되며, 결과가 ready 상태가 되었을 때 frame 의 result slot 값을 반환하게 됩니다.
+`await` 는 대상 future 를 frame 에 두고 poll 합니다. Pending 이면 state 를 남긴 채 Pending 을 돌려주고, 다음 poll 이 같은 지점에서 이어 갑니다.
 
-## 8.10.4. Stream (`async yield fn`) lowering
+## 8.10.4. Stream (`async yield fn`)
 
-[스트림](../004-functions/413-stream.md) 은 위의 두 메커니즘을 결합한 형태입니다.
+[스트림](../004-functions/413-stream.md) 은 둘을 합칩니다. 한 frame 의 state 번호가 `yield` 지점과 `await` 지점을 함께 셉니다. `poll_next` 는 `yield` 에서 `Ready(값)`, `await` 의 Pending 에서 `Pending`, 끝에서 `Ready(none)` 을 돌려줍니다.
 
-```rok
-async yield fn read_lines(file: str) -> str {
-    let f = await open(file);
-    loop {
-        let line = await f.read_line();
-        match line {
-            l: str => yield l,
-            none   => break,
-        }
-    }
-}
-```
+## 8.10.5. frame 할당
 
-즉 generator 와 `async` 의 결합으로, 하나의 frame 안에서 `yield` 에 의한 일시 중단과 `await` 에 의한 일시 중단이 공존하게 됩니다. state machine 은 어느 종류의 중단으로 들어왔는지를 함께 추적합니다.
-
-## 8.10.5. CoroElide
-
-LLVM 의 CoroElide 패스는 코루틴 호출이 `await` 또는 next 를 통해 직접 끝까지 진행되는 경우 frame 할당 자체를 생략해 줍니다.
-
-조건은 다음과 같습니다.
-
-- 호출자가 그 코루틴을 직접 `await` 하거나 next 로 진행해야 합니다.
-- 코루틴의 result 가 escape 하지 않아야 합니다.
-
-이러한 조건이 충족되면 `rok_coro_frame_alloc` 호출이 사라지고, frame 이 호출자의 지역 변수처럼 처리됩니다. 그 결과 자주 일어나는 짧은 `async` `fn` 호출의 비용은 사실상 0 에 수렴합니다.
+frame 은 코루틴을 부를 때마다 할당합니다. 할당을 생략하는 최적화는 없습니다.
 
 ## 8.10.6. 제네릭 단형화
 
@@ -230,8 +143,6 @@ func.func @dot_f64_3(%a: !llvm.array<3 x f64>, %b: !llvm.array<3 x f64>) -> f64 
 
 ## 8.10.8. 제네릭 트레잇 디스패치
 
-다음과 같은 제네릭 함수가 있다고 해 보겠습니다.
-
 ```rok
 fn process<T: Display>(x: T) -> str {
     x.display()
@@ -292,8 +203,6 @@ cf.switch %tag, [
 태그 검사와 분기는 모두 정적인 코드로 처리됩니다.
 
 ## 8.10.10. 트레잇 메서드의 trait-bound dispatch
-
-trait 바운드를 가진 함수의 예를 살펴보겠습니다.
 
 ```rok
 fn add_all<T: Add<T, Output = T>>(items: List<T>) -> T {

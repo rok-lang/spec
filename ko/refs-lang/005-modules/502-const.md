@@ -9,8 +9,6 @@ const_fn        ::= "const" fn_decl
 
 ## 5.2.1. 기본 형태
 
-가장 단순한 형태부터 살펴보겠습니다.
-
 ```rok
 const PI: f64 = 3.14159f64;
 const MAX_RETRY: i32 = 3i32;
@@ -65,7 +63,7 @@ fn f() {
 let p = &X;                       // ERROR — const 는 주소 없음 (개념적으로)
 ```
 
-실제 rok 에서 `&` 같은 직접 주소 연산자가 존재하는지에 대해서는 [타입 표현식](../002-types/201-type-expressions.md) 의 포인터 타입과 [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) 사양에서 정의하고 있습니다.
+실제 rok 에서 `&` 같은 직접 주소 연산자가 존재하는지에 대해서는 [타입 표현식](../002-types/201-type-expressions.md) 의 포인터 타입과 [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) 사양에서 정의합니다.
 
 ## 5.2.4. `const` 표현식의 허용 범위
 
@@ -75,7 +73,7 @@ let p = &X;                       // ERROR — const 는 주소 없음 (개념�
 - 다른 `const` 의 참조: 예를 들어 `const TWICE_PI: f64 = PI * 2.0f64;` 와 같은 형태입니다.
 - `const` 함수 호출: 아래에서 자세히 정의합니다.
 - `const` 표현식의 산술 / 비교 / 논리 연산: `+`, `-`, `*`, `<`, `&&` 등이 가능합니다.
-- `const` [generic](../000-meta/007-glossary.md#generic--제네릭) 매개변수: 자세한 내용은 [const 제네릭](../002-types/211-const-generics.md) 을 참고해 주세요.
+- `const` [generic](../000-meta/007-glossary.md#generic--제네릭) 매개변수: 자세한 내용은 [const 제네릭](../002-types/211-const-generics.md) 을 참고합니다.
 - 튜플 / `struct` / `enum` 인스턴스: 모든 필드가 `const` 인 경우에 한해 허용됩니다.
 
 반대로 다음과 같은 것들은 `const` 자리에 올 수 없습니다.

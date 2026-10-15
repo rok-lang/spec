@@ -101,8 +101,6 @@ impl ExitStatus {
 
 ## 3.7.3. 사용 예
 
-설명만으로는 감이 잘 잡히지 않을 수 있으니, 실제 코드가 어떻게 흘러가는지 살펴보겠습니다.
-
 ```rok
 use rok::std::process::{Command, Stdio};
 
@@ -150,7 +148,7 @@ using child = try Command::new("long_running")
 | `CLOEXEC` default       | 모든 fd 가 자동 close-on-exec | fd leak 방지            |
 | `kill_on_drop`          | `using` 해제 시 kill          | process leak 방지       |
 
-이러한 결정은 fd 누수와 process 누수, 그리고 신호 race 를 줄이는 방향으로 일관되게 정렬되어 있습니다.
+이러한 결정은 fd 누수와 process 누수, 그리고 신호 race 를 줄이는 방향으로 일관되게 정렬됩니다.
 
 ## 3.7.5. 신호 처리 (advanced)
 

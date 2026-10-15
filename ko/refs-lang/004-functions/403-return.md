@@ -57,7 +57,7 @@ fn maybe_int(cond: bool) -> i32 | str {
 
 ## 4.3.4. 반환 타입 생략
 
-[함수 선언](401-function-declaration.md) 에서 살펴본 대로, 반환 타입은 생략할 수 있으며 생략 시에는 본체에서 추론하게 됩니다.
+[함수 선언](401-function-declaration.md) 에서 살펴본 대로, 반환 타입은 생략할 수 있으며 생략 시에는 본체에서 추론합니다.
 
 ```rok
 fn double(x: i32) {
@@ -165,7 +165,7 @@ fn cleanup_aware() -> i32 {
 }
 ```
 
-위 함수의 경우 `cleanup()` 을 호출한 뒤에 `42i32` 를 반환하게 됩니다.
+위 함수의 경우 `cleanup()` 을 호출한 뒤에 `42i32` 를 반환합니다.
 
 ## 4.3.11. `return` 과 클로저 / 중첩 함수
 

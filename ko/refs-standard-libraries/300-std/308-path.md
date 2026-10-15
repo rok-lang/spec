@@ -94,7 +94,7 @@ let p = Path::from("/etc") / "nginx" / "nginx.conf";
 let home = env::home_dir()? / ".config" / "myapp" / "settings.toml";
 ```
 
-이는 Python 의 `Path("/etc") / "nginx" / "nginx.conf"` 와 **동일한 ergonomics** 를 제공합니다. 그 결과 Rust `PathBuf::join` 과 `push` 의 verbose 한 표현을 자연스럽게 회피하게 됩니다.
+이는 Python 의 `Path("/etc") / "nginx" / "nginx.conf"` 와 **동일한 ergonomics** 를 제공합니다. 그 결과 Rust `PathBuf::join` 과 `push` 의 verbose 한 표현을 자연스럽게 회피합니다.
 
 ## 3.8.3a. `AsPath` — 경로 인자
 
@@ -128,7 +128,7 @@ let q: Path = try raw.try_into();          // 같음
 
 ## 3.8.5. `RawPath` — bytes / WTF-16
 
-OS 의 native 표현이 그대로 필요한 자리를 위해 `RawPath` 가 마련되어 있습니다.
+OS 의 native 표현이 그대로 필요한 자리를 위해 `RawPath` 가 마련됩니다.
 
 ```rok
 struct RawPath { /* unix: Vec<u8>, windows: Vec<u16> */ }

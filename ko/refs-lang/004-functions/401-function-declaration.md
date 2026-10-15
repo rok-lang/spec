@@ -23,7 +23,7 @@ fn 이름(매개변수들) -> 반환타입 {
 }
 ```
 
-각 구성 요소의 의미는 다음과 같이 정리할 수 있습니다.
+각 구성 요소의 의미는 다음과 같습니다.
 
 - `fn` 키워드로 시작합니다.
 - 함수 이름은 [식별자](../001-lexical/104-identifiers.md) 의 형식을 따릅니다.
@@ -184,7 +184,7 @@ yield async fn bad2() { ... }            // ERROR — yield 가 async 앞에 옴
 unsafe unsafe fn bad3() { ... }          // ERROR — unsafe 중복
 ```
 
-이러한 강제 규칙은 같은 의미의 함수가 항상 같은 모양으로 적히도록 보장하여, formatter / linter / 사용자 가독성을 모두 단순하게 해 줍니다.
+이러한 강제 규칙은 같은 의미의 함수가 항상 같은 모양으로 적히도록 보장하여, formatter / linter / 사용자 가독성을 모두 단순하게 합니다.
 
 ### 가능한 8 개 조합
 
@@ -201,7 +201,7 @@ unsafe unsafe fn bad3() { ... }          // ERROR — unsafe 중복
 | `unsafe yield fn`       | `GenIter<R>`                       | unsafe 제너레이터    | (각 modifier 의 합)                |
 | `unsafe async yield fn` | `AsyncStream<R>`                   | unsafe 비동기 스트림 | (각 modifier 의 합)                |
 
-`unsafe` 가 함께 붙은 조합의 의미는 단순합니다. 함수 본체 전체가 unsafe scope 가 되며 (4.15 의 정의), 결과 타입과 코루틴 동작은 함께 붙은 다른 수식어 (`async` / `yield`) 의 정의를 그대로 따릅니다. 즉 `unsafe` 는 본체 안에서 raw pointer 역참조나 `unsafe fn` 호출을 허용하는 효과만 더해 줍니다.
+`unsafe` 가 함께 붙은 조합의 의미는 단순합니다. 함수 본체 전체가 unsafe scope 가 되며 (4.15 의 정의), 결과 타입과 코루틴 동작은 함께 붙은 다른 수식어 (`async` / `yield`) 의 정의를 그대로 따릅니다. 즉 `unsafe` 는 본체 안에서 raw pointer 역참조나 `unsafe fn` 호출을 허용하는 효과만 더합니다.
 
 ### 코루틴 함수의 결과 타입
 
@@ -225,7 +225,7 @@ let it: TryGenIter<str, IoError> = lines("a.txt");
 
 ### 클로저와 블록 형태
 
-`async` 와 `yield` 의 클로저 / 블록 형태에서도 같은 순서 규칙이 적용됩니다. 예를 들어 Stream 을 만드는 클로저는 항상 `async yield ||` 로 적으며, `yield async ||` 는 syntax error 입니다. 자세한 클로저 / 블록 형태는 각 modifier 문서를 참고해 주세요.
+`async` 와 `yield` 의 클로저 / 블록 형태에서도 같은 순서 규칙이 적용됩니다. 예를 들어 Stream 을 만드는 클로저는 항상 `async yield ||` 로 적으며, `yield async ||` 는 syntax error 입니다. 자세한 클로저 / 블록 형태는 각 modifier 문서를 참고합니다.
 
 ## 4.1.12. 매개변수 / 반환 / 본체 사이의 평가 순서
 

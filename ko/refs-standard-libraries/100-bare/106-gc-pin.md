@@ -171,7 +171,7 @@ impl Pinned<str> {
 }
 ```
 
-container 별로 전용 추출 메서드가 마련되어 있습니다. buffer 시작이나
+container 별로 전용 추출 메서드가 마련됩니다. buffer 시작이나
 null-terminated 형태처럼, 각 컨테이너의 layout 에 맞춘 형태로 꺼내 쓸 수 있도록
 한 것입니다.
 

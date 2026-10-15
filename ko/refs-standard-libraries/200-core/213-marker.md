@@ -83,7 +83,7 @@ GC 객체의 clone 은 항상 새 buffer 를 할당하고 원소를 재귀적으
 
 ### `#[derive(...)]`
 
-대부분의 사용자 정의 struct 는 모든 필드가 `Clone` 이라면 직접 본문을 작성할 이유가 없습니다. 이러한 경우 `#[derive(Clone)]` 이 작업을 대신해 줍니다.
+대부분의 사용자 정의 struct 는 모든 필드가 `Clone` 이라면 직접 본문을 작성할 이유가 없습니다. 이러한 경우 `#[derive(Clone)]` 이 작업을 대신합니다.
 
 ```rok
 #[derive(Clone)]

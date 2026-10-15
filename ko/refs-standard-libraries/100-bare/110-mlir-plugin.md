@@ -14,7 +14,7 @@
 | 로드된 plugin op 을 `__mlir_op` 으로 호출                | **spec 안** ([1.9](109-mlir.md))           |
 | plugin op 의 lowering / 패스                             | **spec 밖** — plugin 자체가 책임           |
 
-이 분리는 rok 이 MLIR 자체의 dialect-definition DSL 진화 (TableGen → IRDL → 차세대 형식) 에 종속되지 않도록 해 줍니다.
+이 분리는 rok 이 MLIR 자체의 dialect-definition DSL 진화 (TableGen → IRDL → 차세대 형식) 에 종속되지 않도록 합니다.
 
 ## 1.10.2. plugin 빌드 형태
 
@@ -108,7 +108,7 @@ unsafe {
 
 rok 은 자체 plugin ABI 를 두지 않고 MLIR 의 plugin 형태를 그대로 씁니다. `rokc` 는 MLIR 을 링크하지 않으므로 plugin 은 텍스트 MLIR 을 받는 `mlir-opt` 단계에서만 로드됩니다.
 
-## 1.10.9. 미지원 / 향후 영역
+## 1.10.9. 범위 밖
 
 다음은 본 사양 범위 밖입니다.
 
@@ -116,5 +116,3 @@ rok 은 자체 plugin ABI 를 두지 않고 MLIR 의 plugin 형태를 그대로 
 - 동일 namespace 의 plugin 두 개를 같이 로드 (충돌 — `mlir-opt` 가 거부)
 - 런타임 (실행 시점) 에 다이얼렉트 추가
 - plugin 의 LLVM 버전 간 호환 (MLIR plugin API 를 따름)
-
-이 영역들이 필요해지면 본 절의 개정으로 검토합니다.

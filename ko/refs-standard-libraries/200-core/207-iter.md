@@ -19,11 +19,11 @@ trait Iterator {
 
 핵심 동작은 단순합니다. `next` 를 한 번 호출하면 다음 원소 하나를 반환하며, 더 이상 원소가 없으면 `none` 을 돌려줍니다.
 
-시그니처가 `ref self` 인 점에 주목해 주세요. iterator 자체가 **상태** 를 들고 있으며, 호출이 일어날 때마다 그 상태를 in-place 로 갱신하기 때문입니다.
+시그니처가 `ref self` 인 점에 주목합니다. iterator 자체가 **상태** 를 들고 있으며, 호출이 일어날 때마다 그 상태를 in-place 로 갱신하기 때문입니다.
 
 ### 사용 예 (사용자 코드)
 
-직접 호출하는 모습을 살펴보면 다음과 같습니다.
+직접 호출하는 모습은 다음과 같습니다.
 
 ```rok
 let xs: List<i32> = [10, 20, 30];
@@ -55,7 +55,7 @@ for x in xs {
 `Iterator` 에서 사용자가 직접 구현해야 하는 메서드는 `next(ref self)` 하나뿐입니다. 나머지 메서드들은 모두 `next` 위에 default impl 형태로 제공됩니다.
 
 > [!NOTE]
-> 아래 시그니처에 등장하는 `fn(Item) -> U` 는 [refs-lang 4.4 함수 타입](../../refs-lang/004-functions/404-function-type.md) 이 정의하는 callable 통합 타입이며, **함수와 closure 둘 다** 받습니다. 따라서 `it.map(some_fn)` 도, `it.map(|x| x * 2)` 도 같은 자리에 들어갑니다. Rust 의 `fn`/`Fn`/`FnMut`/`FnOnce` 와는 다른 단일 형태이니 유의해 주세요.
+> 아래 시그니처에 등장하는 `fn(Item) -> U` 는 [refs-lang 4.4 함수 타입](../../refs-lang/004-functions/404-function-type.md) 이 정의하는 callable 통합 타입이며, **함수와 closure 둘 다** 받습니다. 따라서 `it.map(some_fn)` 도, `it.map(|x| x * 2)` 도 같은 자리에 들어갑니다. Rust 의 `fn`/`Fn`/`FnMut`/`FnOnce` 와는 다른 단일 형태이니 유의합니다.
 
 ```rok
 impl Iterator {
@@ -163,7 +163,7 @@ trait IntoIterator {
 - 컬렉션 자체 (List, Dict 등) 는 상태 없는 컨테이너이므로, 어떤 위치를 가리키는지 알지 못합니다.
 - iterator 는 진행 상태를 가지며, 어디까지 봤는지를 추적합니다.
 
-따라서 같은 컬렉션을 두 번 순회하려면 매번 새 iterator 가 필요하며, `into_iter` 가 바로 그 생성 자리를 담당하게 됩니다.
+따라서 같은 컬렉션을 두 번 순회하려면 매번 새 iterator 가 필요하며, `into_iter` 가 바로 그 생성 자리를 담당합니다.
 
 ### 자동 impl
 
@@ -205,7 +205,7 @@ loop {
 }
 ```
 
-자세한 desugar 규칙은 [refs-lang 3.13](../../refs-lang/003-expressions/313-loop-expressions.md) 을 참고해 주세요.
+자세한 desugar 규칙은 [refs-lang 3.13](../../refs-lang/003-expressions/313-loop-expressions.md) 을 참고합니다.
 
 ## 2.7.3. `Step` — 한 칸 진행 추상화
 
@@ -402,7 +402,7 @@ let v: List<i32> = (0..5).collect();
 
 기본 `Dict<K, V>` 와 `Set<T>` 는 **hash 기반** 으로 동작하므로, 순회 순서가 hash 분포에 따라 결정됩니다. 이 때문에 실행 시점이나 컴파일 시점마다 순서가 달라질 수 있습니다.
 
-순서 보장이 필요하다면 `OrderedDict<K, V>` 또는 `OrderedSet<T>` 를 사용해 주세요. 이들은 삽입 순서를 보존합니다.
+순서 보장이 필요하다면 `OrderedDict<K, V>` 또는 `OrderedSet<T>` 를 사용합니다. 이들은 삽입 순서를 보존합니다.
 
 ## 2.7.7. 무한 iterator 와 `take`
 
@@ -420,7 +420,7 @@ let v: List<i32> = (0..5).collect();
 (0..).take(10).sum();        //→ 0+1+...+9 = 45
 ```
 
-`Iterator` 는 무한 여부를 검출하지 않습니다. 사용자가 의도적으로 lazy 어댑터를 결합하여 처리해 주셔야 합니다.
+`Iterator` 는 무한 여부를 검출하지 않습니다. 사용자가 의도적으로 lazy 어댑터를 결합하여 처리해야 합니다.
 
 ## 2.7.8. 함수 broadcast — `f.(x)` 의 desugar
 
@@ -488,7 +488,7 @@ impl<T, E> TryGenIter<T, E> {
 
 ## 2.7.11. 모듈 매핑
 
-각 트레잇과 lang slot, 표준 라이브러리 위치의 매핑을 정리하면 다음과 같습니다.
+각 트레잇과 lang slot, 표준 라이브러리 위치의 매핑은 다음과 같습니다.
 
 | 항목                  | lang slot             | 표준 라이브러리 위치 |
 |-----------------------|-----------------------|----------------------|

@@ -1,6 +1,6 @@
 # 2.18. task — M:N 스케줄러 task API
 
-`rok::core::task` 모듈은 M:N 스케줄러 위에서 동작하는 협력적 task API 를 제공합니다. 이 모듈은 Rust Tokio 와 Go goroutine 으로부터 영감을 받았으며, work-stealing 스케줄러 위에서 task 가 **stackless coroutine** 으로 구현되어 있습니다.
+`rok::core::task` 모듈은 M:N 스케줄러 위에서 동작하는 협력적 task API 를 제공합니다. 이 모듈은 Rust Tokio 와 Go goroutine 으로부터 영감을 받았으며, work-stealing 스케줄러 위에서 task 가 **stackless coroutine** 으로 구현됩니다.
 
 `use rok::core::**;` 가 묵시적으로 적용되므로 `task::spawn`, `task::race`, `Task<T>` 등은 별도의 import 없이도 사용할 수 있습니다. 다만 모듈 prefix `task::` 는 그대로 보존됩니다. 한편 명시적으로 비동기 코드임을 드러내고 싶은 자리에서는 `use rok::core::task::*;` 를 권장하는데, 이는 시각적 분리를 통해 비동기 흐름을 명확히 하기 위함입니다.
 
@@ -31,7 +31,7 @@ fn writable(fd: i32) -> IoReady;
 
 ### 사용 예
 
-실제 사용 예시를 살펴보면 다음과 같습니다.
+실제 사용 예시는 다음과 같습니다.
 
 ```rok
 use rok::core::task::*;
@@ -66,7 +66,7 @@ impl<T> Future for Blocking<T> { type Output = T; ... }
 `spawn_blocking(f)` 는 `f` 를 executor 의 worker 가 아닌 blocking pool 의 OS 스레드에서 실행하고, 그 결과로 끝나는 future 를 돌려줍니다. readiness 로 기다릴 수 없는 blocking syscall (일반 파일 I/O 등, [stdlib 3.1.4a](../300-std/301-fs.md#314a-비동기-파일-io-_async)) 을 task 안에서 기다릴 때 씁니다.
 
 - `f` 는 첫 poll 이 아니라 **호출하는 즉시** 시작합니다 (pool 이 가득 차면 먼저 큐에 들어감).
-- blocking pool 은 프로세스 전역 하나이며, 필요할 때 스레드를 늘리고 (상한 있음) 한동안 일이 없는 스레드는 끝냅니다. 작업은 들어온 순서 (FIFO) 로 처리합니다. 상한과 유지 시간, 배분 방식은 구현이 정합니다. 현재 구현은 스레드 512 개, 유휴 10 초 뒤 종료, 상한에 닿으면 작업을 큐에 쌓으며, 작업 하나를 쉬고 있는 스레드 하나에 넘깁니다.
+- blocking pool 은 프로세스 전역 하나이며, 필요할 때 스레드를 늘리고 (상한 있음) 한동안 일이 없는 스레드는 끝냅니다. 작업은 들어온 순서 (FIFO) 로 처리합니다. 상한은 스레드 512 개이며, 상한에 닿으면 작업을 큐에 쌓습니다. 10 초 동안 일이 없는 스레드는 끝납니다. 작업 하나는 쉬고 있는 스레드 하나에 넘깁니다.
 - `await` 하던 task 가 취소되어도 `f` 는 끝까지 실행되며, 결과만 버려집니다.
 
 ```rok
@@ -133,7 +133,7 @@ let (_, ev) = await task::select([
 
 ## 2.18.2. `Task<T>` 타입
 
-`Task<T>` 타입은 다음과 같이 정의되어 있습니다.
+`Task<T>` 타입은 다음과 같이 정의됩니다.
 
 ```rok
 struct Task<T> {
@@ -179,11 +179,11 @@ Worker 0 ─┐      Worker 1 ─┐    ...    Worker N-1 ─┐
  (Chase-Lev)      (Chase-Lev)            (Chase-Lev)│
            └─ Global Injector Queue ──────┘
            └─ I/O Driver (포터블)   ──────┘
-           └─ Timer (heap / wheel)  ──────┘
+           └─ Timer (heap)  ───────────────┘
            └─ Parked Worker Stack   ──────┘
 ```
 
-이 구조의 주요 특성을 정리하면, 우선 로컬 큐는 lock-free Chase-Lev deque 이며, 소유 worker 와 도둑 모두 가장 오래된 task 부터 꺼냅니다 (스스로를 다시 깨우는 task 가 다른 task 를 굶기지 않도록, [refs-lang 7.6.2](../../refs-lang/007-runtime/706-scheduler.md#762-work-stealing-구조)). 바쁜 worker 는 task 32 개마다 기한이 지난 timer 를 처리합니다. I/O Driver 는 프로세스당 reactor thread 하나가 epoll / kqueue 를 edge-triggered 로 기다리며 (io_uring / IOCP 는 향후, [refs-lang 7.7](../../refs-lang/007-runtime/707-io-and-timer.md)), Timer 구조는 구현이 정합니다 (binary heap 또는 timing wheel, [refs-lang 7.7.5](../../refs-lang/007-runtime/707-io-and-timer.md#775-타이머-구조)).
+이 구조의 주요 특성을 정리하면, 우선 로컬 큐는 lock-free Chase-Lev deque 이며, 소유 worker 와 도둑 모두 가장 오래된 task 부터 꺼냅니다 (스스로를 다시 깨우는 task 가 다른 task 를 굶기지 않도록, [refs-lang 7.6.2](../../refs-lang/007-runtime/706-scheduler.md#762-work-stealing-구조)). 바쁜 worker 는 task 32 개마다 기한이 지난 timer 를 처리합니다. I/O Driver 는 프로세스당 reactor thread 하나가 epoll / kqueue 를 edge-triggered 로 기다리며 (io_uring / IOCP 는 향후, [refs-lang 7.7](../../refs-lang/007-runtime/707-io-and-timer.md)), Timer 구조는 구현이 정합니다 (binary heap 또는 timing wheel, [refs-lang 7.7.4](../../refs-lang/007-runtime/707-io-and-timer.md#774-타이머-구조)).
 
 표준 라이브러리 측의 권위는 API 시그니처에 한정되며, 알고리듬 본문은 spec 외부의 runtime 및 표준 라이브러리 body 영역에 속한다는 점에 유의해야 합니다.
 
@@ -197,7 +197,7 @@ let t = task::spawn(async { long_running() });
 t.cancel();              // 협력적 신호 — task 가 cancellation point 에서 종료
 ```
 
-`cancel()` 은 취소를 **요청** 합니다. 규칙은 다음과 같습니다 ([refs-lang 7.7.10](../../refs-lang/007-runtime/707-io-and-timer.md#7710-cancellation)).
+`cancel()` 은 취소를 **요청** 합니다. 규칙은 다음과 같습니다 ([refs-lang 7.7.9](../../refs-lang/007-runtime/707-io-and-timer.md#779-cancellation)).
 
 - 모든 `await` 가 cancellation point 입니다. 취소된 task 는 다음 `await` 에서 `return` 처럼 본문을 떠나며, 지나는 `finally` 와 `using` 정리가 안쪽부터 실행됩니다.
 - 취소는 task 안에서 `catch` 할 수 있는 에러가 아닙니다. task 안으로 `CancellationError` 가 던져지지 않습니다.
@@ -205,7 +205,7 @@ t.cancel();              // 협력적 신호 — task 가 cancellation point 에
 - 소켓 I/O (`*_async`), `readable` / `writable`, `sleep` / `timeout`, `lock_async`, `recv_async` / `send_async` 에서 기다리던 task 는 취소되면 깨어나고 다음 `await` 에서 떠납니다.
 - task 가 끝나면 그 task 의 깨우기 등록 (I/O readiness, timer, park 한 대기) 은 모두 풀립니다.
 - `spawn_blocking` 과 그 위의 `fs::*_async` 를 기다리던 중 취소되면, 이미 시작된 작업은 백그라운드에서 끝까지 실행되고 결과만 버려집니다. 쓰기 같은 부수 효과는 일어납니다.
-- 기다리던 future 가 값을 넘겨준 (메시지, 잠금 guard) poll 은 그 값을 지킵니다. 취소 검사는 "기다린 코루틴이 취소 때문에 떠났는가" 를 보며, 값은 남고 다음 `await` 에서 떠납니다 ([refs-lang 7.7.10](../../refs-lang/007-runtime/707-io-and-timer.md#7710-cancellation)).
+- 기다리던 future 가 값을 넘겨준 (메시지, 잠금 guard) poll 은 그 값을 지킵니다. 취소 검사는 "기다린 코루틴이 취소 때문에 떠났는가" 를 보며, 값은 남고 다음 `await` 에서 떠납니다 ([refs-lang 7.7.9](../../refs-lang/007-runtime/707-io-and-timer.md#779-cancellation)).
 - 마지막 cancellation point 를 지난 뒤 취소된 task 는 정상적으로 끝나고 결과를 가집니다. `await t` / `join` 은 그 결과를 돌려줍니다.
 - `CancellationError` 는 결과 없이 끝난 task 를 기다리는 쪽이 받습니다. 그런 task 를 `try await t.join()` 으로 기다리면 `CancellationError` 가 던져지고, `await t` 로 기다리면 panic 입니다.
 
@@ -249,7 +249,7 @@ let r = t.join();              // OS-level 동기 대기
 
 ## 2.18.6. `Duration` / `Instant`
 
-시간 표현을 위한 `Duration` 과 `Instant` 는 다음과 같이 정의되어 있습니다.
+시간 표현을 위한 `Duration` 과 `Instant` 는 다음과 같이 정의됩니다.
 
 ```rok
 struct Duration { /* ns 단위 i64 */ }

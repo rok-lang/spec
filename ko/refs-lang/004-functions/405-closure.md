@@ -50,7 +50,7 @@ capture_list   ::= "[" capture_item ("," capture_item)* "]"
 || { body }
 ```
 
-매개변수가 없을 때는 `||` (두 파이프를 연속으로) 를 사용합니다. 토큰화 측면에서는 [구두점과 연산자 토큰](../001-lexical/110-punctuation-and-operator-tokens.md) 의 고정 토큰표에서 `||` 가 한 토큰으로 정의되어 있습니다.
+매개변수가 없을 때는 `||` (두 파이프를 연속으로) 를 사용합니다. 토큰화 측면에서는 [구두점과 연산자 토큰](../001-lexical/110-punctuation-and-operator-tokens.md) 의 고정 토큰표에서 `||` 가 한 토큰으로 정의됩니다.
 
 ## 4.5.2. 매개변수의 타입
 
