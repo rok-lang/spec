@@ -40,13 +40,15 @@ rok 은 JavaScript 의 ASI (Automatic Semicolon Insertion), Go 의 줄 끝 자�
 
 `if`, `match`, `loop`, `while`, `for`, 블록 (`{ }`, `unsafe { }`, 라벨 블록) 처럼 `}` 로 끝나는 블록류 식이 문장 자리에 오면 뒤의 `;` 를 생략할 수 있습니다 (Rust 와 같은 규칙). 이때 그 식의 값은 unit 이어야 하며, unit 이 아닌 값을 버리려면 `;` 를 붙입니다.
 
+블록 본문 [트레일링 클로저](../004-functions/408-trailing-closure.md) 를 가진 호출 (`retry(3) { .. }`, `xs.each |x| { .. }`) 도 `;` 없이 문장을 끝냅니다 ([4.8.8](../004-functions/408-trailing-closure.md)). 이 경우 호출의 값은 `;` 를 붙인 것처럼 버려집니다.
+
 ```rok
 if ready { start(); }        // ; 없음
 for x in xs { print(x); }
 let n = if a { 1 } else { 2 };   // let 문은 여전히 ; 로 끝남
 ```
 
-블록류 식 문장의 `}` 다음에 이항 연산자가 오면 그것은 새 문장의 시작입니다. 이어서 해석되는 것은 `.method()` 같은 멤버 접근과 후위 `?` 뿐입니다.
+키워드로 시작하는 블록류 식 문장 (`if`, `match` 등) 의 `}` 다음에 이항 연산자가 오면 그것은 새 문장의 시작입니다. 이어서 해석되는 것은 `.method()` 같은 멤버 접근과 후위 `?` 뿐입니다. 트레일링 클로저 호출 뒤의 이항 연산자는 그 호출에 이어서 파싱됩니다.
 
 ```rok
 if c { a(); } else { b(); }

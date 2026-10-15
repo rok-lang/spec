@@ -179,6 +179,10 @@ struct ParseError {
     pos: usize;
     reason: str;
 }
+
+struct ConversionError {
+    msg: str;
+}
 ```
 
 각 타입은 `Error + Display + Debug` 를 구현하며, `Display` 본문은 사람이 읽기 친화적인 메시지를 제공합니다. 각 에러가 던져지는 자리는 다음 표와 같이 정리할 수 있습니다.
@@ -190,6 +194,7 @@ struct ParseError {
 | `IndexError`    | 인덱스를 받는 throwing API 의 범위 밖 인자 (`xs[10]` 의 경계 검사는 panic) |
 | `OverflowError` | `try_into` 등 checked 변환의 범위 초과 (산술 overflow 는 panic)            |
 | `ParseError`    | `str → number` / TOML 등 파싱 실패                                         |
+| `ConversionError` | `TryFrom::Error` 의 기본값. 숫자가 아닌 변환의 실패 ([2.11.4](211-conversion.md#2114-tryfromu-트레잇--fallible-변환)) |
 
 ### Fatal 에러
 

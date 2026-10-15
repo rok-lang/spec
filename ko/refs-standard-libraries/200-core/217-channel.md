@@ -72,7 +72,7 @@ enum TrySendError<T> { Full(T), Closed(T) }
 
 `T: Send` 이면 `Sender<T>` 와 `Receiver<T>` 도 `Send` 이므로 다른 task 나 스레드로 옮길 수 있습니다 ([2.13.9](213-marker.md#2139-send--sync--스레드-경계-marker)).
 
-`recv` 와 `send` (bounded 가 가득 찬 경우, rendezvous 에서 값이 받아질 때까지) 는 스레드를 block 합니다. async 코드에서 task 만 중단하려면 `await rx.recv_async()`, `for await v in rx`, `try await tx.send_async(v)` 를 씁니다. `send_async` 는 bounded 채널이 가득 찬 동안, rendezvous 채널에서는 receiver 가 값을 가져갈 때까지 task 를 중단합니다. `send` 와 같이, 이 sender 가 이미 `close()` 되었으면 값을 담은 `SendError::Closed` 를 던집니다. `Mutex::lock` / `lock_async` 도 같은 구분입니다 ([2.16](216-sync.md)).
+`recv` 와 `send` (bounded 가 가득 찬 경우, rendezvous 에서 값이 받아질 때까지) 는 스레드를 block 합니다. async 코드에서 task 만 중단하려면 `await rx.recv_async()`, `for await v in rx`, `try await tx.send_async(v)` 를 씁니다. `send_async` 는 bounded 채널이 가득 찬 동안, rendezvous 채널에서는 receiver 가 값을 가져갈 때까지 task 를 중단합니다. `send` 와 같이, 이 sender 가 이미 `close()` 되었으면 값을 담은 `SendError::Closed` 를 던집니다. 취소된 `recv_async` 는 값을 꺼내지 않고, 취소된 `send_async` 는 값을 보내지 않습니다 ([2.18.4](218-task.md#2184-협력적-취소--taskcancel)). `Mutex::lock` / `lock_async` 도 같은 구분입니다 ([2.16](216-sync.md)).
 
 ## 2.17.3. close 의미
 

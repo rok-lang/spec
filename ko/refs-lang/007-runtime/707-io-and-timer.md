@@ -62,7 +62,7 @@ trait IODriver {
 
 `task::sleep(d)` 나 `task::timeout(d, ...)` 와 같은 시간 대기를 담는 자료구조는 구현이 정합니다. 마감 시각 순의 binary heap (`O(log n)` insert) 도, 아래의 timing wheel 도 됩니다. 관찰되는 의미는 "마감 시각이 지난 뒤 깨운다" 하나입니다.
 
-권장 설계는 Hashed Hierarchical Timing Wheel 입니다.
+권장 설계는 Hashed Hierarchical Timing Wheel 입니다. 취소된 task 의 timer 정리는 나중으로 미뤄 모아서 해도 됩니다 (현재 구현은 heap 에 남겨 두었다가 만료나 정리 때 버림).
 
 ```
 Timing Wheel:
@@ -136,14 +136,16 @@ park 가 진행되는 동안 CPU 사용량은 0 이므로, idle worker 가 많�
 
 `Task::cancel` 은 취소를 **요청** 합니다 ([stdlib 2.18.4](../../refs-standard-libraries/200-core/218-task.md#2184-협력적-취소--taskcancel)). 런타임은 플래그를 세우고 task 를 깨웁니다.
 
-- 모든 `await` 가 cancellation point 입니다. `await` 는 들어갈 때, 결과를 받은 뒤, 중단하기 직전에 플래그를 봅니다.
+- 모든 `await` 가 cancellation point 입니다. `await` 는 들어갈 때와 중단하기 직전에 플래그를 봅니다.
+- 기다린 future 가 `Ready` 를 돌려준 뒤의 검사는 "플래그가 섰는가" 가 아니라 "**기다린 코루틴이 취소 때문에 떠났는가**" 입니다. 그래서 future 가 넘겨준 값 (받은 메시지, 잡은 잠금 guard) 은 지켜지고, 다음 `await` 에서 떠납니다.
 - 취소된 task 는 다음 `await` 에서 `return` 처럼 본문을 떠납니다. 지나는 `finally` 블록과 `using` 의 `drop` 이 안쪽부터 실행됩니다. 중첩된 `async fn` 호출은 가장 안쪽 코루틴부터 정리됩니다.
 - 이것은 task 안에서 `catch` 할 수 있는 에러가 아닙니다. throwing 이 아닌 async 본문도 같은 경로로 끝납니다. 결과는 버려집니다.
+- 마지막 cancellation point 를 지난 뒤에 취소된 task 는 정상적으로 끝나고 결과를 가집니다 (`await` / `join` 이 그 결과를 돌려줌). `CancellationError` 는 결과 없이 끝난 task 에만 해당합니다.
 - blocking syscall (`TcpStream::read` 등) 은 cancellation point 가 아닙니다. 끝난 뒤 다음 `await` 에서 떠납니다.
 - 소켓 I/O, `readable` / `writable`, `sleep` / `timeout`, `lock_async`, `recv_async` / `send_async` 에서 기다리던 task 는 취소되면 깨어나 다음 `await` 에서 떠납니다.
 - task 가 끝나면 그 task 의 깨우기 등록 (I/O readiness 대기, timer, parking 표의 waker) 은 모두 풀립니다. 실행 중 pool 의 등록 수는 진단용 `task::registrations()` 로 볼 수 있으며, 그 값의 정확한 의미는 구현이 정합니다.
 
-`task::timeout` 이 시간을 넘기거나 `task::race` 가 승자를 정한 뒤에도, 진 쪽 task 는 계속 실행됩니다. 멈추려면 `cancel` 을 부릅니다.
+`task::timeout` 이 시간을 넘기거나 `task::race` 가 승자를 정한 뒤에도, 진 쪽 task 는 계속 실행됩니다. 멈추려면 `cancel` 을 부릅니다. `task::select` 는 spawn 하지 않으므로 진 future 를 스스로 취소합니다 ([stdlib 2.18.1](../../refs-standard-libraries/200-core/218-task.md#select--먼저-끝나는-future)).
 
 ## 7.7.11. Reactor 패턴과의 비교
 

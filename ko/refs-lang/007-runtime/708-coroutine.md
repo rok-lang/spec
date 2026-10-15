@@ -136,7 +136,7 @@ extern "C" {
 }
 ```
 
-각 함수의 역할은 다음과 같습니다. `rok_coro_frame_alloc` 은 TLAB 을 통해 frame 을 할당하고, `rok_coro_park` 은 코루틴을 일시 중단하면서 waker 를 등록하며, `rok_coro_unpark` 은 코루틴을 task 큐에 다시 push 합니다.
+각 함수의 역할은 다음과 같습니다. `rok_coro_frame_alloc` 은 TLAB 을 통해 frame 을 할당하고, `rok_coro_park` 은 `frame` 의 주소를 key 로 waker 를 등록하며, `rok_coro_unpark` 은 그 key 에 등록된 waker 를 모두 깨웁니다. `frame` 은 아무 GC 객체여도 됩니다. 컴파일러는 `park` / `unpark` 을 emit 하지 않으며 (`await` 는 task 의 parking registry 를 씀), 두 함수는 C 나 저수준 코드용입니다.
 
 자세한 시그니처는 [extern 심볼](../008-abi/805-extern-symbols.md) 에서 정의합니다.
 

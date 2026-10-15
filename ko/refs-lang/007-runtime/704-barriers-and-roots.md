@@ -56,16 +56,20 @@ GC 참조를 들고 있으면서 호출이나 할당을 하는 함수만 frame �
 
 GC 는 mark 시에 모든 thread 의 체인 머리에서 출발해 frame 을 walk 하며, 각 `slots[i]` 가 가리키는 word 의 값을 root 로 mark 합니다.
 
+### 루트가 가리키는 객체는 옮기지 않음
+
+루트 (shadow stack, `static`, 등록된 스레드 root) 가 직접 가리키는 객체는 그 수집에서 옮기지 않습니다. 그래서 blocking 런타임 호출이나 `extern "C"` 함수에 넘긴 GC 포인터는 **호출이 끝날 때까지 인자가 루트에 있기만 하면** 제자리에 고정됩니다. C 코드가 호출이 끝난 뒤에도 그 포인터를 보관하려면 `rok_gc_pin` ([8.5.1](../008-abi/805-extern-symbols.md#851-gc-영역)) 으로 고정해야 합니다.
+
 코루틴 frame 은 GC heap 객체이므로 ([7.8](708-coroutine.md)) 그 안의 변수는 shadow stack 이 아니라 frame 객체의 scan table 로 추적됩니다.
 
 ### 초기 구현
 
-이 장의 GC 설계 (Immix, sticky mark-bit, 동시 수집) 는 목표 설계입니다. 현재 구현의 heap 은 객체를 옮기지 않는 Immix 식 mark-region 이며 (32 KiB block, 128 B line, thread 별 TLAB bump 할당, [7.1.2](701-object-layout.md#712-메모리-공간)), sticky mark-bit 세대 수집 (7.4.2 의 object-remembering barrier 와 큰 객체의 card marking, 스레드별 remembered-set log) 을 기본으로 켭니다. 아직 없는 것은 evacuation (객체 이동) 과 동시 mark 입니다. evacuation 에는 다음이 먼저 필요합니다.
+이 장의 GC 설계 (Immix, sticky mark-bit, 동시 수집) 는 목표 설계입니다. 현재 구현의 heap 은 Immix 식 mark-region 이며 (32 KiB block, 128 B line, thread 별 TLAB bump 할당, [7.1.2](701-object-layout.md#712-메모리-공간)), sticky mark-bit 세대 수집 (7.4.2 의 object-remembering barrier 와 큰 객체의 card marking, 스레드별 remembered-set log) 과 full 수집의 opportunistic evacuation ([7.3.1](703-gc-algorithm.md#731-immix-mark-region)) 을 기본으로 켭니다. 아직 없는 것은 동시 mark 입니다 ([7.5](705-concurrent-collection.md) 는 목표 설계). evacuation 은 다음 위에 놓입니다.
 
-- 정밀한 `any` payload — tag 로 box 여부를 아는 표로 ScanTable 의 `ANY_SLOT` ([8.2](../008-abi/802-scan-table.md)) 을 판정.
-- 컬렉션 버퍼의 원소별 scan table (지금은 버퍼의 모든 word 를 후보로 봄).
-- blocking 런타임 호출과 `extern "C"` 에 넘긴 GC 포인터의 pin 규칙.
-- 원시 주소가 아닌 parking / 동기화 key.
+- `any` payload 의 box 여부를 tag 의 bit 31 로 판정 ([8.2.7](../008-abi/802-scan-table.md#827-any-슬롯)).
+- 컬렉션 버퍼의 원소별 배열 table ([8.2.3](../008-abi/802-scan-table.md#823-직렬화-포맷)). enum / union payload 처럼 참조인지 알 수 없는 word 는 `AMBIGUOUS_WORD` 로, 가리키는 객체를 살리되 옮기지 않습니다.
+- 위의 루트 고정 규칙과 `rok_gc_pin`.
+- 주소를 수로 쓴 객체 (parking / 동기화 key) 의 `NOMOVE` 비트 ([8.1.3](../008-abi/801-object-header-abi.md#813-gc_flags-offset-4-u32)).
 
 단, 루트 (이 절의 shadow stack) 와 write barrier ([7.4.2](#742-write-barrier-incremental-update)) 는 이 사양의 계약대로 emit 해야 합니다. 그래야 컴파일러 산출물을 바꾸지 않고 수집기를 교체할 수 있습니다.
 

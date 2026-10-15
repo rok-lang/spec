@@ -194,6 +194,9 @@ impl<T> RwLock<T> {
 
     fn try_read(self) -> RwLockReadGuard<T> | none;
     fn try_write(self) -> RwLockWriteGuard<T> | none;
+
+    fn read_async(self) -> ReadFuture<T>;       // await l.read_async() — task 만 중단
+    fn write_async(self) -> WriteFuture<T>;
 }
 ```
 
@@ -226,12 +229,20 @@ struct Condvar { /* ... */ }
 impl Condvar {
     const fn new() -> Condvar;
     fn wait<T>(self, guard: MutexGuard<T>) -> MutexGuard<T>;   // 잠금을 풀고 대기, 깨면 다시 잠금
+    fn wait_async<T>(self, guard: MutexGuard<T>) -> CondvarWait<T>;   // g = await cv.wait_async(g) — task 만 중단
     fn notify_one(self);
     fn notify_all(self);
 }
 ```
 
 `wait` 는 spurious wakeup 이 있을 수 있으므로 조건을 루프에서 다시 확인합니다.
+
+### async 잠금과 취소
+
+`lock_async` / `read_async` / `write_async` / `wait_async` 의 future 는 취소된 poll 에서 잠금을 잡지 않습니다 ([2.18.4](218-task.md#2184-협력적-취소--taskcancel)). 취소된 `wait_async` 는 다음과 같이 끝납니다.
+
+- mutex 가 비어 있으면 다시 잡습니다. 그래서 호출자의 `using` guard 가 평소처럼 풉니다.
+- 다른 task 가 잡고 있으면 잡지 않고 떠나며, 버려지는 guard 는 그 mutex 를 풀지 않습니다.
 
 ## 2.16.5. `Cell<T>` — single-threaded interior
 

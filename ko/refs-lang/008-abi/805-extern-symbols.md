@@ -110,12 +110,12 @@ extern "C" {
 
 ```
 extern "C" {
-    fn rok_gc_pin(obj: Ptr<u8>) -> Ptr<u8>;       // 새 위치 (Non-Moving 공간) 반환
+    fn rok_gc_pin(obj: Ptr<u8>) -> Ptr<u8>;       // 고정된 객체 (같은 주소) 반환
     fn rok_gc_unpin(obj: Ptr<u8>);
 }
 ```
 
-pin 은 객체를 Non-Moving 공간으로 옮겨 외부 코드가 들고 있는 동안 안전하게 유지합니다. unpin 은 객체를 다시 일반 [Immix](../000-meta/007-glossary.md#immix) 공간으로 돌릴 수 있도록 하며, 그대로 두는 것도 가능합니다.
+`extern "C"` 함수나 blocking 런타임 호출에 넘긴 GC 포인터는 호출이 끝날 때까지 인자가 루트에 있으므로 따로 pin 하지 않아도 옮겨지지 않습니다 ([7.4.1](../007-runtime/704-barriers-and-roots.md#루트가-가리키는-객체는-옮기지-않음)). C 코드가 호출 뒤에도 포인터를 보관할 때만 pin 이 필요합니다. pin 은 객체에 `PINNED` 를 켜서 evacuation 대상에서 빼고 GC 가 살려 두게 하며, unpin 은 그것을 풉니다.
 
 ### `rok_gc_collect`
 
@@ -221,10 +221,10 @@ extern "C" {
 
 `rok_gc_alloc_slow` 와 거의 동일하지만, frame 전용으로 별도 처리가 가능합니다.
 
-### `rok_coro_park` / `rok_coro_unpark` (예약)
+### `rok_coro_park` / `rok_coro_unpark`
 
 > [!NOTE]
-> 현재 구현은 이 두 심볼을 쓰지 않습니다. task 의 대기와 깨우기는 `rok::core::task` 의 parking registry (`rok_task_parking_*`) 로 처리합니다. 두 이름은 예약으로 남깁니다.
+> 컴파일러는 이 두 심볼을 emit 하지 않습니다 (`await` 는 `rok::core::task` 의 parking registry 를 씁니다). 런타임은 C 나 저수준 코드를 위해 제공합니다. `frame` (아무 GC 객체) 의 주소가 parking key 이며, `rok_coro_unpark(frame)` 은 그 key 에 park 한 waker 를 모두 깨웁니다. task executor 밖에서 부르면 abort 합니다.
 
 **Thread-safety: `rok_coro_park` 는 `caller-thread-only`** (호출자 코루틴 자신을 park), **`rok_coro_unpark` 는 `thread-safe`** (다른 thread 에서 호출 가능).
 
@@ -324,6 +324,8 @@ extern "C" {
     fn rok_task_key_usize(obj: usize) -> usize;            // GcBuf<usize> 객체 주소를 park 키로
 }
 ```
+
+`rok_task_key_*` 는 주소를 키로 쓰므로 그 객체에 `NOMOVE` ([8.1.3](801-object-header-abi.md#813-gc_flags-offset-4-u32)) 를 켭니다. 그 객체는 이후 옮겨지지 않습니다.
 
 ### `rok_sync_wait` / `rok_sync_wake`
 
@@ -435,10 +437,9 @@ extern "C" {
 
 ## 8.5.5. I/O / Timer 영역
 
-### `rok_io_register` / `rok_timer_register` (예약)
+### `rok_io_register` / `rok_timer_register`
 
-> [!NOTE]
-> 현재 구현은 이 두 심볼을 쓰지 않습니다. I/O 대기는 reactor thread 가 `rok_io_*` (아래) 로 처리하고, 깨울 task 는 `rok::core::task` 의 parking registry 에서 찾습니다 ([7.7.4](../007-runtime/707-io-and-timer.md#774-io-driver-추상화)). timer 는 executor 가 rok 쪽에서 관리합니다. 두 이름은 예약으로 남깁니다.
+C 나 저수준 코드가 task 를 fd 준비나 시각에 깨우도록 등록합니다. 내부적으로는 reactor ([7.7](../007-runtime/707-io-and-timer.md)) 와 executor 의 timer 를 씁니다. task executor 밖에서 부르면 abort 합니다.
 
 **Thread-safety: `thread-safe`**.
 
@@ -450,9 +451,9 @@ extern "C" {
 ```
 
 - `fd`: file descriptor 입니다.
-- `interest`: 비트 플래그로, READ / WRITE / EDGE 등이 포함됩니다.
-- `waker`: fd 가 ready 되거나 `deadline` 에 도달할 때 깨울 waker 입니다.
-- `deadline`: 절대 시간이며 정확한 단위는 구현이 결정합니다.
+- `interest`: `1` = 읽기, `2` = 쓰기 (둘을 OR 할 수 있음).
+- `waker`: 원소 하나인 `GcBuf<Waker>` 입니다. 등록은 edge-triggered 이고 **한 번만** 깨웁니다 (가짜 깨움 가능). 이미 준비되어 있거나 감시할 수 없는 fd 면 곧바로 깨웁니다.
+- `deadline`: `rok_time_now_ns` 시계 기준의 절대 시각 (ns) 입니다. 그 시각에 닿으면 waker 를 한 번 깨웁니다.
 
 ### `rok_io_*` — reactor (내부, 변경 가능)
 

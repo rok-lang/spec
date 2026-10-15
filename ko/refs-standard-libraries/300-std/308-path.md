@@ -121,9 +121,10 @@ impl AsPath for Path { ... }
 ```rok
 let raw: RawPath = ...;
 let p: Path = try Path::try_from(raw);    // UTF-8 이 아니면 NonUtf8Error 를 throw
+let q: Path = try raw.try_into();          // 같음
 ```
 
-`Path::try_from` 은 지금은 `Path` 의 고유 함수입니다. 표준의 `TryFrom` 트레잇은 에러 타입이 `OverflowError` 로 고정되어 있어 ([2.11.4](../200-core/211-conversion.md#2114-tryfromu-트레잇--fallible-변환)) `NonUtf8Error` 를 던지는 이 변환은 트레잇 impl 이 아닙니다.
+이 변환은 `impl TryFrom<RawPath> for Path { type Error = NonUtf8Error; ... }` 입니다 ([2.11.4](../200-core/211-conversion.md#2114-tryfromu-트레잇--fallible-변환)).
 
 ## 3.8.5. `RawPath` — bytes / WTF-16
 

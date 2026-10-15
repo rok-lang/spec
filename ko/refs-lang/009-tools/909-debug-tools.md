@@ -7,23 +7,27 @@
 [AOT 빌드 파이프라인](902-aot-pipeline.md) 의 단계별 결과물을 덤프할 수 있습니다.
 
 ```
+rokc build --emit=ast           # 메타 확장과 desugar 뒤의 전체 AST 를 rok 소스로
 rokc build --emit=hir          # rok-hir 텍스트 출력
 rokc build --emit=mir           # rok-mir 텍스트 출력
 rokc build --emit=mlir          # 표준 MLIR 텍스트
 rokc build --emit=llvmir        # LLVM IR
 rokc build --emit=asm           # 어셈블리
 rokc build --emit=obj           # object 파일
+rokc build --emit=expanded      # 메타 확장 결과 (9.9.10)
 ```
 
 산출물은 다음 위치에 출력됩니다.
 
 ```
+target/debug/build/foo.ast.rok
 target/debug/build/foo.hir
 target/debug/build/foo.mir
 target/debug/build/foo.mlir
 target/debug/build/foo.ll
 target/debug/build/foo.s
 target/debug/build/foo.o
+target/debug/build/foo.expanded.rok
 ```
 
 여러 단계를 한 번에 지정하려면 `--emit=mlir,llvmir,asm` 처럼 쉼표로 구분하면 됩니다. 종류가 하나면 `-o <path>` 로 위치를 바꿀 수 있습니다. `--emit` 을 주면 실행 파일이나 archive 는 만들지 않습니다.
@@ -187,7 +191,8 @@ span 은 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_p
 
 - 함수의 `DW_AT_name` 은 rok 경로 (`geom::distance`) 이며, linkage name (맹글링된 심볼) 은 두지 않습니다. 디버거가 `_Y` 맹글링을 모르기 때문입니다.
 - 줄 번호는 원본 .rok 파일의 줄을 가리킵니다.
-- 원시 타입 (정수, 부동소수, `bool`, `char`) 의 지역 변수는 원본 이름과 타입으로 보입니다. 디버거의 `print x` 는 현재 원시 타입 변수에만 동작합니다. struct / 컬렉션 / GC 객체의 표시는 아직 없습니다.
+- 지역 변수는 원본 이름과 타입으로 보입니다. 원시 타입 (정수, 부동소수, `bool`, `char`) 외에 struct (필드 이름), 튜플, `str`, `any`, sum 타입, 배열의 DWARF 타입을 냅니다.
+- 블록마다 lexical block scope 를 내므로 가려진 (shadowed) 이름은 해당 블록 안에서만 보입니다.
 
 ### gdb / lldb 사용
 
@@ -245,7 +250,8 @@ ROK_GC_LOG=1 ./target/debug/my_binary
 | 변수              | 효과                                                                         |
 |-------------------|------------------------------------------------------------------------------|
 | `ROK_GC_GEN=0`    | 세대 수집 (sticky mark-bit, [7.3.3](../007-runtime/703-gc-algorithm.md#733-사이클-young-과-old-의-교차)) 을 끄고 매번 full 수집 |
-| `ROK_GC_STATS=1`  | 종료 시 수집 횟수 (minor / full), pause 시간, 수집기 CPU 시간을 stderr 에 출력 |
+| `ROK_GC_STATS=1`  | 종료 시 수집 횟수 (minor / full), pause 시간, 수집기 CPU 시간을 stderr 에 출력. 둘째 줄은 block 수 / 상주 크기 / evacuation 횟수 / 옮긴 바이트 |
+| `ROK_GC_EVAC=always\|off` | full 수집의 evacuation 을 매번 하거나 끔. 기본은 자동 ([7.3.1](../007-runtime/703-gc-algorithm.md#731-immix-mark-region)) |
 | `ROK_GC_STRESS=N` | 테스트용. 할당 N 번마다 수집 (그 8 번째마다 full)                            |
 
 ### heap dump
@@ -287,14 +293,18 @@ REPL / Jupyter 안에서는 다음과 같은 명령으로 JIT 산출물을 확�
 
 [사용자 정의 메타 블록](../006-meta-system/608-meta-blocks.md) 의 derive / attribute 가 어떤 코드를 생성하는지 확인할 수 있습니다.
 
-> [!NOTE]
-> `--emit=expanded` 는 아직 제공하지 않습니다.
-
 ```
-rokc build --emit=expanded
+rokc build --emit=expanded      # → target/<profile>/build/<name>.expanded.rok
 ```
 
-이 옵션은 [템플릿 토큰과 확장](../006-meta-system/609-template-tokens.md) 의 메타 확장 결과 AST 를 출력해 주며, 사용자 derive 의 디버그 용도로 활용하면 됩니다.
+이 옵션은 사용자 패키지의 [메타 확장](../006-meta-system/609-template-tokens.md) 결과를 소스 텍스트로 출력합니다. 확장마다 다음 주석 뒤에 생성된 소스가 이어지며, 생성물이 다시 확장된 결과는 바깥 확장 뒤에 이어집니다.
+
+```
+// expanded from this #[derive(MyHash)] (src/geom.rok:12:1)
+impl MyHash for Point { ... }
+```
+
+메타 확장과 desugar 를 모두 거친 전체 AST 를 rok 소스로 보려면 `--emit=ast` (`<name>.ast.rok`) 를 씁니다.
 
 ## 9.9.11. 벤치마크
 

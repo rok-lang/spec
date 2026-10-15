@@ -86,8 +86,8 @@ extern "C" {
 - 원시 문자형: `c_char` (1 바이트).
 - 포인터: `Ptr<T>`, `ConstPtr<T>` (표준 라이브러리, [표준 라이브러리 계층](../000-meta/005-standard-libraries-tiers.md) 의 `unsafe` 영역).
 - `#[repr(C)]` `struct` / `union`: C ABI 호환 표시가 붙은 사용자 정의 타입.
-- 함수 포인터: `extern "C" fn(...) -> ...` (별도 형식).
-- 함수 타입 매개변수: `extern "C"` 선언의 `fn(..) -> R` 매개변수는 일반 C 함수 포인터이며, 이름 있는 함수 (캡처 없음, 제네릭 아님) 만 받습니다. 클로저나 함수 타입 변수는 넘길 수 없습니다.
+- 함수 포인터: `extern "C" fn(...) -> ...` (아래 "C 함수 포인터 타입").
+- 함수 타입 매개변수: `extern "C"` 선언의 `fn(..) -> R` 매개변수는 `extern "C" fn(..) -> R` 과 같습니다.
 - `str`: 아래 규칙으로 변환됩니다.
 
 `str` 을 extern 시그니처에 쓰면 이름에 따라 전달 방식이 다릅니다.
@@ -100,6 +100,36 @@ extern "C" {
 C 함수에 넘길 때 컴파일러는 NUL 로 끝나는 바이트열을 넘기며, 필요하면 사본을 만듭니다. 내부에 NUL 이 있으면 C 쪽에서는 첫 NUL 까지만 보입니다. 반환된 `char*` 가 null 이면 동작은 정의되지 않으므로, null 일 수 있는 C 문자열은 `CPtr<c_char>` 로 받습니다 ([stdlib 1.7.2](../../refs-standard-libraries/100-bare/107-ffi.md#172-cstr--cstring--null-terminated-string)).
 
 호환되지 않는 타입을 적으시면 컴파일 경고나 에러가 발생합니다. 정확한 검사 규칙은 [Calling Convention](../008-abi/806-calling-convention.md) 에서 정의됩니다.
+
+### C 함수 포인터 타입
+
+```
+c_fn_type ::= "unsafe"? "extern" "\"C\"" "fn" "(" (type_expr ("," type_expr)*)? ")" ("->" unary_type)?
+```
+
+- ABI 문자열은 `"C"` 만 됩니다. 그 밖은 에러입니다.
+- 이 타입의 값은 이름 있는 C-ABI 함수로만 만듭니다. `extern` 블록의 C 선언의 값은 `unsafe extern "C" fn(..)` 타입이라 안전한 (`unsafe` 없는) 자리에 넣을 수 없고, rok 의 `extern "C" fn` 정의 (그 C 진입점, 5.9.10) 는 안전한 `extern "C" fn(..)` 값을 줍니다.
+- rok `fn` 값 (클로저, 함수 타입 변수 포함) 과 C 함수 포인터는 서로 변환되지 않습니다.
+- `unsafe` 가 없는 타입으로 부르는 것은 안전하고, `unsafe extern "C" fn` 으로 부를 때는 `unsafe` 가 필요합니다.
+- `none` 이 아닌 C 함수 포인터 값은 null 이 아닙니다. 그래서 `| none` 없는 `extern "C" fn` 자리 (매개변수, 반환, 필드) 로 NULL 을 받는 것은 정의되지 않은 동작이며, NULL 을 돌려줄 수 있는 C API 는 `| none` 으로 선언해야 합니다.
+
+#### nullable C 함수 포인터: `extern "C" fn(..) -> R | none`
+
+C 함수 포인터 타입 하나와 `none` 만으로 된 합 (순서 무관, 다른 항 없음) 은 null niche 를 씁니다 ([2.7.2](../002-types/207-niche-optimization.md#272-자동-niche)).
+
+- 포인터 크기이며 `none` 은 null 입니다.
+- C 의 nullable 함수 포인터와 ABI 가 같습니다. extern 매개변수 / 반환, C 와 주고받는 struct 필드, extern `static` 에 그대로 쓸 수 있습니다.
+- 0 으로 채운 저장소는 `none` 으로 읽힙니다.
+- 이것을 포함하는 더 큰 합은 일반 태그 배치를 쓰며, 그 사이의 변환은 일반 합 타입 변환입니다.
+
+```rok
+extern "C" {
+    fn cmp_i32(a: ConstPtr<u8>, b: ConstPtr<u8>) -> i32;
+    fn qsort(base: Ptr<u8>, n: usize, size: usize, cmp: unsafe extern "C" fn(ConstPtr<u8>, ConstPtr<u8>) -> i32);
+}
+let f: unsafe extern "C" fn(ConstPtr<u8>, ConstPtr<u8>) -> i32 = cmp_i32;   // C 선언의 값은 unsafe
+let g: extern "C" fn(ConstPtr<u8>, ConstPtr<u8>) -> i32 = cmp_i32;          // ERROR — 안전한 자리
+```
 
 ### extern 함수의 이름 공간
 

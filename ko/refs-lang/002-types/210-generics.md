@@ -55,11 +55,13 @@ let xs: List<i32> = empty();        // T = i32 — let 의 타입 주석에서
 takes_strs(empty());                // T = str — 매개변수 타입 List<str> 에서
 ```
 
-기대 타입이 없는 `let` 은 나중의 쓰임에서 추론합니다. 주석 없는 `let x = f();` 에서 `f` 의 제네릭 반환 타입이 호출만으로 정해지지 않으면, 같은 블록 안에서 `x` 가 처음으로 구체 타입 자리 (인자 자리, 주석 있는 `let`, struct 필드, `return`) 에 쓰일 때 그 타입으로 정해집니다. 그런 쓰임이 없으면 "type annotations needed" 에러입니다.
+기대 타입이 없는 `let` 은 나중의 쓰임에서 추론합니다. 추론의 범위는 함수 본문 하나이며, 시그니처는 항상 명시합니다. 주석 없는 `let x = f();` 에서 `f` 의 제네릭 반환 타입이 호출만으로 정해지지 않으면, 같은 함수 본문 안의 이후 쓰임 (인자 자리, 메서드 인자, 주석 있는 `let`, struct 필드, `return`) 이 그 타입을 정합니다. `let xs = List::new(); xs.push(1);` 의 `xs` 는 `List<i32>` 입니다 (리터럴은 기본 타입). 본문 끝까지 정해지지 않은 타입이 남으면 "type annotations needed" 에러입니다.
 
 ```rok
 let xs = empty();                   // 아직 List<?>
 takes_ints(xs);                     // 여기서 T = i32 — 매개변수 List<i32>
+let zs = List::new();
+zs.push(1);                         // zs: List<i32> — 이후 메서드 인자에서
 let ys = empty();                   // ERROR — type annotations needed (구체 쓰임 없음)
 ```
 

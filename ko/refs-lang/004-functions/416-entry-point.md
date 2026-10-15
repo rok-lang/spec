@@ -100,7 +100,7 @@ fn main() throws {          // 암묵 main 의 형태 — 4.16.4 참고
 - **panic**: panic 과 fatal 에러는 `catch` 로 잡히지 않으며, 런타임은 메시지를 표준 에러에 출력하고 종료 코드 **`101`** 로 종료합니다 ([4.14.13](414-throws.md#41413-panic-과-fatal-에러)).
 - **명시 종료**: [`rok::std::env::exit(code)`](../../refs-standard-libraries/300-std/306-env.md) 는 어느 지점에서든 즉시 프로세스를 종료합니다. 이 경로는 `finally` 와 `Drop` 을 실행하지 않습니다.
 
-**암묵 `main`** 은 `fn main() throws` 로 취급됩니다 (본체에 `await` 가 있으면 `async fn main() throws`, 4.16.5). 따라서 top-level 문에서 `try` 로 표시한 throwing 호출의 에러는 별도의 `catch` 없이 진입점 밖으로 전파될 수 있고, 미처리 예외는 위 규칙대로 종료 코드 `1` 이 됩니다. 정상적으로 끝까지 실행되면 종료 코드는 `0` 입니다.
+**암묵 `main`** 은 타입을 적지 않은 `fn main() throws` (에러 타입 `any Error`) 로 취급됩니다 (본체에 `await` 가 있으면 `async fn main() throws`, 4.16.5). 따라서 top-level 문에서 `try` 로 표시한 throwing 호출의 에러는 별도의 `catch` 없이 진입점 밖으로 전파될 수 있고, 미처리 예외는 위 규칙대로 종료 코드 `1` 이 됩니다. 정상적으로 끝까지 실행되면 종료 코드는 `0` 입니다.
 
 > [!IMPORTANT]
 > **top-level `return` 은 허용하지 않습니다.** `main.rok` 의 top-level 에 `return` 이 나타나면 컴파일 에러입니다. 암묵 `main` 에서 0 이 아닌 종료 코드가 필요하면 `env::exit(code)` 를 호출하고, 반환값으로 종료 코드를 표현하고 싶다면 명시 `fn main() -> i32` 형태를 씁니다. top-level `return` 을 허용하면 "어떤 타입의 `return` 이 허용되는가", "top-level 블록 안쪽의 `return` 은 무엇을 반환하는가" 같은 규칙이 암묵 `main` 에만 추가되므로, 진입점 형태를 둘로 나누는 쪽이 더 단순합니다.
@@ -119,7 +119,7 @@ println(body.len());
 
 ## 4.16.6. 모듈은 정의 전용
 
-top-level 문은 **진입 모듈 `main.rok` 에서만** 허용됩니다. `lib.rok` 과 `main.rok` 가 아닌 모든 모듈 파일 (그리고 인라인 `mod { ... }` 본체) 은 항목만 담을 수 있으며 (`module_file ::= item*`), top-level 문이 나타나면 **컴파일 에러** 입니다.
+top-level 문은 **진입 모듈 `main.rok` 에서만** 허용됩니다. `lib.rok` 과 `main.rok` 가 아닌 모든 모듈 파일 (그리고 인라인 `mod { ... }` 본체) 은 항목만 담을 수 있으며 (`module_file ::= item*`), top-level 문이 나타나면 **컴파일 에러** 입니다. 인라인 `mod x { stmt }` 본체의 문에는 이 절을 가리키는 전용 진단을 냅니다.
 
 그 결과 **모듈을 가져오는 일 (`mod`, `use`) 은 어떤 코드도 실행하지 않습니다.** 이는 Python 과 의도적으로 다른 지점입니다. Python 에서는 `import` 가 모듈 파일의 top-level 코드를 실행하므로, 라이브러리로도 쓰이고 스크립트로도 쓰이는 파일은 `if __name__ == "__main__":` 가드로 두 용도를 구분해야 합니다. rok 에는 이런 가드가 필요하지 않습니다. 스크립트로 실행되는 코드는 오직 `main.rok` 에만 있고, 그 밖의 모든 파일은 import 시점에 아무 일도 일으키지 않습니다.
 

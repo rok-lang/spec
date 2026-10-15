@@ -16,6 +16,9 @@ fn spawn_blocking<T: Send>(f: fn() -> T + Send) -> Blocking<T>;   // blocking �
 fn workers() -> usize;                                  // 실행 중 pool 의 worker 수 (block_on 밖에서는 1)
 fn cpu_count() -> usize;                                // 온라인 CPU 수 — pool 크기
 async fn race<T>(tasks: List<Task<T>>) -> T;            // 첫 완료 task 결과
+fn select<F: Future>(futs: List<F>) -> SelectFuture<F>; // await — (index, 결과), spawn 하지 않음
+fn id() -> TaskId;                                      // 현재 task 의 id — task 밖이면 panic
+fn try_id() -> TaskId | none;
 async fn join<T>(tasks: List<Task<T>>) -> List<T>;      // 모두 완료 후
 async fn timeout<T>(dur: Duration, task: Task<T>) throws (TimeoutError) -> T;   // try await 에서 던짐
 async fn sleep(dur: Duration);
@@ -72,7 +75,7 @@ let n = await task::spawn_blocking(|| heavy_checksum(path));
 
 ### `spawn` 의 `Send` 검사
 
-`task::spawn` 은 **frame** 이 `Send` 가 아닌 future 를 거부합니다 ([2.13.9](213-marker.md#2139-send--sync--스레드-경계-marker)). future 가 어디서 왔든 같습니다: `async` 블록이나 `async fn` 호출뿐 아니라 매개변수, struct / 튜플 / 합의 필드, helper 함수의 결과, 리스트의 원소, 클로저가 들고 있는 future, 다른 코루틴 frame 안의 future 도 검사합니다. future 의 frame 은 다음입니다.
+`task::spawn` 은 결과 타입도 `Send` 여야 하며 (`where F::Output: Send`), **frame** 이 `Send` 가 아닌 future 를 거부합니다 ([2.13.9](213-marker.md#2139-send--sync--스레드-경계-marker)). future 가 어디서 왔든 같습니다: `async` 블록이나 `async fn` 호출뿐 아니라 매개변수, struct / 튜플 / 합의 필드, helper 함수의 결과, 리스트의 원소, 클로저가 들고 있는 future, 다른 코루틴 frame 안의 future 도 검사합니다. future 의 frame 은 다음입니다.
 
 - 캡처한 값.
 - `await` 를 넘어 살아 있는 지역 변수와 임시값.
@@ -96,6 +99,38 @@ task::spawn(make());                       // ERROR — helper 가 만든 future
 
 `async fn` 의 결과 타입 `AsyncFuture<T>` 는 `T: Send` 일 때, throwing 판 `TryAsyncFuture<T, E>` 는 `T` 와 `E` 가 모두 `Send` 일 때 `Send` 입니다. 캡처와 frame 은 위 검사가 따로 봅니다.
 
+### `select` — 먼저 끝나는 future
+
+```rok
+fn select<F: Future>(futs: List<F>) -> SelectFuture<F>;   // Output = (usize, F::Output)
+
+let (i, v) = await task::select([fetch_a(), fetch_b()]);
+```
+
+`race` 와 달리 future 들을 spawn 하지 않고, 기다리는 task **안에서** 실행합니다.
+
+- 목록 순서대로 poll 하며, 같은 poll 에서 둘 이상이 끝나면 낮은 index 가 이깁니다.
+- 하나가 끝나면, 이미 시작한 나머지는 모두 취소됩니다. 취소된 상태로 한 번 더 poll 되어 `finally` / `using` 이 실행됩니다 (2.18.4). 한 번도 poll 되지 않은 future 는 실행되지 않습니다.
+- 진 future 들이 만든 깨우기 등록 (timer, parking) 은 모두 풀립니다.
+- 기다리는 task 가 취소되면 자식 future 들도 취소됩니다.
+- 빈 목록이면 panic 입니다.
+- future 들은 한 타입이어야 합니다. 결과 타입이 다르면 감쌉니다: `async { Msg::A(await a) }`.
+
+`select` 와 `sleep` 으로 timeout 을 만들 수도 있습니다.
+
+```rok
+enum Ev { Line(str), Timeout }
+
+let (_, ev) = await task::select([
+    async { Ev::Line(await read_line()) },
+    async { await task::sleep(Duration::sec(5)); Ev::Timeout },
+]);
+```
+
+### `TaskId`
+
+`task::id()` 는 실행 중인 task 의 id 이며, task 밖에서 부르면 panic 합니다 (`try_id()` 는 `none`). `Task::id()` 는 그 task 의 id 입니다. id 는 프로세스 전역 카운터에서 나오며 다시 쓰이지 않습니다.
+
 ## 2.18.2. `Task<T>` 타입
 
 `Task<T>` 타입은 다음과 같이 정의되어 있습니다.
@@ -109,8 +144,15 @@ impl<T> Task<T> {
     fn cancel(self);                      // 취소 요청 — 다음 await 에서 끝남 (2.18.4)
     fn is_cancelled(self) -> bool;
     fn is_finished(self) -> bool;
-    fn join(self) -> Join<T>;             // try await t.join() — 취소됐으면 CancellationError
+    fn join(self) -> Join<T>;             // try await t.join() — 결과 없이 취소됐으면 CancellationError
+    fn id(self) -> TaskId;
 }
+
+struct TaskId { /* u64 */ }
+impl TaskId {
+    fn as_u64(self) -> u64;
+}
+// TaskId: PartialEq / Eq / Hash / Display / Debug
 
 struct CancellationError {}
 
@@ -163,7 +205,9 @@ t.cancel();              // 협력적 신호 — task 가 cancellation point 에
 - 소켓 I/O (`*_async`), `readable` / `writable`, `sleep` / `timeout`, `lock_async`, `recv_async` / `send_async` 에서 기다리던 task 는 취소되면 깨어나고 다음 `await` 에서 떠납니다.
 - task 가 끝나면 그 task 의 깨우기 등록 (I/O readiness, timer, park 한 대기) 은 모두 풀립니다.
 - `spawn_blocking` 과 그 위의 `fs::*_async` 를 기다리던 중 취소되면, 이미 시작된 작업은 백그라운드에서 끝까지 실행되고 결과만 버려집니다. 쓰기 같은 부수 효과는 일어납니다.
-- `CancellationError` 는 기다리는 쪽이 받습니다. 취소된 task 를 `try await t.join()` 으로 기다리면 `CancellationError` 가 던져지고, `await t` 로 기다리면 panic 입니다.
+- 기다리던 future 가 값을 넘겨준 (메시지, 잠금 guard) poll 은 그 값을 지킵니다. 취소 검사는 "기다린 코루틴이 취소 때문에 떠났는가" 를 보며, 값은 남고 다음 `await` 에서 떠납니다 ([refs-lang 7.7.10](../../refs-lang/007-runtime/707-io-and-timer.md#7710-cancellation)).
+- 마지막 cancellation point 를 지난 뒤 취소된 task 는 정상적으로 끝나고 결과를 가집니다. `await t` / `join` 은 그 결과를 돌려줍니다.
+- `CancellationError` 는 결과 없이 끝난 task 를 기다리는 쪽이 받습니다. 그런 task 를 `try await t.join()` 으로 기다리면 `CancellationError` 가 던져지고, `await t` 로 기다리면 panic 입니다.
 
 ```rok
 let t = task::spawn(async {

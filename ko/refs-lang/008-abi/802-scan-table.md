@@ -56,9 +56,11 @@ Entry array (8 bytes each):
 
 | 필드          | 타입 | 의미                                             |
 |---------------|------|--------------------------------------------------|
-| `version`     | u16  | 포맷 버전. 현재 = 1                              |
+| `version`     | u16  | 포맷 버전 (bit 0 ~ 14, 현재 = 1). bit 15 = 배열 table |
 | `total_size`  | u32  | 객체의 총 크기 (16 바이트 헤더 + 정렬된 payload) |
 | `num_entries` | u16  | 자식 포인터 entry 의 개수                        |
+
+`version` 의 bit 15 가 1 이면 **배열 table** 입니다. 이때 `total_size` 는 원소 stride, entry 의 `field_offset` 은 원소 시작 기준이며, 이 entry 들이 payload 전체에 원소마다 반복 적용됩니다. 컴파일러는 GC 버퍼에 원소 table 을 이 형태로 씁니다.
 
 ### Entry
 
@@ -80,7 +82,8 @@ Entry array (8 bytes each):
 | 2   | `INTERIOR_REF`: 객체 내부를 가리킴 (forwarding 시 보정)          |
 | 3   | `ANY_SLOT`: `tag + payload` 형태의 동적 슬롯. tag 검사 후 mark   |
 | 4   | `SUM_PAYLOAD`: 합 타입의 payload. tag 가 어딘지 메타와 결합 필요 |
-| 5 ~ | 예약 / 추가 종류                                                 |
+| 5   | `AMBIGUOUS_WORD`: 참조일 수도 아닐 수도 있는 word. 가리키는 객체를 살리되 옮기지 않음 |
+| 6 ~ | 예약 / 추가 종류                                                 |
 
 각 종류가 실제로 어떻게 mark 되는지는 GC 구현이 처리할 사항이며, 본 사양에서는 어떤 종류가 있는지와 인코딩만 정의합니다.
 
@@ -163,12 +166,12 @@ field_offset = (그 슬롯의 offset)
 field_kind = ANY_SLOT (3)
 ```
 
-GC 는 mark 시점에 payload 가 box 포인터인지 판단해야 합니다. 현재 ABI 에는 tag → "box 여부" 표가 없으므로, 객체를 옮기지 않는 수집기는 다음 방식을 써도 됩니다.
+payload 가 box 참조인지는 tag 에 실립니다.
 
-- payload word 를 후보로 보고, 살아 있는 객체 주소 집합에 있으면 mark 합니다.
-- ANY_SLOT 외의 모든 자리는 그대로 정밀하게 scan 합니다. 그래서 보수성은 ANY_SLOT 에 한정되며, 우연히 객체 주소와 같은 정수는 그 객체 하나만 살려 둡니다.
+- tag 의 **bit 31** 이 1 이면 payload 는 box 참조이고, 0 이면 값 자체입니다.
+- tag 로 타입을 비교할 때는 bit 31 을 뺀 값으로 비교합니다.
 
-객체를 옮기는 수집기는 payload 를 고쳐 써야 하므로 이 방식을 쓸 수 없고, tag → box 여부 표가 필요합니다. 그 표의 형식은 향후 정의합니다.
+그래서 GC 는 별도의 표 없이 payload 를 정밀하게 scan 하고, 옮긴 box 의 주소를 고쳐 쓸 수 있습니다. 분리 컴파일한 패키지 사이에서도 표를 합칠 필요가 없습니다.
 
 ## 8.2.8. WEAK_REF
 
@@ -208,7 +211,7 @@ ScanTable 포맷의 호환성은 version 필드가 다룹니다.
 | type id | 의미              | scan                                                    |
 |---------|-------------------|---------------------------------------------------------|
 | `1`     | GC 문자열         | payload 는 바이트이며 scan 하지 않음                    |
-| `2`     | word-traced buffer | payload 의 모든 word 를 GC 참조 (또는 null) 로 보고 scan |
+| `2`     | word-traced buffer | payload 의 모든 word 를 모호한 word (`AMBIGUOUS_WORD`) 로 scan |
 
 두 종류는 `rok_gc_alloc_bytes(size, traced)` 로 할당합니다 ([8.5.1](805-extern-symbols.md#851-gc-영역)). 표준 라이브러리의 [`GcBuf<T>`](../../refs-standard-libraries/200-core/209-collections.md#2912-gcbuft--raw-gc-buffer) 가 이 위에 놓입니다.
 

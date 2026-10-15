@@ -138,7 +138,7 @@ let f: fn() -> i32 = || panic("never");     // fn() -> ! 값 → fn() -> i32 자
 
 ### 함수 값의 표현
 
-함수 값은 `{code, env}` 쌍입니다. `code` 는 코드 포인터이고 `env` 는 캡처 환경입니다. 이름 있는 함수의 값은 `env` 가 null 입니다. `extern "C"` 선언의 함수 타입 매개변수는 예외로, `env` 없는 C 함수 포인터이며 이름 있는 함수만 받습니다 ([5.9.4](../005-modules/509-extern-block.md#594-ffi-호환-타입)).
+함수 값은 `{code, env}` 쌍입니다. `code` 는 코드 포인터이고 `env` 는 캡처 환경입니다. 이름 있는 함수의 값은 `env` 가 null 입니다. `extern "C"` 선언의 함수 타입 매개변수는 `extern "C" fn(..)` 타입, 즉 `env` 없는 C 함수 포인터이며, rok 함수 값과는 서로 변환되지 않습니다 ([5.9.4](../005-modules/509-extern-block.md#c-함수-포인터-타입)). 메서드 경로 (`S::new`, `i32::add`) 도 함수 값이 됩니다 ([3.5.3](../003-expressions/305-member-access-and-method-call.md#메서드-경로-값)).
 
 ## 4.4.9. 함수 타입의 부분 집합 관계 (없음)
 

@@ -227,7 +227,7 @@ rok 의 선택은 표현력을 제한하는 대신 예측 가능성과 디버깅
 
 ## 6.8.11. 등록/가시성과의 결합
 
-`#[impl_derive(TraitName)]` 가 부착된 메타 블록은 `TraitName` 이라는 derive 를, `#[impl_attribute(name)]` 는 `#[name]` attribute 를 등록합니다. 컴파일러는 parse 전에 라이브러리와 사용자 패키지의 모든 파일에서 메타 블록을 모으므로, 정의 위치나 파일 순서와 무관하게 쓸 수 있습니다.
+`#[impl_derive(TraitName)]` 가 부착된 메타 블록은 `TraitName` 이라는 derive 를, `#[impl_attribute(name)]` 는 `#[name]` attribute 를 등록합니다. 컴파일러는 parse 전에 라이브러리와 사용자 패키지의 모든 파일에서 메타 블록을 모으므로, 정의 위치나 파일 순서와 무관하게 쓸 수 있습니다. 메타 블록에 붙은 `#[cfg]` 가 거짓이면 그 블록은 등록되지 않습니다 ([6.9.8](609-template-tokens.md#cfg-와의-관계)).
 
 `pub` 메타 블록은 `use` 없이 빌드 전체에서 보입니다 (6.8.6). 메타 블록은 이름 공간의 항목이 아니므로 `use` 로 가져오는 대상도 아닙니다.
 

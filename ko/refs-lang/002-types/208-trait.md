@@ -17,7 +17,7 @@ trait_item  ::= visibility? method_sig
               | visibility? assoc_const_decl
 method_sig  ::= "fn" identifier "(" param_list? ")" throws_clause? return_type? ";"
 method_default ::= "fn" identifier "(" param_list? ")" throws_clause? return_type? block
-assoc_type_decl ::= "type" identifier where_clause? ";"
+assoc_type_decl ::= "type" identifier (":" type_expr ("+" type_expr)*)? where_clause? ("=" type_expr)? ";"
 assoc_const_decl ::= "const" identifier ":" type_expr ("=" const_expr)? ";"
 ```
 
@@ -73,7 +73,20 @@ trait Iterator {
 
 연관 타입은 `type 이름;` 형태로 선언하며, 구현체는 그 자리에 구체 타입을 채웁니다. 그리고 한 구현체에서 한 연관 타입은 정확히 하나의 구체 타입으로 정해지므로, 한 구현이 여러 가능성을 동시에 가질 수는 없습니다.
 
-연관 타입은 같은 트레잇 안의 시그니처에서 쓸 수 있습니다. 위의 `Item | none` 이 그 예입니다.
+연관 타입은 같은 트레잇 안의 시그니처에서 쓸 수 있습니다. 위의 `Item | none` 이 그 예입니다. `throws (Self::X)` 처럼 throws 절에도 쓸 수 있으며, 트레잇과 impl 시그니처 모두에서 됩니다.
+
+### 기본값
+
+연관 타입은 `type X: Bounds = T;` 로 기본값을 가질 수 있습니다. impl 은 그 연관 타입을 생략해 기본값을 쓰거나, `type X = U;` 로 덮어씁니다. 기본값은 트레잇이 정의된 자리에서, 트레잇의 매개변수를 대입해 해소합니다.
+
+```rok
+trait TryFrom<U> {
+    type Error = ConversionError;
+    fn try_from(value: U) throws (Self::Error) -> Self;
+}
+impl TryFrom<RawPath> for Path { type Error = NonUtf8Error; ... }   // 덮어씀
+impl TryFrom<Celsius> for Kelvin { ... }                           // Error = ConversionError
+```
 
 트레잇 안과 모든 impl (트레잇 impl 과 고유 impl) 안에서 맨 이름 `Item` 과 `Self::Item` 은 둘 다 그 연관 타입을 가리키며, 메서드 시그니처와 본문 모두에서 쓸 수 있습니다. impl 에서는 그 impl 이 정한 구체 타입입니다. 연관 타입이 바깥의 같은 이름 타입 (모듈의 `struct Item`, 원시 타입 등) 을 가리면 경고가 납니다. 같은 이름의 트레잇은 타입이 아니므로 경고하지 않습니다 (`trait IntoFuture { type IntoFuture; }` 는 괜찮습니다).
 
@@ -96,6 +109,8 @@ impl Stream {
 ```rok
 fn first_item<T: Iterator>(ref it: T) -> T::Item | none { it.next() }
 ```
+
+bound 가 제네릭 트레잇 `T: Tr<A>` 이면 `T::X` 는 `Tr<A>` impl 의 `X` 입니다. 한 타입이 `Tr<A>` 와 `Tr<B>` 를 서로 다른 `X` 로 구현할 수 있기 때문입니다 (`<T as Tr<A>>::X` 도 같음, [2.13.4](213-type-paths.md#2134-완전-자격-형태-fully-qualified-path)).
 
 이 표기는 [구두점과 연산자 토큰](../001-lexical/110-punctuation-and-operator-tokens.md) 의 `::` 경로 구분자를 쓴 연관 항목 접근입니다. 한편 경로의 일반 규칙 (모듈 경로·turbofish·완전 자격 형태) 은 [타입 경로](213-type-paths.md) 에서 정의합니다.
 

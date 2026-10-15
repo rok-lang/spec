@@ -114,7 +114,7 @@ fn matrix_literal<const C: usize>(rows: ...[f64; C]) -> Matrix { ... }   // 행�
 ```rok
 [1, 2, 3]
    ↓
-list_literal(1, 2, 3)          // items: [i32; 3]
+list_literal(1, 2, 3)          // items: Slice<i32>
    ↓
 List<i32> 인스턴스
 ```

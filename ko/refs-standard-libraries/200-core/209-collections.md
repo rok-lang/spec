@@ -404,18 +404,19 @@ let owned: List<i32> = s1.to_list();    //→ [2, 30, 4] (새 List)
 
 ### variadic args 와의 통합
 
-`fn f(xs: ...T)` 의 `xs` 는 고정 크기 배열 `[T; N]` 이며 값으로 전달됩니다 ([refs-lang 4.2.5](../../refs-lang/004-functions/402-parameters.md#425-variadic-t)). 스택에 놓이므로 힙 할당이 없습니다.
+`fn f(xs: ...T)` 의 `xs` 는 `Slice<T>` view 입니다 ([refs-lang 4.2.5](../../refs-lang/004-functions/402-parameters.md#425-variadic-t)). 개별 인자와 리스트 spread (`f(..ys)`) 를 같은 모양으로 받습니다.
 
 ```rok
 fn sum(xs: ...i32) -> i32 {
     let total = 0;
-    for x in xs {            // xs: [i32; N]
+    for x in xs {            // xs: Slice<i32>
         total = total + x;   // 재할당은 `let` 없이
     }
     total
 }
 
-sum(1, 2, 3);                //→ 6 (xs: [i32; 3])
+sum(1, 2, 3);                //→ 6
+sum(..[4, 5]);               //→ 9 (리스트 spread)
 ```
 
 ## 2.9.8. `Index` / `IndexSet` / `Sliceable` 트레잇 매핑

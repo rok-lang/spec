@@ -25,6 +25,7 @@ let p: Ptr<u8> | none      // 64-bit 포인터 + none
 | `Ptr<T>` / `ConstPtr<T>` | null 포인터 (`0x0`)         |
 | `bool`                   | 2 ~ 255 (`0` / `1` 만 유효) |
 | `enum`                   | 미사용 discriminant 값      |
+| `extern "C" fn(..) -> R` | null 포인터 (`0x0`)         |
 
 위 타입을 합 타입의 한 항으로 쓰고 다른 항이 unit-like (예: `none`) 인 경우, 합 타입의 크기는 그 항의 크기와 같아집니다.
 
@@ -32,6 +33,8 @@ let p: Ptr<u8> | none      // 64-bit 포인터 + none
 Ptr<u8> | none           // 8 바이트 (자동 niche)
 bool | none              // 1 바이트 (자동 niche)
 ```
+
+C 함수 포인터 타입 하나와 `none` 만으로 된 합 (`extern "C" fn(..) -> R | none`) 은 포인터 하나이며 null 이 `none` 입니다 (Rust 의 `Option<extern "C" fn>` 과 같음). 그래서 C 와 주고받을 때 그대로 nullable 함수 포인터가 됩니다. 항이 더 많은 합으로 넓히면 일반 태그 배치를 씁니다 ([5.9.4](../005-modules/509-extern-block.md#nullable-c-함수-포인터-extern-c-fn---r--none)).
 
 > [!NOTE]
 > 유니코드 코드포인트형 (스칼라값) 은 언어 수준의 자동 niche 대상이 아닙니다. 그

@@ -123,7 +123,7 @@ HIR 은 타입 정보가 풍부하게 담긴 중간 표현이며, 위 4 ~ 5 단�
 4. 캐시. 같은 (item_id, type_tuple) 는 한 번만.
 ```
 
-프로그램의 root (`main`, export 된 심볼, `#[export_name]` 항목, 런타임이 참조하는 심볼) 에서 도달할 수 없는 함수는 emit 하지 않습니다.
+프로그램의 root (`main`, export 된 심볼, `#[export_name]` 항목, 런타임이 참조하는 심볼) 에서 도달할 수 없는 함수는 emit 하지 않습니다. 라이브러리 빌드에서도 같아서, 패키지의 `pub` 항목과 그 root 에서 닿지 않는 함수는 archive 에 넣지 않습니다.
 
 이 단계 덕분에 [AOT](../000-meta/007-glossary.md#aot-ahead-of-time) 가 vtable 없는 직접 호출을 할 수 있게 됩니다 ([트레잇-as-타입 금지](../002-types/212-trait-as-type-banned.md) 참고).
 
@@ -229,18 +229,14 @@ target/
 
 ## 9.2.16. 증분 빌드
 
-증분 빌드는 다음과 같은 흐름으로 동작합니다.
+증분 빌드는 패키지 단위입니다. `rokc build` / `rokc run` 은 이전 빌드의 fingerprint 와 지금의 것이 같으면 `Fresh` 를 출력하고 빌드를 건너뜁니다. fingerprint 는 다음을 포함합니다.
 
-```
-1. 변경된 .rok 파일만 다시 파싱.
-2. 영향받은 specialization 만 다시 생성.
-3. 변경된 obj 만 다시 컴파일.
-4. archive 만 재구성.
-```
+- 컴파일러 자체, 빌드 옵션, 입력 / 출력 경로, `PATH`
+- 패키지와 의존성에서 읽을 수 있는 모든 `.rok` 파일
+- 미리 빌드한 의존성의 `.a`, MLIR plugin 파일
+- 산출물의 크기와 수정 시각
 
-이때 캐시 키는 파일 hash 에 `rokc` 버전 hash 와 의존 hash 를 더해 구성합니다.
-
-자세한 증분 알고리듬은 `rokc` 가 결정합니다.
+경고가 난 빌드는 경고를 다시 보여 주도록 항상 다시 빌드합니다. 파일 단위나 specialization 단위의 더 잘게 쪼갠 증분은 `rokc` 가 결정합니다.
 
 ## 9.2.17. 컴파일러와 런타임의 분리
 

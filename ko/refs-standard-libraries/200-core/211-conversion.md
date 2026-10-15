@@ -11,7 +11,7 @@ rok 은 변환의 **의도** 에 따라 네 갈래로 분리해 다룹니다. �
 | 갈래         | 메서드                              | 의미                                  | 실패 시                     |
 |--------------|-------------------------------------|---------------------------------------|-----------------------------|
 | **lossless** | `.into::<T>()`                      | 정보 손실 0 — 항상 성공               | 컴파일 / 런타임 에러        |
-| **fallible** | `.try_into::<T>()`                  | 손실 가능 — 호출자가 처리             | `throws (OverflowError)`    |
+| **fallible** | `.try_into::<T>()`                  | 손실 가능 — 호출자가 처리             | 대상의 `TryFrom::Error` 를 throw |
 | **saturate** | `.saturating_into::<T>()`           | 범위 밖이면 i32::MAX / MIN 으로 clamp | 명시 saturate (사용자 선택) |
 | **bit**      | `.wrapping_into::<T>()` 또는 `as T` | bit 재해석 — 모듈러 산술 / 비트 패턴  | 명시 wrap (사용자 선택)     |
 
@@ -109,11 +109,12 @@ let small: i32 = big as i32;               // wrap 명시
 
 ```rok
 trait TryFrom<U> {
-    fn try_from(value: U) throws (OverflowError) -> Self;
+    type Error = ConversionError;
+    fn try_from(value: U) throws (Self::Error) -> Self;
 }
 ```
 
-`try_from` 은 변환이 실패할 수 있다는 사실을 시그니처에서 직접 표현합니다. `throws (OverflowError)` 시그니처를 가지므로 사용자는 호출을 `try` 로 표시해 전파하거나, `catch` 로 처리하거나, `try?` 로 `T | none` 을 받을 수 있습니다.
+`try_from` 은 변환이 실패할 수 있다는 사실을 시그니처에서 직접 표현합니다. 에러 타입은 연관 타입 `Error` 이며, 기본값은 [`ConversionError`](214-error.md) 입니다 (impl 이 생략하면 기본값, [refs-lang 2.8.3](../../refs-lang/002-types/208-trait.md)). 숫자 변환 impl (정수 ↔ 정수, 부동소수 → 정수, `int` / `float` 변환, `TryFrom<u32> for char`) 은 `type Error = OverflowError;` 를 선언합니다. `throws` 시그니처를 가지므로 사용자는 호출을 `try` 로 표시해 전파하거나, `catch` 로 처리하거나, `try?` 로 `T | none` 을 받을 수 있습니다.
 
 ```rok
 let big: i64 = 9999999999;
@@ -128,12 +129,12 @@ let small_opt: i32 | none = try? i32::try_from(big);
 
 ```rok
 trait TryInto {
-    fn try_into<T: TryFrom<Self>>(self) throws (OverflowError) -> T;
+    fn try_into<T: TryFrom<Self>>(self) throws (T::Error) -> T;
 }
 impl<S> TryInto for S { ... }            // = try T::try_from(self)
 ```
 
-`try_from` 이 던지는 `OverflowError { op, ty }` ([2.14](214-error.md)) 의 `op` 은 `"try_from"`, `ty` 는 대상 타입 이름 (`"i32"` 등) 입니다.
+숫자 변환의 `try_from` 이 던지는 `OverflowError { op, ty }` ([2.14](214-error.md)) 의 `op` 은 `"try_from"`, `ty` 는 대상 타입 이름 (`"i32"` 등) 입니다.
 
 ```rok
 let small: i32 = try big.try_into();     // = try i32::try_from(big)
@@ -235,7 +236,7 @@ let z: f32 = 3.14;           // OK — round to nearest f32
 let w: u8 = 256;             // 컴파일 에러 — 256 ∉ u8 0..=255
 ```
 
-이러한 메커니즘이 가능한 이유는 literal 자체가 컴파일 타임에 알려진 값이기 때문입니다. runtime 값을 변환하는 경우에는 `from`, `into`, `try_into`, `as` 중 하나를 반드시 명시해 주셔야 합니다.
+`T::from(1)` / `1.into()` 처럼 리터럴로 impl 을 고르는 규칙은 [refs-lang 3.1.3](../../refs-lang/003-expressions/301-operator-dispatch.md#impl-고르기) 을 따릅니다. 이러한 메커니즘이 가능한 이유는 literal 자체가 컴파일 타임에 알려진 값이기 때문입니다. runtime 값을 변환하는 경우에는 `from`, `into`, `try_into`, `as` 중 하나를 반드시 명시해 주셔야 합니다.
 
 ## 2.11.8. `From` impl 매트릭스 — primitive 사이
 
@@ -296,8 +297,10 @@ f64 → f32 는 narrowing 변환이므로 `try_into`, `saturating_into`, `as` �
 
 | from \ to | i32               | i64           | f64                 |
 |-----------|-------------------|---------------|---------------------|
-| `int`     | `try_into` 만     | `try_into` 만 | `into` (lossy 가능) |
-| `float`   | `try_into` (절삭) | `try_into`    | `into`              |
+| `int`     | `try_into` 만     | `try_into` 만 | `into` (반올림, 예외) |
+| `float`   | `try_into` (절삭) | `try_into`    | `into` (예외)       |
+
+`From<int> for f64` 와 `From<float> for f64` 는 2.11.2 의 "From 은 lossless" 에 대한 **문서화된 예외** 입니다. `int` 는 가장 가까운 f64 로 반올림하고, 지수가 f64 범위 밖으로 promote 된 `float` 는 f64 로 표현할 수 없어 손실됩니다. 손실이 드러나야 하는 자리에서는 `to_f64()` 나 `as f64` 를 쓰기를 권장합니다.
 
 `int → fixed` 의 경우 lossless 가 보장되지 않습니다 (int 가 fixed 범위 밖일 수 있기 때문입니다). 따라서 `try_into` 또는 `saturating_into` 를 사용해 주셔야 합니다.
 
@@ -327,7 +330,8 @@ let f: Fahrenheit = c.into();   //→ Fahrenheit { degree: 212.0 }
 
 ```rok
 impl TryFrom<str> for i32 {
-    fn try_from(s: str) throws (OverflowError) -> i32 {
+    type Error = OverflowError;
+    fn try_from(s: str) throws (Self::Error) -> i32 {
         // s 가 i32 range 안의 정수 string 이면 그 값, 아니면 OverflowError 를 throw
         ...
     }

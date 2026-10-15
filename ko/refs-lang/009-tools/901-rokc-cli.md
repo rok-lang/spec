@@ -40,9 +40,6 @@ option          ::= "--" identifier ("=" value)?
 | 디버그 / 진단   | `demangle`, `rhir-text`, `inspect`                    |
 | 그 밖           | `version`, `help`                                     |
 
-> [!NOTE]
-> 아직 제공하지 않는 것은 `--emit=expanded`, `--load-mlir-plugin`, `repl --package` 입니다. 이 절의 해당 항목은 계획된 인터페이스입니다.
-
 ### 패키지 지정 (`path`)
 
 `build` / `run` / `test` / `check` / `clean` 의 `[path]` 는 다음 가운데 하나입니다. 생략하면 현재 디렉토리입니다.
@@ -79,8 +76,12 @@ rokc build [path]
 - `--target=<triple>` 은 타깃 플랫폼을 지정하며, [플랫폼 타깃](../000-meta/006-platform-targets.md) 의 13 개 Tier 1 중 하나를 사용합니다.
 - `-o` / `--out=<path>` 는 출력 위치를 지정합니다.
 - `--cfg <flag>` / `--cfg <key>=<value>` 는 [조건부 컴파일](../006-meta-system/603-cfg.md) 의 cfg flag 를 설정합니다. 여러 번 쓸 수 있습니다.
-- `--emit=<kind>[,<kind>..]` 는 중간 산출물 (`hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`) 을 `target/<profile>/build/<name>.<ext>` 에 씁니다 ([9.9.1](909-debug-tools.md#991-중간-산출물-출력---emit)). 쉼표로 여러 종류를 한 번에 지정하며, 이때는 `-o` 를 함께 쓸 수 없습니다. `--emit` 이 있으면 실행 파일이나 archive 는 만들지 않습니다.
-- `--load-mlir-plugin=<path|name>` 은 MLIR 다이얼렉트 plugin 을 동적으로 로드합니다 ([rok::bare::mlir::plugin](../../refs-standard-libraries/100-bare/110-mlir-plugin.md)). 여러 번 사용 가능하며, 빌드 시점에 plugin 의 다이얼렉트 op 이 `__mlir_op` 으로 호출 가능해집니다.
+- `--emit=<kind>[,<kind>..]` 는 중간 산출물 (`ast`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expanded`) 을 `target/<profile>/build/<name>.<ext>` 에 씁니다 ([9.9.1](909-debug-tools.md#991-중간-산출물-출력---emit)). 쉼표로 여러 종류를 한 번에 지정하며, 이때는 `-o` 를 함께 쓸 수 없습니다. `--emit` 이 있으면 실행 파일이나 archive 는 만들지 않습니다.
+- `--load-mlir-plugin <path|name>` 은 MLIR 다이얼렉트 plugin 을 `mlir-opt --load-dialect-plugin` 으로 넘기고, `--load-mlir-pass-plugin <path|name>` 은 패스 plugin 을 `--load-pass-plugin` 으로, `--mlir-pass <pass>` 는 LLVM 다이얼렉트로 변환하기 전에 `--<pass>` 로 넘깁니다 ([rok::bare::mlir::plugin](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-로드)). `rokc` 는 MLIR 을 링크하지 않으므로 plugin 을 직접 로드하지 않습니다. 모두 여러 번 쓸 수 있으며, `rok` 도 그대로 넘깁니다.
+- `-g` / `--debug` 는 DWARF 디버그 정보를 냅니다 ([9.9](909-debug-tools.md#dwarf-디버그-정보)).
+- `-C overflow-checks[=yes|no]` 는 고정 폭 정수 산술의 overflow 검사 (panic) 를 켜거나 끕니다. 기본값은 `-O0` 에서만 켬입니다. 값을 생략하면 `yes` 입니다. overflow 가 일어날 수 없는 상수 피연산자 연산은 검사를 생략합니다.
+
+이전 빌드 뒤로 바뀐 것이 없으면 `rokc build` / `rokc run` 은 `Fresh` 를 출력하고 빌드를 건너뜁니다 ([9.2.16](902-aot-pipeline.md#9216-증분-빌드)).
 
 ### `rokc emit`: 중간 산출물
 
@@ -181,7 +182,7 @@ rokc repl [--replay] [--package <path>]
 
 - 기본 모드는 각 셀을 미리 빌드해 오래 사는 host 프로세스에 올립니다 (macOS arm64 는 자체 로더로 object 를, 그 밖에는 공유 라이브러리를, [9.7.0](907-jit-cells.md#970-셀-세션의-규칙)). 바인딩, `static` 상태, `any` 값이 셀 사이에 이어집니다. 최상위에서 이름을 적을 수 없는 타입 (클로저, 비공개 타입 등) 의 바인딩은 만들 때 거부하고 `--replay` 를 안내합니다.
 - `--replay` 는 셀마다 세션 전체를 다시 컴파일해 처음부터 실행합니다. 그런 바인딩도 유지하지만, 앞 셀의 부수 효과가 매번 되풀이됩니다.
-- `--package` 를 지정하면 시작 시 해당 패키지를 자동으로 로드해 줍니다 (`use` 가 자동으로 적용됩니다). 아직 제공하지 않습니다.
+- `--package <path>` 는 라이브러리 패키지를 `--extern` 으로 붙이고, 첫 셀 앞에 `use <name>::*;` 를 넣습니다. `:reset` 뒤에도 다시 넣습니다. `main.rok` 패키지 (실행 패키지) 는 거부합니다.
 
 `rok` 와 `rok repl` ([9.10](910-rok-frontend.md)) 은 의존성을 붙여 같은 REPL 을 실행하며, `--replay` 를 그대로 넘깁니다.
 

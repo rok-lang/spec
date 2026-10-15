@@ -24,13 +24,15 @@ trait_args  ::= "<" trait_arg ("," trait_arg)* ","? ">"
 trait_arg   ::= type_expr | identifier "=" type_expr
 path_type   ::= identifier ("::" identifier)* type_args?
 type_args   ::= "<" type_expr ("," type_expr)* ","? ">"
-fn_type     ::= "unsafe"? "fn" "( (type_expr ("," type_expr)*)? ")" ("throws" ("(" type_expr ")")?)? ("->" unary_type)? fn_bound*
+fn_type     ::= "unsafe"? ("extern" string_lit)? "fn" "( (type_expr ("," type_expr)*)? ")" ("throws" ("(" type_expr ")")?)? ("->" unary_type)? fn_bound*
 fn_bound    ::= "+" ("Send" | "Sync")
 tuple_type  ::= "(" ")"
               | "(" type_expr "," ")"
               | "(" type_expr ("," type_expr)+ ","? ")"
 array_type  ::= "[" type_expr ";" const_expr "]"
 ```
+
+`extern "C" fn(A, B) -> R` 은 C 함수 포인터 타입입니다 ([5.9.4](../005-modules/509-extern-block.md#c-함수-포인터-타입)). ABI 문자열은 `"C"` 만 쓸 수 있으며, 그 밖은 에러입니다.
 
 이를 형태별로 정리하면 다음 표와 같습니다.
 

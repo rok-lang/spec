@@ -95,7 +95,7 @@ pub  ⊇  pub(pkg)  ⊇  pub(sub)  ⊇  private
 
 ## 5.6.7. glob import 와 가시성
 
-glob import (`*`, ``) 가 가져오는 항목은 그 호출자에 대해 가시한 항목입니다. 즉 reach 가 호출자를 포함해야 끌려옵니다. 별도의 per-item glob-block 표시는 두지 않으니, 외부 노출 표면을 좁히고 싶다면 별도의 `prelude` 모듈을 만들고 `pub use` 로 큐레이션하는 패턴을 쓰면 됩니다.
+glob import (`*`, `**`, 암묵 `use rok::core::**` 포함) 가 가져오는 항목은 import 하는 모듈에서 가시한 항목뿐입니다. 즉 reach 가 그 모듈을 포함해야 끌려오며, 보이지 않는 항목은 이름을 가리거나 충돌을 일으키지도 않습니다. 별도의 per-item glob-block 표시는 두지 않으니, 외부 노출 표면을 좁히고 싶다면 별도의 `prelude` 모듈을 만들고 `pub use` 로 큐레이션하는 패턴을 쓰면 됩니다.
 
 ## 5.6.8. `struct` 필드의 가시성
 

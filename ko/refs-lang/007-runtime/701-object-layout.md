@@ -82,13 +82,11 @@ OS 로부터는 32 KB [block](../000-meta/007-glossary.md#block-블록) 단위�
 
 큰 객체를 evacuate 하면 복사 비용이 막대해지기 때문에, 큰 객체는 제자리에 그대로 두고 mark-sweep 만 수행하는 것입니다.
 
-### 4. Non-Moving (FFI pinned)
+### 4. 고정된 객체 (FFI pinned)
 
-[`extern` 블록](../005-modules/509-extern-block.md) 의 FFI 함수에 주소를 넘긴 객체는 외부 코드가 그 주소를 들고 있는 동안에는 이동되어서는 안 됩니다.
+[`extern` 블록](../005-modules/509-extern-block.md) 의 FFI 함수에 넘긴 GC 포인터는 호출이 끝날 때까지 인자가 루트에 있으므로 옮겨지지 않습니다 ([7.4.1](704-barriers-and-roots.md#루트가-가리키는-객체는-옮기지-않음)). 외부 코드가 호출 뒤에도 주소를 들고 있으려면 `rok_gc_pin` 으로 고정합니다. 고정된 객체는 `gc_flags` 의 `PINNED` 비트가 켜지며 제자리에 남습니다. `rok_gc_unpin` 이 고정을 풉니다.
 
-이러한 객체는 non-moving 공간에 두며, `gc_flags` 의 `pinned` 비트가 켜집니다. 사용자가 표준 라이브러리 함수인 `pin` / `unpin` 을 명시적으로 호출하여 상태를 제어합니다.
-
-이 공간 역시 mark-sweep 으로 수집하되, evacuate 는 하지 않습니다.
+고정된 객체도 mark-sweep 으로 수집하되, evacuate 는 하지 않습니다.
 
 ## 7.1.3. 공간 사이의 이동
 
@@ -98,8 +96,8 @@ GC 는 다음과 같은 경로로 객체를 이동시킵니다.
 TLAB (할당) → Immix
 Immix → Immix (evacuate, 단편화 시)
 Immix → LOS (큰 객체 승급 — 이론상 가능, 일반적으론 처음부터 LOS)
-Immix / LOS → Non-Moving (pin 호출 시)
-Non-Moving → Immix / LOS (unpin 호출 시)
+Immix / LOS → 고정 (pin 호출 시, 제자리)
+고정 → Immix / LOS (unpin 호출 시)
 Immortal — 진입 / 이동 없음
 ```
 

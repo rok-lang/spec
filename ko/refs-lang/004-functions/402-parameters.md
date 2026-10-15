@@ -93,22 +93,21 @@ fn sum(xs: ...i32) -> i32 {
     total
 }
 
-sum();                            // xs: [i32; 0]
-sum(1i32);                         // xs: [i32; 1] = [1]
-sum(1i32, 2i32, 3i32);             // xs: [i32; 3] = [1, 2, 3]
+sum();                            // xs: 빈 슬라이스
+sum(1i32);                         // xs = [1]
+sum(1i32, 2i32, 3i32);             // xs = [1, 2, 3]
+let ys: List<i32> = [4, 5];
+sum(..ys);                         // xs = [4, 5] — 리스트 spread
 ```
 
 variadic 매개변수에는 다음 규칙이 적용됩니다.
 
 - 매개변수 중 마지막 한 개만 variadic 으로 둘 수 있습니다.
-- `xs: ...T` 는 `xs: [T; N]` 에 암묵 const 파라미터 `N: usize` 를 더한 것과 같습니다 ([2.11 const generic](../002-types/211-const-generics.md)). 호출의 남은 인자가 고정 크기 배열 하나로 묶여 **값으로** 전달되며, `N` 은 인자 개수입니다.
-- 따라서 인자 개수마다 함수가 따로 단형화됩니다. 배열은 스택에 놓이므로 힙 할당이 없습니다.
+- 본체에서 `xs: ...T` 는 원소 타입 `T` 의 읽기 전용 슬라이스 뷰 (`Slice<T>`, [stdlib 2.9.7](../../refs-standard-libraries/200-core/209-collections.md#297-slicet--view)) 입니다. 호출의 남은 인자는 하나로 묶여 넘어가며, 길이는 호출마다 다를 수 있습니다. 그래서 인자 개수마다 함수를 따로 단형화하지 않습니다.
+- 개별 인자, 튜플 spread, 리스트 spread (`..xs`) 를 섞어 넘길 수 있습니다 (4.2.6).
 - 본체에서 읽기, 인덱싱, 반복이 가능합니다. 변경이 필요하다면 라이브러리 메서드로 컬렉션을 새로 만듭니다.
 
 ### 이종 variadic: `...any`
-
-> [!NOTE]
-> `...any` 는 아직 지원하지 않습니다.
 
 ```rok
 fn log_all(xs: ...any) { ... }
@@ -129,7 +128,14 @@ let xs: List<i32> = [1i32, 2i32, 3i32];
 sum(..xs);                         // sum(1, 2, 3) — variadic 받음
 ```
 
-spread 에는 다음 규칙이 적용됩니다. 튜플 spread 는 컴파일 타임에 길이와 타입을 검증합니다. 리스트 spread 는 런타임 길이를 사용하며, variadic 또는 위치 일치 시 OK 입니다. Dict spread 는 named 인자로 변환됩니다. variadic 자리로의 spread (`sum(..xs)`) 는 아직 지원하지 않습니다.
+spread 에는 다음 규칙이 적용됩니다.
+
+- 튜플 spread 는 컴파일 타임에 길이와 타입을 검증합니다.
+- 리스트 spread 는 런타임 길이를 사용하며, variadic 또는 위치 일치 시 OK 입니다.
+- Dict spread 는 named 인자로 변환됩니다.
+- variadic 자리에는 튜플, `List`, `Slice`, 배열 spread 를 일반 인자와 섞어 넘길 수 있습니다 (`f(a, ..xs, b)`). variadic 매개변수를 그대로 다른 variadic 에 넘길 수도 있습니다 (`fn f(xs: ...i32) { g(..xs) }`).
+- 컬렉션이 아닌 값을 spread 하면 에러입니다 ("needs a tuple, a List, a Slice or an array").
+- 원소 타입 `T` 가 제네릭으로 열려 있는 variadic 을 인자 없이 부르면 `T` 를 정할 수 없으므로 타입 표기가 필요합니다.
 
 ```rok
 let opts = {"lr": 0.01, "epochs": 100};
@@ -151,7 +157,7 @@ foo(..a, ..b, ..c);
 _ = compute_with_side_effect();
 ```
 
-여기서 `_` 는 [식별자](../001-lexical/104-identifiers.md) 의 단일 밑줄입니다. 좌변 자리에서 값을 받지만 어디에도 바인딩하지 않으며, 사용자가 의도적으로 결과를 무시한다는 신호로 쓰입니다.
+여기서 `_` 는 [식별자](../001-lexical/104-identifiers.md) 의 단일 밑줄입니다. 좌변 자리에서 값을 받지만 어디에도 바인딩하지 않으며, 사용자가 의도적으로 결과를 무시한다는 신호로 쓰입니다. `let _ = e;` 도 같으며, 같은 스코프에서 몇 번이고 쓸 수 있습니다 (`_` 는 바인딩이 아니므로 재선언이 아님).
 
 ## 4.2.8. 매개변수 평가 순서
 

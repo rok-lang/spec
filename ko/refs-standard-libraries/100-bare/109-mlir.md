@@ -29,7 +29,11 @@ unsafe {
 }
 ```
 
-호출은 항상 `unsafe` 블록 안에서만 허용되며, 첫 번째 generic 인자가 다이얼렉트 op 이름, 그 다음이 결과 타입입니다. 인자 / 결과 타입 / 속성은 컴파일 타임에 검증됩니다.
+호출은 항상 `unsafe` 블록 안에서만 허용되며, 첫 번째 generic 인자가 다이얼렉트 op 이름 (`"dialect.op"`), 그 다음이 결과 타입 `R` 입니다.
+
+- `R` 은 rok 타입입니다. `_` 이면 기대 타입을, `()` 이면 결과 없음을 뜻합니다.
+- 나머지 인자가 operand 입니다. 속성은 `attributes = { "k": __mlir_attr::<"text"> }` 로 줍니다.
+- 컴파일러는 op 을 MLIR generic form (`"dialect.op"(%a, %b) {k = text} : (..) -> R`) 으로 냅니다. op 이름, operand, 속성의 검증은 `mlir-opt` 가 합니다 (`rokc` 는 다이얼렉트를 링크하지 않음, [0.2.4](../../refs-lang/000-meta/002-pipeline.md#024-mlir-텍스트-직접-생성)).
 
 ### 속성 (`attributes`)
 
@@ -51,11 +55,11 @@ unsafe {
 }
 ```
 
-`__mlir_attr::<"...">` 는 MLIR 텍스트 표현 그대로의 속성 리터럴이며, 컴파일러가 그 자리에서 파싱합니다.
+`__mlir_attr::<"...">` 는 MLIR 텍스트 표현 그대로의 속성 리터럴이며, 텍스트를 그대로 MLIR 에 옮깁니다. `__mlir_attr::<"...">()` 처럼 빈 호출로 적어도 같습니다.
 
 ### MLIR 타입 표현
 
-rok 타입과 직접 매핑되지 않는 MLIR 타입 (`!llvm.ptr`, `!memref<?xi32>`, `!tensor<?x?xf32>` 등) 은 `__mlir_type::<"...">` 로 명명합니다.
+rok 타입과 직접 매핑되지 않는 MLIR 타입 (`index`, `!llvm.ptr`, `memref<?xi32>` 등) 은 타입 자리에서 `__mlir_type<"...">` 로 적습니다 (`__mlir_type::<"...">` 도 됩니다).
 
 ```rok
 unsafe {
@@ -66,9 +70,11 @@ unsafe {
 }
 ```
 
+`__mlir_type<"..">` 는 `__mlir_op` 의 결과 타입 `R`, operand, 함수 매개변수와 반환, `let` 의 타입으로 쓸 수 있습니다. 그 값은 집계 (struct, 배열, GC 객체) 안에 저장할 수 없습니다.
+
 ### Region / block 가진 op
 
-`scf.if`, `scf.for`, `linalg.generic`, `gpu.launch` 처럼 region 본체를 가진 op 은 rok 의 클로저로 region 을 제공합니다.
+`scf.if`, `scf.for`, `linalg.generic` 처럼 region 본체를 가진 op 은 `regions = [..]` 의 클로저로 region 을 줍니다.
 
 ```rok
 unsafe {
@@ -76,25 +82,21 @@ unsafe {
     let r: i32 = __mlir_op::<"scf.if", i32>(
         cond,
         regions = [
-            || -> i32 {
-                __mlir_op::<"scf.yield", ()>(a);
-                a
-            },
-            || -> i32 {
-                __mlir_op::<"scf.yield", ()>(b);
-                b
-            },
+            || { __mlir_op::<"scf.yield", ()>(a); },
+            || { __mlir_op::<"scf.yield", ()>(b); },
         ],
     );
 
-    // scf.for — 단일 region, 클로저가 induction var 와 iter args 를 받음
+    // scf.for — lb / ub / step 은 index 값
+    let lb = __mlir_op::<"arith.index_cast", __mlir_type<"index">>(0i64);
+    let ub = __mlir_op::<"arith.index_cast", __mlir_type<"index">>(n);
+    let step = __mlir_op::<"arith.index_cast", __mlir_type<"index">>(1i64);
     let sum: i32 = __mlir_op::<"scf.for", i32>(
         lb, ub, step, init,
         regions = [
-            |i: index, acc: i32| -> i32 {
+            |i: __mlir_type<"index">, acc: i32| {
                 let next = __mlir_op::<"arith.addi", i32>(acc, x);
                 __mlir_op::<"scf.yield", ()>(next);
-                next
             },
         ],
     );
@@ -102,10 +104,12 @@ unsafe {
 ```
 
 규칙:
-- `regions = [c1, c2, ...]` 의 클로저 개수는 op 이 요구하는 region 개수와 정확히 일치해야 합니다.
-- 각 클로저의 매개변수는 region 의 block argument 에 1:1 대응합니다.
-- 클로저 본체는 마지막 op 이 region 의 terminator (보통 `scf.yield` / `linalg.yield` / `gpu.terminator`) 이어야 합니다.
-- 클로저는 외부 변수를 캡처할 수 있으며, 캡처된 값은 region 안에서 SSA 값으로 사용됩니다.
+- 클로저 하나가 region 하나입니다. 클로저 개수는 op 이 요구하는 region 개수와 같아야 합니다.
+- 클로저의 매개변수는 entry block 의 인자이며 타입을 적어야 합니다.
+- region 의 결과는 terminator (`scf.yield` 등) 의 operand 입니다. 클로저의 마지막 값과 `-> R` 은 의미가 없습니다.
+- 본체는 op 을 차례로 늘어놓은 직선 코드입니다. 제어 흐름은 `scf` op 으로 쓰며, `if` / `match` / 반복문 / `return` / `break` / `continue` / panic 은 에러입니다.
+- region 은 generic form 으로 나가며 바깥 값을 그대로 쓸 수 있습니다. 그래서 region 이 바깥 값을 볼 수 없는 op (`gpu.func` 등) 은 지원하지 않습니다.
+- 현재 한계: op 의 결과는 하나, region 본체의 block 은 하나입니다.
 
 ### Variadic operand
 
@@ -132,7 +136,7 @@ unsafe {
 | `linalg`   | element-wise / matmul / reduction   |
 | `tensor`   | shape / extract / insert / reshape  |
 | `memref`   | 버퍼 alloc / load / store           |
-| `scf`      | structured 제어 흐름                |
+| `scf`      | structured 제어 흐름 (기본으로 `--convert-scf-to-cf` 로 lowering) |
 | `cf`       | branch / switch                     |
 | `gpu`      | GPU launch / kernel / shared memory |
 | `affine`   | affine 분석 가능한 루프             |

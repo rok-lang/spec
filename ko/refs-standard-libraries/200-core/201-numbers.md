@@ -61,8 +61,10 @@ impl Int {
 }
 ```
 
-`#[keyword("int")]` 가 식별자 `int` 를 키워드로 등록하기 때문에, 사용자
-코드에서는 PascalCase `Int` 가 아닌 lowercase `int` 로 타입을 표기하게 됩니다
+`Int` 는 `rok::core::num::bigint::Int` 에 정의됩니다 (`Float` 는
+`rok::core::num::bigfloat::Float`). `#[keyword("int")]` 가 식별자 `int` 를 타입 키워드로
+등록하며, 이 등록은 모든 패키지에 적용됩니다. 그래서 사용자 코드에서는 PascalCase
+`Int` 가 아닌 lowercase `int` 로 타입을 표기하게 됩니다
 ([refs-lang 6.6](../../refs-lang/006-meta-system/606-keyword-magic.md) 가
 권위입니다). 그리고 `#[lang("int_type")]` 로 컴파일러가 `int` 타입을 찾습니다.
 
@@ -70,9 +72,9 @@ impl Int {
 값은 64-bit word 안에 직접 저장되는 small-int optimization 을 거치고, 큰 값은
 heap 의 BigInt 표현으로 자동 promote 되며, 이 모든 과정은 사용자에게
 투명하게 처리됩니다. **promote 시점** 은 산술 결과가 small-int 범위 (`-2^62 ~
-2^62-1` 정도) 를 벗어날 때이며, 그 이후로는 BigInt 표현이 유지됩니다. 다시
-값이 작아지더라도 small-int 로 demote 되지는 않는데, 이는 성능 안정성을 위한
-선택입니다. **lang slot** 으로는 `int_type` ([0.4 lang slot
+2^62-1` 정도) 를 벗어날 때입니다. 표현은 항상 정규형이어서, 같은 값은 같은
+표현을 가집니다 (구현 참고: 현재 구현은 결과가 다시 작아져도 small-int 로
+demote 하지 않습니다. 이는 관찰할 수 없는 차이입니다). **lang slot** 으로는 `int_type` ([0.4 lang slot
 표](../000-meta/004-lang-slot-table.md)) 이 사용됩니다. 접미사 없는 정수 리터럴은 기대 타입이 `int` 일 때만 `int` 가 됩니다.
 
 ### 산술
@@ -116,18 +118,18 @@ promote 이후에는 느려질 수밖에 없습니다. 그리고 FFI 의 경우 
 함수가 fixed primitive 만 받기 때문에, `int` 는 `i64` 등으로 명시 변환한 뒤
 전달해야 합니다.
 
-## 2.1.3. `float` — 무한 정밀도 부동소수
+## 2.1.3. `float` — 지수 무제한 부동소수
 
 ```rok
 #[keyword("float")]
 #[lang("float_type")]
-struct Float { ... }  // 내부: f64 또는 BigFloat (드문 경우)
+struct Float { ... }  // 내부: f64 또는 BigFloat (지수가 f64 밖일 때)
 
 impl Float {
     fn from_f64(x: f64) -> float;
     fn from_str(s: str) -> float | none;
 
-    fn to_f32(self) -> f32 | none;     // 정밀도 손실 가능 시 none?
+    fn to_f32(self) -> f32 | none;     // 유한 값이 f32 범위 밖일 때만 none
     fn to_f64(self) -> f64;
     ...
 }
@@ -136,17 +138,22 @@ impl Float {
 `#[keyword("float")]` 가 `float` 키워드를 등록하면서 struct `Float` 로
 라우팅합니다. 따라서 사용자 코드에서는 lowercase `float` 만 보이게 됩니다.
 
-`float` 는 기본적으로 f64 표현을 사용합니다. 산술 결과가 f64 범위를 넘어가는
-경우 (지수 영역 초과) BigFloat (multi-precision) 으로 promote 됩니다.
+`float` 의 값은 53-bit 유효숫자 (f64 와 같은 정밀도) 와 무제한 (i64) 지수를 가집니다.
+보통은 f64 표현을 쓰고, 유한한 결과가 f64 범위를 넘거나 (overflow) 0 쪽으로
+너무 작아지면 (underflow) `inf` / `0` 이 되는 대신 BigFloat 표현으로 promote 됩니다.
+
+- `inf` / `NaN` 은 0 으로 나누기나 `inf` / `NaN` 피연산자에서만 생깁니다.
+- `%` 는 정확한 fmod 입니다.
+- `Display` 는 f64 의 `%g` 와 같은 모양이며, promote 된 값은 `1.5e+400` 처럼 지수로 씁니다.
 
 ### 한계 명시
 
-`float` 의 한계도 분명히 짚어 두어야 합니다. **정밀도** 측면에서 f64 표현
-안에서는 IEEE 754 와 동일한 round-off 가 발생합니다. 예를 들어 `0.1 + 0.2` 가
+`float` 의 한계도 분명히 짚어 두어야 합니다. 정밀도는 무한이 아니라 53 bit 입니다.
+그래서 IEEE 754 f64 와 동일한 round-off 가 발생합니다. 예를 들어 `0.1 + 0.2` 가
 `0.3` 이 되지 않는 현상은 rok 에서도 동일하게 나타납니다. 또한 `Eq` 가
 구현되어 있지 않은데, `float` 는 `Eq` 마커 트레잇을 구현하지 않고 NaN 처리를
 위해 `PartialEq` 만 구현합니다. 자세한 위계는 [2.5 cmp](205-cmp.md) 를
-참고합니다. overflow 와 NaN, Inf 처리는 IEEE 754 를 그대로 따릅니다.
+참고합니다.
 
 ### lang slot
 
@@ -425,7 +432,7 @@ fixed primitive 와 `int` 사이의 변환은 명시적으로만 가능합니다
 | `int` → `i32`            | `.try_into::<i32>()`                  | `OverflowError` 를 throw     |
 | `int` → `i32` (saturate) | `.saturating_into::<i32>()`           | i32::MIN 또는 MAX            |
 | `int` → `i32` (wrap)     | `.wrapping_into::<i32>()`             | 모듈러 산술                  |
-| `int` → `f64`            | `.into::<f64>()` 또는 `int::to_f64`   | 정밀도 손실 가능 (round)     |
+| `int` → `f64`            | `.into::<f64>()` 또는 `int::to_f64`   | 가장 가까운 값으로 반올림 (`From` 의 문서화된 예외, [2.11.8](211-conversion.md)). `float` → `f64` 도 같은 예외 |
 
 ## 2.1.8. niche 최적화 (간단)
 

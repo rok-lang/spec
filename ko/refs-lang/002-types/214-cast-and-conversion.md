@@ -73,7 +73,7 @@ let y = x.into::<BigInt>();
 expr.try_into::<타입>()
 ```
 
-이 구문은 `Target::try_from(expr)` 로 desugar 됩니다 (`Target: TryFrom<typeof(expr)>`). `try_into` 는 [`throws`](../004-functions/414-throws.md) 메서드로서 성공하면 대상 타입의 값을 돌려주고, 실패하면 에러를 던집니다 (에러는 `OverflowError`, [stdlib 2.11.4](../../refs-standard-libraries/200-core/211-conversion.md#2114-tryfromu-트레잇--fallible-변환)). 따라서 호출을 `try` 로 표시해야 하며, 큰 정수를 작은 정수로 옮기거나 부동소수에서 정수로 옮기는 경우처럼 변환이 실패할 수 있을 때 사용합니다.
+이 구문은 `Target::try_from(expr)` 로 desugar 됩니다 (`Target: TryFrom<typeof(expr)>`). `try_into` 는 [`throws`](../004-functions/414-throws.md) 메서드로서 성공하면 대상 타입의 값을 돌려주고, 실패하면 에러를 던집니다 (에러는 대상의 `TryFrom::Error`, 숫자 변환이면 `OverflowError`, [stdlib 2.11.4](../../refs-standard-libraries/200-core/211-conversion.md#2114-tryfromu-트레잇--fallible-변환)). 따라서 호출을 `try` 로 표시해야 하며, 큰 정수를 작은 정수로 옮기거나 부동소수에서 정수로 옮기는 경우처럼 변환이 실패할 수 있을 때 사용합니다.
 
 ```rok
 let big: i64 = 10_000_000_000i64;

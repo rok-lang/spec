@@ -47,9 +47,11 @@ recyclable block 의 경우 사이사이 비어 있는 line 들에 새로운 객
 
 block 안의 단편화가 심한 경우에는 그 block 의 살아있는 객체를 다른 block 으로 evacuate 하게 됩니다.
 
-이때 대상이 되는 block 은 사용량이 적은 recyclable block 이며, evacuate 는 결국 복사를 의미합니다. 객체를 옮긴 뒤 옛 자리에는 forwarding pointer 를 남겨 두고, 이후 mark 단계에서 forwarding pointer 를 따라가 새 위치를 mark 하는 식으로 동작합니다.
+evacuation 은 full 수집에서 일어납니다. 후보 block 은 직전 sweep 이 남긴 line 상태로 고르며 (절반 이하로 찬 block), 단편화 임계를 넘었을 때에만 진행합니다. 바로 이 점이 "opportunistic" 이 의미하는 바입니다. 객체를 옮긴 뒤 옛 자리에는 forwarding pointer 를 남기고, **같은 수집 안에서** 모든 정밀 참조를 새 위치로 고칩니다. 구체적인 순서 (mark 중 복사인지, 복사 뒤 산 heap 을 다시 훑는지) 는 구현이 정합니다.
 
-evacuation 을 항상 수행하는 것은 아닙니다. 단편화 임계를 넘었을 때에만 진행하며, 바로 이 점이 "opportunistic" 이 의미하는 바입니다.
+다음 객체는 옮기지 않습니다: 루트가 직접 가리키는 객체 ([7.4.1](704-barriers-and-roots.md#루트가-가리키는-객체는-옮기지-않음)), 모호한 word (`AMBIGUOUS_WORD`, enum / union payload 등) 가 가리키는 객체, `PINNED` / `NOMOVE` 객체, LOS 객체.
+
+다음 cycle 의 할당 예산을 넘는 빈 block 은 OS 에 돌려줍니다. 환경 변수 `ROK_GC_EVAC=always|off` 로 evacuation 을 강제하거나 끌 수 있습니다 (기본은 자동, [9.9](../009-tools/909-debug-tools.md)).
 
 이 방식을 통해 mark-compact 대비 메모리 효율은 14%, throughput 은 7 ~ 25% 정도의 개선을 얻을 수 있다고 보고되어 있습니다 (논문 결과).
 
@@ -133,7 +135,7 @@ mark 이후에는 block 별로 line 비트맵을 살펴보고 분류 작업을 �
 
 block 의 모든 line 이 unmarked 인 경우에는 block 자체를 free 시킵니다. 일부만 marked 인 경우에는 recyclable 로 처리하여 빈 line 들을 다시 할당할 수 있게 만듭니다. 거의 모두 marked 인 경우에는 full 로 분류해 그대로 두거나, 필요에 따라 evacuation 후보로 삼습니다.
 
-evacuation 후보가 충분히 모이면 다음 mark 사이클에서 evacuate 를 진행하게 됩니다.
+이 line 상태가 다음 full 수집의 evacuation 후보 선택에 쓰입니다 (7.3.1).
 
 ## 7.3.6. LXR-style RC + trace 결합 (선택)
 
