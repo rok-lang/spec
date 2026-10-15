@@ -1,227 +1,73 @@
-# 9.6. JIT 엔진 (RokJitSession)
+# 9.6. JIT 엔진
 
-이 절에서는 REPL 과 Jupyter 가 사용하는 JIT 실행 엔진의 구조를 정의합니다. [실행 엔진과 사용자 표면](../000-meta/001-execution-modes.md) 에서 정한 JIT 엔진의 구체적인 구현에 해당합니다.
+이 절에서는 REPL 과 Jupyter 가 사용하는 JIT 실행 엔진을 정의합니다. [실행 엔진과 사용자 표면](../000-meta/001-execution-modes.md) 에서 정한 JIT 엔진의 구현입니다. 셀 세션의 규칙은 [9.7.0](907-jit-cells.md#970-셀-세션의-규칙) 이 정합니다.
 
-> [!NOTE]
-> 이 장의 ORCv2 기반 엔진은 가능한 설계 하나이며 아직 구현되지 않았습니다. 셀 세션의 규칙 ([9.7.0](907-jit-cells.md#970-셀-세션의-규칙)) 은 in-process JIT 없이도 지킬 수 있습니다. 현재 `rokc repl` 은 각 셀을 AOT 파이프라인으로 미리 빌드해 오래 사는 host 프로세스에 올립니다. macOS arm64 에서는 host 의 자체 Mach-O 로더가 셀의 relocatable object 를 메모리에 직접 올리고, 그 밖에는 셀마다 공유 라이브러리를 엽니다. 셀은 한 번만 실행되고 바인딩, `static` 상태, `any` 값은 host 안에 유지됩니다.
+## 9.6.1. 구조: rokc 와 JIT host
 
-## 9.6.1. MLIR ExecutionEngine
-
-JIT 의 핵심은 MLIR 의 `MlirExecutionEngine` (ORCv2 기반) 입니다.
-
-- 표준 MLIR 도구 체인의 일부입니다.
-- in-process 로 동작합니다. 별도의 외부 프로세스를 호출하지 않고 현재 rokc 프로세스 안에서 컴파일과 실행을 모두 수행합니다.
-- 증분 처리를 지원합니다. 한 번에 한 모듈씩 추가할 수 있습니다.
-
-## 9.6.2. 영감
-
-- clang-repl / Cling 의 incremental TU 모델에서 영향을 받았습니다.
-- Julia 의 MethodInstance 캐시 모델에서 영향을 받았습니다.
-
-이 둘을 결합한 결과가 바로 증분 컴파일과 specialization 캐시입니다.
-
-## 9.6.3. RokJitSession 구조
+JIT 는 `rokc` 안이 아니라 세션 동안 사는 별도의 **host 프로세스** 에 있습니다.
 
 ```
-RokJitSession {
-    mlir_ee     : MlirExecutionEngine  // ORCv2 래퍼
-    main_dylib  : JITDylib              // top-level 심볼 누적
-    cells       : List<Cell>            // 입력 단위 이력
-    hir_env     : HirEnv                // 이름→item, scope, ops 등록
-    spec_cache  : Dict<SpecKey, ModuleHandle>  // specialize 캐시
-    last_value  : Value | none           // 마지막 식의 값
-    options     : JitOptions             // O 단계, 디스크 캐시 등
-}
+rokc (front end)                         JIT host (세션 동안 하나)
+  셀 → parse → HIR → MIR → MLIR 텍스트       librokr.a 전체 + libLLVM (ORC LLJIT)
+     → mlir-opt | mlir-translate                런타임 초기화는 한 번
+     → LLVM IR 텍스트  ───────────────────►     IR 파싱 → JITDylib 에 추가
+                                                → 셀 진입 함수 lookup → 한 번 실행
 ```
 
-각 필드의 역할은 아래와 같습니다.
+- `rokc` 는 각 셀을 [AOT](902-aot-pipeline.md) 와 같은 파이프라인으로 LLVM IR 텍스트까지만 만듭니다. clang, object 파일, 공유 라이브러리는 쓰지 않습니다.
+- host 는 LLVM-C API 로 libLLVM 의 ORC (`LLJIT`) 를 링크합니다. IR 을 파싱해 JIT 컴파일하고, 셀의 진입 함수를 찾아 한 번 실행합니다.
+- `rokc` 자신은 여전히 MLIR / LLVM 라이브러리를 링크하지 않습니다 ([0.2.4](../000-meta/002-pipeline.md#024-mlir-텍스트-직접-생성)). libLLVM 을 링크하는 것은 host 뿐입니다.
+- host 는 런타임 (`librokr.a`) 의 모든 심볼을 export 하며, 셀 코드는 런타임과 libc 심볼을 host 프로세스에서 찾습니다.
 
-### `mlir_ee`: ORCv2 ExecutionEngine
+## 9.6.2. libLLVM 요구
 
-- MLIR 모듈을 기계어로 컴파일하고 메모리에 로드합니다.
-- 심볼 lookup 을 수행합니다. 즉, 이름으로 함수 주소를 가져옵니다.
-- 심볼 등록을 수행합니다. 새 모듈을 dylib 에 추가합니다.
-- 심볼 제거를 수행합니다. `tracker.remove()` 로 모듈 단위로 제거할 수 있습니다.
+REPL 과 Jupyter 커널은 libLLVM 이 있어야 합니다. host 를 빌드할 때 `PATH` 의 `mlir-translate` 가 놓인 LLVM 설치에서 찾습니다 (`<prefix>/lib/libLLVM` 과 `<prefix>/include/llvm-c`). 그래서 IR 을 만든 LLVM 과 읽는 LLVM 이 같습니다. 없으면 무엇이 없는지 밝히는 에러이며, 다른 실행 방식으로 넘어가는 fallback 은 없습니다.
 
-### `main_dylib`: 메인 JITDylib
+## 9.6.3. 심볼과 재정의
 
-ORCv2 의 심볼 namespace 입니다. 사용자 정의, 표준 라이브러리, 런타임이 모두 이 dylib 에 누적됩니다.
+한 세션은 JITDylib 하나를 씁니다. 모든 셀의 정의가 여기에 쌓입니다.
 
-### `cells`: 입력 단위 이력
+- 이미 정의된 심볼을 셀이 다시 정의하면, host 는 그 정의의 이름을 `<name>.r<cell>` 로 바꿉니다. 이후 셀의 참조는 가장 새 이름에 링크됩니다.
+- 재정의는 다음 셀부터 효력이 있습니다 ([9.7.0](907-jit-cells.md#970-셀-세션의-규칙) 규칙 3).
+- 재정의된 심볼에 의존하는 함수는 `rokc` 가 다시 컴파일합니다. 그래서 재정의 전에 컴파일된 코드라도 이후 셀이 다시 닿으면 새 정의를 씁니다 (재정의된 `f` 를 부르는 `g`).
+- 셀 코드와 옛 정의는 세션이 끝날 때까지 해제하지 않습니다.
 
-REPL 과 Jupyter 의 각 입력 (한 줄 또는 한 셀) 을 Cell 객체로 보존합니다.
+## 9.6.4. 라이브러리 코드의 재사용
 
-```
-Cell {
-    id        : CellId
-    source    : str             // 원본 입력
-    delta     : HirDelta         // hir_env 에 적용된 변경
-    tracker   : ResourceTracker  // ORCv2 의 심볼 추적자 (제거 가능)
-    timestamp : Time
-}
-```
+표준 라이브러리와 의존 패키지의 코드는 세션에 한 번만 컴파일합니다.
 
-각 Cell 은 ORCv2 의 ResourceTracker 를 가지며, 이를 통해 해당 cell 의 심볼을 한꺼번에 제거할 수 있습니다.
-
-### `hir_env`: [HIR](../000-meta/007-glossary.md#hir-high-level-ir--mir-mid-level-ir) 환경
-
-이름, 항목, 스코프, 연산자 등록 정보를 포함합니다.
-
-- 각 cell 이 delta 로 변경합니다. `apply` 와 `revert` 를 모두 지원합니다.
-- transactional 하게 동작합니다. 컴파일 에러가 발생하면 변경되지 않습니다.
-
-### `spec_cache`: specialization 캐시
-
-[제네릭](../002-types/210-generics.md) 의 [단형화](../000-meta/007-glossary.md#monomorphization-단형화) 결과를 캐시합니다.
-
-```
-SpecKey = (item_id, type_tuple_hash)
-```
-
-같은 `fn` 의 같은 타입 조합은 한 번만 단형화됩니다.
-
-캐시는 세션 전체에서 공유됩니다.
-
-### `last_value`: 마지막 식의 값
-
-REPL 의 마지막 식의 값과 타입을 포함합니다.
-
-```
-> 1 + 2
-i32: 3
-> _last + 10
-i32: 13
-```
-
-## 9.6.4. 두 엔진의 공통 파이프라인
-
-[실행 엔진과 사용자 표면](../000-meta/001-execution-modes.md) 및 [컴파일 파이프라인](../000-meta/002-pipeline.md) 에 정의된 공통 파이프라인입니다. [JIT](../000-meta/007-glossary.md#jit-just-in-time) 와 [AOT](../000-meta/007-glossary.md#aot-ahead-of-time) 두 엔진 모두 같은 단계를 통과하게 됩니다.
-
-```
-code → parse → hir → specialize(hir, types) → mir → 표준 MLIR 텍스트
-                                                          ↓
-                                                    mlir_ee 로 in-process 로
-                                                    JIT 컴파일 + 실행
-```
-
-AOT 와 완전히 동일한 파이프라인이며, JIT 는 마지막 단계에서 외부 도구를 호출하는 대신 `mlir_ee` 를 사용한다는 점만 다릅니다.
+- `rokc` 는 host 가 이미 컴파일한 함수와 그 IR 텍스트를 기억합니다. 셀의 함수가 이미 컴파일된 것과 텍스트까지 같으면 정의 대신 선언만 넘깁니다.
+- 텍스트가 같으면 뜻도 같도록 셀 사이의 이름을 고정합니다. 문자열 리터럴 global 은 내용 hash 로 이름을 짓고, GC type id 는 [ScanTable](../008-abi/802-scan-table.md) 내용을 키로 세션 동안 고정합니다.
+- 이 셀이 새로 정의하는 것 (바뀐 함수, `static`, 바인딩 슬롯) 을 직접 또는 간접으로 부르는 함수는 다시 컴파일합니다.
 
 ## 9.6.5. 실행 흐름 (REPL 한 줄 / Jupyter 한 셀)
 
 ```
-1. 사용자 입력 → parse → hir
-2. cells.push(Cell { delta, hir_changes })
-3. hir_env.apply(delta)
-4. specialize(hir, top_level types) → mir
-5. mir → 표준 MLIR 텍스트
-6. mlir_ee 로 모듈 추가 + materialize
-7. ORCv2 가 top-level expr 의 함수 주소 lookup
-8. 그 함수를 호출 → 결과 + 타입을 last_value 에 저장
-9. 결과 출력 (REPL) / 셀 결과 표시 (Jupyter)
+1. rokc: 입력 → parse → HIR (에러면 셀을 버림, 세션 상태 그대로)
+2. rokc: 셀 → MLIR → mlir-opt | mlir-translate → LLVM IR 텍스트
+         (이미 컴파일된 함수는 선언으로, 재정의는 새 이름으로)
+3. host: 세션 스냅샷을 fork 한 프로세스에서 IR 을 JIT 컴파일하고 셀을 한 번 실행
+4. 성공: 그 프로세스가 새 스냅샷이 됨. 값이 있으면 `타입: 값` 출력
+   실패 (panic, 종료, 시그널, JIT 실패): 이전 스냅샷이 이어받음 (9.7.0 규칙 5)
 ```
 
-## 9.6.6. SpecKey: specialization 캐시 키
+셀 하나의 지연은 약 0.1 초이며, 대부분은 front end 가 차지합니다 (참고값).
 
-```
-SpecKey = (
-    item_id    : u64,           // 정의된 항목의 id
-    type_hash  : u128            // 인자 타입 튜플의 SHA-256 앞 부분
-)
-```
+## 9.6.6. `--replay`
 
-같은 (item_id, type_hash) 의 specialization 은 한 번만 컴파일됩니다.
+`--replay` 모드도 같은 host 를 씁니다. 입력마다 지금까지의 세션 전체를 하나의 프로그램으로 컴파일하고, host 가 fork 한 버리는 자식 프로세스에서 JIT 컴파일해 처음부터 실행합니다. 실행 파일은 만들지 않습니다. 앞 셀의 부수 효과가 매번 되풀이되며, 라이브러리 재사용 (9.6.4) 은 없습니다.
 
-세션 안에서 이전 cell 의 specialization 을 다음 cell 이 재사용합니다. 이는 AOT 의 specialize 캐시와 동일한 메커니즘입니다.
+## 9.6.7. JIT 와 AOT 의 차이
 
-## 9.6.7. ORCv2 의 ResourceTracker
+| 측면        | JIT (REPL / Jupyter)                         | AOT                               |
+|-------------|----------------------------------------------|-----------------------------------|
+| 파이프라인  | 같음 (LLVM IR 텍스트까지)                    | 같음                              |
+| 마지막 단계 | host 의 ORC 가 IR 을 JIT 컴파일              | mlir-translate 뒤 clang 으로 object / 링크 |
+| 단위        | 셀 (라이브러리는 세션에 한 번)               | 패키지                            |
+| 결과        | host 메모리                                  | 실행 파일 / `.a`                  |
 
-ORCv2 의 심볼 추적자는 모듈 단위로 심볼을 묶어 줍니다. 그 결과 그룹 단위로 추가하거나 제거할 수 있습니다.
+두 엔진은 같은 단형화와 같은 MLIR lowering 을 공유하므로 의미가 같습니다.
 
-```
-let tracker = ee.create_tracker();
-ee.add_module(module, &tracker);
-// ... 심볼 사용 ...
-tracker.remove();   // 그 모듈의 모든 심볼 제거
-```
+## 9.6.8. 다음: 셀 실행 / 상태 / 에러
 
-각 cell 의 cell.tracker 가 그 cell 이 추가한 심볼을 추적하게 됩니다.
-
-cell 을 삭제하거나 재실행할 때 `tracker.remove()` 를 호출하면 그 cell 의 영향만 깔끔하게 롤백할 수 있습니다.
-
-## 9.6.8. hir_env 의 transactional 동작
-
-```
-hir_env.apply(delta):
-    // 변경 적용
-
-hir_env.revert(delta):
-    // 변경 되돌리기 (정확히 반대)
-```
-
-각 delta 는 역연산이 가능하므로 트랜잭션처럼 동작합니다.
-
-cell 의 컴파일 에러가 발생할 때의 처리는 다음과 같습니다.
-
-```
-1. parse 까지 OK.
-2. hir 변환 시 type error 발견.
-3. cells 에 추가하지 않고 hir_env 도 변경하지 않음.
-4. 사용자에게 에러 표시.
-```
-
-이러한 transactional semantics 덕분에 사용자가 부분 상태로 빠지는 함정을 차단할 수 있습니다.
-
-## 9.6.9. materialize 실패
-
-ORCv2 가 심볼 link 에 실패하는 경우 (예: 알 수 없는 `extern` 심볼) 의 처리는 아래와 같습니다.
-
-```
-1. tracker.remove() 로 그 cell 의 심볼 제거.
-2. cells 에서 그 cell pop.
-3. hir_env.revert(delta).
-4. 에러 표시.
-```
-
-이처럼 깨끗한 롤백이 보장되므로 다음 cell 이 영향을 받지 않습니다.
-
-## 9.6.10. MLIR ExecutionEngine 옵션
-
-JIT 세션을 시작할 때 사용할 수 있는 옵션은 다음과 같습니다.
-
-| 옵션                 | 의미                                                                |
-|----------------------|---------------------------------------------------------------------|
-| `enableObjectCache`  | specialize 결과 .o 덤프 가능 — 디스크 캐시와 연결                   |
-| `jitCodeGenOptLevel` | 최적화 단계. REPL 은 O0/O1 (빠른 컴파일), Jupyter 는 O2 (실행 효율) |
-| `transformer` 훅     | mlir-opt 외부 호출 없이 in-process 에서 직접 lowering               |
-
-`transformer` 훅은 외부 mlir-opt 프로세스를 띄우지 않고 현재 프로세스 안에서 모든 패스를 적용합니다. 이를 통해 JIT 의 지연 시간을 최소화할 수 있습니다.
-
-## 9.6.11. JIT 와 AOT 의 차이
-
-| 측면        | JIT                      | AOT                               |
-|-------------|--------------------------|-----------------------------------|
-| 단계        | 같은 파이프라인          | 같은 파이프라인                   |
-| 마지막 단계 | mlir_ee 로 in-process    | mlir-opt → mlir-translate → clang |
-| specialize  | 호출 지점이 보일 때 즉시 | 모든 호출 지점 수집 후 일괄       |
-| 결과        | 메모리 + 디스크 캐시     | .a 파일                           |
-| 실행        | 즉시                     | 산출물 실행                       |
-
-두 엔진은 같은 단형화 기계와 같은 MLIR lowering 을 공유합니다.
-
-## 9.6.12. REPL 과 Jupyter 의 미세한 차이
-
-REPL 은 빠른 입력과 출력을 우선합니다.
-
-- O0/O1 을 사용하여 빠른 컴파일을 지향합니다.
-- 작은 cell 을 가정하므로 캐시가 작아도 충분합니다.
-
-Jupyter 는 셀 결과와 시각화를 우선합니다.
-
-- O2 를 사용하여 실행 효율을 높입니다.
-- 큰 셀이나 데이터 분석을 가정합니다.
-
-자세한 차이는 `rokc repl` 과 `rokc jupyter` 의 옵션이 결정합니다.
-
-## 9.6.13. 다음: 셀 실행 / 상태 / 에러
-
-[JIT 셀 실행 흐름과 상태 관리](907-jit-cells.md) 에서 Cell 별 상세 동작 (top-level 변수, undo, 셀 재실행, 디스크 캐시 등) 을 정의합니다.
+[JIT 셀 실행 흐름과 상태 관리](907-jit-cells.md) 에서 셀별 동작 (top-level 변수, 재정의, 에러) 을 정의합니다.

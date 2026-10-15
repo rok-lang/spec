@@ -149,9 +149,12 @@ impl Display for i32 { ... }     // ERROR — 둘 다 외부 패키지
 
 한 (트레잇, 타입) 쌍에는 `impl` 이 하나뿐이며, 특수화 (specialization) 는 없습니다.
 
-- 구체 `impl` 이 제네릭 `impl` 과 겹치면 컴파일 에러입니다.
 - 제네릭 `impl` 은 쓰이는 타입마다 단형화됩니다.
-- 제네릭 `impl` 두 개가 겹치는 것도 에러이며, 선언 시점에 보고합니다. 두 `impl` 은 대상 (과 트레잇 인자) 이 단일화 (unify) 되면 겹칩니다. 바운드는 둘을 떼어 놓지 않으므로, 두 바운드를 모두 만족하는 타입이 아직 없어도 에러입니다 (Rust 의 coherence 와 같음).
+- 구체 `impl` 은 그 구체 타입이 제네릭 `impl` 의 바운드를 만족할 때만 제네릭 `impl` 과 겹칩니다.
+- 제네릭 `impl` 두 개는 대상 (과 트레잇 인자) 이 단일화 (unify) 되면 겹치며, 선언 시점에 에러로 보고합니다. 단일화 뒤에도 제네릭으로 남는 매개변수의 바운드는 둘을 떼어 놓지 않습니다. 두 바운드를 모두 만족하는 타입이 아직 없어도 에러입니다 (Rust 의 coherence 와 같음).
+- 부정 추론은 알려진 타입에만 합니다.
+  1. 단일화로 구체 타입이 된 매개변수는 그 바운드를 검사합니다. `impl<U: Num> X for Pair<U, i32>` 와 `impl<U> X for Pair<str, U>` 는 단일화하면 `U = str` 인데 `str: Num` 이 아니므로 겹치지 않습니다.
+  2. 알려진 타입 생성자에 대한 바운드 (`List<T>: Iterator`) 는, 그 트레잇의 impl 중 그 생성자나 맨 매개변수를 대상으로 하는 것이 없으면 둘을 떼어 놓습니다. 그래서 `impl<I: Iterator> IntoIterator for I` 와 `impl<T> IntoIterator for List<T>` 가 함께 있을 수 있습니다.
 
 ```rok
 impl<T: Display> Describe for List<T> { ... }

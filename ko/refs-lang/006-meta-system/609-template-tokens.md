@@ -27,10 +27,13 @@ template_token  ::= "@" identifier
 | 토큰                                                     | 값                                          | 절    |
 |----------------------------------------------------------|---------------------------------------------|-------|
 | `@Self`                                                  | 대상 타입 (`Name<T, ..>`)                   | 6.9.2 |
+| `@Self.name`                                             | 타입 인자 없는 대상 타입 이름               | 6.9.2 |
+| `@Self.is_unit` / `.is_tuple` / `.is_named`              | struct 모양 (부울)                          | 6.9.2 |
 | `@if_struct` / `@if_enum` / `@if_union { .. }`           | 대상 종류가 맞을 때만 본문                  | 6.9.2 |
 | `@for_fields { .. }`                                     | 필드마다 본문                               | 6.9.3 |
 | `@field`, `@field.name`, `@field.type`                   | 현재 필드 (접근 / 이름 / 타입)              | 6.9.3 |
 | `@field.is_pub`, `@field.has_attr(x)`                    | 부울                                        | 6.9.3 |
+| `@field.has_default`, `@field.default`                   | 필드의 `= expr` 유무 (부울) / 그 식         | 6.9.3 |
 | `@for_variants { .. }`                                   | `enum` 변형마다 본문                        | 6.9.4 |
 | `@variant.name`, `@variant.pattern`                      | 현재 변형 (이름 / 매칭 패턴)                | 6.9.4 |
 | `@variant.is_unit` / `.is_tuple` / `.is_named`           | 부울                                        | 6.9.4 |
@@ -74,6 +77,10 @@ template_token  ::= "@" identifier
 ```
 
 만약 대상 타입이 다른 종류라면 해당 블록은 무시되며, 코드가 생성되지 않습니다.
+
+### `@Self.name` / `@Self.is_unit` / `.is_tuple` / `.is_named`
+
+`@Self.name` 은 타입 인자 없는 대상 타입 이름 (`Pair<T>` 의 `Pair`) 입니다. `@Self.is_unit` / `@Self.is_tuple` / `@Self.is_named` 는 대상 struct 가 unit struct, 튜플 struct, 이름 있는 필드 struct 인지를 나타내는 부울이며, `@apply_if` 에 씁니다.
 
 ## 6.9.3. 필드 반복
 
@@ -134,6 +141,16 @@ fn typed<T>() where T == @field.type { ... }
 ```rok
 @apply_if(@field.has_attr(skip)) {
     // #[skip] 부착된 필드만 처리
+}
+```
+
+### `@field.has_default` / `@field.default`
+
+`@field.has_default` 는 필드에 기본값 (`x: i32 = 0`, [2.3.3](../002-types/203-struct.md#233-필드-기본값)) 이 있으면 참이고, `@field.default` 는 그 `= expr` 의 식입니다. 기본값이 없는 필드에서 `@field.default` 를 쓰면 에러입니다.
+
+```rok
+@apply_if(@field.has_default) {
+    let @field.name = @field.default;
 }
 ```
 

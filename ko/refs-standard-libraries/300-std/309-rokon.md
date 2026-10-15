@@ -1,0 +1,179 @@
+# 3.9. `rokon::` — RokON 데이터 형식
+
+RokON (Rok Object Notation) 은 rok 의 리터럴 문법으로 값을 적는 데이터 형식입니다. 확장자는 `.rokon` 입니다. Rust 의 RON, Zig 의 ZON 과 같은 자리이며, 패키지 매니페스트 `rok.rokon` 과 lockfile `rok.lock` ([refs-lang 9.10.3](../../refs-lang/009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) 이 이 형식을 씁니다.
+
+## 3.9.1. 형식
+
+RokON 은 rok 식 문법의 부분집합이며, rok 의 lexer / parser 로 읽습니다. 파일 하나에 값 하나입니다.
+
+| 형태        | 예                                                    | 비고                                                  |
+|-------------|-------------------------------------------------------|-------------------------------------------------------|
+| none        | `none`                                                |                                                       |
+| bool        | `true`, `false`                                       |                                                       |
+| 정수        | `42`, `-7`, `0xff`, `0b1010`, `0o17`, `1_000_000`      | 접미사 없음                                           |
+| 실수        | `3.14`, `-1.5e-3`, `2E10`                              | 접미사 없음                                           |
+| char        | `'a'`, `'\n'`                                         | `c'..'` 는 안 됨                                      |
+| 문자열      | `"text"`, raw 문자열, 여러 줄 문자열                  | f-string 은 안 됨                                     |
+| 리스트      | `[a, b, c]`                                           |                                                       |
+| dict        | `{ "k": v, 1: w }`                                    | 키는 값 (문자열, 수 등)                               |
+| 튜플        | `(a, b)`, `(a,)`                                      | `(x)` 는 묶음이지 튜플이 아님                         |
+| struct      | `Point { x: 1, y: 2 }`, `{ x: 1, y: 2 }`, `Pair(1, 2)`, `Unit {}` | 이름은 선택. 필드 이름은 식별자. 튜플 struct 는 `Name(a, b)` |
+| enum 변형   | `Shape::Unit`, `Shape::Circle(1.0, at: p)`, `Shape::Rect { w: 2, h: 3 }` | 전체 경로로 적음                      |
+
+- 쉼표는 뒤에 하나 더 붙여도 됩니다. 주석은 `//` 와 `/* */` 입니다.
+- `{}` 는 빈 struct 이자 빈 dict 입니다 (대상 타입이 정함). `{ .. }` 하나에는 필드 (식별자 키) 나 키 (값 키) 중 한쪽만 올 수 있으며, 섞으면 에러입니다.
+- 쓸 수 없는 것: 맨 식별자, 연산자 (수 앞의 단항 `-` 만 허용), 메서드 호출, `..`, 블록, f-string, Set 리터럴 (`{1, 2}`, Set 은 리스트로 적음), `c'..'` 리터럴, 제네릭 경로 (`List<i32>::..`), 값 뒤에 남은 토큰. 모두 `line:col` 을 보여 주는 에러입니다.
+- NaN 과 무한대는 RokON 표기가 없습니다. 입력의 `nan` / `inf` 는 맨 식별자로 거부됩니다.
+
+> [!NOTE]
+> 알려진 한계: 첫 키가 `none` 인 dict (`{ none: 1 }`) 는 지원하지 않습니다. rok parser 가 이것을 블록으로 읽기 때문입니다.
+
+```rokon
+// config.rokon
+Config {
+    name: "geom",
+    retries: 3,
+    ratio: 0.75,
+    tags: ["a", "b"],
+    limits: { "cpu": 2, "mem": 512 },
+    mode: Mode::Fast,
+    proxy: none,
+}
+```
+
+## 3.9.2. rok 타입과의 대응
+
+| RokON          | rok 타입                                                                     |
+|----------------|------------------------------------------------------------------------------|
+| `none`         | `T \| none` 의 `none`                                                        |
+| `true` / `false` | `bool`                                                                     |
+| 정수           | 모든 정수 타입, `int`. 실수를 기대하는 자리 (`f32` / `f64` / `float`) 에도 됨 |
+| 실수           | `f32`, `f64`, `float`                                                         |
+| char           | `char`                                                                        |
+| 문자열         | `str`                                                                         |
+| 리스트         | `List<T>`, `[T; N]`, `Set<T>`, `OrderedSet<T>`                                |
+| dict           | `Dict<K, V>`, `OrderedDict<K, V>`                                             |
+| 튜플           | 원소 1 ~ 6 개의 튜플                                                          |
+| struct         | `struct` (`#[derive(Rokon)]`)                                                 |
+| enum 변형      | `enum` (`#[derive(Rokon)]`)                                                   |
+| 아무 값        | `Value`                                                                       |
+
+## 3.9.3. 읽기
+
+`parse` 는 텍스트를 `Value` 로 읽습니다.
+
+| 입력                         | `Value`                                                        |
+|------------------------------|----------------------------------------------------------------|
+| `{ ident: v, .. }`           | 이름 없는 `Struct`                                             |
+| `{ "k": v, .. }`, `{}`       | `Dict`                                                         |
+| `Name { f: v }`              | 이름 있는 `Struct`                                             |
+| `A::B { f: v }`              | `Variant` (`named` 에 값)                                      |
+| `A::B(a, k: b)`, `A::B`      | `Variant` (`args`, `named`)                                    |
+| `Name(a, b)`                 | 경로가 한 마디인 `Variant` (튜플 struct)                        |
+| 정수                         | `Int` (정확한 `int`)                                           |
+
+타입이 있는 읽기 (`from_str`, `decode`) 에서는 대상 타입이 해석을 정합니다.
+
+- struct 대상은 `Struct`, `{}`, `A::B { .. }` 를 받습니다. 그래서 모듈 경로를 붙인 struct 이름 (`geom::Point { .. }`) 도 됩니다.
+- 적은 이름은 대상과 같아야 합니다. struct 는 경로의 마지막 마디, enum 변형은 마지막 두 마디를 비교합니다.
+- 모르는 필드는 그 필드 이름 위치의 에러입니다.
+- 빠진 필드는 그 필드의 `= 기본값` 이 있으면 기본값, 타입이 `T | none` 이면 `none`, 그 밖에는 에러입니다 (`FromRokon::from_missing`).
+- 정수 값이 대상 정수 타입의 범위를 넘으면 에러입니다.
+- 이름 있는 변형은 `E::V(a, k: b)` 로도 읽습니다. 위치 인자가 필드를 순서대로 채우고, 이어서 이름 있는 인자가 채웁니다.
+
+## 3.9.4. 정규 형식
+
+`rokon::to_string` 과 `rok` (매니페스트를 고치거나 `rok.lock` 을 쓸 때) 가 내는 정규 형식은 다음과 같습니다. 정규 형식이 곧 읽기 좋은 형식이므로 따로 pretty 함수는 없습니다.
+
+- 들여쓰기는 공백 4 칸입니다.
+- 100 칸 안에 들어가면 한 줄로, 아니면 여러 줄로 쓰고 각 원소 뒤에 쉼표를 붙입니다.
+- 실수는 다시 읽어 같은 값이 되는 가장 짧은 표기입니다 (`1.0`, `1.0e300`). NaN / 무한대를 쓰려 하면 panic 입니다 ("NaN/infinity has no RokON form").
+- 정규 형식을 다시 읽으면 같은 값이 됩니다 (round-trip).
+
+`rokc fmt` 는 `.rokon` 파일이 RokON 인지 검사하고 들여쓰기만 다시 맞춥니다. 정규 형식으로 다시 쓰지는 않으므로 주석과 배치가 남습니다.
+
+## 3.9.5. 라이브러리: `rok::std::rokon`
+
+```rok
+use rok::std::rokon;
+
+pub enum Value {
+    None,
+    Bool(bool),
+    Int(int),
+    Float(float),
+    Char(char),
+    Str(str),
+    List(List<Value>),
+    Dict(OrderedDict<Value, Value>),
+    Tuple(List<Value>),
+    Struct { name: str | none; fields: OrderedDict<str, Value>; },
+    Variant { path: str; args: List<Value>; named: OrderedDict<str, Value>; },
+}
+impl Value {
+    fn to_string(self) -> str;       // 정규 형식
+    fn kind(self) -> str;            // 에러 메시지용 종류 이름 (아래)
+}                                    // + Display, Debug, PartialEq, Eq, Hash
+
+pub struct RokonError { pub msg: str; pub line: u32; pub col: u32; pub path: str; }
+
+pub trait ToRokon { fn to_rokon(self) -> Value; }
+pub trait FromRokon {
+    fn from_rokon(v: Value) throws (RokonError) -> Self;
+    fn from_missing() throws (RokonError) -> Self;   // 기본: 에러. T | none 은 none
+}
+
+pub fn parse(s: str) throws (RokonError) -> Value;
+pub fn to_string<T: ToRokon>(v: T) -> str;
+pub fn from_str<T: FromRokon>(s: str) throws (RokonError) -> T;
+pub fn encode<T: ToRokon>(x: T) -> Value;
+pub fn decode<T: FromRokon>(v: Value, seg: str) throws (RokonError) -> T;
+```
+
+- `RokonError` 의 `Display` 는 위치가 있으면 `line:col: msg`, 없으면 `at <path>: msg` 입니다. 타입이 있는 읽기의 에러는 `.servers[1].port`, `.limits["cpu"]` 같은 경로를 담으며, `from_str` 은 그 경로를 입력의 `line:col` 로 바꿔 줍니다. `decode` 의 `seg` 는 경로의 시작 마디입니다.
+- `Value::kind` 는 에러 메시지에 쓰는 종류 이름이며, 차례로 `"none"`, `"bool"`, `"integer"`, `"float"`, `"char"`, `"string"`, `"list"`, `"dict"`, `"tuple"`, `"struct"` 이고 `Variant` 는 ``"variant `<path>`"`` 입니다.
+- `Value` 의 `Debug`, `==`, `hash` 는 panic 하지 않습니다 (NaN 포함).
+- 표준 구현: 모든 정수 타입, `f32` / `f64`, `int` / `float`, `bool` / `char` / `str`, `Value`, `T | none`, `List`, `Set`, `Dict`, `OrderedDict`, `OrderedSet`, 원소 1 ~ 6 개의 튜플, `[T; N]`.
+
+### `#[derive(Rokon)]`
+
+struct 와 enum (제네릭 포함) 에 `ToRokon` 과 `FromRokon` 을 함께 구현합니다.
+
+| 정의                 | 쓰는 모양              |
+|----------------------|------------------------|
+| 이름 있는 필드 struct | `Name { f: v }`       |
+| 튜플 struct          | `Name(a, b)`           |
+| unit struct          | `Name {}`              |
+| unit 변형            | `E::V`                 |
+| 튜플 변형            | `E::V(a)`              |
+| 이름 있는 변형       | `E::V { f: v }`        |
+
+필드의 `= 기본값` 은 빠진 필드에 쓰입니다 (3.9.3). derive 는 메타 토큰 `@Self.name`, `@Self.is_unit` / `is_tuple` / `is_named`, `@field.has_default` / `@field.default` 로 만듭니다 ([refs-lang 6.9](../../refs-lang/006-meta-system/609-template-tokens.md)).
+
+```rok
+#[derive(Rokon)]
+struct Server { host: str; port: u16 = 80; tls: bool | none; }
+
+#[derive(Rokon)]
+struct Config { name: str; servers: List<Server>; limits: OrderedDict<str, i32>; }
+
+let cfg: Config = try rokon::from_str(text);   // 에러는 "line:col: msg"
+print(rokon::to_string(cfg));
+```
+
+### 한계
+
+- `Dict` / `Set` 은 hash 순서로 씁니다. 순서를 지키려면 `OrderedDict` / `OrderedSet` 을 씁니다.
+- `[T; 0]` 은 읽을 수 없습니다.
+- 튜플은 원소 6 개까지입니다.
+- 첫 키가 `none` 인 dict 는 읽을 수 없습니다 (3.9.1).
+
+## 3.9.6. 다른 형식과의 비교
+
+| 형식   | struct 표기                 | 비고                              |
+|--------|-----------------------------|-----------------------------------|
+| RON    | `Name(field: v)`            | Rust 와 다른 전용 문법            |
+| ZON    | `.{ .name = "x" }`          | Zig 의 익명 struct 리터럴         |
+| RokON  | `Name { field: v }`         | rok 자체의 리터럴 문법 그대로     |
+
+RokON 은 별도 문법을 두지 않고 rok 리터럴을 그대로 쓰므로, 소스에 적은 값과 파일에 적은 값이 같은 모양입니다.

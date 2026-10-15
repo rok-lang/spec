@@ -118,6 +118,12 @@ let add = i32::add;                // fn(i32, i32) -> i32
 xs.map(Point::norm);               // fn(Point) -> f64
 ```
 
+- `ref self` 나 `ref` 매개변수를 가진 메서드는 값이 될 수 없습니다 ([4.7.6](../004-functions/407-ref-keyword.md#476-ref-의-타입-측면)).
+- throwing 메서드는 throwing 함수 타입 (`fn(..) throws (E) -> R`) 을 줍니다.
+- `Tr::m` 이나 `Self` 가 정해지지 않은 제네릭 타입의 메서드는 기대 타입에서 함수 타입을 정합니다. 기대 타입이 없으면 이후의 호출이 정하며 (`let f = Box::get; f(b)`, [2.10.2](../002-types/210-generics.md#타입-인자-추론)), 그래도 정해지지 않으면 "type annotations needed" 에러입니다.
+- 제네릭 메서드의 타입 인자는 turbofish 나 기대 함수 타입에서 정합니다.
+- `#[intrinsic]` 메서드도 값이 됩니다.
+
 `obj.method` 처럼 인스턴스에 붙인 형태는 함수 값이 아닙니다 (3.5.4).
 
 ## 3.5.4. `.method` (호출 없이)

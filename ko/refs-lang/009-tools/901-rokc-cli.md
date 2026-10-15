@@ -180,8 +180,8 @@ rokc repl [--replay] [--package <path>]
 
 이 모드는 터미널 인터랙티브 셸로 동작합니다. 셀의 의미는 [9.7.0](907-jit-cells.md#970-셀-세션의-규칙) 의 규칙을 따릅니다. 각 셀은 한 번만 실행되고, top-level `let` 바인딩과 항목은 이후 셀로 이어지며, 실패한 셀은 바인딩에 흔적을 남기지 않습니다. 식 셀은 `타입: 값` 을 출력합니다.
 
-- 기본 모드는 각 셀을 미리 빌드해 오래 사는 host 프로세스에 올립니다 (macOS arm64 는 자체 로더로 object 를, 그 밖에는 공유 라이브러리를, [9.7.0](907-jit-cells.md#970-셀-세션의-규칙)). 바인딩, `static` 상태, `any` 값이 셀 사이에 이어집니다. 최상위에서 이름을 적을 수 없는 타입 (클로저, 비공개 타입 등) 의 바인딩은 만들 때 거부하고 `--replay` 를 안내합니다.
-- `--replay` 는 셀마다 세션 전체를 다시 컴파일해 처음부터 실행합니다. 그런 바인딩도 유지하지만, 앞 셀의 부수 효과가 매번 되풀이됩니다.
+- 기본 모드는 각 셀을 LLVM IR 로 만들어 세션 동안 사는 JIT host 프로세스 (libLLVM 의 ORC) 에 넘기고, host 가 JIT 컴파일해 한 번 실행합니다 ([9.6](906-jit-engine.md)). libLLVM 이 없으면 에러입니다. 바인딩, `static` 상태, `any` 값이 셀 사이에 이어집니다. 최상위에서 이름을 적을 수 없는 타입 (클로저, 비공개 타입 등) 의 바인딩은 만들 때 거부하고 `--replay` 를 안내합니다.
+- `--replay` 는 셀마다 세션 전체를 다시 컴파일해 host 가 fork 한 버리는 자식 프로세스에서 JIT 로 처음부터 실행합니다 (실행 파일은 만들지 않음). 그런 바인딩도 유지하지만, 앞 셀의 부수 효과가 매번 되풀이됩니다.
 - `--package <path>` 는 라이브러리 패키지를 `--extern` 으로 붙이고, 첫 셀 앞에 `use <name>::*;` 를 넣습니다. `:reset` 뒤에도 다시 넣습니다. `main.rok` 패키지 (실행 패키지) 는 거부합니다.
 
 `rok` 와 `rok repl` ([9.10](910-rok-frontend.md)) 은 의존성을 붙여 같은 REPL 을 실행하며, `--replay` 를 그대로 넘깁니다.
@@ -217,7 +217,7 @@ rok [--env <name>] jupyter install [--user]
 rokc fmt [path]
 ```
 
-`[path]` 는 파일 또는 디렉토리를 받으며 (여러 개 가능, 생략하면 현재 디렉토리), [표준 포맷](#9111-표준-포맷-rokc-fmt) 에 맞게 in-place 로 수정해 줍니다. 디렉토리는 재귀로 `.rok` 파일을 찾으며 `target/` 과 `.` 으로 시작하는 디렉토리는 건너뜁니다.
+`[path]` 는 파일 또는 디렉토리를 받으며 (여러 개 가능, 생략하면 현재 디렉토리), [표준 포맷](#9111-표준-포맷-rokc-fmt) 에 맞게 in-place 로 수정해 줍니다. 디렉토리는 재귀로 `.rok` 파일을 찾으며 `target/` 과 `.` 으로 시작하는 디렉토리는 건너뜁니다. `.rokon` 파일 ([RokON](../../refs-standard-libraries/300-std/309-rokon.md#394-정규-형식)) 은 RokON 인지 검사하고 들여쓰기만 다시 맞춥니다 (정규 형식으로 다시 쓰지 않으므로 주석이 남음).
 
 옵션은 다음과 같습니다.
 
@@ -245,7 +245,7 @@ rokc lint [path]
 native 빌드 없이 컴파일 진단과 lint 검사를 돌리고 결과를 보고합니다 (9.1.8 형식, `--message-format=json` 가능, 코드 `E503`). lint 목록과 그룹은 [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어) 에 있습니다.
 
 - `-A` / `-W` / `-D <lint | group>` (`--allow` / `--warn` / `--deny`) 은 수준을 정합니다. 여러 번 쓸 수 있고 뒤의 것이 이깁니다.
-- `Rok.toml` 의 `[lints]` ([9.10.3](910-rok-frontend.md#9103-roktoml--roklock)) 도 수준을 정하며, CLI 플래그 앞에 붙은 것처럼 다뤄지므로 CLI 플래그가 이를 덮습니다.
+- `rok.rokon` 의 `lints` 필드 ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)) 도 수준을 정하며, CLI 플래그 앞에 붙은 것처럼 다뤄지므로 CLI 플래그가 이를 덮습니다.
 - 코드의 `#[allow(..)]` / `#[warn(..)]` / `#[deny(..)]` 와 `#![..]` 가 CLI 와 매니페스트보다 우선합니다.
 - `--list` 는 lint 와 그룹, 기본 수준을 출력합니다.
 
@@ -276,7 +276,7 @@ target/doc/
 rokc lsp
 ```
 
-이 모드는 VS Code, Vim, Emacs 등 LSP 클라이언트에서 호출하도록 설계되어 있습니다. 편집기용 독립 바이너리 `rokls` 는 `rok lsp` (곧 `rokc lsp`) 와 같습니다.
+이 모드는 VS Code, Vim, Emacs 등 LSP 클라이언트에서 호출하도록 설계되어 있습니다. 편집기용 독립 바이너리 `rokls` 는 `rok lsp` (곧 `rokc lsp`) 와 같습니다. `.rokon` 버퍼는 구문만 검사합니다.
 
 ## 9.1.3. 디버그 / 진단 서브명령
 
@@ -319,7 +319,7 @@ rokc new [--lib | --bin] <name>
 rokc init [--lib | --bin] [dir]
 ```
 
-`rokc new` 는 `<name>` 디렉토리를 만들고 기본 파일을 채웁니다. `--bin` (기본값) 은 인사말을 출력하는 `main.rok` 를, `--lib` 는 예시 함수와 `#[test]` 하나를 담은 `lib.rok` 를 만듭니다. `<name>` 이 이미 있으면 에러입니다. `rokc init` 은 이미 있는 디렉토리 (생략하면 현재 디렉토리) 를 패키지로 만들며, 그 디렉토리에 `main.rok` 나 `lib.rok` 가 이미 있으면 에러입니다. 매니페스트는 만들지 않습니다. `Rok.toml` 까지 만들려면 `rok new` / `rok init` ([9.10.2](910-rok-frontend.md#9102-rok-new--rok-init-패키지-생성)) 을 씁니다.
+`rokc new` 는 `<name>` 디렉토리를 만들고 기본 파일을 채웁니다. `--bin` (기본값) 은 인사말을 출력하는 `main.rok` 를, `--lib` 는 예시 함수와 `#[test]` 하나를 담은 `lib.rok` 를 만듭니다. `<name>` 이 이미 있으면 에러입니다. `rokc init` 은 이미 있는 디렉토리 (생략하면 현재 디렉토리) 를 패키지로 만들며, 그 디렉토리에 `main.rok` 나 `lib.rok` 가 이미 있으면 에러입니다. 매니페스트는 만들지 않습니다. `rok.rokon` 까지 만들려면 `rok new` / `rok init` ([9.10.2](910-rok-frontend.md#9102-rok-new--rok-init-패키지-생성)) 을 씁니다.
 
 ### `rokc clean`: 빌드 산출물 제거
 

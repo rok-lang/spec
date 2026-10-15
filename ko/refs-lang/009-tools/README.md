@@ -21,7 +21,7 @@
 
 ```
 rok  (front-end, cargo-like)
-  │   new / init, add / remove / update / deps (Rok.toml, Rok.lock), env, toolchain
+  │   new / init, add / remove / update / deps (rok.rokon, rok.lock), env, toolchain
   │   build / check / run / test / bench / emit / fmt / lint / doc / clean / repl / lsp / demangle
   │        └── resolve deps, then call rokc ... --extern <dep roots>
   ▼
@@ -58,7 +58,7 @@ librokr.a  (runtime, rokr)
 
 > front-end, cargo-like: cargo 식 front-end. resolve deps, then call rokc: 의존성을 해소한 뒤 rokc 를 호출. dep roots: 의존 패키지 루트. compiler: 컴파일러. build / run: 빌드 / 실행. tools: 도구. interactive: 인터랙티브. debug / diagnostic: 디버그 / 진단. AOT compile: AOT 컴파일. compile then run immediately: AOT 컴파일 후 즉시 실행. collect + run: 수집 + 실행. no native build: native 빌드 없이. remove build artifacts: 빌드 산출물 제거. formatter: 포매터. linter: 린터. API documentation: API 문서. LSP server: LSP 서버. terminal REPL: 터미널 REPL. each cell runs once: 각 셀을 한 번만 실행. Jupyter kernel: Jupyter 커널. REPL cell session: REPL 과 같은 셀 세션. symbol demangle: 심볼 demangle. RHIR interface text dump: RHIR 인터페이스 텍스트 출력. package inspect: 패키지 검사. for editors: 편집기용. runtime: 런타임. planned: 계획 — 아직 제공하지 않음.
 
-toolchain 은 컴파일러 `rokc` (rustc 에 해당), cargo 식 front-end `rok`, 편집기용 LSP 실행 파일 `rokls`, 런타임 `librokr.a` 로 이루어집니다. `rok` 는 매니페스트 `Rok.toml` / `Rok.lock`, 의존성, 환경, toolchain 고정을 맡고, 빌드와 도구 명령은 해소한 의존 패키지를 `--extern` 으로 붙여 `rokc` 에 위임합니다 ([9.10](910-rok-frontend.md)). 별도 도구 (`rok-fmt` 등) 는 두지 않습니다.
+toolchain 은 컴파일러 `rokc` (rustc 에 해당), cargo 식 front-end `rok`, 편집기용 LSP 실행 파일 `rokls`, 런타임 `librokr.a` 로 이루어집니다. `rok` 는 매니페스트 `rok.rokon` / `rok.lock`, 의존성, 환경, toolchain 고정을 맡고, 빌드와 도구 명령은 해소한 의존 패키지를 `--extern` 으로 붙여 `rokc` 에 위임합니다 ([9.10](910-rok-frontend.md)). 별도 도구 (`rok-fmt` 등) 는 두지 않습니다.
 
 ## 두 엔진의 구현
 

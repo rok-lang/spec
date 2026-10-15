@@ -1,14 +1,14 @@
 # 9.7. JIT 셀 실행 흐름과 상태 관리
 
-이 절에서는 [JIT 엔진](906-jit-engine.md) 의 RokJitSession 이 사용자 입력 (cell) 을 어떻게 처리하는지 자세히 정의합니다.
+이 절에서는 [JIT 엔진](906-jit-engine.md) 이 사용자 입력 (cell) 을 어떻게 처리하는지 자세히 정의합니다.
 
 ## 9.7.0. 셀 세션의 규칙
 
-다음은 구현 방식과 무관하게 셀 세션이 지키는 규칙입니다. 적합한 구현은 in-process JIT 없이 각 셀을 미리 (AOT 로) 빌드해 실행 중인 세션에 올려도 됩니다. 그 아래의 RokJitSession (ORCv2) 구조는 이를 구현하는 한 방법입니다.
+다음은 셀 세션이 지키는 규칙입니다. 구현은 [9.6 JIT 엔진](906-jit-engine.md) 입니다.
 
 1. **한 번만 실행.** 각 셀의 코드는 정확히 한 번 실행됩니다. 앞 셀의 부수 효과 (I/O, 시각, 난수) 는 되풀이되지 않습니다.
 2. **상태 유지.** 셀 최상위의 `let` 바인딩, `static` 의 상태, `any` 값 (`any Tr` 포함) 은 이후 셀로 이어집니다. 바인딩은 대입할 수 있고, 같은 이름의 재 `let` 은 새 바인딩으로 가립니다 (9.7.3).
-3. **항목 유지와 재정의.** `fn` / `struct` / `impl` 등 항목은 유지됩니다. 같은 항목을 다시 정의하면 다음 셀부터 새 정의가 쓰입니다. `static` 을 다시 정의하면 그 상태는 새로 시작합니다. 타입이 재정의된 바인딩은 더 이상 쓸 수 없으며, 쓰려 하면 그 사실을 note 로 알려 줍니다.
+3. **항목 유지와 재정의.** `fn` / `struct` / `impl` 등 항목은 유지됩니다. 같은 항목을 다시 정의하면 다음 셀부터 새 정의가 쓰입니다. 재정의 전에 컴파일된 코드도 이후 셀이 다시 닿으면 새 정의를 씁니다 (재정의된 `f` 를 부르는 `g` 는 새 `f` 를 부름). `static` 을 다시 정의하면 그 상태는 새로 시작합니다. 타입이 재정의된 바인딩은 더 이상 쓸 수 없으며, 쓰려 하면 그 사실을 note 로 알려 줍니다.
 4. **`any` 의 정체성.** `any` 의 타입 tag 는 한 세션의 모든 셀에서 같습니다. 앞 셀에서 넣은 `any` 값을 뒤 셀에서 `is` / 패턴으로 꺼낼 수 있습니다.
 5. **실패한 셀.** panic 하거나 프로세스를 끝내거나 죽은 셀은 바인딩에 부분 효과를 남기지 않습니다. 세션은 그 셀 이전의 상태로 계속됩니다. 이미 일어난 외부 효과 (I/O 등) 는 되돌리지 않습니다.
 6. **표시.** 식 셀은 값을 `타입: 값` (Debug) 으로 출력하고, `Debug` 가 없으면 타입만 출력합니다 (9.7.7).
@@ -19,9 +19,9 @@
 - 프로세스 수준의 효과: 셀 안의 `exit()`, 실패한 셀 뒤에 남은 앞 셀의 스레드 등. 현재 구현에서 `exit()` 를 부른 셀은 실패한 셀로 다룹니다.
 
 > [!NOTE]
-> **현재 구현.** `rokc repl` (과 `rok`, `rok repl`, Jupyter 커널) 은 JIT 없이 각 셀을 AOT 파이프라인으로 빌드해 오래 사는 host 프로세스에 올립니다. macOS arm64 에서는 host 가 셀의 relocatable object 를 직접 메모리에 올리는 자체 Mach-O 로더를 쓰고 (셀당 약 0.1 초), 그 밖의 환경이나 fallback 에서는 셀마다 공유 라이브러리를 만들어 엽니다. 환경 변수 `ROK_REPL_DYLIB=1` 은 공유 라이브러리 경로를 강제하고, `ROK_REPL_TIME=1` 은 셀마다 단계별 시간을 출력합니다. 이름을 적을 수 없는 타입의 바인딩은 거부하고 `--replay` 를 안내합니다.
+> **현재 구현.** `rokc repl` (과 `rok`, `rok repl`, Jupyter 커널) 은 9.6 의 JIT host 를 씁니다. 환경 변수 `ROK_REPL_TIME=1` 은 셀마다 단계별 시간과 새로 컴파일한 / 재사용한 함수 수를 출력합니다. 이름을 적을 수 없는 타입의 바인딩은 거부하고 `--replay` 를 안내합니다.
 >
-> `--replay` 모드는 셀마다 지금까지의 세션 전체를 하나의 익명 `main.rok` 로 다시 컴파일해 처음부터 실행하고 새 셀의 출력만 보여 줍니다. 이 모드는 클로저 같은 바인딩도 유지할 수 있지만 규칙 1 을 지키지 않습니다 (앞 셀의 부수 효과가 되풀이됨). 두 모드 모두 아래 9.7.6 캐시와 materialize 단계는 없습니다.
+> `--replay` 모드 (9.6.6) 는 셀마다 지금까지의 세션 전체를 하나의 익명 `main.rok` 로 다시 컴파일해 버리는 자식 프로세스에서 처음부터 실행하고, 새 셀의 출력만 보여 줍니다. 클로저 같은 바인딩도 유지할 수 있지만 규칙 1 을 지키지 않습니다 (앞 셀의 부수 효과가 되풀이됨).
 
 ## 9.7.1. Cell 의 종류
 
@@ -30,48 +30,30 @@ REPL 의 한 줄과 Jupyter 의 한 셀은 그 내용에 따라 처리 방식이
 ```
 1. expression                → evaluate + store last_value + print
 2. statement (let / call)    → execute (return value is unit)
-3. definition (fn / struct)  → add to hir_env
-4. import (use / mod)        → update visibility table of hir_env
+3. definition (fn / struct)  → add to the session's items
+4. import (use / mod)        → update the session's visible names
 5. meta / attribute          → handle as appropriate
 ```
 
-> expression: 표현식. evaluate: 평가. store last_value: last_value 저장. print: 출력. statement: 문장. let / call: let / 함수 호출. execute: 실행. return value is unit: 반환값은 unit. definition: 정의. add to hir_env: hir_env 에 추가. update visibility table of hir_env: hir_env 의 가시 표 갱신. meta / attribute: 메타 / 속성. handle as appropriate: 적절한 처리.
+> expression: 표현식. evaluate: 평가. store last_value: last_value 저장. print: 출력. statement: 문장. let / call: let / 함수 호출. execute: 실행. return value is unit: 반환값은 unit. definition: 정의. add to the session's items: 세션의 항목에 추가. update the session's visible names: 세션의 가시 이름 갱신. meta / attribute: 메타 / 속성. handle as appropriate: 적절한 처리.
 
 다섯 가지 모두 같은 cell 처리 흐름을 따르며, 마지막 출력만 달라집니다.
 
 > [!IMPORTANT]
-> 언어 의미론의 관점에서 셀의 연속은 암묵 `main.rok` 의 끝에 top-level 문과 항목을 덧붙이는 것과 같습니다 ([4.16.10](../004-functions/416-entry-point.md#41610-jit--repl-과의-관계)). 셀의 `let` 은 암묵 `main` 의 지역 변수이므로 이후 셀의 문에서는 보이지만, 셀에서 선언한 `fn` 본체에서는 보이지 않습니다. 아래 9.7.3 의 LLVM global 저장은 셀 경계를 넘어 지역 변수를 유지하기 위한 구현 방식이며, 이 가시성 규칙을 바꾸지 않습니다. 셀 최상위의 같은 이름 재 `let` (9.7.3), 셀 삭제와 재실행 (9.7.4), 마지막 식 값의 자동 표시 (9.7.7) 는 세션 조작으로서 대화형 표면에만 있습니다.
+> 언어 의미론의 관점에서 셀의 연속은 암묵 `main.rok` 의 끝에 top-level 문과 항목을 덧붙이는 것과 같습니다 ([4.16.10](../004-functions/416-entry-point.md#41610-jit--repl-과의-관계)). 셀의 `let` 은 암묵 `main` 의 지역 변수이므로 이후 셀의 문에서는 보이지만, 셀에서 선언한 `fn` 본체에서는 보이지 않습니다. 아래 9.7.3 의 LLVM global 저장은 셀 경계를 넘어 지역 변수를 유지하기 위한 구현 방식이며, 이 가시성 규칙을 바꾸지 않습니다. 셀 최상위의 같은 이름 재 `let` (9.7.3), 셀 재실행 (9.7.4), 마지막 식 값의 자동 표시 (9.7.7) 는 세션 조작으로서 대화형 표면에만 있습니다.
 
 ## 9.7.2. 실행 흐름: 자세히
 
 ```
-rokc receives input:
-  ↓
-1. parse  →  AST
-  ↓ (on parse error: show immediately, do not add cell)
-2. lower to HIR  →  HIR + delta
-  ↓ (on type error: show, do not add cell)
-3. cells.push(new_cell)
-4. hir_env.apply(delta)
-  ↓
-5. decide if new item / expr needs specialize
-  ↓
-6. specialize → mir → standard MLIR text
-  ↓
-7. in-process lowering via mlir_ee transformer hook
-  ↓
-8. ORCv2 add_module(module, &cell.tracker)
-  ↓ (on link error: cell.tracker.remove(), rollback)
-9. lookup symbol of top-level expr / function
-  ↓
-10. call that function → result + type
-  ↓
-11. update last_value, print result
+1. parse → AST                      (에러: 표시, 셀을 버림)
+2. HIR 로 낮춤, 타입 검사           (에러: 표시, 셀을 버림)
+3. MIR → MLIR → LLVM IR 텍스트      (재사용 / 재정의 처리, 9.6.3 / 9.6.4)
+4. host: 스냅샷을 fork 한 프로세스에서 JIT 컴파일, 셀 진입 함수 실행
+5. 성공: 새 스냅샷, 바인딩과 항목을 세션에 반영, 결과 출력
+   실패: 이전 스냅샷으로 계속, 에러 표시
 ```
 
-> rokc receives input: rokc 입력 받음. on parse error: show immediately, do not add cell: parse error 면 즉시 표시, cell 추가하지 않습니다. on type error: show, do not add cell: type error 면 표시, cell 추가하지 않습니다. decide if new item / expr needs specialize: 새 항목 / 식에 specialize 가 필요한지 결정. standard MLIR text: 표준 MLIR 텍스트. in-process lowering via mlir_ee transformer hook: mlir_ee 의 transformer 훅으로 in-process lowering. on link error: rollback: link error 면 롤백. lookup symbol of top-level expr / function: top-level 식 / 함수의 심볼을 lookup. call that function: 그 함수 호출. result + type: 결과 + 타입. update last_value, print result: last_value 갱신, 결과 출력.
-
-각 단계는 transactional 하게 동작하며, 실패하면 직전 상태로 깨끗하게 롤백됩니다.
+각 단계는 transactional 하게 동작하며, 실패하면 직전 상태로 롤백됩니다.
 
 ## 9.7.3. Top-level 변수 저장
 
@@ -117,37 +99,15 @@ heap 객체를 가리키는 top-level 변수는 GC 가 root 로 추적해야 하
 
 ## 9.7.4. Undo / 셀 재실행
 
-### Jupyter 의 셀 삭제
+### Jupyter 의 셀 재실행
 
-```
-사용자가 cell N 삭제.
-  cell = cells[N]
-  cell.tracker.remove()       // ORCv2 가 그 cell 의 심볼 제거
-  hir_env.revert(cell.delta)   // HIR 환경 되돌림
-  cells.remove(N)
-  spec_cache 는 유지            // 다른 cell 이 쓸 수 있음
-                                // (수명은 pkg_hash 에 종속, 다음 cell 에서 재사용)
-```
-
-### Jupyter 의 같은 id 셀 재실행
-
-```
-같은 id 의 cell 을 다시 실행.
-  old_cell = cells.find(id)
-  old_cell.tracker.remove()
-  hir_env.revert(old_cell.delta)
-  cells.remove(old_cell)
-
-  // 새 입력으로 일반 실행 흐름
-```
-
-이러한 모델 덕분에 Jupyter 가 사용자에게 일관된 셀 단위 의미를 제공할 수 있습니다.
+Jupyter 에서 셀을 고쳐 다시 실행하면 새 셀로 실행됩니다. 그 셀이 다시 정의한 항목과 바인딩은 이후 셀부터 새 것이 쓰입니다 (9.7.0 규칙 2, 3). 앞서 실행된 셀의 효과를 지우지는 않습니다.
 
 ### Undo 의 의미
 
 REPL 에는 명시적인 undo 가 없으며, 마지막 cell 을 그대로 덮어쓰거나 새 cell 을 추가하면서 작업을 진행합니다.
 
-Jupyter 에서는 셀 삭제와 재실행이 자연스럽게 undo 의 역할을 대신해 줍니다.
+Jupyter 에서도 셀을 지우거나 다시 실행해 앞 셀의 효과를 되돌리지는 않습니다. 처음 상태로 돌아가려면 세션을 다시 시작합니다 (REPL 의 `:reset`).
 
 ## 9.7.5. 에러 모드
 
@@ -156,8 +116,8 @@ Jupyter 에서는 셀 삭제와 재실행이 자연스럽게 undo 의 역할을 
 ```
 parse error / type error / 의미 에러.
   - cell 추가하지 않음.
-  - hir_env 변경하지 않음.
-  - spec_cache 유지.
+  - 세션의 바인딩과 항목은 그대로.
+  - 이미 컴파일된 함수의 재사용 정보는 유지.
   - 사용자에게 에러 표시.
 ```
 
@@ -174,64 +134,13 @@ parse error / type error / 의미 에러.
 
 바인딩과 항목은 셀 이전 상태로 돌아가지만 (9.7.0 규칙 5), 이미 일어난 외부 효과 (출력, 파일 쓰기 등) 는 되돌리지 않습니다. 실패한 셀을 세션에 남기지 않으므로, 고친 셀을 다시 입력하면 됩니다.
 
-### JIT materialize 실패
+### JIT 실패
 
-```
-ORCv2 의 link 단계에서 실패 (alien 심볼 등):
-  - cell.tracker.remove() — 그 cell 이 추가한 심볼 모두 제거.
-  - cells 에서 그 cell pop.
-  - hir_env.revert.
-  - 에러 표시.
-```
+host 가 셀의 IR 을 JIT 컴파일하거나 링크하지 못하면 (알 수 없는 `extern` 심볼 등) 셀 런타임 에러와 같이 다룹니다. 셀을 실행한 fork 프로세스가 끝나고 이전 스냅샷이 이어받습니다.
 
-이 경우에도 깨끗하게 롤백되며, 컴파일 에러와 동일한 transactional 동작을 따릅니다.
+## 9.7.6. 캐시
 
-## 9.7.6. 디스크 캐시
-
-### 두 단계 캐시
-
-```
-1. session cache (in-memory):
-   - keep JIT results (MLIR module + LLVM module) in memory.
-   - discard on exit.
-
-2. disk cache (optional):
-   - ~/.cache/rok/<pkg_hash>/<typehash>.o
-   - ORCv2 auto-dumps via enableObjectCache hook.
-   - next session reuses same (pkg_hash, typehash).
-```
-
-> session cache: 세션 캐시. keep JIT results in memory: JIT 결과 메모리 보존. MLIR module + LLVM module: MLIR module + LLVM 모듈. discard on exit: 종료 시 폐기. disk cache: 디스크 캐시. optional: 선택. ORCv2 auto-dumps via enableObjectCache hook: enableObjectCache 훅으로 ORCv2 가 자동 dump. next session reuses: 다음 세션이 재사용.
-
-세션 안에서는 메모리 캐시가 빠르게 동작하며, 세션을 종료한 뒤 다시 시작할 때에는 디스크 캐시가 재컴파일을 차단해 줍니다.
-
-### 캐시 무효화
-
-다음 중 어느 하나에라도 해당하면 캐시는 무효로 처리됩니다.
-
-- `pkg_hash` 변경 (소스 변경).
-- `rokc` 버전 변경.
-- `abi_version_hash` 변경.
-
-캐시 항목의 메타가 위 세 가지 hash 를 모두 담고 있으므로, mismatch 가 발생하면 자동으로 폐기됩니다.
-
-### 캐시 디렉토리 구조
-
-```
-~/.cache/rok/
-├── <pkg_hash_1>/
-│   ├── meta.json                 # rokc version, abi version, etc.
-│   ├── <typehash_a>.o            # specialize result
-│   ├── <typehash_b>.o
-│   └── ...
-├── <pkg_hash_2>/
-│   └── ...
-└── ...
-```
-
-> rokc version, abi version, etc.: rokc 버전, abi 버전 등. specialize result: specialize 결과.
-
-`rokc clean --jit-cache` 명령이나 `rm -rf ~/.cache/rok/` 를 사용해 사용자가 수동으로 정리할 수 있습니다.
+한 세션 안에서는 host 가 이미 컴파일한 함수를 재사용합니다 (9.6.4). 세션을 넘는 디스크 캐시는 없습니다.
 
 ## 9.7.7. 시각화 / 출력
 

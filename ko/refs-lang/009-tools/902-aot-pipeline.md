@@ -42,13 +42,13 @@
 
 이 단계에서는 [경로](../005-modules/507-paths.md) 와 [`use`](../005-modules/505-use.md) 의 외부 패키지 참조 (`use external_pkg::...`) 를 처리합니다.
 
-`rokc` 는 의존성을 스스로 해소하지 않습니다. front-end `rok` ([9.10](910-rok-frontend.md)) 가 `Rok.toml` / `Rok.lock` 을 따라 path / git 의존 패키지를 준비하고, 각 패키지의 루트를 `--extern` 으로 `rokc` 에 넘깁니다.
+`rokc` 는 의존성을 스스로 해소하지 않습니다. front-end `rok` ([9.10](910-rok-frontend.md)) 가 `rok.rokon` / `rok.lock` 을 따라 path / git 의존 패키지를 준비하고, 각 패키지의 루트를 `--extern` 으로 `rokc` 에 넘깁니다.
 
 ```
 rokc build --extern util=../util --extern parser=target/debug/deps/libparser.a
 ```
 
-`--extern name=<경로>` 는 의존 패키지 하나를 최상위 경로 `name` 에 mount 합니다. `name` 은 `Rok.toml` 의 의존성 이름 (키) 입니다. 경로는 두 형태입니다.
+`--extern name=<경로>` 는 의존 패키지 하나를 최상위 경로 `name` 에 mount 합니다. `name` 은 `rok.rokon` 의 `deps` 키입니다. 경로는 두 형태입니다.
 
 | 경로                              | 의존 패키지                                                                  |
 |-----------------------------------|------------------------------------------------------------------------------|
@@ -77,7 +77,7 @@ fingerprint 가 같으면 다시 빌드하지 않고 씁니다. fingerprint 에 
 
 - `rokc` 의 정체 (RHIR producer 와 같은 값)
 - 빌드 옵션: `--release` / `-O*`, `-g`, `--target`, `--cfg`, `--bootstrap`
-- 그 의존 패키지의 모든 `.rok` 파일과 `Rok.toml`
+- 그 의존 패키지의 모든 `.rok` 파일과 `rok.rokon`
 - 그보다 먼저 빌드한 의존 패키지들의 fingerprint
 
 `check` / `lint` / `doc` / `lsp` / `repl`, 단일 파일 스크립트, 이름 있는 환경은 지금도 의존 패키지를 소스로 함께 컴파일합니다. 표준 라이브러리는 미리 빌드하지 않고 빌드마다 소스로 bootstrap 합니다.
@@ -89,6 +89,8 @@ fingerprint 가 같으면 다시 빌드하지 않고 씁니다. fingerprint 에 
 [소스 파일](../001-lexical/101-source-files.md) 부터 [구두점과 연산자 토큰](../001-lexical/110-punctuation-and-operator-tokens.md) 까지의 어휘 / 구문 규칙에 따라 모든 `.rok` 파일을 AST 로 파싱합니다.
 
 [모듈](../005-modules/504-modules.md) 의 디렉토리 모듈은 모든 .rok 파일을 합쳐서 한 모듈의 본체로 취급합니다.
+
+패키지 루트의 매니페스트 `rok.rokon` ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)) 은 모듈 파일이 아닙니다. 매니페스트는 [RokON](../../refs-standard-libraries/300-std/309-rokon.md) 값 하나 (`Package { .. }`) 로 읽으며, top-level 문 규칙을 적용하지 않고 컴파일하지도 않습니다.
 
 ### Scanner pre-pass
 
@@ -232,7 +234,7 @@ target/
 증분 빌드는 패키지 단위입니다. `rokc build` / `rokc run` 은 이전 빌드의 fingerprint 와 지금의 것이 같으면 `Fresh` 를 출력하고 빌드를 건너뜁니다. fingerprint 는 다음을 포함합니다.
 
 - 컴파일러 자체, 빌드 옵션, 입력 / 출력 경로, `PATH`
-- 패키지와 의존성에서 읽을 수 있는 모든 `.rok` 파일
+- 패키지와 의존성에서 읽을 수 있는 모든 `.rok` 파일과 `rok.rokon`
 - 미리 빌드한 의존성의 `.a`, MLIR plugin 파일
 - 산출물의 크기와 수정 시각
 

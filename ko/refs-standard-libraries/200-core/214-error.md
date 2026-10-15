@@ -193,7 +193,7 @@ struct ConversionError {
 | `ValueError`    | 일반 invalid value (parser / API 등)                                       |
 | `IndexError`    | 인덱스를 받는 throwing API 의 범위 밖 인자 (`xs[10]` 의 경계 검사는 panic) |
 | `OverflowError` | `try_into` 등 checked 변환의 범위 초과 (산술 overflow 는 panic)            |
-| `ParseError`    | `str → number` / TOML 등 파싱 실패                                         |
+| `ParseError`    | `str → number` 등 파싱 실패 (RokON 은 `RokonError`)                                         |
 | `ConversionError` | `TryFrom::Error` 의 기본값. 숫자가 아닌 변환의 실패 ([2.11.4](211-conversion.md#2114-tryfromu-트레잇--fallible-변환)) |
 
 ### Fatal 에러
