@@ -82,7 +82,7 @@ write_barrier(p, q):
 
 대부분의 동작은 non-atomic 이며 thread-local 로 처리됩니다.
 
-전역 remembered set 하나를 쓰는 런타임은 이 두 슬롯을 null 로 둘 수 있습니다. 현재 구현이 그렇습니다 (spin lock 으로 지키는 전역 log 하나, [7.4.2](../007-runtime/704-barriers-and-roots.md#742-write-barrier-incremental-update)).
+전역 remembered set 하나를 쓰는 런타임은 이 두 슬롯을 null 로 둘 수 있습니다. 현재 구현은 이 슬롯으로 스레드마다 4 KiB log chunk 를 가리키며, 가득 찬 chunk 는 수집기가 비우는 lock-free stack 에 올립니다 ([7.4.2](../007-runtime/704-barriers-and-roots.md#742-write-barrier-incremental-update)).
 
 ### `rok_tls_mutator_state` (u8)
 

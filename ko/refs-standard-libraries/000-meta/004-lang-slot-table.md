@@ -61,7 +61,7 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 | `debug_trait`         | `f"{x:?}"` 디버그 포맷     | `rok::core::fmt::Debug`         | 2.10 |
 | `future_trait`        | `await expr` 의 단계 진행  | `rok::core::future::Future`     | 2.20 |
 
-다음으로 연산자 트레잇 슬롯이 있습니다. 연산자 토큰의 dispatch 대상은 각 트레잇 메서드에 부착된 `#[infix]` / `#[prefix]` ([refs-lang 6.7](../../refs-lang/006-meta-system/607-operator-magic.md)) 가 결정하고 우선순위는 [refs-lang 3.2](../../refs-lang/003-expressions/302-precedence-and-associativity.md) 표가 고정하며, 아래 슬롯은 컴파일러가 primitive lowering 과 진단에서 "덧셈 트레잇", "비교 트레잇" 을 이름으로 찾을 수 있게 해 주는 고정 자리입니다. 복합 대입 (`AddAssign` 등, 2.4), broadcast (`DotAdd` 등, 2.6), Euclidean modulo (`Modulo`, `%%`) 트레잇은 `#[infix]` 등록만으로 충분하므로 슬롯을 두지 않습니다.
+다음으로 연산자 트레잇 슬롯이 있습니다. 연산자 토큰의 dispatch 대상은 각 트레잇 메서드에 부착된 `#[infix]` / `#[prefix]` ([refs-lang 6.7](../../refs-lang/006-meta-system/607-operator-magic.md)) 가 결정하고 우선순위는 [refs-lang 3.2](../../refs-lang/003-expressions/302-precedence-and-associativity.md) 표가 고정하며, 아래 슬롯은 컴파일러가 primitive lowering 과 진단에서 "덧셈 트레잇", "비교 트레잇" 을 이름으로 찾을 수 있게 해 주는 고정 자리입니다. 복합 대입 (`AddAssign` 등, 2.4), broadcast (`DotAdd` 등, 2.6), floored modulo (`Modulo`, `%%`) 트레잇은 `#[infix]` 등록만으로 충분하므로 슬롯을 두지 않습니다.
 
 | slot 이름             | 의미                                | 표준 라이브러리 트레잇                | 참조   |
 |---------------------|-----------------------------------|-----------------------------|------|

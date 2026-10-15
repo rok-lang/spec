@@ -94,7 +94,7 @@ trait ModuloAssign<Rhs = Self> {
 }
 ```
 
-`%%=` 는 [`Modulo`](203-ops.md#modulo--euclidean-modulo-) (Euclidean modulo) 의 복합 대입 형태입니다. `RemAssign` 과 다른 트레잇으로 분리되어 있으며, 양수 제수에 대해 결과가 항상 `[0, rhs)` 범위에 있도록 in-place 갱신합니다.
+`%%=` 는 [`Modulo`](203-ops.md#modulo--floored-modulo-) (floored modulo, 결과 부호 = 제수 부호) 의 복합 대입 형태입니다. `RemAssign` 과 다른 트레잇으로 분리되어 있으며, 양수 제수에 대해 결과가 항상 `[0, rhs)` 범위에 있도록 in-place 갱신합니다.
 
 ## 2.4.3. 비트 *Assign 트레잇
 

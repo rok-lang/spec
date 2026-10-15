@@ -60,7 +60,14 @@ GC 는 mark 시에 모든 thread 의 체인 머리에서 출발해 frame 을 wal
 
 ### 초기 구현
 
-이 장의 GC 설계 (Immix, sticky mark-bit, 동시 수집) 는 목표 설계입니다. 현재 구현의 heap 은 객체를 옮기지 않는 Immix 식 mark-region 이며 (32 KiB block, 128 B line, thread 별 TLAB bump 할당, [7.1.2](701-object-layout.md#712-메모리-공간)), sticky mark-bit 세대 수집 (7.4.2 의 object-remembering barrier) 을 기본으로 켭니다. 아직 없는 것은 evacuation (객체 이동), 동시 mark, card marking 입니다. card marking 이 없으므로 큰 old 버퍼에 한 번 쓰면 이후 minor 수집마다 그 객체 전체를 다시 훑습니다. 단, 루트 (이 절의 shadow stack) 와 write barrier ([7.4.2](#742-write-barrier-incremental-update)) 는 이 사양의 계약대로 emit 해야 합니다. 그래야 컴파일러 산출물을 바꾸지 않고 수집기를 교체할 수 있습니다.
+이 장의 GC 설계 (Immix, sticky mark-bit, 동시 수집) 는 목표 설계입니다. 현재 구현의 heap 은 객체를 옮기지 않는 Immix 식 mark-region 이며 (32 KiB block, 128 B line, thread 별 TLAB bump 할당, [7.1.2](701-object-layout.md#712-메모리-공간)), sticky mark-bit 세대 수집 (7.4.2 의 object-remembering barrier 와 큰 객체의 card marking, 스레드별 remembered-set log) 을 기본으로 켭니다. 아직 없는 것은 evacuation (객체 이동) 과 동시 mark 입니다. evacuation 에는 다음이 먼저 필요합니다.
+
+- 정밀한 `any` payload — tag 로 box 여부를 아는 표로 ScanTable 의 `ANY_SLOT` ([8.2](../008-abi/802-scan-table.md)) 을 판정.
+- 컬렉션 버퍼의 원소별 scan table (지금은 버퍼의 모든 word 를 후보로 봄).
+- blocking 런타임 호출과 `extern "C"` 에 넘긴 GC 포인터의 pin 규칙.
+- 원시 주소가 아닌 parking / 동기화 key.
+
+단, 루트 (이 절의 shadow stack) 와 write barrier ([7.4.2](#742-write-barrier-incremental-update)) 는 이 사양의 계약대로 emit 해야 합니다. 그래야 컴파일러 산출물을 바꾸지 않고 수집기를 교체할 수 있습니다.
 
 ### 에러 전파와의 공존
 
@@ -93,6 +100,16 @@ if (p.gc_flags & UNLOGGED) {
 - slow path `rok_gc_wb_slow(obj)` 는 `UNLOGGED` 를 atomic `fetch_and` 로 지웁니다. 그래서 여러 스레드가 동시에 써도 한 스레드만 그 객체를 기록합니다. slow path 는 safepoint 가 아니어야 합니다 (그 안에서 수집이 시작되면 안 됨).
 - young GC 는 remembered set 의 객체를 root 로 보고, 그 객체가 가리키는 young 객체까지 mark 합니다. 수집이 끝나면 기록된 객체에 다시 `UNLOGGED` 를 켭니다.
 
+### Card marking 변형
+
+큰 old 객체에는 객체 전체 대신 512 바이트 **card** 단위로 기록하는 변형을 함께 쓸 수 있습니다. 현재 구현은 8 KiB 이상의 old 객체에 `UNLOGGED` 대신 `CARDED` 비트 ([8.1.3](../008-abi/801-object-header-abi.md#813-gc_flags-offset-4-u32)) 를 켭니다.
+
+- 그런 객체는 card table (512 B 마다 1 바이트) 을 가지며, 객체 뒤에 할당됩니다. 그 card table 의 포인터는 헤더 바로 앞 word 에 있습니다.
+- inline fast path 는 `p` 헤더의 `UNLOGGED | CARDED` 를 한 번에 검사합니다 (load 하나, 분기 하나).
+- `CARDED` 이면 barrier 는 호출 없이 inline 으로, 쓴 slot 이 걸치는 card 들, 곧 `(slot - p) >> 9` 부터 `(slot + len - 1 - p) >> 9` 까지를 dirty 로 표시합니다. 그래서 barrier 는 slot 주소와 저장하는 값의 크기 (`len`) 를 받습니다.
+- `UNLOGGED` 이면 위의 `rok_gc_wb_slow(p)` 를 부릅니다 (변함 없음).
+- minor 수집은 `CARDED` 객체의 dirty card 만 훑고 그 card 를 깨끗이 합니다.
+
 barrier 가 필요 없는 store 는 다음과 같습니다.
 
 | store                          | 이유                                        |
@@ -104,11 +121,11 @@ barrier 가 필요 없는 store 는 다음과 같습니다.
 
 ### Remembered Set
 
-remembered set 은 thread-local 버퍼로 시작해 가득 차면 전역 set 으로 옮겨도 되고 (TLS 슬롯 `rok_tls_wb_log_*`), 처음부터 전역 set 하나를 두어도 됩니다. 현재 구현은 spin lock 으로 지키는 전역 log 하나를 두며, wb log TLS 슬롯은 null 로 남습니다.
+remembered set 은 thread-local 버퍼로 시작해 가득 차면 전역 set 으로 옮겨도 되고 (TLS 슬롯 `rok_tls_wb_log_*`), 처음부터 전역 set 하나를 두어도 됩니다. 현재 구현은 스레드마다 4 KiB log chunk 를 두고 (`rok_tls_wb_log_cursor` / `rok_tls_wb_log_limit`), 가득 찬 chunk 와, 수집이나 스레드 종료 때의 모든 chunk 를 lock-free stack 에 올립니다. 수집기는 그 stack 을 비우며 기록된 객체를 root 로 씁니다.
 
 ### 인라인 비용
 
-fast path 는 `p` 헤더의 load 하나와 분기 하나이며, 대부분 `UNLOGGED` 가 꺼져 있어 (young 객체이거나 이미 기록됨) 그대로 통과합니다.
+fast path 는 `p` 헤더의 load 하나와 분기 하나 (`UNLOGGED | CARDED`) 이며, 대부분 둘 다 꺼져 있어 (young 객체이거나 이미 기록됨) 그대로 통과합니다.
 
 ### 컴파일러의 emit
 

@@ -140,6 +140,8 @@ park 가 진행되는 동안 CPU 사용량은 0 이므로, idle worker 가 많�
 - 취소된 task 는 다음 `await` 에서 `return` 처럼 본문을 떠납니다. 지나는 `finally` 블록과 `using` 의 `drop` 이 안쪽부터 실행됩니다. 중첩된 `async fn` 호출은 가장 안쪽 코루틴부터 정리됩니다.
 - 이것은 task 안에서 `catch` 할 수 있는 에러가 아닙니다. throwing 이 아닌 async 본문도 같은 경로로 끝납니다. 결과는 버려집니다.
 - blocking syscall (`TcpStream::read` 등) 은 cancellation point 가 아닙니다. 끝난 뒤 다음 `await` 에서 떠납니다.
+- 소켓 I/O, `readable` / `writable`, `sleep` / `timeout`, `lock_async`, `recv_async` / `send_async` 에서 기다리던 task 는 취소되면 깨어나 다음 `await` 에서 떠납니다.
+- task 가 끝나면 그 task 의 깨우기 등록 (I/O readiness 대기, timer, parking 표의 waker) 은 모두 풀립니다. 실행 중 pool 의 등록 수는 진단용 `task::registrations()` 로 볼 수 있으며, 그 값의 정확한 의미는 구현이 정합니다.
 
 `task::timeout` 이 시간을 넘기거나 `task::race` 가 승자를 정한 뒤에도, 진 쪽 task 는 계속 실행됩니다. 멈추려면 `cancel` 을 부릅니다.
 

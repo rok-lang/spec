@@ -108,7 +108,10 @@ Young → Young → Young → Young → ... → Old → Young → Young → ...
 
 trigger 조건은 구현이 정합니다. 현재 구현은 다음과 같습니다.
 
-- **minor (young)** 수집은 root 와 remembered set ([7.4.2](704-barriers-and-roots.md#742-write-barrier-incremental-update)) 에서만 mark 하고, old (sticky) 객체 안으로는 따라 들어가지 않습니다. sweep 은 지난 수집 이후 나눠 준 line 만 합니다.
+- **minor (young)** 수집은 root, remembered set, dirty card ([7.4.2](704-barriers-and-roots.md#742-write-barrier-incremental-update)) 에서만 mark 하고, old (sticky) 객체 안으로는 따라 들어가지 않습니다. sweep 은 지난 수집 이후 나눠 준 line 만 합니다.
+- sweep 은 죽은 객체를 0 으로 지우지 않습니다. line 은 할당기가 TLAB 을 채울 때 (refill) 0 으로 지웁니다.
+- young line 은 필요할 때만 파싱합니다 (객체 조회가 닿은 block 만).
+- pin 된 객체는 pin 목록으로 추적합니다.
 - **full (old)** 수집은 old 객체의 바이트가 `max(4 MiB, 직전 full 수집 뒤 live × 2)` 에 닿을 때, 또는 `rok_gc_collect` 를 명시적으로 부를 때 일어납니다. "minor N 번마다 full" 같은 규칙은 없습니다.
 
 ## 7.3.4. 객체 mark 의 절차

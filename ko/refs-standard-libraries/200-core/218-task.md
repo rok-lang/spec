@@ -21,6 +21,7 @@ async fn timeout<T>(dur: Duration, task: Task<T>) throws (TimeoutError) -> T;   
 async fn sleep(dur: Duration);
 async fn sleep_until(when: Instant);
 async fn yield_now();                                   // await — 다른 ready task 에 한 번 양보
+fn registrations() -> usize;                            // 진단용 — 실행 중 pool 의 park 한 waker + 대기 timer 수 (구현이 정함)
 fn readable(fd: i32) -> IoReady;                       // await — fd 가 읽기 가능해질 때까지 (refs-lang 7.7.2)
 fn writable(fd: i32) -> IoReady;
 ```
@@ -62,7 +63,7 @@ impl<T> Future for Blocking<T> { type Output = T; ... }
 `spawn_blocking(f)` 는 `f` 를 executor 의 worker 가 아닌 blocking pool 의 OS 스레드에서 실행하고, 그 결과로 끝나는 future 를 돌려줍니다. readiness 로 기다릴 수 없는 blocking syscall (일반 파일 I/O 등, [stdlib 3.1.4a](../300-std/301-fs.md#314a-비동기-파일-io-_async)) 을 task 안에서 기다릴 때 씁니다.
 
 - `f` 는 첫 poll 이 아니라 **호출하는 즉시** 시작합니다 (pool 이 가득 차면 먼저 큐에 들어감).
-- blocking pool 은 프로세스 전역 하나이며, 필요할 때 스레드를 늘리고 (상한 있음) 한동안 일이 없는 스레드는 끝냅니다. 작업은 들어온 순서 (FIFO) 로 처리합니다. 상한과 유지 시간은 구현이 정하며, 현재 구현은 스레드 512 개, 유휴 10 초 뒤 종료, 상한에 닿으면 작업을 큐에 쌓습니다.
+- blocking pool 은 프로세스 전역 하나이며, 필요할 때 스레드를 늘리고 (상한 있음) 한동안 일이 없는 스레드는 끝냅니다. 작업은 들어온 순서 (FIFO) 로 처리합니다. 상한과 유지 시간, 배분 방식은 구현이 정합니다. 현재 구현은 스레드 512 개, 유휴 10 초 뒤 종료, 상한에 닿으면 작업을 큐에 쌓으며, 작업 하나를 쉬고 있는 스레드 하나에 넘깁니다.
 - `await` 하던 task 가 취소되어도 `f` 는 끝까지 실행되며, 결과만 버려집니다.
 
 ```rok
@@ -71,18 +72,27 @@ let n = await task::spawn_blocking(|| heavy_checksum(path));
 
 ### `spawn` 의 `Send` 검사
 
-`task::spawn` 은 다음 값 가운데 `Send` 가 아닌 것이 있는 future 를 거부합니다 ([2.13.9](213-marker.md#2139-send--sync--스레드-경계-marker)).
+`task::spawn` 은 **frame** 이 `Send` 가 아닌 future 를 거부합니다 ([2.13.9](213-marker.md#2139-send--sync--스레드-경계-marker)). future 가 어디서 왔든 같습니다: `async` 블록이나 `async fn` 호출뿐 아니라 매개변수, struct / 튜플 / 합의 필드, helper 함수의 결과, 리스트의 원소, 클로저가 들고 있는 future, 다른 코루틴 frame 안의 future 도 검사합니다. future 의 frame 은 다음입니다.
 
-- `async` 블록 / 클로저가 캡처한 값.
-- 코루틴 안에서 `await` 를 넘어 살아 있는 지역 (frame 에 남는 값).
+- 캡처한 값.
+- `await` 를 넘어 살아 있는 지역 변수와 임시값.
+- frame 이 들고 있는 다른 future (그 frame 도 재귀로).
 
 ```rok
 let c = Cell::new(0);                      // Cell: !Send
 task::spawn(async { c.set(1); });          // ERROR — !Send 캡처
 task::spawn_local(async { c.set(1); });    // OK — 현재 worker 에 고정
+
+fn make() -> AsyncFuture<()> { let c = Cell::new(0); async { c.set(1); } }
+task::spawn(make());                       // ERROR — helper 가 만든 future 의 frame 도 검사
 ```
 
-이 검사는 근사해도 됩니다. 구현은 `Send` 인 future 를 거부할 수 있지만 (보수적), `Send` 가 아닌 값을 넘기는 future 를 받아서는 안 됩니다. 예를 들어 `spawn` 인자가 `async` 블록, `async fn` 호출, 또는 그것으로 초기화된 지역 변수일 때만 frame 을 들여다보고, 그 밖의 future 는 타입의 `Send` 구현만 보는 구현이 허용됩니다.
+같은 검사가 다른 스레드로 클로저를 보내는 자리에도 적용됩니다: `thread::spawn`, `thread::Builder::spawn`, `par` 의 `Scope::spawn`, `task::spawn_blocking`. 클로저가 `Send` 가 아닌 frame 의 future 를 들고 있으면 ``` `X` would move a future to another thread: … ``` 에러입니다.
+
+이 검사는 보수적으로 근사해도 됩니다. 구현은 실제로는 `Send` 인 future 를 거부할 수 있지만, `Send` 가 아닌 값을 다른 스레드로 넘기는 future 를 받아서는 안 됩니다. 다음 값은 따라 들어가지 않습니다.
+
+- 타입이 함수 값을 담을 수 없는 값 (future 의 frame 을 숨길 수 없음).
+- `unsafe impl Send` 를 명시한 타입의 값 (예: `Task<T>`). 그 타입이 안전성을 책임집니다.
 
 `async fn` 의 결과 타입 `AsyncFuture<T>` 는 `T: Send` 일 때, throwing 판 `TryAsyncFuture<T, E>` 는 `T` 와 `E` 가 모두 `Send` 일 때 `Send` 입니다. 캡처와 frame 은 위 검사가 따로 봅니다.
 
@@ -150,6 +160,8 @@ t.cancel();              // 협력적 신호 — task 가 cancellation point 에
 - 모든 `await` 가 cancellation point 입니다. 취소된 task 는 다음 `await` 에서 `return` 처럼 본문을 떠나며, 지나는 `finally` 와 `using` 정리가 안쪽부터 실행됩니다.
 - 취소는 task 안에서 `catch` 할 수 있는 에러가 아닙니다. task 안으로 `CancellationError` 가 던져지지 않습니다.
 - blocking syscall 은 cancellation point 가 아닙니다. 그 호출이 끝난 뒤 다음 `await` 에서 떠납니다.
+- 소켓 I/O (`*_async`), `readable` / `writable`, `sleep` / `timeout`, `lock_async`, `recv_async` / `send_async` 에서 기다리던 task 는 취소되면 깨어나고 다음 `await` 에서 떠납니다.
+- task 가 끝나면 그 task 의 깨우기 등록 (I/O readiness, timer, park 한 대기) 은 모두 풀립니다.
 - `spawn_blocking` 과 그 위의 `fs::*_async` 를 기다리던 중 취소되면, 이미 시작된 작업은 백그라운드에서 끝까지 실행되고 결과만 버려집니다. 쓰기 같은 부수 효과는 일어납니다.
 - `CancellationError` 는 기다리는 쪽이 받습니다. 취소된 task 를 `try await t.join()` 으로 기다리면 `CancellationError` 가 던져지고, `await t` 로 기다리면 panic 입니다.
 

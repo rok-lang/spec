@@ -28,6 +28,13 @@ trait Reflect {
 
 이 트레잇은 모든 타입에 자동으로 구현되며, 컴파일러가 type info 를 binary 에 자동으로 부착합니다.
 
+`Reflect` 는 컴파일러가 모든 타입에 제공하며, 소스에 impl 이 없습니다.
+
+- 손으로 쓴 `impl Reflect for T` 는 에러입니다. `T: Reflect` 바운드는 늘 성립합니다.
+- 타입이 자기 `size()` / `type_name()` 같은 같은 이름의 메서드를 가지면 그 메서드가 리플렉션 메서드를 가립니다.
+- 이름 (`type_name`) 에는 모듈 경로가 붙지 않습니다 (`List<i64>`, `Config`). 합 타입의 정적 이름은 정규 순서 ([2.6.4](../../refs-lang/002-types/206-sum-types.md#264-집합-의미론)) 로 적습니다 (`f64 | i32`, `none` 은 마지막). `type_name_of(self)` 같은 인스턴스 형태는 런타임에 들어 있는 항 (합) 이나 `any` 의 내용을 보고합니다.
+- `rok::core::reflect::cast<T>(value: any) -> T | none` 은 `set_field` 와 같은 규칙으로 `any` 를 `T` 로 꺼냅니다. `rok::core::reflect::methods_of<T>() -> List<MethodInfo>` 는 `T` 의 고유 메서드 목록입니다.
+
 ### 정적 vs 인스턴스 차이
 
 ```rok
@@ -70,17 +77,24 @@ T::align()
 ```rok
 trait Inspect: Reflect {
     fn field_names() -> List<str>;
-    fn get_field(self, name: str) -> any | none;
-    fn set_field(ref self, name: str, value: any) -> bool;     // 성공 여부
+    fn get_field(self, name: str) -> any | none;            // 비공개 필드도
+    fn set_field(ref self, name: str, value: any) -> bool;  // 성공 여부
     fn methods() -> List<MethodInfo>;
 }
 
 struct MethodInfo {
     name: str;
-    arg_types: List<str>;
+    arity: usize;              // self 를 뺀 인자 수
+    is_static: bool;           // self 를 받지 않는 메서드
+    arg_types: List<str>;      // self 를 뺀 인자 타입 이름
     return_type: str;
 }
 ```
+
+- `get_field` 는 그 필드의 값을 `any` 로 돌려주며, 없는 이름이면 `none` 입니다. 비공개 필드도 꺼낼 수 있습니다.
+- `set_field` 는 값이 그 필드의 타입과 **정확히 같을 때**, 또는 정수가 다른 정수 타입이어도 **손실 없이 들어갈 때** (`u.set_field("id", 42)` 가 `u64` 필드에) 대입하고 `true` 를 돌려줍니다. 그 밖에는 대입하지 않고 `false` 입니다. 다른 변환 (예: `i32` → `f64`) 은 없습니다.
+- `methods()` 는 그 타입의 **고유 메서드만** (트레잇 메서드 제외) 이름순으로 돌려줍니다. 제네릭 `impl` 의 메서드는 타입을 적힌 그대로 (`T`) 보여 줍니다.
+- `enum` 에 derive 하면 필드는 없고 (`field_names()` 는 빈 목록, `get_field` 는 `none`, `set_field` 는 `false`), `methods()` 만 의미가 있습니다.
 
 ### derive 예
 
@@ -102,14 +116,47 @@ u.id;                      //→ 42
 
 ### 메타 블록 활용
 
-`#[derive(Inspect)]` 본문은 메타 블록 메커니즘으로 작성됩니다.
+`#[derive(Inspect)]` 의 구현은 `rok::core::reflect` 의 메타 블록입니다 ([refs-lang 6.8](../../refs-lang/006-meta-system/608-meta-blocks.md), [6.9](../../refs-lang/006-meta-system/609-template-tokens.md)). 요약하면 다음과 같습니다.
 
 ```rok
 #[impl_derive(Inspect)]
-@accept(struct, enum)
-@for_fields {
-    // 각 필드별 코드 생성
-    case @field.name => any(self.@field),
+pub @derive {
+    impl rok::core::reflect::Inspect for @Self {
+        fn field_names() -> List<str> {
+            let names: List<str> = List::new();
+            @if_struct {
+                @for_fields { names.push(@field.name.as_str()); }
+            }
+            return names;
+        }
+
+        fn get_field(self, name: str) -> any | none {
+            @if_struct {
+                @for_fields {
+                    if name == @field.name.as_str() { return self.@field; }
+                }
+            }
+            return none;
+        }
+
+        fn set_field(ref self, name: str, value: any) -> bool {
+            @if_struct {
+                @for_fields {
+                    if name == @field.name.as_str() {
+                        match rok::core::reflect::cast::<@field.type>(value) {
+                            v: @field.type => { self.@field = v; return true; },
+                            none => { return false; },
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        fn methods() -> List<rok::core::reflect::MethodInfo> {
+            return rok::core::reflect::methods_of::<@Self>();
+        }
+    }
 }
 ```
 
@@ -131,20 +178,20 @@ fn dump_struct<T: Inspect>(x: T) {
 
 ## 2.12.4. REPL 출력
 
-REPL 의 마지막 식 자동 출력은 이 장의 `Reflect::type_name_of` 와 [2.10 fmt](210-fmt.md) 의 `Display` / `Debug` 가 합성되어 작동합니다.
+REPL 의 마지막 식 자동 출력은 이 장의 `Reflect::type_name_of` 와 [2.10 fmt](210-fmt.md) 의 `Debug` 가 합성되어 작동합니다 ([refs-lang 6.10.3](../../refs-lang/006-meta-system/610-reflection.md#6103-repl--jupyter-자동-출력)).
 
 ```
 > let x = 42i32;
-i32 = 42
+i32: 42
 
 > [1, 2, 3]
-List<i64> = [1, 2, 3]
+List<i32>: [1, 2, 3]
 
 > User { id: 1, name: "Alice" }
-User = User { id: 1, name: "Alice" }
+User: User { id: 1, name: "Alice" }
 ```
 
-표시 형태는 `{type_name_of} = {Display 또는 Debug}` 입니다. `Display` 가 정의되지 않은 경우에는 `Debug` 로 fallback 되며, `Debug` 도 없는 경우에는 `Reflect` 만 출력됩니다 (예: `<i32>` 처럼 type 만 표시).
+표시 형태는 `{type_name_of}: {Debug}` 입니다. `Debug` 가 없는 타입이면 타입 이름만 출력합니다.
 
 ## 2.12.5. 모듈 매핑
 

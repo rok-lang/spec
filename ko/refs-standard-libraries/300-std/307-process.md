@@ -157,10 +157,17 @@ using child = try Command::new("long_running")
 조금 더 깊은 영역으로 내려가면 신호 처리 함수들이 자리 잡고 있습니다.
 
 ```rok
-fn signal(sig: i32, handler: fn()) throws (SignalError);
+fn signal(sig: i32, handler: fn() + Send) throws (SignalError);
 fn kill(pid: u32, sig: i32) throws (IoError);
 fn raise(sig: i32) throws (IoError);
+
+struct SignalError {
+    sig: i32;          // 설치하려던 신호
+    code: i32;         // errno
+}
 ```
+
+`signal` 의 handler 는 신호 문맥 (signal handler) 안에서 돌지 않습니다. 런타임이 신호를 받아 전용 dispatcher 스레드 `rok-signal` 로 넘기고, handler 는 그 스레드에서 보통 함수처럼 실행됩니다. 그래서 handler 는 `Send` 여야 하며 할당이나 lock 을 써도 됩니다. 같은 신호에 다시 `signal` 을 부르면 handler 가 바뀝니다. `Command::process_group(pgid)` 는 자식을 그 프로세스 그룹에 넣습니다 (`0` 이면 자식의 pid 로 새 그룹).
 
 다만 대부분의 사용자는 이 부분을 직접 만질 일이 없습니다. daemon 이나 서버, interactive CLI 처럼 신호를 정면으로 마주해야 하는 자리에서나 비로소 필요해지는 도구들이라 보면 됩니다.
 

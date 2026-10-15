@@ -353,7 +353,7 @@ cf.cond_br %need_log, ^log, ^store
 ```
 
 - 저장하는 값 `q` 의 헤더는 읽지 않습니다. `q` 는 `any` 슬롯의 inline 정수나 `str` 의 내부 포인터일 수 있어 헤더로 읽으면 안전하지 않습니다.
-- fast path 는 load 하나와 분기 하나입니다.
+- fast path 는 load 하나와 분기 하나입니다. 실제로는 `UNLOGGED | CARDED` 를 함께 검사합니다. `CARDED` (큰 old 객체) 이면 호출 없이 쓴 slot 이 걸치는 512 B card (`(slot - p) >> 9` ..= `(slot + len - 1 - p) >> 9`) 를 card table (포인터는 헤더 바로 앞 word) 에 dirty 로 표시하고, `UNLOGGED` 이면 위처럼 `rok_gc_wb_slow` 를 부릅니다. 그래서 barrier 는 slot 주소와 저장하는 값의 크기를 씁니다 ([7.4.2](../007-runtime/704-barriers-and-roots.md#742-write-barrier-incremental-update)).
 - `rok_gc_wb_slow` 는 safepoint 가 아닙니다. barrier 와 store 사이에 수집이 끼어들지 않습니다.
 - 방금 할당한 객체의 초기화, `static` 에의 store, raw `Ptr<T>` 메모리, 참조가 아닌 atomic 에는 barrier 를 넣지 않습니다.
 

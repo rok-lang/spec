@@ -183,9 +183,9 @@ span 은 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_p
 
 ### DWARF 디버그 정보
 
-`rokc build --debug` 또는 `-g` 옵션을 사용하면 DWARF 디버그 정보를 emit 합니다. 이때 다음과 같은 특성을 갖습니다.
+`rokc build -g` 또는 `--debug` (같은 뜻이며, profile 이름 `debug` 와는 별개) 를 사용하면 DWARF 디버그 정보를 emit 합니다. 이때 다음과 같은 특성을 갖습니다.
 
-- 함수의 `DW_AT_name` 은 rok 경로 (`geom::distance`) 이며, linkage name (맹글링된 심볼) 은 두지 않습니다.
+- 함수의 `DW_AT_name` 은 rok 경로 (`geom::distance`) 이며, linkage name (맹글링된 심볼) 은 두지 않습니다. 디버거가 `_Y` 맹글링을 모르기 때문입니다.
 - 줄 번호는 원본 .rok 파일의 줄을 가리킵니다.
 - 원시 타입 (정수, 부동소수, `bool`, `char`) 의 지역 변수는 원본 이름과 타입으로 보입니다. 디버거의 `print x` 는 현재 원시 타입 변수에만 동작합니다. struct / 컬렉션 / GC 객체의 표시는 아직 없습니다.
 
@@ -198,7 +198,7 @@ gdb ./target/debug/my_binary
 (gdb) break main
 (gdb) run
 (gdb) print x
-$1 = (i32) 42
+$1 = (i32) 42          # 원시 타입 변수만
 (gdb) bt
 #0  main at src/main.rok:5
 ...
@@ -245,7 +245,7 @@ ROK_GC_LOG=1 ./target/debug/my_binary
 | 변수              | 효과                                                                         |
 |-------------------|------------------------------------------------------------------------------|
 | `ROK_GC_GEN=0`    | 세대 수집 (sticky mark-bit, [7.3.3](../007-runtime/703-gc-algorithm.md#733-사이클-young-과-old-의-교차)) 을 끄고 매번 full 수집 |
-| `ROK_GC_STATS=1`  | 종료 시 수집 횟수 (minor / full) 와 pause 시간을 stderr 에 출력              |
+| `ROK_GC_STATS=1`  | 종료 시 수집 횟수 (minor / full), pause 시간, 수집기 CPU 시간을 stderr 에 출력 |
 | `ROK_GC_STRESS=N` | 테스트용. 할당 N 번마다 수집 (그 8 번째마다 full)                            |
 
 ### heap dump

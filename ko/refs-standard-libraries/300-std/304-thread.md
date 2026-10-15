@@ -49,7 +49,7 @@ impl<T> JoinHandle<T> {
 
 impl Thread {
     fn id(self) -> ThreadId;
-    fn name(self) -> str | none;
+    fn name(self) -> str | none;        // Builder::name 으로 준 이름 (OS 스레드 이름으로도 설정), 없으면 none
     fn unpark(self);
 }
 

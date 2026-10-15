@@ -75,9 +75,18 @@ const UNIX_EPOCH: SystemTime;     // 1970-01-01 00:00:00 UTC
 impl SystemTime {
     fn from_unix(secs: i64, nanos: u32) -> SystemTime;
     fn unix_seconds(self) throws (SystemTimeError) -> i64;
-    fn unix_nanos(self) throws (SystemTimeError) -> i128;
+    fn unix_nanos(self) throws (SystemTimeError) -> i64;   // rok 에 i128 이 없음 — i64 ns 는 약 ±292 년
+}
+
+impl Add<Duration> for SystemTime { type Output = SystemTime; ... }
+impl Sub<Duration> for SystemTime { type Output = SystemTime; ... }
+
+struct SystemTimeError {
+    duration: Duration;        // earlier 가 앞서 있던 만큼
 }
 ```
+
+`SystemTime` 은 `UNIX_EPOCH` 기준 `i64` 나노초이므로 표현 범위는 약 ±292 년입니다.
 
 반면 `SystemTime` 의 성격은 사뭇 다릅니다. NTP 보정이나 사용자 변경에 의해 시간이 뒤로 갈 수도 있고, UNIX_EPOCH 를 기준으로 한 절대 시간이므로 **serialize 가 가능** 합니다. 그 덕분에 process 사이에서도 의미 있게 비교할 수 있습니다.
 
@@ -100,7 +109,7 @@ log(f"file age: {age:?}");
 ## 3.3.4. `BootTime` — 부팅 후 시간 (suspend 포함)
 
 ```rok
-struct BootTime { /* CLOCK_BOOTTIME (Linux) / CLOCK_UPTIME_RAW (macOS) */ }
+struct BootTime { /* CLOCK_BOOTTIME (Linux) / CLOCK_MONOTONIC = mach_continuous_time (macOS) */ }
 
 impl BootTime {
     fn now() -> BootTime;
@@ -152,9 +161,20 @@ impl Mul<i64> for Duration { ... }     // Duration × i64
 impl Div<i64> for Duration { ... }
 impl Mul<Duration> for f64 { ... }      // f64 × Duration
 
-impl Display for Duration { ... }       // "1.234s" / "5ms" / "100ns"
-impl Debug for Duration { ... }
+impl Display for Duration { ... }       // "1.234s" / "5ms" / "1.5µs" / "100ns"
+impl Debug for Duration { ... }         // Display 와 같음
 ```
+
+`Display` 는 크기에 맞는 단위 하나로 씁니다. 절댓값이 1 초 이상이면 `s`, 1 ms 이상이면 `ms`, 1 µs 이상이면 `µs`, 그 밖에는 `ns` 입니다. 그 단위로 나눈 정수부 뒤에 나머지를 소수로 붙이되, 끝의 0 은 지우고 나머지가 0 이면 소수점도 쓰지 않습니다. 음수는 앞에 `-` 를 붙입니다.
+
+```rok
+Duration::ms(1234);      // "1.234s"
+Duration::ms(5);         // "5ms"
+Duration::ns(1500);      // "1.5µs"
+Duration::ns(-20);       // "-20ns"
+```
+
+시간 타입은 모두 `PartialEq` / `Eq` / `PartialOrd` / `Ord` / `Hash` 를 구현합니다. `Instant`, `SystemTime`, `BootTime` 은 `Debug` 도 구현합니다.
 
 ### Duration 산술 정책
 
@@ -191,7 +211,7 @@ impl Duration {
 |--------------|-----------------|------------------|-------------------------|--------------|
 | `Instant`    | CLOCK_MONOTONIC | CLOCK_UPTIME_RAW | QueryPerformanceCounter | wasi clock   |
 | `SystemTime` | CLOCK_REALTIME  | CLOCK_REALTIME   | GetSystemTimeAsFileTime | wasi         |
-| `BootTime`   | CLOCK_BOOTTIME  | CLOCK_UPTIME_RAW | (~ Instant)             | (no suspend) |
+| `BootTime`   | CLOCK_BOOTTIME  | CLOCK_MONOTONIC (mach_continuous_time, sleep 포함) | (~ Instant) | (no suspend) |
 
 ## 3.3.8. 정책 요약
 

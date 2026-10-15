@@ -34,7 +34,7 @@ dot 접두사(`.`) 가 시각적인 신호 역할을 하여 element-wise 의도�
 | `DotMul`    | `.*`     | 8 (left)   | element-wise 곱 (Hadamard)    |
 | `DotDiv`    | `./`     | 8 (left)   | element-wise 나눗셈           |
 | `DotRem`    | `.%`     | 8 (left)   | element-wise 나머지 (Rem)     |
-| `DotModulo` | `.%%`    | 8 (left)   | element-wise Euclidean modulo |
+| `DotModulo` | `.%%`    | 8 (left)   | element-wise floored modulo   |
 
 ### 비교 (6)
 

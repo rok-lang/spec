@@ -83,6 +83,8 @@ impl Div<str> for Path {
 impl Div<Path> for Path { ... }
 ```
 
+`p /= "x"` 와 `p /= q` (`q: Path`) 도 쓸 수 있으며, `p = p / ..` 와 같습니다.
+
 **효과** 는 다음 예시에서 분명히 드러납니다.
 
 ```rok
@@ -120,6 +122,8 @@ impl AsPath for Path { ... }
 let raw: RawPath = ...;
 let p: Path = try Path::try_from(raw);    // UTF-8 이 아니면 NonUtf8Error 를 throw
 ```
+
+`Path::try_from` 은 지금은 `Path` 의 고유 함수입니다. 표준의 `TryFrom` 트레잇은 에러 타입이 `OverflowError` 로 고정되어 있어 ([2.11.4](../200-core/211-conversion.md#2114-tryfromu-트레잇--fallible-변환)) `NonUtf8Error` 를 던지는 이 변환은 트레잇 impl 이 아닙니다.
 
 ## 3.8.5. `RawPath` — bytes / WTF-16
 

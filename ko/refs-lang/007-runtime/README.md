@@ -56,6 +56,16 @@ OS Thread (worker) x N  ──── rok task / coroutine x M
 
 런타임은 단일 staticlib `librokr.a` 한 개로 배포됩니다. 사용자 패키지를 빌드하면 `librokr.a` 가 링크되어 추가 외부 의존 없이 실행 가능한 바이너리가 나옵니다.
 
+## 런타임 오류: 스택 오버플로
+
+스레드의 스택이 넘치면 런타임은 stdout 을 (가능하면) flush 하고 stderr 에 다음을 출력한 뒤 abort (SIGABRT) 합니다. panic 과 달리 unwind 나 `finally` 실행은 없습니다.
+
+```
+thread '<name>' has overflowed its stack
+```
+
+`<name>` 은 그 스레드의 이름입니다. `thread::Builder::name` ([stdlib 3.4](../../refs-standard-libraries/300-std/304-thread.md)) 으로 준 이름이며, 그 이름은 OS 스레드 이름으로도 설정됩니다. main 스레드는 `main`, 이름이 없는 스레드는 `<unnamed>` 입니다. main 스레드, `thread::spawn` 스레드, executor worker (깊은 `await` 사슬 포함) 가 모두 대상입니다. 검출 방식 (guard 범위와 `sigaltstack`) 과 TLS 슬롯은 [8.5.7](../008-abi/805-extern-symbols.md#스택-오버플로) 에 있습니다.
+
 ## 컴파일러와의 인터페이스
 
 런타임은 컴파일러가 생성한 코드와 정해진 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 로 통신합니다. 인터페이스는 다음 세 가지 요소로 구성됩니다.
