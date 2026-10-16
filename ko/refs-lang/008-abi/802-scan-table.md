@@ -18,6 +18,8 @@ GC mark loop:
 
 여기서 `lookup(type_id)` 는 컴파일러가 [객체 헤더 ABI](801-object-header-abi.md) 의 `rok_gc_register_type` 을 통해 프로세스 시작 시점에 등록해 둔 결과를 사용합니다.
 
+stack (shadow stack) 과 `static` 루트도 같은 byte offset 기반 walk 로 훑습니다. 루트 슬롯 하나는 ScanTable 의 entry 하나처럼 다루며, `any` 루트는 그 payload word 까지 덮습니다.
+
 ## 8.2.2. 등록 호출
 
 등록은 다음 외부 함수를 호출하여 이루어집니다.

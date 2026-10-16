@@ -144,7 +144,7 @@ async fn async_caller() {
 sync 환경에서 future 의 결과를 받아야 할 때는 `block_on` 을 사용합니다.
 
 ```rok
-let v = task::block_on(some_future);    // task::block_on — 현재 thread block
+let v = task::block_on(some_future);    // 현재 thread 가 executor 에 붙어 끝까지 실행
 ```
 
 `block_on` 은 최상위 (main 또는 sync caller) 에서만 사용해야 합니다. nested async 안에서 `block_on` 을 사용하면 deadlock 의 위험이 있습니다.

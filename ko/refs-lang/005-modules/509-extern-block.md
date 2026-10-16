@@ -34,9 +34,18 @@ extern "C" {
 
 | ABI        | 의미                                                                       |
 |------------|----------------------------------------------------------------------------|
-| `"C"`      | C ABI. 가장 일반적이며, 플랫폼별 표준 호출 규약을 그대로 따릅니다.         |
+| `"C"`      | 플랫폼 C ABI. 심볼 이름과 무관하게 항상 같습니다.                          |
 | `"system"` | OS 시스템 콜 ABI. 일부 플랫폼에서 `"C"` 와 다릅니다 (예: Win32 `stdcall`). |
-| ...        | 추가 ABI 는 표준 라이브러리 / 컴파일러 사양에서 정의.                      |
+| `"rok"`    | 런타임 (`rokr`) 의 ABI. 아래 참고.                                          |
+
+`extern "rok"` 은 toolchain 이 선언하는 런타임 함수의 ABI 이며, 그 선언은 `rok::core::rt` 에 `pub(pkg)` 로 있습니다.
+
+| 값                          | `extern "rok"` 의 전달                   |
+|-----------------------------|------------------------------------------|
+| `str`                       | `(ptr, len)` 두 word                     |
+| `fn` 값                     | `{code, env}` ([8.5.0a](../008-abi/805-extern-symbols.md#850a-rokfn--함수-값의-c-abi-형태)) |
+| `extern "C" fn(..)` 매개변수 | env 없는 C 함수 포인터                   |
+| 그 밖                       | 값 그대로 (C ABI 와 같음)                |
 
 > [!NOTE]
 > `"Rust"` 같은 다른 언어의 ABI 는 일반적으로 unstable 하므로 `extern` 의 대상이 되지 않습니다. 다른 언어와의 인터페이스는 양쪽이 합의한 안정적인 ABI (보통 `"C"`) 위에서만 가능합니다.
@@ -90,14 +99,7 @@ extern "C" {
 - 함수 타입 매개변수: `extern "C"` 선언의 `fn(..) -> R` 매개변수는 `extern "C" fn(..) -> R` 과 같습니다.
 - `str`: 아래 규칙으로 변환됩니다.
 
-`str` 을 extern 시그니처에 쓰면 이름에 따라 전달 방식이 다릅니다.
-
-| 심볼                          | `str` 매개변수                         | `str` 반환                         |
-|-------------------------------|----------------------------------------|------------------------------------|
-| `rok_*` 런타임 심볼           | `(ptr, len)` 두 인자                   | `(ptr, len)` 쌍                    |
-| 그 밖의 `extern "C"` 함수     | NUL 로 끝나는 `char*` 하나              | `char*` — 길이는 `strlen` 으로 잼   |
-
-C 함수에 넘길 때 컴파일러는 NUL 로 끝나는 바이트열을 넘기며, 필요하면 사본을 만듭니다. 내부에 NUL 이 있으면 C 쪽에서는 첫 NUL 까지만 보입니다. 반환된 `char*` 가 null 이면 동작은 정의되지 않으므로, null 일 수 있는 C 문자열은 `CPtr<c_char>` 로 받습니다 ([stdlib 1.7.2](../../refs-standard-libraries/100-bare/107-ffi.md#172-cstr--cstring--null-terminated-string)).
+`extern "C"` 시그니처의 `str` 매개변수는 NUL 로 끝나는 `char*` 하나입니다. 바이트 뒤에 NUL 이 있으면 그 바이트를 그대로 넘기고, 없으면 (slice 등) 호출 동안 고정한 사본을 넘깁니다. C 는 호출이 끝난 뒤 그 포인터를 보관하면 안 됩니다. `str` 반환은 `char*` 이며 길이는 `strlen` 으로 잽니다. 내부에 NUL 이 있으면 C 쪽에서는 첫 NUL 까지만 보입니다. 반환된 `char*` 가 null 이면 동작은 정의되지 않으므로, null 일 수 있는 C 문자열은 `CPtr<c_char>` 로 받습니다 ([stdlib 1.7.2](../../refs-standard-libraries/100-bare/107-ffi.md#172-cstr--cstring--null-terminated-string)).
 
 호환되지 않는 타입을 적으시면 컴파일 경고나 에러가 발생합니다. 정확한 검사 규칙은 [Calling Convention](../008-abi/806-calling-convention.md) 에서 정의됩니다.
 

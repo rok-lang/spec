@@ -132,7 +132,8 @@ pub fn decode<T: FromRokon>(v: Value, seg: str) throws (RokonError) -> T;
 
 - `RokonError` 의 `Display` 는 위치가 있으면 `line:col: msg`, 없으면 `at <path>: msg` 입니다. 타입이 있는 읽기의 에러는 `.servers[1].port`, `.limits["cpu"]` 같은 경로를 담으며, `from_str` 은 그 경로를 입력의 `line:col` 로 바꿔 줍니다. `decode` 의 `seg` 는 경로의 시작 마디입니다.
 - `Value::kind` 는 에러 메시지에 쓰는 종류 이름이며, 차례로 `"none"`, `"bool"`, `"integer"`, `"float"`, `"char"`, `"string"`, `"list"`, `"dict"`, `"tuple"`, `"struct"` 이고 `Variant` 는 ``"variant `<path>`"`` 입니다.
-- `Value` 의 `Debug`, `==`, `hash` 는 panic 하지 않습니다 (NaN 포함).
+- `Value` 의 `==` 와 `hash` 는 구조적입니다. dict 의 항목과 struct 의 필드는 순서와 무관하게 비교하고, 부동소수는 정체로 비교합니다 (NaN == NaN, -0.0 != 0.0). 이름 없는 빈 struct 와 빈 dict 는 같습니다.
+- `Value` 의 `Debug`, `==`, `hash` 는 panic 하지 않습니다.
 - 표준 구현: 모든 정수 타입, `f32` / `f64`, `int` / `float`, `bool` / `char` / `str`, `Value`, `T | none`, `List`, `Set`, `Dict`, `OrderedDict`, `OrderedSet`, 원소 1 ~ 6 개의 튜플, `[T; N]`.
 
 ### `#[derive(Rokon)]`

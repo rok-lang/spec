@@ -52,7 +52,7 @@ impl Int {
     fn new() -> int;              // 0 으로 초기화
     fn from_i64(n: i64) -> int;
     fn from_u64(n: u64) -> int;
-    fn from_str(s: str, radix: u32) -> int | none;  // 파싱
+    fn parse_radix(s: str, radix: u32) -> int | none;  // 진법 파싱 (10 진은 FromStr)
 
     fn to_i32(self) -> i32 | none;  // 범위 안이면 값, 밖이면 none
     fn to_i64(self) -> i64 | none;
@@ -124,7 +124,7 @@ struct Float { ... }  // 내부: f64 또는 BigFloat (지수가 f64 밖일 때)
 
 impl Float {
     fn from_f64(x: f64) -> float;
-    fn from_str(s: str) -> float | none;
+    fn try_parse(s: str) -> float | none;          // FromStr 도 구현
 
     fn to_f32(self) -> f32 | none;     // 유한 값이 f32 범위 밖일 때만 none
     fn to_f64(self) -> f64;

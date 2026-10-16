@@ -90,6 +90,10 @@ shadow stack 은 GC 가 살아 있는 객체를 추적하기 위한 보조 스�
 
 specialize 는 [monomorphization (단형화)](#monomorphization-단형화) 의 다른 이름입니다. AOT / JIT 파이프라인의 한 단계 이름으로 사용합니다.
 
+## stone
+
+레지스트리에 올린 rok 패키지입니다. `rok.rokon` 에서 `Dep::version("req")` 나 문자열 `"req"` 로 요구합니다 ([9.10.4a](../009-tools/910-rok-frontend.md#9104a-stone-과-rokstonesio)).
+
 ## sticky mark-bit
 
 sticky mark-bit 은 generational GC 의 세대 추적 비트입니다. 처음 mark 되면 켜져서 "오래된 객체" 가 됩니다. young GC 는 sticky 객체를 건너뛰어 비용을 줄입니다.
@@ -121,6 +125,10 @@ toolchain 을 이루는 실행 파일과 런타임입니다. `rokc` 는 컴파�
 ## RokON
 
 Rok Object Notation. rok 의 리터럴 문법 부분집합으로 값을 적는 데이터 형식이며, 확장자는 `.rokon` 입니다. 매니페스트 `rok.rokon` 과 lockfile `rok.lock` 이 이 형식입니다 ([stdlib 3.9](../../refs-standard-libraries/300-std/309-rokon.md)).
+
+## rokstones.io
+
+rok 의 기본 stone 레지스트리입니다. index 는 별도 git 저장소 `rokstones.io-index` 입니다 ([9.10.4a](../009-tools/910-rok-frontend.md#9104a-stone-과-rokstonesio)).
 
 ## rok.rokon / rok.lock
 

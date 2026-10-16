@@ -2,9 +2,9 @@
 
 이 절에서는 [`if` 표현식](../003-expressions/310-if-expression.md), [`match`](../003-expressions/312-match-expression.md), [루프](../003-expressions/313-loop-expressions.md), [에러 제어 흐름](../003-expressions/314-error-control-flow.md) 의 lowering 규칙을 다루고, 더불어 [GC](../000-meta/007-glossary.md#gc-garbage-collector) 의 alloc / barrier / safepoint 를 emit 하는 규칙을 함께 정의합니다.
 
-## 8.9.1. `if` 표현식
+생성하는 MLIR / LLVM 모듈은 빌드 타깃 (`--target`) 의 target triple 과 data layout 을 담습니다.
 
-가장 단순한 형태의 `if` 표현식부터 살펴보겠습니다.
+## 8.9.1. `if` 표현식
 
 ```rok
 if cond { x } else { y }

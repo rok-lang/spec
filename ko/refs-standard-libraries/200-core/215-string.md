@@ -45,14 +45,15 @@ struct str {
 
 ```rok
 impl str {
-    fn from_utf8(bytes: List<u8>) throws (Utf8Error) -> str;
+    fn from_utf8(bytes: List<u8> | Slice<u8>) throws (Utf8Error) -> str;
 
     fn len(self) -> usize;                  // byte 길이
     fn is_empty(self) -> bool;
-    fn as_bytes(self) -> Slice<u8>;
+    fn as_bytes(self) -> Slice<u8>;         // 복사 없는 읽기 전용 view
+    fn byte(self, i: usize) -> u8;          // O(1), 범위 밖이면 panic
     fn as_ptr(self) -> ConstPtr<u8>;        // FFI
 
-    // 읽기 메서드 — 새 str 또는 view
+    // 읽기 메서드
     fn chars(self) -> CharsIter;            // Unicode scalar iterator
     fn bytes(self) -> BytesIter;            // u8 iterator
     fn char_indices(self) -> CharIndicesIter;
@@ -71,7 +72,7 @@ impl str {
     fn split_once(self, sep: str) -> (str, str) | none; // 처음 sep 의 앞 / 뒤
     fn repeat(self, n: usize) -> str;
 
-    fn trim(self) -> str;                   // 새 str 반환 (필요 시)
+    fn trim(self) -> str;
     fn trim_start(self) -> str;
     fn trim_end(self) -> str;
 
@@ -166,7 +167,11 @@ let c = s[0];                  // ERROR — `Index<usize>` 정의 안 함
                                //         이유: byte vs char 모호 + UTF-8 안전성
 ```
 
-이 경우 `s.chars().next()` 또는 `s.as_bytes()[0]` 처럼 의도를 명시해야 합니다.
+이 경우 `s.chars().next()` 나 `s.byte(0)` 처럼 의도를 명시해야 합니다.
+
+### 부분 문자열은 복사하지 않음
+
+`s[a:b]`, `lines`, `split*`, `split_whitespace`, `split_once`, `trim*`, `strip_*` 의 결과는 원래 바이트를 공유하는 `str` 이며 O(1) 입니다 ([refs-lang 8.8.1](../../refs-lang/008-abi/808-lowering-types.md#881-원시-정수--부동소수)). 그래서 작은 조각이 큰 원본을 살려 둡니다. 떼어 내는 API 는 없습니다. `as_bytes()` 도 복사 없는 읽기 전용 `Slice<u8>` view 입니다.
 
 ## 2.15.4. `char` — Unicode scalar value (표준 라이브러리 추가)
 

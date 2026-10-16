@@ -52,7 +52,14 @@ impl<T: AtomicPrimitive> Atomic<T> {
     fn fetch_or(self, value: T, ordering: AtomicOrdering = SeqCst) -> T;
     fn fetch_xor(self, value: T, ordering: AtomicOrdering = SeqCst) -> T;
 }
+
+impl Atomic<i32> {
+    fn wait(self, expected: i32, timeout_ns: i64 = -1);   // 값이 expected 인 동안, 최대 timeout_ns (< 0 이면 무한) 대기
+    fn wake(self);                                         // 이 cell 에서 wait 중인 스레드를 모두 깨움
+}
 ```
+
+`wait` 는 이유 없이 돌아올 수 있으므로 호출자가 조건을 다시 확인합니다 (futex 의미).
 
 ### `AtomicOrdering`
 

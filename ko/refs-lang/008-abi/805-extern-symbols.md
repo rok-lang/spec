@@ -1,6 +1,8 @@
 # 8.5. Extern "C" 심볼
 
-이 절에서는 `librokr.a` 가 외부에 노출하는 모든 [extern "C" 심볼](../000-meta/007-glossary.md#extern-c-심볼) 의 시그니처를 정의합니다. 컴파일러가 생성한 코드는 이 심볼들을 호출합니다.
+`librokr.a` 가 노출하는 [심볼](../000-meta/007-glossary.md#extern-c-심볼) 의 시그니처를 정의합니다. 컴파일러가 생성한 코드와 표준 라이브러리가 이 심볼을 부릅니다.
+
+rok 쪽 선언은 런타임 ABI `extern "rok"` ([5.9.2](../005-modules/509-extern-block.md#592-abi-명시)) 이며, toolchain 이 `rok::core::rt` 에 `pub(pkg)` 로 둡니다. 아래 블록의 `str` 은 `(ptr, len)` 두 word, `fn` 값은 `RokFn` (8.5.0a), 그 밖의 값은 C ABI 와 같습니다. C 에서 부를 때는 이 펼친 형태를 씁니다.
 
 > [!IMPORTANT]
 > 모든 심볼은 `rok_` 접두사로 시작합니다. 이는 외부 라이브러리나 사용자 코드와의 심볼 충돌을 회피하기 위함입니다.
@@ -242,16 +244,16 @@ extern "C" {
 
 task 런타임 (spawn, join, cancel, executor) 은 `rok::core::task` 의 rok 코드입니다 ([stdlib 2.18](../../refs-standard-libraries/200-core/218-task.md)). 런타임은 아래의 executor 슬롯, 스레드, parking 심볼만 제공합니다.
 
-### `rok_task_exec_*` / `rok_time_now_ns`
+### `rok_task_worker_*` / `rok_time_now_ns`
 
-현재 스레드의 task executor ([stdlib 2.18](../../refs-standard-libraries/200-core/218-task.md)) 를 TLS 슬롯 `rok_tls_task_exec` ([8.3.1](803-tls-slots.md#831-tls-슬롯-구조)) 에 두고 꺼내는 함수와 시계입니다. **Thread-safety: `caller-thread-only`** (자기 스레드의 슬롯만 다룸; `rok_time_now_ns` 는 `thread-safe`).
+현재 스레드의 executor worker ([stdlib 2.18](../../refs-standard-libraries/200-core/218-task.md)) 를 TLS 슬롯 `rok_tls_task_worker` ([8.3.1](803-tls-slots.md#831-tls-슬롯-구조)) 에 두고 꺼내는 함수와 시계입니다. **Thread-safety: `caller-thread-only`** (`rok_time_now_ns` 는 `thread-safe`).
 
 ```
 extern "C" {
-    fn rok_task_exec_active() -> i32;          // executor 가 있으면 1
-    fn rok_task_exec_get() -> usize;           // executor 객체 주소, 없으면 0
-    unsafe fn rok_task_exec_set(exec: usize);  // exec 는 살아 있는 GC 객체 — 설치하는 동안 pin
-    fn rok_task_exec_clear();                  // 해제하고 unpin
+    fn rok_task_worker_present() -> i32;       // 이 스레드가 worker 이면 1
+    fn rok_task_worker_get() -> usize;         // worker 객체 주소, 없으면 0
+    fn rok_task_worker_set(w: usize);          // 살아 있는 GC 객체 또는 0. 설치하는 동안 pin
+    fn rok_task_worker_clear();                // = rok_task_worker_set(0)
     fn rok_time_now_ns() -> i64;               // monotonic clock (ns)
 }
 ```
@@ -272,20 +274,23 @@ extern "C" {
 
 `rok_thread_spawn` 은 rok 클로저 `f` (아래 `RokFn`, 값 전달) 를 OS 스레드에서 실행합니다 (`stack_size` 0 은 기본값). `id` 는 `rok_thread_new_id` 로 받은 값이며 새 스레드의 `rok_tls_worker_id` 가 됩니다. 반환값은 join handle 이고, 생성에 실패하면 0 입니다. 스레드가 끝날 때까지 `env` 는 GC root 입니다.
 
-### `rok_task_parking_ready` / `rok_task_parking_install` / `rok_task_key_*`
+### `rok_task_hooks_install` / `rok_task_key`
 
-async 대기 (`Mutex::lock_async`, `Receiver::recv_async`, `task::park` / `unpark`) 에서 키에 park 된 task 를 담는 프로세스 전역 registry 입니다. **Thread-safety: `thread-safe`**.
+`rok::core::task` 의 executor 가 런타임에 hook 을 설치합니다. 런타임의 I/O driver, timer, `rok_coro_park` / `rok_coro_unpark` 는 이 hook 으로 task 를 깨우고 멈춥니다. **Thread-safety: `thread-safe`**.
 
 ```
 extern "C" {
-    fn rok_task_parking_ready() -> i32;                    // registry 가 설치되어 있으면 1
-    unsafe fn rok_task_parking_install(obj: usize) -> usize; // 없으면 obj 를 설치 (영구 pin), 사용 중인 registry 반환
-    fn rok_task_key_i32(obj: usize) -> usize;              // GcBuf<i32> 객체 주소를 park 키로
-    fn rok_task_key_usize(obj: usize) -> usize;            // GcBuf<usize> 객체 주소를 park 키로
+    fn rok_task_hooks_install(
+        io: extern "C" fn(fd: i32, interest: u32, waker: Ptr<u8>),
+        timer: extern "C" fn(deadline_ns: u64, waker: Ptr<u8>),
+        park: extern "C" fn(key: Ptr<u8>, waker: Ptr<u8>),
+        unpark: extern "C" fn(key: Ptr<u8>),
+    );                                          // 처음 설치한 것이 이김
+    unsafe fn rok_task_key(obj: Ptr<u8>) -> usize;   // GC 객체 주소를 park 키로
 }
 ```
 
-`rok_task_key_*` 는 주소를 키로 쓰므로 그 객체에 `NOMOVE` ([8.1.3](801-object-header-abi.md#813-gc_flags-offset-4-u32)) 를 켭니다. 그 객체는 이후 옮겨지지 않습니다.
+`rok_task_key` 는 주소를 키로 쓰므로 그 객체에 `NOMOVE` ([8.1.3](801-object-header-abi.md#813-gc_flags-offset-4-u32)) 를 켭니다. 그 객체는 이후 옮겨지지 않습니다. 호출 안에서만 쓰는 동일성 비교는 `buf_same` ([stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md)) 을 쓰며 아무것도 고정하지 않습니다.
 
 ### `rok_sync_wait` / `rok_sync_wake`
 
@@ -293,9 +298,8 @@ extern "C" {
 
 ```
 extern "C" {
-    fn rok_sync_wait(buf: Ptr<u8>, index: usize, expected: i32);   // GcBuf<i32> 원소가 expected 인 동안 대기
-    fn rok_sync_wake(buf: Ptr<u8>, index: usize);                   // 그 원소에서 대기 중인 스레드를 모두 깨움
-    fn rok_sync_wait_timeout(buf: Ptr<u8>, index: usize, expected: i32, ns: i64);   // wait 와 같되 약 ns 후에도 돌아옴 (executor 의 유휴 대기)
+    fn rok_sync_wait(buf: Ptr<u8>, index: usize, expected: i32, timeout_ns: i64);   // GcBuf<i32> 원소가 expected 인 동안 대기. timeout_ns < 0 이면 무한
+    fn rok_sync_wake(buf: Ptr<u8>, index: usize);                                    // 그 원소에서 대기 중인 스레드를 모두 깨움
 }
 ```
 
@@ -362,22 +366,6 @@ rok_os_argc      rok_os_arg       rok_os_env_at    rok_os_getenv    rok_os_seten
 rok_os_spawn     rok_os_waitpid   rok_os_kill      rok_os_getpid    rok_os_getppid
 rok_os_abort
 ```
-
-### `rok_par_for` / `rok_par_scope` / `rok_par_spawn`
-
-병렬 실행을 담당합니다 ([스케줄러](../007-runtime/706-scheduler.md) 참조). **Thread-safety: `thread-safe`**.
-
-```
-extern "C" {
-    fn rok_par_for(start: i64, end: i64, step: i64, callback: Ptr<u8>);
-    fn rok_par_scope(callback: Ptr<u8>);           // callback(scope: Ptr<u8>)
-    fn rok_par_spawn(scope: Ptr<u8>, f: RokFn);
-}
-```
-
-`rok_par_for` 는 `par::for_each` 의 desugar 이며, `callback(i)` 를 `start..end` (간격 `step`) 의 각 `i` 에 대해 여러 CPU 에서 부릅니다 (순서 미정). `rok_par_scope` 는 `par::scope` 의 desugar 입니다. `callback` 을 scope 핸들 하나를 인자로 불러 주고, 그 scope 에서 spawn 된 일이 모두 끝날 때까지 기다린 뒤 돌아옵니다.
-
-`rok_par_spawn` 은 rok 클로저 `f` ([8.5.0a `RokFn`](#850a-rokfn--함수-값의-c-abi-형태)) 를 scope 안에서 실행합니다. 핸들은 `rok_par_scope` 가 callback 에 넘긴 것 (또는 그 scope 에서 spawn 된 일이 받은 것) 이며, 그 `rok_par_scope` 호출이 끝나기 전에만 유효합니다. spawn 된 일이 다시 spawn 한 일도 같은 scope 가 기다립니다 (중첩 join).
 
 ### `rok_deque_*` — work-stealing deque
 
@@ -471,7 +459,17 @@ extern "C" {
 }
 ```
 
-`rok_panic` 과 같으며 메시지를 `str` 로 받습니다. core 의 `panic(msg: str)` 이 이 심볼을 부릅니다.
+`rok_panic` 과 같으며 메시지를 `str` 로 받습니다. core 의 `panic(msg: str)` 과 컴파일러가 생성한 런타임 panic (경계 검사, overflow, 0 으로 나누기 등) 이 모두 이 심볼을 부릅니다.
+
+### `rok_uncaught_error`
+
+```
+extern "rok" {
+    fn rok_uncaught_error(what: str) -> !;    // 미처리 예외: what 을 stderr 에 출력하고 종료 코드 1
+}
+```
+
+진입점 밖으로 전파된 에러를 처리합니다 ([4.16.4](../004-functions/416-entry-point.md#4164-종료-코드와-미처리-예외)). 선언은 core 에 있습니다.
 
 ### `rok_oom`
 
@@ -506,7 +504,6 @@ thread '<name>' has overflowed its stack
 | `rok_thread_*`  | OS thread 관련 |
 | `rok_coro_*`    | 코루틴 관련    |
 | `rok_task_*`    | task 관련      |
-| `rok_par_*`     | 병렬 실행      |
 | `rok_io_*`      | I/O            |
 | `rok_timer_*`   | 타이머         |
 | `rok_panic`     | 진단           |
@@ -551,30 +548,16 @@ cont:
 
 위 예시는 fast path 와 slow path 가 결합된 LLVM IR 구조를 보여줍니다.
 
-## 8.5.12. 부트스트랩 / 테스트 보조 심볼 (부록, 비규범)
+## 8.5.12. 보조 심볼 (부록, 비규범)
 
 > [!IMPORTANT]
 > 이 절은 **비규범 (non-normative)** 입니다. 아래 심볼은 참조 런타임 (`rokr`) 이 내보내는 보조 심볼입니다. ABI 본 표 (8.5.1 ~ 8.5.11) 의 일부가 아니며 안정성 약속이 없습니다.
 
-시그니처는 본문과 같은 표기 (`Ptr<T>` = 가변 raw 포인터, `ConstPtr<T>` = 읽기 전용 raw 포인터) 를 따릅니다. 문자열 인자는 NUL 종료 C 문자열이며, `bool` 은 C ABI 에 안정된 1 비트 표현이 없으므로 `i32` (0 = false, 그 외 = true) 로 전달합니다. 출력 계열 함수는 식 안에서 조합되도록 항상 `0` 을 반환합니다.
+시그니처는 본문과 같은 표기 (`Ptr<T>` = 가변 raw 포인터, `ConstPtr<T>` = 읽기 전용 raw 포인터) 를 따릅니다. 문자열 인자는 NUL 종료 C 문자열입니다.
 
 ```
 extern "C" {
-    // 출력 — 값 + 개행
-    fn rok_print_i32(n: i32) -> i32;
-    fn rok_print_i64(n: i64) -> i32;
-    fn rok_print_f64(d: f64) -> i32;                       // printf "%g"
-    fn rok_print_str(s: ConstPtr<u8>) -> i32;
-    fn rok_print_bool(b: i32) -> i32;                      // "true" / "false", 개행 없음
-
-    // 출력 — 개행 없음
-    fn rok_write_str(s: ConstPtr<u8>) -> i32;
-    fn rok_write_i64(n: i64) -> i32;
-    fn rok_write_f64(d: f64) -> i32;
-    fn rok_write_hex(n: i64) -> i32;                       // "0x%llx"
-
     // 메모리
-    fn rok_alloc(size: usize, align: usize) -> Ptr<u8>;    // type_id 없는 할당
     fn rok_free(ptr: Ptr<u8>);                             // null 무시
     fn rok_load_i32(ptr: ConstPtr<i32>) -> i32;
     fn rok_load_i64(ptr: ConstPtr<i64>) -> i64;
@@ -585,19 +568,13 @@ extern "C" {
 
     // C 문자열
     fn rok_str_len(s: ConstPtr<u8>) -> usize;              // null → 0
-    fn rok_str_eq(a: ConstPtr<u8>, b: ConstPtr<u8>) -> i32; // 같으면 1, 아니면 0
-
-    // 테스트
-    fn rok_assert(cond: i32) -> i32;                       // 0 이면 "assertion failed" 출력 후 종료 코드 101
 
     // GC
-    fn rok_gc_collect_young();                             // minor 수집을 강제 (세대 수집이 켜져 있을 때)
-}
+    fn rok_gc_collect_young();                             // minor 수집을 강제
 ```
 
 다음 규칙이 적용됩니다.
 
-- 컴파일러는 부트스트랩 모드에서 사용자 파일마다 위 심볼의 `extern "C"` 선언을 합성할 수 있으며, 이 경우 사용자 코드는 별도의 선언 없이 호출할 수 있습니다. 이 합성은 구현 편의이며 언어 의미의 일부가 아닙니다.
 - 사용자 코드와 표준 라이브러리는 이 심볼에 의존해서는 안 됩니다. 시그니처는 예고 없이 바뀌거나 제거될 수 있습니다.
 - `rok_` prefix 를 공유하지만 8.5.8 의 영역 표에는 포함되지 않습니다. 이름 충돌을 피하기 위해 사양의 규범 심볼은 위 이름을 재사용하지 않습니다.
 - `rok_panic` 은 이 부록에 속하지 않습니다. 시그니처는 [8.5.7](#857-diagnostic-영역) 의 `rok_panic(msg: ConstPtr<u8>, msg_len: usize)` 가 권위이며, 구현이 이와 다른 시그니처를 내보내는 것은 부적합 (non-conformance) 입니다.

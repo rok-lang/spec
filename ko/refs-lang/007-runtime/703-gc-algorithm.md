@@ -30,7 +30,7 @@ full 수집은 단편화된 block 의 산 객체를 다른 block 으로 옮길 �
 - 옮긴 객체의 옛 자리에는 forwarding pointer 를 남기고, 같은 수집 안에서 모든 정밀 참조를 새 위치로 고칩니다.
 - 옮기지 않는 객체: 루트가 직접 가리키는 객체 ([7.4.1](704-barriers-and-roots.md#루트가-가리키는-객체는-옮기지-않음)), 모호한 word (`AMBIGUOUS_WORD`, enum / union payload) 가 가리키는 객체, `PINNED` / `NOMOVE` 객체, LOS 객체.
 - 다음 cycle 의 할당 예산을 넘는 빈 block 은 OS 에 돌려줍니다.
-- `ROK_GC_EVAC=always|off` 로 evacuation 을 강제하거나 끕니다 (기본은 자동, [9.9](../009-tools/909-debug-tools.md)).
+- 테스트용 `ROK_GC_EVAC=always` 는 full 수집마다 evacuation 합니다 ([9.9.8](../009-tools/909-debug-tools.md#998-메모리--gc-도구)).
 
 ## 7.3.2. sticky mark-bit 세대 수집
 
@@ -43,7 +43,6 @@ nursery 공간을 따로 두지 않고, 헤더의 `STICKY` 비트 ([8.1.3](../00
 
 - young line 은 객체 조회가 닿은 block 만 파싱합니다.
 - full 수집은 old 객체의 바이트가 `max(4 MiB, 직전 full 수집 뒤 live × 2)` 에 닿을 때, 또는 `rok_gc_collect` 를 부를 때 일어납니다.
-- `ROK_GC_GEN=0` 은 세대 수집을 끄고 매번 full 수집합니다.
 
 ## 7.3.3. mark 의 절차
 

@@ -16,7 +16,11 @@
 | `char`            | `i32` (Unicode 코드포인트)                                                                  |
 | `c_char`          | `i8`                                                                                        |
 
-`str` 은 `!llvm.struct<(ptr, iN)>` (포인터와 `usize` 바이트 길이) 로 값 전달되는 불변 쌍입니다. 리터럴은 immortal 상수를, 런타임에 만든 문자열은 GC 객체 (type id `1`, [8.2.12](802-scan-table.md#8212-런타임-예약-type-id)) 의 payload 를 가리킵니다. `str` 슬롯은 GC 가 scan 할 때 `ptr` 을 객체 내부 포인터로 다룹니다.
+`str` 은 `!llvm.struct<(ptr, iN)>` (포인터와 `usize` 바이트 길이) 로 값 전달되는 불변 쌍입니다. 리터럴은 immortal 상수를, 런타임에 만든 문자열은 GC 객체 (type id `1`, [8.2.12](802-scan-table.md#8212-런타임-예약-type-id)) 의 payload 를 가리킵니다.
+
+- `s[a:b]` 는 `(ptr + a, b - a)` 이며 원래 바이트를 공유합니다 (O(1)).
+- `ptr` 은 GC 객체의 어느 바이트든 (끝의 NUL 포함) 가리킬 수 있고, 객체 전체를 살려 둡니다. GC 는 이를 내부 포인터로 다루며, evacuation 은 offset 을 지켜 고쳐 씁니다.
+- 리터럴과 런타임이 새로 만든 문자열은 바이트 뒤에 NUL 이 있습니다. slice 는 없을 수 있습니다.
 
 여기서 한 가지 유의할 점이 있습니다. MLIR 의 정수 타입 자체에는 부호 정보가 없으며, 부호 해석은 연산자 (`addi` 나 `subi` 등) 가 결정합니다.
 
@@ -58,7 +62,7 @@ struct Point { x: f64; y: f64; }
 )>
 ```
 
-또한 `memref<!Point>` 나 `!llvm.ptr` 와 같은 포인터 형태로도 표현될 수 있습니다.
+GC 객체로서는 `!llvm.ptr` 입니다.
 
 [GC](../000-meta/007-glossary.md#gc-garbage-collector) 객체는 항상 heap 에 자리하며 ([TLAB](../000-meta/007-glossary.md#tlab-thread-local-allocation-buffer) 할당), 스택 할당은 escape 분석을 거친 뒤에 가능합니다 (CoroElide 와 비슷한 방식입니다).
 
@@ -287,7 +291,7 @@ cf.switch %tag, [
 [i32; 8]
 ```
 
-이는 `!llvm.array<8 x i32>` 또는 `memref<8xi32>` 로 lower 됩니다. GC 객체 안에 자리하는 경우라면 16 바이트 헤더가 배열 앞에 붙습니다.
+이는 `!llvm.array<8 x i32>` 로 lower 됩니다. GC 객체 안에 자리하는 경우라면 16 바이트 헤더가 배열 앞에 붙습니다.
 
 ## 8.8.11. 함수 타입: `fn(...) -> ...`
 
@@ -342,7 +346,7 @@ let y = x + 1i32;
 %y = arith.addi %x, %1 : i32
 ```
 
-지역 변수는 SSA 로 lower 되며, 변경 가능한 변수의 경우에는 `memref.alloca` 와 load/store 의 조합으로 처리됩니다.
+지역 변수는 SSA 로 lower 하며, 스택 슬롯이 필요한 지역은 `llvm.alloca` 와 load / store 로 둡니다 (debug / release 같음).
 
 ```rok
 let counter = 0i32;
@@ -352,15 +356,15 @@ counter = counter + 1i32;
 이는 다음과 같이 lower 됩니다.
 
 ```
-%counter_ref = memref.alloca() : memref<i32>
-memref.store %0, %counter_ref[] : memref<i32>
+%counter_ref = llvm.alloca %c1 x i32 : (i64) -> !llvm.ptr
+llvm.store %0, %counter_ref : i32, !llvm.ptr
 
-%loaded = memref.load %counter_ref[] : memref<i32>
+%loaded = llvm.load %counter_ref : !llvm.ptr -> i32
 %new = arith.addi %loaded, %1 : i32
-memref.store %new, %counter_ref[] : memref<i32>
+llvm.store %new, %counter_ref : i32, !llvm.ptr
 ```
 
-이렇게 생성된 코드는 LLVM 의 mem2reg 패스에 의해 다시 SSA 로 promote 됩니다.
+최적화 빌드에서는 LLVM 의 mem2reg 가 이를 다시 SSA 로 올립니다.
 
 ## 8.8.14. 리터럴 desugar
 

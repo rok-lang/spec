@@ -41,8 +41,7 @@ rok 전용 MLIR 다이얼렉트는 별도로 정의하지 않습니다. 사용�
 | `arith`    | 정수 / 부동소수 산술 / 비교              |
 | `scf`      | 구조적 제어흐름 (`if` / `for` / `while`) |
 | `cf`       | 비구조적 분기 (switch, cond_br)          |
-| `memref`   | 스택 / 힙 메모리 참조                    |
-| `index`    | memref 인덱싱                            |
+| `index`    | 인덱스 타입 연산                         |
 | `math`     | 수학 함수                                |
 | `llvm`     | 저수준 op (intrinsic, `struct`)          |
 

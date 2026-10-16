@@ -4,7 +4,7 @@ rok 의 스케줄러는 M:N [work-stealing](../000-meta/007-glossary.md#work-ste
 
 ## 7.6.1. 통합된 worker 모델
 
-worker 는 CPU 수만큼의 OS thread 입니다. pool 은 `task::block_on` 이 띄우며, 부른 스레드가 worker 0 입니다. `par::*` 도 같은 pool 위에서 돕니다 ([stdlib 2.18.3](../../refs-standard-libraries/200-core/218-task.md#2183-스케줄러-모델--work-stealing)). 각 worker 는 다음 역할을 겸합니다.
+프로세스에는 executor 가 하나 있으며 처음 쓸 때 시작합니다. worker 는 CPU 수만큼의 OS thread 이고, 여기에 blocking lane 과 I/O driver 가 붙습니다. `task::block_on` 은 부른 스레드를 guest worker 로 붙이며, 돌아올 때 남은 task 는 계속 실행됩니다. `par::*` 와 `spawn_blocking` 도 같은 executor 를 씁니다 ([stdlib 2.18.3](../../refs-standard-libraries/200-core/218-task.md#2183-스케줄러-모델--work-stealing)). 각 worker 는 다음 역할을 겸합니다.
 
 ```
 worker = {

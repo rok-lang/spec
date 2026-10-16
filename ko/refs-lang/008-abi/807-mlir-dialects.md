@@ -12,12 +12,11 @@
 | `arith`    | 정수 / 부동소수 산술 / 비교              | 연산자 lowering                                                         |
 | `scf`      | 구조적 제어흐름 (`if` / `for` / `while`) | `if` / 루프 lowering                                                    |
 | `cf`       | 비구조적 분기 (switch, cond_br)          | `match` decision tree                                                   |
-| `memref`   | 스택 / 힙 메모리 참조                    | 객체 / 배열 lowering                                                    |
-| `index`    | memref 인덱싱                            | 인덱싱 lowering                                                         |
+| `index`    | 인덱스 타입 연산                         | 인덱싱 lowering                                                         |
 | `math`     | 수학 함수                                | sqrt / sin / cos 등                                                     |
-| `llvm`     | 저수준 op (intrinsic, `struct`)          | [GC](../000-meta/007-glossary.md#gc-garbage-collector) / coroutine      |
+| `llvm`     | 저수준 op (intrinsic, `struct`, `alloca`, load / store) | 스택 슬롯, 객체 / 배열, [GC](../000-meta/007-glossary.md#gc-garbage-collector) |
 
-별도의 커스텀 rok 다이얼렉트는 두지 않습니다. 일반 rok 코드의 의미는 위에 나열한 여덟 개의 표준 다이얼렉트로 표현되며, 가속 라이브러리가 추가로 활용하는 다이얼렉트는 8.7.5 에서 다룹니다.
+별도의 커스텀 rok 다이얼렉트는 두지 않습니다. 일반 rok 코드의 의미는 위에 나열한 일곱 개의 표준 다이얼렉트로 표현되며, 가속 라이브러리가 추가로 활용하는 다이얼렉트는 8.7.5 에서 다룹니다.
 
 ## 8.7.2. 변환 흐름 정리
 
@@ -95,16 +94,6 @@ cf.switch %v : i32, [
 
 복잡한 [`match`](../003-expressions/312-match-expression.md) 의 decision tree 는 `cf` 다이얼렉트의 cond_br 와 switch 를 사용해 lower 됩니다.
 
-### `memref`
-
-```
-%ref = memref.alloca() : memref<i32>
-memref.store %v, %ref[] : memref<i32>
-%loaded = memref.load %ref[] : memref<i32>
-```
-
-객체의 필드 슬롯을 표현할 때 사용합니다. GC 객체는 heap memref 형태로 lower 되며, 자세한 내용은 [lowering 타입](808-lowering-types.md) 문서에서 별도로 정의합니다.
-
 ### `index`
 
 ```
@@ -112,7 +101,7 @@ memref.store %v, %ref[] : memref<i32>
 %new_idx = index.add %idx, %step
 ```
 
-memref 인덱싱에 들어가는 정수 자리는 `index` 다이얼렉트로 lower 됩니다.
+`index` 타입이 필요한 자리 (`scf.for` 의 경계 등) 는 `index` 다이얼렉트로 lower 됩니다.
 
 ### `math`
 
@@ -139,7 +128,7 @@ coroutine 과 저수준 intrinsic 등은 `llvm` 다이얼렉트의 영역에 속
 ## 8.7.4. 다이얼렉트 사용 우선순위
 
 ```
-가능하면 → arith / scf / cf / memref / index / math / func
+가능하면 → arith / scf / cf / index / math / func
 필요시 → llvm
 ```
 

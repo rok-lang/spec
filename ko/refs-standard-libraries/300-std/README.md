@@ -44,13 +44,13 @@ std 의 I/O 함수는 sync 이며 호출한 OS 스레드를 막습니다. task �
 // blocking — OS 스레드 (thread::spawn) 나 task 밖에서
 fn fetch(addr: str) throws (IoError) -> List<u8> {
     using conn = try net::tcp_connect(addr);
-    return try conn.read_all();
+    return try conn.read_to_end();
 }
 
 // async — task 만 중단
 async fn fetch_async(addr: str) throws (IoError) -> List<u8> {
     using conn = try await net::tcp_connect_async(addr);
-    return try await conn.read_all_async();
+    return try await conn.read_to_end_async();
 }
 ```
 
@@ -78,7 +78,7 @@ let conn = try net::tcp_connect("example.com:443");
 let tls_conn = try tls::Client::new(conn, "example.com");
 let req = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
 try tls_conn.write_all(req);
-let resp = try tls_conn.read_all();
+let resp = try tls_conn.read_to_end();
 ```
 
 backend 로는 rustls 또는 aws-lc-rs 식을 상정합니다 (memory-safe, no OpenSSL FFI).

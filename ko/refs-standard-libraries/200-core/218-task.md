@@ -9,11 +9,11 @@
 핵심 API 의 시그니처는 다음과 같습니다.
 
 ```rok
-fn block_on<F: Future>(f: F) -> F::Output;              // sync 진입점 — pool 을 띄워 f 를 끝까지 실행
+fn block_on<F: Future>(f: F) -> F::Output;              // sync 진입점 — executor 에 붙어 f 를 끝까지 실행
 fn spawn<F: Future + Send>(f: F) -> Task<F::Output> where F::Output: Send;
 fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future — 현재 worker 에 고정
 fn spawn_blocking<T: Send>(f: fn() -> T + Send) -> Blocking<T>;   // blocking 작업을 executor 밖 OS 스레드에서
-fn workers() -> usize;                                  // 실행 중 pool 의 worker 수 (block_on 밖에서는 1)
+fn workers() -> usize;                                  // executor 안에서는 pool 크기, 밖에서는 1
 fn cpu_count() -> usize;                                // 온라인 CPU 수 — pool 크기
 async fn race<T>(tasks: List<Task<T>>) -> T;            // 첫 완료 task 결과
 fn select<F: Future>(futs: List<F>) -> SelectFuture<F>; // await — (index, 결과), spawn 하지 않음
@@ -168,7 +168,9 @@ impl<T> Future for Task<T> {              // `await t` — 완료까지 suspend
 
 ## 2.18.3. 스케줄러 모델 — work-stealing
 
-`block_on` 은 CPU 수 (`cpu_count()`) 만큼의 worker 로 이루어진 work-stealing pool 을 띄우며, 호출한 스레드가 worker 0 이 됩니다. `spawn` 한 task 는 어느 worker 에서든 실행될 수 있으므로 `Future + Send` 이고 결과도 `Send` 여야 합니다. `spawn_local` 의 task 는 그것을 만든 worker 에 고정됩니다. `block_on` 이 끝날 때 아직 실행 중인 task 는 버려집니다.
+프로세스에는 executor 가 하나 있습니다. 처음 쓸 때 시작하며, CPU 수 (`cpu_count()`) 만큼의 worker thread, blocking lane, I/O driver 로 이루어집니다. `block_on` 은 부른 스레드를 guest worker 로 이 executor 에 붙여 `f` 를 끝까지 실행합니다. `block_on` 이 돌아올 때 실행 중인 task 는 계속 실행됩니다. `par::*` 와 `spawn_blocking` 도 같은 executor 를 씁니다.
+
+`spawn` 한 task 는 어느 worker 에서든 실행될 수 있으므로 `Future + Send` 이고 결과도 `Send` 여야 합니다. `spawn_local` 의 task 는 그것을 만든 worker 에 고정됩니다.
 
 스케줄러 골격은 다음과 같이 구성됩니다.
 

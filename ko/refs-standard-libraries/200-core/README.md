@@ -56,7 +56,7 @@ use rok::core::ops::{Add, Sub};
 
 ### 포맷 / 변환
 
-- [2.10. fmt (`Display`, `Debug`, `Binary`, `LowerHex`, `UpperHex`, `LowerExp`, `UpperExp`, `Octal`)](210-fmt.md)
+- [2.10. fmt (`Display`, `Debug`, `Format`)](210-fmt.md)
 - [2.11. 변환 (`From`, `Into`, `TryFrom`, `TryInto`, `saturating_into`, `wrapping_into`)](211-conversion.md)
 
 ### 메타 / 마커

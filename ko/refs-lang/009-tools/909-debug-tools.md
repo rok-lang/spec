@@ -193,6 +193,7 @@ span 은 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_p
 - 줄 번호는 원본 .rok 파일의 줄을 가리킵니다.
 - 지역 변수는 원본 이름과 타입으로 보입니다. 원시 타입 (정수, 부동소수, `bool`, `char`) 외에 struct (필드 이름), 튜플, `str`, `any`, sum 타입, 배열의 DWARF 타입을 냅니다.
 - 블록마다 lexical block scope 를 내므로 가려진 (shadowed) 이름은 해당 블록 안에서만 보입니다.
+- 스택 슬롯을 가진 지역은 debug / release 모두 `llvm.alloca` 하나에 놓입니다. 그래서 `-g` 는 최적화 수준과 무관하게 같은 슬롯에 debug 정보를 붙입니다.
 
 ### gdb / lldb 사용
 
@@ -241,8 +242,7 @@ perf report
 |---------------------------|------------------------------------------------------------------------------|
 | `ROK_GC_LOG=1`            | 수집마다 종류 (minor / full), pause 시간, mark 수, sweep 결과를 stderr 에 출력 |
 | `ROK_GC_STATS=1`          | 종료 시 수집 횟수 (minor / full), pause 시간, 수집기 CPU 시간을 stderr 에 출력. 둘째 줄은 block 수 / 상주 크기 / evacuation 횟수 / 옮긴 바이트 |
-| `ROK_GC_GEN=0`            | 세대 수집 ([7.3.2](../007-runtime/703-gc-algorithm.md#732-sticky-mark-bit-세대-수집)) 을 끄고 매번 full 수집 |
-| `ROK_GC_EVAC=always\|off` | full 수집의 evacuation 을 매번 하거나 끔. 기본은 자동 ([7.3.1](../007-runtime/703-gc-algorithm.md#731-immix-mark-region)) |
+| `ROK_GC_EVAC=always`      | 테스트용. full 수집마다 evacuation ([7.3.1](../007-runtime/703-gc-algorithm.md#731-immix-mark-region)) |
 | `ROK_GC_STRESS=N`         | 테스트용. 할당 N 번마다 수집 (그 8 번째마다 full)                            |
 | `ROK_HEAP_DUMP=on_oom`    | OOM 시 heap 의 객체 분포와 큰 객체를 stderr 에 출력. 형식은 런타임이 정함    |
 

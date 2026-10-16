@@ -23,7 +23,7 @@ using_binding  ::= pattern "=" expr
 
 ```rok
 using f = fs::open(path) {
-    f.read_all()                   // 마지막 식이 using 의 값
+    f.read_to_end()                   // 마지막 식이 using 의 값
 }                                  // ← 여기서 f.drop() 자동 호출
 ```
 
@@ -79,7 +79,7 @@ using a = AcquireA(), b = AcquireB(a) {
 
 ```rok
 let content = using f = try fs::open(path) {
-    try f.read_all()
+    try f.read_to_end()
 };
 ```
 

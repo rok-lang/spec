@@ -66,6 +66,22 @@ if x { ... }              // ERROR if x: i32 (i32 는 bool 이 아님)
 if x != 0i32 { ... }      // OK
 ```
 
+### 조건 자리의 struct 리터럴
+
+다음 자리에서는 식의 최상위에 struct 리터럴을 둘 수 없습니다. 그 `{` 가 본체의 시작으로 읽히기 때문입니다.
+
+- `if` / `while` / `if let` / `while let` 의 조건
+- `match` 의 피검사 식 ([3.12](312-match-expression.md))
+- `for` 의 반복 대상 ([3.13](313-loop-expressions.md))
+
+구분자 안 (`( )`, `[ ]`, 호출 / 메서드 인자, 배열, 튜플, 인덱스, dict 리터럴, 블록 `{ }`) 에서는 됩니다. 최상위에 쓰려면 괄호로 감쌉니다.
+
+```rok
+if S { a: 1 }.ok() { .. }       // ERROR — `S` 뒤의 `{` 가 본체
+if (S { a: 1 }).ok() { .. }     // OK
+if check(S { a: 1 }) { .. }     // OK — 인자 안
+```
+
 ## 3.10.4. divergent 분기
 
 [블록 표현식](309-block-expressions.md) 의 divergent 블록은 분기 결과 타입 검사에서 임의의 타입과 호환됩니다.

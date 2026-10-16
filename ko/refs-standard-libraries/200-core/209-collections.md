@@ -95,6 +95,8 @@ impl<T> List<T> {
     fn last(self) -> T | none;
 
     fn extend<I: IntoIterator<Item = T>>(self, iter: I);
+    fn sort(self) where T: Ord;                  // 오름차순, stable
+    fn sort_by(self, cmp: fn(T, T) -> Ordering); // stable
     fn reserve(self, additional: usize);
     fn shrink_to_fit(self);
 
@@ -297,6 +299,49 @@ let d = OrderedDict::from([("a", 1), ("b", 2)]);
 let s = OrderedSet::from([1, 2, 3]);
 ```
 
+## 2.9.5a. `Deque<T>` — 양끝 큐
+
+ring buffer 위의 양끝 큐입니다.
+
+```rok
+impl<T> Deque<T> {
+    fn new() -> Deque<T>;
+    fn with_capacity(cap: usize) -> Deque<T>;
+    fn len(self) -> usize;
+    fn is_empty(self) -> bool;
+    fn push_back(self, x: T);
+    fn push_front(self, x: T);
+    fn pop_front(self) -> T | none;
+    fn pop_back(self) -> T | none;
+    fn get(self, i: usize) -> T | none;
+    fn front(self) -> T | none;
+    fn back(self) -> T | none;
+    fn clear(self);
+    fn iter(self) -> DequeIter<T>;             // 앞에서 뒤로
+}
+```
+
+`d[i]` / `d[i] = v` (범위 밖이면 panic), `IntoIterator`, `Default`, `Debug` 를 구현합니다.
+
+## 2.9.5b. `BinaryHeap<T>` — 우선순위 큐
+
+```rok
+impl<T: Ord> BinaryHeap<T> {
+    fn new() -> BinaryHeap<T>;                 // max-heap: 가장 큰 것이 먼저
+}
+impl<T> BinaryHeap<T> {
+    fn by(before: fn(T, T) -> bool) -> BinaryHeap<T>;   // before(a, b) 이면 a 가 먼저
+    fn len(self) -> usize;
+    fn is_empty(self) -> bool;
+    fn peek(self) -> T | none;
+    fn push(self, x: T);
+    fn pop(self) -> T | none;
+    fn clear(self);
+    fn retain(self, keep: fn(T) -> bool);
+    fn iter(self) -> ListIter<T>;              // 순서 없음
+}
+```
+
 ## 2.9.6. `Tuple<...>` — 고정 heterogeneous
 
 ```rok
@@ -466,6 +511,8 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 | `Set<T>`      | `rok::core::collections::set`             | `Dict<T, ()>` 위                    |
 | `OrderedDict` | `rok::core::collections::ordered_dict`    | linked-hash 또는 indices            |
 | `OrderedSet`  | `rok::core::collections::ordered_set`     | (위와 동일)                         |
+| `Deque<T>`    | `rok::core::collections::deque`           | ring buffer                         |
+| `BinaryHeap<T>` | `rok::core::collections::heap`          | `List` 위의 implicit binary tree    |
 | `Tuple`       | **컴파일러 내장** + 표준 라이브러리 hook | `#[literal(...)]` + 컴파일러 lookup |
 | `Slice<T>`    | `rok::core::collections::slice`           | struct ptr + len + stride           |
 
@@ -501,3 +548,7 @@ impl<T> GcBuf<T> {
 ```
 
 한 원소는 한 word 를 차지합니다. 일반 사용자 코드는 `List<T>` 를 쓰며, `GcBuf<T>` 는 컬렉션 구현을 위한 것입니다.
+
+```rok
+fn buf_same<T>(a: GcBuf<T>, b: GcBuf<T>) -> bool;   // 같은 buffer 인가 (내용이 아니라 정체). 아무것도 고정하지 않음
+```

@@ -67,7 +67,7 @@ frame 은 코루틴을 부를 때마다 할당합니다. 호출자가 곧바로 
 
 ## 7.8.8. 런타임 심볼
 
-`await` 의 대기와 깨움은 `rok::core::task` 의 parking registry 가 맡습니다 (`rok_task_parking_*`, [8.5.4](../008-abi/805-extern-symbols.md#854-scheduler-영역)). 런타임의 `rok_coro_frame_alloc` / `rok_coro_park` / `rok_coro_unpark` 는 C 와 저수준 코드용이며 컴파일러는 쓰지 않습니다 ([8.5](../008-abi/805-extern-symbols.md)).
+`await` 의 대기와 깨움은 `rok::core::task` 의 parking registry 가 맡습니다 (`rok::core::task` 가 `rok_task_hooks_install` 로 설치한 hook, [8.5.4](../008-abi/805-extern-symbols.md#854-scheduler-영역)). 런타임의 `rok_coro_frame_alloc` / `rok_coro_park` / `rok_coro_unpark` 는 C 와 저수준 코드용이며 컴파일러는 쓰지 않습니다 ([8.5](../008-abi/805-extern-symbols.md)).
 
 ## 7.8.9. 스택 깊이
 

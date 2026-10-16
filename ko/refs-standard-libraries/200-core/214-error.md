@@ -278,6 +278,25 @@ fn require_positive(x: i32) -> u32 {
 - `match` exhaustive 검사 후 dead arm
 - `if let ... else` 의 else 가 divergent 임을 보장하는 자리
 
+### `assert` / `assert_eq` / `assert_ne`
+
+```rok
+fn assert(cond: bool, msg: str = "") -> ();
+fn assert_eq<T: PartialEq + Debug>(left: T, right: T, msg: str = "") -> ();
+fn assert_ne<T: PartialEq + Debug>(left: T, right: T, msg: str = "") -> ();
+```
+
+core prelude 로 어디서든 쓸 수 있습니다. 조건이 거짓이면 panic 합니다 (종료 코드 101). 메시지는 다음과 같으며, `msg` 가 비어 있지 않으면 `: msg` 를 붙입니다.
+
+```
+assertion failed[: msg]
+assertion `left == right` failed[: msg]
+  left: <left 의 Debug>
+ right: <right 의 Debug>
+```
+
+`assert_ne` 는 `left != right` 이고 나머지는 같습니다.
+
 ## 2.14.6. `try` / `catch` / `throw` / `throws` / `finally`
 
 문법 권위는 [refs-lang 3.14 에러 제어 흐름](../../refs-lang/003-expressions/314-error-control-flow.md) 과 [refs-lang 4.14 `throws` 시그니처](../../refs-lang/004-functions/414-throws.md) 에 있으며, 이 절에서는 표준 라이브러리 측의 관례만 정리합니다.
