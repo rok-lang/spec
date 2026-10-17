@@ -39,7 +39,7 @@ none
 'A'
 ```
 
-Every literal form from [numeric literals](../001-lexical/106-numeric-literals.md) to [boolean and sentinel literals](../001-lexical/109-other-literals.md) may appear in pattern position; matching uses equality comparison (`==`).
+Every literal form from [numeric literals](../001-lexical/106-numeric-literals.md) to [boolean and sentinel literals](../001-lexical/109-other-literals.md) may appear in pattern position; matching uses equality comparison (`==`). On a sum scrutinee, a literal or range pattern matches the member type it fits (`1` matches the `i32` member of `i32 | str`).
 
 ### Identifier patterns (bindings)
 

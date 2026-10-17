@@ -13,7 +13,7 @@ A package without dependencies builds by file conventions alone, without a manif
 | `search`, `publish`, `yank`                                       | Stones (9.10.4a)                        |
 | `env`                                                             | Environments (9.10.5)                   |
 | `toolchain`                                                       | Toolchain (9.10.6)                      |
-| `build`, `check`, `run`, `test`, `bench`, `emit`                  | Delegated to `rokc` with dependencies attached |
+| `build`, `check`, `run` (and `run -i`), `test`, `bench`, `emit`   | Delegated to `rokc` with dependencies attached |
 | `doc`, `lint`, `repl`, `lsp`                                      | Delegated to `rokc` with dependencies attached |
 | `fmt`, `clean`, `demangle`                                        | Delegated to `rokc` without dependencies |
 | `jupyter`                                                         | Running the kernel (`--connection-file`) is delegated; `jupyter install [--env <name>]` installs the kernelspec ([9.8.3](908-jupyter-integration.md#983-kernelspec-installation)) |
@@ -71,6 +71,9 @@ Package {
     name: "geom",                    // string, optional
     version: "0.3.1",                // string, optional
     toolchain: "0.4",                // string, optional — toolchain pin (9.10.6)
+    description: "2D geometry",      // string, optional
+    license: "MIT OR Apache-2.0",    // string, optional (SPDX expression)
+    repository: "https://example.com/geom.git",   // string, optional
     deps: {                          // package name (string) -> Dep
         "util": Dep::path("../util"),
         "parser": Dep::git("https://example.com/parser.git", tag: "v1.2"),
@@ -214,6 +217,7 @@ Stone { name: "json", vers: "1.4.2", deps: [{ name: "util", req: "^0.3", kind: "
 ```
 
 - The `kind` in `deps` is `"normal"` or `"dev"`; `registry` is optional.
+- `description`, `license` and `repository` from the manifest appear as optional trailing fields.
 - The package is at the root of the `source` repository. `cksum` is the git tree hash of that commit, verified after checkout.
 
 ### Resolution

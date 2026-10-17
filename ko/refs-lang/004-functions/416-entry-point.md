@@ -18,7 +18,7 @@ top_stmt    ::= let_stmt | let_else_stmt | expr ";" | block_like_expr ";"?   // 
 module_file ::= item*                          // lib.rok 및 main.rok 가 아닌 모든 모듈 파일
 ```
 
-`item` 은 [모듈 안의 항목](../005-modules/504-modules.md#547-모듈-안의-항목) (`fn`, `struct`, `enum`, `trait`, `impl`, `const`, `static`, `mod`, `use` 등) 이고, `let_stmt` / `let_else_stmt` / `expr ";"` 은 [블록 표현식](../003-expressions/309-block-expressions.md) 의 문장과 같습니다. 제어 흐름 (`if`, `match`, `for`, `while`, `loop`, `try`) 은 모두 식이므로 `expr ";"` 에 포함됩니다. 함수 본체와 달리 종결자 없는 마지막 식 (`tail_expr`) 은 두지 않습니다 — 암묵 `main` 은 값을 반환하지 않기 때문입니다.
+`item` 은 [모듈 안의 항목](../005-modules/504-modules.md#547-모듈-안의-항목) (`fn`, `struct`, `enum`, `trait`, `impl`, `const`, `static`, `mod`, `use` 등) 이고, `let_stmt` / `let_else_stmt` / `expr ";"` 은 [블록 표현식](../003-expressions/309-block-expressions.md) 의 문장과 같습니다. 제어 흐름 (`if`, `match`, `for`, `while`, `loop`, `try`) 은 모두 식이므로 `expr ";"` 에 포함됩니다. 함수 본체와 달리 종결자 없는 마지막 식 (`tail_expr`) 은 두지 않습니다 — 암묵 `main` 은 값을 반환하지 않기 때문입니다. 항목만 있고 문장도 `fn main` 도 없는 `main.rok` 는 빈 암묵 `main` 을 가집니다.
 
 > [!IMPORTANT]
 > 한 `main.rok` 안에 top-level 문과 `fn main` 선언이 **함께** 있으면 **컴파일 에러** 입니다. 두 진입점 가운데 어느 쪽이 실행되는지를 독자가 추측해야 하는 상황을 원천적으로 막기 위함입니다.

@@ -13,7 +13,7 @@
 | `search`, `publish`, `yank`                                       | stone (9.10.4a)                         |
 | `env`                                                             | 환경 (9.10.5)                           |
 | `toolchain`                                                       | toolchain (9.10.6)                      |
-| `build`, `check`, `run`, `test`, `bench`, `emit`                  | 의존성을 붙여 `rokc` 에 위임            |
+| `build`, `check`, `run` (와 `run -i`), `test`, `bench`, `emit`    | 의존성을 붙여 `rokc` 에 위임            |
 | `doc`, `lint`, `repl`, `lsp`                                      | 의존성을 붙여 `rokc` 에 위임            |
 | `fmt`, `clean`, `demangle`                                        | 의존성 없이 `rokc` 에 위임              |
 | `jupyter`                                                         | 커널 실행 (`--connection-file`) 은 위임, `jupyter install [--env <name>]` 은 kernelspec 설치 ([9.8.3](908-jupyter-integration.md#983-kernelspec-설치)) |
@@ -71,6 +71,9 @@ Package {
     name: "geom",                    // 문자열, 선택
     version: "0.3.1",                // 문자열, 선택
     toolchain: "0.4",                // 문자열, 선택 — toolchain 고정 (9.10.6)
+    description: "2D geometry",      // 문자열, 선택
+    license: "MIT OR Apache-2.0",    // 문자열, 선택 (SPDX 식)
+    repository: "https://example.com/geom.git",   // 문자열, 선택
     deps: {                          // 패키지 이름 (문자열) -> Dep
         "util": Dep::path("../util"),
         "parser": Dep::git("https://example.com/parser.git", tag: "v1.2"),
@@ -214,6 +217,7 @@ Stone { name: "json", vers: "1.4.2", deps: [{ name: "util", req: "^0.3", kind: "
 ```
 
 - `deps` 의 `kind` 는 `"normal"` 또는 `"dev"`, `registry` 는 선택입니다.
+- 매니페스트의 `description`, `license`, `repository` 는 선택인 뒤쪽 필드로 들어갑니다.
 - 패키지는 `source` 저장소의 루트에 있습니다. `cksum` 은 그 커밋의 git tree hash 이며, checkout 뒤에 검증합니다.
 
 ### 해소

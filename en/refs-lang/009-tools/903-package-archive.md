@@ -51,7 +51,7 @@ nm libfoo.a
 
 ## 9.3.6. Standard library
 
-The standard library (`rok::bare` / `core` / `std`) is not distributed as separate archives. Each build compiles it from source (`--bootstrap`).
+The standard library (`rok::bare` / `core` / `std`) is not distributed as separate archives. It is compiled from source (`--bootstrap`) and reused from `rokc`'s cache while the toolchain, options and sources are unchanged ([9.2.19](902-aot-pipeline.md#9219-installation-layout)).
 
 ## 9.3.7. Linking
 

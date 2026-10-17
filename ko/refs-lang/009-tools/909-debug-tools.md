@@ -17,6 +17,8 @@ rokc build --emit=obj           # object 파일
 rokc build --emit=expanded      # 메타 확장 결과 (9.9.10)
 ```
 
+`mlir` 과 `llvmir` 은 최적화 수준과 관계없이 MLIR → LLVM backend 에서, `asm` 과 `obj` 는 수준이 고른 backend 에서 나옵니다 ([9.2.10](902-aot-pipeline.md#9210-backend-선택)).
+
 산출물은 다음 위치에 출력됩니다.
 
 ```
@@ -78,16 +80,21 @@ generics: a7c91d8e44b2f190 (type tuple hash)
 진단 메시지는 다음과 같은 표준 형식으로 출력됩니다.
 
 ```
-error: 'count' is not declared
-  --> src/main.rok:5:10
+error[E100]: cannot find value `count` in this scope
+  --> src/main.rok:5:13
    |
+ 2 |     let counter = 0;
+   |         ------- similar name defined here
+...
  5 |     let x = count + 1;
-   |             ^^^^^ unknown identifier
+   |             ^^^^^ not found in this scope
    |
-   = note: did you mean 'counter'?
+   = help: did you mean `counter`?
 ```
 
 이 형식은 [소스 파일](../001-lexical/101-source-files.md) 의 파일 + 줄 + 컬럼 진단 단위를 사용합니다.
+
+머리줄은 `<severity>[<code>]: <message>` 이고 `--> path:line:col` 이 주 위치입니다. 주 span 은 `^`, 보조 span 은 `-` 로 밑줄을 긋고, 다른 파일의 보조 span 은 `::: path:line:col` 로 시작합니다. 끝의 `= note:` 줄은 맥락을, `= help:` 줄은 고치는 방법을 덧붙입니다.
 
 ### JSON 형식 (도구 통합)
 
@@ -110,7 +117,7 @@ rokc build --message-format=json
 | `kind`     | 에러 종류의 이름                                                   |
 | `message`  | 메시지                                                             |
 | `spans`    | 위치 목록. 첫 원소가 주 위치 (`is_primary: true`), 나머지는 보조 위치 |
-| `notes`    | note 문자열 목록                                                   |
+| `notes`    | note 문자열 목록. help 항목은 `help: ` 로 시작                     |
 
 span 은 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_primary`, `label` 을 가집니다. 위치 없이 파일만 아는 진단은 `{"file_name": .., "is_primary": true}` 만 둡니다.
 
@@ -178,6 +185,10 @@ span 은 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_p
 ```
 
 각 단계의 시간을 표시하므로, 빌드 병목을 진단할 때 유용합니다. 단계는 `front end` 와 `codegen + link` (`--emit` 이면 `emit <ext>`) 입니다.
+
+### `ROK_TIME_PASSES`
+
+`ROK_TIME_PASSES=1` 은 컴파일러 패스마다 걸린 실제 시간을 stderr 에 출력합니다.
 
 ### `-vv` (매우 자세히)
 
@@ -315,7 +326,7 @@ CI 가 코드별로 다른 처리 (재시도, 알림 등) 를 적용할 수 있�
 
 ## 9.9.13. LSP 서버
 
-`rokc` 는 LSP (Language Server Protocol) 모드를 제공합니다. 같은 서버를 독립 바이너리 `rokls` (= `rok lsp`) 로도 제공합니다. stdio 로 통신하며, 현재 진단, hover, go-to-definition, 문서 심볼, 멤버 / 경로 완성, 포맷을 제공합니다.
+`rokc` 는 LSP (Language Server Protocol) 모드를 제공합니다. 같은 서버를 독립 바이너리 `rokls` (= `rok lsp`) 로도 제공합니다. stdio 로 통신하며, 진단, hover (멤버 포함), go-to-definition (정의하는 이름의 범위를 돌려줌), references, rename, 문서 심볼, 멤버 / 경로 완성, 포맷을 제공합니다. references 와 rename 은 버퍼 안에서만 동작합니다.
 
 ```
 rokc lsp

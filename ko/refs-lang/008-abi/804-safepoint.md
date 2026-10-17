@@ -43,8 +43,10 @@ cont:
 
 자세한 emit 정책은 컴파일러가 결정하며, 본 사양에서는 최소 빈도만 다음과 같이 약속합니다.
 
-- 모든 함수에 1 개 이상의 poll 을 둡니다.
-- 루프 back-edge 에 1 개 이상의 poll 을 둡니다.
+- 모든 루프 back-edge 에 poll 을 두고, 모든 호출 순환에 poll 이 들어갑니다.
+- safepoint 에 닿을 수 없는 함수 (루프, 할당, 간접 호출, lazy `static`, safepoint 에 닿을 수 있는 함수의 호출이 없음) 에는 poll 이 필요 없습니다.
+
+이 둘이 함께 yield 요청에서 다음 safepoint 까지의 시간을 유한하게 묶습니다.
 
 ## 8.4.3. `rok_runtime_yield`: slow path
 

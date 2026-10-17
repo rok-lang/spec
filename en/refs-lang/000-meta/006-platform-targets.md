@@ -1,6 +1,6 @@
 # 0.6. Platform targets
 
-rok follows the principle that it builds on any platform for which LLVM and clang support code generation. The platforms on which behavior is actually guaranteed, however, are fixed in a limited list (Tier 1); other platforms are considered case by case as needed.
+rok builds for any platform for which LLVM supports code generation, from any host (`--target`, [0.2.4](002-pipeline.md#024-backends)). The platforms on which behavior is actually guaranteed, however, are fixed in a limited list (Tier 1); other platforms are considered case by case as needed.
 
 ## 0.6.1. Tier 1: official support
 

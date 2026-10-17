@@ -23,7 +23,7 @@ The abbreviations JIT and AOT are used as given in the [glossary](007-glossary.m
 
 ### They share the same pipeline
 
-JIT and AOT both pass through the same compilation pipeline. From source up to the text of the standard intermediate representation ([0.2. Compilation pipeline](002-pipeline.md)), both engines run the same code. They diverge only after that last intermediate representation. The **JIT engine** converts the intermediate representation to LLVM IR and hands it to a JIT host process (libLLVM's ORC) that lives for the duration of the session; the host immediately converts it to machine code and calls it ([9.6](../009-tools/906-jit-engine.md)). The **AOT engine** hands the same intermediate representation to the standard toolchain and builds a native binary.
+JIT and AOT both pass through the same compilation pipeline up to rok-mir ([0.2. Compilation pipeline](002-pipeline.md)). They diverge only in code generation. The **JIT engine** compiles each input with rok's native backend straight to machine code and runs it in a host process that lives for the session ([9.6](../009-tools/906-jit-engine.md)). The **AOT engine** generates code with the native backend at `-O0` and with the MLIR → LLVM pipeline at `-O1` and above, and links a native binary ([9.2](../009-tools/902-aot-pipeline.md)). Both backends follow the same runtime ABI.
 
 In this structure a single compiler implementation serves both engines. Any behavioral difference must therefore be attributed not to the compiler but to the run-time environment: memory, threads, OS resources.
 

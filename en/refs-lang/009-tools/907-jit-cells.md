@@ -15,11 +15,9 @@ The cell session obeys the following rules. The implementation is the [9.6 JIT e
 
 The following bindings and effects are not supported.
 
-- Bindings of types that cannot be named at top level (closures, private types, etc.). They are rejected in the cell that creates them, with a hint pointing to `--replay`.
+- Bindings of types that cannot be named at top level (closures, private types, etc.). They are rejected in the cell that creates them.
 - `exit()` inside a cell. That cell is treated as a failed cell (rule 5).
 - Threads spawned by a failed cell. They disappear with the cell.
-
-`--replay` mode ([9.6.6](906-jit-engine.md#966---replay)) re-runs the whole session for each cell. It keeps unnameable bindings too, but does not obey rule 1 (side effects of earlier cells are repeated).
 
 ## 9.7.1. Kinds of cell
 
@@ -33,18 +31,18 @@ A REPL line or a Jupyter cell is processed differently depending on its content.
 5. meta / attribute          → handle as appropriate
 ```
 
-All five follow the same cell processing flow; only the final output differs.
+All five follow the same cell processing flow; only the final output differs. A divergent expression cell ([4.3.7](../004-functions/403-return.md#437-divergent-functions); `panic(..)`, `exit(..)`, `throw`) runs as a statement.
 
 > [!IMPORTANT]
-> In terms of language semantics, a sequence of cells is equivalent to appending top-level statements and items to the end of an implicit `main.rok` ([4.16.10](../004-functions/416-entry-point.md#41610-relationship-to-jit--repl)). A cell's `let` is a local variable of the implicit `main`, so it is visible to statements of later cells but not inside the bodies of `fn`s declared in cells. The LLVM global storage of 9.7.3 below is an implementation technique for keeping local variables alive across cell boundaries and does not change this visibility rule. Same-name re-`let` at cell top level (9.7.3), cell re-execution (9.7.4) and automatic display of the last expression value (9.7.7) are session operations that exist only on the interactive surfaces.
+> In terms of language semantics, a sequence of cells is equivalent to appending top-level statements and items to the end of an implicit `main.rok` ([4.16.10](../004-functions/416-entry-point.md#41610-relationship-to-jit--repl)). A cell's `let` is a local variable of the implicit `main`, so it is visible to statements of later cells but not inside the bodies of `fn`s declared in cells. The global storage of 9.7.3 below is an implementation technique for keeping local variables alive across cell boundaries and does not change this visibility rule. Same-name re-`let` at cell top level (9.7.3), cell re-execution (9.7.4) and automatic display of the last expression value (9.7.7) are session operations that exist only on the interactive surfaces.
 
 ## 9.7.2. Execution flow: in detail
 
 ```
 1. parse → AST                      (error: display, discard cell)
 2. lower to HIR, type check         (error: display, discard cell)
-3. MIR → MLIR → LLVM IR text        (reuse / redefinition handling, 9.6.3 / 9.6.4)
-4. host: JIT-compile in a process forked from the snapshot, run the cell entry function
+3. MIR → native machine code        (reuse / redefinition handling, 9.6.3 / 9.6.4)
+4. host: load in a process forked from the snapshot, run the cell entry function
 5. success: new snapshot, apply bindings and items to the session, print result
    failure: continue from the previous snapshot, display error
 ```
@@ -63,14 +61,14 @@ Variables must be shared between REPL and Jupyter cells, so top-level variables 
 ### Storage form
 
 ```
-untyped (let x = 42)        → LLVM global of {tag:u32, payload:i64}
-typed (let x: i32 = 42i32)  → LLVM global of that type
+untyped (let x = 42)        → global of {tag:u32, payload:i64}
+typed (let x: i32 = 42i32)  → global of that type
 heap payload                → register GC root
                              (compiler-emitted shadow stack frame,
                               linked into rokr shadow stack chain)
 ```
 
-Each top-level variable is stored as an LLVM global, and when a later cell references the same variable it is found through that global's address.
+Each top-level variable is stored as a global in the host, and when a later cell references the same variable it is found through that global's address.
 
 ### GC root registration
 
@@ -130,7 +128,11 @@ Bindings and items revert to the state before the cell (9.7.0 rule 5), but exter
 
 ### JIT failure
 
-If the host cannot JIT-compile or link a cell's IR (an unknown `extern` symbol, etc.), it is handled like a cell runtime error. The forked process that ran the cell ends and the previous snapshot takes over.
+If the host cannot load or link a cell's code (an unknown `extern` symbol, etc.), it is handled like a cell runtime error. The forked process that ran the cell ends and the previous snapshot takes over.
+
+### Locations
+
+Diagnostics and panic locations in a cell name `<repl>:line:col`, counted over the cell's own text.
 
 ## 9.7.6. Cache
 
@@ -191,6 +193,19 @@ y                       # last expression = cell result
 
 The last expression of the cell is the cell's result; everything else is treated as side effects (definitions or calls).
 
-## 9.7.10. Next
+## 9.7.10. Loading a program (`run -i`)
+
+`rokc run -i [path]` loads a program into a fresh session, then continues with the REPL on that session.
+
+- **Checked first.** The whole program is checked before anything runs. Errors are reported at the file's own locations; nothing runs and the session starts empty.
+- **Items.** Items and imports join the session.
+- **Statements.** Top-level statements run as cells. Each cell ends at a top-level `let` (or at the last statement).
+- **Failure.** On a panic, `exit()` or an escaping error, bindings from finished cells keep their values as of the end of their cell; assignments in the failed stretch are lost. The rest of the program does not run, and the session continues.
+- **Unusable bindings.** A binding later cells cannot use (private or unnameable type) is dropped if no later statement names it; otherwise the statements through its last use run as one cell.
+- **`fn main`.** A program with `fn main` runs `main` as the entry; `main` then leaves the session, so its locals are not visible.
+- **Locations.** Diagnostics and panics use the file's own locations.
+- **Input.** The program's stdin is `/dev/null`.
+
+## 9.7.11. Next
 
 [Jupyter integration](908-jupyter-integration.md) defines the Jupyter kernel integration (local ZMQ and in-browser WASM).

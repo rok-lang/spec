@@ -1,6 +1,6 @@
 # 8.7. MLIR 다이얼렉트 사용
 
-[컴파일 파이프라인](../000-meta/002-pipeline.md) 에서 정한 표준 MLIR 다이얼렉트를 본 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 블록의 lowering 사양에 적용합니다. 일반 코드는 7 개 핵심 다이얼렉트로 lower 되며, 가속 영역의 라이브러리는 `linalg` / `tensor` / `vector` / `gpu` / `affine` / `async` 같은 추가 다이얼렉트를 [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md) 로 직접 활용할 수 있습니다.
+[컴파일 파이프라인](../000-meta/002-pipeline.md) 에서 정한 표준 MLIR 다이얼렉트를 본 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 블록의 lowering 사양에 적용합니다. 일반 코드는 7 개 핵심 다이얼렉트로 lower 되며, 가속 영역의 라이브러리는 `linalg` / `tensor` / `vector` / `gpu` / `affine` / `async` 같은 추가 다이얼렉트를 [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md) 로 직접 활용할 수 있습니다. 이것은 MLIR → LLVM backend (`-O1` 이상) 의 lowering 입니다. native backend (`-O0`, REPL) 는 rok-mir 에서 바로 기계어를 만들며 같은 ABI 를 따릅니다 ([0.2.4](../000-meta/002-pipeline.md#024-backend)).
 
 ## 8.7.1. 일반 코드 사용 다이얼렉트 (재확인)
 
@@ -29,15 +29,16 @@ rok-hir
    ↓ (specialize / monomorphize, desugar)
 rok-mir
    ↓ (lowering — 본 블록의 808 ~ 810)
-표준 MLIR 텍스트  (일반 코드는 7 개 다이얼렉트, 라이브러리는 추가 가능)
-   ↓ (mlir-opt — 표준 패스)
-   ↓ (mlir-translate)
+표준 MLIR  (일반 코드는 7 개 다이얼렉트, 라이브러리는 추가 가능)
+   ↓ (표준 패스, LLVM 다이얼렉트로 변환)
 LLVM IR
-   ↓ (clang / lld)
+   ↓ (LLVM 최적화와 코드 생성)
+object
+   ↓ (lld)
 네이티브 바이너리
 ```
 
-본 ABI 블록에서는 이 가운데 rok-mir 에서 표준 MLIR 텍스트로 가는 단계의 lowering 규칙을 정의합니다.
+모든 단계는 `rokc` 안에서 실행됩니다. 본 ABI 블록에서는 이 가운데 rok-mir 에서 표준 MLIR 로 가는 단계의 lowering 규칙을 정의합니다.
 
 ## 8.7.3. 다이얼렉트 별 핵심 op
 
@@ -181,16 +182,12 @@ llvm.mlir.global thread_local @rok_tls_tlab_cursor(0 : i64) : i64
 
 ## 8.7.8. 각 단계의 책임
 
-각 단계의 책임 범위는 다음과 같이 나뉘어 있습니다.
-
 ```
-rokc:           rok-mir → 표준 MLIR 텍스트  (본 블록)
-mlir-opt:       표준 MLIR → 최적화된 MLIR  (외부 도구)
-mlir-translate: MLIR → LLVM IR  (외부 도구)
-clang/lld:      LLVM IR → 네이티브  (외부 도구)
+rok-mir → 표준 MLIR         rokc lowering (본 블록)
+MLIR → LLVM IR              MLIR 패스와 변환, 프로세스 안
+LLVM IR → object            LLVM, 프로세스 안, 요청한 -O 수준
+object → 바이너리           lld, 프로세스 안 (ROK_CC 로 대체, 9.2.14)
 ```
-
-`rokc` 의 책임은 표준 MLIR 텍스트를 생성하는 데까지이며, 그 이후 단계는 모두 외부 도구의 몫입니다. `rokc` 가 해당 명령어들을 호출하기는 하지만, 도구 자체는 외부에 있다는 점을 기억해야 합니다.
 
 ## 8.7.9. 변환 검증
 

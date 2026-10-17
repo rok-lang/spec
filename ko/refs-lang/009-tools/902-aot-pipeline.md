@@ -4,7 +4,7 @@
 
 ## 9.2.1. 단계
 
-전체 단계는 다음과 같이 13 단계로 진행됩니다.
+전체 단계는 다음과 같이 11 단계로 진행되며, 모두 `rokc` 안에서 실행됩니다.
 
 ```
 1. package discovery       (find package root)
@@ -15,14 +15,12 @@
 6. rok-hir build           (HIR build)
 7. specialize              (collect call-sites + monomorphize)
 8. rok-mir build
-9. standard MLIR text emit
-10. mlir-opt invoke        (external tool)
-11. mlir-translate invoke  (external tool)
-12. clang / lld invoke     (external tool)
-13. artifact .a / executable
+9. code generation         (native at -O0; MLIR → LLVM at -O1 and above)
+10. archive / link         (lld)
+11. artifact .a / executable
 ```
 
-> package discovery 는 패키지 발견을, dependency resolve 는 의존성 해소를, source parse 는 소스 파싱을, name / visibility 는 이름 / 가시성 해소를, type check 는 타입 검사를, rok-hir build 는 rok-hir 생성을, specialize 는 단형화를 의미합니다. collect call-sites + monomorphize 는 call-site 수집과 단형화를, rok-mir build 는 rok-mir 생성을, standard MLIR text emit 은 표준 MLIR 텍스트 출력을 가리키며, invoke 는 호출, external tool 은 외부 도구, artifact 는 산출물, executable 은 실행 파일을 의미합니다.
+> package discovery 는 패키지 발견을, dependency resolve 는 의존성 해소를, source parse 는 소스 파싱을, name / visibility 는 이름 / 가시성 해소를, type check 는 타입 검사를, rok-hir build 는 rok-hir 생성을, specialize 는 단형화를 의미합니다. collect call-sites + monomorphize 는 call-site 수집과 단형화를, rok-mir build 는 rok-mir 생성을, code generation 은 object 로의 코드 생성을, archive / link 는 archive 생성 또는 링크를 가리키며, artifact 는 산출물, executable 은 실행 파일을 의미합니다.
 
 각 단계의 입력과 출력, 그리고 책임을 명확하게 분리합니다.
 
@@ -82,7 +80,7 @@ fingerprint 가 같으면 다시 빌드하지 않습니다. fingerprint 에 들�
 
 컴파일하는 모든 명령이 이 경로를 씁니다: `build` / `run` / `test` / `bench` / `check` / `lint` / `doc` / `lsp` / `repl` / `jupyter`, 단일 파일 스크립트, 이름 있는 환경. REPL host 도 미리 빌드한 archive 를 링크합니다. 패키지도 `--target-dir` 도 없으면 시스템 임시 디렉토리의 `rokc-target/` 아래에 둡니다.
 
-표준 라이브러리는 미리 빌드하지 않고 빌드마다 소스로 bootstrap 합니다 ([9.3.6](903-package-archive.md#936-표준-라이브러리)).
+표준 라이브러리는 소스에서 빌드하며 ([9.3.6](903-package-archive.md#936-표준-라이브러리)) `rokc` 의 cache (9.2.19) 에 미리 빌드된 상태로 둡니다.
 
 ## 9.2.4. 소스 파싱
 
@@ -135,59 +133,47 @@ HIR 은 타입 정보가 풍부하게 담긴 중간 표현이며, 위 4 ~ 5 단�
 
 MIR 은 HIR 보다 한층 더 낮은 수준의 IR 로, 이 단계에서 연산자 desugar 가 완료되고 ([연산자 디스패치](../003-expressions/301-operator-dispatch.md) 참고), 패턴 매칭의 decision tree 가 결정되며 ([`match` 표현식](../003-expressions/312-match-expression.md) 참고), closure 와 코루틴의 frame layout 도 함께 확정됩니다.
 
-## 9.2.10. 표준 MLIR 텍스트 출력
+## 9.2.10. Backend 선택
 
-[컴파일 파이프라인](../000-meta/002-pipeline.md) 과 [MLIR 다이얼렉트 사용](../008-abi/807-mlir-dialects.md) 의 표준 MLIR 다이얼렉트를 사용하여 `.mlir` 텍스트를 emit 합니다.
+최적화 수준이 코드 생성기를 고릅니다 ([0.2.4](../000-meta/002-pipeline.md#024-backend)).
 
-```
-target/debug/build/foo.mlir
-```
+| 수준                     | Backend      |
+|--------------------------|--------------|
+| `-O0`                    | native       |
+| `-O1` `-O2` `-O3` `-Os`  | MLIR → LLVM  |
 
-[8. 런타임 ABI / MLIR lowering](../008-abi/README.md) 의 lowering 규칙에 따라 모든 rok 의미를 표준 다이얼렉트로 변환합니다.
+[`__mlir_op` / `__mlir_type`](../../refs-standard-libraries/100-bare/109-mlir.md) 을 쓰는 함수는 어느 수준에서나, REPL 에서도 (9.6.1) MLIR → LLVM backend 로 컴파일합니다. 두 backend 는 [8](../008-abi/README.md) 의 런타임 ABI 를 따르므로, 다른 수준으로 빌드한 미리 빌드된 의존 패키지까지 포함해 어느 쪽 object 든 함께 링크됩니다.
 
-`rokc` 는 MLIR 라이브러리 바인딩 (C++, Rust 등) 을 쓰지 않습니다. MLIR 을 텍스트로 emit 한 뒤, 이어지는 단계에서 외부 도구 `mlir-opt`, `mlir-translate`, `clang` 을 프로세스로 호출합니다.
+## 9.2.11. native backend
 
-여기까지가 `rokc` 의 책임 영역입니다.
+native backend 는 중간 IR 없이 rok-mir 에서 바로 기계어와 object 파일 (Mach-O, ELF, COFF, wasm) 을 만듭니다. 목표는 컴파일 속도이며, debug 빌드와 REPL 셀에는 LLVM 이 필요 없습니다. `-g` 이면 DWARF 줄 정보와 frame 정보를 냅니다.
 
-## 9.2.11. mlir-opt 호출
+## 9.2.12. MLIR → LLVM backend
 
-표준 MLIR 도구인 `mlir-opt` 를 호출하여 정리 패스와 LLVM 다이얼렉트로의 변환 패스를 적용합니다. `mlir-opt` 에는 `-O2` 같은 최적화 단계 옵션이 없으므로, 패스를 이름으로 나열합니다.
-
-```
-mlir-opt --canonicalize --cse \
-         --convert-scf-to-cf --convert-cf-to-llvm --convert-arith-to-llvm \
-         --convert-func-to-llvm --reconcile-unrealized-casts \
-         target/debug/build/foo.mlir > target/debug/build/foo.opt.mlir
-```
-
-정확한 패스 목록은 구현이 정하며, 위는 대표적인 구성입니다. `-O0` ~ `-O3` 같은 최적화 단계는 이후 `clang` 단계에 적용됩니다.
-
-## 9.2.12. mlir-translate 호출
-
-표준 도구인 `mlir-translate` 를 사용해서 MLIR 을 LLVM IR 로 옮깁니다.
+rok-mir 를 표준 MLIR 로 lower 하고 ([8.7](../008-abi/807-mlir-dialects.md)), LLVM 다이얼렉트로 변환해 LLVM IR 로 옮긴 뒤, 요청한 수준으로 LLVM 최적화를 거쳐 대상 triple 의 object 로 냅니다. 모두 프로세스 안에서 실행되며, 중간 형태는 `--emit` 일 때만 파일로 씁니다 ([9.9.1](909-debug-tools.md#991-중간-산출물-출력---emit)).
 
 ```
-mlir-translate --mlir-to-llvmir target/debug/build/foo.opt.mlir > target/debug/build/foo.ll
+target/debug/build/foo.o
 ```
 
-## 9.2.13. object 생성
+## 9.2.13. archive
 
-LLVM IR 은 같은 LLVM 의 `clang` 으로 object 로 바꿉니다.
+라이브러리 패키지는 object 를 표준 `ar` archive 에 넣고, 그 옆에 인터페이스 파일 `foo.rhir` ([RHIR 형식](904-rhir-bytecode.md)) 을 씁니다.
 
 ```
-clang -O2 -c target/debug/build/foo.ll -o target/debug/build/foo.o
-ar rcs target/debug/libfoo.a target/debug/build/foo.o
+target/debug/libfoo.a
+target/debug/foo.rhir
 ```
-
-라이브러리 패키지는 archive 옆에 인터페이스 파일 `foo.rhir` ([RHIR 포맷](904-rhir-bytecode.md)) 도 씁니다.
 
 ## 9.2.14. 링킹 (실행 파일의 경우)
 
+실행 파일은 내장 lld 로 링크합니다:
+
 ```
-$ROK_CC target/debug/build/foo.o <deps>/lib*.a <sysroot>/lib/librokr.a -o target/debug/foo
+foo.o + <deps>/lib*.a + <sysroot>/lib/librokr.a + target libc  →  target/debug/foo
 ```
 
-링크는 `ROK_CC` 로 합니다. 없으면 Apple 에서는 `xcrun clang`, 그 밖에는 LLVM 의 `clang` 입니다. Apple 에서 `-g` 이면 링크 뒤에 `dsymutil` 을 실행합니다.
+대상 libc 는 toolchain 이 대상별로 제공하는 헤더와 stub 에서 오며, Apple 대상에서는 Xcode Command Line Tools 의 SDK 입니다. `ROK_CC` 가 설정되어 있으면 그 C 컴파일러 드라이버가 최종 링크를 대신합니다 (`$ROK_CC <objects> <archives> -o <out>`). 이것은 선택적인 대체입니다. 실행 파일은 dead-strip 됩니다: 참조되지 않는 함수와 데이터는 제거합니다. Apple 대상에서 `-g` 이면 내장 `dsymutil` (`rokc` 에 링크된 LLVM 의 것) 이 실행 파일 옆에 `.dSYM` bundle 을 씁니다.
 
 ## 9.2.15. 산출물
 
@@ -225,12 +211,14 @@ target/
 
 증분 빌드는 패키지 단위입니다. `rokc build` / `rokc run` 은 이전 빌드의 fingerprint 와 지금의 것이 같으면 `Fresh` 를 출력하고 빌드를 건너뜁니다. fingerprint 는 다음을 포함합니다.
 
-- 컴파일러의 정체 (RHIR producer 와 같은 값), 빌드 옵션, 진단 형식 (`--message-format`, 색), 입력 / 출력 경로, `PATH`
+- 컴파일러의 정체 (RHIR producer 와 같은 값), 빌드 옵션, 진단 형식 (`--message-format`, 색), 입력 / 출력 경로, 설정되어 있으면 `ROK_CC`
 - 패키지와 의존성에서 읽을 수 있는 모든 `.rok` 파일과 `rok.rokon`
 - 미리 빌드한 의존성의 `.a`, MLIR plugin 파일
 - 산출물의 크기와 수정 시각
 
 빌드가 낸 경고는 기록해 두며, `Fresh` 인 빌드는 그 경고를 다시 출력합니다.
+
+`--cfg`, `--target`, MLIR plugin 이 없는 native 빌드는 `lib/rok-cache/` (9.2.19) 의 미리 빌드한 표준 라이브러리를 링크합니다. 폴더는 toolchain, 옵션, 소스의 hash 마다 하나이며, 처음 쓸 때 lock 아래에서 빌드합니다. REPL 은 표준 라이브러리를 소스에서 컴파일합니다.
 
 ## 9.2.17. 컴파일러와 런타임의 분리
 
@@ -240,16 +228,11 @@ target/
 
 이렇게 분리해 둔 덕분에 `rokc` 와 `librokr.a` 가 서로 독립된 SemVer 로 진화할 수 있습니다.
 
-## 9.2.18. 외부 도구 의존
+## 9.2.18. 내장 toolchain
 
-| 도구             | 역할                 |
-|------------------|----------------------|
-| `mlir-opt`       | MLIR 최적화          |
-| `mlir-translate` | MLIR → LLVM IR       |
-| `clang`          | LLVM IR → object (같은 LLVM 의 것) |
-| `ROK_CC` / `xcrun clang` | 마지막 링크  |
+`rokc` 는 자기 완결적입니다: LLVM, MLIR, lld 가 고정된 하나의 LLVM 버전으로 그 안에 링크되어 있습니다. 외부 컴파일러, 어셈블러, 링커를 실행하지 않으며 toolchain 은 LLVM 설치에 의존하지 않습니다. Apple 대상은 SDK 를 위해 Xcode Command Line Tools 가 필요합니다. 외부 도구는 선택적인 링크 대체 `ROK_CC` (9.2.14) 뿐입니다.
 
-LLVM 은 21 ~ 22 를 씁니다. `PATH` 에서 먼저 찾고, 없으면 알려진 위치 (Homebrew, apt.llvm.org) 를 찾습니다. `rokc` 는 이 도구를 프로세스로 부를 뿐 LLVM 라이브러리를 링크하지 않습니다 ([0.2.4](../000-meta/002-pipeline.md#024-mlir-텍스트-직접-생성)). 도구가 없으면 찾아본 위치를 밝히는 에러입니다.
+IR 이 1 MiB 를 넘는 실행 파일은 여러 부분으로 나누어 병렬로 컴파일합니다.
 
 ## 9.2.19. 설치 레이아웃
 
@@ -272,4 +255,4 @@ $ROK_HOME/
 └── config.rokon                 # Config { registry, toolchain }
 ```
 
-`rokc` 는 표준 라이브러리와 런타임을 자기 실행 파일 기준 (sysroot = 실행 파일의 `..`) 에서 찾으며, `ROK_HOME` 을 보지 않습니다. 활성 toolchain 의 선택은 [9.10.6](910-rok-frontend.md#9106-toolchain) 이 정합니다.
+`rokc` 는 표준 라이브러리와 런타임을 자기 실행 파일 기준 (sysroot = 실행 파일의 `..`) 에서 찾으며, `ROK_HOME` 을 보지 않습니다. 자신의 cache 는 toolchain 의 `lib/rok-cache/` 입니다 (저장소 빌드는 `target/<profile>/rok-cache/`). 여기에 미리 빌드한 표준 라이브러리를 toolchain, 빌드 옵션, 소스를 키로 두고 (9.2.16), `.facts/` 에 캐시한 대상 data layout 과 도구 정보를 둡니다. 활성 toolchain 의 선택은 [9.10.6](910-rok-frontend.md#9106-toolchain) 이 정합니다.

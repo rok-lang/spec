@@ -33,7 +33,7 @@ impl Instant {
     fn checked_sub(self, dur: Duration) -> Instant | none;
 }
 
-// 일반 산술 — overflow 시 panic (debug) / saturate (release)
+// 일반 산술 — overflow 시 overflow 검사가 켜져 있으면 panic, 꺼져 있으면 saturate (3.3.5)
 impl Add<Duration> for Instant { type Output = Instant; ... }
 impl Sub<Instant> for Instant { type Output = Duration; ... }
 impl Sub<Duration> for Instant { type Output = Instant; ... }

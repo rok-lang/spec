@@ -4,7 +4,7 @@ This chapter defines the step-by-step flow of `rokc build`. It makes the overall
 
 ## 9.2.1. Steps
 
-The build proceeds in 13 steps.
+The build proceeds in 11 steps, all inside `rokc`.
 
 ```
 1. package discovery       (find package root)
@@ -15,14 +15,12 @@ The build proceeds in 13 steps.
 6. rok-hir build           (HIR build)
 7. specialize              (collect call-sites + monomorphize)
 8. rok-mir build
-9. standard MLIR text emit
-10. mlir-opt invoke        (external tool)
-11. mlir-translate invoke  (external tool)
-12. clang / lld invoke     (external tool)
-13. artifact .a / executable
+9. code generation         (native at -O0; MLIR → LLVM at -O1 and above)
+10. archive / link         (lld)
+11. artifact .a / executable
 ```
 
-> In order: package discovery, dependency resolution, source parsing, name / visibility resolution, type checking, rok-hir construction, specialization (call-site collection and monomorphization), rok-mir construction, standard MLIR text emission, invocation of the external tools `mlir-opt`, `mlir-translate` and `clang` / `lld`, and finally the output: an `.a` archive or an executable.
+> In order: package discovery, dependency resolution, source parsing, name / visibility resolution, type checking, rok-hir construction, specialization (call-site collection and monomorphization), rok-mir construction, code generation to objects, archiving or linking, and finally the output: an `.a` archive or an executable.
 
 The input, output and responsibility of each step are kept clearly separate.
 
@@ -82,7 +80,7 @@ If the fingerprint matches, it is not rebuilt. The fingerprint includes:
 
 Every command that compiles uses this path: `build` / `run` / `test` / `bench` / `check` / `lint` / `doc` / `lsp` / `repl` / `jupyter`, single-file scripts, and named environments. The REPL host also links the prebuilt archives. If there is neither a package nor `--target-dir`, they are placed under `rokc-target/` in the system temporary directory.
 
-The standard library is not prebuilt; it is bootstrapped from source on every build ([9.3.6](903-package-archive.md#936-standard-library)).
+The standard library is built from source ([9.3.6](903-package-archive.md#936-standard-library)) and kept prebuilt in `rokc`'s cache (9.2.19).
 
 ## 9.2.4. Source parsing
 
@@ -135,59 +133,47 @@ The [specialized](../000-meta/007-glossary.md#specialize) HIR is converted into 
 
 MIR is an IR one level lower than HIR. In this step operator desugaring is completed (see [Operator dispatch](../003-expressions/301-operator-dispatch.md)), the decision tree of pattern matching is determined (see [`match` expression](../003-expressions/312-match-expression.md)), and the frame layout of closures and coroutines is fixed.
 
-## 9.2.10. Standard MLIR text output
+## 9.2.10. Backend selection
 
-`.mlir` text is emitted using the standard MLIR dialects of [Compile pipeline](../000-meta/002-pipeline.md) and [Use of MLIR dialects](../008-abi/807-mlir-dialects.md).
+The optimization level selects the code generator ([0.2.4](../000-meta/002-pipeline.md#024-backends)).
 
-```
-target/debug/build/foo.mlir
-```
+| Level                    | Backend      |
+|--------------------------|--------------|
+| `-O0`                    | native       |
+| `-O1` `-O2` `-O3` `-Os`  | MLIR → LLVM  |
 
-All rok semantics are converted into standard dialects according to the lowering rules of [8. Runtime ABI / MLIR lowering](../008-abi/README.md).
+A function that uses [`__mlir_op` / `__mlir_type`](../../refs-standard-libraries/100-bare/109-mlir.md) is compiled by the MLIR → LLVM backend at every level, in the REPL too (9.6.1). Both backends follow the runtime ABI of [8](../008-abi/README.md), so objects from either link together, including prebuilt dependencies built at another level.
 
-`rokc` does not use MLIR library bindings (C++, Rust, etc.). It emits MLIR as text, and the following steps invoke the external tools `mlir-opt`, `mlir-translate` and `clang` as processes.
+## 9.2.11. Native backend
 
-This is the end of `rokc`'s area of responsibility.
+The native backend generates machine code and the object file (Mach-O, ELF, COFF, wasm) straight from rok-mir, with no intermediate IR. It aims at compile speed: debug builds and REPL cells need no LLVM. With `-g` it emits DWARF line and frame information.
 
-## 9.2.11. Invoking mlir-opt
+## 9.2.12. MLIR → LLVM backend
 
-The standard MLIR tool `mlir-opt` is invoked to apply cleanup passes and conversion passes to the LLVM dialect. `mlir-opt` has no optimization level options such as `-O2`, so passes are listed by name.
-
-```
-mlir-opt --canonicalize --cse \
-         --convert-scf-to-cf --convert-cf-to-llvm --convert-arith-to-llvm \
-         --convert-func-to-llvm --reconcile-unrealized-casts \
-         target/debug/build/foo.mlir > target/debug/build/foo.opt.mlir
-```
-
-The exact pass list is implementation-defined; the above is a representative configuration. Optimization levels such as `-O0` – `-O3` apply in the later `clang` step.
-
-## 9.2.12. Invoking mlir-translate
-
-The standard tool `mlir-translate` translates MLIR to LLVM IR.
+rok-mir is lowered to standard MLIR ([8.7](../008-abi/807-mlir-dialects.md)), converted to the LLVM dialect, translated to LLVM IR, optimized by LLVM at the requested level, and emitted as an object for the target triple. All of this runs in-process; the intermediate forms are written only for `--emit` ([9.9.1](909-debug-tools.md#991-intermediate-output---emit)).
 
 ```
-mlir-translate --mlir-to-llvmir target/debug/build/foo.opt.mlir > target/debug/build/foo.ll
+target/debug/build/foo.o
 ```
 
-## 9.2.13. Object generation
+## 9.2.13. Archives
 
-LLVM IR is turned into an object by the `clang` of the same LLVM.
+A library package puts its objects into a standard `ar` archive and writes the interface file `foo.rhir` ([RHIR format](904-rhir-bytecode.md)) next to it.
 
 ```
-clang -O2 -c target/debug/build/foo.ll -o target/debug/build/foo.o
-ar rcs target/debug/libfoo.a target/debug/build/foo.o
+target/debug/libfoo.a
+target/debug/foo.rhir
 ```
-
-A library package also writes the interface file `foo.rhir` ([RHIR format](904-rhir-bytecode.md)) next to the archive.
 
 ## 9.2.14. Linking (for executables)
 
+An executable is linked by the embedded lld:
+
 ```
-$ROK_CC target/debug/build/foo.o <deps>/lib*.a <sysroot>/lib/librokr.a -o target/debug/foo
+foo.o + <deps>/lib*.a + <sysroot>/lib/librokr.a + target libc  →  target/debug/foo
 ```
 
-Linking is done with `ROK_CC`. If unset, it is `xcrun clang` on Apple and LLVM's `clang` elsewhere. On Apple with `-g`, `dsymutil` is run after linking.
+The target libc comes from the toolchain's per-target headers and stubs; on Apple targets it is the SDK of the Xcode Command Line Tools. If `ROK_CC` is set, that C compiler driver performs the final link instead (`$ROK_CC <objects> <archives> -o <out>`); this is an optional override. Executables are dead-stripped: unreferenced functions and data are removed. With `-g` on Apple targets, the embedded `dsymutil` (LLVM's, linked into `rokc`) writes a `.dSYM` bundle next to the executable.
 
 ## 9.2.15. Output
 
@@ -225,12 +211,14 @@ The name `foo` is the package name (9.2.2). `-o` changes the path of a single ou
 
 Incremental builds are per package. If the fingerprint of the previous build equals the current one, `rokc build` / `rokc run` print `Fresh` and skip the build. The fingerprint includes:
 
-- The compiler's identity (the same value as the RHIR producer), build options, diagnostic format (`--message-format`, color), input / output paths, `PATH`
+- The compiler's identity (the same value as the RHIR producer), build options, diagnostic format (`--message-format`, color), input / output paths, `ROK_CC` if set
 - All `.rok` files and `rok.rokon` readable from the package and its dependencies
 - The `.a` of prebuilt dependencies, MLIR plugin files
 - The size and modification time of the outputs
 
 Warnings emitted by a build are recorded, and a `Fresh` build prints them again.
+
+A native build without `--cfg`, `--target` or MLIR plugins links the prebuilt standard library from `lib/rok-cache/` (9.2.19), one folder per hash of toolchain, options and sources, built on first use under a lock. The REPL compiles the standard library from source.
 
 ## 9.2.17. Separation of compiler and runtime
 
@@ -240,16 +228,11 @@ Instead it only emits calls to `extern "C"` symbols ([Extern "C" symbols](../008
 
 This separation lets `rokc` and `librokr.a` evolve under independent SemVer.
 
-## 9.2.18. External tool dependencies
+## 9.2.18. Embedded toolchain
 
-| Tool             | Role                 |
-|------------------|----------------------|
-| `mlir-opt`       | MLIR optimization    |
-| `mlir-translate` | MLIR → LLVM IR       |
-| `clang`          | LLVM IR → object (from the same LLVM) |
-| `ROK_CC` / `xcrun clang` | Final link   |
+`rokc` is self-contained: LLVM, MLIR and lld are linked into it, at one pinned LLVM version. It runs no external compiler, assembler or linker, and the toolchain does not depend on an LLVM installation. Apple targets need the Xcode Command Line Tools for the SDK. The only external tool is the optional link override `ROK_CC` (9.2.14).
 
-LLVM 21–22 is used. Tools are looked up in `PATH` first, then in known locations (Homebrew, apt.llvm.org). `rokc` only invokes these tools as processes and does not link LLVM libraries ([0.2.4](../000-meta/002-pipeline.md#024-emitting-mlir-text-directly)). If a tool is missing, it is an error stating the locations searched.
+An executable whose IR exceeds 1 MiB is split into parts that are compiled in parallel.
 
 ## 9.2.19. Installation layout
 
@@ -272,4 +255,4 @@ $ROK_HOME/
 └── config.rokon                 # Config { registry, toolchain }
 ```
 
-`rokc` finds the standard library and runtime relative to its own executable (sysroot = the executable's `..`) and does not look at `ROK_HOME`. Selection of the active toolchain is defined by [9.10.6](910-rok-frontend.md#9106-toolchain).
+`rokc` finds the standard library and runtime relative to its own executable (sysroot = the executable's `..`) and does not look at `ROK_HOME`. Its own cache is the toolchain's `lib/rok-cache/` (a repository build uses `target/<profile>/rok-cache/`). It holds the prebuilt standard library, keyed by toolchain, build options and sources (9.2.16), and in `.facts/` the cached target data layout and tool facts. Selection of the active toolchain is defined by [9.10.6](910-rok-frontend.md#9106-toolchain).

@@ -6,7 +6,7 @@ This section defines the rok kernel of the [Jupyter surface](../000-meta/001-exe
 
 Jupyter runs the rok kernel as a separate process and communicates over the ZeroMQ-based Jupyter wire protocol. The kernel announces `protocol_version` as `"5.3"` (the value `jupyter_client` expects; works with clients 5.3 and later). In this form all OS resources, i.e. files, network and external processes, are available.
 
-The kernel runs on **the same cell session** as the terminal REPL and follows the rules of [9.7.0](907-jit-cells.md#970-rules-of-the-cell-session): each cell runs exactly once, bindings and items carry over to later cells, and a failed cell leaves no trace in the bindings. The kernel's engine is the same [JIT session](906-jit-engine.md) as the REPL and requires libLLVM.
+The kernel runs on **the same cell session** as the terminal REPL and follows the rules of [9.7.0](907-jit-cells.md#970-rules-of-the-cell-session): each cell runs exactly once, bindings and items carry over to later cells, and a failed cell leaves no trace in the bindings. The kernel's engine is the same [JIT session](906-jit-engine.md) as the REPL.
 
 ### Notebook cells and REPL cells
 

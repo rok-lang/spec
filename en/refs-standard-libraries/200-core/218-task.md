@@ -204,7 +204,7 @@ t.cancel();              // cooperative signal — the task ends at a cancellati
 - A blocking syscall is not a cancellation point. The task leaves at the next `await` after the call finishes.
 - A task waiting in socket I/O (`*_async`), `readable` / `writable`, `sleep` / `timeout`, `lock_async`, or `recv_async` / `send_async` wakes when cancelled and leaves at the next `await`.
 - When a task ends, all its wakeup registrations (I/O readiness, timers, parked waits) are released.
-- If cancelled while waiting on `spawn_blocking` or the `fs::*_async` built on it, work already started runs to completion in the background and only the result is discarded. Side effects such as writes do happen.
+- If cancelled while waiting on `spawn_blocking` or the `fs::*_async` built on it, work already started runs to completion in the background and only the result is discarded. Side effects such as writes do happen. A result that finished in the meantime is dropped too: a cancelled poll returns `Pending`.
 - A poll in which the awaited future handed over a value (a message, a lock guard) keeps that value. The cancellation check looks at "whether the awaited coroutine left because of cancellation"; the value stays and the task leaves at the next `await` ([refs-lang 7.7.9](../../refs-lang/007-runtime/707-io-and-timer.md#779-cancellation)).
 - A task cancelled after passing its last cancellation point finishes normally and has a result. `await t` / `join` return that result.
 - `CancellationError` is received by whoever waits on a task that ended without a result. Waiting on such a task with `try await t.join()` throws `CancellationError`; waiting with `await t` panics.

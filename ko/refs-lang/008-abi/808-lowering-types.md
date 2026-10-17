@@ -44,61 +44,39 @@ a < b            →   arith.cmpi "slt", %a, %b : i32  (signed less than)
 
 ## 8.8.3. `struct` 의 표현
 
-[`struct`](../002-types/203-struct.md) 의 named `struct` 를 살펴보겠습니다.
+`struct` 는 값 타입이며 ([2.3.8](../002-types/203-struct.md#238-값-의미)) 객체 헤더가 없습니다.
 
 ```rok
 struct Point { x: f64; y: f64; }
 ```
 
-이는 다음과 같은 MLIR 로 lower 됩니다.
+필드들로 된 LLVM struct 로 lower 되며, 배치는 [2.3.6](../002-types/203-struct.md#236-메모리-레이아웃) 을 따릅니다.
 
 ```
-!Point = !llvm.struct<"Point", (
-    i32,        // type_id
-    i32,        // gc_flags
-    i64,        // gc_word
-    f64,        // x
-    f64         // y
-)>
+!Point = !llvm.struct<"Point", (f64, f64)>
 ```
 
-GC 객체로서는 `!llvm.ptr` 입니다.
-
-[GC](../000-meta/007-glossary.md#gc-garbage-collector) 객체는 항상 heap 에 자리하며 ([TLAB](../000-meta/007-glossary.md#tlab-thread-local-allocation-buffer) 할당), 스택 할당은 escape 분석을 거친 뒤에 가능합니다 (CoroElide 와 비슷한 방식입니다).
+구조체 값은 SSA 레지스터, 스택 슬롯, 또는 담는 쪽 안에 inline 으로 있습니다: 다른 구조체의 필드, `List` 버퍼의 원소, 클로저 환경이나 coroutine frame 의 슬롯. 대입과 인자 전달은 필드를 복사합니다. 컴파일러는 관찰할 수 없는 곳에서만 값을 내부적으로 box 할 수 있습니다.
 
 ### 필드 접근
 
-다음과 같이 필드에 접근하는 식을 봅니다.
-
-```rok
-p.x
-```
-
-이는 포인터를 통한 접근으로 lower 됩니다.
+SSA 값의 `p.x` 는 `extractvalue` 이고, 스택 슬롯이나 inline 위치에서는 필드 주소를 통한 load 입니다.
 
 ```
-%addr = llvm.getelementptr %p [0, 3] : (!llvm.ptr) -> !llvm.ptr
-%val = llvm.load %addr : !llvm.ptr -> f64
+%val  = llvm.extractvalue %p[0] : !Point
+%addr = llvm.getelementptr %slot[0, 0] : (!llvm.ptr) -> !llvm.ptr, !Point
+%val2 = llvm.load %addr : !llvm.ptr -> f64
 ```
-
-여기서 [0, 3] 은 `struct` 의 4 번째 멤버 (즉 x, 0-base 로 인덱스 3, 헤더 3 슬롯 다음) 를 가리킵니다.
 
 ### 필드 쓰기
 
-필드에 값을 쓰는 식은 다음과 같이 처리됩니다.
-
-```rok
-p.x = 1.0f64
-```
-
-해당 식은 다음 MLIR 로 lower 됩니다.
+`p.x = 1.0f64` 는 변수 자신의 사본을 바꿉니다: SSA 값이면 `insertvalue`, 슬롯이면 필드 주소로의 store 입니다.
 
 ```
-%addr = llvm.getelementptr %p [0, 3] : (!llvm.ptr) -> !llvm.ptr
-llvm.store %val, %addr : f64, !llvm.ptr
+%p2 = llvm.insertvalue %one, %p[0] : !Point
 ```
 
-만약 write barrier 가 필요한 경우라면 (sticky 비트 검사와 remembered set 등), [배리어와 루트](../007-runtime/704-barriers-and-roots.md) 의 규칙에 따라 추가 코드를 emit 합니다.
+구조체가 GC heap 객체 안에 inline 으로 있고 필드가 GC 참조를 가지면, 그 store 는 write barrier 를 거칩니다 ([배리어와 루트](../007-runtime/704-barriers-and-roots.md)). 스택 슬롯에 있는 구조체의 포인터 필드는 GC 루트입니다 ([7.4](../007-runtime/704-barriers-and-roots.md)).
 
 ## 8.8.4. tuple `struct` 의 표현
 
@@ -118,7 +96,7 @@ struct Pair(i32, i32);
 (i32, str, bool)
 ```
 
-`!llvm.struct<(i32, !llvm.ptr, i1)>` 로 lower 됩니다. 만약 GC 객체로 처리되는 경우라면 헤더가 추가됩니다.
+`!llvm.struct<(i32, !llvm.ptr, i1)>` 로 lower 됩니다. `struct` 처럼 헤더 없는 값입니다.
 
 ## 8.8.6. `enum` 의 표현
 

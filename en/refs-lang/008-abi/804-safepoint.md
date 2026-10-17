@@ -43,8 +43,10 @@ The compiler emits safepoint polls at the following sites.
 
 The detailed emission policy is up to the compiler; this specification guarantees only the following minimum frequency.
 
-- Every function has at least one poll.
-- Every loop back-edge has at least one poll.
+- Every loop back-edge has a poll, and every cycle of calls contains a poll.
+- A function that can reach no safepoint (no loop, allocation, indirect call, lazy `static`, or call to a function that may reach one) needs none.
+
+Together these bound the time from a yield request to the next safepoint.
 
 ## 8.4.3. `rok_runtime_yield`: slow path
 

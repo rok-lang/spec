@@ -83,7 +83,7 @@ struct Config {
 
 Default values are constrained as follows. Only `const` expressions are allowed: literals, `const` variables, and `const` function calls. `const` expressions are defined in [`const`](../005-modules/502-const.md). Expressions that require a runtime call, such as the current time or a random number, cannot be used; such code is a compile error. Referring to another field of the same struct is also forbidden. A default is evaluated only when the field is omitted at instance creation, and it is evaluated for each instance. Because evaluation is deterministic, the compiler may apply caching optimizations.
 
-These constraints ensure determinism, predictable cost, and SemVer safety. If runtime initialization is needed, use a separate factory function, i.e. the `fn new() -> T` pattern.
+These constraints ensure determinism, predictable cost, and SemVer safety. If runtime initialization is needed, use a separate factory function, i.e. the `fn new() -> T` pattern. Names in a field default are resolved in the scope of the module that declares the struct, not where the value is built.
 
 ## 2.3.4. Field spread
 
@@ -119,3 +119,28 @@ Fields are laid out in declaration order with natural alignment, the same as `#[
 ## 2.3.7. No duplicate definitions in the same module
 
 Declaring two structs with the same name in the same module is a compile error. Duplicate field names within one struct are also an error. This rule applies regardless of visibility level.
+
+## 2.3.8. Value semantics
+
+A `struct` is a value type. Assignment, argument passing, returning, and reading an element (`dict[k]`, `list[i]`, `entry(k).or_insert_with(..)`) copy the struct. A change is visible elsewhere only through a `ref` parameter or `ref self` ([4.7](../004-functions/407-ref-keyword.md)), or by writing the value back.
+
+```rok
+let a = Point { x: 1.0, y: 2.0 };
+let b = a;
+b.x = 5.0;                        // a.x unchanged
+
+let ps: List<Point> = [a];
+let q = ps[0];
+q.x = 9.0;                        // ps[0].x unchanged
+ps[0] = q;                        // written back
+```
+
+Sharing goes through reference handles: collections (`List`, `Dict`, `Set`, `StrBuf`, `Deque`, …, [stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md#reference-handles)), `Mutex`, `RwLock`, atomics, channels, and `[ref x]` capture cells. Copying a handle shares the object.
+
+|                         | Value type (`struct`, `enum`, tuple, primitive) | Reference handle (`List`, `Dict`, `Mutex`, …) |
+|-------------------------|-------------------------------------------------|-----------------------------------------------|
+| `let b = a;`            | independent copy                                | same object                                   |
+| field / element write   | local to the copy                               | seen through every handle                     |
+| independent copy        | the assignment itself                           | `.clone()`                                    |
+
+A struct field holding a handle copies the handle: copying the struct shares that object.

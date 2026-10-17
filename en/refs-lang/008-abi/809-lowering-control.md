@@ -412,7 +412,7 @@ llvm.store %obj, %x : !llvm.ptr, !llvm.ptr
 llvm.store %saved, %head_ptr : !llvm.ptr, !llvm.ptr
 ```
 
-`@rok_tls_shadow_stack_top` is the thread-local symbol of [8.3.8](803-tls-slots.md#838-form-of-compiler-emission). An error return is also an ordinary `return` ([8.9.6](#896-try--catch--finally-value-based-branching)), so it passes through the same unlink. A function that holds GC references but makes no calls or allocations does not create a frame.
+`@rok_tls_shadow_stack_top` is the thread-local symbol of [8.3.8](803-tls-slots.md#838-form-of-compiler-emission). An error return is also an ordinary `return` ([8.9.6](#896-try--catch--finally-value-based-branching)), so it passes through the same unlink. A function needs a frame only if it holds GC references and can reach a safepoint ([8.4.2](804-safepoint.md#842-emission-sites)). Calls to functions that never return (panics) and to runtime functions that neither allocate nor block ([8.5.2](805-extern-symbols.md#functions-that-are-not-safepoints)) do not count.
 
 ### Module data layout
 

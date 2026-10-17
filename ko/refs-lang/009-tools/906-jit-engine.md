@@ -4,28 +4,27 @@
 
 ## 9.6.1. 구조: rokc 와 JIT host
 
-JIT 는 `rokc` 안이 아니라 세션 동안 사는 별도의 **host 프로세스** 에 있습니다.
+세션은 런타임을 담고 세션 동안 사는 별도의 **host 프로세스** 에서 실행됩니다.
 
 ```
 rokc (front end)                         JIT host (세션 동안 하나)
-  셀 → parse → HIR → MIR → MLIR 텍스트       librokr.a 전체 + libLLVM (ORC LLJIT)
-     → mlir-opt | mlir-translate                런타임 초기화는 한 번
-     → LLVM IR 텍스트  ───────────────────►     IR 파싱 → JITDylib 에 추가
-                                                → 셀 진입 함수 lookup → 한 번 실행
+  셀 → parse → HIR → MIR                     librokr.a 전체
+     → native backend                        런타임 초기화는 한 번
+     → 기계어 + relocation  ─────────────►   실행 가능 메모리에 로드, 심볼 해소
+                                             → 셀 진입 함수를 한 번 실행
 ```
 
-- `rokc` 는 각 셀을 [AOT](902-aot-pipeline.md) 와 같은 파이프라인으로 LLVM IR 텍스트까지만 만듭니다. clang, object 파일, 공유 라이브러리는 쓰지 않습니다.
-- host 는 LLVM-C API 로 libLLVM 의 ORC (`LLJIT`) 를 링크합니다. IR 을 파싱해 JIT 컴파일하고, 셀의 진입 함수를 찾아 한 번 실행합니다.
-- `rokc` 자신은 여전히 MLIR / LLVM 라이브러리를 링크하지 않습니다 ([0.2.4](../000-meta/002-pipeline.md#024-mlir-텍스트-직접-생성)). libLLVM 을 링크하는 것은 host 뿐입니다.
+- `rokc` 는 각 셀을 `-O0` 빌드와 같은 native backend ([9.2.11](902-aot-pipeline.md#9211-native-backend)) 로 컴파일합니다. `__mlir_op` / `__mlir_type` 을 쓰는 함수는 내장 MLIR → LLVM 파이프라인으로 object 를 만들어 같은 실행 가능 메모리에 로드합니다 (9.2.10).
+- host 는 코드를 실행 가능 메모리에 놓고, relocation 을 런타임, libc, 앞 셀에 대해 해소한 뒤 셀의 진입 함수를 한 번 실행합니다.
 - host 는 런타임 (`librokr.a`) 의 모든 심볼을 export 하며, 셀 코드는 런타임과 libc 심볼을 host 프로세스에서 찾습니다.
 
-## 9.6.2. libLLVM 요구
+## 9.6.2. 코드 로드
 
-REPL 과 Jupyter 커널은 libLLVM 이 있어야 합니다. host 를 빌드할 때 `PATH` 의 `mlir-translate` 가 놓인 LLVM 설치에서 찾습니다 (`<prefix>/lib/libLLVM` 과 `<prefix>/include/llvm-c`). 그래서 IR 을 만든 LLVM 과 읽는 LLVM 이 같습니다. 없으면 무엇이 없는지 밝히는 에러이며, 다른 실행 방식으로 넘어가는 fallback 은 없습니다.
+셀 코드는 object 파일처럼 relocation 을 가진 위치 독립 기계어입니다. host 는 세션에 하나의 심볼 테이블을 두며, 셀의 정의는 셀을 로드한 뒤 여기에 더해집니다. 해소할 수 없는 심볼은 그 이름을 밝히는 에러로 셀을 실패시킵니다 ([9.7](907-jit-cells.md)).
 
 ## 9.6.3. 심볼과 재정의
 
-한 세션은 JITDylib 하나를 씁니다. 모든 셀의 정의가 여기에 쌓입니다.
+한 세션은 심볼 테이블 하나를 씁니다. 모든 셀의 정의가 여기에 쌓입니다.
 
 - 이미 정의된 심볼을 셀이 다시 정의하면, host 는 그 정의의 이름을 `<name>.r<cell>` 로 바꿉니다. 이후 셀의 참조는 가장 새 이름에 링크됩니다.
 - 재정의는 다음 셀부터 효력이 있습니다 ([9.7.0](907-jit-cells.md#970-셀-세션의-규칙) 규칙 3).
@@ -36,38 +35,34 @@ REPL 과 Jupyter 커널은 libLLVM 이 있어야 합니다. host 를 빌드할 �
 
 표준 라이브러리와 의존 패키지의 코드는 세션에 한 번만 컴파일합니다.
 
-- `rokc` 는 host 가 이미 컴파일한 함수와 그 IR 텍스트를 기억합니다. 셀의 함수가 이미 컴파일된 것과 텍스트까지 같으면 정의 대신 선언만 넘깁니다.
-- 텍스트가 같으면 뜻도 같도록 셀 사이의 이름을 고정합니다. 문자열 리터럴 global 은 내용 hash 로 이름을 짓고, GC type id 는 [ScanTable](../008-abi/802-scan-table.md) 내용을 키로 세션 동안 고정합니다.
+- `rokc` 는 host 가 이미 로드한 함수와 그 MIR 을 기억합니다. 셀의 함수가 이미 로드된 것과 같으면 코드 대신 참조만 넘깁니다.
+- MIR 이 같으면 뜻도 같도록 셀 사이의 이름을 고정합니다. 문자열 리터럴 global 은 내용 hash 로 이름을 짓고, GC type id 는 [ScanTable](../008-abi/802-scan-table.md) 내용을 키로 세션 동안 고정합니다.
 - 이 셀이 새로 정의하는 것 (바뀐 함수, `static`, 바인딩 슬롯) 을 직접 또는 간접으로 부르는 함수는 다시 컴파일합니다.
 
 ## 9.6.5. 실행 흐름 (REPL 한 줄 / Jupyter 한 셀)
 
 ```
 1. rokc: 입력 → parse → HIR (에러면 셀을 버림, 세션 상태 그대로)
-2. rokc: 셀 → MLIR → mlir-opt | mlir-translate → LLVM IR 텍스트
-         (이미 컴파일된 함수는 선언으로, 재정의는 새 이름으로)
-3. host: 세션 스냅샷을 fork 한 프로세스에서 IR 을 JIT 컴파일하고 셀을 한 번 실행
+2. rokc: 셀 → MIR → native backend → 기계어
+         (이미 로드된 함수는 참조로, 재정의는 새 이름으로)
+3. host: 세션 스냅샷을 fork 한 프로세스에서 코드를 로드하고 셀을 한 번 실행
 4. 성공: 그 프로세스가 새 스냅샷이 됨. 값이 있으면 `타입: 값` 출력
-   실패 (panic, 종료, 시그널, JIT 실패): 이전 스냅샷이 이어받음 (9.7.0 규칙 5)
+   실패 (panic, 종료, 시그널, 로드 실패): 이전 스냅샷이 이어받음 (9.7.0 규칙 5)
 ```
 
 셀 하나의 지연은 약 0.1 초이며, 대부분은 front end 가 차지합니다 (참고값).
 
-## 9.6.6. `--replay`
-
-`--replay` 모드도 같은 host 를 씁니다. 입력마다 지금까지의 세션 전체를 하나의 프로그램으로 컴파일하고, host 가 fork 한 버리는 자식 프로세스에서 JIT 컴파일해 처음부터 실행합니다. 실행 파일은 만들지 않습니다. 앞 셀의 부수 효과가 매번 되풀이되며, 라이브러리 재사용 (9.6.4) 은 없습니다.
-
-## 9.6.7. JIT 와 AOT 의 차이
+## 9.6.6. JIT 와 AOT 의 차이
 
 | 측면        | JIT (REPL / Jupyter)                         | AOT                               |
 |-------------|----------------------------------------------|-----------------------------------|
-| 파이프라인  | 같음 (LLVM IR 텍스트까지)                    | 같음                              |
-| 마지막 단계 | host 의 ORC 가 IR 을 JIT 컴파일              | mlir-translate 뒤 clang 으로 object / 링크 |
+| 파이프라인  | rok-mir 까지 같음                            | 같음                              |
+| Backend     | native, host 에 로드                         | native (`-O0`) 또는 MLIR → LLVM, 그 뒤 lld |
 | 단위        | 셀 (라이브러리는 세션에 한 번)               | 패키지                            |
 | 결과        | host 메모리                                  | 실행 파일 / `.a`                  |
 
-두 엔진은 같은 단형화와 같은 MLIR lowering 을 공유하므로 의미가 같습니다.
+두 엔진은 같은 단형화와 rok-mir 를 공유하고 두 backend 가 같은 ABI 를 따르므로 의미가 같습니다.
 
-## 9.6.8. 다음: 셀 실행 / 상태 / 에러
+## 9.6.7. 다음: 셀 실행 / 상태 / 에러
 
 [JIT 셀 실행 흐름과 상태 관리](907-jit-cells.md) 에서 셀별 동작 (top-level 변수, 재정의, 에러) 을 정의합니다.

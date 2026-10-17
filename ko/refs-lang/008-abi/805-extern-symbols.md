@@ -223,6 +223,10 @@ extern "C" {
 
 다음 무리는 참조 런타임의 내부 helper 이며 ABI 계약에 속하지 않습니다: `rok_fmt_*`, `rok_str_*` helper, `rok_char_*`, `rok_nat_*`, `rok_stdio_*`, `rok_time_*`, `rok_gc_stats_*`, `rok_buf_*`, `rok_cstr_len`.
 
+### safepoint 가 아닌 함수
+
+다음 런타임 함수는 할당도 block 도 하지 않음이 보장되므로, 그 호출은 safepoint 가 아닙니다 ([8.4.2](804-safepoint.md#842-emit-위치), [8.9.12](809-lowering-control.md#8912-shadow-stack-frame)): `rok_str_len`, `rok_str_byte`, `rok_str_cmp`, `rok_str_eq_at`, `rok_str_find`, `rok_str_rfind`, `rok_str_char_count`, `rok_str_hash`, `rok_str_bytes_buf`, `rok_buf_copy`, `rok_char_*` 속성 / 대소문자 함수, `rok_fmt_len`, `rok_f64_*`, `rok_f32_*`.
+
 ## 8.5.3. Coroutine 영역
 
 ### `rok_coro_frame_alloc`

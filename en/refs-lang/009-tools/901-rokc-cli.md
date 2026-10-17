@@ -73,12 +73,12 @@ Options:
 - `--extern <name>=<dir | lib.rok | <name>.rhir | lib<name>.a>` mounts one dependency package at the top-level path `name` ([9.2.3](902-aot-pipeline.md#923-dependency-resolution)). Source (`dir` / `lib.rok`) is compiled together in the same build; a prebuilt package (`.rhir` / `.a`; given one, its sibling is located) has its RHIR read and its archive linked. May be given multiple times and is normally filled in by `rok`. `name` is an identifier: the package name with `-` replaced by `_` ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)).
 - `--name <n>` sets the package name (naming rules of [9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)). The outputs are `lib<n>.a` / `<n>.rhir` and the mount name is the name with `-` replaced by `_`. The default is the directory name. `--extern a-b=..` is likewise bound as `a_b`.
 - `--bootstrap <file>` gives a standard library root to preload (may be repeated); `--rokr <lib>` gives the runtime to link. The defaults are the sysroot's `lib/rok/{core,std,bare}/lib.rok` and `lib/librokr.a` ([9.2.19](902-aot-pipeline.md#9219-installation-layout)). If not found, it is an error that lists the paths searched.
-- `-O0` / `-O1` / `-O2` / `-O3` / `-Os` select the optimization level explicitly.
-- `--target=<triple>` selects the target platform, one of the 13 Tier 1 targets in [Platform targets](../000-meta/006-platform-targets.md).
+- `-O0` / `-O1` / `-O2` / `-O3` / `-Os` select the optimization level explicitly. `-O0` uses the native backend, the others the MLIR → LLVM backend ([9.2.10](902-aot-pipeline.md#9210-backend-selection)).
+- `--target=<triple>` selects the target platform, one of the 13 Tier 1 targets in [Platform targets](../000-meta/006-platform-targets.md). Any target can be built from any host ([0.2.4](../000-meta/002-pipeline.md#024-backends)).
 - `-o` / `--out=<path>` selects the output location.
 - `--cfg <flag>` / `--cfg <key>=<value>` sets a cfg flag for [conditional compilation](../006-meta-system/603-cfg.md). May be repeated.
 - `--emit=<kind>[,<kind>..]` writes intermediate output (`ast`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expanded`) to `target/<profile>/build/<name>.<ext>` ([9.9.1](909-debug-tools.md#991-intermediate-output---emit)). Several kinds may be given at once separated by commas; in that case `-o` cannot be used. With `--emit`, no executable or archive is produced.
-- `--load-mlir-plugin <path|name>` passes an MLIR dialect plugin to `mlir-opt --load-dialect-plugin`, `--load-mlir-pass-plugin <path|name>` passes a pass plugin as `--load-pass-plugin`, and `--mlir-pass <pass>` passes `--<pass>` before conversion to the LLVM dialect ([rok::bare::mlir::plugin](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-loading)). `rokc` does not link MLIR, so it does not load plugins itself. All may be repeated, and `rok` passes them through unchanged.
+- `--load-mlir-plugin <path|name>` loads an MLIR dialect plugin, `--load-mlir-pass-plugin <path|name>` loads a pass plugin, and `--mlir-pass <pass>` runs that pass before conversion to the LLVM dialect ([rok::bare::mlir::plugin](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-loading)). All may be repeated, and `rok` passes them through unchanged.
 - `-g` / `--debug` emits DWARF debug information ([9.9](909-debug-tools.md#dwarf-debug-information)).
 - `-C overflow-checks[=yes|no]` turns overflow checks (panic) for fixed-width integer arithmetic on or off. The default is on only at `-O0`. An omitted value means `yes`. Operations on constant operands that cannot overflow skip the check.
 
@@ -98,6 +98,7 @@ Equivalent to `rokc build --emit=..`. If `--emit` is omitted, it is `mlir`.
 
 ```
 rokc run [path] [-- args...]
+rokc run -i [path]
 ```
 
 It builds an executable package and runs it at once; arguments after `--` are passed to the executable unchanged. Options are the same as `rokc build`. A library package has nothing to run, so it is an error.
@@ -109,6 +110,8 @@ rokc run hello.rok -- arg1 arg2
 ```
 
 The exit code of `rokc run` is the exit code of the program. If the program terminates by signal `n`, it is `128 + n`.
+
+`-i` / `--interactive` loads the program into a REPL session and continues interactively, like `python -i` ([9.7.10](907-jit-cells.md#9710-loading-a-program-run--i)). It takes no `-- args` and exits with `0` when the session ends.
 
 ### `rokc test`: tests
 
@@ -176,16 +179,17 @@ bench fib_20 ... bench:       41,503 ns/iter (+/- 312)
 `rokc repl` launches an interactive shell in the terminal.
 
 ```
-rokc repl [--replay] [--package <path>]
+rokc repl [--package <path>]
 ```
 
 This mode runs as a terminal interactive shell. Cell semantics follow the rules of [9.7.0](907-jit-cells.md#970-rules-of-the-cell-session): each cell runs exactly once, top-level `let` bindings and items carry over to later cells, and a failed cell leaves no trace in the bindings. An expression cell prints `type: value`.
 
-- The default mode turns each cell into LLVM IR and hands it to a JIT host process (libLLVM's ORC) that lives for the session; the host JIT-compiles it and runs it once ([9.6](906-jit-engine.md)). It is an error if libLLVM is unavailable. Bindings, `static` state and `any` values carry over between cells. A binding whose type cannot be named at top level (closures, private types, etc.) is rejected when created, with a hint pointing to `--replay`.
-- `--replay` recompiles the whole session for every cell and JIT-runs it from the start in a throwaway child process forked by the host (no executable is produced). It keeps such bindings too, but the side effects of earlier cells are repeated every time.
+- The default mode compiles each cell with the native backend and hands the code to a JIT host process that lives for the session; the host loads it and runs it once ([9.6](906-jit-engine.md)). Bindings, `static` state and `any` values carry over between cells. A binding whose type cannot be named at top level (closures, private types, etc.) is rejected when created.
+- Diagnostics and panic locations name `<repl>:line:col` over the cell's own text.
+- Input has line editing and history; the history persists in `$ROK_HOME/repl_history`.
 - `--package <path>` attaches a library package via `--extern` and inserts `use <name>::*;` before the first cell. It is inserted again after `:reset`. A `main.rok` package (executable package) is rejected.
 
-`rok` and `rok repl` ([9.10](910-rok-frontend.md)) run the same REPL with dependencies attached, and pass `--replay` through.
+`rok` and `rok repl` ([9.10](910-rok-frontend.md)) run the same REPL with dependencies attached.
 
 REPL commands (`:type`, `:reset`, `:add`, `:help`, `:quit`) and debugging aids are in [9.9.9](909-debug-tools.md#999-repl--jupyter-debugging).
 
@@ -224,7 +228,7 @@ A file with lexical errors is left untouched and the error is reported, with exi
 rokc check [path] [--check-library]
 ```
 
-Runs the front end, lints and code generation (up to standard MLIR) and reports diagnostics. No native build (assemble, link) is performed. Options are the same as `rokc build`. `--check-library` lowers and checks every body of a library regardless of reachability.
+Runs the front end through type checking and MIR building, plus lints, and reports diagnostics. No code generation (no MLIR) is performed. Options are the same as `rokc build`. `--check-library` lowers and checks every body of a library regardless of reachability.
 
 ### `rokc lint`: linter
 
@@ -239,7 +243,7 @@ Lint levels are set by the global options `-A` / `-W` / `-D` (9.1.5) and by attr
 ### `rokc doc`: documentation generation
 
 ```
-rokc doc [path]
+rokc doc [path] [--std]
 ```
 
 Generates HTML API documentation in `target/doc/` from the public items and docs (`///`, `//!`, `#[doc]`, [6.2.8](../006-meta-system/602-built-in-attributes.md#628-doc---doc-comment-form)) of the package (and `--extern` dependency packages).
@@ -251,6 +255,8 @@ target/doc/
 └── search-index.js            # search index
 ```
 
+`--std` also documents the standard library tiers into `rok-core/`, `rok-std/`, `rok-bare/`; without a path it documents only them, into `./target/doc/`.
+
 Doc text is interpreted as a subset of markdown (headings, fenced code blocks, inline code, links, `**bold**`, lists, paragraphs).
 
 ### `rokc lsp`: LSP server
@@ -261,7 +267,7 @@ Doc text is interpreted as a subset of markdown (headings, fenced code blocks, i
 rokc lsp
 ```
 
-This mode is designed to be invoked from LSP clients such as VS Code, Vim and Emacs. The standalone editor binary `rokls` is equivalent to `rok lsp` (that is, `rokc lsp`). `.rokon` buffers are checked for syntax only.
+This mode is designed to be invoked from LSP clients such as VS Code, Vim and Emacs. The standalone editor binary `rokls` is equivalent to `rok lsp` (that is, `rokc lsp`). `.rokon` buffers are checked for syntax only. The features are listed in [9.9.13](909-debug-tools.md#9913-lsp-server).
 
 ## 9.1.3. Debug / diagnostic subcommands
 
@@ -372,10 +378,10 @@ The environment variables that affect `rokc` are:
 
 | Variable          | Meaning                                                                                  |
 |-------------------|------------------------------------------------------------------------------------------|
-| `ROK_CC`          | C compiler that performs the final link. Default is `xcrun clang` on Apple, LLVM's `clang` elsewhere ([9.2.18](902-aot-pipeline.md)) |
+| `ROK_CC`          | Optional C compiler driver that performs the final link instead of the embedded lld ([9.2.14](902-aot-pipeline.md#9214-linking-for-executables)) |
 | `ROKC_VERBOSE`    | Equivalent to `--verbose`                                                                |
+| `ROK_TIME_PASSES` | Per-pass wall time on stderr when `1` ([9.9.5](909-debug-tools.md#rok_time_passes)) |
 | `ROKC_TARGET_DIR` | Location of `target/` (default: inside the package)                                      |
-| `ROKC_CACHE_DIR`  | [JIT](../000-meta/007-glossary.md#jit-just-in-time) cache directory (default `~/.cache/rok/`) |
 | `ROKC_NUM_JOBS`   | Default for `rokc test --threads` (CPU core count if unset)                              |
 | `NO_COLOR`        | If set, `--color=auto` does not use color                                                |
 
@@ -386,16 +392,21 @@ The environment variables that affect `rokc` are:
 Diagnostic messages are printed in the following format.
 
 ```
-error: 'count' is not declared
-  --> src/main.rok:5:10
+error[E100]: cannot find value `count` in this scope
+  --> src/main.rok:5:13
    |
+ 2 |     let counter = 0;
+   |         ------- similar name defined here
+...
  5 |     let x = count + 1;
-   |             ^^^^^ unknown identifier
+   |             ^^^^^ not found in this scope
    |
-   = note: did you mean 'counter'?
+   = help: did you mean `counter`?
 ```
 
 Diagnostics use the file + line + column units defined in [Source files](../001-lexical/101-source-files.md).
+
+The header is `<severity>[<code>]: <message>` and `--> path:line:col` gives the primary location. The primary span is underlined with `^`, secondary spans with `-`; a secondary span in another file is introduced by `::: path:line:col`. Trailing `= note:` lines add context and `= help:` lines suggest a fix.
 
 ### Build progress
 

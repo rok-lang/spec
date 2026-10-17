@@ -61,7 +61,7 @@ a < [1, 2, 4];           //→ true (lexicographic)
 
 ### Reference handles
 
-`List`, `Dict` and `Set` values are reference handles to GC heap objects. `let ys = xs;` and argument passing copy the handle, so the same collection is shared. Methods that modify a collection therefore take `self`, not `ref self`. Call `clone()` for an independent copy. `keys` / `values` / `entries` return lazy iterators that do not copy the collection.
+`List`, `Dict` and `Set` values are reference handles to GC heap objects. `let ys = xs;` and argument passing copy the handle, so the same collection is shared. Methods that modify a collection therefore take `self`, not `ref self`. Call `clone()` for an independent copy. A struct element is a value: `xs[i]` and `d[k]` return a copy, and a change is stored with `xs[i] = v` ([refs-lang 2.3.8](../../refs-lang/002-types/203-struct.md#238-value-semantics)). `keys` / `values` / `entries` return lazy iterators that do not copy the collection.
 
 ## 2.9.2. `List<T>` — dynamic array
 
@@ -99,9 +99,16 @@ impl<T> List<T> {
     fn sort_by(self, cmp: fn(T, T) -> Ordering); // stable
     fn reserve(self, additional: usize);
     fn shrink_to_fit(self);
+    fn reverse(self);                            // in place
 
     fn iter(self) -> ListIter<T>;
     fn into_iter(self) -> ListIntoIter<T>;
+}
+```
+
+```rok
+impl List<str> {
+    fn join(self, sep: str) -> str;              // joins the elements with sep
 }
 ```
 

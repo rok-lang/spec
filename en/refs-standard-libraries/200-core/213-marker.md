@@ -107,7 +107,7 @@ trait Copy: Clone {
 }
 ```
 
-In rok every value is copied by value. For collections and GC objects the handle is copied and points to the same object; primitive values and `str` (an immutable `(ptr, len)`) are copied themselves. `Copy` is therefore **only a marker** and does not change the meaning of assignment or argument passing. `Copy` is used only in generic bounds (`T: Copy`) to select types for which "a bit copy is an independent copy".
+In rok every value is copied by value. For collections and GC objects the handle is copied and points to the same object; primitive values, `str` (an immutable `(ptr, len)`), structs, enums and tuples are copied themselves ([refs-lang 2.3.8](../../refs-lang/002-types/203-struct.md#238-value-semantics)). `Copy` is therefore **only a marker** and does not change the meaning of assignment or argument passing. `Copy` is used only in generic bounds (`T: Copy`) to select types for which "a bit copy is an independent copy".
 
 ### impl policy
 

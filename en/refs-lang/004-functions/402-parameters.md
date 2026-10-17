@@ -66,7 +66,7 @@ retry(5i32);                       // n=5, delay=0.1
 retry(5i32, 1.0f64);               // n=5, delay=1.0
 ```
 
-The following rules apply to default values. Only `const` expressions are allowed: literals, `const` variables and `const` function calls. This is the same constraint as for field defaults of [`struct`](../002-types/203-struct.md). Only parameters omitted at the call site are evaluated, and they are evaluated anew on each call. Default values are deterministic: the same `const` expression always produces the same value. Runtime calls such as the current time or random numbers cannot be used; when needed, use a factory function pattern instead.
+The following rules apply to default values. Only `const` expressions are allowed: literals, `const` variables and `const` function calls. This is the same constraint as for field defaults of [`struct`](../002-types/203-struct.md). Only parameters omitted at the call site are evaluated, and they are evaluated anew on each call. Default values are deterministic: the same `const` expression always produces the same value. Runtime calls such as the current time or random numbers cannot be used; when needed, use a factory function pattern instead. Names in a default are resolved in the scope of the module that declares the function, not the caller's.
 
 ## 4.2.4. Named argument calls
 

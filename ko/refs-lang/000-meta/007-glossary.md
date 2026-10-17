@@ -8,7 +8,7 @@ ABI 는 컴파일된 코드가 링크와 실행 시점에 따라야 하는 바�
 
 ## AOT (Ahead-of-Time)
 
-AOT 는 소스를 미리 컴파일하여 정적 산출물(`.a` 또는 실행 파일) 을 생성하는 모드를 가리키며, JIT 와 대조됩니다. rok 은 JIT 와 AOT 두 엔진을 모두 지원하며, 두 엔진은 같은 파이프라인을 공유합니다.
+AOT 는 소스를 미리 컴파일하여 정적 산출물(`.a` 또는 실행 파일) 을 생성하는 모드를 가리키며, JIT 와 대조됩니다. rok 은 JIT 와 AOT 두 엔진을 모두 지원하며, 두 엔진은 rok-mir 까지 같은 파이프라인을 공유합니다.
 
 ## archive
 
@@ -48,7 +48,7 @@ GC 는 자동 메모리 관리 메커니즘입니다. rok 의 GC 는 Immix mark-
 
 ## HIR (High-level IR) / MIR (Mid-level IR)
 
-HIR 과 MIR 은 컴파일 파이프라인의 중간 표현입니다. 전체 흐름은 소스 → AST → HIR → MIR → 표준 MLIR 로 이어집니다.
+HIR 과 MIR 은 컴파일 파이프라인의 중간 표현입니다. 전체 흐름은 소스 → AST → HIR → MIR → 기계어 (native backend) 또는 표준 MLIR → LLVM IR (MLIR → LLVM backend) 로 이어집니다.
 
 ## Immix
 
@@ -56,7 +56,7 @@ Immix 는 Blackburn 과 McKinley 가 2008 년에 발표한 GC 알고리듬입니
 
 ## JIT (Just-in-Time)
 
-JIT 는 코드를 런타임에 즉시 컴파일하는 모드입니다. REPL 과 Jupyter 가 이 모드를 사용하며, AOT 와 대조됩니다.
+JIT 는 코드를 런타임에 native backend 로 즉시 컴파일하는 모드입니다. REPL 과 Jupyter 가 이 모드를 사용하며, AOT 와 대조됩니다.
 
 ## lang slot / 매직
 
@@ -116,11 +116,11 @@ work-stealing 은 스케줄러의 load balancing 메커니즘입니다. 각 work
 
 ## MLIR plugin
 
-MLIR plugin 은 rok 컴파일러에 외부에서 빌드된 MLIR 다이얼렉트를 동적으로 등록하기 위한 메커니즘입니다. `--load-mlir-plugin=<path>` CLI 옵션이나 패키지 매니페스트 선언으로 로드되며, 로드된 op 은 `rok::bare::mlir::__mlir_op` 으로 호출 가능해집니다. 도메인 특화 컴파일러 (암호화, 신호 처리, 새 가속기 ISA 등) 영역에서 활용합니다. 자세한 내용은 [refs-standard-libraries 1.10](../../refs-standard-libraries/100-bare/110-mlir-plugin.md) 을 참조하시면 됩니다.
+MLIR plugin 은 rok 컴파일러에 내장된 MLIR 에 외부에서 빌드된 MLIR 다이얼렉트를 동적으로 등록하기 위한 메커니즘입니다. `--load-mlir-plugin=<path>` CLI 옵션이나 패키지 매니페스트 선언으로 로드되며, 로드된 op 은 `rok::bare::mlir::__mlir_op` 으로 호출 가능해집니다. 도메인 특화 컴파일러 (암호화, 신호 처리, 새 가속기 ISA 등) 영역에서 활용합니다. 자세한 내용은 [refs-standard-libraries 1.10](../../refs-standard-libraries/100-bare/110-mlir-plugin.md) 을 참조하시면 됩니다.
 
 ## rokc / rok / rokls / rokr
 
-toolchain 을 이루는 실행 파일과 런타임입니다. `rokc` 는 컴파일러 (rustc 에 해당, [9.1](../009-tools/901-rokc-cli.md)), `rok` 은 매니페스트와 의존성, 환경, toolchain 고정을 맡고 `rokc` 를 부르는 cargo 식 front-end ([9.10](../009-tools/910-rok-frontend.md)), `rokls` 는 편집기용 LSP 서버 실행 파일 (`rok lsp`), `rokr` 은 런타임 (`librokr.a`) 입니다. `$ROK_HOME/bin/` 의 실행 파일은 활성 toolchain (`$ROK_HOME/toolchains/<version>-<triple>/`) 으로 가는 proxy 이며, `rokc` 는 표준 라이브러리와 런타임을 자기 실행 파일 기준의 sysroot 에서 찾습니다 ([9.2.19](../009-tools/902-aot-pipeline.md#9219-설치-레이아웃)).
+toolchain 을 이루는 실행 파일과 런타임입니다. `rokc` 는 LLVM, MLIR, lld 를 내장한 컴파일러 (rustc 에 해당, [9.1](../009-tools/901-rokc-cli.md)), `rok` 은 매니페스트와 의존성, 환경, toolchain 고정을 맡고 `rokc` 를 부르는 cargo 식 front-end ([9.10](../009-tools/910-rok-frontend.md)), `rokls` 는 편집기용 LSP 서버 실행 파일 (`rok lsp`), `rokr` 은 런타임 (`librokr.a`) 입니다. `$ROK_HOME/bin/` 의 실행 파일은 활성 toolchain (`$ROK_HOME/toolchains/<version>-<triple>/`) 으로 가는 proxy 이며, `rokc` 는 표준 라이브러리와 런타임을 자기 실행 파일 기준의 sysroot 에서 찾습니다 ([9.2.19](../009-tools/902-aot-pipeline.md#9219-설치-레이아웃)).
 
 ## RokON
 

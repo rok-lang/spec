@@ -8,7 +8,7 @@ The ABI is the binary-level contract that compiled code must follow at link and 
 
 ## AOT (Ahead-of-Time)
 
-AOT is the mode that compiles source ahead of time into a static artifact (`.a` or an executable), in contrast to JIT. rok supports both the JIT and AOT engines, and the two share the same pipeline.
+AOT is the mode that compiles source ahead of time into a static artifact (`.a` or an executable), in contrast to JIT. rok supports both the JIT and AOT engines, and the two share the same pipeline up to rok-mir.
 
 ## archive
 
@@ -48,7 +48,7 @@ A generic is a function or type that takes types as parameters. It is monomorphi
 
 ## HIR (High-level IR) / MIR (Mid-level IR)
 
-HIR and MIR are intermediate representations of the compilation pipeline. The overall flow is source → AST → HIR → MIR → standard MLIR.
+HIR and MIR are intermediate representations of the compilation pipeline. The overall flow is source → AST → HIR → MIR → machine code (native backend) or standard MLIR → LLVM IR (MLIR → LLVM backend).
 
 ## Immix
 
@@ -56,7 +56,7 @@ Immix is the GC algorithm published by Blackburn and McKinley in 2008. It uses m
 
 ## JIT (Just-in-Time)
 
-JIT is the mode that compiles code immediately at run time. The REPL and Jupyter use this mode; it contrasts with AOT.
+JIT is the mode that compiles code immediately at run time, with the native backend. The REPL and Jupyter use this mode; it contrasts with AOT.
 
 ## lang slot / magic
 
@@ -116,11 +116,11 @@ The `unsafe { ... }` block expression and the `unsafe fn` function modifier are 
 
 ## MLIR plugin
 
-An MLIR plugin is the mechanism for dynamically registering an externally built MLIR dialect with the rok compiler. It is loaded via the `--load-mlir-plugin=<path>` CLI option or a package manifest declaration, and loaded ops become callable through `rok::bare::mlir::__mlir_op`. It is used in domain-specific compiler areas (cryptography, signal processing, new accelerator ISAs, etc.). See [refs-standard-libraries 1.10](../../refs-standard-libraries/100-bare/110-mlir-plugin.md) for details.
+An MLIR plugin is the mechanism for dynamically registering an externally built MLIR dialect with the MLIR embedded in the rok compiler. It is loaded via the `--load-mlir-plugin=<path>` CLI option or a package manifest declaration, and loaded ops become callable through `rok::bare::mlir::__mlir_op`. It is used in domain-specific compiler areas (cryptography, signal processing, new accelerator ISAs, etc.). See [refs-standard-libraries 1.10](../../refs-standard-libraries/100-bare/110-mlir-plugin.md) for details.
 
 ## rokc / rok / rokls / rokr
 
-The executables and runtime that make up the toolchain. `rokc` is the compiler (the counterpart of rustc, [9.1](../009-tools/901-rokc-cli.md)); `rok` is the cargo-like front-end that handles the manifest, dependencies, environments and toolchain pins and invokes `rokc` ([9.10](../009-tools/910-rok-frontend.md)); `rokls` is the LSP server executable for editors (`rok lsp`); and `rokr` is the runtime (`librokr.a`). The executables in `$ROK_HOME/bin/` are proxies to the active toolchain (`$ROK_HOME/toolchains/<version>-<triple>/`), and `rokc` finds the standard libraries and runtime in a sysroot relative to its own executable ([9.2.19](../009-tools/902-aot-pipeline.md#9219-installation-layout)).
+The executables and runtime that make up the toolchain. `rokc` is the compiler (the counterpart of rustc, [9.1](../009-tools/901-rokc-cli.md)), with LLVM, MLIR and lld built in; `rok` is the cargo-like front-end that handles the manifest, dependencies, environments and toolchain pins and invokes `rokc` ([9.10](../009-tools/910-rok-frontend.md)); `rokls` is the LSP server executable for editors (`rok lsp`); and `rokr` is the runtime (`librokr.a`). The executables in `$ROK_HOME/bin/` are proxies to the active toolchain (`$ROK_HOME/toolchains/<version>-<triple>/`), and `rokc` finds the standard libraries and runtime in a sysroot relative to its own executable ([9.2.19](../009-tools/902-aot-pipeline.md#9219-installation-layout)).
 
 ## RokON
 

@@ -147,7 +147,8 @@ For the `none` case (nested optional), see the example in 2.6.5.
 Terms of the normal form have a defined order.
 
 - `none` is always last.
-- The order among the remaining terms is implementation-defined, but deterministic and the same across all modules of a build. It is independent of the written order.
+- The remaining terms are ordered by a structural key: a primitive by its name, a struct or enum by its full path, a generic instance by `path<arg keys>`, a nested sum by its terms' keys. It is independent of the written order.
+- The order, and so the tags, never depend on a build's internal type numbering, so a prebuilt library and its users agree ([9.4.8](../009-tools/904-rhir-bytecode.md#948-rules-for-separate-compilation)).
 
 `PartialOrd` / `Ord` and `min` / `max` / `clamp` on sum type values follow this order ([stdlib 2.5.7](../../refs-standard-libraries/200-core/205-cmp.md#257-implementation-matrix)). Values of different terms are compared by canonical order; values of the same term by that term type's `Ord`. So in `T | none`, `none` is greater than any `T` value.
 

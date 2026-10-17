@@ -45,7 +45,7 @@ GC 상태를 나타내는 비트들입니다.
 
 ### `payload` (offset 16+)
 
-객체의 실제 필드들이 자리잡는 영역입니다. 필드의 순서와 정렬은 컴파일러가 결정하며, 이는 [`struct`](../002-types/203-struct.md), [`enum`](../002-types/204-enum.md), [`union`](../002-types/205-union.md) 모두에 해당합니다.
+객체의 실제 필드들이 자리잡는 영역입니다. 필드의 순서와 정렬은 컴파일러가 결정하며, 이는 [`enum`](../002-types/204-enum.md), [`union`](../002-types/205-union.md) 에도 해당합니다. [`struct`](../002-types/203-struct.md) 값은 그 자체로 heap 객체가 아니며, heap 객체 (list 버퍼, 클로저 환경, coroutine frame) 안에 저장되면 여기에 inline 으로 배치됩니다 ([8.8.3](../008-abi/808-lowering-types.md#883-struct-의-표현)).
 
 `#[repr(C)]` 같은 속성이 붙어 있다면 그에 해당하는 표현 규칙을 따르게 됩니다 ([내장 속성](../006-meta-system/602-built-in-attributes.md)).
 

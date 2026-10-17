@@ -73,12 +73,12 @@ rokc build [path]
 - `--extern <name>=<dir | lib.rok | <name>.rhir | lib<name>.a>` 는 의존 패키지 하나를 최상위 경로 `name` 에 mount 합니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 소스 (`dir` / `lib.rok`) 는 같은 빌드에서 함께 컴파일하고, 미리 빌드한 패키지 (`.rhir` / `.a`, 하나를 주면 옆의 짝을 찾음) 는 RHIR 을 읽고 archive 를 링크합니다. 여러 번 쓸 수 있고, 보통 `rok` 가 채웁니다. `name` 은 식별자이며, 패키지 이름의 `-` 를 `_` 로 바꾼 것입니다 ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)).
 - `--name <n>` 은 패키지 이름 ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock) 의 이름 규칙) 을 정합니다. 산출물은 `lib<n>.a` / `<n>.rhir` 이고 mount 이름은 `-` 를 `_` 로 바꾼 것입니다. 기본은 디렉토리 이름입니다. `--extern a-b=..` 도 `a_b` 로 묶습니다.
 - `--bootstrap <file>` 은 미리 읽을 표준 라이브러리 루트 (여러 번 가능), `--rokr <lib>` 는 링크할 런타임입니다. 기본값은 sysroot 의 `lib/rok/{core,std,bare}/lib.rok` 와 `lib/librokr.a` 입니다 ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)). 찾지 못하면 찾아본 경로를 나열하는 에러입니다.
-- `-O0` / `-O1` / `-O2` / `-O3` / `-Os` 는 최적화 단계를 명시적으로 지정합니다.
-- `--target=<triple>` 은 타깃 플랫폼을 지정하며, [플랫폼 타깃](../000-meta/006-platform-targets.md) 의 13 개 Tier 1 중 하나를 사용합니다.
+- `-O0` / `-O1` / `-O2` / `-O3` / `-Os` 는 최적화 단계를 명시적으로 지정합니다. `-O0` 은 native backend 를, 나머지는 MLIR → LLVM backend 를 씁니다 ([9.2.10](902-aot-pipeline.md#9210-backend-선택)).
+- `--target=<triple>` 은 타깃 플랫폼을 지정하며, [플랫폼 타깃](../000-meta/006-platform-targets.md) 의 13 개 Tier 1 중 하나를 사용합니다. 어느 host 에서나 어느 대상이든 빌드할 수 있습니다 ([0.2.4](../000-meta/002-pipeline.md#024-backend)).
 - `-o` / `--out=<path>` 는 출력 위치를 지정합니다.
 - `--cfg <flag>` / `--cfg <key>=<value>` 는 [조건부 컴파일](../006-meta-system/603-cfg.md) 의 cfg flag 를 설정합니다. 여러 번 쓸 수 있습니다.
 - `--emit=<kind>[,<kind>..]` 는 중간 산출물 (`ast`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expanded`) 을 `target/<profile>/build/<name>.<ext>` 에 씁니다 ([9.9.1](909-debug-tools.md#991-중간-산출물-출력---emit)). 쉼표로 여러 종류를 한 번에 지정하며, 이때는 `-o` 를 함께 쓸 수 없습니다. `--emit` 이 있으면 실행 파일이나 archive 는 만들지 않습니다.
-- `--load-mlir-plugin <path|name>` 은 MLIR 다이얼렉트 plugin 을 `mlir-opt --load-dialect-plugin` 으로 넘기고, `--load-mlir-pass-plugin <path|name>` 은 패스 plugin 을 `--load-pass-plugin` 으로, `--mlir-pass <pass>` 는 LLVM 다이얼렉트로 변환하기 전에 `--<pass>` 로 넘깁니다 ([rok::bare::mlir::plugin](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-로드)). `rokc` 는 MLIR 을 링크하지 않으므로 plugin 을 직접 로드하지 않습니다. 모두 여러 번 쓸 수 있으며, `rok` 도 그대로 넘깁니다.
+- `--load-mlir-plugin <path|name>` 은 MLIR 다이얼렉트 plugin 을, `--load-mlir-pass-plugin <path|name>` 은 패스 plugin 을 로드하고, `--mlir-pass <pass>` 는 LLVM 다이얼렉트로 변환하기 전에 그 패스를 실행합니다 ([rok::bare::mlir::plugin](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-로드)). 모두 여러 번 쓸 수 있으며, `rok` 도 그대로 넘깁니다.
 - `-g` / `--debug` 는 DWARF 디버그 정보를 냅니다 ([9.9](909-debug-tools.md#dwarf-디버그-정보)).
 - `-C overflow-checks[=yes|no]` 는 고정 폭 정수 산술의 overflow 검사 (panic) 를 켜거나 끕니다. 기본값은 `-O0` 에서만 켬입니다. 값을 생략하면 `yes` 입니다. overflow 가 일어날 수 없는 상수 피연산자 연산은 검사를 생략합니다.
 
@@ -98,6 +98,7 @@ rokc emit [path] [--emit=<kind>[,<kind>..]]
 
 ```
 rokc run [path] [-- args...]
+rokc run -i [path]
 ```
 
 실행 패키지를 빌드한 뒤 곧바로 실행하며, `--` 뒤에 적은 인자는 실행 파일에 그대로 전달됩니다. 옵션은 `rokc build` 와 동일합니다. 라이브러리 패키지에는 실행할 것이 없으므로 에러입니다.
@@ -109,6 +110,8 @@ rokc run hello.rok -- arg1 arg2
 ```
 
 `rokc run` 의 종료 코드는 프로그램의 종료 코드입니다. 프로그램이 시그널 `n` 으로 끝나면 `128 + n` 입니다.
+
+`-i` / `--interactive` 는 프로그램을 REPL 세션에 로드한 뒤 `python -i` 처럼 대화형으로 이어 갑니다 ([9.7.10](907-jit-cells.md#9710-프로그램-로드-run--i)). `-- args` 는 받지 않으며, 세션이 끝나면 `0` 으로 종료합니다.
 
 ### `rokc test`: 테스트
 
@@ -176,16 +179,17 @@ bench fib_20 ... bench:       41,503 ns/iter (+/- 312)
 `rokc repl` 은 터미널에서 인터랙티브 셸을 띄워 주는 명령입니다.
 
 ```
-rokc repl [--replay] [--package <path>]
+rokc repl [--package <path>]
 ```
 
 이 모드는 터미널 인터랙티브 셸로 동작합니다. 셀의 의미는 [9.7.0](907-jit-cells.md#970-셀-세션의-규칙) 의 규칙을 따릅니다. 각 셀은 한 번만 실행되고, top-level `let` 바인딩과 항목은 이후 셀로 이어지며, 실패한 셀은 바인딩에 흔적을 남기지 않습니다. 식 셀은 `타입: 값` 을 출력합니다.
 
-- 기본 모드는 각 셀을 LLVM IR 로 만들어 세션 동안 사는 JIT host 프로세스 (libLLVM 의 ORC) 에 넘기고, host 가 JIT 컴파일해 한 번 실행합니다 ([9.6](906-jit-engine.md)). libLLVM 이 없으면 에러입니다. 바인딩, `static` 상태, `any` 값이 셀 사이에 이어집니다. 최상위에서 이름을 적을 수 없는 타입 (클로저, 비공개 타입 등) 의 바인딩은 만들 때 거부하고 `--replay` 를 안내합니다.
-- `--replay` 는 셀마다 세션 전체를 다시 컴파일해 host 가 fork 한 버리는 자식 프로세스에서 JIT 로 처음부터 실행합니다 (실행 파일은 만들지 않음). 그런 바인딩도 유지하지만, 앞 셀의 부수 효과가 매번 되풀이됩니다.
+- 기본 모드는 각 셀을 native backend 로 컴파일해 세션 동안 사는 JIT host 프로세스에 넘기고, host 가 그것을 로드해 한 번 실행합니다 ([9.6](906-jit-engine.md)). 바인딩, `static` 상태, `any` 값이 셀 사이에 이어집니다. 최상위에서 이름을 적을 수 없는 타입 (클로저, 비공개 타입 등) 의 바인딩은 만들 때 거부합니다.
+- 진단과 panic 위치는 셀 자신의 텍스트 기준 `<repl>:line:col` 로 표시합니다.
+- 입력은 줄 편집과 history 를 지원하며, history 는 `$ROK_HOME/repl_history` 에 남습니다.
 - `--package <path>` 는 라이브러리 패키지를 `--extern` 으로 붙이고, 첫 셀 앞에 `use <name>::*;` 를 넣습니다. `:reset` 뒤에도 다시 넣습니다. `main.rok` 패키지 (실행 패키지) 는 거부합니다.
 
-`rok` 와 `rok repl` ([9.10](910-rok-frontend.md)) 은 의존성을 붙여 같은 REPL 을 실행하며, `--replay` 를 그대로 넘깁니다.
+`rok` 와 `rok repl` ([9.10](910-rok-frontend.md)) 은 의존성을 붙여 같은 REPL 을 실행합니다.
 
 REPL 명령 (`:type`, `:reset`, `:add`, `:help`, `:quit`) 과 디버그 수단은 [9.9.9](909-debug-tools.md#999-repl--jupyter-디버그) 에 있습니다.
 
@@ -224,7 +228,7 @@ rokc fmt [path]
 rokc check [path] [--check-library]
 ```
 
-front end, lint, 코드 생성 (표준 MLIR 까지) 을 돌리고 진단을 냅니다. native 빌드 (어셈블, 링크) 는 하지 않습니다. 옵션은 `rokc build` 와 같습니다. `--check-library` 는 도달 여부와 무관하게 라이브러리의 모든 본문을 낮추고 검사합니다.
+front end 를 타입 검사와 MIR 생성까지 돌리고 lint 와 함께 진단을 냅니다. 코드 생성 (MLIR 포함) 은 하지 않습니다. 옵션은 `rokc build` 와 같습니다. `--check-library` 는 도달 여부와 무관하게 라이브러리의 모든 본문을 낮추고 검사합니다.
 
 ### `rokc lint`: 린터
 
@@ -239,7 +243,7 @@ lint 수준은 전역 옵션 `-A` / `-W` / `-D` (9.1.5) 와 코드의 속성이 
 ### `rokc doc`: 문서 생성
 
 ```
-rokc doc [path]
+rokc doc [path] [--std]
 ```
 
 패키지 (와 `--extern` 의존 패키지) 의 공개 항목과 문서 (`///`, `//!`, `#[doc]`, [6.2.8](../006-meta-system/602-built-in-attributes.md#628-doc---문서-주석-형태)) 로 HTML API 문서를 `target/doc/` 에 만듭니다.
@@ -251,6 +255,8 @@ target/doc/
 └── search-index.js            # 검색용 색인
 ```
 
+`--std` 는 표준 라이브러리 tier 도 `rok-core/`, `rok-std/`, `rok-bare/` 로 문서화합니다. 경로가 없으면 그것만 `./target/doc/` 에 만듭니다.
+
 문서 텍스트는 markdown 의 부분집합 (제목, fenced 코드 블록, 인라인 코드, 링크, `**굵게**`, 목록, 문단) 으로 해석합니다.
 
 ### `rokc lsp`: LSP 서버
@@ -261,7 +267,7 @@ target/doc/
 rokc lsp
 ```
 
-이 모드는 VS Code, Vim, Emacs 등 LSP 클라이언트에서 호출하도록 설계됩니다. 편집기용 독립 바이너리 `rokls` 는 `rok lsp` (곧 `rokc lsp`) 와 같습니다. `.rokon` 버퍼는 구문만 검사합니다.
+이 모드는 VS Code, Vim, Emacs 등 LSP 클라이언트에서 호출하도록 설계됩니다. 편집기용 독립 바이너리 `rokls` 는 `rok lsp` (곧 `rokc lsp`) 와 같습니다. `.rokon` 버퍼는 구문만 검사합니다. 기능 목록은 [9.9.13](909-debug-tools.md#9913-lsp-서버) 에 있습니다.
 
 ## 9.1.3. 디버그 / 진단 서브명령
 
@@ -372,10 +378,10 @@ rokc --cwd=examples/hello run
 
 | 변수              | 의미                                                                                     |
 |-------------------|------------------------------------------------------------------------------------------|
-| `ROK_CC`          | 마지막 링크를 하는 C 컴파일러. 기본은 Apple 에서 `xcrun clang`, 그 밖에는 LLVM 의 `clang` ([9.2.18](902-aot-pipeline.md)) |
+| `ROK_CC`          | 내장 lld 대신 마지막 링크를 하는 선택적 C 컴파일러 드라이버 ([9.2.14](902-aot-pipeline.md#9214-링킹-실행-파일의-경우)) |
 | `ROKC_VERBOSE`    | `--verbose` 와 동일                                                                      |
+| `ROK_TIME_PASSES` | `1` 이면 패스별 실제 시간을 stderr 에 출력 ([9.9.5](909-debug-tools.md#rok_time_passes)) |
 | `ROKC_TARGET_DIR` | `target/` 의 위치 (기본은 패키지 안)                                                     |
-| `ROKC_CACHE_DIR`  | [JIT](../000-meta/007-glossary.md#jit-just-in-time) 캐시 디렉토리 (기본 `~/.cache/rok/`) |
 | `ROKC_NUM_JOBS`   | `rokc test --threads` 의 기본값 (없으면 CPU 코어 수)                                     |
 | `NO_COLOR`        | 있으면 `--color=auto` 가 색을 쓰지 않음                                                  |
 
@@ -386,16 +392,21 @@ rokc --cwd=examples/hello run
 진단 메시지는 다음과 같은 형식으로 출력됩니다.
 
 ```
-error: 'count' is not declared
-  --> src/main.rok:5:10
+error[E100]: cannot find value `count` in this scope
+  --> src/main.rok:5:13
    |
+ 2 |     let counter = 0;
+   |         ------- similar name defined here
+...
  5 |     let x = count + 1;
-   |             ^^^^^ unknown identifier
+   |             ^^^^^ not found in this scope
    |
-   = note: did you mean 'counter'?
+   = help: did you mean `counter`?
 ```
 
 [소스 파일](../001-lexical/101-source-files.md) 에서 정의한 파일 + 줄 + 컬럼 단위의 진단을 그대로 사용합니다.
+
+머리줄은 `<severity>[<code>]: <message>` 이고 `--> path:line:col` 이 주 위치입니다. 주 span 은 `^`, 보조 span 은 `-` 로 밑줄을 긋고, 다른 파일의 보조 span 은 `::: path:line:col` 로 시작합니다. 끝의 `= note:` 줄은 맥락을, `= help:` 줄은 고치는 방법을 덧붙입니다.
 
 ### 빌드 진행
 

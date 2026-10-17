@@ -33,7 +33,7 @@ impl Instant {
     fn checked_sub(self, dur: Duration) -> Instant | none;
 }
 
-// ordinary arithmetic — panic (debug) / saturate (release) on overflow
+// ordinary arithmetic — on overflow: panic with overflow checks on, saturate with them off (3.3.5)
 impl Add<Duration> for Instant { type Output = Instant; ... }
 impl Sub<Instant> for Instant { type Output = Duration; ... }
 impl Sub<Duration> for Instant { type Output = Instant; ... }

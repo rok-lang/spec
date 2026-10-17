@@ -51,7 +51,7 @@ nm libfoo.a
 
 ## 9.3.6. 표준 라이브러리
 
-표준 라이브러리 (`rok::bare` / `core` / `std`) 는 별도의 archive 로 배포하지 않습니다. 각 빌드가 소스에서 함께 컴파일합니다 (`--bootstrap`).
+표준 라이브러리 (`rok::bare` / `core` / `std`) 는 별도의 archive 로 배포하지 않습니다. 소스에서 컴파일하며 (`--bootstrap`), toolchain, 옵션, 소스가 같은 동안은 `rokc` 의 cache 에서 재사용합니다 ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)).
 
 ## 9.3.7. 링크
 

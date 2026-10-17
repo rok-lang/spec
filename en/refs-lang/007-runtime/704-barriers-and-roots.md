@@ -44,7 +44,7 @@ ShadowFrame {
 
 ### Compiler emit rules
 
-Only functions that hold GC references and make calls or allocations create a frame. For such functions, the compiler directly emits the following code:
+A function needs a frame only if it holds GC references and can reach a safepoint ([8.4.2](../008-abi/804-safepoint.md#842-emission-sites)). Calls to functions that never return (panics) and to runtime functions that neither allocate nor block ([8.5.2](../008-abi/805-extern-symbols.md#functions-that-are-not-safepoints)) do not count. For such functions, the compiler directly emits the following code:
 
 1. On entry, zero the GC reference words.
 2. Reserve a `ShadowFrame` on the machine stack and record the addresses of those words in `slots`. Save the current `rok_tls_shadow_stack_top` in `prev`, then set the head to this frame (link).

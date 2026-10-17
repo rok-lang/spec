@@ -98,20 +98,25 @@ fns[4]();                          // 4
 
 No separate rule like Go 1.22's per-iteration scope is needed; value capture produces the intended meaning automatically.
 
-## 4.6.7. Capturing heap objects
+## 4.6.7. Capturing structs and reference handles
 
-For objects on the heap (`struct`, `List`, `Dict`, etc.), the binding itself is a reference to the object. Value capture therefore copies this reference, and the object itself is shared.
+Value capture copies the value into the closure. A [`struct`](../002-types/203-struct.md) is a value type, so the closure holds its own copy; a field write inside the closure does not reach the outer variable. Use `[ref p]` for that.
+
+Collections (`List`, `Dict`, `Set`, `StrBuf`, …) are reference handles ([stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md#reference-handles)). Value capture copies the handle, so the object is shared.
 
 ```rok
 let xs = [1, 2, 3];
-let f = || { xs.push(4) };        // captures the reference to xs — object can be modified
+let f = || { xs.push(4) };        // copies the handle — same List
 f();
 // xs == [1, 2, 3, 4]
+
+let p = Point { x: 0.0, y: 0.0 };
+let g = [ref p] || { p.x = 1.0 }; // ref capture — writes the outer p
+g();
+// p.x == 1.0
 ```
 
-This is consistent with the shared-reference semantics of [`struct`](../002-types/203-struct.md) and collections. Value capture means copying the binding (pointer or reference), not copying the object itself.
-
-To copy the object itself, call a method such as `.clone()` explicitly (defined in the standard library).
+For an independent copy of a collection, call `.clone()`.
 
 ## 4.6.8. `ref` capture vs object mutation
 
@@ -130,7 +135,7 @@ let g = [ref xs] || {
 };
 ```
 
-Value capture and object mutation always go together, as a consequence of shared references. `ref` capture is used when the binding itself must be reassigned.
+For a reference handle, value capture and object mutation go together, since the object is shared. `ref` capture is used when the binding itself must be reassigned.
 
 This distinction is the same as the `self` and `ref self` model of [`impl`](../002-types/209-impl.md).
 

@@ -1,6 +1,6 @@
 # 0.2. Compilation pipeline
 
-This specification calls the rok compiler `rokc`. `rokc` is responsible for everything up to emitting source code as standard MLIR text. Optimization and binary generation after that are handled by the standard toolchain.
+This specification calls the rok compiler `rokc`. `rokc` embeds LLVM, MLIR and lld and runs the whole pipeline, from source to a linked binary, in-process.
 
 ## 0.2.1. Stages
 
@@ -16,14 +16,16 @@ The overall flow is as follows.
    rok-mir         (Mid-level IR — monomorphized / operators desugared, all types fixed)
         │
         ▼
-   standard MLIR   (upstream MLIR dialect text — `func`, `arith`, `scf`, ...)
+   standard MLIR   (upstream MLIR dialects — `func`, `arith`, `scf`, ...)    -O1 and above
         │
         ▼
-   LLVM IR / native (mlir-opt → mlir-translate → clang / lld)
+   LLVM IR → native object → lld
 ```
 
+At `-O0` and in the REPL, rok-mir goes straight to machine code through rok's native backend (0.2.4).
+
 > rok-hir is the high-level IR; it precedes type inference and preserves the structure of user code as is. rok-mir is the mid-level IR, in which monomorphization and operator desugaring are complete and all types are fixed.
-> standard MLIR means upstream MLIR, expressed as upstream MLIR dialect text. Finally, LLVM IR or native code is produced.
+> standard MLIR means the upstream MLIR dialects. Finally, LLVM IR and native code are produced.
 
 ## 0.2.2. One-way visibility
 
@@ -49,8 +51,13 @@ This choice guarantees the following. Improvements in upstream MLIR flow into ro
 
 In exchange, the responsibility for lowering rok's high-level semantics to the standard dialects concentrates in the compiler, specifically in the `rok-mir → MLIR` stage. This burden is intentional: it is moved inward so as not to close off options at the end of the pipeline.
 
-## 0.2.4. Emitting MLIR text directly
+## 0.2.4. Backends
 
-The compiler outputs MLIR in text form. That is, `rokc` does not call or link MLIR / LLVM library bindings (C++ or otherwise). Only the REPL / Jupyter JIT host process links libLLVM (ORC), and `rokc` passes LLVM IR text to that host ([9.6](../009-tools/906-jit-engine.md)).
+`rokc` has two code generators. Both consume rok-mir and follow the same runtime ABI ([8](../008-abi/README.md)), so their objects link together.
 
-This approach has several benefits. It reduces external library dependencies. It simplifies the cross-compilation matrix: results can be consumed anywhere MLIR tools are installed. And debug output such as `rokc --emit=mlir` flows directly into standard tools.
+| Backend           | Used for                     | Path                                         |
+|-------------------|------------------------------|----------------------------------------------|
+| native            | `-O0` builds, REPL / Jupyter | rok-mir → machine code                       |
+| MLIR → LLVM       | `-O1` and above              | rok-mir → MLIR → LLVM IR → optimized object  |
+
+LLVM, MLIR and lld are part of `rokc`; no external LLVM tools are run and users do not install LLVM. Targets on macOS need the Xcode Command Line Tools for the SDK. Cross-compilation is built in: `--target <triple>` works from any host, and the toolchain ships libc headers and stubs for the supported targets ([0.6](006-platform-targets.md)). `--emit=mlir` / `--emit=llvmir` dump the intermediate forms ([9.9.1](../009-tools/909-debug-tools.md#991-intermediate-output---emit)).

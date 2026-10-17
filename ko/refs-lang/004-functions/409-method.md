@@ -45,7 +45,7 @@ let d = p.distance(q);                         // instance.method() 호출
 let n = p.norm();
 ```
 
-이 형태의 메서드는 첫 매개변수가 `self` 입니다. 여기서 `self` 는 그 인스턴스의 값을 가리키며, 본체에서는 `self.field` 로 필드에 접근할 수 있습니다. 호출은 `instance.method(args)` 의 형태로 합니다.
+이 형태의 메서드는 첫 매개변수가 `self` 입니다. 여기서 `self` 는 그 인스턴스의 값 (`struct` 이면 사본, [2.3.8](../002-types/203-struct.md#238-값-의미)) 이며, 본체에서는 `self.field` 로 필드에 접근할 수 있습니다. 호출은 `instance.method(args)` 의 형태로 합니다.
 
 ### 인스턴스 메서드: `ref self`
 
@@ -57,7 +57,7 @@ impl Point {
     }
 
     fn replace_with(ref self, other: Point) {
-        self = other;                          // 호출자의 변수가 other 가리킴
+        self = other;                          // 호출자의 변수가 other 가 됨
     }
 }
 
@@ -66,7 +66,7 @@ p.translate(5.0f64, 0.0f64);                   // ref 명시 없이 호출
 p.replace_with(other);                         // 마찬가지
 ```
 
-이 형태의 메서드는 첫 매개변수가 `ref self` 입니다. 본체 안에서는 `self` 의 바인딩에 재할당할 수 있고, 그 결과는 호출자의 변수에 그대로 반영됩니다 ([`ref` 키워드](407-ref-keyword.md) 참조). 호출자는 `ref` 를 명시하지 않는데, 이는 메서드 호출 receiver 가 자동으로 처리되기 때문입니다.
+이 형태의 메서드는 첫 매개변수가 `ref self` 입니다. 본체 안에서는 `self` 와 그 필드에 대입할 수 있고, 그 결과는 호출자의 변수에 되써집니다 ([`ref` 키워드](407-ref-keyword.md) 참조). 호출자는 `ref` 를 명시하지 않는데, 이는 메서드 호출 receiver 가 자동으로 처리되기 때문입니다.
 
 ## 4.9.3. `self` 키워드의 두 사용
 

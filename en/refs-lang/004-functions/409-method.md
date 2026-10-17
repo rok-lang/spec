@@ -45,7 +45,7 @@ let d = p.distance(q);                         // instance.method() call
 let n = p.norm();
 ```
 
-In this form the first parameter is `self`. `self` denotes the instance's value, and the body accesses fields with `self.field`. It is called as `instance.method(args)`.
+In this form the first parameter is `self`. `self` denotes the instance's value (a copy for a `struct`, [2.3.8](../002-types/203-struct.md#238-value-semantics)), and the body accesses fields with `self.field`. It is called as `instance.method(args)`.
 
 ### Instance methods: `ref self`
 
@@ -57,7 +57,7 @@ impl Point {
     }
 
     fn replace_with(ref self, other: Point) {
-        self = other;                          // the caller's variable points to other
+        self = other;                          // the caller's variable becomes other
     }
 }
 
@@ -66,7 +66,7 @@ p.translate(5.0f64, 0.0f64);                   // called without explicit ref
 p.replace_with(other);                         // likewise
 ```
 
-In this form the first parameter is `ref self`. Inside the body, the `self` binding may be reassigned, and the result is reflected in the caller's variable (see [the `ref` keyword](407-ref-keyword.md)). The caller does not write `ref`, because method call receivers are handled automatically.
+In this form the first parameter is `ref self`. Inside the body, `self` and its fields may be assigned, and the result is written back to the caller's variable (see [the `ref` keyword](407-ref-keyword.md)). The caller does not write `ref`, because method call receivers are handled automatically.
 
 ## 4.9.3. Two uses of the `self` Keyword
 

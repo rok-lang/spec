@@ -45,7 +45,7 @@ The object's total size (including the header). For an object moved during evacu
 
 ### `payload` (offset 16+)
 
-The region holding the object's actual fields. Field order and alignment are decided by the compiler; this applies to [`struct`](../002-types/203-struct.md), [`enum`](../002-types/204-enum.md) and [`union`](../002-types/205-union.md) alike.
+The region holding the object's fields. Field order and alignment are decided by the compiler; this applies to [`enum`](../002-types/204-enum.md) and [`union`](../002-types/205-union.md) alike. A [`struct`](../002-types/203-struct.md) value is not a heap object of its own; stored in a heap object (list buffer, closure environment, coroutine frame) it is laid out inline here ([8.8.3](../008-abi/808-lowering-types.md#883-representation-of-struct)).
 
 If an attribute such as `#[repr(C)]` is attached, the corresponding representation rules apply ([Built-in attributes](../006-meta-system/602-built-in-attributes.md)).
 

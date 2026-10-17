@@ -209,7 +209,7 @@ extern "C" {
 }
 ```
 
-`#[link("...")]` specifies the name of the library to link, and that library is added to the link command at build time. Without `#[link]`, symbols are resolved at link time through system defaults (`libc`, etc.) or other mechanisms. The behavior of `#[link]` is defined in [built-in attributes](../006-meta-system/602-built-in-attributes.md).
+`#[link("x")]` or `#[link(name = "x", kind = "static" | "dylib")]` on an extern block passes `-lx` to the linker. The library search path is the C driver's (`LIBRARY_PATH`). Without `#[link]`, symbols are resolved at link time through system defaults (`libc`, etc.) or other mechanisms. The behavior of `#[link]` is defined in [built-in attributes](../006-meta-system/602-built-in-attributes.md).
 
 ## 5.9.10. `extern fn` definitions (exposed externally)
 

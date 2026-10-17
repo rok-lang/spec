@@ -33,7 +33,7 @@ unsafe {
 
 - `R` 은 rok 타입입니다. `_` 이면 기대 타입을, `()` 이면 결과 없음을 뜻합니다.
 - 나머지 인자가 operand 입니다. 속성은 `attributes = { "k": __mlir_attr::<"text"> }` 로 줍니다.
-- 컴파일러는 op 을 MLIR generic form (`"dialect.op"(%a, %b) {k = text} : (..) -> R`) 으로 냅니다. op 이름, operand, 속성의 검증은 `mlir-opt` 가 합니다 (`rokc` 는 다이얼렉트를 링크하지 않음, [0.2.4](../../refs-lang/000-meta/002-pipeline.md#024-mlir-텍스트-직접-생성)).
+- 컴파일러는 op 을 MLIR generic form (`"dialect.op"(%a, %b) {k = text} : (..) -> R`) 으로 냅니다. op 이름, operand, 속성의 검증은 `rokc` 에 내장된 MLIR 이 합니다 ([0.2.4](../../refs-lang/000-meta/002-pipeline.md#024-backend)). `__mlir_op` 을 쓰는 함수는 어느 최적화 수준에서나 MLIR → LLVM backend 로 컴파일합니다 ([refs-lang 9.2.10](../../refs-lang/009-tools/902-aot-pipeline.md#9210-backend-선택)).
 
 ### 속성 (`attributes`)
 

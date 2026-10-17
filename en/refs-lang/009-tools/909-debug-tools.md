@@ -17,6 +17,8 @@ rokc build --emit=obj           # object file
 rokc build --emit=expanded      # meta expansion result (9.9.10)
 ```
 
+`mlir` and `llvmir` come from the MLIR → LLVM backend at any optimization level; `asm` and `obj` come from the backend the level selects ([9.2.10](902-aot-pipeline.md#9210-backend-selection)).
+
 The output is written to the following locations.
 
 ```
@@ -78,16 +80,21 @@ generics: a7c91d8e44b2f190 (type tuple hash)
 Diagnostic messages are printed in the following standard format.
 
 ```
-error: 'count' is not declared
-  --> src/main.rok:5:10
+error[E100]: cannot find value `count` in this scope
+  --> src/main.rok:5:13
    |
+ 2 |     let counter = 0;
+   |         ------- similar name defined here
+...
  5 |     let x = count + 1;
-   |             ^^^^^ unknown identifier
+   |             ^^^^^ not found in this scope
    |
-   = note: did you mean 'counter'?
+   = help: did you mean `counter`?
 ```
 
 This format uses the file + line + column diagnostic units of [Source files](../001-lexical/101-source-files.md).
+
+The header is `<severity>[<code>]: <message>` and `--> path:line:col` gives the primary location. The primary span is underlined with `^`, secondary spans with `-`; a secondary span in another file is introduced by `::: path:line:col`. Trailing `= note:` lines add context and `= help:` lines suggest a fix.
 
 ### JSON format (tool integration)
 
@@ -110,7 +117,7 @@ Each diagnostic is one line of JSON object on stdout (the human format goes to s
 | `kind`     | Name of the error kind                                             |
 | `message`  | Message                                                            |
 | `spans`    | List of locations. The first element is the primary location (`is_primary: true`); the rest are secondary |
-| `notes`    | List of note strings                                               |
+| `notes`    | List of note strings; a help entry starts with `help: `            |
 
 A span has `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_primary` and `label`. A diagnostic that knows only the file and no position has just `{"file_name": .., "is_primary": true}`.
 
@@ -178,6 +185,10 @@ Verbose mode also shows per-stage timing.
 ```
 
 Showing the time of each stage is useful for diagnosing build bottlenecks. The stages are `front end` and `codegen + link` (`emit <ext>` with `--emit`).
+
+### `ROK_TIME_PASSES`
+
+`ROK_TIME_PASSES=1` prints the wall time of each compiler pass on stderr.
 
 ### `-vv` (very verbose)
 
@@ -315,7 +326,7 @@ CI can apply different handling per code (retry, notification, etc.).
 
 ## 9.9.13. LSP server
 
-`rokc` provides an LSP (Language Server Protocol) mode. The same server is also provided as the standalone binary `rokls` (= `rok lsp`). It communicates over stdio and currently provides diagnostics, hover, go-to-definition, document symbols, member / path completion and formatting.
+`rokc` provides an LSP (Language Server Protocol) mode. The same server is also provided as the standalone binary `rokls` (= `rok lsp`). It communicates over stdio and provides diagnostics, hover (including members), go-to-definition (returning the range of the defining name), references, rename, document symbols, member / path completion and formatting. References and rename are buffer-local.
 
 ```
 rokc lsp

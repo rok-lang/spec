@@ -167,26 +167,22 @@ by_ref(ref a);                    // a = 10
 | Explicit call token                      | none                    | `ref` required        |
 | Visual signal                            | ordinary call           | marks possible change |
 
-## 4.7.9. Interaction with heap objects
+## 4.7.9. Structs and reference handles
 
-Changes to fields or elements of heap objects (`struct`, List, Dict, etc.) are visible to the caller even with ordinary pass by value (shared reference).
+A `struct` is a value type: pass by value copies it, so a field write in the callee is local. To change the caller's struct, take it as `ref` (or `ref self`), or return the new value. A reference handle (`List`, `Dict`, …, [stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md#reference-handles)) is copied as a handle, so changes to its elements are visible to the caller.
 
 ```rok
-fn modify_fields(p: Point) {
-    p.x = 10.0f64;                // field of the same heap object — the caller sees it
-}
-
-fn replace(ref p: Point) {
-    p = Point { x: 99.0, y: 99.0 };   // the caller's variable points to a new Point
-}
+fn set_x(p: Point) { p.x = 10.0; }          // local copy — the caller's p is unchanged
+fn set_x_ref(ref p: Point) { p.x = 10.0; }  // written back to the caller's p
+fn fill(xs: List<i32>) { xs.push(1); }      // same List — the caller sees it
+fn reset(ref xs: List<i32>) { xs = []; }    // the caller's variable holds a new List
 ```
 
-| Scenario                                          | Keyword needed                |
-|---------------------------------------------------|-------------------------------|
-| Change only the object's fields                   | ordinary pass by value — enough |
-| Make the caller's variable point to another object | explicit `ref`               |
-
-This distinction is consistent with the object mutation semantics of [member access and method calls](../003-expressions/305-member-access-and-method-call.md).
+| Scenario                                          | Keyword needed                  |
+|---------------------------------------------------|---------------------------------|
+| Change a field of the caller's struct             | `ref`                           |
+| Change elements of a collection                   | ordinary pass by value — enough |
+| Make the caller's variable hold another value     | `ref`                           |
 
 ## 4.7.10. `ref` on two bindings at once
 

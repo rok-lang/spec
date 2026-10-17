@@ -209,7 +209,7 @@ extern "C" {
 }
 ```
 
-`#[link("...")]` 는 링크할 라이브러리의 이름을 지정하며, 빌드 시점에 해당 라이브러리가 링킹 명령에 추가됩니다. `#[link]` 가 없는 경우에는 링킹 시점에 시스템 기본값 (`libc` 등) 이나 다른 메커니즘을 통해 해소됩니다. 자세한 `#[link]` 의 동작은 [내장 속성](../006-meta-system/602-built-in-attributes.md) 에서 정의됩니다.
+extern 블록의 `#[link("x")]` 나 `#[link(name = "x", kind = "static" | "dylib")]` 는 링커에 `-lx` 를 넘깁니다. 라이브러리 검색 경로는 C 드라이버의 것 (`LIBRARY_PATH`) 입니다. `#[link]` 가 없는 경우에는 링킹 시점에 시스템 기본값 (`libc` 등) 이나 다른 메커니즘을 통해 해소됩니다. 자세한 `#[link]` 의 동작은 [내장 속성](../006-meta-system/602-built-in-attributes.md) 에서 정의됩니다.
 
 ## 5.9.10. `extern fn` 정의 (외부에 노출)
 

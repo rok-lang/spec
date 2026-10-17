@@ -67,7 +67,7 @@ The same PrefixVarInt as MLIR bytecode, a variant of LEB128. The number of leadi
 | Field            | Meaning                                                                           |
 |------------------|-----------------------------------------------------------------------------------|
 | name             | The package's mount name. It appears in symbols, so it must equal `--extern <name>=` |
-| hash             | Package hash ([0.3.3](../000-meta/003-source-units.md#033-package-identifier)). The value used in symbol mangling |
+| hash             | Package hash ([0.3.3](../000-meta/003-source-units.md#033-package-identifier)). The value used in symbol mangling. For the standard library package `rok` it is a `pkg=hash;…` list, one entry per tier |
 | source dir       | The directory holding the package source at build time. The base for file paths in the body; downstream reads the body, not the disk |
 | gc type offset / count | This package's GC type id range `[offset, offset + count)` (9.4.8)          |
 
@@ -86,6 +86,7 @@ A prebuilt library cannot see the whole program at once, so packages are reconci
 - **`any` tag.** The tag of an `any` slot is a 31-bit hash of the type name, so separately built packages use the same tag for the same type.
 - **`any` seed.** So that the program knows the types a library puts into `any`, the library appends a small rok function using those types to the end of the body. The program's closed-world `any` dispatcher includes these types too.
 - **Dispatcher symbol.** The `any` dispatcher is the symbol `rok.any.<hash>`, defined weak in libraries and strong in the program. At link time the program's definition wins.
+- **Sum member order.** Terms of a sum are ordered by a structural key, not by internal type numbers ([2.6.4](../002-types/206-sum-types.md#canonical-order)), so tags agree across packages.
 - **GC type id.** Each package has its own GC type id range (9.4.6). It is an error for the ranges of two packages in one program to overlap.
 - **Method symbols.** Methods of dependency packages are mangled by the stable path `<module>::<type>.<method>[__by_<trait>]` ([9.5](905-symbol-mangling.md)).
 

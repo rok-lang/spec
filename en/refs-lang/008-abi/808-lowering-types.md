@@ -44,61 +44,39 @@ The trait mapping of [operator dispatch](../003-expressions/301-operator-dispatc
 
 ## 8.8.3. Representation of `struct`
 
-Consider a named `struct` from [`struct`](../002-types/203-struct.md).
+A `struct` is a value type ([2.3.8](../002-types/203-struct.md#238-value-semantics)) and has no object header.
 
 ```rok
 struct Point { x: f64; y: f64; }
 ```
 
-It is lowered to the following MLIR.
+It is lowered to an LLVM struct of its fields, in the layout of [2.3.6](../002-types/203-struct.md#236-memory-layout).
 
 ```
-!Point = !llvm.struct<"Point", (
-    i32,        // type_id
-    i32,        // gc_flags
-    i64,        // gc_word
-    f64,        // x
-    f64         // y
-)>
+!Point = !llvm.struct<"Point", (f64, f64)>
 ```
 
-As a GC object it is a `!llvm.ptr`.
-
-[GC](../000-meta/007-glossary.md#gc-garbage-collector) objects always live on the heap ([TLAB](../000-meta/007-glossary.md#tlab-thread-local-allocation-buffer) allocation); stack allocation is possible after escape analysis (similar to CoroElide).
+A struct value lives in SSA registers, in stack slots, or inline in its container: a field of another struct, an element of a `List` buffer, a slot of a closure environment or coroutine frame. Assignment and argument passing copy the fields. The compiler may box a value internally only where the box cannot be observed.
 
 ### Field access
 
-Consider a field access expression:
-
-```rok
-p.x
-```
-
-It is lowered to an access through the pointer.
+`p.x` on an SSA value is an `extractvalue`; on a stack slot or an inline location it is a load through a field address.
 
 ```
-%addr = llvm.getelementptr %p [0, 3] : (!llvm.ptr) -> !llvm.ptr
-%val = llvm.load %addr : !llvm.ptr -> f64
+%val  = llvm.extractvalue %p[0] : !Point
+%addr = llvm.getelementptr %slot[0, 0] : (!llvm.ptr) -> !llvm.ptr, !Point
+%val2 = llvm.load %addr : !llvm.ptr -> f64
 ```
-
-Here [0, 3] designates the 4th member of the `struct` (x, index 3 zero-based, after the 3 header slots).
 
 ### Field write
 
-Writing a field:
-
-```rok
-p.x = 1.0f64
-```
-
-is lowered to:
+`p.x = 1.0f64` updates the variable's own copy: `insertvalue` on an SSA value, or a store to the field address of its slot.
 
 ```
-%addr = llvm.getelementptr %p [0, 3] : (!llvm.ptr) -> !llvm.ptr
-llvm.store %val, %addr : f64, !llvm.ptr
+%p2 = llvm.insertvalue %one, %p[0] : !Point
 ```
 
-If a write barrier is needed (sticky bit check, remembered set, etc.), additional code is emitted according to the rules of [Barriers and roots](../007-runtime/704-barriers-and-roots.md).
+When the struct is stored inline in a GC heap object and the field holds a GC reference, the store goes through the write barrier ([Barriers and roots](../007-runtime/704-barriers-and-roots.md)). Pointer fields of a struct in a stack slot are GC roots ([7.4](../007-runtime/704-barriers-and-roots.md)).
 
 ## 8.8.4. Representation of tuple `struct`
 
@@ -118,7 +96,7 @@ The tuple type
 (i32, str, bool)
 ```
 
-is lowered to `!llvm.struct<(i32, !llvm.ptr, i1)>`. If it is handled as a GC object, a header is added.
+is lowered to `!llvm.struct<(i32, !llvm.ptr, i1)>`. Like a `struct`, it is a value with no header.
 
 ## 8.8.6. Representation of `enum`
 

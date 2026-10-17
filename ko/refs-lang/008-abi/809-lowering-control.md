@@ -412,7 +412,7 @@ llvm.store %obj, %x : !llvm.ptr, !llvm.ptr
 llvm.store %saved, %head_ptr : !llvm.ptr, !llvm.ptr
 ```
 
-`@rok_tls_shadow_stack_top` 은 [8.3.8](803-tls-slots.md#838-컴파일러-emit-의-형식) 의 thread-local 심볼입니다. 에러 반환도 일반 `return` 이므로 ([8.9.6](#896-try--catch--finally-값-기반-분기)) 같은 unlink 를 지납니다. GC 참조를 들고 있어도 호출이나 할당이 없는 함수는 frame 을 만들지 않습니다.
+`@rok_tls_shadow_stack_top` 은 [8.3.8](803-tls-slots.md#838-컴파일러-emit-의-형식) 의 thread-local 심볼입니다. 에러 반환도 일반 `return` 이므로 ([8.9.6](#896-try--catch--finally-값-기반-분기)) 같은 unlink 를 지납니다. GC 참조를 들고 있고 safepoint 에 닿을 수 있는 함수만 frame 이 필요합니다 ([8.4.2](804-safepoint.md#842-emit-위치)). 반환하지 않는 함수 (panic) 와 할당도 block 도 하지 않는 런타임 함수 ([8.5.2](805-extern-symbols.md#safepoint-가-아닌-함수)) 의 호출은 세지 않습니다.
 
 ### 모듈의 data layout
 

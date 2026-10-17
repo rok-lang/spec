@@ -14,7 +14,7 @@ let_else_stmt   ::= "let" pattern (":" type_expr)? "=" expr "else" block ";"
 let 패턴 = 식 else { 발산 };
 ```
 
-구성을 살펴보면 `let` 다음에 패턴이 오고, `=` 으로 식을 연결한 뒤, `else` 와 블록이 따라옵니다. 이때 `else` 본체는 [블록 표현식](309-block-expressions.md) 의 divergent 블록이어야 하므로, `return`, `break`, `continue`, `throw` 등으로 빠져나가는 흐름을 반드시 갖추어야 합니다.
+`let` 다음에 패턴, `=` 과 식, 그리고 `else` 와 블록이 옵니다. 반증 가능한 패턴이면 무엇이든 됩니다. 이때 `else` 본체는 [블록 표현식](309-block-expressions.md) 의 divergent 블록이어야 하므로, `return`, `break`, `continue`, `throw` 등으로 빠져나가는 흐름을 반드시 갖추어야 합니다.
 
 ## 3.16.2. 동작
 

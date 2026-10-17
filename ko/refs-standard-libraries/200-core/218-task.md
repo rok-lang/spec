@@ -206,7 +206,7 @@ t.cancel();              // 협력적 신호 — task 가 cancellation point 에
 - blocking syscall 은 cancellation point 가 아닙니다. 그 호출이 끝난 뒤 다음 `await` 에서 떠납니다.
 - 소켓 I/O (`*_async`), `readable` / `writable`, `sleep` / `timeout`, `lock_async`, `recv_async` / `send_async` 에서 기다리던 task 는 취소되면 깨어나고 다음 `await` 에서 떠납니다.
 - task 가 끝나면 그 task 의 깨우기 등록 (I/O readiness, timer, park 한 대기) 은 모두 풀립니다.
-- `spawn_blocking` 과 그 위의 `fs::*_async` 를 기다리던 중 취소되면, 이미 시작된 작업은 백그라운드에서 끝까지 실행되고 결과만 버려집니다. 쓰기 같은 부수 효과는 일어납니다.
+- `spawn_blocking` 과 그 위의 `fs::*_async` 를 기다리던 중 취소되면, 이미 시작된 작업은 백그라운드에서 끝까지 실행되고 결과만 버려집니다. 쓰기 같은 부수 효과는 일어납니다. 그 사이에 끝난 결과도 버립니다. 취소된 poll 은 `Pending` 을 돌려줍니다.
 - 기다리던 future 가 값을 넘겨준 (메시지, 잠금 guard) poll 은 그 값을 지킵니다. 취소 검사는 "기다린 코루틴이 취소 때문에 떠났는가" 를 보며, 값은 남고 다음 `await` 에서 떠납니다 ([refs-lang 7.7.9](../../refs-lang/007-runtime/707-io-and-timer.md#779-cancellation)).
 - 마지막 cancellation point 를 지난 뒤 취소된 task 는 정상적으로 끝나고 결과를 가집니다. `await t` / `join` 은 그 결과를 돌려줍니다.
 - `CancellationError` 는 결과 없이 끝난 task 를 기다리는 쪽이 받습니다. 그런 task 를 `try await t.join()` 으로 기다리면 `CancellationError` 가 던져지고, `await t` 로 기다리면 panic 입니다.

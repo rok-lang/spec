@@ -61,7 +61,7 @@ a < [1, 2, 4];           //→ true (사전식)
 
 ### 참조 핸들
 
-`List`, `Dict`, `Set` 값은 GC heap 객체를 가리키는 참조 핸들입니다. `let ys = xs;` 나 인자 전달은 핸들을 복사하므로 같은 컬렉션을 공유합니다. 그래서 컬렉션을 바꾸는 메서드도 `ref self` 가 아니라 `self` 를 받습니다. 독립된 사본이 필요하면 `clone()` 을 부릅니다. `keys` / `values` / `entries` 는 컬렉션을 복사하지 않는 lazy iterator 를 돌려줍니다.
+`List`, `Dict`, `Set` 값은 GC heap 객체를 가리키는 참조 핸들입니다. `let ys = xs;` 나 인자 전달은 핸들을 복사하므로 같은 컬렉션을 공유합니다. 그래서 컬렉션을 바꾸는 메서드도 `ref self` 가 아니라 `self` 를 받습니다. 독립된 사본이 필요하면 `clone()` 을 부릅니다. 구조체 원소는 값입니다: `xs[i]` 와 `d[k]` 는 사본을 돌려주고, 변경은 `xs[i] = v` 로 저장합니다 ([refs-lang 2.3.8](../../refs-lang/002-types/203-struct.md#238-값-의미)). `keys` / `values` / `entries` 는 컬렉션을 복사하지 않는 lazy iterator 를 돌려줍니다.
 
 ## 2.9.2. `List<T>` — 동적 배열
 
@@ -99,9 +99,16 @@ impl<T> List<T> {
     fn sort_by(self, cmp: fn(T, T) -> Ordering); // stable
     fn reserve(self, additional: usize);
     fn shrink_to_fit(self);
+    fn reverse(self);                            // 제자리
 
     fn iter(self) -> ListIter<T>;
     fn into_iter(self) -> ListIntoIter<T>;
+}
+```
+
+```rok
+impl List<str> {
+    fn join(self, sep: str) -> str;              // 원소를 sep 로 이어 붙임
 }
 ```
 

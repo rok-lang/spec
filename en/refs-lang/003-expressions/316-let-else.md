@@ -14,7 +14,7 @@ let_else_stmt   ::= "let" pattern (":" type_expr)? "=" expr "else" block ";"
 let pattern = expr else { diverge };
 ```
 
-`let` is followed by a pattern, `=` and an expression, then `else` and a block. The `else` body must be a divergent block of [block expressions](309-block-expressions.md), so it must exit via `return`, `break`, `continue`, `throw`, or the like.
+`let` is followed by a pattern, `=` and an expression, then `else` and a block. Any refutable pattern is accepted. The `else` body must be a divergent block of [block expressions](309-block-expressions.md), so it must exit via `return`, `break`, `continue`, `throw`, or the like.
 
 ## 3.16.2. Behavior
 

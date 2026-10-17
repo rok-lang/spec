@@ -1,6 +1,6 @@
 # 8.7. MLIR dialect usage
 
-Applies the standard MLIR dialects set out in the [compilation pipeline](../000-meta/002-pipeline.md) to the lowering specification of this [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) block. Ordinary code is lowered to seven core dialects; libraries in acceleration domains may use additional dialects such as `linalg` / `tensor` / `vector` / `gpu` / `affine` / `async` directly through [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md).
+Applies the standard MLIR dialects set out in the [compilation pipeline](../000-meta/002-pipeline.md) to the lowering specification of this [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) block. This is the lowering of the MLIR → LLVM backend (`-O1` and above); the native backend (`-O0`, REPL) generates machine code from rok-mir directly and follows the same ABI ([0.2.4](../000-meta/002-pipeline.md#024-backends)). Ordinary code is lowered to seven core dialects; libraries in acceleration domains may use additional dialects such as `linalg` / `tensor` / `vector` / `gpu` / `affine` / `async` directly through [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md).
 
 ## 8.7.1. Dialects used by ordinary code (recap)
 
@@ -29,15 +29,16 @@ rok-hir
    ↓ (specialize / monomorphize, desugar)
 rok-mir
    ↓ (lowering — 808 ~ 810 of this block)
-standard MLIR text  (7 dialects for ordinary code; libraries may add more)
-   ↓ (mlir-opt — standard passes)
-   ↓ (mlir-translate)
+standard MLIR  (7 dialects for ordinary code; libraries may add more)
+   ↓ (standard passes, conversion to the LLVM dialect)
 LLVM IR
-   ↓ (clang / lld)
+   ↓ (LLVM optimization and code generation)
+object
+   ↓ (lld)
 native binary
 ```
 
-This ABI block defines the lowering rules for the step from rok-mir to standard MLIR text.
+All steps run inside `rokc`. This ABI block defines the lowering rules for the step from rok-mir to standard MLIR.
 
 ## 8.7.3. Core ops per dialect
 
@@ -181,16 +182,12 @@ The LLVM backend lowers this to target-specific TLS instructions automatically.
 
 ## 8.7.8. Responsibility of each stage
 
-Responsibilities are divided as follows.
-
 ```
-rokc:           rok-mir → standard MLIR text  (this block)
-mlir-opt:       standard MLIR → optimized MLIR  (external tool)
-mlir-translate: MLIR → LLVM IR  (external tool)
-clang/lld:      LLVM IR → native  (external tool)
+rok-mir → standard MLIR     rokc lowering (this block)
+MLIR → LLVM IR              MLIR passes and translation, in-process
+LLVM IR → object            LLVM, in-process, at the requested -O level
+objects → binary            lld, in-process (ROK_CC overrides, 9.2.14)
 ```
-
-`rokc` is responsible only up to generating standard MLIR text; all later stages belong to external tools. `rokc` invokes those commands, but the tools themselves are external.
 
 ## 8.7.9. Verifying the translation
 

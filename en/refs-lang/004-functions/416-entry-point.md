@@ -18,7 +18,7 @@ top_stmt    ::= let_stmt | let_else_stmt | expr ";" | block_like_expr ";"?   // 
 module_file ::= item*                          // lib.rok and every module file other than main.rok
 ```
 
-`item` is an [item in a module](../005-modules/504-modules.md#547-items-within-a-module) (`fn`, `struct`, `enum`, `trait`, `impl`, `const`, `static`, `mod`, `use`, etc.), and `let_stmt` / `let_else_stmt` / `expr ";"` are the same as the statements of [block expressions](../003-expressions/309-block-expressions.md). Control flow (`if`, `match`, `for`, `while`, `loop`, `try`) consists of expressions and is thus included in `expr ";"`. Unlike a function body, there is no final expression without a terminator (`tail_expr`) — the implicit `main` returns no value.
+`item` is an [item in a module](../005-modules/504-modules.md#547-items-within-a-module) (`fn`, `struct`, `enum`, `trait`, `impl`, `const`, `static`, `mod`, `use`, etc.), and `let_stmt` / `let_else_stmt` / `expr ";"` are the same as the statements of [block expressions](../003-expressions/309-block-expressions.md). Control flow (`if`, `match`, `for`, `while`, `loop`, `try`) consists of expressions and is thus included in `expr ";"`. Unlike a function body, there is no final expression without a terminator (`tail_expr`) — the implicit `main` returns no value. A `main.rok` with only items and no statements (and no `fn main`) gets an empty implicit `main`.
 
 > [!IMPORTANT]
 > If a single `main.rok` contains **both** top-level statements and a `fn main` declaration, it is a **compile error**. This rules out any situation where the reader must guess which of two entry points runs.
