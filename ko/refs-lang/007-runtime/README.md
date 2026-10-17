@@ -10,7 +10,7 @@
 - [7.2. 할당](702-allocation.md)
 - [7.3. GC 알고리듬](703-gc-algorithm.md)
 - [7.4. 배리어와 루트 추적](704-barriers-and-roots.md)
-- [7.5. 동시 수집 (없음)](705-concurrent-collection.md)
+- [7.5. 동시 mark](705-concurrent-collection.md)
 - [7.6. 스케줄러](706-scheduler.md)
 - [7.7. I/O 드라이버와 타이머](707-io-and-timer.md)
 - [7.8. 코루틴](708-coroutine.md)
@@ -22,7 +22,7 @@
 ```
 GC          자체 Immix + Sticky Mark-Bit 세대
 Scheduler   M:N work-stealing
-Coroutine   LLVM coroutine intrinsic (stackless)
+Coroutine   컴파일러가 만든 상태 기계 (stackless)
 ```
 
 세 부분 모두 자체 구현이며, 외부 라이브러리에 대한 의존은 0 입니다.
@@ -70,6 +70,6 @@ thread '<name>' has overflowed its stack
 
 - 객체 레이아웃 (16 바이트 헤더 + payload) 입니다.
 - `extern "C"` 함수로는 `rok_gc_alloc_slow`, `rok_runtime_yield`, `rok_thread_spawn` 등이 있습니다.
-- LLVM intrinsic 으로는 `llvm.coro.*` 가 사용됩니다. GC 루트는 intrinsic 없이 컴파일러가 shadow stack frame 을 직접 emit 합니다 ([7.4.1](704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack)).
+- 코루틴은 컴파일러가 만든 상태 기계이며 `llvm.coro.*` 를 쓰지 않습니다 ([7.8](708-coroutine.md)). GC 루트는 intrinsic 없이 컴파일러가 shadow stack frame 을 직접 emit 합니다 ([7.4.1](704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack)).
 
 이 ABI 는 [8. 런타임 ABI / MLIR lowering](../008-abi/README.md) 에서 자세히 정의되며, 본 7 장은 내부 동작만을 다룹니다.

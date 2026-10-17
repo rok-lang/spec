@@ -242,6 +242,7 @@ perf report
 |---------------------------|------------------------------------------------------------------------------|
 | `ROK_GC_LOG=1`            | 수집마다 종류 (minor / full), pause 시간, mark 수, sweep 결과를 stderr 에 출력 |
 | `ROK_GC_STATS=1`          | 종료 시 수집 횟수 (minor / full), pause 시간, 수집기 CPU 시간을 stderr 에 출력. 둘째 줄은 block 수 / 상주 크기 / evacuation 횟수 / 옮긴 바이트 |
+| `ROK_GC_CONCURRENT=auto\|always\|off` | full 수집의 동시 mark. `auto` 는 old 객체 32 MiB 이상일 때 ([7.5](../007-runtime/705-concurrent-collection.md)) |
 | `ROK_GC_EVAC=always`      | 테스트용. full 수집마다 evacuation ([7.3.1](../007-runtime/703-gc-algorithm.md#731-immix-mark-region)) |
 | `ROK_GC_STRESS=N`         | 테스트용. 할당 N 번마다 수집 (그 8 번째마다 full)                            |
 | `ROK_HEAP_DUMP=on_oom`    | OOM 시 heap 의 객체 분포와 큰 객체를 stderr 에 출력. 형식은 런타임이 정함    |

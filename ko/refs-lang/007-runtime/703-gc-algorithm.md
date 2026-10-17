@@ -1,6 +1,6 @@
 # 7.3. GC 알고리듬
 
-rok 의 GC 는 [Immix](../000-meta/007-glossary.md#immix) mark-region[^immix] 위에 sticky mark-bit 세대 수집[^whippet] 을 얹은 stop-the-world 수집기입니다. 수집 중 mutator 는 safepoint ([8.4](../008-abi/804-safepoint.md)) 에서 멈춥니다. 루트와 write barrier 는 [7.4](704-barriers-and-roots.md) 에서 정의합니다.
+rok 의 GC 는 [Immix](../000-meta/007-glossary.md#immix) mark-region[^immix] 위에 sticky mark-bit 세대 수집[^whippet] 을 얹은 수집기입니다. minor 수집과 evacuation 은 stop-the-world 이며 mutator 는 safepoint ([8.4](../008-abi/804-safepoint.md)) 에서 멈춥니다. full 수집의 mark 는 동시에 할 수 있습니다 ([7.5](705-concurrent-collection.md)). 루트와 write barrier 는 [7.4](704-barriers-and-roots.md) 에서 정의합니다.
 
 ## 7.3.1. Immix mark-region
 
@@ -28,7 +28,7 @@ full 수집은 단편화된 block 의 산 객체를 다른 block 으로 옮길 �
 
 - 후보는 직전 sweep 이 남긴 line 상태로 고릅니다 (절반 이하로 찬 block). 단편화 임계를 넘었을 때만 옮깁니다.
 - 옮긴 객체의 옛 자리에는 forwarding pointer 를 남기고, 같은 수집 안에서 모든 정밀 참조를 새 위치로 고칩니다.
-- 옮기지 않는 객체: 루트가 직접 가리키는 객체 ([7.4.1](704-barriers-and-roots.md#루트가-가리키는-객체는-옮기지-않음)), 모호한 word (`AMBIGUOUS_WORD`, enum / union payload) 가 가리키는 객체, `PINNED` / `NOMOVE` 객체, LOS 객체.
+- 옮기지 않는 객체: 루트가 직접 가리키는 객체 ([7.4.1](704-barriers-and-roots.md#루트가-가리키는-객체는-옮기지-않음)), 모호한 word (`AMBIGUOUS_WORD`: type id `2` buffer, untagged `union`) 가 가리키는 객체, `PINNED` / `NOMOVE` 객체, LOS 객체.
 - 다음 cycle 의 할당 예산을 넘는 빈 block 은 OS 에 돌려줍니다.
 - 테스트용 `ROK_GC_EVAC=always` 는 full 수집마다 evacuation 합니다 ([9.9.8](../009-tools/909-debug-tools.md#998-메모리--gc-도구)).
 

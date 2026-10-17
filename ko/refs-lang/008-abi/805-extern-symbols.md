@@ -178,6 +178,7 @@ extern "C" {
 ```
 extern "C" {
     fn rok_str_byte(s: str, i: usize) -> u8;                         // i 번째 바이트 (경계 검사는 호출자)
+    fn rok_str_slice(s: str, start: usize, end: usize, at: str) -> str;  // s[start:end]. 범위 / UTF-8 경계가 틀리면 at 위치로 panic
     fn rok_str_int_status(s: str, signed: i32, bits: u32) -> i32;    // 0 ok, 1 empty, 2 invalid digit, 3 out of range
     fn rok_str_to_i64(s: str) -> i64;                                 // status 0 확인 후 호출
     fn rok_str_to_u64(s: str) -> u64;                                 // status 0 확인 후 호출
@@ -459,13 +460,26 @@ extern "C" {
 }
 ```
 
-`rok_panic` 과 같으며 메시지를 `str` 로 받습니다. core 의 `panic(msg: str)` 과 컴파일러가 생성한 런타임 panic (경계 검사, overflow, 0 으로 나누기 등) 이 모두 이 심볼을 부릅니다.
+`rok_panic` 과 같으며 메시지를 `str` 로 받습니다. 위치를 출력하지 않으며, 런타임 내부의 panic 만 씁니다.
 
-### `rok_uncaught_error`
+### `rok_panic_at`
+
+**Thread-safety: `thread-safe`**.
 
 ```
 extern "rok" {
-    fn rok_uncaught_error(what: str) -> !;    // 미처리 예외: what 을 stderr 에 출력하고 종료 코드 1
+    fn rok_panic_at(msg: str, at: str) -> !;  // at = "path:line:col"
+}
+```
+
+[4.14.13](../004-functions/414-throws.md#41413-panic-과-fatal-에러) 의 형식으로 출력하고 종료 코드 `101` 로 끝냅니다. core 의 `panic` 과 컴파일러가 생성한 panic (경계 검사, overflow, 0 으로 나누기 등) 이 이 심볼을 부릅니다.
+
+### `rok_uncaught_error` / `rok_uncaught_error_at`
+
+```
+extern "rok" {
+    fn rok_uncaught_error(what: str) -> !;              // 미처리 예외: what 을 stderr 에 출력하고 종료 코드 1
+    fn rok_uncaught_error_at(what: str, at: str) -> !;  // 그 뒤에 "  --> <at>" 줄
 }
 ```
 

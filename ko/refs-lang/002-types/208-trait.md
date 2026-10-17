@@ -24,8 +24,8 @@ assoc_const_decl ::= "const" identifier ":" type_expr ("=" const_expr)? ";"
 다음은 트레잇 선언의 예시입니다.
 
 ```rok
-trait Display {
-    fn display(self) -> str;
+trait Describe {
+    fn describe(self) -> str;
 }
 
 trait Add<Rhs = Self> {
@@ -189,7 +189,7 @@ trait Container {
 
 ```rok
 let p = Point { x: 1.0, y: 2.0 };
-let s = p.display();        // Point 의 Display 구현이 정적으로 호출됨
+let s = p.describe();       // Point 의 Describe 구현이 정적으로 호출됨
 ```
 
 이 디스패치는 항상 정적입니다. 트레잇 이름을 변수, 매개변수, 반환 타입에 적는 트레잇-as-타입이 [타입 시스템 개요](README.md) 에서 금지되기 때문입니다.

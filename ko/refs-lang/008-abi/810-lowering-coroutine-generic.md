@@ -144,8 +144,8 @@ func.func @dot_f64_3(%a: !llvm.array<3 x f64>, %b: !llvm.array<3 x f64>) -> f64 
 ## 8.10.8. 제네릭 트레잇 디스패치
 
 ```rok
-fn process<T: Display>(x: T) -> str {
-    x.display()
+fn process<T: Describe>(x: T) -> str {
+    x.describe()
 }
 ```
 
@@ -153,8 +153,8 @@ fn process<T: Display>(x: T) -> str {
 
 ```
 func.func @process_Point(%x: !Point_ptr) -> !str_ptr {
-  ; Point 의 Display::display 메서드를 *직접 호출*
-  %r = func.call @Point_Display_display(%x) : (!Point_ptr) -> !str_ptr
+  ; Point 의 Describe::describe 를 직접 호출
+  %r = func.call @Point_Describe_describe(%x) : (!Point_ptr) -> !str_ptr
   func.return %r
 }
 ```

@@ -120,7 +120,7 @@ MLIR plugin 은 rok 컴파일러에 외부에서 빌드된 MLIR 다이얼렉트�
 
 ## rokc / rok / rokls / rokr
 
-toolchain 을 이루는 실행 파일과 런타임입니다. `rokc` 는 컴파일러 (rustc 에 해당, [9.1](../009-tools/901-rokc-cli.md)), `rok` 은 매니페스트와 의존성, 환경, toolchain 고정을 맡고 `rokc` 를 부르는 cargo 식 front-end ([9.10](../009-tools/910-rok-frontend.md)), `rokls` 는 편집기용 LSP 서버 실행 파일 (`rok lsp`), `rokr` 은 런타임 (`librokr.a`) 입니다.
+toolchain 을 이루는 실행 파일과 런타임입니다. `rokc` 는 컴파일러 (rustc 에 해당, [9.1](../009-tools/901-rokc-cli.md)), `rok` 은 매니페스트와 의존성, 환경, toolchain 고정을 맡고 `rokc` 를 부르는 cargo 식 front-end ([9.10](../009-tools/910-rok-frontend.md)), `rokls` 는 편집기용 LSP 서버 실행 파일 (`rok lsp`), `rokr` 은 런타임 (`librokr.a`) 입니다. `$ROK_HOME/bin/` 의 실행 파일은 활성 toolchain (`$ROK_HOME/toolchains/<version>-<triple>/`) 으로 가는 proxy 이며, `rokc` 는 표준 라이브러리와 런타임을 자기 실행 파일 기준의 sysroot 에서 찾습니다 ([9.2.19](../009-tools/902-aot-pipeline.md#9219-설치-레이아웃)).
 
 ## RokON
 

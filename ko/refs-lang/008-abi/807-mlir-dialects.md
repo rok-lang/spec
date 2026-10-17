@@ -1,6 +1,6 @@
 # 8.7. MLIR 다이얼렉트 사용
 
-[컴파일 파이프라인](../000-meta/002-pipeline.md) 에서 정한 표준 MLIR 다이얼렉트를 본 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 블록의 lowering 사양에 적용합니다. 일반 코드는 8 개 핵심 다이얼렉트로 lower 되며, 가속 영역의 라이브러리는 `linalg` / `tensor` / `vector` / `gpu` / `affine` / `async` 같은 추가 다이얼렉트를 [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md) 로 직접 활용할 수 있습니다.
+[컴파일 파이프라인](../000-meta/002-pipeline.md) 에서 정한 표준 MLIR 다이얼렉트를 본 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 블록의 lowering 사양에 적용합니다. 일반 코드는 7 개 핵심 다이얼렉트로 lower 되며, 가속 영역의 라이브러리는 `linalg` / `tensor` / `vector` / `gpu` / `affine` / `async` 같은 추가 다이얼렉트를 [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md) 로 직접 활용할 수 있습니다.
 
 ## 8.7.1. 일반 코드 사용 다이얼렉트 (재확인)
 
@@ -29,7 +29,7 @@ rok-hir
    ↓ (specialize / monomorphize, desugar)
 rok-mir
    ↓ (lowering — 본 블록의 808 ~ 810)
-표준 MLIR 텍스트  (일반 코드는 8 개 다이얼렉트, 라이브러리는 추가 가능)
+표준 MLIR 텍스트  (일반 코드는 7 개 다이얼렉트, 라이브러리는 추가 가능)
    ↓ (mlir-opt — 표준 패스)
    ↓ (mlir-translate)
 LLVM IR
@@ -118,12 +118,12 @@ math.cos %x : f64
 LLVM 다이얼렉트는 어디까지나 마지막 수단으로 두고, 다른 다이얼렉트로는 표현할 수 없는 의미가 있을 때에만 사용합니다.
 
 ```
-llvm.coro.id / llvm.coro.alloc / llvm.coro.begin / ...
+llvm.alloca / llvm.load / llvm.store
 llvm.struct<(...)>
 llvm.intr.expect / llvm.intr.assume
 ```
 
-coroutine 과 저수준 intrinsic 등은 `llvm` 다이얼렉트의 영역에 속합니다. GC 루트는 intrinsic 없이 일반 load / store 로 shadow stack frame 을 다룹니다 ([8.9.12](809-lowering-control.md#8912-shadow-stack-frame)). 에러 전달은 반환값과 일반 분기로 표현되므로 ([8.9.6](809-lowering-control.md#896-try--catch--finally-값-기반-분기)) `llvm` 다이얼렉트의 특수 기능을 쓰지 않습니다.
+스택 슬롯, 객체 접근, 저수준 intrinsic 은 `llvm` 다이얼렉트의 영역입니다. 코루틴은 컴파일러가 만든 상태 기계이므로 `llvm.coro.*` 를 쓰지 않습니다 ([7.8](../007-runtime/708-coroutine.md)). GC 루트는 intrinsic 없이 일반 load / store 로 shadow stack frame 을 다룹니다 ([8.9.12](809-lowering-control.md#8912-shadow-stack-frame)). 에러 전달은 반환값과 일반 분기로 표현되므로 ([8.9.6](809-lowering-control.md#896-try--catch--finally-값-기반-분기)) `llvm` 다이얼렉트의 특수 기능을 쓰지 않습니다.
 
 ## 8.7.4. 다이얼렉트 사용 우선순위
 

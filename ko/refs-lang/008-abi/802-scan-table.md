@@ -83,8 +83,8 @@ Entry array (8 bytes each):
 | 1   | `WEAK_REF`: 약한 참조 (mark 안 따라감, GC 수집 시 정리)          |
 | 2   | `INTERIOR_REF`: 객체 내부를 가리킴 (forwarding 시 보정)          |
 | 3   | `ANY_SLOT`: `tag + payload` 형태의 동적 슬롯. tag 검사 후 mark   |
-| 4   | `SUM_PAYLOAD`: 합 타입의 payload. tag 가 어딘지 메타와 결합 필요 |
-| 5   | `AMBIGUOUS_WORD`: 참조일 수도 아닐 수도 있는 word. 가리키는 객체를 살리되 옮기지 않음 |
+| 4   | `SUM_PAYLOAD`: 합 타입의 tag 와 변형별 참조 (8.2.6). bit 8..31 은 descriptor 위치 |
+| 5   | `AMBIGUOUS_WORD`: 참조일 수도 아닐 수도 있는 word. 가리키는 객체를 살리되 옮기지 않음 (type id `2` buffer, untagged `union`) |
 | 6 ~ | 예약 / 추가 종류                                                 |
 
 각 종류가 실제로 어떻게 mark 되는지는 GC 구현이 처리할 사항이며, 본 사양에서는 어떤 종류가 있는지와 인코딩만 정의합니다.
@@ -132,22 +132,25 @@ enum Result {
 
 이 타입의 객체는 Tag (4 바이트), 패딩 (4 바이트), 그리고 가장 큰 변형의 payload (8 바이트, str 포인터) 로 구성되어 총 32 바이트가 됩니다.
 
-ScanTable 은 변형마다 다르게 처리해야 하므로, 이때는 `field_kind` 의 `SUM_PAYLOAD` 를 사용합니다.
+변형마다 참조의 자리가 다르므로 `SUM_PAYLOAD` entry 하나와 그 descriptor 를 씁니다.
+
+- entry 의 `field_offset` 은 tag (u32) 의 offset 입니다.
+- `field_kind` 의 하위 byte 는 `4`, bit 8..31 은 descriptor 의 위치 (table 시작부터 u32 word 단위) 입니다.
+- descriptor 는 `n` 다음에, 참조를 가진 변형마다 `{tag, num_entries, entries_index}` 를 둡니다.
+- 변형의 entry 는 `{tag 로부터의 offset, field_kind}` 입니다. 중첩된 합은 다시 `SUM_PAYLOAD` 로 씁니다.
+- descriptor 에 없는 tag 의 변형에는 참조가 없습니다.
 
 ```
 ScanTable {
-  version      = 1
-  total_size   = 32        // 16 헤더 + 4 tag + 4 padding + 8 payload (max)
-  num_entries  = 1
-
-  entry[0]: field_offset = 16, field_kind = SUM_PAYLOAD (4)
-                                            // tag 는 16, payload 는 24
+  version = 1, total_size = 40, num_entries = 1
+  entry[0]: field_offset = 16, field_kind = 4 | (desc << 8)    // tag 는 offset 16
+  desc:     n = 1
+            { tag = 1 (Err), num_entries = 1, entries_index = e }
+  e:        { offset = 8, field_kind = STRONG_REF }             // Err 의 str ptr
 }
 ```
 
-`SUM_PAYLOAD` 는 추가 메타가 필요합니다. 즉 tag 의 위치, 그리고 각 tag 에 대해 어떤 자식이 있는지에 대한 정보가 함께 있어야 합니다. 이 추가 메타는 entry 뒤에 연속된 보조 영역에 둘 수 있으며, 자세한 형식은 GC 구현이 결정합니다.
-
-본 사양에서는 `SUM_PAYLOAD` kind 가 추가 정보를 요구한다는 사실까지를 정의합니다.
+enum / 합 타입 payload 의 참조는 정밀합니다. 그래서 payload 로 닿은 객체도 evacuation 으로 옮겨질 수 있습니다. `AMBIGUOUS_WORD` 는 type id `2` buffer 와, tag 가 없어 해석할 수 없는 사용자 `union` 의 저장소에만 씁니다.
 
 ## 8.2.7. ANY 슬롯
 

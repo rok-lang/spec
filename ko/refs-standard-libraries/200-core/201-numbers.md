@@ -188,14 +188,8 @@ impl Float {
 | 타입     | 의미                                                                                  |
 |----------|---------------------------------------------------------------------------------------|
 | `bool`   | `true` / `false`                                                                      |
-| `char`   | UTF-8 codepoint (4-byte storage); 표준 라이브러리 타입 ([2.15 string](215-string.md)) |
+| `char`   | Unicode scalar value (4 바이트), 컴파일러 primitive. 메서드는 [2.15](215-string.md) |
 | `c_char` | C ABI 호환 char (1-byte signed); FFI 전용                                             |
-
-> [!NOTE]
-> [refs-lang 1.8](../../refs-lang/001-lexical/108-character-literals.md) 의 결정에
-> 따라 `char` 는 표준 라이브러리 타입으로 정의되며, `c_char` 만 primitive 로 남습니다. 이
-> 절의 14 primitive 중에서 `char` 는 표준 라이브러리 정의로 다뤄집니다 ([2.15
-> string](215-string.md)).
 
 ### 두 부류 — 언어 기본값 vs 표준 라이브러리 추가
 
@@ -345,7 +339,7 @@ impl f64 {
 | `42u64`   | `u64`                                             |
 | `3.14f32` | `f32`                                             |
 | `3.14f64` | `f64`                                             |
-| `'A'`     | `char` (표준 라이브러리 타입)                     |
+| `'A'`     | `char`                                            |
 | `c'A'`    | `c_char` (primitive)                              |
 | `0xFF`    | 10 진과 같음 — 기대 타입, 없으면 `i32`             |
 | `0xFFi32` | `i32`                                             |
@@ -437,14 +431,13 @@ fixed primitive 와 `int` 사이의 변환은 명시적으로만 가능합니다
 niche](../../refs-lang/002-types/207-niche-optimization.md) 가 메커니즘을
 정의합니다. 자동 niche 가 적용되는 primitive 는 다음과 같습니다.
 
-`bool | none` 의 경우 1 byte 로 표현되며, none 은 bit pattern `2..=255` 중
-하나로 인코딩됩니다. `Ptr<T> | none` 과 `ConstPtr<T> | none` 은 pointer 크기
-그대로 표현되고, none 은 null pointer 로 처리됩니다. 그러나 `i8`..`i64`,
+`bool | none` 은 1 byte (niche 값 `2`), `Ptr<T> | none` / `ConstPtr<T> | none`
+은 pointer 크기 (null 이 none) 입니다 ([refs-lang 2.7.2](../../refs-lang/002-types/207-niche-optimization.md#272-자동-niche)). 그러나 `i8`..`i64`,
 `u8`..`u64`, `f32`, `f64` 자체에는 자동 niche 가 적용되지 않습니다. 모든 bit
 pattern 이 유효한 값이기 때문입니다.
 
 opt-in niche 가 필요한 경우에는 [2.2 non-zero](202-non-zero.md) 의
-`NonZero<T>` / `NonNan<F>` / `Finite<F>` wrapper 를 사용합니다.
+`NonZero<T>` / `NonNan<F>` / `Finite<F>` / `Positive<T>` wrapper 를 사용합니다.
 
 ## 2.1.9. lang slot 매핑
 

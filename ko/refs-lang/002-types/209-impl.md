@@ -45,8 +45,8 @@ impl<A, B> (A, B) {
 다음으로 트레잇 `impl` 의 예시를 살펴보겠습니다.
 
 ```rok
-impl Display for Point {
-    fn display(self) -> str { f"({self.x}, {self.y})" }
+impl Describe for Point {
+    fn describe(self) -> str { f"({self.x}, {self.y})" }
 }
 
 impl Add for Point {

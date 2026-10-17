@@ -16,107 +16,62 @@ let p: Ptr<u8> | none      // 64-bit 포인터 + none
 
 ## 2.7.2. 자동 niche
 
-다음 타입에서는 컴파일러가 자동으로 niche 를 식별하므로, 사용자가 따로 표시할 필요가 없습니다.
+`none` 의 비트는 구현이 정합니다. 항 하나와 `none` 만으로 된 합 `T | none` 은 `T` 에 niche 가 있으면 `T` 의 크기이며, `none` 은 그 niche 값으로 표현됩니다. 0 으로 채운 저장소는 `none` 으로 읽힙니다.
 
-| 타입                     | niche 비트 패턴             |
-|--------------------------|-----------------------------|
-| `Ptr<T>` / `ConstPtr<T>` | null 포인터 (`0x0`)         |
-| `bool`                   | 2 ~ 255 (`0` / `1` 만 유효) |
-| `enum`                   | 미사용 discriminant 값      |
-| `extern "C" fn(..) -> R` | null 포인터 (`0x0`)         |
+| 타입                                       | niche 값                              |
+|--------------------------------------------|---------------------------------------|
+| `bool`                                     | `2`                                   |
+| `char` (컴파일러 primitive)                | surrogate `0xD800`                    |
+| 필드 없는 `enum`, payload 에 GC 참조가 없는 `enum` | 쓰지 않는 첫 tag                |
+| `extern "C" fn(..) -> R`                   | null                                  |
+| `Ptr<T>` / `ConstPtr<T>` / `ManyPtr<T>`    | null (`#[niche(0)]`)                  |
+| 여러 필드의 `struct` / 튜플                | niche 가 있는 첫 필드의 niche          |
 
-위 타입을 합 타입의 한 항으로 쓰고 다른 항이 unit-like (예: `none`) 인 경우, 합 타입의 크기는 그 항의 크기와 같아집니다.
+- payload 에 GC 참조를 담는 `enum` 은 niche 가 없습니다.
+- niche 값이 0 이면 (null 포인터, `extern "C" fn`, `NonZero`) 항의 비트는 그대로이므로, 그런 `T | none` 은 C ABI 를 그대로 nullable 값으로 건넙니다 ([5.9.4](../005-modules/509-extern-block.md#nullable-c-함수-포인터-extern-c-fn---r--none)).
+- `none` 말고 항이 둘 이상인 합은 태그를 둡니다.
 
 ```rok
-Ptr<u8> | none           // 8 바이트 (자동 niche)
-bool | none              // 1 바이트 (자동 niche)
+Ptr<u8> | none           // 8 바이트, null 이 none
+bool | none              // 1 바이트
 ```
-
-C 함수 포인터 타입 하나와 `none` 만으로 된 합 (`extern "C" fn(..) -> R | none`) 은 포인터 하나이며 null 이 `none` 입니다 (Rust 의 `Option<extern "C" fn>` 과 같음). 그래서 C 와 주고받을 때 그대로 nullable 함수 포인터가 됩니다. 항이 더 많은 합으로 넓히면 일반 태그 배치를 씁니다 ([5.9.4](../005-modules/509-extern-block.md#nullable-c-함수-포인터-extern-c-fn---r--none)).
-
-> [!NOTE]
-> 유니코드 코드포인트형 (스칼라값) 은 언어 수준의 자동 niche 대상이 아닙니다. 그
-> 타입은 표준 라이브러리 항목이며, 서로게이트 범위와 `> U+10FFFF` 가 niche 가 된다는 사실은
-> 표준 라이브러리의 newtype 정의에 `#[niche(...)]` 로 명시됩니다 ([§2.7.4 opt-in
-> niche](#274-opt-in-niche-niche-속성)). 이 절은 언어가 직접 인지하는 자동
-> niche 만 다룹니다.
 
 ## 2.7.3. 자동 없음
 
-다음 타입은 모든 비트 패턴이 유효하므로 자동 niche 가 존재하지 않습니다.
+정수 (`i8` .. `i64`, `u8` .. `u64`, `usize`, `isize`) 와 부동소수 (`f32`, `f64`) 는 모든 비트 패턴이 유효하므로 niche 가 없습니다. niche 가 필요하면 wrapper (2.7.6) 나 `#[niche]` (2.7.4) 를 씁니다.
 
-정수형으로는 `i8`, `i16`, `i32`, `i64`, `u8`, `u16`, `u32`, `u64`, `usize`, `isize` 가 있고, 부동소수형으로는 `f32`, `f64` 가 있습니다.
-
-이들에 niche 가 필요하다면 opt-in 메커니즘을 사용해야 합니다.
-
-## 2.7.4. opt-in niche. `#[niche(...)]` 속성
-
-문법은 다음과 같습니다.
+## 2.7.4. opt-in niche: `#[niche(..)]`
 
 ```
-niche_attr      ::= "#" "[" "niche" "(" niche_arg ("," niche_arg)* ","? ")" "]"
-niche_arg       ::= const_expr | range_expr
+niche_attr ::= "#" "[" "niche" "(" niche_arg ("," niche_arg)* ","? ")" "]"
+niche_arg  ::= int_lit | "-" int_lit | const_path | range
+range      ::= niche_val "..=" niche_val | ".." niche_val | niche_val ".."
+const_path ::= "MIN" | "MAX" | "NAN" | "INFINITY" | "NEG_INFINITY" | type "::" const_name
 ```
-
-이 속성을 통해 어떤 비트 패턴이 niche 인지 사용자가 직접 명시할 수 있습니다.
 
 ```rok
 #[niche(0)]
-struct NonZero<T>(T);
+struct UserId(u64);
 
-#[niche(0, -1, I32_MIN)]
-struct Restricted(i32);
+#[niche(i32::MIN..=-1)]
+struct NonNegative(i32);
 
-#[niche(I32_MIN..=-1)]
-struct PositiveOrZero(i32);
-
-#[niche(f64::INFINITY, f64::NEG_INFINITY)]
-struct FiniteF64(f64);
+#[niche(NAN, INFINITY, NEG_INFINITY)]
+struct Real { value: f64; }
 ```
 
-규칙은 다음과 같이 정리됩니다. 먼저 `#[niche(...)]` 속성은 newtype `struct` (단일 필드 tuple `struct`) 에만 직접 부착할 수 있습니다. 인자는 `const` 표현식 또는 범위 표현식 (`..=`, `..`) 이며, 다중 인자는 콤마로 구분하고 합집합으로서의 niche 비트 패턴을 이룹니다. 마지막으로 사용자가 명시한 비트 패턴은 유효한 값이 아니라는 약속이 됩니다. 컴파일러는 이를 검증하지 않으므로, 사용자가 그 약속을 어기면 합 타입의 태그가 손상되며 의미가 정의되지 않습니다.
-
-> [!WARNING]
-> opt-in niche 는 사용자의 약속입니다. 컴파일러는 약속 위반을 검출하지 않습니다. niche 자리에 해당하는 비트 패턴이 등장하면 합 타입의 태그가 잘못 해석됩니다.
-
-여러 필드를 가진 구조체에 niche 필드가 포함되면 자동으로 전파됩니다. 이때 가장 큰 niche 를 가진 필드가 구조체 전체의 niche 가 됩니다.
-
-```rok
-struct PointWithMaybeColor {
-    x: f64;
-    y: f64;
-    color: NonZero<u32>;     // niche 가 있는 필드
-}
-// PointWithMaybeColor | none 도 추가 비용 0 (color 의 niche 사용)
-```
+- 인자는 정수, `MIN` / `MAX` (`T::MIN`), `NAN` / `INFINITY` / `NEG_INFINITY` (`F::NAN`), 범위 `a..=b` / `..b` / `a..`, 그리고 그 여럿입니다. 인스턴스화된 필드 타입에 대해 읽습니다.
+- 적힌 값은 그 타입의 유효한 값이 아니라는 약속입니다. 컴파일러는 이를 검사하지 않으며, 그 값이 나타나면 합 타입의 판별이 틀어집니다.
 
 ## 2.7.5. 부착 가능한 위치
 
-`#[niche(...)]` 속성은 newtype tuple `struct` (단일 필드) 에서, 그리고 자동 niche 가 있는 `enum` 또는 기존 niche 가 있는 `struct` 를 한 필드로 갖는 newtype 에서만 의미를 갖습니다.
-
-반면 다음 위치에는 직접 부착할 수 없습니다. 우선 `i32` 등의 원시 타입은 사용자 정의 타입이 아니므로 부착이 불가능합니다. `enum` 의 경우에는 자동 niche 메커니즘이 우선 적용됩니다. 또한 `union` 에서는 비트 재해석 의미상 niche 정의 자체가 의미가 없습니다.
+`#[niche(..)]` 는 필드가 하나인 `struct` (tuple newtype 또는 이름 있는 필드 하나) 에 붙입니다. `enum`, `union`, 필드가 여럿인 `struct` 에 붙이면 에러입니다.
 
 ## 2.7.6. 표준 라이브러리 wrapper
 
-자주 쓰이는 niche 패턴용 wrapper 가 표준 라이브러리에 미리 정의됩니다.
-
-| 이름          | 의미                                 |
-|---------------|--------------------------------------|
-| `NonZero<T>`  | 정수형 T 에 대해 0 이 niche          |
-| `NonNan<F>`   | 부동소수 F 에 대해 NaN 이 niche      |
-| `Finite<F>`   | 부동소수 F 에 대해 NaN + ±∞ 가 niche |
-| `Positive<T>` | T 의 음수 영역이 niche               |
-
-이들의 정확한 정의는 표준 라이브러리 사양에서 다룹니다. 본 문서에서는 언어가 niche 메커니즘을 제공한다는 사실까지만 정의합니다.
-
-## 2.7.7. 합 타입과의 결합
-
-합 타입 (`A | B`) 의 메모리 크기는 다음과 같은 규칙에 따라 결정됩니다. 먼저 모든 항의 비트 표현이 서로 겹치지 않는 niche 자리를 통해 구분 가능한지 확인합니다. 가능한 경우에는 가장 큰 항의 크기에 niche 자리를 더한 크기로 결정되며, 별도의 태그는 두지 않습니다. 불가능한 경우에는 가장 큰 항의 크기에 별도 태그 (1 ~ N 비트) 를 더한 크기가 됩니다.
-
-이 규칙의 정확한 알고리듬은 컴파일러 구현이 결정합니다. 사양에서는 결과 (위 두 경우의 크기) 만 보장합니다.
-
-## 2.7.8. 사용자가 알아야 하는 것
-
-niche 최적화는 대부분 자동으로 이루어집니다. 사용자가 명시적으로 해야 하는 일은 두 가지뿐입니다. 첫째, 기존 타입의 제약된 부분 집합을 만들고 싶을 때 newtype 과 `#[niche(...)]` 를 사용하는 것입니다. 둘째, 표준 라이브러리의 wrapper 를 그대로 활용하는 것입니다.
-
-다만 opt-in niche 의 불변을 유지할 책임은 사용자에게 있다는 점을 유의해야 합니다.
+| 이름          | 제외하는 값                           | 정의                          |
+|---------------|---------------------------------------|-------------------------------|
+| `NonZero<T>`  | 0 (정수 T 만)                         | [stdlib 2.2.2](../../refs-standard-libraries/200-core/202-non-zero.md#222-nonzerot--0-금지) |
+| `NonNan<F>`   | NaN                                   | [stdlib 2.2.3](../../refs-standard-libraries/200-core/202-non-zero.md#223-nonnanf--nan-금지) |
+| `Finite<F>`   | NaN, ±∞                               | [stdlib 2.2.4](../../refs-standard-libraries/200-core/202-non-zero.md#224-finitef--nan--금지) |
+| `Positive<T>` | 음수 (0 은 포함). unsigned `T` 는 niche 없음 (`Positive<u32> \| none` 은 8 바이트) | [stdlib 2.2.5](../../refs-standard-libraries/200-core/202-non-zero.md#225-positivet--음수-금지) |

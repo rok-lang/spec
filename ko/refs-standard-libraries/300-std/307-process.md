@@ -14,7 +14,7 @@ struct Command {
     env_clear: bool;
     stdin: Stdio;
     stdout: Stdio;
-    stderr: Stderr;
+    stderr: Stdio;
     cwd: Path | none;
     kill_on_drop: bool;       // using 으로 묶은 Child 가 해제될 때 kill
     process_group: i32 | none;

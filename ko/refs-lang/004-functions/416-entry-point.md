@@ -96,7 +96,7 @@ fn main() throws {          // 암묵 main 의 형태 — 4.16.4 참고
 진입점이 끝나는 방식에 따라 프로세스 종료 코드가 정해집니다.
 
 - **정상 종료**: 4.16.3 의 표대로 `0` 또는 반환된 `i32`.
-- **미처리 예외**: `throws` main 에서 에러가 진입점 밖으로 전파되면, 런타임은 예외 값을 표준 에러 (stderr) 에 출력하고 종료 코드 **`1`** 로 종료합니다. 출력 형식은 값이 [`Display`](../../refs-standard-libraries/200-core/210-fmt.md) 를 구현하면 `Display`, 아니면 `Debug`, 둘 다 없으면 타입 이름입니다 ([`Error`](../../refs-standard-libraries/200-core/214-error.md) 트레잇은 `Display` 를 요구하므로 일반적인 에러 타입은 `Display` 로 출력됩니다).
+- **미처리 예외**: `throws` main 에서 에러가 진입점 밖으로 전파되면, 런타임은 예외 값을 표준 에러 (stderr) 에 출력하고 종료 코드 **`1`** 로 종료합니다. 출력 형식은 값이 [`Display`](../../refs-standard-libraries/200-core/210-fmt.md) 를 구현하면 `Display`, 아니면 `Debug`, 둘 다 없으면 타입 이름입니다 ([`Error`](../../refs-standard-libraries/200-core/214-error.md) 트레잇은 `Display` 를 요구하므로 일반적인 에러 타입은 `Display` 로 출력됩니다). 다음 줄에 에러가 `main` 을 떠난 위치를 `  --> path:line:col` 로 씁니다.
 - **panic**: panic 과 fatal 에러는 `catch` 로 잡히지 않으며, 런타임은 메시지를 표준 에러에 출력하고 종료 코드 **`101`** 로 종료합니다 ([4.14.13](414-throws.md#41413-panic-과-fatal-에러)).
 - **명시 종료**: [`rok::std::env::exit(code)`](../../refs-standard-libraries/300-std/306-env.md) 는 어느 지점에서든 즉시 프로세스를 종료합니다. 이 경로는 `finally` 와 `Drop` 을 실행하지 않습니다.
 

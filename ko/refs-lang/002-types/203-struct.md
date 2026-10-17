@@ -110,7 +110,7 @@ struct Account {
 }
 ```
 
-가시성 단계의 정확한 의미는 [가시성](../005-modules/506-visibility.md) 에서 정의합니다.
+tuple struct 의 필드도 각자 가시성을 가집니다 (`struct S(pub i32, i32);`, 기본 비공개). 생성, `x.N` 접근, 패턴에서의 규칙과 가시성 단계의 의미는 [5.6.8](../005-modules/506-visibility.md#568-struct-필드의-가시성) 이 정합니다.
 
 ## 2.3.6. 메모리 레이아웃
 

@@ -80,7 +80,7 @@ async yield fn ticks(interval: Duration) -> Instant {
 }
 ```
 
-`-> Instant` 는 원소 타입이며, 호출 결과는 `AsyncStream<Instant>` (`Stream<Item = Instant>` 구현) 입니다 ([refs-lang 4.1.11](../../refs-lang/004-functions/401-function-declaration.md#코루틴-함수의-결과-타입)). 컴파일러는 이 함수를 LLVM coro.* state machine 으로 변환합니다. 이때 `yield` 자리는 **suspend point** 이며, `await` 자리 역시 **suspend point** 가 됩니다.
+`-> Instant` 는 원소 타입이며, 호출 결과는 `AsyncStream<Instant>` (`Stream<Item = Instant>` 구현) 입니다 ([refs-lang 4.1.11](../../refs-lang/004-functions/401-function-declaration.md#코루틴-함수의-결과-타입)). 컴파일러는 이 함수를 상태 기계로 바꿉니다 ([refs-lang 7.8](../../refs-lang/007-runtime/708-coroutine.md)). 이때 `yield` 자리는 **suspend point** 이며, `await` 자리 역시 **suspend point** 가 됩니다.
 
 자세한 syntax 권위는 [refs-lang 4.13 stream (`async yield`)](../../refs-lang/004-functions/413-stream.md) 을 따릅니다.
 

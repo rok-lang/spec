@@ -13,7 +13,7 @@ worker = {
 }
 ```
 
-I/O driver 는 worker 가 겸하지 않습니다. 프로세스당 reactor thread 하나가 맡습니다 ([7.7.1](707-io-and-timer.md#771-io-멀티플렉싱)). GC 는 수집을 시작한 thread 가 진행합니다 (7.6.10).
+I/O driver 는 worker 가 겸하지 않습니다. 프로세스당 reactor thread 하나가 맡습니다 ([7.7.1](707-io-and-timer.md#771-io-멀티플렉싱)). STW 수집은 수집을 시작한 thread 가, 동시 mark 는 marker thread 가 진행합니다 (7.6.10).
 
 ## 7.6.2. Work-Stealing 구조
 
@@ -99,7 +99,7 @@ work-stealing 모델은 task 가 blocking syscall 을 호출하면 그 worker �
 
 ## 7.6.10. 통합 GC Worker 역할
 
-별도의 GC thread 는 없습니다. 수집은 할당이나 `rok_gc_collect` 에서 수집을 시작한 thread 가 진행하고, 다른 worker 는 safepoint 에서 멈춰 기다립니다 ([7.4.3](704-barriers-and-roots.md#743-safepoint-polling)). 수집이 끝나면 worker 는 task 실행으로 돌아갑니다.
+STW 수집은 할당이나 `rok_gc_collect` 에서 수집을 시작한 thread 가 진행하고, 다른 worker 는 safepoint 에서 멈춰 기다립니다 ([7.4.3](704-barriers-and-roots.md#743-safepoint-polling)). 수집이 끝나면 worker 는 task 실행으로 돌아갑니다. 동시 mark 는 별도의 marker thread 하나가 합니다 ([7.5](705-concurrent-collection.md)).
 
 ## 7.6.11. Scheduler 와 Coroutine 의 관계
 

@@ -8,6 +8,14 @@ rok 은 프로그래밍 언어이며, 이 저장소는 그 언어의 형식 사�
 
 설계와 유지보수는 [한다민 (Han Damin)](https://github.com/miniex) (`@miniex`) 이 맡고 있습니다.
 
+| 자리                 | 위치                                                    |
+|----------------------|---------------------------------------------------------|
+| GitHub 조직          | [rok-lang](https://github.com/rok-lang)                 |
+| 사양 저장소          | <https://github.com/rok-lang/spec>                      |
+| 웹사이트             | <https://rok-lang.org>                                  |
+| stone 레지스트리     | <https://rokstones.io>                                  |
+| 레지스트리 index     | <https://github.com/rok-lang/rokstones.io-index>        |
+
 ## rok 이 존재하는 이유
 
 rok 은 저자가 직접 쓰고 싶은 코드 한 가지에서 출발한 언어입니다. 특정한 사용자층을 겨냥하지도, 학술적인 입장을 대변하지도 않습니다. 모든 설계 결정의 한가운데에는 "저자가 하고 싶은 모든 것을 할 수 있는 언어 하나" 라는 단순한 동기가 놓여 있을 뿐이며, 이 한 문장이 곧 rok 의 전부라고 해도 과언이 아닙니다.

@@ -22,7 +22,7 @@ enum Poll<T> {
 
 `poll(ctx)` 의 동작은 두 가지 결과로 갈립니다. `Ready(v)` 가 반환되면 결과가 준비된 상태이며 `v` 가 그대로 반환되고, `Pending` 이 반환되면 아직 결과가 없는 상태이므로 `ctx` 의 waker 가 깨워 줄 때 다시 poll 됩니다.
 
-이 모델은 Rust 의 `Future` 와 `rok::core::task::Poll` 와 동형이며, **stackless coroutine** 으로 컴파일됩니다 (LLVM coro.* intrinsic 활용).
+이 모델은 Rust 의 `Future` 와 `rok::core::task::Poll` 와 동형이며, **stackless coroutine** 으로 컴파일됩니다 (컴파일러가 만든 상태 기계, [refs-lang 7.8](../../refs-lang/007-runtime/708-coroutine.md)).
 
 ## 2.20.2. `Context` / `Waker`
 
@@ -65,7 +65,7 @@ let v = loop {
 };
 ```
 
-실제 lowering 은 LLVM coro.* state machine 으로 변환되며, 각 `await` 자리는 **suspend point** 가 됩니다. frame 변수만 GC heap 에 자리잡은 coroutine state 에 보관됩니다.
+컴파일러는 이를 상태 기계로 바꾸며, 각 `await` 자리는 **suspend point** 가 됩니다. frame 변수만 GC heap 에 자리잡은 coroutine state 에 보관됩니다.
 
 ## 2.20.4. `async fn` / `async { }` / `async || { }`
 
@@ -225,7 +225,7 @@ impl<T, E> TryAsyncFuture<T, E> {
 | 모델           | poll-based              | callback (state)   | continuation           | poll-based (Rust 동형)            |
 | `async fn`     | ✓                       | ✓                  | ✓                      | ✓                                 |
 | `await`        | postfix `.await`        | prefix `await`     | prefix `await`         | prefix `await`                    |
-| coroutine 구현 | LLVM coro / 사용자 자체 | 컴파일러 generated | 컴파일러 generated     | LLVM coro                         |
+| coroutine 구현 | 컴파일러 generated      | 컴파일러 generated | 컴파일러 generated     | 컴파일러 상태 기계                |
 | Stackless      | ✓                       | ✓                  | ✓                      | ✓                                 |
 | color 통일     | ✗ (sync/async 분리)     | ✗                  | ✗                      | ✗ (산업 표준 채택)                |
 | await 일반화    | `Future` + 외부 lib     | `Task<T>` 통일     | `Task` + AsyncSequence | `IntoFuture` 일반화              |

@@ -84,7 +84,7 @@ impl str {
 
     // UTF-8 안전 slicing — byte boundary 검증
     // (s[a:b] desugar 가 본 메서드 dispatch)
-    fn slice(self, range: Range<usize>) -> str;        // view 또는 새 str
+    fn slice(self, range: Range<usize>) -> str;        // s[a:b] 와 같음, 바이트 공유
 }
 ```
 
@@ -157,7 +157,7 @@ let s4 = s[7:100];             //→ "세계!" (끝은 길이로 잘라 맞춤)
 let s5 = s[-1:];               //→ "!"
 ```
 
-`str` / `StrBuf` 의 경계는 바이트 offset 입니다. 경계는 먼저 Python 처럼 잘라 맞추고 (음수는 끝에서부터, [refs-lang 3.6.2](../../refs-lang/003-expressions/306-indexing-and-slicing.md#362-슬라이싱-arrstartend)), 그 위치가 UTF-8 sequence 중간이면 panic 합니다. `Sliceable` 트레잇 impl 은 경계를 검증한 후 새 str 을 반환합니다 (`str` 은 C 문자열로 남아야 하므로 view 가 아니라 사본). `str` 슬라이스에는 step 이 없으며 `s[::2]` 는 타입 에러입니다.
+`str` / `StrBuf` 의 경계는 바이트 offset 입니다. 경계는 먼저 Python 처럼 잘라 맞추고 (음수는 끝에서부터, [refs-lang 3.6.2](../../refs-lang/003-expressions/306-indexing-and-slicing.md#362-슬라이싱-arrstartend)), 그 위치가 UTF-8 sequence 중간이면 panic 합니다. 결과는 원래 바이트를 공유하는 `str` 입니다 (아래). `str` 슬라이스에는 step 이 없으며 `s[::2]` 는 타입 에러입니다.
 
 ### 직접 indexing 거부
 

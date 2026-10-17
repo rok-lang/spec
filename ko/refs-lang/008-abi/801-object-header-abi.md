@@ -56,17 +56,19 @@ bit  5  : IMMORTAL   (수집 안 함)
 bit  6 ~ 31 : 예약 / GC 구현 결정
 ```
 
-구현 예약 범위에서 다음 세 비트를 씁니다 ([7.4.2](../007-runtime/704-barriers-and-roots.md#742-write-barrier-incremental-update)).
+구현 예약 범위에서 다음 비트를 씁니다 ([7.4.2](../007-runtime/704-barriers-and-roots.md#742-write-barrier-incremental-update)).
 
 | 비트 | 이름       | 의미                                                                                       |
 |------|------------|--------------------------------------------------------------------------------------------|
 | 6    | `UNLOGGED` | 수집에서 살아남은 객체에 `STICKY` 와 함께 켬. write barrier 가 remembered set 에 처음 기록할 때 지움 |
 | 7    | `CARDED`   | 8 KiB 이상의 old 객체에 `UNLOGGED` 대신 켬. barrier 가 512 B card 를 dirty 로 표시. card table 포인터는 헤더 바로 앞 word |
 | 8    | `NOMOVE`   | 주소를 수로 쓴 객체. 수명과 무관하게 영구히 옮기지 않음. `rok_task_key` ([8.5](805-extern-symbols.md)) 가 켬 |
+| 10   | `SATB`     | 동시 mark 중 barrier 가 이 객체의 참조를 기록하는 동안 켬. 경쟁하는 store 는 꺼질 때까지 기다림 ([7.5.3](../007-runtime/705-concurrent-collection.md#753-satb-barrier)) |
+| 11   | `SCANNED`  | 동시 mark 에서 이 객체를 훑었음 |
 
 ### atomic 요구
 
-수집은 STW 안에서 진행하므로 `MARK` / `STICKY` / `FORWARDED` 는 non-atomic 으로 다룹니다. mutator 끼리 경쟁하는 `UNLOGGED` 의 해제는 atomic `fetch_and` 입니다 ([7.4.2](../007-runtime/704-barriers-and-roots.md#742-write-barrier-incremental-update)).
+STW 수집에서 `MARK` / `STICKY` / `FORWARDED` 는 non-atomic 입니다. 동시 mark 중 marker 와 mutator 가 함께 다루는 `MARK` / `SATB` / `SCANNED` 와, mutator 끼리 경쟁하는 `UNLOGGED` 의 해제는 atomic 입니다 ([7.4.2](../007-runtime/704-barriers-and-roots.md#742-write-barrier-incremental-update)).
 
 ## 8.1.4. `gc_word` (offset 8, u64 또는 ptr)
 

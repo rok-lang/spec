@@ -240,4 +240,13 @@ throwing 함수는 결과를 값으로 돌려줍니다. 반환값은 성공 여�
 
 ## 4.14.13. panic 과 fatal 에러
 
-panic 은 `throws` 의 에러가 아닙니다. 표준 라이브러리의 `panic_fn`, `try!` 의 실패, 0 으로 나누기, 정수 overflow, 경계 검사 실패 같은 panic 과 [에러 제어 흐름](../003-expressions/314-error-control-flow.md) 의 fatal 에러는 어떤 `throws` 시그니처에도 들어가지 않으며, `catch` 로 잡을 수 없습니다. 런타임은 메시지를 표준 에러 (stderr) 에 출력하고 프로세스를 종료 코드 `101` 로 종료합니다.
+panic 은 `throws` 의 에러가 아닙니다. 표준 라이브러리의 `panic_fn`, `try!` 의 실패, 0 으로 나누기, 정수 overflow, 경계 검사 실패 같은 panic 과 [에러 제어 흐름](../003-expressions/314-error-control-flow.md) 의 fatal 에러는 어떤 `throws` 시그니처에도 들어가지 않으며, `catch` 로 잡을 수 없습니다. 런타임은 다음을 표준 에러 (stderr) 에 출력하고 프로세스를 종료 코드 `101` 로 종료합니다.
+
+```
+thread '<name>' panicked at <path>:<line>:<col>:
+<message>
+```
+
+- `<name>` 은 스레드 이름이며, 주 스레드는 `main`, 이름 없는 스레드는 `<unnamed>` 입니다.
+- 위치는 실패한 식입니다. [`#[track_caller]`](../006-meta-system/602-built-in-attributes.md#6212-track_caller-호출-위치-전달) 함수 사슬 안이면 그 사슬 밖의 첫 호출 위치입니다.
+- backtrace 는 정의하지 않습니다.

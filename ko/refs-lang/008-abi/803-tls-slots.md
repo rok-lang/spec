@@ -14,6 +14,8 @@ TLS 슬롯은 하나의 블록이 아니라, 슬롯마다 런타임이 export �
 | `rok_tls_shadow_stack_top`  | ptr  | shadow stack 체인 머리                  |
 | `rok_tls_wb_log_cursor`     | ptr  | write barrier log 의 위치               |
 | `rok_tls_wb_log_limit`      | ptr  | write barrier log 의 끝                 |
+| `rok_tls_satb_cursor`       | ptr  | SATB buffer 의 위치 (동시 mark 중)      |
+| `rok_tls_satb_limit`        | ptr  | SATB buffer 의 끝                       |
 | `rok_tls_mutator_state`     | u8   | mutator 상태                            |
 | `rok_tls_worker_id`         | u64  | worker id                               |
 | `rok_tls_task_worker`       | ptr  | 이 스레드의 executor worker (GC 객체, 없으면 0)           |
@@ -68,6 +70,10 @@ TLAB 의 끝을 가리킵니다. cursor 가 이 값을 넘어서면 slow path �
 ### `rok_tls_shadow_stack_top` (ptr)
 
 shadow stack 체인 머리입니다. 자세한 내용은 8.3.8 에서 정의합니다.
+
+### `rok_tls_satb_cursor` / `rok_tls_satb_limit` (ptr)
+
+동시 mark ([7.5](../007-runtime/705-concurrent-collection.md)) 중 write barrier slow path 가 기록하는 SATB buffer 입니다. 가득 차면 수집기에 넘깁니다. mark 밖에서는 쓰지 않습니다.
 
 ### `rok_tls_wb_log_cursor` / `rok_tls_wb_log_limit` (ptr)
 

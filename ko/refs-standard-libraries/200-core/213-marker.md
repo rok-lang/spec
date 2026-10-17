@@ -309,7 +309,8 @@ trait Sync { }      // 공유 참조로 여러 스레드에서 읽어도 안전
 두 트레잇은 메서드가 없는 **자동 marker 트레잇** 이며, 컴파일러가 구조적으로 구현합니다.
 
 - 원시 숫자, `bool`, `char`, `c_char`, `str`, `none` 은 `Send + Sync` 입니다.
-- `struct`, `enum`, `union`, 튜플, 배열, 합 타입은 모든 필드 (구성 요소) 가 `Send` 이면 `Send`, 모두 `Sync` 이면 `Sync` 입니다. 제네릭 컨테이너 (`List<T>` 등) 도 같은 규칙으로 `T` 에 따릅니다.
+- `struct`, `enum`, `union`, 튜플, 배열, 합 타입은 모든 필드 (구성 요소) 가 `Send` 이면 `Send`, 모두 `Sync` 이면 `Sync` 입니다. 제네릭 컨테이너의 `Send` 는 같은 규칙으로 `T` 에 따릅니다.
+- 컬렉션 (`List`, `Dict`, `Set`, `StrBuf`, `Deque`, `BinaryHeap`, `OrderedDict`, `OrderedSet`) 은 가변 핸들을 공유하므로 `!Sync` 입니다. 스레드 사이에서는 `Mutex` / `RwLock` / 채널로 공유합니다.
 - 다음은 제외됩니다: `Cell<T>`, 원시 포인터 (`Ptr<T>`, `ConstPtr<T>`, `CPtr<T>`), 맨 `any` 와 bound 에 `Send` / `Sync` 가 없는 `any Tr`, bound 없는 함수 타입. 이 밖의 예외는 각 타입의 장에서 정합니다.
 - 함수 타입은 `fn(..) -> R + Send` 처럼 bound 를 적었을 때만 그 트레잇을 가집니다 ([refs-lang 4.4](../../refs-lang/004-functions/404-function-type.md#send--sync-bound)).
 

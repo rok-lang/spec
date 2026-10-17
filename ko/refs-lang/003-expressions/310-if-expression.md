@@ -73,6 +73,7 @@ if x != 0i32 { ... }      // OK
 - `if` / `while` / `if let` / `while let` 의 조건
 - `match` 의 피검사 식 ([3.12](312-match-expression.md))
 - `for` 의 반복 대상 ([3.13](313-loop-expressions.md))
+- `using` 의 자원 식 ([3.17](317-using-expression.md))
 
 구분자 안 (`( )`, `[ ]`, 호출 / 메서드 인자, 배열, 튜플, 인덱스, dict 리터럴, 블록 `{ }`) 에서는 됩니다. 최상위에 쓰려면 괄호로 감쌉니다.
 
@@ -108,7 +109,13 @@ if let v: User = compute() {       // compute(): User | none
 }
 ```
 
-형식은 `if let 패턴 = 식 { ... } else { ... }` 의 모양입니다. 식의 결과가 패턴에 매치되면 본체가 실행되고, 패턴이 만들어 낸 변수 바인딩은 본체 안에서 가시 범위에 들어옵니다. 매치되지 않은 경우에는 `else` 본체가 실행됩니다.
+```
+if_let ::= "if" "let" pattern (":" type_expr)? "=" expr block ("else" (block | if_expr))?
+```
+
+- 타입이 없으면 식의 값을 `pattern` 에 매칭합니다.
+- `: T` 가 있으면 값을 먼저 `T` 로 좁히고, 그 값을 `pattern` 으로 분해합니다. 이때 `pattern` 은 `T` 에 대해 반박 불가능해야 합니다 (`if let (a, b): (i32, i32) = v { .. }`).
+- 맞으면 본체를 실행하며, 패턴의 바인딩은 본체 안에서 보입니다. 아니면 `else` 를 실행합니다.
 
 `if let` 의 패턴 문법은 [패턴](311-patterns.md) 에서 정의합니다.
 

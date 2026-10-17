@@ -181,6 +181,8 @@ struct ParseError {
 struct ConversionError {
     msg: str;
 }
+
+struct ZeroError;
 ```
 
 각 타입은 `Error + Display + Debug` 를 구현하며, `Display` 본문은 사람이 읽기 친화적인 메시지를 제공합니다. 각 에러가 던져지는 자리는 다음 표와 같습니다.
@@ -192,7 +194,8 @@ struct ConversionError {
 | `IndexError`    | 인덱스를 받는 throwing API 의 범위 밖 인자 (`xs[10]` 의 경계 검사는 panic) |
 | `OverflowError` | `try_into` 등 checked 변환의 범위 초과 (산술 overflow 는 panic)            |
 | `ParseError`    | `str → number` 등 파싱 실패 (RokON 은 `RokonError`)                                         |
-| `ConversionError` | `TryFrom::Error` 의 기본값. 숫자가 아닌 변환의 실패 ([2.11.4](211-conversion.md#2114-tryfromu-트레잇--fallible-변환)) |
+| `ConversionError` | `TryFrom::Error` 의 기본값. 숫자가 아닌 변환의 실패 ([2.11.4](211-conversion.md#2114-tryfromu-트레잇--fallible-변환)), `NonNan` / `Finite` 의 `try_from` |
+| `ZeroError`     | `NonZero::try_from` 에 0 ([2.2.2](202-non-zero.md#222-nonzerot--0-금지))     |
 
 ### Fatal 에러
 

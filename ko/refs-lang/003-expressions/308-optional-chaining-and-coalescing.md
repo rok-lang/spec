@@ -73,18 +73,12 @@ x ?? y          →   match x { v: T => v, none => y }
 
 ### 결과 타입
 
-`??` 의 결과 타입은 [표현식 개요](README.md) 에 명시된 분기 결과 규칙을 따릅니다. 즉 두 분기 (non-none 변형 값과 `y`) 의 합 타입으로 결정됩니다.
-
-```
-typeof(x ?? y)  =  T_non_none | typeof(y)     // 다르면 합 타입
-typeof(x ?? y)  =  T                          // 양쪽 같은 타입이면 그 타입
-```
+`??` 의 결과 타입은 [표현식 개요](README.md#분기-결과-타입) 의 분기 결과 규칙을 따릅니다. 두 분기 (`T` 와 `typeof(y)`) 가 같은 타입이면 그 타입입니다. 다르면 받는 쪽의 타입이 있어야 하며, 합으로 자동으로 넓히지 않습니다.
 
 ```rok
-let r = foo() ?? "default";
-// 식 결과: i32 | str (foo(): i32 | none, "default": str)
-// 슬롯 r 은 명시 없으니 any
-let r2: i32 | str = foo() ?? "default";       // 명시 합 타입 슬롯 OK
+let a = foo() ?? 0;                           // i32 (foo(): i32 | none)
+let r = foo() ?? "default";                   // ERROR — i32 와 str, 받는 쪽 타입 없음
+let r2: i32 | str = foo() ?? "default";       // OK
 ```
 
 `y` 도 `T | none` 이면 결과는 `T | none` 입니다 (`T | (T | none)` 을 합친 것). 그래서 `??` 를 이어 쓰면 마지막 대안이 `none` 이 아닐 때 비로소 `none` 이 빠집니다.

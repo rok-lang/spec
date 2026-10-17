@@ -262,23 +262,23 @@ target/
 
 ## 9.2.19. 설치 레이아웃
 
-설치된 toolchain 은 `$ROK_HOME` 아래에 다음과 같이 놓입니다.
+설치 레이아웃은 rustup / cargo 식입니다. `ROK_HOME` 의 기본값은 `~/.rok` 입니다.
 
 ```
 $ROK_HOME/
-├── bin/
-│   ├── rokc               # 컴파일러 (9.1)
-│   ├── rok                # front-end — 의존성, 환경, toolchain (9.10)
-│   └── rokls              # LSP 서버 = rok lsp
-├── lib/
-    ├── librokr.a              # 런타임
-    └── rok/
-        ├── core/              # rok::core
-        ├── std/               # rok::std
-        └── bare/              # rok::bare
-├── cache/                     # git 의존 / 스크립트 lock 캐시 (9.10.4)
-├── envs/<name>/, envs/CURRENT  # 이름 있는 환경, `env use` 의 선택 (9.10.5)
-└── toolchains/<version>/      # 설치된 toolchain (9.10.6)
+├── bin/                         # proxy: 활성 toolchain 의 같은 이름 실행 파일을 실행
+│   ├── rok
+│   ├── rokc
+│   └── rokls
+├── toolchains/
+│   └── <version>-<triple>/      # 자기 완결 toolchain
+│       ├── bin/{rok, rokc, rokls}
+│       └── lib/
+│           ├── librokr.a        # 런타임
+│           └── rok/{core, std, bare}/   # 표준 라이브러리 소스
+├── cache/                       # git, registry, 스크립트 lock (9.10.4)
+├── envs/<name>/, envs/CURRENT   # 이름 있는 환경 (9.10.5)
+└── config.rokon                 # 사용자 설정 (기본 레지스트리 등)
 ```
 
-`rokc` 는 런타임과 표준 라이브러리를 이 경로에서 찾습니다. `ROK_HOME` 이 설정되지 않으면 `rokc` 실행 파일이 있는 디렉토리의 상위 (`bin/` 의 `..`) 를 `ROK_HOME` 으로 봅니다. 저장소에서 직접 실행하는 개발 레이아웃은 위 경로에서 찾지 못했을 때의 fallback 으로 유지합니다.
+`rokc` 는 표준 라이브러리와 런타임을 자기 실행 파일 기준 (sysroot = 실행 파일의 `..`) 에서 찾으며, `ROK_HOME` 을 보지 않습니다. 활성 toolchain 의 선택은 [9.10.6](910-rok-frontend.md#9106-toolchain-고정) 이 정합니다.

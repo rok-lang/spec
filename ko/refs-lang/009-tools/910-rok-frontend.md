@@ -45,7 +45,7 @@ rok --env sci       # = rok repl --env sci
 | `--cwd <dir>`    | 디렉토리를 바꾼 뒤 실행                                           |
 | `-q`, `--quiet`  | 출력을 줄임                                                       |
 
-환경 변수는 `ROK_HOME` (기본: `rok` 가 있는 `bin/` 의 상위) 과 `ROK_ENV` (9.10.5) 입니다.
+환경 변수는 `ROK_HOME` (기본 `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6), `ROK_REGISTRY` (9.10.4a) 입니다.
 
 ## 9.10.2. `rok new` / `rok init`: 패키지 생성
 
@@ -257,15 +257,23 @@ REPL 의 `:add <dep> ..` 는 현재 환경에 의존성을 추가합니다 (`rok
 
 ## 9.10.6. toolchain 고정
 
-매니페스트의 `toolchain: "X"` 가 지금 `rok` 의 버전과 맞지 않으면, `rok` 는 `$ROK_HOME/toolchains/<ver>/bin/rokc` 를 `ROK_HOME` 을 그 toolchain 디렉토리로 바꿔 실행합니다. 매니페스트와 환경 처리는 지금의 `rok` 가 하며, `rok` 자신은 다시 실행하지 않습니다. 버전 접두는 그 아래 버전과 맞습니다 (`0.3` 은 `0.3.*`). 맞는 toolchain 이 없으면 `rok toolchain install` 을 안내하는 에러입니다.
+`$ROK_HOME/bin/` 의 `rok` / `rokc` / `rokls` 는 활성 toolchain 의 같은 실행 파일을 실행하는 proxy 입니다 (rustup 식). 활성 toolchain 은 다음 순서로 정합니다.
+
+1. 명령줄의 `+<version>` (`rok +0.4 build`)
+2. 환경 변수 `ROK_TOOLCHAIN`
+3. 매니페스트의 `toolchain: "X"` (가장 가까운 `rok.rokon`)
+4. `rok toolchain default` 로 정한 기본
+
+버전 접두는 그 아래 버전과 맞습니다 (`0.3` 은 `0.3.*` 의 가장 높은 것). 맞는 toolchain 이 없으면 `rok toolchain install` 을 안내하는 에러입니다.
 
 ```
 rok toolchain list
 rok toolchain install <version> --from <dir | .tar | .tar.gz>
+rok toolchain default <version>
 rok toolchain remove <version>
 ```
 
-설치본은 `$ROK_HOME/toolchains/<version>/` (`bin/rokc`, `lib/`) 입니다. `install` 은 `--from` 이 필수입니다.
+설치본은 `$ROK_HOME/toolchains/<version>-<triple>/` 이며 자기 완결입니다 ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)). `install` 은 `--from` 이 필수입니다.
 
 ## 9.10.7. 단일 파일 스크립트의 inline 매니페스트
 

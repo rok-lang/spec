@@ -36,7 +36,7 @@ use rok::core::ops::{Add, Sub};
 ### 숫자 / niche
 
 - [2.1. 숫자 타입 (`int`, `float`, primitive 통합)](201-numbers.md)
-- [2.2. niche wrapper (`NonZero`, `NonNan`, `Finite`)](202-non-zero.md)
+- [2.2. niche wrapper (`NonZero`, `NonNan`, `Finite`, `Positive`)](202-non-zero.md)
 
 ### 연산자 트레잇
 
@@ -56,7 +56,7 @@ use rok::core::ops::{Add, Sub};
 
 ### 포맷 / 변환
 
-- [2.10. fmt (`Display`, `Debug`, `Format`)](210-fmt.md)
+- [2.10. fmt (`Display`, `Debug`, `Formatter`)](210-fmt.md)
 - [2.11. 변환 (`From`, `Into`, `TryFrom`, `TryInto`, `saturating_into`, `wrapping_into`)](211-conversion.md)
 
 ### 메타 / 마커

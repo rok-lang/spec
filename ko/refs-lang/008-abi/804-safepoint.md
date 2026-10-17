@@ -4,7 +4,7 @@
 
 ## 8.4.1. `yield` flag 검사: fast path
 
-mutator 는 [TLS 슬롯](803-tls-slots.md) 의 `yield_flag` (offset 0, u8) 을 주기적으로 검사합니다. 검사 흐름은 다음과 같이 구성됩니다.
+mutator 는 [TLS 슬롯](803-tls-slots.md) `rok_tls_yield_flag` (u8) 을 주기적으로 검사합니다. 검사 흐름은 다음과 같이 구성됩니다.
 
 ```
 poll:
@@ -98,7 +98,9 @@ mutator 가 부담하는 비용은 `yield` flag 한 번 load 와 분기 1 개로
 
 ## 8.4.6. STW 단계
 
-수집 하나는 STW 한 번입니다. 수집을 시작한 thread 가 다른 모든 mutator 를 멈추고 (`GC_COOPERATING`, 또는 blocking 런타임 호출 중이면 `PARKED`), mark / sweep / evacuation 을 마친 뒤 재개시킵니다. 동시 수집 단계는 없습니다 ([7.5](../007-runtime/705-concurrent-collection.md)).
+STW 수집 (minor, evacuation 이 있는 full, `rok_gc_collect`) 은 pause 한 번입니다. 수집을 시작한 thread 가 다른 모든 mutator 를 멈추고 (`GC_COOPERATING`, 또는 blocking 런타임 호출 중이면 `PARKED`), 수집을 마친 뒤 재개시킵니다.
+
+동시 mark 를 하는 full 수집은 시작 pause 와 마지막 pause 두 번입니다 ([7.5.2](../007-runtime/705-concurrent-collection.md#752-단계)). 그 사이에는 marker thread 하나가 mutator 와 함께 돕니다.
 
 ## 8.4.7. Safepoint 의 불변
 
@@ -167,6 +169,6 @@ fn long_loop() {
 
 ## 8.4.12. 안정성
 
-`yield_flag` 의 offset (TLS 0, u8) 은 ABI 의 일부이므로 변경할 수 없으며, major `break` 에서만 변경 가능합니다.
+ABI 는 슬롯 심볼 `rok_tls_yield_flag` 과 그 타입 (u8) 입니다. offset 은 ABI 가 아닙니다 ([8.3.1](803-tls-slots.md#831-tls-슬롯-구조)).
 
 `rok_runtime_yield` 의 시그니처는 인자도 반환값도 없는 단순한 호출 규약을 따릅니다.

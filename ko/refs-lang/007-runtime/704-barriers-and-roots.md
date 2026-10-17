@@ -88,7 +88,7 @@ if (p.gc_flags & UNLOGGED) {
 
 - 저장하는 값 `q` 의 헤더 (`q.sticky` 등) 는 **읽지 않습니다**. `q` 는 `any` 슬롯의 inline 정수이거나 `str` 의 내부 포인터일 수 있어, 객체 헤더로 읽으면 안전하지 않습니다.
 - barrier 는 store 앞에 두어도 됩니다.
-- slow path `rok_gc_wb_slow(obj)` 는 `UNLOGGED` 를 atomic `fetch_and` 로 지웁니다. 그래서 여러 스레드가 동시에 써도 한 스레드만 그 객체를 기록합니다. slow path 는 safepoint 가 아니어야 합니다 (그 안에서 수집이 시작되면 안 됨).
+- slow path `rok_gc_wb_slow(obj)` 는 `UNLOGGED` 를 atomic `fetch_and` 로 지웁니다. 동시 mark 중이면 그 객체의 현재 참조를 SATB buffer 에도 기록합니다 ([7.5.3](705-concurrent-collection.md#753-satb-barrier)). 그래서 여러 스레드가 동시에 써도 한 스레드만 그 객체를 기록합니다. slow path 는 safepoint 가 아니어야 합니다 (그 안에서 수집이 시작되면 안 됨).
 - young GC 는 remembered set 의 객체를 root 로 보고, 그 객체가 가리키는 young 객체까지 mark 합니다. 수집이 끝나면 기록된 객체에 다시 `UNLOGGED` 를 켭니다.
 
 ### Card marking
@@ -97,6 +97,7 @@ if (p.gc_flags & UNLOGGED) {
 
 - 그런 객체는 card table (512 B 마다 1 바이트) 을 가지며, 객체 뒤에 할당됩니다. 그 card table 의 포인터는 헤더 바로 앞 word 에 있습니다.
 - inline fast path 는 `p` 헤더의 `UNLOGGED | CARDED` 를 한 번에 검사합니다 (load 하나, 분기 하나).
+- 순서: `UNLOGGED` 이면 먼저 slow path 를 부르고, 이어서 `CARDED` 이면 card 를 표시합니다. 동시 mark ([7.5](705-concurrent-collection.md)) 중에는 old LOS 객체가 두 비트를 함께 가질 수 있습니다.
 - `CARDED` 이면 barrier 는 호출 없이 inline 으로, 쓴 slot 이 걸치는 card 들, 곧 `(slot - p) >> 9` 부터 `(slot + len - 1 - p) >> 9` 까지를 dirty 로 표시합니다. 그래서 barrier 는 slot 주소와 저장하는 값의 크기 (`len`) 를 받습니다.
 - `UNLOGGED` 이면 위의 `rok_gc_wb_slow(p)` 를 부릅니다 (변함 없음).
 - minor 수집은 `CARDED` 객체의 dirty card 만 훑고 그 card 를 깨끗이 합니다.

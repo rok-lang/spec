@@ -136,15 +136,15 @@ let g = [ref xs] || {
 
 ## 4.6.9. 병렬과 동시성 문맥의 추가 제약
 
-`task::spawn` 이나 `par::for_each` 처럼 병렬 실행을 수행하는 클로저에서는 `[ref x]` 캡처가 거부됩니다. 병렬 분기가 같은 외부 변수를 동시에 갱신하면 데이터 경쟁이 발생하기 때문입니다.
+`fn() + Send` 클로저 (`task::spawn`, `par::for_each`, `thread::spawn` 등에 넘기는 것) 의 `[ref x]` 캡처는 `x` 의 타입이 `Sync` 여야 합니다. 셀이 스레드 사이에서 공유되기 때문입니다. 컬렉션은 `!Sync` 이므로 ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--스레드-경계-marker)) 이렇게 캡처할 수 없습니다.
 
 ```rok
 let buf: List<i32> = [];
 par::for_each(xs, [ref buf] |x| { buf.push(x) });
-// ERROR: ref capture rejected in parallel context.
+// ERROR: List<i32> is not Sync
 ```
 
-해결 패턴은 두 가지입니다. 하나는 함수형 reduce 를 사용하는 방법으로 `xs.par_iter().reduce(0, |acc, x| acc + x)` 처럼 작성합니다. 다른 하나는 동시성에 안전한 wrapper 를 사용하는 것으로 `Mutex`, `Atomic`, `Channel` 등이 여기에 해당합니다.
+대신 reduce 를 쓰거나 (`par::reduce(xs, 0, |a, b| a + b)`), `Mutex` / `RwLock` / `Atomic` / 채널로 공유합니다.
 
 자세한 병렬·동시성 규칙은 표준 라이브러리 사양이 정의하며, 본 장은 언어 수준의 캡처 메커니즘까지만 다룹니다.
 

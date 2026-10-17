@@ -232,7 +232,26 @@ fn calculate() -> i32 { ... }
 
 `#[must_use]` 가 붙은 함수의 반환값이 사용되지 않은 채 버려지면 경고가 발생합니다. 결과를 의도적으로 무시하고자 할 때에는 [매개변수](../004-functions/402-parameters.md) 에서 설명한 `_ = ...` 를 명시하면 됩니다.
 
-## 6.2.12. 정리
+## 6.2.12. `#[track_caller]` 호출 위치 전달
+
+```rok
+#[track_caller]
+fn expect_positive(n: i32) -> i32 {
+    if n <= 0 { panic("not positive") }      // 위치: expect_positive 를 부른 곳
+    n
+}
+```
+
+- 함수는 호출 위치를 숨은 마지막 `str` 인자로 받습니다. 안의 panic 은 그 위치를 보고합니다 ([4.14.13](../004-functions/414-throws.md#41413-panic-과-fatal-에러)).
+- tracked 함수가 다른 tracked 함수를 부르면 받은 위치를 그대로 넘깁니다.
+- tracked 함수의 함수 값은 그 값을 만든 위치를 보고합니다.
+- `async fn` 에 붙이면 호출만 추적하며 코루틴 본체는 추적하지 않습니다.
+- `extern` (런타임) 선언에 붙이면 그 심볼이 위치 인자를 더 받습니다 ([8.5.7](../008-abi/805-extern-symbols.md#857-diagnostic-영역)).
+- `main`, `extern "C" fn`, `#[export_name]` 함수에는 붙일 수 없습니다.
+
+잘못된 입력에 panic 하는 표준 라이브러리 함수 (`panic`, `unreachable`, `assert*`, 인덱싱, 슬라이싱, `unwrap`, `List::insert` / `remove` 등) 는 `#[track_caller]` 입니다.
+
+## 6.2.13. 정리
 
 지금까지 살펴본 속성들은 컴파일러와 도구가 직접 인식하는 내장 속성이며, 메타 블록을 통한 사용자 정의는 따로 필요하지 않습니다.
 

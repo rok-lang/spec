@@ -43,14 +43,16 @@ std 의 I/O 함수는 sync 이며 호출한 OS 스레드를 막습니다. task �
 ```rok
 // blocking — OS 스레드 (thread::spawn) 나 task 밖에서
 fn fetch(addr: str) throws (IoError) -> List<u8> {
-    using conn = try net::tcp_connect(addr);
-    return try conn.read_to_end();
+    using conn = try net::tcp_connect(addr) {
+        try conn.read_to_end()
+    }
 }
 
 // async — task 만 중단
 async fn fetch_async(addr: str) throws (IoError) -> List<u8> {
-    using conn = try await net::tcp_connect_async(addr);
-    return try await conn.read_to_end_async();
+    using conn = try await net::tcp_connect_async(addr) {
+        try await conn.read_to_end_async()
+    }
 }
 ```
 
