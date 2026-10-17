@@ -58,7 +58,7 @@ rok init [--lib | --bin] [dir]
 
 `rok init` 은 이미 있는 디렉토리 (생략하면 현재 디렉토리) 를 패키지로 만듭니다. 그 디렉토리에 `main.rok` 나 `lib.rok` 가 이미 있으면 에러입니다.
 
-두 명령은 정규 형식 ([RokON 3.9.4](../../refs-standard-libraries/300-std/309-rokon.md#394-정규-형식)) 의 `rok.rokon` 도 씁니다.
+두 명령은 정규 형식 ([RokON 3.9.4](../../refs-standard-libraries/300-std/309-rokon.md#394-정규-형식)) 의 `rok.rokon` 과 `target/` 을 담은 `.gitignore` 도 쓰며, git 저장소 안이 아니면 `git init` 을 합니다. `init` 은 디렉토리 이름을 이름 규칙 (9.10.3) 에 맞게 바꿔 패키지 이름으로 씁니다.
 
 ## 9.10.3. `rok.rokon` / `rok.lock`
 
@@ -71,7 +71,7 @@ Package {
     name: "geom",                    // 문자열, 선택
     version: "0.3.1",                // 문자열, 선택
     toolchain: "0.4",                // 문자열, 선택 — toolchain 고정 (9.10.6)
-    deps: {                          // 의존성 이름 (식별자) -> Dep
+    deps: {                          // 패키지 이름 (문자열) -> Dep
         "util": Dep::path("../util"),
         "parser": Dep::git("https://example.com/parser.git", tag: "v1.2"),
         "json": "1.4",                                   // stone (= Dep::version("1.4"))
@@ -86,10 +86,12 @@ Package {
 
 - 값은 RokON 의 리터럴 (문자열, `{ "k": v }` dict, 빈 dict `{}`) 과 `Dep::path("..")` / `Dep::git("url", rev | tag | branch: "..")` / `Dep::version("req", registry: "url")` 입니다. `Dep::git` 의 `rev` / `tag` / `branch` 는 많아야 하나이고, `Dep::version` 의 `registry` 는 선택입니다. 의존성 값이 문자열 하나면 `Dep::version` 의 줄임입니다.
 - `Dep::registry` 는 `rok.lock` 전용이며 `rok.rokon` 에 쓰면 에러입니다.
-- 의존성 이름 (`deps` 의 키) 은 식별자여야 합니다 (`-` 불가). 이 이름이 코드에서 그 패키지를 가리키는 최상위 경로입니다 (`use parser::Token;`).
+- 패키지 이름 (`deps` 의 키, `name`) 은 `[a-z0-9_-]+` 의 소문자 ASCII 이며 글자로 시작합니다 (숫자, `-`, `_` 로 시작하면 에러). 키는 문자열입니다 (`"rok-syntax": Dep::version("^0.1")`).
+- 코드에서는 `-` 를 `_` 로 바꾼 이름이 그 패키지를 가리키는 최상위 경로입니다 (`rok-syntax` → `use rok_syntax::..`, `--extern rok_syntax=..`).
+- 레지스트리와 한 의존 그래프 안에서 이름은 `-` 와 `_` 를 같게, 대소문자를 구분하지 않고 비교합니다. 그래서 `rok-syntax` 와 `rok_syntax` 는 함께 있을 수 없습니다.
 - 의존 패키지는 `lib.rok` 를 가진 라이브러리 패키지여야 합니다. 전이 의존은 의존 패키지의 `deps` 입니다 (`dev_deps` 는 전이되지 않음).
 - `lints` 는 lint 수준을 정합니다 (lint 나 그룹 이름 → `"allow"` | `"warn"` | `"deny"`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). `rokc lint` 의 CLI 플래그 앞에 붙은 것처럼 다뤄지므로, CLI `-A/-W/-D` 와 코드의 속성이 이를 덮습니다.
-- 에러: 모르는 필드 / `Dep` 종류 / 이름 있는 인자, 중복, 식별자가 아닌 의존성 이름, RokON 이 아닌 문법, `Package { .. }` 하나가 아닌 것, 뒤에 남은 토큰. 진단은 `file:line:col` 과 caret 으로 위치를 보여 줍니다.
+- 에러: 모르는 필드 / `Dep` 종류 / 이름 있는 인자, 중복, 규칙에 맞지 않는 패키지 이름, RokON 이 아닌 문법, `Package { .. }` 하나가 아닌 것, 뒤에 남은 토큰. 진단은 `file:line:col` 과 caret 으로 위치를 보여 줍니다.
 
 | 의존성 출처 | 형태                                                         | `rok.lock` 에 고정  |
 |-------------|--------------------------------------------------------------|---------------------|
@@ -157,7 +159,7 @@ rok deps [--dev]
 
 - `add` / `remove` 는 `rok.rokon` 을 고치며, 주석과 배치를 보존합니다. `--dev` 는 `dev_deps` 에 넣고, `--env` 는 그 이름 있는 환경의 `rok.rokon` 을 고칩니다. stone 을 요구 없이 더하면 `^<가장 새 버전>` 을 적습니다.
 - 빌드는 `rok.lock` 의 커밋과 버전을 씁니다. 새로 선언된 의존은 lock 에 더하고 지운 의존은 정리하지만, 이미 고정된 것을 옮기는 것은 `update` 뿐입니다. `update` 는 이름을 주면 그 패키지만, 없으면 모든 git 의존과 stone 을 다시 해소합니다.
-- `deps` 는 해소한 의존 패키지를 `name=<lib.rok 경로>` 줄로, 의존되는 쪽이 먼저 오는 순서로 출력합니다 (`--dev` 는 dev 의존 포함).
+- `deps` 는 해소한 의존 패키지를 `<코드 이름>=<lib.rok 경로>` 줄로 (코드 이름은 `-` 를 `_` 로 바꾼 것), 의존되는 쪽이 먼저 오는 순서로 출력합니다 (`--dev` 는 dev 의존 포함).
 - `rok.lock` 은 버전 관리에 함께 넣습니다.
 
 ### 캐시
@@ -196,7 +198,7 @@ pre-release 버전 (`1.3.0-beta.1`) 은 요구가 같은 major.minor.patch 의 p
 
 ### index 형식
 
-index 저장소의 루트에 `config.rokon` (`Registry { name, dl, api }`) 이 있습니다. stone 하나는 소문자로 바꾼 이름의 shard 경로에 있는 파일 하나입니다.
+index 저장소의 루트에 `config.rokon` (`Registry { name, dl, api }`) 이 있습니다. stone 하나는 publish 된 소문자 이름 (`-` 는 그대로) 의 shard 경로에 있는 파일 하나입니다.
 
 | 이름 길이 | 경로                     |
 |-----------|--------------------------|
@@ -230,8 +232,8 @@ rok publish [--index <checkout>] [--commit]
 rok yank --vers <version> [--undo] --index <checkout> [name]
 ```
 
-- `search` 는 index 에서 이름으로 찾습니다.
-- `publish` 는 기본이 dry run 입니다. 깨끗한 work tree, 저장소 루트의 패키지, `lib.rok` 를 요구합니다. path / git 의 normal 의존은 거부하고, path / git 의 dev 의존은 뺍니다. 같은 버전과 대소문자만 다른 이름의 충돌을 검사합니다. `--commit` 이면 index checkout 에 "Publish <name> <vers>" 커밋을 만들며, push 는 하지 않습니다.
+- `search` 는 index 에서 이름으로 찾습니다. index 조회는 `-` / `_` 어느 쪽 철자든 받습니다.
+- `publish` 는 기본이 dry run 입니다. 깨끗한 work tree, 저장소 루트의 패키지, `lib.rok` 를 요구합니다. path / git 의 normal 의존은 거부하고, path / git 의 dev 의존은 뺍니다. 같은 버전과, `-` / `_` 와 대소문자를 같게 본 이름의 충돌을 검사합니다. 다른 철자가 이미 가진 이름은 거부합니다. `--commit` 이면 index checkout 에 "Publish <name> <vers>" 커밋을 만들며, push 는 하지 않습니다.
 - `yank` 는 index checkout 의 그 버전 `yanked` 를 켜거나 (`--undo` 면 끔) 커밋합니다.
 
 ## 9.10.5. 환경
@@ -255,25 +257,32 @@ rok repl --env <name>
 
 REPL 의 `:add <dep> ..` 는 현재 환경에 의존성을 추가합니다 (`rok add` 와 같은 인자). 추가한 뒤 의존성을 다시 읽어 세션에 붙입니다.
 
-## 9.10.6. toolchain 고정
+## 9.10.6. toolchain
 
 `$ROK_HOME/bin/` 의 `rok` / `rokc` / `rokls` 는 활성 toolchain 의 같은 실행 파일을 실행하는 proxy 입니다 (rustup 식). 활성 toolchain 은 다음 순서로 정합니다.
 
 1. 명령줄의 `+<version>` (`rok +0.4 build`)
 2. 환경 변수 `ROK_TOOLCHAIN`
 3. 매니페스트의 `toolchain: "X"` (가장 가까운 `rok.rokon`)
-4. `rok toolchain default` 로 정한 기본
+4. 기본 (`$ROK_HOME/config.rokon` 의 `Config { registry, toolchain }`)
 
 버전 접두는 그 아래 버전과 맞습니다 (`0.3` 은 `0.3.*` 의 가장 높은 것). 맞는 toolchain 이 없으면 `rok toolchain install` 을 안내하는 에러입니다.
 
 ```
 rok toolchain list
-rok toolchain install <version> --from <dir | .tar | .tar.gz>
-rok toolchain default <version>
+rok toolchain install <version> --from <dir | archive | url>
+rok toolchain default [<version>]          # 인자 없으면 지금의 기본을 출력
 rok toolchain remove <version>
 ```
 
-설치본은 `$ROK_HOME/toolchains/<version>-<triple>/` 이며 자기 완결입니다 ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)). `install` 은 `--from` 이 필수입니다.
+- 설치본은 `$ROK_HOME/toolchains/<version>-<triple>/` 이며 자기 완결입니다 ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)). `install` 은 `--from` 이 필수입니다.
+- `install` 은 `bin/rokc --version --verbose` 로 검증하며, 버전과 host 가 맞아야 합니다.
+- 처음 설치한 toolchain 이 기본이 되고, 이때 `bin/` proxy 를 만듭니다.
+
+### 배포
+
+- 릴리스 archive 는 `rok-<version>-<triple>.tar.gz` (와 `.sha256`) 이며, 안은 toolchain 레이아웃입니다.
+- `install.sh` (<https://rok-lang.org/install.sh>) 는 archive 나 `rok-lang` 조직의 GitHub release 에서 `$ROK_HOME` 에 설치합니다.
 
 ## 9.10.7. 단일 파일 스크립트의 inline 매니페스트
 

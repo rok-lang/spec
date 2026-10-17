@@ -59,7 +59,7 @@ impl str {
     fn char_indices(self) -> CharIndicesIter;
     fn lines(self) -> LinesIter;            // 끝의 \r 제거, 마지막 빈 줄은 내지 않음
     fn split(self, sep: str) -> SplitIter;  // 빈 조각도 유지 ("a,,b" → "a", "", "b")
-    fn split_whitespace(self) -> SplitWhitespaceIter;
+    fn split_whitespace(self) -> SplitWhitespaceIter;   // Unicode White_Space 로 나눔 (trim 과 같은 집합)
 
     fn starts_with(self, pat: str) -> bool;
     fn ends_with(self, pat: str) -> bool;
@@ -72,13 +72,13 @@ impl str {
     fn split_once(self, sep: str) -> (str, str) | none; // 처음 sep 의 앞 / 뒤
     fn repeat(self, n: usize) -> str;
 
-    fn trim(self) -> str;
+    fn trim(self) -> str;                   // Unicode White_Space 를 뗌
     fn trim_start(self) -> str;
     fn trim_end(self) -> str;
 
     fn to_lowercase(self) -> str;           // 새 str (Unicode 전체 매핑 — 1:N, 문맥 규칙 포함)
     fn to_uppercase(self) -> str;
-    fn replace(self, from: str, to: str) -> str;
+    fn replace(self, from: str, to: str) -> str;   // 빈 from 은 모든 char 경계에서 맞음: "ab".replace("", "-") == "-a-b-"
 
     fn parse<T: FromStr>(self) throws (T::Err) -> T;
 
@@ -98,6 +98,7 @@ struct StrBuf { /* GC heap — ptr / len / capacity */ }
 impl StrBuf {
     fn new() -> StrBuf;
     fn push(self, c: char);                 // char 1 개 추가 (UTF-8 인코딩)
+    unsafe fn push_byte(self, b: u8);       // 내용이 UTF-8 로 남도록 호출자가 보장. 안전한 바이트 경로는 str::from_utf8
     fn push_str(self, s: str);
     fn capacity(self) -> usize;
     fn to_str(self) -> str;                 // 현재 내용의 불변 str

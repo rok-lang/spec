@@ -178,7 +178,7 @@ Duration::ns(-20);       // "-20ns"
 
 ### Duration 산술 정책
 
-산술 overflow 의 처리 방침은 debug 빌드에서는 panic, release 빌드에서는 saturate 로 통일했습니다. 명시적인 분기가 필요한 경우를 위해 `checked_*` 변형을 함께 노출합니다.
+`Duration` / `SystemTime` / `Instant` / `BootTime` 의 산술 (`duration_since`, `from_unix` 포함) 은 overflow 검사가 켜져 있으면 overflow 에 panic 하고, 꺼져 있으면 saturate 합니다 (`-C overflow-checks`, [refs-lang 9.1.2](../../refs-lang/009-tools/901-rokc-cli.md#rokc-build-aot-빌드)). 0 으로 나누기는 언제나 panic 입니다. `checked_*` / `saturating_*` 변형으로 명시적으로 고를 수 있습니다.
 
 ```rok
 impl Duration {

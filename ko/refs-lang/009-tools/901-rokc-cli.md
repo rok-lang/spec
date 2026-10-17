@@ -70,8 +70,9 @@ rokc build [path]
 
 - `--release` 는 최적화 빌드 (`-O2` 와 같음) 를 `release` profile 로 수행하며, 기본값은 `debug` profile 의 디버그 빌드 (`-O0`) 입니다.
 - `--target-dir=<dir>` 는 `target/` 의 위치를 바꿉니다 (`ROKC_TARGET_DIR` 과 같음).
-- `--extern <name>=<dir | lib.rok | <name>.rhir | lib<name>.a>` 는 의존 패키지 하나를 최상위 경로 `name` 에 mount 합니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 소스 (`dir` / `lib.rok`) 는 같은 빌드에서 함께 컴파일하고, 미리 빌드한 패키지 (`.rhir` / `.a`, 하나를 주면 옆의 짝을 찾음) 는 RHIR 을 읽고 archive 를 링크합니다. 여러 번 쓸 수 있고, 보통 `rok` 가 채웁니다. `name` 은 식별자여야 합니다.
-- `--name <n>` 은 라이브러리 패키지의 이름 (산출물 이름 `lib<n>.a` / `<n>.rhir` 과 RHIR 의 mount 이름) 을 정합니다. 기본은 디렉토리 이름입니다.
+- `--extern <name>=<dir | lib.rok | <name>.rhir | lib<name>.a>` 는 의존 패키지 하나를 최상위 경로 `name` 에 mount 합니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 소스 (`dir` / `lib.rok`) 는 같은 빌드에서 함께 컴파일하고, 미리 빌드한 패키지 (`.rhir` / `.a`, 하나를 주면 옆의 짝을 찾음) 는 RHIR 을 읽고 archive 를 링크합니다. 여러 번 쓸 수 있고, 보통 `rok` 가 채웁니다. `name` 은 식별자이며, 패키지 이름의 `-` 를 `_` 로 바꾼 것입니다 ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)).
+- `--name <n>` 은 패키지 이름 ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock) 의 이름 규칙) 을 정합니다. 산출물은 `lib<n>.a` / `<n>.rhir` 이고 mount 이름은 `-` 를 `_` 로 바꾼 것입니다. 기본은 디렉토리 이름입니다. `--extern a-b=..` 도 `a_b` 로 묶습니다.
+- `--bootstrap <file>` 은 미리 읽을 표준 라이브러리 루트 (여러 번 가능), `--rokr <lib>` 는 링크할 런타임입니다. 기본값은 sysroot 의 `lib/rok/{core,std,bare}/lib.rok` 와 `lib/librokr.a` 입니다 ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)). 찾지 못하면 찾아본 경로를 나열하는 에러입니다.
 - `-O0` / `-O1` / `-O2` / `-O3` / `-Os` 는 최적화 단계를 명시적으로 지정합니다.
 - `--target=<triple>` 은 타깃 플랫폼을 지정하며, [플랫폼 타깃](../000-meta/006-platform-targets.md) 의 13 개 Tier 1 중 하나를 사용합니다.
 - `-o` / `--out=<path>` 는 출력 위치를 지정합니다.
@@ -308,22 +309,22 @@ rokc clean [path]
 
 ### `rokc version`: 버전
 
-`rokc version` 은 rokc 의 버전 정보를 출력합니다.
-
 ```
 rokc version
-rokc --version
+rokc --version            # = -V
+rokc -V -v                # host 줄 추가
 ```
 
-이 명령은 stdout 에 `rokc <버전>` 한 줄 (예: `rokc 0.1.0`) 을 출력합니다. `-V` 도 같습니다.
+stdout 에 `rokc <버전> (<commit> <date>)` 한 줄을 출력합니다. `-v` 를 더하면 `host: <triple>` 줄을 덧붙입니다.
 
 ### `rokc help`: 도움말
 
-`rokc help` 는 도움말을 보여 줍니다.
-
 ```
 rokc help [subcommand]
+rokc <subcommand> --help
 ```
+
+서브명령을 주면 그 명령의 도움말을 보여 줍니다.
 
 ## 9.1.5. 전역 옵션
 
@@ -360,10 +361,10 @@ rokc --cwd=examples/hello run
 |-------|-------------------------------------------------|
 | `0`   | 성공                                            |
 | `1`   | 사용자 코드 에러 (컴파일 에러 / 테스트 실패 등) |
-| `2`   | 사용 / CLI 에러 (잘못된 옵션 등)                |
+| `2`   | 사용법 에러 (잘못된 옵션, 모르는 서브명령 등)   |
 | `101` | rokc 내부 에러 (panic)                          |
 
-rokc 자신이 panic 하면 (internal compiler error) 메시지를 출력하고 `101` 로 끝납니다. `rokc run` 은 실행한 프로그램의 종료 코드로 끝납니다 (9.1.2).
+`rokc` 는 `ROK_HOME` 을 읽지 않습니다 (sysroot 는 실행 파일 기준). rokc 자신이 panic 하면 (internal compiler error) 메시지를 출력하고 `101` 로 끝납니다. `rokc run` 은 실행한 프로그램의 종료 코드로 끝납니다 (9.1.2).
 
 ## 9.1.7. 환경 변수
 
@@ -371,7 +372,7 @@ rokc 자신이 panic 하면 (internal compiler error) 메시지를 출력하고 
 
 | 변수              | 의미                                                                                     |
 |-------------------|------------------------------------------------------------------------------------------|
-| `ROK_HOME`        | toolchain 설치 위치 ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)). 없으면 `rokc` 실행 파일의 `../` |
+| `ROK_CC`          | 마지막 링크를 하는 C 컴파일러. 기본은 Apple 에서 `xcrun clang`, 그 밖에는 LLVM 의 `clang` ([9.2.18](902-aot-pipeline.md)) |
 | `ROKC_VERBOSE`    | `--verbose` 와 동일                                                                      |
 | `ROKC_TARGET_DIR` | `target/` 의 위치 (기본은 패키지 안)                                                     |
 | `ROKC_CACHE_DIR`  | [JIT](../000-meta/007-glossary.md#jit-just-in-time) 캐시 디렉토리 (기본 `~/.cache/rok/`) |

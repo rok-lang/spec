@@ -48,7 +48,7 @@
 rokc build --extern util=../util --extern parser=target/debug/deps/libparser.a
 ```
 
-`--extern name=<경로>` 는 의존 패키지 하나를 최상위 경로 `name` 에 mount 합니다. `name` 은 `rok.rokon` 의 `deps` 키입니다. 경로는 두 형태입니다.
+`--extern name=<경로>` 는 의존 패키지 하나를 최상위 경로 `name` 에 mount 합니다. `name` 은 `rok.rokon` 의 `deps` 키에서 `-` 를 `_` 로 바꾼 식별자입니다. 경로는 두 형태입니다.
 
 | 경로                              | 의존 패키지                                                                  |
 |-----------------------------------|------------------------------------------------------------------------------|
@@ -170,9 +170,9 @@ mlir-opt --canonicalize --cse \
 mlir-translate --mlir-to-llvmir target/debug/build/foo.opt.mlir > target/debug/build/foo.ll
 ```
 
-## 9.2.13. clang / lld 호출
+## 9.2.13. object 생성
 
-표준 도구인 `clang` (또는 LLVM 의 `llc` + `lld` 조합) 으로 LLVM IR 을 네이티브 코드로 변환합니다.
+LLVM IR 은 같은 LLVM 의 `clang` 으로 object 로 바꿉니다.
 
 ```
 clang -O2 -c target/debug/build/foo.ll -o target/debug/build/foo.o
@@ -183,17 +183,11 @@ ar rcs target/debug/libfoo.a target/debug/build/foo.o
 
 ## 9.2.14. 링킹 (실행 파일의 경우)
 
-`main.rok` 패키지인 경우에는 다음과 같이 링킹을 수행합니다.
-
 ```
-clang -O2 \
-  target/debug/build/foo.o \
-  $ROK_HOME/lib/librokr.a \
-  librok_bare.a librok_core.a librok_std.a \
-  -o target/debug/foo                         (-lc 등 필요시)
+$ROK_CC target/debug/build/foo.o <deps>/lib*.a <sysroot>/lib/librokr.a -o target/debug/foo
 ```
 
-이 단계가 비로소 실행 가능한 바이너리를 만들어 내는 단계입니다.
+링크는 `ROK_CC` 로 합니다. 없으면 Apple 에서는 `xcrun clang`, 그 밖에는 LLVM 의 `clang` 입니다. Apple 에서 `-g` 이면 링크 뒤에 `dsymutil` 을 실행합니다.
 
 ## 9.2.15. 산출물
 
@@ -248,17 +242,14 @@ target/
 
 ## 9.2.18. 외부 도구 의존
 
-`rokc build` 가 정상적으로 동작하려면 다음의 외부 도구들이 PATH 에 등록되어 있어야 합니다.
+| 도구             | 역할                 |
+|------------------|----------------------|
+| `mlir-opt`       | MLIR 최적화          |
+| `mlir-translate` | MLIR → LLVM IR       |
+| `clang`          | LLVM IR → object (같은 LLVM 의 것) |
+| `ROK_CC` / `xcrun clang` | 마지막 링크  |
 
-| 도구                       | 역할                 |
-|----------------------------|----------------------|
-| `mlir-opt`                 | MLIR 최적화          |
-| `mlir-translate`           | MLIR → LLVM IR       |
-| `clang` 또는 `llc` + `lld` | LLVM IR → obj / 링킹 |
-
-`rokc` 는 이들 도구를 호출하기만 할 뿐이며, LLVM 라이브러리에 직접 link 하지는 않습니다 ([컴파일 파이프라인](../000-meta/002-pipeline.md) 참고).
-
-만약 도구가 설치되어 있지 않은 경우에는 `rokc build` 가 명확한 에러를 내놓습니다 (어떤 도구를 어디에서 받을 수 있는지 함께 안내합니다).
+LLVM 은 21 ~ 22 를 씁니다. `PATH` 에서 먼저 찾고, 없으면 알려진 위치 (Homebrew, apt.llvm.org) 를 찾습니다. `rokc` 는 이 도구를 프로세스로 부를 뿐 LLVM 라이브러리를 링크하지 않습니다 ([0.2.4](../000-meta/002-pipeline.md#024-mlir-텍스트-직접-생성)). 도구가 없으면 찾아본 위치를 밝히는 에러입니다.
 
 ## 9.2.19. 설치 레이아웃
 
@@ -278,7 +269,7 @@ $ROK_HOME/
 │           └── rok/{core, std, bare}/   # 표준 라이브러리 소스
 ├── cache/                       # git, registry, 스크립트 lock (9.10.4)
 ├── envs/<name>/, envs/CURRENT   # 이름 있는 환경 (9.10.5)
-└── config.rokon                 # 사용자 설정 (기본 레지스트리 등)
+└── config.rokon                 # Config { registry, toolchain }
 ```
 
-`rokc` 는 표준 라이브러리와 런타임을 자기 실행 파일 기준 (sysroot = 실행 파일의 `..`) 에서 찾으며, `ROK_HOME` 을 보지 않습니다. 활성 toolchain 의 선택은 [9.10.6](910-rok-frontend.md#9106-toolchain-고정) 이 정합니다.
+`rokc` 는 표준 라이브러리와 런타임을 자기 실행 파일 기준 (sysroot = 실행 파일의 `..`) 에서 찾으며, `ROK_HOME` 을 보지 않습니다. 활성 toolchain 의 선택은 [9.10.6](910-rok-frontend.md#9106-toolchain) 이 정합니다.

@@ -102,7 +102,7 @@ C 와 Rust 에서 `as` cast 가 pointer 위에서 일으키는 함정은 가장 
 
 ### 5. RAII via `using` block — finalizer 에 의존하지 않습니다
 
-GC 환경에서 finalizer 의 신뢰성이 부족하다는 사실은 모든 GC 언어가 학습한 경험입니다. 따라서 file, socket, mutex 같은 외부 자원은 명시적인 `using` 블록을 primary 로 삼고, finalizer 는 backstop 의 자리에만 둡니다.
+GC 환경에서 finalizer 의 신뢰성이 부족하다는 사실은 모든 GC 언어가 학습한 경험입니다. 따라서 file, socket, mutex 같은 외부 자원은 명시적인 `using` 블록으로 해제합니다. GC 는 `drop` 을 부르지 않으며 finalizer 는 없습니다. 해제하지 않은 자원은 `unclosed_resource` lint 가 알립니다 ([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)).
 
 ```rok
 using f = rok::bare::ffi::open(path) {

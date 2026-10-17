@@ -136,7 +136,7 @@ let g = [ref xs] || {
 
 ## 4.6.9. 병렬과 동시성 문맥의 추가 제약
 
-`fn() + Send` 클로저 (`task::spawn`, `par::for_each`, `thread::spawn` 등에 넘기는 것) 의 `[ref x]` 캡처는 `x` 의 타입이 `Sync` 여야 합니다. 셀이 스레드 사이에서 공유되기 때문입니다. 컬렉션은 `!Sync` 이므로 ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--스레드-경계-marker)) 이렇게 캡처할 수 없습니다.
+`fn() + Send` 클로저 (`task::spawn`, `par::for_each`, `thread::spawn` 등에 넘기는 것) 의 캡처는 모두 `Send + Sync` 여야 합니다 ([4.4](404-function-type.md#send--sync-bound)). `[ref x]` 셀은 `x` 의 타입이 `Sync` 일 때만 `Sync` 이므로 ref 캡처도 같은 규칙입니다. 컬렉션은 `!Sync` 이므로 ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--스레드-경계-marker)) 이렇게 캡처할 수 없습니다.
 
 ```rok
 let buf: List<i32> = [];

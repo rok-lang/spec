@@ -22,7 +22,7 @@ silent wrap 되어 황당한 결과를 내는 일이 없습니다.
 
 ### fixed primitive — 하드웨어 친화 세계
 
-반면 fixed primitive 는 하드웨어에 가까운 세계입니다. `i32` / `f64` 등 14
+반면 fixed primitive 는 하드웨어에 가까운 세계입니다. `i32` / `f64` 등 15
 종으로 구성되며, syntax 는 [refs-lang 2.1 타입 표현식](../../refs-lang/002-types/201-type-expressions.md) 이
 정의합니다. 메모리와 성능을 정밀하게 제어해야 하는 상황 (FFI 인터페이스, SIMD,
 큰 array, 핫 루프) 에 적합하고, overflow 정책이 명시됩니다 ([2.3 ops
@@ -158,7 +158,7 @@ impl Float {
 
 ## 2.1.4. fixed-width primitive
 
-[refs-lang 2.1 타입 표현식](../../refs-lang/002-types/201-type-expressions.md) 이 14 primitive 의 **이름** 을
+[refs-lang 2.1 타입 표현식](../../refs-lang/002-types/201-type-expressions.md) 이 15 primitive 의 **이름** 을
 정의합니다. 이 절은 그 위에서 표준 라이브러리의 메서드와 동작을 정의합니다.
 
 ### 정수 (10 종)
@@ -197,8 +197,8 @@ impl Float {
 
 | 부류                       | 구성원                                                                                                | 등록 방식                              |
 |----------------------------|-------------------------------------------------------------------------------------------------------|----------------------------------------|
-| **15 언어 기본값**         | `i8`/`i16`/`i32`/`i64`, `u8`/`u16`/`u32`/`u64`, `isize`/`usize`, `f32`/`f64`, `bool`, `c_char`, `str` | 언어가 직접 인식 — `#[keyword]` 불필요 |
-| **3 표준 라이브러리 추가** | `int`, `float`, `char`                                                                                | `#[keyword(...)]` 등록                 |
+| **16 언어 기본값**         | `i8`/`i16`/`i32`/`i64`, `u8`/`u16`/`u32`/`u64`, `isize`/`usize`, `f32`/`f64`, `bool`, `char`, `c_char`, `str` | 언어가 직접 인식 — `#[keyword]` 불필요 |
+| **2 표준 라이브러리 추가** | `int`, `float`                                                                                | `#[keyword(...)]` 등록                 |
 
 언어 기본값은 컴파일러 (lexer/parser) 가 직접 인식하는 토큰이라서, 표준 라이브러리가
 별도로 키워드 등록을 하지 않습니다. 그 결과 사용자가 이 이름들을 재정의할 수
@@ -209,7 +209,7 @@ impl Float {
 가 부착됩니다 ([refs-lang
 6.6](../../refs-lang/006-meta-system/606-keyword-magic.md) 가 권위입니다).
 
-### 언어 기본값 14 primitive 의 표준 라이브러리 형태
+### 언어 기본값 primitive 의 표준 라이브러리 형태
 
 ```rok
 struct i32 { ... }        // 사용자 직접 사용 (소문자 식별자가 곧 타입)
@@ -441,7 +441,7 @@ opt-in niche 가 필요한 경우에는 [2.2 non-zero](202-non-zero.md) 의
 
 ## 2.1.9. lang slot 매핑
 
-언어 기본값 14 종은 소문자 struct 이름을 사용합니다. 컴파일러가 직접
+언어 기본값 16 종은 소문자 struct 이름을 사용합니다. 컴파일러가 직접
 인식하므로 `#[keyword]` 가 필요하지 않습니다.
 
 | primitive | lang slot    | struct 이름 | 등록      |
@@ -460,6 +460,7 @@ opt-in niche 가 필요한 경우에는 [2.2 non-zero](202-non-zero.md) 의
 | `f64`     | `f64_type`   | `f64`       | 언어 기본 |
 | `bool`    | `bool_type`  | `bool`      | 언어 기본 |
 | `c_char`  | `cchar_type` | `c_char`    | 언어 기본 |
+| `char`    | `char_type`  | `char`      | 언어 기본 |
 | `str`     | `str_type`   | `str`       | 언어 기본 |
 
 표준 라이브러리가 추가하는 3 종은 PascalCase struct 와 `#[keyword(...)]` 로
@@ -469,7 +470,6 @@ opt-in niche 가 필요한 경우에는 [2.2 non-zero](202-non-zero.md) 의
 |-----------|--------------|-------------|-----------------------|
 | `int`     | `int_type`   | `Int`       | `#[keyword("int")]`   |
 | `float`   | `float_type` | `Float`     | `#[keyword("float")]` |
-| `char`    | `char_type`  | `Char`      | `#[keyword("char")]`  |
 
 참고로 `Range<T>` (`a..b`) 는 [2.7 iter](207-iter.md) 가 정의합니다.
 

@@ -216,7 +216,7 @@ ScanTable 포맷의 호환성은 version 필드가 다룹니다.
 | `1`     | GC 문자열         | payload 는 바이트이며 scan 하지 않음                    |
 | `2`     | word-traced buffer | payload 의 모든 word 를 모호한 word (`AMBIGUOUS_WORD`) 로 scan |
 
-두 종류는 `rok_gc_alloc_bytes(size, traced)` 로 할당합니다 ([8.5.1](805-extern-symbols.md#851-gc-영역)). 표준 라이브러리의 [`GcBuf<T>`](../../refs-standard-libraries/200-core/209-collections.md#2912-gcbuft--raw-gc-buffer) 가 이 위에 놓입니다.
+두 종류는 type id `1` 또는 `2` 로 `rok_gc_alloc_slow` 를 불러 할당합니다 ([8.5.1](805-extern-symbols.md#851-gc-영역)). 표준 라이브러리의 [`GcBuf<T>`](../../refs-standard-libraries/200-core/209-collections.md#2912-gcbuft--raw-gc-buffer) 가 이 위에 놓입니다.
 
 ## 8.2.13. 등록 시점
 

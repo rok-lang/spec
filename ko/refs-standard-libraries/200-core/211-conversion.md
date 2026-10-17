@@ -206,7 +206,7 @@ let f2: f32 = 3.14f64 as f32;     // 3.14 → f32 (IEEE 754 narrowing)
 | 좁은 정수 → 넓은 정수                      | sign-extend (signed) 또는 zero-extend (unsigned)   |
 | 넓은 정수 → 좁은 정수                      | 절삭 (하위 비트만)                                 |
 | 정수 → 부동소수                            | IEEE 754 표현으로 (정밀도 손실 가능)               |
-| 부동소수 → 정수                            | 절삭 (truncate toward zero), NaN → 0, ±∞ → MIN/MAX |
+| 부동소수 → 정수                            | 0 쪽으로 절삭. 범위 밖은 MIN/MAX 로 saturate, NaN → 0 (모든 최적화 수준) |
 | 부동소수 → 같은/다른 폭 부동소수           | IEEE 754 round                                     |
 | `u8` → `char`                              | 그 code point (U+0000..=U+00FF)                    |
 | `char` → 정수                              | code point (좁은 정수면 절삭)                      |

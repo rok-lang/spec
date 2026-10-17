@@ -150,6 +150,7 @@ rok 은 GC 언어이므로 일반 바인딩이 scope 를 벗어날 때 자동으
 - 정상 종료, `return`, `break`, 에러 전파 모두에서 호출됩니다.
 - 여러 바인딩은 선언의 역순 (LIFO) 으로 호출됩니다.
 - panic 은 프로세스를 끝내므로 `drop` 을 부르지 않습니다.
+- drop glue: 값 자신의 `drop` 뒤에, `Drop` 을 가진 필드가 선언의 역순으로 재귀적으로 정리됩니다. 튜플 원소와, enum / 합 타입이 지금 담은 payload 도 같습니다.
 
 ```rok
 fn process(path: str) throws (IoError) {
@@ -167,7 +168,7 @@ fn process(path: str) throws (IoError) {
 
 ### GC 와의 관계
 
-GC 는 `using` 밖의 객체에 대해 finalization 을 보장하지 않으며, 어떤 경우에도 `drop` 을 부르지 않습니다. 결정론적 정리가 필요한 자원은 반드시 `using` 으로 묶거나 `close()` 같은 메서드로 직접 닫습니다.
+GC 는 `drop` 을 부르지 않으며 finalizer 는 없습니다. 정리가 필요한 자원은 `using` 으로 묶거나 `close()` 같은 메서드로 직접 닫으며, 그러지 않으면 `unclosed_resource` lint 가 경고합니다 ([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)).
 
 ### `Drop` 구현 예
 
@@ -243,7 +244,7 @@ impl Drop for Container {
 | slot          | 부착 항목                 | 자동 호출 시점                           |
 |---------------|---------------------------|------------------------------------------|
 | `clone_trait` | `Clone` 트레잇            | 없음 — `#[derive(Clone)]` 확장에서 사용  |
-| `drop_method` | `Drop::drop` 메서드       | scope exit 시 자동                       |
+| `drop_method` | `Drop::drop` 메서드       | `using` 바인딩 해제 시 (drop glue 포함)  |
 | `none_type`   | `NoneSentinel` 타입 (2.13.8) | `none` 리터럴 lower                   |
 | `send_trait`  | `Send` 트레잇 (2.13.9)    | 자동 구현, 스레드 경계 검사              |
 | `sync_trait`  | `Sync` 트레잇 (2.13.9)    | 자동 구현, 스레드 경계 검사              |
@@ -310,7 +311,8 @@ trait Sync { }      // 공유 참조로 여러 스레드에서 읽어도 안전
 
 - 원시 숫자, `bool`, `char`, `c_char`, `str`, `none` 은 `Send + Sync` 입니다.
 - `struct`, `enum`, `union`, 튜플, 배열, 합 타입은 모든 필드 (구성 요소) 가 `Send` 이면 `Send`, 모두 `Sync` 이면 `Sync` 입니다. 제네릭 컨테이너의 `Send` 는 같은 규칙으로 `T` 에 따릅니다.
-- 컬렉션 (`List`, `Dict`, `Set`, `StrBuf`, `Deque`, `BinaryHeap`, `OrderedDict`, `OrderedSet`) 은 가변 핸들을 공유하므로 `!Sync` 입니다. 스레드 사이에서는 `Mutex` / `RwLock` / 채널로 공유합니다.
+- 컬렉션 (`List`, `Dict`, `Set`, `StrBuf`, `Deque`, `BinaryHeap`, `OrderedDict`, `OrderedSet`, `Slice`) 은 `Send` 이고 `!Sync` 입니다. 가변 핸들을 공유하기 때문입니다. 스레드 사이에서는 `Mutex` / `RwLock` / 채널로 공유합니다.
+- rok 에는 move 의미가 없습니다. 값을 넘겨도 (`Mutex::new(xs)`, `tx.send(xs)`) 보낸 쪽의 핸들은 같은 객체를 가리킵니다. 그 뒤에 그 핸들을 쓰거나, 잠금을 푼 뒤 guard 에서 꺼낸 핸들을 쓰는 것은 data race 입니다. 프로그래머가 지켜야 하는 규칙이며, 정의되지 않은 동작이 없음은 라이브러리 타입만 보장합니다. 이를 찾는 lint 가 계획되어 있습니다.
 - 다음은 제외됩니다: `Cell<T>`, 원시 포인터 (`Ptr<T>`, `ConstPtr<T>`, `CPtr<T>`), 맨 `any` 와 bound 에 `Send` / `Sync` 가 없는 `any Tr`, bound 없는 함수 타입. 이 밖의 예외는 각 타입의 장에서 정합니다.
 - 함수 타입은 `fn(..) -> R + Send` 처럼 bound 를 적었을 때만 그 트레잇을 가집니다 ([refs-lang 4.4](../../refs-lang/004-functions/404-function-type.md#send--sync-bound)).
 

@@ -25,7 +25,7 @@ type_arg_list   ::= type_expr ("," type_expr)* ","?
 | `rok`       | 표준 라이브러리 가상 네임스페이스         |
 | 일반 식별자 | 현재 가시 이름 (자식 모듈, `use` 한 이름) |
 
-`pkg` 는 가시성 키워드 `pub(pkg)` 와 같은 어간이고, `sup` 은 가시성 `pub(sub)` 의 **대칭** 방향입니다 (sub 은 자손, sup 은 조상을 뜻합니다). `rok` 은 컴파일러가 관리하는 표준 라이브러리 패키지 묶음을 한 이름으로 묶어 주는 가상 루트입니다. 세 단어 모두 `pub(...)` 한정자와 마찬가지로 컨텍스트 키워드라서 일반 식별자로도 자유롭게 쓸 수 있습니다 ([1.5.4 컨텍스트 키워드](../001-lexical/105-keywords.md)).
+`pkg` 는 가시성 키워드 `pub(pkg)` 와 같은 어간이고, `sup` 은 가시성 `pub(sub)` 의 **대칭** 방향입니다 (sub 은 자손, sup 은 조상을 뜻합니다). `rok` 은 컴파일러가 관리하는 표준 라이브러리 패키지 묶음을 한 이름으로 묶어 주는 가상 루트입니다. 세 단어 모두 바로 뒤에 `::` 가 올 때만 경로 루트이며, 그 밖에는 일반 이름입니다 ([1.5.4 컨텍스트 키워드](../001-lexical/105-keywords.md)).
 
 `self::` 는 경로의 시작점으로 두지 않습니다. 같은 모듈의 자식이나 항목은 일반 식별자 (`child::item`) 로 충분합니다.
 
@@ -198,7 +198,7 @@ use parser::Token;
 let t = parser::lex(src);
 ```
 
-- 의존 패키지의 이름은 최상위 경로입니다. 이름은 `rok.rokon` 의 `deps` 키이며, 빌드 도구가 `rokc --extern name=..` 로 등록합니다 ([9.2.3](../009-tools/902-aot-pipeline.md#923-의존성-해소), [9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock)). Rust 의 `extern crate` 같은 별도 선언은 필요하지 않습니다.
+- 의존 패키지의 이름은 최상위 경로입니다. 이름은 `rok.rokon` 의 `deps` 키에서 `-` 를 `_` 로 바꾼 것이며 (`rok-syntax` → `rok_syntax::..`), 빌드 도구가 `rokc --extern name=..` 로 등록합니다 ([9.2.3](../009-tools/902-aot-pipeline.md#923-의존성-해소), [9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock)). Rust 의 `extern crate` 같은 별도 선언은 필요하지 않습니다.
 - 의존 패키지 안의 `pkg::` 는 그 의존 패키지 자신의 루트입니다.
 - 사용자 패키지의 모듈이 의존 패키지와 같은 이름이면 에러입니다.
 

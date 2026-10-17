@@ -2,7 +2,7 @@
 
 `librokr.a` 가 노출하는 [심볼](../000-meta/007-glossary.md#extern-c-심볼) 의 시그니처를 정의합니다. 컴파일러가 생성한 코드와 표준 라이브러리가 이 심볼을 부릅니다.
 
-rok 쪽 선언은 런타임 ABI `extern "rok"` ([5.9.2](../005-modules/509-extern-block.md#592-abi-명시)) 이며, toolchain 이 `rok::core::rt` 에 `pub(pkg)` 로 둡니다. 아래 블록의 `str` 은 `(ptr, len)` 두 word, `fn` 값은 `RokFn` (8.5.0a), 그 밖의 값은 C ABI 와 같습니다. C 에서 부를 때는 이 펼친 형태를 씁니다.
+rok 쪽 선언은 런타임 ABI `extern "rok"` ([5.9.2](../005-modules/509-extern-block.md#592-abi-명시)) 이며, toolchain 이 `rok::core::rt` 에 `pub(pkg)` 로 둡니다. 아래 블록의 `fn` 값은 `RokFn` (8.5.0a), 그 밖의 값은 C ABI 와 같습니다. `str` 은 `struct { const uint8_t *ptr; size_t len; }` 로 값 전달하며, `RokFn` 처럼 타깃의 16 바이트 구조체 규칙을 따르고 레지스터와 스택에 나뉘지 않습니다.
 
 > [!IMPORTANT]
 > 모든 심볼은 `rok_` 접두사로 시작합니다. 이는 외부 라이브러리나 사용자 코드와의 심볼 충돌을 회피하기 위함입니다.
@@ -54,20 +54,7 @@ extern "C" {
 - `type_id`: 객체의 타입 ID 입니다.
 - 반환: 헤더 자리부터 시작하는 포인터를 돌려주며, type_id 와 gc_flags 는 함수가 채워둡니다.
 
-null 을 반환하는 경우는 out of memory 와 같은 극단적 상황입니다. 실제로는 fatal error 를 던지게 되며, 이는 구현이 결정합니다.
-
-### `rok_gc_alloc_bytes`
-
-헤더 뒤에 `size` 바이트의 payload 를 가진 GC 객체를 할당합니다. **Thread-safety: `thread-safe`**.
-
-```
-extern "C" {
-    fn rok_gc_alloc_bytes(size: usize, traced: bool) -> str;
-}
-```
-
-- `traced = false` 이면 type id `1` (GC 문자열), `true` 이면 type id `2` (word-traced buffer) 로 할당합니다 ([8.2.12](802-scan-table.md#8212-런타임-예약-type-id)).
-- 반환값은 payload 를 가리키는 `(ptr, len)` 쌍 (`str` 의 표현, [8.8](808-lowering-types.md)) 입니다.
+null 을 반환하지 않습니다. 메모리 부족은 fatal (`rok_oom`) 이며, `isize::MAX` 를 넘는 요청은 fatal 에러 "allocation too large" (종료 코드 101) 입니다.
 
 ### `rok_alloc_raw` / `rok_realloc_raw`
 
@@ -157,7 +144,7 @@ extern "C" {
 }
 ```
 
-호출 시점은 `main()` 이 끝난 직후이며, 효과로는 worker 풀을 종료하고 미해제 자원을 정리합니다.
+`main()` 이 끝난 직후에 부릅니다. 다른 모든 rok 스레드는 지금 실행 중인 런타임 / C 코드를 마친 뒤 다음 safepoint 에서 영영 멈춥니다. 그 뒤 worker 풀을 끝내고 남은 자원을 정리합니다.
 
 ### `rok_exit`
 
@@ -173,17 +160,15 @@ extern "C" {
 
 ### 문자열 helper
 
-`FromStr` 과 `str::bytes` 를 뒷받침하는 내부 helper 입니다 ([stdlib 2.15](../../refs-standard-libraries/200-core/215-string.md)). **Thread-safety: `thread-safe`**. `str` 인자는 `(ptr, len)` 으로 전달됩니다.
+`FromStr` 과 `str::bytes` 를 뒷받침하는 내부 helper 입니다 ([stdlib 2.15](../../refs-standard-libraries/200-core/215-string.md)). **Thread-safety: `thread-safe`**. `str` 인자는 머리말의 구조체 형태입니다.
 
 ```
 extern "C" {
     fn rok_str_byte(s: str, i: usize) -> u8;                         // i 번째 바이트 (경계 검사는 호출자)
     fn rok_str_slice(s: str, start: usize, end: usize, at: str) -> str;  // s[start:end]. 범위 / UTF-8 경계가 틀리면 at 위치로 panic
-    fn rok_str_int_status(s: str, signed: i32, bits: u32) -> i32;    // 0 ok, 1 empty, 2 invalid digit, 3 out of range
-    fn rok_str_to_i64(s: str) -> i64;                                 // status 0 확인 후 호출
-    fn rok_str_to_u64(s: str) -> u64;                                 // status 0 확인 후 호출
-    fn rok_str_float_ok(s: str) -> i32;                               // inf, NaN, 지수 포함 — 1 이면 파싱 가능
-    fn rok_str_to_f64(s: str) -> f64;                                 // float_ok 확인 후 호출
+    fn rok_str_parse_int(s: str, radix: u32, signed: i32, bits: u32, out: GcBuf<i64>) -> i32;
+                                        // 0 ok, 1 빈 문자열, 2 잘못된 자릿수, 3 범위 밖; 값의 비트는 out[0]
+    fn rok_str_parse_float(s: str, out: GcBuf<f64>) -> i32;           // 0 ok, 2 잘못됨; 값은 out[0]
 }
 ```
 
@@ -194,6 +179,30 @@ extern "C" {
 ```
 extern "C" {
     fn rok_runtime_yield();
+}
+```
+
+### `rok_enter_native` / `rok_leave_native`
+
+native bracket 의 slow path 입니다 ([8.4.10](804-safepoint.md#8410-native-호출)). **Thread-safety: `caller-thread-only`**.
+
+```
+extern "C" {
+    fn rok_enter_native();                // C 로 들어감: 이 스레드는 PARKED
+    fn rok_leave_native();                // C 에서 돌아옴: 진행 중인 수집을 기다림
+}
+```
+
+컴파일러는 모든 `extern "C"` 호출 앞뒤에 fast path 를 inline 으로 냅니다. mutator 상태에 `PARKED` / `RUNNING` 을 seq_cst 로 쓰고 yield flag 를 봅니다. flag 가 켜져 있을 때만 이 함수를 부릅니다.
+
+### `rok_native_reenter` / `rok_native_resume`
+
+모든 `extern "C" fn` 정의의 입구와 출구이며, C callback 이 mutator 로 돌게 합니다. **Thread-safety: `caller-thread-only`**.
+
+```
+extern "C" {
+    fn rok_native_reenter() -> u32;       // 스레드가 PARKED (C 안) 였으면 native 를 떠남; 그랬는지 반환
+    fn rok_native_resume(parked: u32);    // reenter 가 떠났으면 다시 native 로
 }
 ```
 
@@ -209,6 +218,10 @@ extern "C" {
 ```
 
 각 worker thread 의 시작 및 종료 시점에 호출되어, [TLS 슬롯](803-tls-slots.md) 의 TLS 를 초기화하거나 정리합니다.
+
+### 내부 심볼 무리
+
+다음 무리는 참조 런타임의 내부 helper 이며 ABI 계약에 속하지 않습니다: `rok_fmt_*`, `rok_str_*` helper, `rok_char_*`, `rok_nat_*`, `rok_stdio_*`, `rok_time_*`, `rok_gc_stats_*`, `rok_buf_*`, `rok_cstr_len`.
 
 ## 8.5.3. Coroutine 영역
 
@@ -316,15 +329,13 @@ extern "C" {
 }
 ```
 
-### `rok_thread_detach` / `rok_thread_park` / `rok_thread_unpark` / `rok_cpu_count`
+### `rok_thread_detach` / `rok_cpu_count`
 
 **Thread-safety: `thread-safe`**.
 
 ```
 extern "C" {
     fn rok_thread_detach(handle: usize) -> i32;   // 끝나면 OS 자원 반환, 더 이상 join 불가. 0 이면 성공
-    fn rok_thread_park(timeout_ns: i64);          // 토큰이 설 때까지 대기 (음수 = 무기한), 깨운 이유 없이 돌아올 수 있음
-    fn rok_thread_unpark(id: u64);                // 스레드 id 의 토큰을 세우고 깨움 (이미 끝났으면 무시)
     fn rok_cpu_count() -> usize;                  // 온라인 CPU 수 (최소 1) — par 풀의 크기
 }
 ```
@@ -411,7 +422,6 @@ extern "C" {
 ```
 extern "C" {
     fn rok_io_poller() -> i32;                    // 프로세스의 kqueue / epoll fd (처음 부를 때 생성)
-    fn rok_io_driver_claim() -> i32;              // 처음 부른 쪽만 1 — 그쪽이 reactor thread 를 띄움
     fn rok_io_watch(fd: i32) -> i32;              // fd 를 읽기 / 쓰기 edge-triggered 로 등록 (다시 걸어도 무해), 0 또는 -errno
     fn rok_io_poll(out: Ptr<u8>, max: usize) -> i32;   // 변화가 올 때까지 막힘 (GC 에는 park), 사건 수 또는 -errno
 }
@@ -585,6 +595,7 @@ extern "C" {
 
     // GC
     fn rok_gc_collect_young();                             // minor 수집을 강제
+}
 ```
 
 다음 규칙이 적용됩니다.

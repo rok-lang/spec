@@ -92,7 +92,7 @@ specialize 는 [monomorphization (단형화)](#monomorphization-단형화) 의 �
 
 ## stone
 
-레지스트리에 올린 rok 패키지입니다. `rok.rokon` 에서 `Dep::version("req")` 나 문자열 `"req"` 로 요구합니다 ([9.10.4a](../009-tools/910-rok-frontend.md#9104a-stone-과-rokstonesio)).
+레지스트리에 올린 rok 패키지입니다. 이름은 `[a-z0-9_-]+` (글자로 시작) 이며, 코드에서는 `-` 를 `_` 로 바꿔 씁니다. 레지스트리에서 `-` / `_` 와 대소문자는 같은 이름으로 봅니다. `rok.rokon` 에서 `Dep::version("req")` 나 문자열 `"req"` 로 요구합니다 ([9.10.4a](../009-tools/910-rok-frontend.md#9104a-stone-과-rokstonesio)).
 
 ## sticky mark-bit
 

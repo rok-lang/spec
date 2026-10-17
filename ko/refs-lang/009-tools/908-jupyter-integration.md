@@ -90,15 +90,15 @@ kernelspec 은 다음 디렉토리 아래의 `kernels/rok/kernel.json` 입니다
 2. macOS 이면 `~/Library/Jupyter`
 3. 그 밖에는 `$XDG_DATA_HOME/jupyter`, 없으면 `~/.local/share/jupyter`
 
-`kernel.json` 의 내용은 다음과 같습니다. 설치할 때 `ROK_HOME` 이 설정되어 있었으면 `env` 에 함께 기록합니다.
+`kernel.json` 은 `rok` proxy ([9.10.6](910-rok-frontend.md#9106-toolchain)) 를 실행하며, 설치 때의 `ROK_HOME` 과 `PATH` 를 `env` 에 기록합니다.
 
 ```json
 {
-  "argv": ["/path/to/rok", "jupyter", "--connection-file", "{connection_file}"],
+  "argv": ["/home/u/.rok/bin/rok", "jupyter", "--connection-file", "{connection_file}"],
   "display_name": "rok",
   "language": "rok",
   "interrupt_mode": "message",
-  "env": { "ROK_HOME": "/path/to/rok-home" }
+  "env": { "ROK_HOME": "/home/u/.rok", "PATH": "<설치 때의 PATH>" }
 }
 ```
 

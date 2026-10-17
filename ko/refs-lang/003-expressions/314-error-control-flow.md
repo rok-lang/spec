@@ -7,7 +7,7 @@ throw_stmt     ::= "throw" expr ";"
 try_expr       ::= ("try" | "try?" | "try!") expr
 catch_expr     ::= expr catch_clause+ finally_clause?
                  | expr finally_clause
-catch_clause   ::= "catch" pattern? block
+catch_clause   ::= "catch" pattern? block            // struct 패턴도 됨: catch E { f, .. } { .. }
 finally_clause ::= "finally" block
 question_expr  ::= expr "?"
 ```
@@ -84,7 +84,7 @@ let port = (try? env::var("PORT")) ?? "8080";
 let cfg = try! load_builtin_config();      // 실패하면 프로그램 버그
 ```
 
-`try?` 와 `try!` 는 에러를 전파하지 않으므로, 둘러싼 함수가 `throws` 일 필요가 없습니다. 덮는 범위는 `try` 와 같습니다. `try?` 의 결과에 `??` 를 이어 쓰려면 위 예처럼 괄호로 범위를 닫습니다.
+`try?` / `try!` 의 `?` / `!` 는 `try` 바로 뒤에 붙어야 합니다. `try !x` 는 `try (!x)` 입니다. `try?` 와 `try!` 는 에러를 전파하지 않으므로, 둘러싼 함수가 `throws` 일 필요가 없습니다. 덮는 범위는 `try` 와 같습니다. `try?` 의 결과에 `??` 를 이어 쓰려면 위 예처럼 괄호로 범위를 닫습니다.
 
 ## 3.14.4. `catch`: 후위 처리 식
 

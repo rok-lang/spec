@@ -149,7 +149,7 @@ llvm.intr.expect / llvm.intr.assume
 | `gpu`      | GPU launch / kernel / shared memory (GPU lib) |
 | `async`    | async fork / await (전용 런타임 라이브러리)   |
 
-일반 rok 코드의 lowering 은 8.7.1 의 8 다이얼렉트만으로 충분하지만, 텐서 / 자동 미분 / SIMD / GPU 같은 가속 영역의 라이브러리는 위 다이얼렉트를 직접 호출하여 PyTorch / JAX / Mojo 와 같은 성능 표면을 구성합니다.
+일반 rok 코드의 lowering 은 8.7.1 의 일곱 다이얼렉트만으로 충분하지만, 텐서 / 자동 미분 / SIMD / GPU 같은 가속 영역의 라이브러리는 위 다이얼렉트를 직접 호출하여 PyTorch / JAX / Mojo 와 같은 성능 표면을 구성합니다.
 
 라이브러리 작성자가 다이얼렉트를 호출하는 메커니즘과 안전 책임은 [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md) 에서 정의합니다.
 

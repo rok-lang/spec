@@ -99,7 +99,7 @@ panic 과 fatal 에러는 프로세스를 곧바로 종료하므로 `drop` 을 �
 
 ## 3.17.7. 묶을 수 있는 타입
 
-`using` 의 우변 식의 타입은 [`Drop`](../../refs-standard-libraries/200-core/213-marker.md) 트레잇을 구현해야 합니다. 그렇지 않으면 컴파일 에러가 발생합니다.
+`using` 의 우변 식의 타입은 [`Drop`](../../refs-standard-libraries/200-core/213-marker.md) 을 구현하거나, `Drop` 을 가진 필드를 담아야 합니다 (drop glue, [stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop--using-해제-시-정리)). 둘 다 아니면 컴파일 에러입니다.
 
 ```rok
 using x = 42 { ... }   // ERROR: using 에는 Drop 구현 타입이 필요 — i32 는 Drop 을 구현하지 않음

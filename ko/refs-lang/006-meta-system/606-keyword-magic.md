@@ -50,7 +50,7 @@ with(m) { critical(); }
 fn ... { ... }
 ```
 
-[키워드](../001-lexical/105-keywords.md) 의 예약 키워드나, 고정 위치에서만 키워드인 이름 (`type`, `any`, `in`, `where`, `throws`, `rethrows`, `catch`, `finally`, `const`, `static`, `extern`, `mut`, `union`) 과 경로 루트 (`pkg`, `sub`, `sup`, `rok`) 는 등록할 수 없습니다. 등록 시점에 즉시 거부됩니다.
+[키워드](../001-lexical/105-keywords.md) 의 예약 키워드나, 고정 위치에서만 키워드인 이름 (`type`, `any`, `in`, `where`, `throws`, `rethrows`, `catch`, `finally`, `const`, `static`, `extern`, `mut`, `union`) 과 경로 루트 (`pkg`, `sup`, `rok`) 는 등록할 수 없습니다. 등록 시점에 즉시 거부됩니다.
 
 한 빌드 안에서 같은 키워드를 두 번 등록하면, 같은 패키지 안이든 서로 다른 라이브러리이든 에러입니다.
 

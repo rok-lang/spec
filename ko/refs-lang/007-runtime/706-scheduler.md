@@ -47,7 +47,7 @@ worker 의 local deque 가 비어 있다면 다음과 같은 순서로 진행됩
 
 ```
 1. global injector 에서 pull 시도.
-2. 다른 worker 의 local deque 의 top 에서 steal 시도 (random round-robin).
+2. 다른 worker 의 local deque 의 top 에서 steal 을 시도합니다. 대상은 worker 마다의 의사 난수 index 에서 시작해 round-robin 으로 돕니다.
 3. 모두 실패하면 — sleep / park (blocking sync).
 ```
 

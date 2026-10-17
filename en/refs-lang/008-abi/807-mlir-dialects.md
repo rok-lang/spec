@@ -1,0 +1,199 @@
+# 8.7. MLIR dialect usage
+
+Applies the standard MLIR dialects set out in the [compilation pipeline](../000-meta/002-pipeline.md) to the lowering specification of this [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) block. Ordinary code is lowered to seven core dialects; libraries in acceleration domains may use additional dialects such as `linalg` / `tensor` / `vector` / `gpu` / `affine` / `async` directly through [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md).
+
+## 8.7.1. Dialects used by ordinary code (recap)
+
+The table from the [compilation pipeline](../000-meta/002-pipeline.md), repeated:
+
+| Dialect    | Purpose                                  | Use in this block                                                       |
+|------------|------------------------------------------|-------------------------------------------------------------------------|
+| `func`     | Function definition / call               | Function lowering                                                       |
+| `arith`    | Integer / floating-point arithmetic / comparison | Operator lowering                                               |
+| `scf`      | Structured control flow (`if` / `for` / `while`) | `if` / loop lowering                                            |
+| `cf`       | Unstructured branches (switch, cond_br)  | `match` decision tree                                                   |
+| `index`    | Index type operations                    | Indexing lowering                                                       |
+| `math`     | Math functions                           | sqrt / sin / cos, etc.                                                  |
+| `llvm`     | Low-level ops (intrinsic, `struct`, `alloca`, load / store) | Stack slots, objects / arrays, [GC](../000-meta/007-glossary.md#gc-garbage-collector) |
+
+There is no custom rok dialect. The semantics of ordinary rok code are expressed with the seven standard dialects above; additional dialects used by acceleration libraries are covered in 8.7.5.
+
+## 8.7.2. Translation flow
+
+The full translation flow is:
+
+```
+rok source
+   ↓ (parse, name resolution, type check)
+rok-hir
+   ↓ (specialize / monomorphize, desugar)
+rok-mir
+   ↓ (lowering — 808 ~ 810 of this block)
+standard MLIR text  (7 dialects for ordinary code; libraries may add more)
+   ↓ (mlir-opt — standard passes)
+   ↓ (mlir-translate)
+LLVM IR
+   ↓ (clang / lld)
+native binary
+```
+
+This ABI block defines the lowering rules for the step from rok-mir to standard MLIR text.
+
+## 8.7.3. Core ops per dialect
+
+### `func`
+
+```
+func.func @name(%arg: i32) -> (i32) { ... }
+func.call @name(%arg) : (i32) -> (i32)
+func.return %val : i32
+```
+
+Standard ops for function definition, call and return.
+
+### `arith`
+
+```
+arith.addi %a, %b : i32
+arith.subi %a, %b : i32
+arith.muli %a, %b : i32
+arith.cmpi "eq", %a, %b : i32
+arith.addf %a, %b : f64
+arith.cmpf "olt", %a, %b : f64
+```
+
+Arithmetic and comparison operations from [operator dispatch](../003-expressions/301-operator-dispatch.md) are lowered to the `arith` dialect.
+
+User-defined trait implementations, however, are lowered as function calls after generic monomorphization.
+
+### `scf`
+
+```
+scf.if %cond -> (i32) {
+  scf.yield %a : i32
+} else {
+  scf.yield %b : i32
+}
+
+scf.while ... do { ... }
+scf.for %i = %lb to %ub step %step { ... }
+```
+
+Normal control flow of [`if` expressions](../003-expressions/310-if-expression.md) and [loops](../003-expressions/313-loop-expressions.md) is lowered to `scf`.
+
+### `cf`
+
+```
+cf.cond_br %cond, ^true_block(args), ^false_block(args)
+cf.switch %v : i32, [
+  default: ^default,
+  0: ^case0,
+  1: ^case1
+]
+```
+
+The decision tree of a complex [`match`](../003-expressions/312-match-expression.md) is lowered using cond_br and switch from the `cf` dialect.
+
+### `index`
+
+```
+%idx = index.constant 5
+%new_idx = index.add %idx, %step
+```
+
+Places that need the `index` type (bounds of `scf.for`, etc.) are lowered to the `index` dialect.
+
+### `math`
+
+```
+math.sqrt %x : f64
+math.sin %x : f64
+math.cos %x : f64
+```
+
+Standard library math functions are expressed with the `math` dialect where possible. Functions `math` does not support directly are handled as ordinary function calls.
+
+### `llvm`
+
+The LLVM dialect is a last resort, used only for semantics no other dialect can express.
+
+```
+llvm.alloca / llvm.load / llvm.store
+llvm.struct<(...)>
+llvm.intr.expect / llvm.intr.assume
+```
+
+Stack slots, object access and low-level intrinsics belong to the `llvm` dialect. Coroutines are compiler-built state machines and do not use `llvm.coro.*` ([7.8](../007-runtime/708-coroutine.md)). GC roots are handled with ordinary load / store on the shadow stack frame, without intrinsics ([8.9.12](809-lowering-control.md#8912-shadow-stack-frame)). Error propagation is expressed with return values and ordinary branches ([8.9.6](809-lowering-control.md#896-try--catch--finally-value-based-branching)), so it uses no special features of the `llvm` dialect.
+
+## 8.7.4. Dialect priority
+
+```
+where possible → arith / scf / cf / index / math / func
+when needed → llvm
+```
+
+When the same semantics can be expressed in several dialects, higher-level dialects such as `scf` and `arith` are preferred. `llvm` is used only when they cannot express it at all.
+
+Following this priority lets MLIR's standard passes optimize more effectively.
+
+## 8.7.5. Library / acceleration-domain dialects
+
+The following dialects are not used in lowering rok's *ordinary code*, but library authors can use them directly through [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md).
+
+| Dialect    | Domain                                        |
+|------------|-----------------------------------------------|
+| `affine`   | Loops amenable to affine analysis (numeric libraries) |
+| `linalg`   | element-wise / matmul / reduction (tensor lib) |
+| `tensor`   | shape / extract / insert / reshape (tensor lib) |
+| `vector`   | SIMD width / alignment / shuffle (SIMD lib)   |
+| `gpu`      | GPU launch / kernel / shared memory (GPU lib) |
+| `async`    | async fork / await (dedicated runtime library) |
+
+Lowering ordinary rok code needs only the seven dialects of 8.7.1, but libraries in acceleration domains such as tensors / automatic differentiation / SIMD / GPU call the dialects above directly to build a performance surface comparable to PyTorch / JAX / Mojo.
+
+The mechanism by which library authors call dialects, and their safety responsibilities, are defined in [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md).
+
+## 8.7.6. `extern` functions (runtime functions)
+
+The `rok_*` functions listed in [Extern "C" symbols](805-extern-symbols.md) are declared as external declarations of `func.func`.
+
+```
+func.func private @rok_gc_alloc_slow(i64, i64, i32) -> !llvm.ptr
+func.func private @rok_runtime_yield()
+```
+
+Calls use `func.call` or `llvm.call`.
+
+## 8.7.7. TLS access
+
+Access to the TLS slots from [Mutator TLS slots](803-tls-slots.md) uses thread_local globals of the `llvm` dialect.
+
+```
+llvm.mlir.global thread_local @rok_tls_yield_flag(0 : i8) : i8
+llvm.mlir.global thread_local @rok_tls_tlab_cursor(0 : i64) : i64
+...
+
+%flag_ptr = llvm.mlir.addressof @rok_tls_yield_flag
+%flag = llvm.load %flag_ptr : !llvm.ptr -> i8
+```
+
+The LLVM backend lowers this to target-specific TLS instructions automatically.
+
+## 8.7.8. Responsibility of each stage
+
+Responsibilities are divided as follows.
+
+```
+rokc:           rok-mir → standard MLIR text  (this block)
+mlir-opt:       standard MLIR → optimized MLIR  (external tool)
+mlir-translate: MLIR → LLVM IR  (external tool)
+clang/lld:      LLVM IR → native  (external tool)
+```
+
+`rokc` is responsible only up to generating standard MLIR text; all later stages belong to external tools. `rokc` invokes those commands, but the tools themselves are external.
+
+## 8.7.9. Verifying the translation
+
+End-to-end tests under `tests/integration/` verify by building and running user-written .rok files.
+
+This verification ensures that the lowering rules defined in this block are correct.

@@ -61,13 +61,13 @@ enum Status { ... }
 
 | 인자                        | 의미                                                                                                 |
 |-----------------------------|------------------------------------------------------------------------------------------------------|
-| `C`                         | C [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 호환 레이아웃                  |
-| `transparent`               | 단일 필드 newtype. 내부 타입과 완전히 같은 표현                                                      |
-| `packed`                    | 정렬을 무시하고 빽빽이 묶음 ([FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) 한정) |
+| `C`                         | C [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 레이아웃: 선언 순서, 자연 정렬. 기본 `struct` 레이아웃과 같음 |
+| `transparent`               | 크기가 0 이 아닌 필드 정확히 하나. 그 필드와 같은 표현이며 C ABI 를 그 필드로 건넘                  |
+| `packed`                    | 정렬을 무시하고 빽빽이 묶음 ([FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) 한정). GC 참조를 담을 수 없고 `align(N)` 과 함께 쓸 수 없음 |
 | `align(N)`                  | 최소 정렬을 N 바이트로 강제                                                                          |
-| `u8` ~ `u64` / `i8` ~ `i64` | `enum` 의 discriminant 타입 강제                                                                     |
+| `u8` ~ `u64` / `i8` ~ `i64` | `enum` 의 tag 타입. 32 비트가 아닌 폭은 필드 없는 enum 만; 데이터 enum 은 `i32` / `u32` |
 
-`#[repr]` 가 명시되지 않은 경우에는 [`struct`](../002-types/203-struct.md) / [`enum`](../002-types/204-enum.md) / [`union`](../002-types/205-union.md) 에 대해 컴파일러가 자유롭게 결정한 레이아웃이 적용됩니다.
+`#[repr]` 가 없으면 [`struct`](../002-types/203-struct.md) 는 선언 순서와 자연 정렬 (`repr(C)` 와 같음) 이고, [`enum`](../002-types/204-enum.md) 과 합 타입의 레이아웃은 컴파일러가 정합니다 ([2.7](../002-types/207-niche-optimization.md)).
 
 ## 6.2.3. `#[link(...)]` 외부 라이브러리 명시
 
@@ -194,6 +194,7 @@ fn strict_zone() { ... }
 | `none_comparison`        | `x is none` 대신 `x == none`                                       |
 | `bool_comparison`        | `bool` 을 `true` / `false` 와 비교                                 |
 | `self_assignment`        | `x = x;`                                                           |
+| `unclosed_resource`      | `using` 으로 해제하지 않은 `File` / `Dir` / `ReadDir` / `TcpStream` / `TcpListener` / `UdpSocket` / `Child` (warn) |
 | `while_true`             | `loop` 대신 `while true`                                           |
 | `deprecated`             | `#[deprecated]` 함수 사용                                          |
 | `redundant_cast`         | `x` 가 이미 `T` 인 `x as T`                                        |

@@ -125,4 +125,4 @@ intrinsic 은 컴파일러와 표준 라이브러리를 잇는 여러 매직 가
 | `#[infix(...)]`       | 토큰 ↔ 표준 라이브러리 트레잇 메서드                        | [refs-lang 6.7](../../refs-lang/006-meta-system/607-operator-magic.md) |
 | `#[literal(...)]`     | 리터럴 형태 ↔ 표준 라이브러리 핸들러                        | [refs-lang 6.5](../../refs-lang/006-meta-system/605-literal-magic.md)  |
 
-세 매직은 서로 직교합니다. `#[intrinsic]` 이 컴파일 백엔드와의 결합을 담당한다면, 나머지는 모두 언어 syntax 와의 결합을 다룹니다.
+네 매직은 서로 직교합니다. `#[intrinsic]` 이 컴파일 백엔드와의 결합을 담당한다면, 나머지는 모두 언어 syntax 와의 결합을 다룹니다.

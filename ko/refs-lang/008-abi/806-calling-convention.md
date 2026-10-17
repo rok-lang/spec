@@ -44,7 +44,8 @@ C 경계 (`extern "C"` 선언과 정의) 에서 집계를 값으로 넘길 때, 
 | Windows x64                               | 크기 1 / 2 / 4 / 8 바이트 집계는 `iN`. 그 밖은 인자는 참조 (호출자 사본의 포인터), 반환은 `sret` |
 | 그 밖의 타깃                              | C 경계를 넘는 집계 값 전달은 컴파일 에러                                                  |
 
-- `extern "C"` 의 좁은 정수 매개변수 (`i8` / `i16` / `u8` / `u16` / `bool` / `c_char`) 와 반환값에는 `signext` / `zeroext` 를 붙입니다.
+- 좁은 정수 매개변수와 반환값 (`i8` / `i16` / `u8` / `u16` / `bool` / `c_char`) 의 `signext` / `zeroext` 는 플랫폼 C ABI 를 따릅니다. x86_64 SysV 와 Apple arm64 는 `i8` / `i16` / `bool` 을 확장하고, Linux AAPCS64 는 확장하지 않으며, Windows x64 는 `bool` 만 확장합니다.
+- 모든 함수는 inline stack probe 를 가지므로, 큰 frame 도 guard page 를 건너뛰지 않고 건드립니다.
 - `extern "C" fn` **정의** 에도 같은 분류를 적용합니다. 정의는 C 가 부르는 C-ABI 진입점을 따로 가지며, rok 쪽 호출은 그대로 rok 규약을 씁니다.
 - System V i386 에서 `i64` / `u64` / `f64` 의 집계 안 정렬은 4 바이트입니다 (C 와 같음).
 - rok 함수끼리의 호출에는 이 분류를 적용하지 않습니다 (8.6.6). 분류는 C 와 맞물리는 자리에만 필요합니다.

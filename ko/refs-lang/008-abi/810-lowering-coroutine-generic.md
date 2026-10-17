@@ -218,7 +218,7 @@ fn add_all<T: Add<T, Output = T>>(items: List<T>) -> T {
 
 ## 8.10.11. 정리
 
-코루틴 lowering 은 LLVM intrinsic 에 위임되므로, 컴파일러는 intrinsic 만 emit 하면 됩니다. 제네릭 lowering 은 단형화를 통해 각 구체 타입마다 별개의 코드를 생성하며, vtable 은 사용하지 않습니다.
+코루틴은 컴파일러가 직접 상태 기계로 lower 하며 (8.10.1), `llvm.coro.*` 는 쓰지 않습니다. 제네릭 lowering 은 단형화를 통해 각 구체 타입마다 별개의 코드를 생성하며, vtable 은 사용하지 않습니다.
 
 이 두 메커니즘이 본 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 블록에서 가장 복잡한 lowering 에 해당하며, 나머지 부분인 [Lowering: 데이터 타입과 표현식](808-lowering-types.md) 이나 [Lowering: 제어 흐름과 GC 통합](809-lowering-control.md) 은 표준 다이얼렉트로의 직접 매핑에 가깝습니다.
 

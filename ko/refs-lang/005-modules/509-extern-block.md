@@ -237,7 +237,9 @@ extern "C" fn callback(arg: i32) -> i32 {
 #[export_name("on_event")]
 extern "C" fn on_event(code: i32) -> i32 { code }     // C 에서 on_event 로 보임
 extern "C" fn bad(s: str) { }                          // ERROR — str 은 쓸 수 없음
-``` 외부 함수 호출과 외부 노출, 이 두 메커니즘이 함께 FFI 의 양방향을 이룹니다.
+```
+
+외부 함수 호출과 외부 노출, 이 두 메커니즘이 함께 FFI 의 양방향을 이룹니다.
 
 ## 5.9.11. `extern fn` 의 호출 규칙
 

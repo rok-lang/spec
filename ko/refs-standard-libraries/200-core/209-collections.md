@@ -147,6 +147,11 @@ let total: i32 = ys.into_iter().sum();   //→ 60
 - 세 컬렉션 모두 원소가 그 트레잇을 구현하면 `Debug` 를 구현하며, 순회 순서대로 출력합니다.
 - 따라서 원소가 `Eq + Hash` 인 컬렉션은 `Set` 원소나 `Dict` 키가 될 수 있습니다 (`Set<List<i32>>`).
 
+### 용량과 제거 — 공통 규칙
+
+- `reserve`, `with_capacity`, `repeat`, 확장에서 크기가 overflow 하면 최적화 수준과 무관하게 "capacity overflow" 로 panic 합니다.
+- 원소를 빼면 (`pop`, `remove`, `clear` 등) 참조도 놓습니다. GC 는 그 컬렉션을 통해 더 이상 그 원소를 보지 않습니다.
+
 ## 2.9.3. `Dict<K, V>` — hash map
 
 ```rok
@@ -539,15 +544,17 @@ struct GcBuf<T> { /* 컴파일러가 아는 표현 */ }
 
 impl<T> GcBuf<T> {
     #[intrinsic("rok.buf_new")]
-    fn new(len: usize) -> GcBuf<T>;           // 모든 word 를 0 (null) 으로
+    unsafe fn new(len: usize) -> GcBuf<T>;           // 모든 word 를 0 (null) 으로
     #[intrinsic("rok.buf_get")]
-    fn get(self, i: usize) -> T;               // 범위 밖이면 panic
+    unsafe fn get(self, i: usize) -> T;        // 범위 밖이면 panic
     #[intrinsic("rok.buf_set")]
-    fn set(self, i: usize, v: T);              // write barrier 포함
+    unsafe fn set(self, i: usize, v: T);       // write barrier 포함
 }
 ```
 
 한 원소는 한 word 를 차지합니다. 일반 사용자 코드는 `List<T>` 를 쓰며, `GcBuf<T>` 는 컬렉션 구현을 위한 것입니다.
+
+`GcBuf<T>` 와 그 primitive (`buf_new` / `buf_get` / `buf_set`, `new` / `get` / `set`, `GcBuf` 인덱싱) 는 `unsafe` 입니다. 컬렉션이 지키는 원소 타입과 초기화 검사를 건너뛰기 때문입니다.
 
 ```rok
 fn buf_same<T>(a: GcBuf<T>, b: GcBuf<T>) -> bool;   // 같은 buffer 인가 (내용이 아니라 정체). 아무것도 고정하지 않음

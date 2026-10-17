@@ -129,24 +129,22 @@ loop:
 
 긴 인라인이 일어나는 경우 (대량 인라인) 에는 LLVM 의 pass 가 추가 poll 을 자동으로 추가합니다 (구현 결정 사항입니다).
 
-## 8.4.10. blocking syscall 의 자동 `yield`
+## 8.4.10. native 호출
 
-mutator 가 blocking syscall (read, accept 등) 을 호출하면 그 thread 가 멈춰 GC 와 협력하지 못합니다.
+C 나 blocking 런타임 호출 안의 스레드는 safepoint 에 닿을 수 없으므로 `PARKED` 로 셉니다. GC 는 이를 이미 협력 중인 것으로 봅니다.
 
-이를 해결하기 위해, blocking syscall 진입 직전에 자동으로 `mutator_state` 를 `PARKED` 로 set 합니다. GC 는 PARKED 상태인 mutator 를 이미 협력 중인 것으로 처리합니다.
+- 컴파일러는 모든 `extern "C"` 호출을 감쌉니다. 호출 동안 `PARKED`, 뒤에 `RUNNING`, 그다음 yield flag 를 봅니다. 호출자의 인자 루트는 그 shadow-stack frame 에 남습니다. fast path 는 inline 이고, `rok_enter_native` / `rok_leave_native` 가 slow path 입니다 ([8.5.2](805-extern-symbols.md#852-runtime-영역)).
+- 모든 `extern "C" fn` 정의는 `rok_native_reenter` 로 시작해 `rok_native_resume` 로 끝나며, C callback 이 mutator 로 돕니다.
+- 런타임은 자기의 blocking 호출 (I/O 대기, `rok_sync_wait`, join, sleep) 을 같은 방식으로 감쌉니다.
 
 ```
-syscall_blocking:
-    mutator_state = PARKED
-    actual_syscall()
-    mutator_state = RUNNING
-
-    // 만약 GC 가 STW 였다면 — yield 처리
+call_extern_c:
+    mutator_state = PARKED      // seq_cst
+    c_function()
+    mutator_state = RUNNING     // seq_cst
     if yield_flag:
-        rok_runtime_yield()
+        rok_leave_native()      // 진행 중인 수집을 기다림
 ```
-
-이 메커니즘은 스케줄러가 emit 하고 처리하며, 본 ABI 에서는 PARKED 상태의 의미만 정의합니다.
 
 ## 8.4.11. 사용자 코드의 직접 호출
 
