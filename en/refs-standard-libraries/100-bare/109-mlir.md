@@ -33,7 +33,7 @@ Calls are allowed only inside an `unsafe` block. The first generic argument is t
 
 - `R` is a rok type. `_` means the expected type; `()` means no result.
 - The remaining arguments are operands. Attributes are given as `attributes = { "k": __mlir_attr::<"text"> }`.
-- The compiler emits the op in MLIR generic form (`"dialect.op"(%a, %b) {k = text} : (..) -> R`). The op name, operands and attributes are verified by the MLIR embedded in `rokc` ([0.2.4](../../refs-lang/000-meta/002-pipeline.md#024-backends)). A function using `__mlir_op` is compiled by the MLIR → LLVM backend at every optimization level ([refs-lang 9.2.10](../../refs-lang/009-tools/902-aot-pipeline.md#9210-backend-selection)).
+- The compiler emits the op in MLIR generic form (`"dialect.op"(%a, %b) {k = text} : (..) -> R`). The op name, operands and attributes are verified by the MLIR embedded in `rokc` ([0.2.4](../../refs-lang/000-meta/002-pipeline.md#024-backends)). A module using `__mlir_op` is compiled by the MLIR → LLVM backend at every optimization level ([refs-lang 9.2.10](../../refs-lang/009-tools/902-aot-pipeline.md#9210-backend-selection)).
 
 ### Attributes (`attributes`)
 

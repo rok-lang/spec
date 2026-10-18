@@ -4,7 +4,7 @@ This document defines the register and stack conventions used for function calls
 
 ## 8.6.1. Default: platform C ABI
 
-Every function declared as an [Extern "C" symbol](805-extern-symbols.md), and every ordinary rok function, uses the platform's C ABI as its calling convention by default.
+Every function declared as an [Extern "C" symbol](805-extern-symbols.md) uses the platform's C ABI. Calls between rok functions use the same registers, but pass aggregates differently (8.6.6).
 
 | Platform                 | ABI                |
 |--------------------------|--------------------|
@@ -84,14 +84,26 @@ This scheme was chosen for the following reasons.
 - It does not conflict with the [shadow stack](../000-meta/007-glossary.md#shadow-stack). Errors also leave frames through the ordinary return path, so each frame pops its shadow stack normally.
 - The cost on the no-error path is a single branch after return; entering `try` or `catch` costs nothing.
 
-## 8.6.6. rok variations of the calling convention: none
+## 8.6.6. rok-to-rok calling convention
 
-rok itself follows the C ABI as is, with no variations.
+Calls between rok functions pass scalars in the registers of 8.6.2. Aggregates (structs, tuples, arrays, `str`) are passed and returned as first-class aggregates, lowered the way LLVM's SelectionDAG lowers them on the target. Both backends produce exactly this lowering, so code from either calls the other. It differs from the C ABI classification of 8.6.3.
 
-This decision has the following benefits.
+**Arguments**
 
-- [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) calls are free: user functions and FFI functions share the same ABI, so there is no wrapper cost.
-- Debuggers and tools work well: an ordinary C debugger can inspect the stack of rok functions directly.
+- An aggregate is split into its scalar leaves, each taking the next register of its class; when registers run out, the remaining leaves go on the stack. A `str` may therefore be split between the last argument register and the stack.
+- AArch64: an array of `i64` / `ptr` / `f32` / `f64` takes consecutive registers of its class. If it does not fit in the remaining registers, it goes on the stack whole and the rest of that register class is marked used. Arrays of `i8` / `i16` / `i32` are split like structs.
+- Stack slots: on Apple targets, top-level scalar arguments take their natural size and alignment, and `i1` / `i8` / `i16` leaves of an aggregate take 4-byte slots. On other targets every stack slot is 8 bytes.
+
+**Results**
+
+- AArch64: up to 8 integer (`x0`–`x7`) and 8 floating-point (`v0`–`v7`) registers. A larger result is returned through an sret pointer passed in `x8` (not returned).
+- x86-64: up to three integer registers (`rax`, `rdx`, `rcx`); floating-point results use `xmm0` / `xmm1`, then x87 `st0` / `st1`. A result needing a 4th integer or 5th floating-point register is returned through an sret pointer passed in `rdi` and returned in `rax`.
+
+**Narrow integers**
+
+A callee must not rely on the upper bits of narrow integer or `bool` arguments and results; a caller may extend them. The native backend masks an incoming `bool` to bit 0 and re-extends narrow values.
+
+Calls to `extern "C"` and `extern "rok"` runtime functions use the C ABI rules of 8.6.1–8.6.5.
 
 ## 8.6.7. Tail calls
 

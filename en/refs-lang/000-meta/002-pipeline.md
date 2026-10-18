@@ -22,7 +22,7 @@ The overall flow is as follows.
    LLVM IR → native object → lld
 ```
 
-At `-O0` and in the REPL, rok-mir goes straight to machine code through rok's native backend (0.2.4).
+At `-O0` (builds and REPL), rok-mir goes straight to machine code through rok's native backend (0.2.4).
 
 > rok-hir is the high-level IR; it precedes type inference and preserves the structure of user code as is. rok-mir is the mid-level IR, in which monomorphization and operator desugaring are complete and all types are fixed.
 > standard MLIR means the upstream MLIR dialects. Finally, LLVM IR and native code are produced.
@@ -57,7 +57,7 @@ In exchange, the responsibility for lowering rok's high-level semantics to the s
 
 | Backend           | Used for                     | Path                                         |
 |-------------------|------------------------------|----------------------------------------------|
-| native            | `-O0` builds, REPL / Jupyter | rok-mir → machine code                       |
+| native            | `-O0` builds and REPL cells  | rok-mir → machine code                       |
 | MLIR → LLVM       | `-O1` and above              | rok-mir → MLIR → LLVM IR → optimized object  |
 
-LLVM, MLIR and lld are part of `rokc`; no external LLVM tools are run and users do not install LLVM. Targets on macOS need the Xcode Command Line Tools for the SDK. Cross-compilation is built in: `--target <triple>` works from any host, and the toolchain ships libc headers and stubs for the supported targets ([0.6](006-platform-targets.md)). `--emit=mlir` / `--emit=llvmir` dump the intermediate forms ([9.9.1](../009-tools/909-debug-tools.md#991-intermediate-output---emit)).
+LLVM, MLIR and lld are part of `rokc`; no external LLVM tools are run and users do not install LLVM. Targets on macOS need the Xcode Command Line Tools for the SDK. Cross-compilation is built in: `--target <triple>` works from any host, and linking needs only the target's platform files: the macOS SDK, or a Linux sysroot with the libc crt files and GCC runtime ([9.2.14](../009-tools/902-aot-pipeline.md#9214-linking-for-executables), [0.6](006-platform-targets.md)). `--emit=mlir` / `--emit=llvmir` dump the intermediate forms ([9.9.1](../009-tools/909-debug-tools.md#991-intermediate-output---emit)).

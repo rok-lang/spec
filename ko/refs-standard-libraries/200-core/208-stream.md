@@ -52,6 +52,13 @@ trait IntoStream {
 
     fn into_stream(self) -> IntoStream;
 }
+
+// 모든 stream 은 자기 자신의 IntoStream (IntoIterator 처럼, 2.7)
+impl<S: Stream> IntoStream for S {
+    type Item = S::Item;
+    type IntoStream = S;
+    fn into_stream(self) -> S { self }
+}
 ```
 
 `for await` 의 시작 자리에서는 `IntoStream::into_stream` 을 호출한 뒤 `Stream::poll_next` 를 반복합니다. 구체적인 변환 형태는 다음과 같습니다.

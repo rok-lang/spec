@@ -85,9 +85,17 @@ enum Status {
 }
 ```
 
-The assigned value must be a `const` integer expression.
+The assigned value must be a `const` integer expression. Two variants may not have the same value, and every value must fit the tag type ([6.2.2](../006-meta-system/602-built-in-attributes.md#622-repr-explicit-memory-representation)).
 
 This form is used for C [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) compatibility, mapping external protocols, bit flags, and so on. A value variant cannot be mixed with other variant kinds: if any variant is a value variant, the whole `enum` must consist only of value variants.
+
+### Casting to an integer
+
+An `enum` without payloads (only unit variants, or only value variants) casts to an integer with `as`. The result is the variant's value, or for unit variants its tag (declaration index from 0).
+
+```rok
+let code = Status::NotFound as i32;   // 404
+```
 
 ## 2.4.3. Mixing variant kinds
 

@@ -26,6 +26,7 @@ struct JoinHandle<T> { /* join 결과 T */ }
 struct ThreadId { /* opaque */ }
 
 struct JoinError { code: i32; }          // OS 수준 join 실패만 (errno)
+// Display, Debug, Error 를 구현
 
 fn spawn<T: Send>(f: fn() -> T + Send) -> JoinHandle<T>;
 

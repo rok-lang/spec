@@ -141,7 +141,7 @@ The compiler may encounter an attribute it does not recognize:
 fn f() { ... }
 ```
 
-The compiler then looks for a meta block definition. If none is found, it is a compile error (or a warning; the exact policy is up to the compiler implementation). This policy prevents typos from being silently ignored.
+An attribute that is neither built in nor defined or tested by any meta block (including `@field.has_attr(x)`) is a compile error, so typos are never silently ignored. Built-in attributes are checked for placement and argument shape.
 
 ## 6.1.7. Attributes and hygiene
 

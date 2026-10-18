@@ -135,22 +135,22 @@ MIR is an IR one level lower than HIR. In this step operator desugaring is compl
 
 ## 9.2.10. Backend selection
 
-The optimization level selects the code generator ([0.2.4](../000-meta/002-pipeline.md#024-backends)).
+The optimization level selects the code generator by default ([0.2.4](../000-meta/002-pipeline.md#024-backends)); `-C backend=native|llvm` or `ROK_BACKEND` overrides it.
 
 | Level                    | Backend      |
 |--------------------------|--------------|
 | `-O0`                    | native       |
 | `-O1` `-O2` `-O3` `-Os`  | MLIR → LLVM  |
 
-A function that uses [`__mlir_op` / `__mlir_type`](../../refs-standard-libraries/100-bare/109-mlir.md) is compiled by the MLIR → LLVM backend at every level, in the REPL too (9.6.1). Both backends follow the runtime ABI of [8](../008-abi/README.md), so objects from either link together, including prebuilt dependencies built at another level.
+The native backend supports {aarch64, x86_64} × {macOS, Linux}. Other targets, modules that use [`__mlir_op` / `__mlir_type`](../../refs-standard-libraries/100-bare/109-mlir.md), and builds with MLIR plugins use the MLIR → LLVM backend at every level. The REPL follows the same selection (9.6.1). Both backends follow the runtime ABI of [8](../008-abi/README.md), so objects from either link together, including prebuilt dependencies built at another level.
 
 ## 9.2.11. Native backend
 
-The native backend generates machine code and the object file (Mach-O, ELF, COFF, wasm) straight from rok-mir, with no intermediate IR. It aims at compile speed: debug builds and REPL cells need no LLVM. With `-g` it emits DWARF line and frame information.
+The native backend generates machine code and the object file (Mach-O, ELF) straight from rok-mir, with no intermediate IR, for aarch64 and x86_64 on macOS and Linux. It aims at compile speed: debug builds and REPL cells need no LLVM. With `-g` it emits DWARF line and frame information.
 
 ## 9.2.12. MLIR → LLVM backend
 
-rok-mir is lowered to standard MLIR ([8.7](../008-abi/807-mlir-dialects.md)), converted to the LLVM dialect, translated to LLVM IR, optimized by LLVM at the requested level, and emitted as an object for the target triple. All of this runs in-process; the intermediate forms are written only for `--emit` ([9.9.1](909-debug-tools.md#991-intermediate-output---emit)).
+rok-mir is lowered to standard MLIR ([8.7](../008-abi/807-mlir-dialects.md)). `rokc` parses that MLIR in process, runs the MLIR pass pipeline down to the LLVM dialect, translates it to LLVM IR, optimizes it at the requested level and generates the object for the target triple. A module whose IR exceeds 1 MiB is split into parts that are code-generated in parallel. All of this runs in-process with no external tools; the intermediate forms are written only for `--emit` ([9.9.1](909-debug-tools.md#991-intermediate-output---emit)).
 
 ```
 target/debug/build/foo.o
@@ -158,7 +158,7 @@ target/debug/build/foo.o
 
 ## 9.2.13. Archives
 
-A library package puts its objects into a standard `ar` archive and writes the interface file `foo.rhir` ([RHIR format](904-rhir-bytecode.md)) next to it.
+A library package puts its objects into a standard `ar` archive, written by `rokc` itself, and writes the interface file `foo.rhir` ([RHIR format](904-rhir-bytecode.md)) next to it.
 
 ```
 target/debug/libfoo.a
@@ -173,7 +173,7 @@ An executable is linked by the embedded lld:
 foo.o + <deps>/lib*.a + <sysroot>/lib/librokr.a + target libc  →  target/debug/foo
 ```
 
-The target libc comes from the toolchain's per-target headers and stubs; on Apple targets it is the SDK of the Xcode Command Line Tools. If `ROK_CC` is set, that C compiler driver performs the final link instead (`$ROK_CC <objects> <archives> -o <out>`); this is an optional override. Executables are dead-stripped: unreferenced functions and data are removed. With `-g` on Apple targets, the embedded `dsymutil` (LLVM's, linked into `rokc`) writes a `.dSYM` bundle next to the executable.
+A Mach-O executable links against the macOS SDK (Xcode Command Line Tools). An ELF executable links against the target's libc crt files and GCC runtime from the sysroot (`ROK_SYSROOT`; the host root by default). If `ROK_CC` is set, that C compiler driver performs the final link instead (`$ROK_CC <objects> <archives> -o <out>`); this is an optional override. Executables are dead-stripped: unreferenced functions and data are removed. With `-g` on Apple targets, the embedded `dsymutil` (LLVM's, linked into `rokc`) writes a `.dSYM` bundle next to the executable.
 
 ## 9.2.15. Output
 
@@ -222,7 +222,9 @@ A native build without `--cfg`, `--target` or MLIR plugins links the prebuilt st
 
 ## 9.2.17. Separation of compiler and runtime
 
-This pipeline keeps the zero-code-dependency principle: `rokc` does not reference the runtime (`librokr.a`) at build time.
+`rokc` uses zero third-party crates, plus one pinned, statically linked LLVM (22.1.8).
+
+The pipeline keeps the compiler and runtime apart: `rokc` does not reference the runtime (`librokr.a`) at build time.
 
 Instead it only emits calls to `extern "C"` symbols ([Extern "C" symbols](../008-abi/805-extern-symbols.md)), and at link time the user build links `librokr.a` alongside.
 
@@ -230,9 +232,13 @@ This separation lets `rokc` and `librokr.a` evolve under independent SemVer.
 
 ## 9.2.18. Embedded toolchain
 
-`rokc` is self-contained: LLVM, MLIR and lld are linked into it, at one pinned LLVM version. It runs no external compiler, assembler or linker, and the toolchain does not depend on an LLVM installation. Apple targets need the Xcode Command Line Tools for the SDK. The only external tool is the optional link override `ROK_CC` (9.2.14).
+`rokc` is self-contained: LLVM 22.1.8 with MLIR and lld is built into it, not looked up on `PATH`. It runs no external compiler, assembler or linker.
 
-An executable whose IR exceeds 1 MiB is split into parts that are compiled in parallel.
+| Needed from the system | Target                                   |
+|------------------------|------------------------------------------|
+| macOS SDK (Xcode Command Line Tools) | Apple targets              |
+| libc development files and GCC runtime (crt objects, `libgcc`) | Linux targets |
+| `ROK_CC` (optional)    | Overrides the final link (9.2.14)        |
 
 ## 9.2.19. Installation layout
 

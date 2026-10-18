@@ -4,7 +4,7 @@
 
 ## 9.6.1. 구조: rokc 와 JIT host
 
-세션은 런타임을 담고 세션 동안 사는 별도의 **host 프로세스** 에서 실행됩니다.
+세션은 런타임을 담고 세션 동안 사는 별도의 **host 프로세스** 에서 실행됩니다. host 는 `rokc` 와 함께 미리 빌드되어 내장 lld 로 링크되며, libLLVM 이나 ORC 없이 셀 object 를 직접 로드합니다.
 
 ```
 rokc (front end)                         JIT host (세션 동안 하나)
@@ -14,13 +14,13 @@ rokc (front end)                         JIT host (세션 동안 하나)
                                              → 셀 진입 함수를 한 번 실행
 ```
 
-- `rokc` 는 각 셀을 `-O0` 빌드와 같은 native backend ([9.2.11](902-aot-pipeline.md#9211-native-backend)) 로 컴파일합니다. `__mlir_op` / `__mlir_type` 을 쓰는 함수는 내장 MLIR → LLVM 파이프라인으로 object 를 만들어 같은 실행 가능 메모리에 로드합니다 (9.2.10).
+- 셀은 [9.2.10](902-aot-pipeline.md#9210-backend-선택) 의 backend 선택을 따릅니다. `-O0` 에서 셀은 host 가 매핑하고 링크하는 native object ([9.2.11](902-aot-pipeline.md#9211-native-backend)) 이며 LLVM 을 쓰지 않습니다. `-O0` 보다 높거나 native backend 가 맡지 않는 코드 (`__mlir_op`, 그 밖의 대상) 는 내장 MLIR → LLVM 파이프라인으로 object 를 만들어 같은 실행 가능 메모리에 로드합니다.
 - host 는 코드를 실행 가능 메모리에 놓고, relocation 을 런타임, libc, 앞 셀에 대해 해소한 뒤 셀의 진입 함수를 한 번 실행합니다.
 - host 는 런타임 (`librokr.a`) 의 모든 심볼을 export 하며, 셀 코드는 런타임과 libc 심볼을 host 프로세스에서 찾습니다.
 
 ## 9.6.2. 코드 로드
 
-셀 코드는 object 파일처럼 relocation 을 가진 위치 독립 기계어입니다. host 는 세션에 하나의 심볼 테이블을 두며, 셀의 정의는 셀을 로드한 뒤 여기에 더해집니다. 해소할 수 없는 심볼은 그 이름을 밝히는 에러로 셀을 실패시킵니다 ([9.7](907-jit-cells.md)).
+셀은 object 파일입니다: `-O0` 에서는 native, 그보다 높으면 LLVM 이 컴파일한 것. 그 코드는 relocation 을 가진 위치 독립 코드입니다. host 는 세션에 하나의 심볼 테이블을 두며, 셀의 정의는 셀을 로드한 뒤 여기에 더해집니다. 해소할 수 없는 심볼은 그 이름을 밝히는 에러로 셀을 실패시킵니다 ([9.7](907-jit-cells.md)).
 
 ## 9.6.3. 심볼과 재정의
 

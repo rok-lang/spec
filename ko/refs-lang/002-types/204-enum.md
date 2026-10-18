@@ -85,9 +85,17 @@ enum Status {
 }
 ```
 
-이때 부여하는 값은 `const` 정수 표현식이어야 합니다.
+이때 부여하는 값은 `const` 정수 표현식이어야 합니다. 두 변형이 같은 값을 가질 수 없으며, 모든 값은 tag 타입에 들어가야 합니다 ([6.2.2](../006-meta-system/602-built-in-attributes.md#622-repr-메모리-표현-명시)).
 
 이 형태는 C [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 호환이나 외부 프로토콜 매핑, 비트 플래그 등에 사용합니다. 다만 value variant 는 다른 변형 종류와 섞을 수 없습니다. value 변형이 하나라도 있으면 `enum` 전체가 value 변형으로만 구성되어야 합니다.
+
+### 정수로의 cast
+
+payload 가 없는 `enum` (unit 변형만, 또는 value 변형만) 은 `as` 로 정수로 cast 할 수 있습니다. 결과는 그 변형의 값이며, unit 변형이면 tag (0 부터의 선언 순번) 입니다.
+
+```rok
+let code = Status::NotFound as i32;   // 404
+```
 
 ## 2.4.3. 변형 종류 혼합
 

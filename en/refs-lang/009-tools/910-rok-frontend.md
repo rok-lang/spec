@@ -13,8 +13,8 @@ A package without dependencies builds by file conventions alone, without a manif
 | `search`, `publish`, `yank`                                       | Stones (9.10.4a)                        |
 | `env`                                                             | Environments (9.10.5)                   |
 | `toolchain`                                                       | Toolchain (9.10.6)                      |
-| `build`, `check`, `run` (and `run -i`), `test`, `bench`, `emit`   | Delegated to `rokc` with dependencies attached |
-| `doc`, `lint`, `repl`, `lsp`                                      | Delegated to `rokc` with dependencies attached |
+| `build`, `check`, `run`, `test`, `bench`, `emit`                  | Delegated to `rokc` with dependencies attached |
+| `doc`, `lint`, `repl [path]`, `lsp`                               | Delegated to `rokc` with dependencies attached |
 | `fmt`, `clean`, `demangle`                                        | Delegated to `rokc` without dependencies |
 | `jupyter`                                                         | Running the kernel (`--connection-file`) is delegated; `jupyter install [--env <name>]` installs the kernelspec ([9.8.3](908-jupyter-integration.md#983-kernelspec-installation)) |
 | `version`, `help`                                                 |                                         |
@@ -25,6 +25,8 @@ A delegated subcommand runs the `rokc` subcommand of the same name. `rok` consum
 - `--extern name=<source directory>` for each dependency package. They are prepared according to `rok.lock`, with dependencies before their dependents (the order `rok deps` prints). Prebuilding is done by `rokc` ([9.2.3](902-aot-pipeline.md#prebuilt-dependency-packages)).
 - The manifest's `lints` as `-A` / `-W` / `-D` (before the arguments).
 - Outside a package (environments, scripts), `--target-dir` set to the `target/` of that environment or script.
+
+`rok repl <path>` resolves dependencies and lints from the project of that path, as `run` does, and passes the manifest name (`--name`).
 
 Options, output and exit codes follow those of `rokc` ([9.1](901-rokc-cli.md)). `rokls` is a standalone executable equivalent to `rok lsp`.
 

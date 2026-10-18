@@ -22,7 +22,7 @@ rok 컴파일러를 본 사양에서는 `rokc` 라고 부릅니다. `rokc` 는 L
    LLVM IR → native object → lld
 ```
 
-`-O0` 과 REPL 에서는 rok-mir 가 rok 의 native backend 를 거쳐 곧바로 기계어가 됩니다 (0.2.4).
+`-O0` (빌드와 REPL) 에서는 rok-mir 가 rok 의 native backend 를 거쳐 곧바로 기계어가 됩니다 (0.2.4).
 
 > rok-hir 는 고수준 IR 이며, 타입 추론 이전 단계로서 사용자 코드 구조를 그대로 유지합니다. rok-mir 는 중간 IR 로서, 단형화와 연산자 desugar 가 완료되고 모든 타입이 확정된 형태입니다.
 > standard MLIR 은 upstream MLIR 다이얼렉트를 뜻합니다. 마지막으로 LLVM IR 과 네이티브 코드가 산출됩니다.
@@ -57,7 +57,7 @@ rok 전용 MLIR 다이얼렉트는 별도로 정의하지 않습니다. 사용�
 
 | Backend           | 쓰이는 곳                    | 경로                                         |
 |-------------------|------------------------------|----------------------------------------------|
-| native            | `-O0` 빌드, REPL / Jupyter   | rok-mir → 기계어                             |
+| native            | `-O0` 빌드와 REPL 셀         | rok-mir → 기계어                             |
 | MLIR → LLVM       | `-O1` 이상                   | rok-mir → MLIR → LLVM IR → 최적화된 object   |
 
-LLVM, MLIR, lld 는 `rokc` 의 일부입니다. 외부 LLVM 도구를 실행하지 않으며 사용자는 LLVM 을 설치하지 않습니다. macOS 대상은 SDK 를 위해 Xcode Command Line Tools 가 필요합니다. 크로스 컴파일은 내장되어 있습니다: `--target <triple>` 은 어느 host 에서나 동작하고, toolchain 은 지원 대상의 libc 헤더와 stub 을 함께 제공합니다 ([0.6](006-platform-targets.md)). `--emit=mlir` / `--emit=llvmir` 는 중간 형태를 내보냅니다 ([9.9.1](../009-tools/909-debug-tools.md#991-중간-산출물-출력---emit)).
+LLVM, MLIR, lld 는 `rokc` 의 일부입니다. 외부 LLVM 도구를 실행하지 않으며 사용자는 LLVM 을 설치하지 않습니다. macOS 대상은 SDK 를 위해 Xcode Command Line Tools 가 필요합니다. 크로스 컴파일은 내장되어 있습니다: `--target <triple>` 은 어느 host 에서나 동작하고, 링크에는 대상 플랫폼 파일만 필요합니다: macOS SDK, 또는 libc crt 파일과 GCC 런타임이 있는 Linux sysroot ([9.2.14](../009-tools/902-aot-pipeline.md#9214-링킹-실행-파일의-경우), [0.6](006-platform-targets.md)). `--emit=mlir` / `--emit=llvmir` 는 중간 형태를 내보냅니다 ([9.9.1](../009-tools/909-debug-tools.md#991-중간-산출물-출력---emit)).

@@ -68,6 +68,7 @@ impl<T> IntoIterator for Receiver<T> {   // for x in rx — ends when every send
 
 enum SendError<T> { Closed(T) }
 enum TrySendError<T> { Full(T), Closed(T) }
+// both implement Display, Debug and Error (the message names the case, not the value)
 ```
 
 If `T: Send`, then `Sender<T>` and `Receiver<T>` are also `Send` and can be moved to other tasks or threads ([2.13.9](213-marker.md#2139-send--sync--thread-boundary-markers)).

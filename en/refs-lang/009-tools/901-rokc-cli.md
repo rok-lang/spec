@@ -78,9 +78,10 @@ Options:
 - `-o` / `--out=<path>` selects the output location.
 - `--cfg <flag>` / `--cfg <key>=<value>` sets a cfg flag for [conditional compilation](../006-meta-system/603-cfg.md). May be repeated.
 - `--emit=<kind>[,<kind>..]` writes intermediate output (`ast`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expanded`) to `target/<profile>/build/<name>.<ext>` ([9.9.1](909-debug-tools.md#991-intermediate-output---emit)). Several kinds may be given at once separated by commas; in that case `-o` cannot be used. With `--emit`, no executable or archive is produced.
-- `--load-mlir-plugin <path|name>` loads an MLIR dialect plugin, `--load-mlir-pass-plugin <path|name>` loads a pass plugin, and `--mlir-pass <pass>` runs that pass before conversion to the LLVM dialect ([rok::bare::mlir::plugin](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-loading)). All may be repeated, and `rok` passes them through unchanged.
+- `--load-mlir-plugin <path|name>` loads an MLIR dialect plugin, `--load-mlir-pass-plugin <path|name>` loads a pass plugin (both into `rokc`'s MLIR; built against the same pinned LLVM), and `--mlir-pass <pass>` runs that pass before conversion to the LLVM dialect ([rok::bare::mlir::plugin](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-loading)). All may be repeated, and `rok` passes them through unchanged.
 - `-g` / `--debug` emits DWARF debug information ([9.9](909-debug-tools.md#dwarf-debug-information)).
 - `-C overflow-checks[=yes|no]` turns overflow checks (panic) for fixed-width integer arithmetic on or off. The default is on only at `-O0`. An omitted value means `yes`. Operations on constant operands that cannot overflow skip the check.
+- `-C backend=native|llvm` overrides the backend the optimization level selects ([9.2.10](902-aot-pipeline.md#9210-backend-selection)).
 
 If nothing has changed since the previous build, `rokc build` / `rokc run` print `Fresh` and skip the build ([9.2.16](902-aot-pipeline.md#9216-incremental-build)).
 
@@ -98,7 +99,6 @@ Equivalent to `rokc build --emit=..`. If `--emit` is omitted, it is `mlir`.
 
 ```
 rokc run [path] [-- args...]
-rokc run -i [path]
 ```
 
 It builds an executable package and runs it at once; arguments after `--` are passed to the executable unchanged. Options are the same as `rokc build`. A library package has nothing to run, so it is an error.
@@ -110,8 +110,6 @@ rokc run hello.rok -- arg1 arg2
 ```
 
 The exit code of `rokc run` is the exit code of the program. If the program terminates by signal `n`, it is `128 + n`.
-
-`-i` / `--interactive` loads the program into a REPL session and continues interactively, like `python -i` ([9.7.10](907-jit-cells.md#9710-loading-a-program-run--i)). It takes no `-- args` and exits with `0` when the session ends.
 
 ### `rokc test`: tests
 
@@ -179,7 +177,7 @@ bench fib_20 ... bench:       41,503 ns/iter (+/- 312)
 `rokc repl` launches an interactive shell in the terminal.
 
 ```
-rokc repl [--package <path>]
+rokc repl [path]
 ```
 
 This mode runs as a terminal interactive shell. Cell semantics follow the rules of [9.7.0](907-jit-cells.md#970-rules-of-the-cell-session): each cell runs exactly once, top-level `let` bindings and items carry over to later cells, and a failed cell leaves no trace in the bindings. An expression cell prints `type: value`.
@@ -187,7 +185,8 @@ This mode runs as a terminal interactive shell. Cell semantics follow the rules 
 - The default mode compiles each cell with the native backend and hands the code to a JIT host process that lives for the session; the host loads it and runs it once ([9.6](906-jit-engine.md)). Bindings, `static` state and `any` values carry over between cells. A binding whose type cannot be named at top level (closures, private types, etc.) is rejected when created.
 - Diagnostics and panic locations name `<repl>:line:col` over the cell's own text.
 - Input has line editing and history; the history persists in `$ROK_HOME/repl_history`.
-- `--package <path>` attaches a library package via `--extern` and inserts `use <name>::*;` before the first cell. It is inserted again after `:reset`. A `main.rok` package (executable package) is rejected.
+- Without a path the session starts empty. A program path (a lone `.rok` file or a package with `main.rok`) is loaded and run, top-level statements as cells and `fn main` as the entry, and the session continues ([9.7.10](907-jit-cells.md#9710-loading-a-program-repl-path)). A library package path (`lib.rok`) is added as a dependency and `use <name>::*;` is the first cell, again after `:reset`.
+- More than one path is a usage error. `-` is not accepted; standard input is the cell input.
 
 `rok` and `rok repl` ([9.10](910-rok-frontend.md)) run the same REPL with dependencies attached.
 
@@ -321,7 +320,24 @@ rokc --version            # = -V
 rokc -V -v                # adds host line
 ```
 
-Prints one line `rokc <version> (<commit> <date>)` to stdout. With `-v`, a `host: <triple>` line is appended.
+Prints one line `rokc <version> (<commit> <date>)` to stdout. With `-v`, `host: <triple>` and `llvm: <version>` lines are appended.
+
+### `rokc --print cfg`: active cfg
+
+```
+rokc --print cfg [--target=<triple>] [-O<n>] [--cfg ..]
+```
+
+Prints the cfg of the build the options describe ([6.3](../006-meta-system/603-cfg.md)), one per line: a flag as `flag`, a key as `key="value"` (as rustc does). The keys include `target_env`, and `debug_assertions` is set at `-O0`.
+
+```
+debug_assertions
+target_arch="aarch64"
+target_endian="little"
+target_family="unix"
+target_os="macos"
+target_pointer_width="64"
+```
 
 ### `rokc help`: help
 
@@ -379,6 +395,8 @@ The environment variables that affect `rokc` are:
 | Variable          | Meaning                                                                                  |
 |-------------------|------------------------------------------------------------------------------------------|
 | `ROK_CC`          | Optional C compiler driver that performs the final link instead of the embedded lld ([9.2.14](902-aot-pipeline.md#9214-linking-for-executables)) |
+| `ROK_SYSROOT`     | Sysroot for ELF links: libc crt files and GCC runtime ([9.2.14](902-aot-pipeline.md#9214-linking-for-executables)) |
+| `ROK_BACKEND`     | `native` or `llvm`; same as `-C backend=` |
 | `ROKC_VERBOSE`    | Equivalent to `--verbose`                                                                |
 | `ROK_TIME_PASSES` | Per-pass wall time on stderr when `1` ([9.9.5](909-debug-tools.md#rok_time_passes)) |
 | `ROKC_TARGET_DIR` | Location of `target/` (default: inside the package)                                      |

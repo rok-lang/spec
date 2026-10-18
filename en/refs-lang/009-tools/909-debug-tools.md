@@ -263,7 +263,7 @@ The runtime reads the following environment variables.
 | Aid                  | Effect                                                               |
 |----------------------|----------------------------------------------------------------------|
 | `:type <expr>`       | Prints the type of the expression (without running it)               |
-| `:reset`             | Resets the session to its initial state (the `use` from `--package` is inserted again) |
+| `:reset`             | Resets the session to its initial state (the `use` of a library path is inserted again) |
 | `:add <dep> ..`      | Adds dependencies to the current environment and attaches them to the session (via `rok`, [9.10.5](910-rok-frontend.md#9105-environments)) |
 | `:help`, `:quit`     | Help, quit                                                           |
 | `ROK_REPL_TIME=1`    | Per cell, per-stage timing and the number of newly compiled functions / functions reused from earlier cells ([9.6.4](906-jit-engine.md#964-reuse-of-library-code)) |

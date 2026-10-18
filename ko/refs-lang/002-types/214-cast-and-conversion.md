@@ -38,7 +38,7 @@ let y: u8 = x as u8;          // Cast<u8>::cast(x)
 let z: f64 = x as f64;        // Cast<f64>::cast(x)
 ```
 
-`char` 로의 `as` 는 `u8 as char` (와 `char as char`) 만 허용됩니다. 그 밖의 정수, 부동소수, `bool`, `c_char` → `char` 는 타입 에러입니다. 에러 메시지는 ``only `u8` can be cast as `char`, not `u32`; use `char::from_u32(n)` (`char | none`) for a wider value`` 입니다. `char as <정수>` 는 허용됩니다.
+`char` 로의 `as` 는 `u8 as char` (와 `char as char`) 만 허용됩니다. 그 밖의 정수, 부동소수, `bool`, `c_char` → `char` 는 타입 에러입니다. 에러 메시지는 ``only `u8` can be cast as `char`, not `u32`; use `char::from_u32(n)` (`char | none`) for a wider value`` 입니다. `char as <정수>` 는 허용됩니다. payload 가 없는 `enum` 은 정수 타입으로 cast 되며 그 tag 나 값을 줍니다 ([2.4.2](204-enum.md#정수로의-cast)).
 
 `as` 의 결과는 `Cast` impl 이 등록된 타입 쌍에 한해서 항상 성공합니다. 만약 실패 가능성이 있는 변환이라면 대신 `.try_into()` 를 사용합니다. 또한 `Cast` impl 이 없는 타입 쌍에 `as` 를 쓰면 컴파일 에러가 발생합니다.
 

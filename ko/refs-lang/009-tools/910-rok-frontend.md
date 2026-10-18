@@ -13,8 +13,8 @@
 | `search`, `publish`, `yank`                                       | stone (9.10.4a)                         |
 | `env`                                                             | 환경 (9.10.5)                           |
 | `toolchain`                                                       | toolchain (9.10.6)                      |
-| `build`, `check`, `run` (와 `run -i`), `test`, `bench`, `emit`    | 의존성을 붙여 `rokc` 에 위임            |
-| `doc`, `lint`, `repl`, `lsp`                                      | 의존성을 붙여 `rokc` 에 위임            |
+| `build`, `check`, `run`, `test`, `bench`, `emit`                  | 의존성을 붙여 `rokc` 에 위임            |
+| `doc`, `lint`, `repl [path]`, `lsp`                               | 의존성을 붙여 `rokc` 에 위임            |
 | `fmt`, `clean`, `demangle`                                        | 의존성 없이 `rokc` 에 위임              |
 | `jupyter`                                                         | 커널 실행 (`--connection-file`) 은 위임, `jupyter install [--env <name>]` 은 kernelspec 설치 ([9.8.3](908-jupyter-integration.md#983-kernelspec-설치)) |
 | `version`, `help`                                                 |                                         |
@@ -25,6 +25,8 @@
 - 의존 패키지마다 `--extern name=<소스 디렉토리>`. `rok.lock` 을 따라 준비하며, 의존되는 쪽이 의존하는 쪽보다 앞입니다 (`rok deps` 가 출력하는 순서). 미리 빌드는 `rokc` 가 합니다 ([9.2.3](902-aot-pipeline.md#미리-빌드한-의존-패키지)).
 - 매니페스트의 `lints` 를 `-A` / `-W` / `-D` 로 (인자 앞에).
 - 패키지 밖 (환경, 스크립트) 이면 `--target-dir` 에 그 환경이나 스크립트의 `target/`.
+
+`rok repl <path>` 는 `run` 처럼 그 경로의 프로젝트에서 의존성과 lint 를 정하고, 매니페스트 이름을 넘깁니다 (`--name`).
 
 옵션과 출력, 종료 코드는 `rokc` 의 것 ([9.1](901-rokc-cli.md)) 을 따릅니다. `rokls` 는 `rok lsp` 와 같은 독립 실행 파일입니다.
 

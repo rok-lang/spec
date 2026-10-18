@@ -21,7 +21,7 @@ rokc jupyter --connection-file <path>       # also accepts rokc options such as 
 rok jupyter --connection-file <path>        # resolves dependencies, then runs rokc jupyter
 ```
 
-The kernel reads the ZMQ ports and key from the connection file and connects its sockets. Only the `tcp` transport is supported (no `ipc`), and CURVE encryption is not used. Messages are HMAC-signed with the connection file's key.
+The kernel reads the ZMQ ports and key from the connection file, then binds and listens on its five sockets. Once all five accept connections, it writes the line `rokc jupyter: ready` to its stderr, before output capture starts. Only the `tcp` transport is supported (no `ipc`), and CURVE encryption is not used. Messages are HMAC-signed with the connection file's key.
 
 ### Socket channels
 

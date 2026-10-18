@@ -4,7 +4,7 @@ This section defines the JIT execution engine used by the REPL and Jupyter. It i
 
 ## 9.6.1. Structure: rokc and the JIT host
 
-The session runs in a separate **host process** that contains the runtime and lives for the session.
+The session runs in a separate **host process** that contains the runtime and lives for the session. The host is prebuilt with `rokc` and linked by the embedded lld; it loads cell objects itself, with no libLLVM or ORC.
 
 ```
 rokc (front end)                         JIT host (one per session)
@@ -14,13 +14,13 @@ rokc (front end)                         JIT host (one per session)
                                              → run the cell entry function once
 ```
 
-- `rokc` compiles each cell with the native backend ([9.2.11](902-aot-pipeline.md#9211-native-backend)), the same backend as `-O0` builds. A function using `__mlir_op` / `__mlir_type` is compiled by the embedded MLIR → LLVM pipeline into an object loaded into the same executable memory (9.2.10).
+- Cells follow the backend selection of [9.2.10](902-aot-pipeline.md#9210-backend-selection). At `-O0` a cell is a native object ([9.2.11](902-aot-pipeline.md#9211-native-backend)) mapped and linked by the host, with no LLVM. Above `-O0`, and for code the native backend does not take (`__mlir_op`, other targets), cells go through the embedded MLIR → LLVM pipeline into an object loaded into the same executable memory.
 - The host places the code in executable memory, resolves its relocations against the runtime, libc and earlier cells, and runs the cell's entry function once.
 - The host exports every symbol of the runtime (`librokr.a`), and cell code finds runtime and libc symbols in the host process.
 
 ## 9.6.2. Code loading
 
-Cell code is position-independent machine code with relocations, as in an object file. The host keeps one symbol table for the session; a cell's definitions are added to it after the cell is loaded. A symbol that cannot be resolved fails the cell with an error naming it ([9.7](907-jit-cells.md)).
+A cell is an object file: native at `-O0`, LLVM-compiled above `-O0`. Its code is position-independent with relocations. The host keeps one symbol table for the session; a cell's definitions are added to it after the cell is loaded. A symbol that cannot be resolved fails the cell with an error naming it ([9.7](907-jit-cells.md)).
 
 ## 9.6.3. Symbols and redefinition
 

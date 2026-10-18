@@ -38,7 +38,7 @@ let y: u8 = x as u8;          // Cast<u8>::cast(x)
 let z: f64 = x as f64;        // Cast<f64>::cast(x)
 ```
 
-`as` to `char` is allowed only for `u8 as char` (and `char as char`). Other integer, floating-point, `bool` and `c_char` → `char` casts are type errors, with the message ``only `u8` can be cast as `char`, not `u32`; use `char::from_u32(n)` (`char | none`) for a wider value``. `char as <integer>` is allowed.
+`as` to `char` is allowed only for `u8 as char` (and `char as char`). Other integer, floating-point, `bool` and `c_char` → `char` casts are type errors, with the message ``only `u8` can be cast as `char`, not `u32`; use `char::from_u32(n)` (`char | none`) for a wider value``. `char as <integer>` is allowed. A payload-less `enum` casts to an integer type, giving its tag or value ([2.4.2](204-enum.md#casting-to-an-integer)).
 
 `as` always succeeds for type pairs with a registered `Cast` impl. For a conversion that may fail, use `.try_into()` instead. Using `as` on a type pair without a `Cast` impl is a compile error.
 

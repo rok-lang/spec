@@ -21,7 +21,7 @@ rokc jupyter --connection-file <path>       # --extern 등 rokc 옵션도 받음
 rok jupyter --connection-file <path>        # 의존성을 해소한 뒤 rokc jupyter 를 실행
 ```
 
-커널은 connection file 의 ZMQ port 와 key 를 읽고 소켓에 연결합니다. 전송은 `tcp` 만 지원하며 (`ipc` 없음), CURVE 암호화는 쓰지 않습니다. 메시지는 connection file 의 key 로 HMAC 서명합니다.
+커널은 connection file 의 ZMQ port 와 key 를 읽고 다섯 소켓에 bind 해 listen 합니다. 다섯 소켓이 모두 연결을 받을 수 있게 되면, 출력 캡처를 시작하기 전에 stderr 에 `rokc jupyter: ready` 한 줄을 씁니다. 전송은 `tcp` 만 지원하며 (`ipc` 없음), CURVE 암호화는 쓰지 않습니다. 메시지는 connection file 의 key 로 HMAC 서명합니다.
 
 ### 소켓 채널
 

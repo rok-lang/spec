@@ -68,6 +68,7 @@ impl<T> IntoIterator for Receiver<T> {   // for x in rx — 모든 sender 가 cl
 
 enum SendError<T> { Closed(T) }
 enum TrySendError<T> { Full(T), Closed(T) }
+// 둘 다 Display, Debug, Error 를 구현 (메시지는 값이 아니라 경우를 말함)
 ```
 
 `T: Send` 이면 `Sender<T>` 와 `Receiver<T>` 도 `Send` 이므로 다른 task 나 스레드로 옮길 수 있습니다 ([2.13.9](213-marker.md#2139-send--sync--스레드-경계-marker)).

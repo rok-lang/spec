@@ -135,22 +135,22 @@ MIR 은 HIR 보다 한층 더 낮은 수준의 IR 로, 이 단계에서 연산�
 
 ## 9.2.10. Backend 선택
 
-최적화 수준이 코드 생성기를 고릅니다 ([0.2.4](../000-meta/002-pipeline.md#024-backend)).
+기본으로는 최적화 수준이 코드 생성기를 고르며 ([0.2.4](../000-meta/002-pipeline.md#024-backend)), `-C backend=native|llvm` 이나 `ROK_BACKEND` 로 바꿀 수 있습니다.
 
 | 수준                     | Backend      |
 |--------------------------|--------------|
 | `-O0`                    | native       |
 | `-O1` `-O2` `-O3` `-Os`  | MLIR → LLVM  |
 
-[`__mlir_op` / `__mlir_type`](../../refs-standard-libraries/100-bare/109-mlir.md) 을 쓰는 함수는 어느 수준에서나, REPL 에서도 (9.6.1) MLIR → LLVM backend 로 컴파일합니다. 두 backend 는 [8](../008-abi/README.md) 의 런타임 ABI 를 따르므로, 다른 수준으로 빌드한 미리 빌드된 의존 패키지까지 포함해 어느 쪽 object 든 함께 링크됩니다.
+native backend 는 {aarch64, x86_64} × {macOS, Linux} 를 지원합니다. 그 밖의 대상, [`__mlir_op` / `__mlir_type`](../../refs-standard-libraries/100-bare/109-mlir.md) 을 쓰는 모듈, MLIR plugin 을 쓰는 빌드는 어느 수준에서나 MLIR → LLVM backend 를 씁니다. REPL 도 같은 선택을 따릅니다 (9.6.1). 두 backend 는 [8](../008-abi/README.md) 의 런타임 ABI 를 따르므로, 다른 수준으로 빌드한 미리 빌드된 의존 패키지까지 포함해 어느 쪽 object 든 함께 링크됩니다.
 
 ## 9.2.11. native backend
 
-native backend 는 중간 IR 없이 rok-mir 에서 바로 기계어와 object 파일 (Mach-O, ELF, COFF, wasm) 을 만듭니다. 목표는 컴파일 속도이며, debug 빌드와 REPL 셀에는 LLVM 이 필요 없습니다. `-g` 이면 DWARF 줄 정보와 frame 정보를 냅니다.
+native backend 는 macOS 와 Linux 의 aarch64, x86_64 를 대상으로, 중간 IR 없이 rok-mir 에서 바로 기계어와 object 파일 (Mach-O, ELF) 을 만듭니다. 목표는 컴파일 속도이며, debug 빌드와 REPL 셀에는 LLVM 이 필요 없습니다. `-g` 이면 DWARF 줄 정보와 frame 정보를 냅니다.
 
 ## 9.2.12. MLIR → LLVM backend
 
-rok-mir 를 표준 MLIR 로 lower 하고 ([8.7](../008-abi/807-mlir-dialects.md)), LLVM 다이얼렉트로 변환해 LLVM IR 로 옮긴 뒤, 요청한 수준으로 LLVM 최적화를 거쳐 대상 triple 의 object 로 냅니다. 모두 프로세스 안에서 실행되며, 중간 형태는 `--emit` 일 때만 파일로 씁니다 ([9.9.1](909-debug-tools.md#991-중간-산출물-출력---emit)).
+rok-mir 를 표준 MLIR 로 lower 합니다 ([8.7](../008-abi/807-mlir-dialects.md)). `rokc` 는 그 MLIR 을 프로세스 안에서 파싱하고, LLVM 다이얼렉트까지 MLIR 패스 파이프라인을 돌린 뒤 LLVM IR 로 옮겨, 요청한 수준으로 최적화하고 대상 triple 의 object 를 만듭니다. IR 이 1 MiB 를 넘는 모듈은 여러 부분으로 나누어 병렬로 코드 생성합니다. 모두 외부 도구 없이 프로세스 안에서 실행되며, 중간 형태는 `--emit` 일 때만 파일로 씁니다 ([9.9.1](909-debug-tools.md#991-중간-산출물-출력---emit)).
 
 ```
 target/debug/build/foo.o
@@ -158,7 +158,7 @@ target/debug/build/foo.o
 
 ## 9.2.13. archive
 
-라이브러리 패키지는 object 를 표준 `ar` archive 에 넣고, 그 옆에 인터페이스 파일 `foo.rhir` ([RHIR 형식](904-rhir-bytecode.md)) 을 씁니다.
+라이브러리 패키지는 `rokc` 가 직접 쓰는 표준 `ar` archive 에 object 를 넣고, 그 옆에 인터페이스 파일 `foo.rhir` ([RHIR 형식](904-rhir-bytecode.md)) 을 씁니다.
 
 ```
 target/debug/libfoo.a
@@ -173,7 +173,7 @@ target/debug/foo.rhir
 foo.o + <deps>/lib*.a + <sysroot>/lib/librokr.a + target libc  →  target/debug/foo
 ```
 
-대상 libc 는 toolchain 이 대상별로 제공하는 헤더와 stub 에서 오며, Apple 대상에서는 Xcode Command Line Tools 의 SDK 입니다. `ROK_CC` 가 설정되어 있으면 그 C 컴파일러 드라이버가 최종 링크를 대신합니다 (`$ROK_CC <objects> <archives> -o <out>`). 이것은 선택적인 대체입니다. 실행 파일은 dead-strip 됩니다: 참조되지 않는 함수와 데이터는 제거합니다. Apple 대상에서 `-g` 이면 내장 `dsymutil` (`rokc` 에 링크된 LLVM 의 것) 이 실행 파일 옆에 `.dSYM` bundle 을 씁니다.
+Mach-O 실행 파일은 macOS SDK (Xcode Command Line Tools) 에 대해 링크합니다. ELF 실행 파일은 sysroot (`ROK_SYSROOT`, 기본은 host 루트) 의 대상 libc crt 파일과 GCC 런타임에 대해 링크합니다. `ROK_CC` 가 설정되어 있으면 그 C 컴파일러 드라이버가 최종 링크를 대신합니다 (`$ROK_CC <objects> <archives> -o <out>`). 이것은 선택적인 대체입니다. 실행 파일은 dead-strip 됩니다: 참조되지 않는 함수와 데이터는 제거합니다. Apple 대상에서 `-g` 이면 내장 `dsymutil` (`rokc` 에 링크된 LLVM 의 것) 이 실행 파일 옆에 `.dSYM` bundle 을 씁니다.
 
 ## 9.2.15. 산출물
 
@@ -222,7 +222,9 @@ target/
 
 ## 9.2.17. 컴파일러와 런타임의 분리
 
-이 파이프라인은 코드 의존성 0 원칙을 지킵니다. 즉 `rokc` 는 런타임 (`librokr.a`) 을 빌드 시점에 참조하지 않습니다.
+`rokc` 는 서드파티 crate 를 하나도 쓰지 않으며, 고정된 LLVM (22.1.8) 하나만 정적으로 링크합니다.
+
+파이프라인은 컴파일러와 런타임을 떼어 둡니다. `rokc` 는 런타임 (`librokr.a`) 을 빌드 시점에 참조하지 않습니다.
 
 대신에 `extern "C"` 심볼 ([Extern "C" 심볼](../008-abi/805-extern-symbols.md)) 호출만을 emit 하고, 링크 시점에 가서 사용자 빌드가 `librokr.a` 를 함께 링크하는 방식으로 동작합니다.
 
@@ -230,9 +232,13 @@ target/
 
 ## 9.2.18. 내장 toolchain
 
-`rokc` 는 자기 완결적입니다: LLVM, MLIR, lld 가 고정된 하나의 LLVM 버전으로 그 안에 링크되어 있습니다. 외부 컴파일러, 어셈블러, 링커를 실행하지 않으며 toolchain 은 LLVM 설치에 의존하지 않습니다. Apple 대상은 SDK 를 위해 Xcode Command Line Tools 가 필요합니다. 외부 도구는 선택적인 링크 대체 `ROK_CC` (9.2.14) 뿐입니다.
+`rokc` 는 자기 완결적입니다: MLIR 과 lld 를 포함한 LLVM 22.1.8 이 그 안에 들어 있으며, `PATH` 에서 찾지 않습니다. 외부 컴파일러, 어셈블러, 링커를 실행하지 않습니다.
 
-IR 이 1 MiB 를 넘는 실행 파일은 여러 부분으로 나누어 병렬로 컴파일합니다.
+| 시스템에서 필요한 것   | 대상                                     |
+|------------------------|------------------------------------------|
+| macOS SDK (Xcode Command Line Tools) | Apple 대상                 |
+| libc 개발 파일과 GCC 런타임 (crt object, `libgcc`) | Linux 대상    |
+| `ROK_CC` (선택)        | 최종 링크를 대체 (9.2.14)                |
 
 ## 9.2.19. 설치 레이아웃
 

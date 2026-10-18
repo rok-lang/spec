@@ -52,6 +52,13 @@ trait IntoStream {
 
     fn into_stream(self) -> IntoStream;
 }
+
+// every stream is its own IntoStream (as IntoIterator, 2.7)
+impl<S: Stream> IntoStream for S {
+    type Item = S::Item;
+    type IntoStream = S;
+    fn into_stream(self) -> S { self }
+}
 ```
 
 At the start of a `for await`, `IntoStream::into_stream` is called, then `Stream::poll_next` is repeated. The concrete transformation is:

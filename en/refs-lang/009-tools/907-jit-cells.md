@@ -31,7 +31,7 @@ A REPL line or a Jupyter cell is processed differently depending on its content.
 5. meta / attribute          → handle as appropriate
 ```
 
-All five follow the same cell processing flow; only the final output differs. A divergent expression cell ([4.3.7](../004-functions/403-return.md#437-divergent-functions); `panic(..)`, `exit(..)`, `throw`) runs as a statement.
+All five follow the same cell processing flow; only the final output differs. An expression cell prints `type: value`; a `let` cell prints nothing. A divergent expression cell ([4.3.7](../004-functions/403-return.md#437-divergent-functions); `panic(..)`, `exit(..)`, `throw`) runs as a statement.
 
 > [!IMPORTANT]
 > In terms of language semantics, a sequence of cells is equivalent to appending top-level statements and items to the end of an implicit `main.rok` ([4.16.10](../004-functions/416-entry-point.md#41610-relationship-to-jit--repl)). A cell's `let` is a local variable of the implicit `main`, so it is visible to statements of later cells but not inside the bodies of `fn`s declared in cells. The global storage of 9.7.3 below is an implementation technique for keeping local variables alive across cell boundaries and does not change this visibility rule. Same-name re-`let` at cell top level (9.7.3), cell re-execution (9.7.4) and automatic display of the last expression value (9.7.7) are session operations that exist only on the interactive surfaces.
@@ -175,6 +175,7 @@ The REPL processes input in units of complete expressions or statements.
 i32: 3
 > let x =
 ... 42i32;          (continued input)
+> x
 i32: 42
 ```
 
@@ -193,9 +194,9 @@ y                       # last expression = cell result
 
 The last expression of the cell is the cell's result; everything else is treated as side effects (definitions or calls).
 
-## 9.7.10. Loading a program (`run -i`)
+## 9.7.10. Loading a program (`repl <path>`)
 
-`rokc run -i [path]` loads a program into a fresh session, then continues with the REPL on that session.
+`rokc repl <path>` with a program path loads the program into a fresh session, then continues with the REPL on that session. With a library package path, the package is added as a dependency and `use <name>::*;` runs as the first cell (again after `:reset`); nothing else is loaded.
 
 - **Checked first.** The whole program is checked before anything runs. Errors are reported at the file's own locations; nothing runs and the session starts empty.
 - **Items.** Items and imports join the session.

@@ -78,9 +78,10 @@ rokc build [path]
 - `-o` / `--out=<path>` 는 출력 위치를 지정합니다.
 - `--cfg <flag>` / `--cfg <key>=<value>` 는 [조건부 컴파일](../006-meta-system/603-cfg.md) 의 cfg flag 를 설정합니다. 여러 번 쓸 수 있습니다.
 - `--emit=<kind>[,<kind>..]` 는 중간 산출물 (`ast`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expanded`) 을 `target/<profile>/build/<name>.<ext>` 에 씁니다 ([9.9.1](909-debug-tools.md#991-중간-산출물-출력---emit)). 쉼표로 여러 종류를 한 번에 지정하며, 이때는 `-o` 를 함께 쓸 수 없습니다. `--emit` 이 있으면 실행 파일이나 archive 는 만들지 않습니다.
-- `--load-mlir-plugin <path|name>` 은 MLIR 다이얼렉트 plugin 을, `--load-mlir-pass-plugin <path|name>` 은 패스 plugin 을 로드하고, `--mlir-pass <pass>` 는 LLVM 다이얼렉트로 변환하기 전에 그 패스를 실행합니다 ([rok::bare::mlir::plugin](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-로드)). 모두 여러 번 쓸 수 있으며, `rok` 도 그대로 넘깁니다.
+- `--load-mlir-plugin <path|name>` 은 MLIR 다이얼렉트 plugin 을, `--load-mlir-pass-plugin <path|name>` 은 패스 plugin 을 (둘 다 `rokc` 의 MLIR 에, 같은 고정 LLVM 으로 빌드한 것을) 로드하고, `--mlir-pass <pass>` 는 LLVM 다이얼렉트로 변환하기 전에 그 패스를 실행합니다 ([rok::bare::mlir::plugin](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-로드)). 모두 여러 번 쓸 수 있으며, `rok` 도 그대로 넘깁니다.
 - `-g` / `--debug` 는 DWARF 디버그 정보를 냅니다 ([9.9](909-debug-tools.md#dwarf-디버그-정보)).
 - `-C overflow-checks[=yes|no]` 는 고정 폭 정수 산술의 overflow 검사 (panic) 를 켜거나 끕니다. 기본값은 `-O0` 에서만 켬입니다. 값을 생략하면 `yes` 입니다. overflow 가 일어날 수 없는 상수 피연산자 연산은 검사를 생략합니다.
+- `-C backend=native|llvm` 은 최적화 수준이 고른 backend 를 바꿉니다 ([9.2.10](902-aot-pipeline.md#9210-backend-선택)).
 
 이전 빌드 뒤로 바뀐 것이 없으면 `rokc build` / `rokc run` 은 `Fresh` 를 출력하고 빌드를 건너뜁니다 ([9.2.16](902-aot-pipeline.md#9216-증분-빌드)).
 
@@ -98,7 +99,6 @@ rokc emit [path] [--emit=<kind>[,<kind>..]]
 
 ```
 rokc run [path] [-- args...]
-rokc run -i [path]
 ```
 
 실행 패키지를 빌드한 뒤 곧바로 실행하며, `--` 뒤에 적은 인자는 실행 파일에 그대로 전달됩니다. 옵션은 `rokc build` 와 동일합니다. 라이브러리 패키지에는 실행할 것이 없으므로 에러입니다.
@@ -110,8 +110,6 @@ rokc run hello.rok -- arg1 arg2
 ```
 
 `rokc run` 의 종료 코드는 프로그램의 종료 코드입니다. 프로그램이 시그널 `n` 으로 끝나면 `128 + n` 입니다.
-
-`-i` / `--interactive` 는 프로그램을 REPL 세션에 로드한 뒤 `python -i` 처럼 대화형으로 이어 갑니다 ([9.7.10](907-jit-cells.md#9710-프로그램-로드-run--i)). `-- args` 는 받지 않으며, 세션이 끝나면 `0` 으로 종료합니다.
 
 ### `rokc test`: 테스트
 
@@ -179,7 +177,7 @@ bench fib_20 ... bench:       41,503 ns/iter (+/- 312)
 `rokc repl` 은 터미널에서 인터랙티브 셸을 띄워 주는 명령입니다.
 
 ```
-rokc repl [--package <path>]
+rokc repl [path]
 ```
 
 이 모드는 터미널 인터랙티브 셸로 동작합니다. 셀의 의미는 [9.7.0](907-jit-cells.md#970-셀-세션의-규칙) 의 규칙을 따릅니다. 각 셀은 한 번만 실행되고, top-level `let` 바인딩과 항목은 이후 셀로 이어지며, 실패한 셀은 바인딩에 흔적을 남기지 않습니다. 식 셀은 `타입: 값` 을 출력합니다.
@@ -187,7 +185,8 @@ rokc repl [--package <path>]
 - 기본 모드는 각 셀을 native backend 로 컴파일해 세션 동안 사는 JIT host 프로세스에 넘기고, host 가 그것을 로드해 한 번 실행합니다 ([9.6](906-jit-engine.md)). 바인딩, `static` 상태, `any` 값이 셀 사이에 이어집니다. 최상위에서 이름을 적을 수 없는 타입 (클로저, 비공개 타입 등) 의 바인딩은 만들 때 거부합니다.
 - 진단과 panic 위치는 셀 자신의 텍스트 기준 `<repl>:line:col` 로 표시합니다.
 - 입력은 줄 편집과 history 를 지원하며, history 는 `$ROK_HOME/repl_history` 에 남습니다.
-- `--package <path>` 는 라이브러리 패키지를 `--extern` 으로 붙이고, 첫 셀 앞에 `use <name>::*;` 를 넣습니다. `:reset` 뒤에도 다시 넣습니다. `main.rok` 패키지 (실행 패키지) 는 거부합니다.
+- 경로가 없으면 빈 세션으로 시작합니다. 프로그램 경로 (단독 `.rok` 파일이나 `main.rok` 가 있는 패키지) 는 로드해 실행하며 (top-level 문은 셀로, `fn main` 은 진입점으로), 세션이 이어집니다 ([9.7.10](907-jit-cells.md#9710-프로그램-로드-repl-path)). 라이브러리 패키지 경로 (`lib.rok`) 는 의존성으로 붙이고 `use <name>::*;` 를 첫 셀로 넣으며, `:reset` 뒤에도 다시 넣습니다.
+- 경로가 둘 이상이면 사용법 에러입니다. `-` 는 받지 않으며, 표준 입력은 셀 입력입니다.
 
 `rok` 와 `rok repl` ([9.10](910-rok-frontend.md)) 은 의존성을 붙여 같은 REPL 을 실행합니다.
 
@@ -321,7 +320,24 @@ rokc --version            # = -V
 rokc -V -v                # host 줄 추가
 ```
 
-stdout 에 `rokc <버전> (<commit> <date>)` 한 줄을 출력합니다. `-v` 를 더하면 `host: <triple>` 줄을 덧붙입니다.
+stdout 에 `rokc <버전> (<commit> <date>)` 한 줄을 출력합니다. `-v` 를 더하면 `host: <triple>` 과 `llvm: <version>` 줄을 덧붙입니다.
+
+### `rokc --print cfg`: 활성 cfg
+
+```
+rokc --print cfg [--target=<triple>] [-O<n>] [--cfg ..]
+```
+
+옵션이 가리키는 빌드의 cfg ([6.3](../006-meta-system/603-cfg.md)) 를 한 줄에 하나씩 출력합니다: 플래그는 `flag`, 키는 `key="value"` (rustc 와 같음). 키에는 `target_env` 가 있고, `debug_assertions` 는 `-O0` 에서 켜집니다.
+
+```
+debug_assertions
+target_arch="aarch64"
+target_endian="little"
+target_family="unix"
+target_os="macos"
+target_pointer_width="64"
+```
 
 ### `rokc help`: 도움말
 
@@ -379,6 +395,8 @@ rokc --cwd=examples/hello run
 | 변수              | 의미                                                                                     |
 |-------------------|------------------------------------------------------------------------------------------|
 | `ROK_CC`          | 내장 lld 대신 마지막 링크를 하는 선택적 C 컴파일러 드라이버 ([9.2.14](902-aot-pipeline.md#9214-링킹-실행-파일의-경우)) |
+| `ROK_SYSROOT`     | ELF 링크의 sysroot: libc crt 파일과 GCC 런타임 ([9.2.14](902-aot-pipeline.md#9214-링킹-실행-파일의-경우)) |
+| `ROK_BACKEND`     | `native` 또는 `llvm`. `-C backend=` 와 같음 |
 | `ROKC_VERBOSE`    | `--verbose` 와 동일                                                                      |
 | `ROK_TIME_PASSES` | `1` 이면 패스별 실제 시간을 stderr 에 출력 ([9.9.5](909-debug-tools.md#rok_time_passes)) |
 | `ROKC_TARGET_DIR` | `target/` 의 위치 (기본은 패키지 안)                                                     |

@@ -159,7 +159,7 @@ mod geom;
 mod shared;
 ```
 
-The file at the relative path given in the attribute is mapped as the module body. The mapping target is a single file; when a folder mapping is needed, a folder of the same name must exist at the same location (the folder-form rules of 5.4.2 apply unchanged). It rarely appears in ordinary use and serves special cases such as build systems and generated code.
+The file at the given path is mapped as the module body. The path is relative to the directory where `name.rok` would normally be found. Submodules of that module go in the folder next to the file with its stem: for `#[path("f.rok")]`, in `f/`. `#[path(..)]` is the only form. It rarely appears in ordinary use and serves special cases such as build systems and generated code.
 
 ## 5.4.7. Items within a module
 
