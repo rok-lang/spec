@@ -102,6 +102,8 @@ fn main() throws {          // 암묵 main 의 형태 — 4.16.4 참고
 
 **암묵 `main`** 은 타입을 적지 않은 `fn main() throws` (에러 타입 `any Error`) 로 취급됩니다 (본체에 `await` 가 있으면 `async fn main() throws`, 4.16.5). 따라서 top-level 문에서 `try` 로 표시한 throwing 호출의 에러는 별도의 `catch` 없이 진입점 밖으로 전파될 수 있고, 미처리 예외는 위 규칙대로 종료 코드 `1` 이 됩니다. 정상적으로 끝까지 실행되면 종료 코드는 `0` 입니다.
 
+일부 WASI host 는 126 이상의 `proc_exit` 코드를 trap 으로 다룹니다.
+
 > [!IMPORTANT]
 > **top-level `return` 은 허용하지 않습니다.** `main.rok` 의 top-level 에 `return` 이 나타나면 컴파일 에러입니다. 암묵 `main` 에서 0 이 아닌 종료 코드가 필요하면 `env::exit(code)` 를 호출하고, 반환값으로 종료 코드를 표현하고 싶다면 명시 `fn main() -> i32` 형태를 씁니다. top-level `return` 을 허용하면 "어떤 타입의 `return` 이 허용되는가", "top-level 블록 안쪽의 `return` 은 무엇을 반환하는가" 같은 규칙이 암묵 `main` 에만 추가되므로, 진입점 형태를 둘로 나누는 쪽이 더 단순합니다.
 

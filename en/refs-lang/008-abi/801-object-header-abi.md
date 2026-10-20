@@ -20,6 +20,8 @@ The header has the following form.
 > [!IMPORTANT]
 > The total header size is 16 bytes, 8-byte aligned, identical on 32-bit and 64-bit targets.
 
+Every object is at least 24 bytes (header plus one payload word, `MIN_OBJECT_SIZE` in `gc_abi`), so compiled code may load the first payload word of any object it holds a reference to.
+
 ## 8.1.2. `type_id` (offset 0, u32, little-endian)
 
 `type_id` is the unique identifier of a type. It is a 32-bit unsigned value stored little-endian; the value `0` is reserved and denotes the null type or an invalid object. At process start the compiler calls `rok_gc_register_type` to register each type_id.

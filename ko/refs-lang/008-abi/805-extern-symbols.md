@@ -2,7 +2,7 @@
 
 `librokr.a` 가 노출하는 [심볼](../000-meta/007-glossary.md#extern-c-심볼) 의 시그니처를 정의합니다. 컴파일러가 생성한 코드와 표준 라이브러리가 이 심볼을 부릅니다.
 
-rok 쪽 선언은 런타임 ABI `extern "rok"` ([5.9.2](../005-modules/509-extern-block.md#592-abi-명시)) 이며, toolchain 이 `rok::core::rt` 에 `pub(pkg)` 로 둡니다. 아래 블록의 `fn` 값은 `RokFn` (8.5.0a), 그 밖의 값은 C ABI 와 같습니다. `str` 은 `struct { const uint8_t *ptr; size_t len; }` 로 값 전달하며, `RokFn` 처럼 타깃의 16 바이트 구조체 규칙을 따르고 레지스터와 스택에 나뉘지 않습니다.
+rok 쪽 선언은 런타임 ABI `extern "rok"` ([5.9.2](../005-modules/509-extern-block.md#592-abi-명시)) 이며, toolchain 이 `rok::core::rt` 에 `pub(pkg)` 로 둡니다. 아래 블록의 `fn` 값은 `RokFn` (8.5.0a), 그 밖의 값은 C ABI 와 같습니다. `str` 은 `struct { const uint8_t *ptr; size_t len; }` 이며, `str` 을 받거나 돌려주는 런타임 함수는 `RokFn` 처럼 16 바이트 구조체에 대한 플랫폼 C ABI 를 따릅니다 ([8.6.3](806-calling-convention.md#863-struct-인자--반환-small-struct-rule)): ABI 가 허용하면 레지스터로 값 전달하고, 레지스터와 스택에 나뉘지 않으며, Windows x64 에서는 참조로 넘깁니다.
 
 > [!IMPORTANT]
 > 모든 심볼은 `rok_` 접두사로 시작합니다. 이는 외부 라이브러리나 사용자 코드와의 심볼 충돌을 회피하기 위함입니다.
@@ -43,7 +43,7 @@ typedef struct {
 
 ```
 extern "C" {
-    fn rok_gc_alloc_slow(size: usize, align: usize, type_id: u32) -> Ptr<u8>;
+    fn rok_gc_alloc_slow(size: usize, align: usize, type_id: u32) -> GcBuf<u8>;
 }
 ```
 
@@ -52,7 +52,7 @@ extern "C" {
 - `size`: 객체의 총 크기로, 16 바이트의 헤더에 페이로드를 더한 뒤 정렬한 값입니다.
 - `align`: 객체의 정렬 요구로, 보통 8 이며 `#[repr(align(N))]` 가 지정되면 더 커집니다.
 - `type_id`: 객체의 타입 ID 입니다.
-- 반환: 헤더 자리부터 시작하는 포인터를 돌려주며, type_id 와 gc_flags 는 함수가 채워둡니다.
+- 반환: 헤더 자리부터 시작하는 객체의 GC 참조 (`GcBuf<u8>`, 런타임 ABI 의 GC 포인터) 를 돌려주며, type_id 와 gc_flags 는 함수가 채워둡니다.
 
 null 을 반환하지 않습니다. 메모리 부족은 fatal (`rok_oom`) 이며, `isize::MAX` 를 넘는 요청은 fatal 에러 "allocation too large" (종료 코드 101) 입니다.
 
@@ -238,7 +238,7 @@ rok 쪽에서는 `#[no_safepoint]` 가 붙은 `extern "rok"` 블록에 선언합
 
 ```
 extern "C" {
-    fn rok_coro_frame_alloc(size: usize, type_id: u32) -> Ptr<u8>;
+    fn rok_coro_frame_alloc(size: usize, type_id: u32) -> GcBuf<u8>;
 }
 ```
 
@@ -392,7 +392,7 @@ task 스케줄러 ([7.6.2](../007-runtime/706-scheduler.md#762-work-stealing-구
 
 ```
 extern "C" {
-    fn rok_deque_new() -> Ptr<u8>;                                   // 빈 deque (GC 객체)
+    fn rok_deque_new() -> GcBuf<u8>;                                 // 빈 deque (GC 객체)
     unsafe fn rok_deque_push(d: Ptr<u8>, item: usize);               // 소유자: 끝에 넣음 (GC 참조)
     unsafe fn rok_deque_pop(d: Ptr<u8>, out: Ptr<u8>, index: usize) -> i32;    // 소유자: 가장 새 원소를 out[index] 에, 있으면 1
     unsafe fn rok_deque_steal(d: Ptr<u8>, out: Ptr<u8>, index: usize) -> i32;  // 가장 오래된 원소를 out[index] 에, 있으면 1
@@ -485,9 +485,12 @@ extern "C" {
 
 ```
 extern "rok" {
-    fn rok_panic_at(msg: str, at: str) -> !;  // at = "path:line:col"
+    #[track_caller]
+    fn rok_panic_at(msg: str) -> !;
 }
 ```
+
+선언이 `#[track_caller]` ([6.2.12](../006-meta-system/602-built-in-attributes.md#6212-track_caller-호출-위치-전달)) 이므로, 심볼은 호출자의 위치를 숨은 마지막 `str` 인자 (`"path:line:col"`) 로 받습니다: `rok_panic_at(msg, at)`.
 
 [4.14.13](../004-functions/414-throws.md#41413-panic-과-fatal-에러) 의 형식으로 출력하고 종료 코드 `101` 로 끝냅니다. core 의 `panic` 과 컴파일러가 생성한 panic (경계 검사, overflow, 0 으로 나누기 등) 이 이 심볼을 부릅니다.
 
@@ -522,7 +525,7 @@ extern "C" {
 thread '<name>' has overflowed its stack
 ```
 
-`<name>` 은 `thread::Builder::name` 으로 준 스레드 이름입니다 (OS 스레드 이름으로도 설정됨, [7. 런타임](../007-runtime/README.md#런타임-오류-스택-오버플로)). main 스레드 (`rok_runtime_init`), `rok_thread_spawn` 스레드 (executor worker 포함, 깊은 `await` 사슬도), `rok_thread_init` 을 부른 C 스레드가 모두 대상입니다. 런타임은 각 스레드의 스택 아래 guard 범위를 TLS 슬롯 `rok_tls_stack_guard` ([8.3.1](803-tls-slots.md#831-tls-슬롯-구조)) 에 기록하고 대체 신호 스택 (`sigaltstack`) 을 둡니다. 그 범위 안의 SIGSEGV / SIGBUS 만 스택 오버플로로 보고, 그 밖의 fault 는 기본 동작을 따릅니다.
+`<name>` 은 `thread::Builder::name` 으로 준 스레드 이름입니다 (OS 스레드 이름으로도 설정됨, [7. 런타임](../007-runtime/README.md#런타임-오류-스택-오버플로)). main 스레드 (`rok_runtime_init`), `rok_thread_spawn` 스레드 (executor worker 포함, 깊은 `await` 사슬도), `rok_thread_init` 을 부른 C 스레드가 모두 대상입니다. 런타임은 각 스레드의 스택 아래 guard 범위를 TLS 슬롯 `rok_tls_stack_guard` ([8.3.1](803-tls-slots.md#831-tls-슬롯-구조)) 에 기록하고 대체 신호 스택 (`sigaltstack`) 을 둡니다. 그 범위 안의 SIGSEGV / SIGBUS 만 스택 오버플로로 보고, 그 밖의 fault 는 기본 동작을 따릅니다. wasm 에서는 모듈이 trap 을 잡을 수 없으며 host 가 보고합니다 (함께 제공되는 JS host 는 위 메시지를 출력).
 
 ## 8.5.8. 심볼 명명 규약
 
@@ -602,6 +605,12 @@ extern "C" {
 
     // GC
     fn rok_gc_collect_young();                             // minor 수집을 강제
+
+    // 프로세스 종료
+    fn rok_set_exit_hook(hook: extern "C" fn(i32) | null);
+        // panic, 처리되지 않은 에러, exit, (Windows) stack overflow 가 프로세스를
+        // 끝내기 전에, 끝나는 스레드에서 종료 상태와 함께 호출; hook 이 반환하면
+        // 프로세스가 끝남
 }
 ```
 

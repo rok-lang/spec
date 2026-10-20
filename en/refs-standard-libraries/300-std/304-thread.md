@@ -122,11 +122,11 @@ try thread::spawn(|| {
 
 Per-platform support:
 
-| Item            | linux/macos/windows   | wasi                      |
-|-----------------|-----------------------|---------------------------|
-| `spawn`         | ✓                     | ✓ (wasi-threads, partial) |
-| `Builder`       | ✓                     | partial                   |
-| `local`         | ✓                     | partial                   |
-| `park`/`unpark` | futex / WaitOnAddress | partial                   |
+| Item            | linux/macos/windows   | wasm32-wasi               | wasm32-wasi-threads |
+|-----------------|-----------------------|---------------------------|---------------------|
+| `spawn`         | ✓                     | throws `Unsupported`      | ✓ (wasi-threads)    |
+| `Builder`       | ✓                     | throws `Unsupported`      | partial             |
+| `local`         | ✓                     | ✓ (one thread)            | partial             |
+| `park`/`unpark` | futex / WaitOnAddress | ✗                         | partial             |
 
-Desktop OSes have consistent behavior; wasi will be filled in gradually as the threads proposal progresses.
+Desktop OSes have consistent behavior. `wasm32-wasi` has no threads; on `wasm32-wasi-threads` the rest will be filled in as the threads proposal progresses.

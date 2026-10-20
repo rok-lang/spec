@@ -135,7 +135,7 @@ let g: extern "C" fn(ConstPtr<u8>, ConstPtr<u8>) -> i32 = cmp_i32;          // E
 
 ### Name space of extern functions
 
-Functions declared in `extern` blocks form a single global name space and can be called by unprefixed name from any module. This mirrors C symbols, which live in a single global space at link time. It is an exception to the "no implicit search of ancestor modules" rule for ordinary items ([5.7.1](507-paths.md#571-starting-identifier-of-a-path)) and applies only to extern functions. Declaring an extern function of the same name twice with different signatures is a compile error.
+Functions declared in `extern` blocks form a single global name space and can be called by unprefixed name from any module. This mirrors C symbols, which live in a single global space at link time. It is an exception to the "no implicit search of ancestor modules" rule for ordinary items ([5.7.1](507-paths.md#571-starting-identifier-of-a-path)) and applies only to extern functions. Declaring an extern function of the same name twice with different signatures is a compile error. The toolchain's runtime declarations in `rok::core::rt` count: a user `extern` that redeclares a `rok_*` runtime function must match its signature.
 
 ## 5.9.5. `Ptr<T>` / `ConstPtr<T>`
 

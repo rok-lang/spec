@@ -2,7 +2,7 @@
 
 Defines the signatures of the [symbols](../000-meta/007-glossary.md#extern-c-symbol) exposed by `librokr.a`. Compiler-generated code and the standard library call these symbols.
 
-On the rok side they are declared with the runtime ABI `extern "rok"` ([5.9.2](../005-modules/509-extern-block.md#592-abi-specifiers)), which the toolchain places in `rok::core::rt` as `pub(pkg)`. In the blocks below a `fn` value is `RokFn` (8.5.0a) and all other values are as in the C ABI. `str` is passed by value as `struct { const uint8_t *ptr; size_t len; }` following the target's 16-byte struct rule (like `RokFn`), never split between registers and the stack.
+On the rok side they are declared with the runtime ABI `extern "rok"` ([5.9.2](../005-modules/509-extern-block.md#592-abi-specifiers)), which the toolchain places in `rok::core::rt` as `pub(pkg)`. In the blocks below a `fn` value is `RokFn` (8.5.0a) and all other values are as in the C ABI. `str` is `struct { const uint8_t *ptr; size_t len; }`; runtime functions taking or returning `str` follow the platform C ABI for a 16-byte struct ([8.6.3](806-calling-convention.md#863-struct-arguments--return-small-struct-rule)), like `RokFn`: by value in registers where the ABI allows, never split between registers and the stack, and by reference on Windows x64.
 
 > [!IMPORTANT]
 > Every symbol starts with the `rok_` prefix, to avoid symbol collisions with external libraries and user code.
@@ -43,7 +43,7 @@ The [TLAB](../000-meta/007-glossary.md#tlab-thread-local-allocation-buffer) slow
 
 ```
 extern "C" {
-    fn rok_gc_alloc_slow(size: usize, align: usize, type_id: u32) -> Ptr<u8>;
+    fn rok_gc_alloc_slow(size: usize, align: usize, type_id: u32) -> GcBuf<u8>;
 }
 ```
 
@@ -52,7 +52,7 @@ The arguments and return value mean:
 - `size`: the total object size: the 16-byte header plus the payload, aligned.
 - `align`: the object's alignment requirement, usually 8, larger when `#[repr(align(N))]` is specified.
 - `type_id`: the object's type ID.
-- Returns: a pointer starting at the header; the function fills in type_id and gc_flags.
+- Returns: a GC reference (`GcBuf<u8>`, the runtime ABI's GC pointer) to the object, starting at the header; the function fills in type_id and gc_flags.
 
 It never returns null. Out of memory is fatal (`rok_oom`), and a request above `isize::MAX` is the fatal error "allocation too large" (exit 101).
 
@@ -238,7 +238,7 @@ Allocates a [coroutine](../007-runtime/708-coroutine.md) frame. **Thread-safety:
 
 ```
 extern "C" {
-    fn rok_coro_frame_alloc(size: usize, type_id: u32) -> Ptr<u8>;
+    fn rok_coro_frame_alloc(size: usize, type_id: u32) -> GcBuf<u8>;
 }
 ```
 
@@ -392,7 +392,7 @@ The lock-free Chase-Lev deque of the task scheduler ([7.6.2](../007-runtime/706-
 
 ```
 extern "C" {
-    fn rok_deque_new() -> Ptr<u8>;                                   // empty deque (GC object)
+    fn rok_deque_new() -> GcBuf<u8>;                                 // empty deque (GC object)
     unsafe fn rok_deque_push(d: Ptr<u8>, item: usize);               // owner: push at the end (GC reference)
     unsafe fn rok_deque_pop(d: Ptr<u8>, out: Ptr<u8>, index: usize) -> i32;    // owner: newest element into out[index], 1 if any
     unsafe fn rok_deque_steal(d: Ptr<u8>, out: Ptr<u8>, index: usize) -> i32;  // oldest element into out[index], 1 if any
@@ -485,9 +485,12 @@ Same as `rok_panic` but takes the message as a `str`. It prints no location and 
 
 ```
 extern "rok" {
-    fn rok_panic_at(msg: str, at: str) -> !;  // at = "path:line:col"
+    #[track_caller]
+    fn rok_panic_at(msg: str) -> !;
 }
 ```
+
+The declaration is `#[track_caller]` ([6.2.12](../006-meta-system/602-built-in-attributes.md#6212-track_caller-passing-the-call-site)), so the symbol takes the caller's location as a hidden trailing `str` argument (`"path:line:col"`): `rok_panic_at(msg, at)`.
 
 Prints in the format of [4.14.13](../004-functions/414-throws.md#41413-panics-and-fatal-errors) and exits with code `101`. Core's `panic` and compiler-generated panics (bounds checks, overflow, division by zero, etc.) call this symbol.
 
@@ -522,7 +525,7 @@ When a thread's stack overflows, the runtime flushes stdout (if possible), print
 thread '<name>' has overflowed its stack
 ```
 
-`<name>` is the thread name given with `thread::Builder::name` (also set as the OS thread name, [7. Runtime](../007-runtime/README.md#runtime-error-stack-overflow)). This covers the main thread (`rok_runtime_init`), `rok_thread_spawn` threads (including executor workers, and deep `await` chains), and C threads that called `rok_thread_init`. The runtime records the guard range below each thread's stack in the TLS slot `rok_tls_stack_guard` ([8.3.1](803-tls-slots.md#831-tls-slot-structure)) and installs an alternate signal stack (`sigaltstack`). Only SIGSEGV / SIGBUS within that range is reported as a stack overflow; other faults follow the default behavior.
+`<name>` is the thread name given with `thread::Builder::name` (also set as the OS thread name, [7. Runtime](../007-runtime/README.md#runtime-error-stack-overflow)). This covers the main thread (`rok_runtime_init`), `rok_thread_spawn` threads (including executor workers, and deep `await` chains), and C threads that called `rok_thread_init`. The runtime records the guard range below each thread's stack in the TLS slot `rok_tls_stack_guard` ([8.3.1](803-tls-slots.md#831-tls-slot-structure)) and installs an alternate signal stack (`sigaltstack`). Only SIGSEGV / SIGBUS within that range is reported as a stack overflow; other faults follow the default behavior. On wasm a module cannot catch the trap; the host reports it (the shipped JS host prints the message above).
 
 ## 8.5.8. Symbol naming conventions
 
@@ -602,6 +605,12 @@ extern "C" {
 
     // GC
     fn rok_gc_collect_young();                             // force a minor collection
+
+    // process exit
+    fn rok_set_exit_hook(hook: extern "C" fn(i32) | null);
+        // called with the exit status, on the ending thread, before a panic,
+        // uncaught error, exit or (Windows) stack overflow ends the process;
+        // the process ends when it returns
 }
 ```
 

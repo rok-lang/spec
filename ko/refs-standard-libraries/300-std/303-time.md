@@ -86,7 +86,7 @@ struct SystemTimeError {
 }
 ```
 
-`SystemTime` 은 `UNIX_EPOCH` 기준 `i64` 나노초이므로 표현 범위는 약 ±292 년입니다.
+`SystemTime` 은 `UNIX_EPOCH` 기준 `i64` 나노초이므로 표현 범위는 모든 타깃에서 약 ±292 년입니다. 32-bit 타깃도 64-bit 시간 인터페이스 (`time64`) 로 시계를 읽으므로 2038 한계가 없습니다.
 
 반면 `SystemTime` 의 성격은 사뭇 다릅니다. NTP 보정이나 사용자 변경에 의해 시간이 뒤로 갈 수도 있고, UNIX_EPOCH 를 기준으로 한 절대 시간이므로 **serialize 가 가능** 합니다. 그 덕분에 process 사이에서도 의미 있게 비교할 수 있습니다.
 
@@ -210,8 +210,8 @@ impl Duration {
 | 항목         | linux           | macos            | windows                 | wasi         |
 |--------------|-----------------|------------------|-------------------------|--------------|
 | `Instant`    | CLOCK_MONOTONIC | CLOCK_UPTIME_RAW | QueryPerformanceCounter | wasi clock   |
-| `SystemTime` | CLOCK_REALTIME  | CLOCK_REALTIME   | GetSystemTimeAsFileTime | wasi         |
-| `BootTime`   | CLOCK_BOOTTIME  | CLOCK_MONOTONIC (mach_continuous_time, sleep 포함) | (~ Instant) | (no suspend) |
+| `SystemTime` | CLOCK_REALTIME  | CLOCK_REALTIME   | GetSystemTimePreciseAsFileTime | wasi  |
+| `BootTime`   | CLOCK_BOOTTIME  | CLOCK_MONOTONIC (mach_continuous_time, sleep 포함) | QueryPerformanceCounter (~ Instant) | (no suspend) |
 
 ## 3.3.8. 정책 요약
 

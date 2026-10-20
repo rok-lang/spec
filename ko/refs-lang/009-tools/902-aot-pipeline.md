@@ -173,7 +173,7 @@ target/debug/foo.rhir
 foo.o + <deps>/lib*.a + <sysroot>/lib/librokr.a + target libc  →  target/debug/foo
 ```
 
-Mach-O 실행 파일은 macOS SDK (Xcode Command Line Tools) 에 대해 링크합니다. ELF 실행 파일은 toolchain 이 그 Linux 대상용으로 제공하는 libc 헤더와 stub 라이브러리 (musl 과 glibc 심볼 stub) 에 대해 링크하므로, `--target <linux triple>` 은 sysroot 없이 어느 host 에서나 동작합니다. `ROK_SYSROOT` 는 이것을 실제 sysroot 로 바꿉니다. 기본은 cross 대상이면 제공된 stub, native 빌드면 host 루트입니다. `ROK_CC` 가 설정되어 있으면 그 C 컴파일러 드라이버가 최종 링크를 대신합니다 (`$ROK_CC <objects> <archives> -o <out>`). 이것은 선택적인 대체입니다. 실행 파일은 dead-strip 됩니다: 참조되지 않는 함수와 데이터는 제거합니다. Apple 대상에서 `-g` 이면 내장 `dsymutil` (`rokc` 에 링크된 LLVM 의 것) 이 실행 파일 옆에 `.dSYM` bundle 을 씁니다.
+Mach-O 실행 파일은 macOS SDK (Xcode Command Line Tools) 에 대해 링크합니다. Windows 실행 파일은 `rokc` 가 함께 가진 module definition (mingw-w64 에서 유래) 으로 만든 import library 와, UCRT 위의 rok 자신의 startup 에 대해 링크합니다. MSVC 도구나 Windows SDK 는 필요 없습니다. x86 Windows 의 import 이름은 mingw-w64 의 `lib32` 정의에서 오며 stdcall `@N` 장식을 쓰고, image 는 `/SAFESEH:NO` 로 링크합니다. Linux 대상은 native 든 cross 든 언제나 `<sysroot>/lib/rok/targets/<triple>/` 에 제공된 C 라이브러리에 대해 링크합니다: musl 은 정적으로, glibc 는 link stub 을 통해 (실행 파일은 glibc 2.34 이상이 필요). 다른 라이브러리는 `-L` 과 `LIBRARY_PATH` 로 찾습니다. 32-bit glibc 타깃의 dynamic loader 는 `/lib/ld-linux.so.2` (i686) 와 `/lib/ld-linux-armhf.so.3` (armv7hf) 입니다. `ROK_CC` 가 설정되어 있으면 그 C 컴파일러 드라이버가 최종 링크를 대신합니다 (`$ROK_CC <objects> <archives> -o <out>`). 이것은 선택적인 대체입니다. 실행 파일은 dead-strip 됩니다: 참조되지 않는 함수와 데이터는 제거합니다. Apple 대상에서 `-g` 이면 내장 `dsymutil` (`rokc` 에 링크된 LLVM 의 것) 이 실행 파일 옆에 `.dSYM` bundle 을 씁니다.
 
 ## 9.2.15. 산출물
 
@@ -232,17 +232,18 @@ target/
 
 ## 9.2.18. 내장 toolchain
 
-`rokc` 는 자기 완결적입니다: MLIR 과 lld 를 포함한 LLVM 22.1.8 이 그 안에 들어 있으며, `PATH` 에서 찾지 않습니다. 외부 컴파일러, 어셈블러, 링커를 실행하지 않습니다. 크로스 컴파일은 내장되어 있습니다: toolchain 은 지원하는 Linux 대상의 libc 헤더와 stub 라이브러리를 함께 제공합니다.
+`rokc` 는 자기 완결적입니다: MLIR 과 lld 를 포함한 LLVM 22.1.8 이 그 안에 들어 있으며, `PATH` 에서 찾지 않습니다. 외부 컴파일러, 어셈블러, 링커를 실행하지 않습니다. 크로스 컴파일은 내장되어 있습니다: toolchain 은 지원하는 Linux 대상의 C 라이브러리 (musl, glibc link stub) 를 함께 제공합니다.
 
 | 시스템에서 필요한 것   | 대상                                     |
 |------------------------|------------------------------------------|
 | macOS SDK (Xcode Command Line Tools, 재배포 불가) | Apple 대상     |
-| 없음 (제공된 stub, 실제 sysroot 는 `ROK_SYSROOT`) | Linux 대상    |
+| 없음 (제공된 C 라이브러리) | Linux 대상                      |
+| 없음 (제공된 module definition 으로 만든 import library, UCRT) | Windows 대상 |
 | `ROK_CC` (선택)        | 최종 링크를 대체 (9.2.14)                |
 
 ## 9.2.19. 설치 레이아웃
 
-설치 레이아웃은 rustup / cargo 식입니다. `ROK_HOME` 의 기본값은 `~/.rok` 입니다.
+설치 레이아웃은 rustup / cargo 식입니다. `ROK_HOME` 의 기본값은 `~/.rok` (Windows 에서는 `%USERPROFILE%\.rok`) 입니다.
 
 ```
 $ROK_HOME/
@@ -255,6 +256,7 @@ $ROK_HOME/
 │       ├── bin/{rok, rokc, rokls}
 │       └── lib/
 │           ├── librokr.a        # 런타임
+│           ├── rok/targets/<triple>/   # --target 이 링크하는 것: 런타임 (librokr.a / rokr.lib), Linux C 라이브러리
 │           └── rok/{core, std, bare}/   # 표준 라이브러리 소스
 ├── cache/                       # git, registry, 스크립트 lock (9.10.4)
 ├── envs/<name>/, envs/CURRENT   # 이름 있는 환경 (9.10.5)

@@ -198,11 +198,11 @@ In addition to `-v`, prints a `Reading <file>` line for each file processed and 
 
 ### DWARF debug information
 
-`rokc build -g` or `--debug` (synonyms, unrelated to the profile name `debug`) emits DWARF debug information with the following properties.
+`rokc build -g` or `--debug` (synonyms, unrelated to the profile name `debug`) emits DWARF debug information with the following properties. For Windows targets it emits CodeView in a PDB instead, carrying the same information.
 
 - A function's `DW_AT_name` is its rok path (`geom::distance`); no linkage name (mangled symbol) is emitted, because debuggers do not understand `_Y` mangling.
 - Line numbers refer to lines of the original .rok file.
-- Local variables appear with their original names and types. Besides primitive types (integers, floating-point, `bool`, `char`), DWARF types are emitted for structs (field names), tuples, `str`, `any`, sum types and arrays.
+- Local variables appear with their original names and types. Besides primitive types (integers, floating-point, `bool`, `char`), DWARF types are emitted for structs (field names), tuples, `str`, `any`, sum types and arrays. A sum type or enum is described as its tag and a union of its variants' payloads, named by variant; a `GcBuf<T>` reference as a pointer to its object (header, then the `T` elements). Functions the compiler makes (the C `main`, static initializer guards) have subprograms too.
 - A lexical block scope is emitted for each block, so shadowed names are visible only inside their block.
 - Locals with stack slots are placed in a single `llvm.alloca` in both debug and release, so `-g` attaches debug info to the same slot regardless of optimization level.
 

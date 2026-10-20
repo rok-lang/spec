@@ -145,7 +145,7 @@ trait Ord: Eq {
 }
 ```
 
-Supertraits are written after `:`. So implementing `Ord` requires also implementing `Eq`. Several supertraits are joined with `+`, as in `trait Foo: Bar + Baz`.
+Supertraits are written after `:`. So implementing `Ord` requires also implementing `Eq`. Several supertraits are joined with `+`, as in `trait Foo: Bar + Baz`. A generic impl must give its target the supertraits for every instantiation its bounds allow; this is checked at the impl.
 
 ## 2.8.5. Generic traits
 

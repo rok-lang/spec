@@ -173,7 +173,7 @@ An executable is linked by the embedded lld:
 foo.o + <deps>/lib*.a + <sysroot>/lib/librokr.a + target libc  →  target/debug/foo
 ```
 
-A Mach-O executable links against the macOS SDK (Xcode Command Line Tools). An ELF executable links against the libc headers and stub libraries the toolchain ships for that Linux target (musl and glibc symbol stubs), so `--target <linux triple>` works from any host with no sysroot. `ROK_SYSROOT` overrides them with a real sysroot; the default is the shipped stubs for cross targets and the host root for native builds. If `ROK_CC` is set, that C compiler driver performs the final link instead (`$ROK_CC <objects> <archives> -o <out>`); this is an optional override. Executables are dead-stripped: unreferenced functions and data are removed. With `-g` on Apple targets, the embedded `dsymutil` (LLVM's, linked into `rokc`) writes a `.dSYM` bundle next to the executable.
+A Mach-O executable links against the macOS SDK (Xcode Command Line Tools). A Windows executable links against import libraries `rokc` builds from module definitions it carries (derived from mingw-w64), with rok's own startup over the UCRT; no MSVC tools or Windows SDK are needed. For x86 Windows the import names come from mingw-w64's `lib32` definitions, with stdcall `@N` decoration, and images link with `/SAFESEH:NO`. Linux targets, native or cross, always link the shipped C library in `<sysroot>/lib/rok/targets/<triple>/`: musl statically, glibc through link stubs (executables need glibc 2.34 or later). Other libraries are found through `-L` and `LIBRARY_PATH`. The dynamic loaders named for 32-bit glibc targets are `/lib/ld-linux.so.2` (i686) and `/lib/ld-linux-armhf.so.3` (armv7hf). If `ROK_CC` is set, that C compiler driver performs the final link instead (`$ROK_CC <objects> <archives> -o <out>`); this is an optional override. Executables are dead-stripped: unreferenced functions and data are removed. With `-g` on Apple targets, the embedded `dsymutil` (LLVM's, linked into `rokc`) writes a `.dSYM` bundle next to the executable.
 
 ## 9.2.15. Output
 
@@ -232,17 +232,18 @@ This separation lets `rokc` and `librokr.a` evolve under independent SemVer.
 
 ## 9.2.18. Embedded toolchain
 
-`rokc` is self-contained: LLVM 22.1.8 with MLIR and lld is built into it, not looked up on `PATH`. It runs no external compiler, assembler or linker. Cross-compilation is built in: the toolchain ships libc headers and stub libraries for its supported Linux targets.
+`rokc` is self-contained: LLVM 22.1.8 with MLIR and lld is built into it, not looked up on `PATH`. It runs no external compiler, assembler or linker. Cross-compilation is built in: the toolchain ships the C library (musl, glibc link stubs) for its supported Linux targets.
 
 | Needed from the system | Target                                   |
 |------------------------|------------------------------------------|
 | macOS SDK (Xcode Command Line Tools; not redistributable) | Apple targets |
-| nothing (shipped stubs; `ROK_SYSROOT` for a real sysroot) | Linux targets |
+| nothing (shipped C library) | Linux targets                   |
+| nothing (import libraries built from shipped module definitions; UCRT) | Windows targets |
 | `ROK_CC` (optional)    | Overrides the final link (9.2.14)        |
 
 ## 9.2.19. Installation layout
 
-The installation layout follows rustup / cargo. The default of `ROK_HOME` is `~/.rok`.
+The installation layout follows rustup / cargo. The default of `ROK_HOME` is `~/.rok` (`%USERPROFILE%\.rok` on Windows).
 
 ```
 $ROK_HOME/
@@ -255,6 +256,7 @@ $ROK_HOME/
 │       ├── bin/{rok, rokc, rokls}
 │       └── lib/
 │           ├── librokr.a        # runtime
+│           ├── rok/targets/<triple>/   # what --target links: the runtime (librokr.a / rokr.lib), Linux C library
 │           └── rok/{core, std, bare}/   # standard library sources
 ├── cache/                       # git, registry, script locks (9.10.4)
 ├── envs/<name>/, envs/CURRENT   # named environments (9.10.5)

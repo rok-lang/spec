@@ -145,6 +145,8 @@ impl RawPath {
 }
 ```
 
+On Windows, `NonUtf8Error.valid_up_to` counts UTF-16 units.
+
 Most code never encounters this type. It appears only where code exchanges syscalls directly with the OS.
 
 ## 3.8.6. canonicalize vs. normalize

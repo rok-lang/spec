@@ -122,11 +122,11 @@ try thread::spawn(|| {
 
 플랫폼별 지원 현황은 다음과 같이 정리됩니다.
 
-| 항목            | linux/macos/windows   | wasi                      |
-|-----------------|-----------------------|---------------------------|
-| `spawn`         | ✓                     | ✓ (wasi-threads, partial) |
-| `Builder`       | ✓                     | partial                   |
-| `local`         | ✓                     | partial                   |
-| `park`/`unpark` | futex / WaitOnAddress | partial                   |
+| 항목            | linux/macos/windows   | wasm32-wasi               | wasm32-wasi-threads |
+|-----------------|-----------------------|---------------------------|---------------------|
+| `spawn`         | ✓                     | `Unsupported` 를 throw    | ✓ (wasi-threads)    |
+| `Builder`       | ✓                     | `Unsupported` 를 throw    | partial             |
+| `local`         | ✓                     | ✓ (스레드 하나)           | partial             |
+| `park`/`unpark` | futex / WaitOnAddress | ✗                         | partial             |
 
-데스크톱 계열 OS 에서는 일관된 동작을 보장하지만, wasi 는 thread proposal 의 진전에 맞춰 점진적으로 채워질 영역입니다.
+데스크톱 계열 OS 에서는 일관된 동작을 보장합니다. `wasm32-wasi` 에는 스레드가 없고, `wasm32-wasi-threads` 의 나머지는 thread proposal 의 진전에 맞춰 채워질 영역입니다.

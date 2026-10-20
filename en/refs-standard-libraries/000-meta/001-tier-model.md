@@ -97,7 +97,9 @@ not need to add them to dependency declarations (see [0.5.4 Distribution form an
 including wasm32. `rok::std`, by contrast, has availability that varies by target. For example,
 `rok::std::thread` is not supported on wasm32, because the browser environment runs main thread
 only. `rok::std::fs` is likewise unavailable on wasm32-unknown-unknown and is provided only on
-wasm32-wasi. Such availability is stated in the availability section of each `rok::std::*` module spec.
+the WASI targets (`wasm32-wasi`, `wasm32-wasi-threads`). Such availability is stated in the availability section of each `rok::std::*` module spec.
+The API still builds on every target: an operation a target lacks fails at run time with
+`IoErrorKind::Unsupported`. In the browser, stdout / stderr go to the host console and stdin is at EOF.
 
 ## 0.1.5. Evolution policy
 

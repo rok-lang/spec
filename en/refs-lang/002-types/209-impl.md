@@ -76,6 +76,8 @@ impl Circle {
 let r = Circle::UNIT;
 ```
 
+An `impl` target or trait argument may be a projection (`<T as Tr>::X`) or name an item declared later; it is resolved after all items are registered.
+
 ## 2.9.2. The `self` convention for methods
 
 For a function in the body to be an instance method, its first parameter must be `self` (or `ref self`).

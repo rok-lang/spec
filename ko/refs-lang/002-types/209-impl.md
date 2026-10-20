@@ -76,6 +76,8 @@ impl Circle {
 let r = Circle::UNIT;
 ```
 
+`impl` 의 대상이나 트레잇 인자는 projection (`<T as Tr>::X`) 이거나 뒤에 선언된 항목을 가리켜도 됩니다. 이것은 모든 항목을 등록한 뒤에 해소합니다.
+
 ## 2.9.2. 메서드의 `self` 관례
 
 본체의 함수가 인스턴스 메서드가 되려면 첫 매개변수가 `self` (또는 `ref self`) 여야 합니다.

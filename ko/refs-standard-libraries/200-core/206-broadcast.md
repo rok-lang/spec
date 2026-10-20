@@ -169,7 +169,7 @@ let m = 2 .* a;          //→ [2, 4, 6]
 let t = a ./ 2;          //→ [0, 1, 1]    (i32 truncate)
 ```
 
-이 경우 `DotAdd<i32> for List<i32>` 가 별도로 impl 되어 있어 Rhs 가 scalar 로 처리됩니다.
+이 경우 별도의 impl (`DotAdd<T> for List<T>`, 그리고 scalar 가 왼쪽인 형태의 `DotAdd<List<T>> for T`) 이 scalar 쪽을 처리합니다. 고정 배열 `[T; N]` 에는 scalar 가 왼쪽인 impl 이 없습니다.
 
 ### 비교 dot — `Container<bool>` 반환
 
@@ -254,15 +254,15 @@ let m = max.(a, b);                  //→ [10.0, 20.0, 30.0]
 
 `List`, `Slice`, 배열인 인자는 함께 순회하고, 그 밖의 인자는 매 호출에 그대로 넘깁니다 (`pow.(xs, 2.0)`). 순회하는 인자는 길이가 같아야 하며 런타임에 검사합니다. 인자 개수에는 **제한이 없어** 임의의 N-ary 함수까지 적용할 수 있습니다.
 
-## 2.6.6. loop fusion — MLIR linalg.generic
+## 2.6.6. loop fusion
 
-연속해서 등장하는 dot 연산은 컴파일러가 단일 kernel 로 합쳐 줍니다.
+연속해서 등장하는 dot 연산은 컴파일러가 단일 loop 로 합쳐 줍니다.
 
 ```rok
 let result = sin.(a) .+ cos.(b) .* 2.0;
 ```
 
-이때 일반적인 lowering 이라면 3 개의 임시 List 할당과 3회의 loop 가 필요하지만, rok 의 lowering 에서는 단일 `linalg.generic` op 로 변환되어 단일 loop 가 되고 임시 할당은 0 개가 됩니다. 또한 SIMD 나 GPU 백엔드도 자동으로 활용됩니다.
+일반적인 lowering 이라면 3 개의 임시 List 할당과 3회의 loop 가 필요합니다. rok 은 중간 컬렉션 없는 단일 loop 를 보장하며, 그 방법 (예: `linalg.generic` op) 은 컴파일러가 고릅니다.
 
 ```rok
 // 개념적으로는 다음과 같은 단일 elementwise 호출과 같습니다.
@@ -279,9 +279,9 @@ let result = elementwise(a, b, |x, y| sin(x) + cos(y) * 2.0);
 | `[T; N]` (고정)  | T:Add    | T:Mul    | T:PartialEq | 고정 N — 컴파일 타임                    |
 | `Slice<T>`       | T:Add    | T:Mul    | T:PartialEq | view — element-wise                     |
 | `i32`/`f64`/etc. | **없음** | **없음** | **없음**    | 스칼라끼리는 일반 `+`/`*`/`==` 사용     |
-| `T \| none`       | T:DotAdd | T:DotMul | T:DotEq     | option propagation (`none .+ x = none`) |
+| `T \| none`       | (연산자) | (연산자) | (연산자)    | option propagation (`none .+ x = none`) |
 
-`T | none` 의 dot 의미는 option propagation 입니다. 즉 어느 한쪽이 `none` 이면 결과도 `none` 으로 전파됩니다.
+`T | none` 의 dot 의미는 option propagation 입니다. 즉 어느 한쪽이 `none` 이면 결과도 `none` 으로 전파됩니다. 이것은 라이브러리 impl 없이 연산자 수준에서 처리합니다.
 
 `Matrix<T>` / `Tensor<T>` 같은 수치 컨테이너는 외부 라이브러리에서 정의되며, 그곳에서 동일한 dot 트레잇을 직접 구현하여 NumPy 식 broadcasting 규칙을 따르도록 되어 있습니다.
 

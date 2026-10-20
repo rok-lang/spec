@@ -35,7 +35,8 @@ Each OS and architecture has its own TLS access mechanism.
 | Linux aarch64  | `tpidr_el0`                           |
 | macOS x86_64   | `%gs:offset`                          |
 | Windows x86_64 | TEB (Thread Environment Block) offset |
-| WASM           | `__tls_base` global + offset          |
+| `wasm32-wasi-threads` | `__tls_base` global + offset   |
+| other WASM (no threads) | each slot is a plain global  |
 
 The compiler emits the appropriate instructions per target; LLVM's `__thread` and TLS models handle this automatically.
 
@@ -43,7 +44,7 @@ The compiler emits the appropriate instructions per target; LLVM's `__thread` an
 
 ### `rok_tls_yield_flag` (u8)
 
-A flag the [GC](../000-meta/007-glossary.md#gc-garbage-collector) sets for a safepoint; mutators check it when polling. `0` means normal execution; `1` means the mutator must `yield`, and it calls `rok_runtime_yield` at the next poll.
+A flag the [GC](../000-meta/007-glossary.md#gc-garbage-collector) sets for a safepoint; mutators check it when polling. Bit 0 is the runtime's stop request, raised and cleared by the runtime; other bits belong to the embedding host (e.g. the REPL's interrupt) and are left alone by the runtime. A poll calls `rok_runtime_yield` whenever the flag is nonzero.
 
 The detailed mechanism is defined under Safepoint Polling in [Barriers and roots](../007-runtime/704-barriers-and-roots.md).
 

@@ -35,7 +35,8 @@ TLS 슬롯은 하나의 블록이 아니라, 슬롯마다 런타임이 export �
 | Linux aarch64  | `tpidr_el0`                           |
 | macOS x86_64   | `%gs:offset`                          |
 | Windows x86_64 | TEB (Thread Environment Block) offset |
-| WASM           | `__tls_base` global + offset          |
+| `wasm32-wasi-threads` | `__tls_base` global + offset   |
+| 그 밖의 WASM (스레드 없음) | 슬롯마다 일반 global       |
 
 컴파일러는 타깃별로 적절한 명령어를 emit 하게 되며, LLVM 의 `__thread` 와 TLS 모델이 이를 자동으로 처리합니다.
 
@@ -43,7 +44,7 @@ TLS 슬롯은 하나의 블록이 아니라, 슬롯마다 런타임이 export �
 
 ### `rok_tls_yield_flag` (u8)
 
-[GC](../000-meta/007-glossary.md#gc-garbage-collector) 가 safepoint 시점에 set 하는 플래그이며, mutator 는 poll 단계에서 이를 검사합니다. 값이 `0` 이면 정상 실행 상태이고, `1` 이면 `yield` 해야 하는 상태로서 다음 poll 에서 `rok_runtime_yield` 를 호출합니다.
+[GC](../000-meta/007-glossary.md#gc-garbage-collector) 가 safepoint 시점에 set 하는 플래그이며, mutator 는 poll 단계에서 이를 검사합니다. bit 0 은 런타임의 정지 요청이며 런타임이 올리고 내립니다. 그 밖의 bit 는 embedding host (예: REPL 의 인터럽트) 의 것이며 런타임은 건드리지 않습니다. poll 은 플래그가 0 이 아니면 언제나 `rok_runtime_yield` 를 호출합니다.
 
 자세한 메커니즘은 [배리어와 루트](../007-runtime/704-barriers-and-roots.md) 의 Safepoint Polling 항목에서 정의합니다.
 

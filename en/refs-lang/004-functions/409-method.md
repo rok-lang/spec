@@ -177,7 +177,7 @@ impl<T> List<T> {
 }
 ```
 
-A method's own generics follow the function name (`fn map<U>(...)`).
+A method's own generics follow the function name (`fn map<U>(...)`). In a trait `impl`, a method parameter without a type takes the type the trait declares at that position (trait parameters and associated types substituted), not an implicit type parameter.
 
 ## 4.9.10. Summary of `self` in methods
 

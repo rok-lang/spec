@@ -131,7 +131,7 @@ This is the type of a function that accepts any type and can return any type. No
 
 ## 4.4.8. Types of divergent functions
 
-The type of a divergent function, covered in [Return](403-return.md), writes `!` in the return type position (`fn() -> !`). A `fn(A) -> !` value may be used in any `fn(A) -> R` position with the same parameters.
+The type of a divergent function, covered in [Return](403-return.md), writes `!` in the return type position (`fn() -> !`). A `fn(A) -> !` value may be used in any `fn(A) -> R` position with the same parameters, and a throwing `fn(A) throws (E) -> !` fits `fn(A) throws (E) -> R`.
 
 ```rok
 let f: fn() -> i32 = || panic("never");     // fn() -> ! value → fn() -> i32 position

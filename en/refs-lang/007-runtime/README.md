@@ -62,7 +62,7 @@ When a thread's stack overflows, the runtime flushes stdout (if possible), print
 thread '<name>' has overflowed its stack
 ```
 
-`<name>` is the thread's name: the name given with `thread::Builder::name` ([stdlib 3.4](../../refs-standard-libraries/300-std/304-thread.md)), which is also set as the OS thread name. The main thread is `main`, and an unnamed thread is `<unnamed>`. This applies to the main thread, `thread::spawn` threads, and executor workers (including deep `await` chains). The detection mechanism (guard range and `sigaltstack`) and TLS slots are in [8.5.7](../008-abi/805-extern-symbols.md#stack-overflow).
+`<name>` is the thread's name: the name given with `thread::Builder::name` ([stdlib 3.4](../../refs-standard-libraries/300-std/304-thread.md)), which is also set as the OS thread name. The main thread is `main`, and an unnamed thread is `<unnamed>`. This applies to the main thread, `thread::spawn` threads, and executor workers (including deep `await` chains). The detection mechanism (guard range and `sigaltstack`) and TLS slots are in [8.5.7](../008-abi/805-extern-symbols.md#stack-overflow). On wasm a module cannot catch the trap; the host reports it (the shipped JS host prints the message above).
 
 ## Interface with the compiler
 

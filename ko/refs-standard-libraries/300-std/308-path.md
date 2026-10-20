@@ -145,6 +145,8 @@ impl RawPath {
 }
 ```
 
+Windows 에서 `NonUtf8Error.valid_up_to` 는 UTF-16 단위를 셉니다.
+
 대부분의 코드는 이 타입을 마주칠 일이 없습니다. OS 와 직접 syscall 을 주고받는 자리에서만 등장한다고 보면 됩니다.
 
 ## 3.8.6. canonicalize / normalize 차이

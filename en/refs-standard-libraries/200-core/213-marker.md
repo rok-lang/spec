@@ -205,7 +205,7 @@ f.drop();                    // ERROR — calling Drop::drop directly is forbidd
 
 To close a resource early, expose a separate method such as `File::close()`.
 
-The only exception is unsafe code inside `rok::bare`. For example, `unsafe fn drop_in_place` ([1.3 mem](../100-bare/103-mem.md)) is a function for manual memory management and may run `Drop::drop`.
+The only exception is unsafe code inside `rok::bare`. For example, `unsafe fn drop_in_place` ([1.3 mem](../100-bare/103-mem.md)) is a function for manual memory management. It runs the drop glue: the type's own `drop`, then its fields' in reverse declaration order, as above.
 
 Also, `drop` has no `throws` signature, so its body cannot throw an error. A panic inside `drop` ends the process like any other panic.
 

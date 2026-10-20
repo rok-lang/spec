@@ -49,7 +49,7 @@ async fn fetch_user(id: i64) -> User {
 }
 ```
 
-본체 안에서는 `await` 로 다른 비동기 결과를 기다릴 수 있으며, `-> R` 자리는 완료 시 산출되는 값의 타입을 가리킵니다. 호출 결과는 `AsyncFuture<R>`입니다.
+본체 안에서는 `await` 로 다른 비동기 결과를 기다릴 수 있으며, `-> R` 자리는 완료 시 산출되는 값의 타입을 가리킵니다. 호출 결과는 `AsyncFuture<R>`입니다. `-> R` 은 생략할 수 있으며, 그러면 `R` 은 [4.1.3](401-function-declaration.md#413-반환-타입-생략) 처럼 본체에서 추론합니다.
 
 ```rok
 let f = fetch_user(42i64);        // f: `AsyncFuture<User>`

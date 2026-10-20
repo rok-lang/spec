@@ -20,6 +20,8 @@
 > [!IMPORTANT]
 > 총 헤더 크기는 16 바이트이고 8 바이트로 정렬되며, 32-bit 와 64-bit 타깃에서 모두 동일합니다.
 
+모든 객체는 최소 24 바이트입니다 (헤더와 payload word 하나, `gc_abi` 의 `MIN_OBJECT_SIZE`). 그래서 컴파일된 코드는 참조를 가진 어떤 객체든 첫 payload word 를 load 할 수 있습니다.
+
 ## 8.1.2. `type_id` (offset 0, u32, little-endian)
 
 `type_id` 는 타입의 고유 식별자입니다. 32 비트 unsigned 값으로 little-endian 방식으로 저장되며, 값 `0` 은 예약되어 null type 또는 잘못된 객체를 표시하는 용도로 사용됩니다. 컴파일러는 프로세스 시작 시 `rok_gc_register_type` 을 호출하여 각 type_id 를 등록해 둡니다.

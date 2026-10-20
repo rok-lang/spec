@@ -74,7 +74,7 @@ Options:
 - `--name <n>` sets the package name (naming rules of [9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)). The outputs are `lib<n>.a` / `<n>.rhir` and the mount name is the name with `-` replaced by `_`. The default is the directory name. `--extern a-b=..` is likewise bound as `a_b`.
 - `--bootstrap <file>` gives a standard library root to preload (may be repeated); `--rokr <lib>` gives the runtime to link. The defaults are the sysroot's `lib/rok/{core,std,bare}/lib.rok` and `lib/librokr.a` ([9.2.19](902-aot-pipeline.md#9219-installation-layout)). If not found, it is an error that lists the paths searched.
 - `-O0` / `-O1` / `-O2` / `-O3` / `-Os` select the optimization level explicitly. `-O0` uses the native backend, the others the MLIR → LLVM backend ([9.2.10](902-aot-pipeline.md#9210-backend-selection)).
-- `--target=<triple>` selects the target platform, one of the 13 Tier 1 targets in [Platform targets](../000-meta/006-platform-targets.md). Any target can be built from any host ([0.2.4](../000-meta/002-pipeline.md#024-backends)).
+- `--target=<triple>` selects the target platform, one of the 14 Tier 1 targets in [Platform targets](../000-meta/006-platform-targets.md). Any target can be built from any host ([0.2.4](../000-meta/002-pipeline.md#024-backends)).
 - `-L <dir>` adds a library search directory for `#[link]` ([5.9.9](../005-modules/509-extern-block.md#599-linklibname-naming-the-library)), searched before `LIBRARY_PATH`. May be repeated.
 - `-o` / `--out=<path>` selects the output location.
 - `--cfg <flag>` / `--cfg <key>=<value>` sets a cfg flag for [conditional compilation](../006-meta-system/603-cfg.md). May be repeated.
@@ -83,6 +83,7 @@ Options:
 - `-g` / `--debug` emits DWARF debug information ([9.9](909-debug-tools.md#dwarf-debug-information)).
 - `-C overflow-checks[=yes|no]` turns overflow checks (panic) for fixed-width integer arithmetic on or off. The default is on only at `-O0`. An omitted value means `yes`. Operations on constant operands that cannot overflow skip the check.
 - `-C backend=native|llvm` overrides the backend the optimization level selects ([9.2.10](902-aot-pipeline.md#9210-backend-selection)).
+- `-C subsystem=console|windows` selects the Windows subsystem: `console` (default, `mainCRTStartup`) or `windows` (GUI, `WinMainCRTStartup`; [9.5.9](905-symbol-mangling.md#959-symbol-of-the-main-function)).
 
 If nothing has changed since the previous build, `rokc build` / `rokc run` print `Fresh` and skip the build ([9.2.16](902-aot-pipeline.md#9216-incremental-build)).
 
@@ -396,7 +397,6 @@ The environment variables that affect `rokc` are:
 | Variable          | Meaning                                                                                  |
 |-------------------|------------------------------------------------------------------------------------------|
 | `ROK_CC`          | Optional C compiler driver that performs the final link instead of the embedded lld ([9.2.14](902-aot-pipeline.md#9214-linking-for-executables)) |
-| `ROK_SYSROOT`     | Real sysroot for ELF links instead of the shipped libc stubs ([9.2.14](902-aot-pipeline.md#9214-linking-for-executables)) |
 | `ROK_BACKEND`     | `native` or `llvm`; same as `-C backend=` |
 | `ROKC_VERBOSE`    | Equivalent to `--verbose`                                                                |
 | `ROK_TIME_PASSES` | Per-pass wall time on stderr when `1` ([9.9.5](909-debug-tools.md#rok_time_passes)) |

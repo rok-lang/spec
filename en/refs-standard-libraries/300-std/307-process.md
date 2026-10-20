@@ -169,6 +169,8 @@ struct SignalError {
 
 A `signal` handler does not run in signal context (inside a signal handler). The runtime receives the signal and hands it to a dedicated dispatcher thread `rok-signal`, where the handler runs like an ordinary function. The handler must therefore be `Send`, and it may allocate or take locks. Calling `signal` again for the same signal replaces the handler. `Command::process_group(pgid)` puts the child in that process group (`0` means a new group with the child's pid).
 
+On Windows, console events map to signal numbers: Ctrl-C → 2, Ctrl-Break → 21, console close / logoff / shutdown → 1. `kill` and `signal` sent to a child call `TerminateProcess`.
+
 Most users never need to touch this. These tools become necessary only where signals must be faced head-on, such as daemons, servers and interactive CLIs.
 
 ## 3.7.6. Platform availability

@@ -10,12 +10,15 @@
 |-----------------------|-------------------------------------|
 | Linux                 | epoll (`EPOLLET`, edge-triggered)   |
 | BSD (FreeBSD / macOS) | kqueue (`EV_CLEAR`, edge-triggered) |
-| Windows               | IOCP (completion port 대기)          |
-| WASI                  | `poll_oneoff`                       |
+| Windows               | IOCP + AFD poll (readiness 흉내)     |
+| WASI (`wasm32-wasi`)  | `wasi:io/poll`                      |
+| WASI (`wasm32-wasi-threads`) | `poll_oneoff`                |
 
 빌드 시점에 타깃에 맞는 driver 가 컴파일되며, 이는 [조건부 컴파일](../006-meta-system/603-cfg.md) 의 `target_os` 분기를 통해 이루어집니다.
 
 reactor thread 는 첫 async I/O 대기 때 시작합니다.
+
+`wasm32-wasi` (preview 2 component) 에서는 드라이버가 `wasi:io/poll` 입니다. `wasm32-wasi-threads` (preview 1) 에서는 `poll_oneoff` 가 host 가 넘긴 소켓을 지켜봅니다.
 
 ## 7.7.2. I/O 대기 패턴
 

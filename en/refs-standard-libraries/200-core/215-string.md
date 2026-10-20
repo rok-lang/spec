@@ -88,6 +88,8 @@ impl str {
 }
 ```
 
+`as_ptr` returns a pointer that stays valid while the `str` is held in a live local. A string reachable only through another object may be moved by the GC; it is not pinned ([stdlib 1.6](../100-bare/106-gc-pin.md)).
+
 ### `StrBuf` — mutable buffer
 
 Use `StrBuf` to build a string piece by piece.

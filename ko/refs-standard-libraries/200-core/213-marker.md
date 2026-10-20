@@ -205,7 +205,7 @@ f.drop();                    // ERROR — Drop::drop 직접 호출 금지
 
 따라서 조기에 자원을 닫고 싶다면 `File::close()` 처럼 별도의 메서드를 노출하는 쪽이 옳습니다.
 
-예외는 `rok::bare` 안의 unsafe 코드뿐입니다. 예를 들어 `unsafe fn drop_in_place` ([1.3 mem](../100-bare/103-mem.md)) 는 수동 메모리 관리를 위한 함수이며 `Drop::drop` 을 실행할 수 있습니다.
+예외는 `rok::bare` 안의 unsafe 코드뿐입니다. 예를 들어 `unsafe fn drop_in_place` ([1.3 mem](../100-bare/103-mem.md)) 는 수동 메모리 관리를 위한 함수입니다. drop glue 를 실행합니다: 위와 같이 그 타입 자신의 `drop`, 그 다음 필드들의 `drop` 을 선언 역순으로.
 
 또한 `drop` 은 `throws` 시그니처를 갖지 않으므로 본문에서 에러를 던질 수 없습니다. `drop` 안에서 panic 이 일어나면 다른 panic 과 마찬가지로 프로세스가 종료됩니다.
 

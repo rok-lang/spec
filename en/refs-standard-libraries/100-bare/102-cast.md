@@ -105,15 +105,13 @@ It is exactly isomorphic to C's `const_cast<T*>`. Its use is limited to temporar
 ```rok
 trait Pod { /* marker — Plain Old Data */ }
 
-fn reinterpret<A: Pod, B: Pod>(a: A) -> B
-where
-    sizeof::<A>() == sizeof::<B>();
+fn reinterpret<A: Pod, B: Pod>(a: A) -> B;
 ```
 
 For types with the `Pod` (Plain Old Data) marker, **safe transmute** is guaranteed, because:
 
 - Every bit pattern of a `Pod` type is valid, so uninit can never be exposed.
-- Conversion is allowed only between equal sizes.
+- Conversion is allowed only between equal sizes. A `where size_of` bound has no compile-time form, so the size condition is checked when `reinterpret` runs (a mismatch panics).
 - It is a value conversion, so alignment is naturally guaranteed.
 
 ```rok

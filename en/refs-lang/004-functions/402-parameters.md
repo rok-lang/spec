@@ -18,7 +18,7 @@ Each parameter is written as ` name: type`, separated by commas. Parameter names
 
 ## 4.2.2. Omitting the type
 
-A parameter without a type is treated as generic. See the monomorphization rules of [generics](../002-types/210-generics.md) for details.
+A parameter without a type is treated as generic. See the monomorphization rules of [generics](../002-types/210-generics.md) for details. In a trait `impl`, a method parameter without a type takes the type the trait declares at that position (trait parameters and associated types substituted), not an implicit type parameter.
 
 ```rok
 fn id(x) { x }                                   // x is generic — monomorphized at call
@@ -132,7 +132,7 @@ The following rules apply to spread:
 
 - A tuple spread has its length and types checked at compile time.
 - A `List` / `Slice` spread into fixed parameters fills the slots up to the next argument, with a run-time length check. An array spread fills its length.
-- A Dict spread is converted to named arguments.
+- A Dict spread is converted to named arguments. Each key must name a parameter not filled otherwise (checked at run time), and its value must have that parameter's type.
 - In a variadic position, tuple, `List`, `Slice` and array spreads may be mixed with ordinary arguments (`f(a, ..xs, b)`). A variadic parameter may be passed as-is to another variadic (`fn f(xs: ...i32) { g(..xs) }`).
 - Spreading a non-collection value is an error ("needs a tuple, a List, a Slice or an array").
 - Calling a variadic whose element type `T` is an open generic with no arguments cannot determine `T`, so a type annotation is required.
@@ -140,8 +140,9 @@ The following rules apply to spread:
 - In a `List` literal, `..x` spreads a tuple, array, `List` or `Slice` (`[0, ..xs, 9]`); otherwise it is a range.
 
 ```rok
-let opts = {"lr": 0.01, "epochs": 100};
-train(..opts);                  // train(lr: 0.01, epochs: 100)
+// fn train(lr: f64, momentum: f64, epochs: i32 = 10)
+let opts = {"lr": 0.01, "momentum": 0.9};   // Dict<str, f64>
+train(..opts);                  // train(lr: 0.01, momentum: 0.9)
 ```
 
 Spreads and ordinary arguments may also be freely mixed within one call.

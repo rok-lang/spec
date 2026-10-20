@@ -62,7 +62,7 @@ OS Thread (worker) x N  ──── rok task / coroutine x M
 thread '<name>' has overflowed its stack
 ```
 
-`<name>` 은 그 스레드의 이름입니다. `thread::Builder::name` ([stdlib 3.4](../../refs-standard-libraries/300-std/304-thread.md)) 으로 준 이름이며, 그 이름은 OS 스레드 이름으로도 설정됩니다. main 스레드는 `main`, 이름이 없는 스레드는 `<unnamed>` 입니다. main 스레드, `thread::spawn` 스레드, executor worker (깊은 `await` 사슬 포함) 가 모두 대상입니다. 검출 방식 (guard 범위와 `sigaltstack`) 과 TLS 슬롯은 [8.5.7](../008-abi/805-extern-symbols.md#스택-오버플로) 에 있습니다.
+`<name>` 은 그 스레드의 이름입니다. `thread::Builder::name` ([stdlib 3.4](../../refs-standard-libraries/300-std/304-thread.md)) 으로 준 이름이며, 그 이름은 OS 스레드 이름으로도 설정됩니다. main 스레드는 `main`, 이름이 없는 스레드는 `<unnamed>` 입니다. main 스레드, `thread::spawn` 스레드, executor worker (깊은 `await` 사슬 포함) 가 모두 대상입니다. 검출 방식 (guard 범위와 `sigaltstack`) 과 TLS 슬롯은 [8.5.7](../008-abi/805-extern-symbols.md#스택-오버플로) 에 있습니다. wasm 에서는 모듈이 trap 을 잡을 수 없으며 host 가 보고합니다 (함께 제공되는 JS host 는 위 메시지를 출력).
 
 ## 컴파일러와의 인터페이스
 

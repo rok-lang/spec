@@ -84,10 +84,11 @@ All compound assignment tokens of [punctuation and operator tokens](../001-lexic
 
 ### Desugaring and lvalue evaluation
 
-Compound assignment desugars as follows.
+Compound assignment desugars as follows. If the type implements the `OpAssign` trait, `a += b` calls it; otherwise it is `a = a + b` ([stdlib 2.4.1](../../refs-standard-libraries/200-core/204-ops-assign.md)). The same holds for every operator.
 
 ```
-lvalue OP= rhs       →   lvalue = (lvalue OP rhs)
+lvalue OP= rhs       →   OpAssign::op_assign(ref lvalue, rhs)   // if implemented
+                     →   lvalue = (lvalue OP rhs)               // otherwise
 ```
 
 The compiler guarantees that the lvalue is not evaluated twice.
@@ -112,7 +113,7 @@ x -= y       →   <typeof(x) as SubAssign<typeof(y)>>::sub_assign(ref x, y)
 
 These traits may be implemented as in-place updates, allowing a more efficient implementation than `x = x + y`. For example, appending to a large collection can happen without creating a new collection.
 
-Implementing both `Add` and `AddAssign` is up to the user; if only one is implemented, using the other notation is a compile error.
+Implementing `AddAssign` is optional: without it, `x += y` falls back to `x = x + y`. `x + y` itself always needs `Add`.
 
 ### Signature
 
@@ -125,7 +126,7 @@ trait AddAssign<Rhs = Self> {
 }
 ```
 
-`ref self` refers to the lvalue's slot; there is no return type and the result is unit. The exact meaning of `ref self` and of updating the lvalue slot is defined in the function specification.
+Like other operators, the `*Assign` traits are registered through `#[infix("op=")]` ([3.1](301-operator-dispatch.md)). `ref self` refers to the lvalue's slot; there is no return type and the result is unit. The exact meaning of `ref self` and of updating the lvalue slot is defined in the function specification.
 
 ## 3.4.4. Chained assignment
 

@@ -100,7 +100,9 @@ use rok::std::time::Instant;
 에서 빌드되며, 여기에는 wasm32 도 포함됩니다. 반면 `rok::std` 는 target 에 따라 가용성이
 갈립니다. 가령 `rok::std::thread` 는 wasm32 에서 지원되지 않는데, 브라우저 환경이 main
 thread only 로 동작하기 때문입니다. `rok::std::fs` 역시 wasm32-unknown-unknown 에서는
-사용할 수 없고 wasm32-wasi 에서만 제공됩니다. 이러한 가용성은 각 `rok::std::*` 모듈 spec 의 가용성 절에 명시됩니다.
+사용할 수 없고 WASI 타깃 (`wasm32-wasi`, `wasm32-wasi-threads`) 에서만 제공됩니다. 이러한 가용성은 각 `rok::std::*` 모듈 spec 의 가용성 절에 명시됩니다.
+API 는 모든 타깃에서 빌드됩니다: 타깃에 없는 연산은 런타임에 `IoErrorKind::Unsupported` 로
+실패합니다. 브라우저에서 stdout / stderr 는 host 콘솔로 가고 stdin 은 EOF 입니다.
 
 ## 0.1.5. 진화 정책
 

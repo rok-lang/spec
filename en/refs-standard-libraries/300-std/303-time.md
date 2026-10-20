@@ -86,7 +86,7 @@ struct SystemTimeError {
 }
 ```
 
-`SystemTime` is `i64` nanoseconds relative to `UNIX_EPOCH`, so its range is about ±292 years.
+`SystemTime` is `i64` nanoseconds relative to `UNIX_EPOCH`, so its range is about ±292 years on every target. 32-bit targets read the clock through 64-bit time interfaces (`time64`), so there is no 2038 limit.
 
 `SystemTime` behaves quite differently. Time may go backward through NTP adjustment or user changes, and since it is an absolute time relative to UNIX_EPOCH it **can be serialized**. It can therefore be compared meaningfully across processes.
 
@@ -210,8 +210,8 @@ Per-platform implementation mapping:
 | Item         | linux           | macos            | windows                 | wasi         |
 |--------------|-----------------|------------------|-------------------------|--------------|
 | `Instant`    | CLOCK_MONOTONIC | CLOCK_UPTIME_RAW | QueryPerformanceCounter | wasi clock   |
-| `SystemTime` | CLOCK_REALTIME  | CLOCK_REALTIME   | GetSystemTimeAsFileTime | wasi         |
-| `BootTime`   | CLOCK_BOOTTIME  | CLOCK_MONOTONIC (mach_continuous_time, includes sleep) | (~ Instant) | (no suspend) |
+| `SystemTime` | CLOCK_REALTIME  | CLOCK_REALTIME   | GetSystemTimePreciseAsFileTime | wasi  |
+| `BootTime`   | CLOCK_BOOTTIME  | CLOCK_MONOTONIC (mach_continuous_time, includes sleep) | QueryPerformanceCounter (~ Instant) | (no suspend) |
 
 ## 3.3.8. Policy summary
 

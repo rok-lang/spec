@@ -84,10 +84,11 @@ arr[i] += 1;
 
 ### desugar 와 좌변 평가
 
-복합 대입은 다음과 같이 desugar 됩니다.
+복합 대입은 다음과 같이 desugar 됩니다. 타입이 `OpAssign` 트레잇을 구현하면 `a += b` 는 그것을 부르고, 아니면 `a = a + b` 입니다 ([stdlib 2.4.1](../../refs-standard-libraries/200-core/204-ops-assign.md)). 모든 연산자가 같습니다.
 
 ```
-lvalue OP= rhs       →   lvalue = (lvalue OP rhs)
+lvalue OP= rhs       →   OpAssign::op_assign(ref lvalue, rhs)   // 구현되어 있으면
+                     →   lvalue = (lvalue OP rhs)               // 아니면
 ```
 
 이때 좌변이 두 번 평가되지 않도록 컴파일러가 보장합니다.
@@ -112,7 +113,7 @@ x -= y       →   <typeof(x) as SubAssign<typeof(y)>>::sub_assign(ref x, y)
 
 이 트레잇은 제자리 갱신 (in-place update) 으로 구현될 수 있으므로, `x = x + y` 보다 효율적인 구현이 가능합니다. 예를 들어 큰 컬렉션의 원소 추가가 새 컬렉션 생성 없이 수행됩니다.
 
-`Add` 와 `AddAssign` 두 트레잇 모두를 구현하는 것은 사용자의 자유이며, 한쪽만 구현된 경우에 대응 표기를 쓰면 컴파일 에러가 납니다.
+`AddAssign` 구현은 선택입니다: 없으면 `x += y` 는 `x = x + y` 로 대체됩니다. `x + y` 자체에는 언제나 `Add` 가 필요합니다.
 
 ### 시그니처
 
@@ -125,7 +126,7 @@ trait AddAssign<Rhs = Self> {
 }
 ```
 
-`ref self` 로 좌변의 슬롯을 참조하며, 반환 타입은 없고 결과는 unit 입니다. `ref self` 의 정확한 의미와 좌변 슬롯의 갱신 의미는 함수 사양에서 정의합니다.
+다른 연산자처럼 `*Assign` 트레잇도 `#[infix("op=")]` 로 등록합니다 ([3.1](301-operator-dispatch.md)). `ref self` 로 좌변의 슬롯을 참조하며, 반환 타입은 없고 결과는 unit 입니다. `ref self` 의 정확한 의미와 좌변 슬롯의 갱신 의미는 함수 사양에서 정의합니다.
 
 ## 3.4.4. 다중 대입
 

@@ -131,7 +131,7 @@ fn(any) -> any
 
 ## 4.4.8. divergent 함수의 타입
 
-[반환](403-return.md) 에서 다룬 divergent 함수의 타입은 반환 타입 자리에 `!` 를 적습니다 (`fn() -> !`). `fn(A) -> !` 값은 매개변수가 같은 임의의 `fn(A) -> R` 자리에 들어갈 수 있습니다.
+[반환](403-return.md) 에서 다룬 divergent 함수의 타입은 반환 타입 자리에 `!` 를 적습니다 (`fn() -> !`). `fn(A) -> !` 값은 매개변수가 같은 임의의 `fn(A) -> R` 자리에 들어갈 수 있으며, throw 하는 `fn(A) throws (E) -> !` 는 `fn(A) throws (E) -> R` 에 맞습니다.
 
 ```rok
 let f: fn() -> i32 = || panic("never");     // fn() -> ! 값 → fn() -> i32 자리

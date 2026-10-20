@@ -67,7 +67,7 @@ async fn fetch_async(addr: str) throws (IoError) -> List<u8> {
 | Linux           | epoll (edge-triggered)      |
 | macOS / FreeBSD | kqueue (`EV_CLEAR`)         |
 | Windows         | IOCP                        |
-| WASI            | `poll_oneoff`               |
+| WASI            | `wasi:io/poll` (`wasm32-wasi`), `poll_oneoff` (`wasm32-wasi-threads`) |
 
 ### 3. TLS 1.3 in std — HTTP out
 
@@ -141,15 +141,15 @@ fn load_config() throws (ConfigError) -> Config {
 
 플랫폼별 모듈 가용성은 다음과 같습니다.
 
-| 모듈                | linux/macos/windows | wasi          | wasm32 (browser) |
-|---------------------|---------------------|---------------|------------------|
-| `rok::std::fs`      | ✓                   | ✓ (cap-based) | ✗ (no FS API)    |
-| `rok::std::net`     | ✓ (+ TLS 1.3)       | ✓             | ✗ (use `fetch`)  |
-| `rok::std::time`    | ✓                   | ✓             | ✓ (Date.now)     |
-| `rok::std::thread`  | ✓                   | partial       | ✗ (no threads)   |
-| `rok::std::io`      | ✓                   | ✓             | ✗ (no stdin/out) |
-| `rok::std::env`     | ✓                   | ✓             | ✗                |
-| `rok::std::process` | ✓                   | ✗             | ✗                |
-| `rok::std::path`    | ✓                   | ✓             | ✓                |
+| 모듈                | linux/macos/windows | wasm32-wasi   | wasm32-wasi-threads | wasm32 (browser) |
+|---------------------|---------------------|---------------|---------------------|------------------|
+| `rok::std::fs`      | ✓                   | ✓ (cap-based) | ✓ (cap-based)       | ✗ (no FS API)    |
+| `rok::std::net`     | ✓ (+ TLS 1.3)       | ✓ (`wasi:sockets`) | host 가 넘긴 listener 만 | ✗ (use `fetch`) |
+| `rok::std::time`    | ✓                   | ✓             | ✓                   | ✓ (Date.now)     |
+| `rok::std::thread`  | ✓                   | ✗ (no threads) | ✓ (wasi-threads)   | ✗ (no threads)   |
+| `rok::std::io`      | ✓                   | ✓             | ✓                   | console / stdin 은 EOF |
+| `rok::std::env`     | ✓                   | ✓             | ✓                   | ✗                |
+| `rok::std::process` | ✓                   | ✗             | ✗                   | ✗                |
+| `rok::std::path`    | ✓                   | ✓             | ✓                   | ✓                |
 
-각 모듈 spec 의 가용성 절에서 플랫폼별 동작을 더 자세히 명시합니다.
+✗ 는 모듈이 빌드되지만 그 연산이 런타임에 `IoErrorKind::Unsupported` 로 실패한다는 뜻이며, 컴파일 타임에 없는 것이 아닙니다. 브라우저에서 stdout / stderr 는 host 콘솔로 가고 stdin 은 EOF 입니다. 각 모듈 spec 의 가용성 절에서 플랫폼별 동작을 더 자세히 명시합니다.

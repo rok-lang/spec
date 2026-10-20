@@ -10,12 +10,15 @@ Each process has **one reactor thread** that waits on the OS readiness multiplex
 |-----------------------|-------------------------------------|
 | Linux                 | epoll (`EPOLLET`, edge-triggered)   |
 | BSD (FreeBSD / macOS) | kqueue (`EV_CLEAR`, edge-triggered) |
-| Windows               | IOCP (completion port wait)         |
-| WASI                  | `poll_oneoff`                       |
+| Windows               | IOCP + AFD poll (readiness emulation) |
+| WASI (`wasm32-wasi`)  | `wasi:io/poll`                      |
+| WASI (`wasm32-wasi-threads`) | `poll_oneoff`                |
 
 The driver for the target is compiled at build time, through the `target_os` branches of [Conditional compilation](../006-meta-system/603-cfg.md).
 
 The reactor thread starts on the first async I/O wait.
+
+On `wasm32-wasi` (a preview 2 component) the driver is `wasi:io/poll`. On `wasm32-wasi-threads` (preview 1) `poll_oneoff` watches the sockets the host passes in.
 
 ## 7.7.2. I/O wait pattern
 

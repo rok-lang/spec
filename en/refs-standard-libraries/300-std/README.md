@@ -67,7 +67,7 @@ Waiting for readiness is **the runtime's responsibility** ([refs-lang 7.7](../..
 | Linux           | epoll (edge-triggered)      |
 | macOS / FreeBSD | kqueue (`EV_CLEAR`)         |
 | Windows         | IOCP                        |
-| WASI            | `poll_oneoff`               |
+| WASI            | `wasi:io/poll` (`wasm32-wasi`), `poll_oneoff` (`wasm32-wasi-threads`) |
 
 ### 3. TLS 1.3 in std — HTTP out
 
@@ -141,15 +141,15 @@ fn load_config() throws (ConfigError) -> Config {
 
 Module availability per platform:
 
-| Module              | linux/macos/windows | wasi          | wasm32 (browser) |
-|---------------------|---------------------|---------------|------------------|
-| `rok::std::fs`      | ✓                   | ✓ (cap-based) | ✗ (no FS API)    |
-| `rok::std::net`     | ✓ (+ TLS 1.3)       | ✓             | ✗ (use `fetch`)  |
-| `rok::std::time`    | ✓                   | ✓             | ✓ (Date.now)     |
-| `rok::std::thread`  | ✓                   | partial       | ✗ (no threads)   |
-| `rok::std::io`      | ✓                   | ✓             | ✗ (no stdin/out) |
-| `rok::std::env`     | ✓                   | ✓             | ✗                |
-| `rok::std::process` | ✓                   | ✗             | ✗                |
-| `rok::std::path`    | ✓                   | ✓             | ✓                |
+| Module              | linux/macos/windows | wasm32-wasi   | wasm32-wasi-threads | wasm32 (browser) |
+|---------------------|---------------------|---------------|---------------------|------------------|
+| `rok::std::fs`      | ✓                   | ✓ (cap-based) | ✓ (cap-based)       | ✗ (no FS API)    |
+| `rok::std::net`     | ✓ (+ TLS 1.3)       | ✓ (`wasi:sockets`) | listeners passed in by the host | ✗ (use `fetch`) |
+| `rok::std::time`    | ✓                   | ✓             | ✓                   | ✓ (Date.now)     |
+| `rok::std::thread`  | ✓                   | ✗ (no threads) | ✓ (wasi-threads)   | ✗ (no threads)   |
+| `rok::std::io`      | ✓                   | ✓             | ✓                   | console / stdin at EOF |
+| `rok::std::env`     | ✓                   | ✓             | ✓                   | ✗                |
+| `rok::std::process` | ✓                   | ✗             | ✗                   | ✗                |
+| `rok::std::path`    | ✓                   | ✓             | ✓                   | ✓                |
 
-The availability section of each module spec gives per-platform behavior in more detail.
+✗ means the module builds but its operations fail at run time with `IoErrorKind::Unsupported`; it is not a compile-time absence. In the browser, stdout / stderr go to the host console and stdin is at EOF. The availability section of each module spec gives per-platform behavior in more detail.

@@ -102,6 +102,8 @@ The process exit code is determined by how the entry point finishes.
 
 The **implicit `main`** is treated as an untyped `fn main() throws` (error type `any Error`) (or `async fn main() throws` if the body contains `await`, 4.16.5). Errors from throwing calls marked with `try` in top-level statements may therefore propagate out of the entry point without a separate `catch`, and an unhandled exception yields exit code `1` per the rules above. If execution runs to the end normally, the exit code is `0`.
 
+Some WASI hosts treat `proc_exit` codes of 126 or more as traps.
+
 > [!IMPORTANT]
 > **Top-level `return` is not allowed.** A `return` at the top level of `main.rok` is a compile error. If the implicit `main` needs a nonzero exit code, call `env::exit(code)`; to express the exit code as a return value, use the explicit `fn main() -> i32` form. Allowing top-level `return` would add rules only for the implicit `main`, such as "what type of `return` is allowed" and "what does a `return` inside a top-level block return", so splitting the entry point into two forms is simpler.
 

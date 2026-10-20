@@ -82,6 +82,14 @@ fn α             → _Y<pkg>___13b1__
 
 메서드는 `<타입>.<메서드>` 를 이름으로, 타입이 정의된 모듈을 경로로 맹글링합니다. 같은 타입에 같은 이름의 메서드를 주는 트레잇이 여럿이면 뒤에 `__by_<트레잇>` 이 붙습니다. 의존 패키지 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)) 의 메서드도 이 안정된 경로 `<모듈>::<타입>.<메서드>[__by_<트레잇>]` 로 맹글링되므로, 따로 빌드한 패키지와 프로그램이 같은 심볼을 만듭니다. `.` 와 `_` 는 위 표대로 escape 됩니다.
 
+### 중첩 함수
+
+중첩 함수 ([4.10](../004-functions/410-nested-functions.md)) 는 바깥 항목의 모듈에서 `<outer>/<name>` 을 이름으로 맹글링합니다. `<outer>` 는 바깥 함수의 이름입니다 (메서드면 `<타입>.<메서드>`, 트레잇 기본 본체면 `<트레잇>.<메서드>`, 중첩 함수면 재귀적으로 `<outer>/<name>`). 한 소스 파일에서 `<outer>/<name>` 이 같은 중첩 함수가 둘 이상이면 소스 순서대로 `/2`, `/3`, … 이 붙습니다. `/` 는 다른 어떤 항목 이름에도 나오지 않으므로, 이 심볼은 모듈 경로나 메서드와 구별됩니다. `/` 는 표대로 escape 됩니다 (`_12f_`).
+
+```
+mod a { fn outer() { fn helper() } }   → _Y<pkg>_a_outer_12f_helper_
+```
+
 ### `<typehash_16>`: 타입 튜플 해시
 
 [제네릭](../002-types/210-generics.md) 의 구체 타입 튜플을 SHA-256 으로 해싱한 뒤 앞 16 글자를 가져와 사용합니다.
@@ -213,10 +221,14 @@ pub fn compute(x: i32, y: i32) -> i32 { x + y }
 [소스 단위](../000-meta/003-source-units.md) 의 진입점 함수는 플랫폼이 제공하는 일반 main 심볼을 그대로 사용합니다.
 
 ```
-main          (Linux / macOS)
-WinMain       (Windows GUI)
-_start        (no-OS)
+main                                (Linux / macOS)
+mainCRTStartup                      (Windows console)
+WinMainCRTStartup + WinMain         (Windows GUI, -C subsystem=windows)
+_start                              (no-OS)
+__main_void                         (wasm32; wasi-libc 의 _start 가 부름)
 ```
+
+Windows 에서는 rok 자신의 startup object 가 `mainCRTStartup` (console) 이나 `WinMainCRTStartup` 과 `WinMain` (GUI) 을 제공하며, 이것이 rokc 가 생성한 `main` wrapper 를 부릅니다.
 
 플랫폼별 진입점은 rokc 가 생성한 wrapper 안에서 사용자가 정의한 main 함수를 호출해 주게 됩니다. wrapper 는 `rok_runtime_init` 과 타입 등록 함수 `rok.register_types` ([8.2.13](../008-abi/802-scan-table.md#8213-등록-시점)) 를 차례로 호출한 뒤 진입 함수를 호출하고, [4.16.4](../004-functions/416-entry-point.md#4164-종료-코드와-미처리-예외) 의 규칙으로 종료 코드를 정한 다음 `rok_runtime_shutdown` 을 거쳐 반환합니다.
 

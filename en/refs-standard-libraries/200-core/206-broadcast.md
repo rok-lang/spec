@@ -169,7 +169,7 @@ let m = 2 .* a;          //→ [2, 4, 6]
 let t = a ./ 2;          //→ [0, 1, 1]    (i32 truncate)
 ```
 
-Here a separate `DotAdd<i32> for List<i32>` impl treats Rhs as a scalar.
+Here separate impls (`DotAdd<T> for List<T>`, and `DotAdd<List<T>> for T` for the scalar-left form) treat the scalar side. Fixed arrays `[T; N]` have no scalar-left impls.
 
 ### Comparison dot — returns `Container<bool>`
 
@@ -254,15 +254,15 @@ let m = max.(a, b);                  //→ [10.0, 20.0, 30.0]
 
 Arguments that are a `List`, `Slice` or array are iterated together; any other argument is passed unchanged to every call (`pow.(xs, 2.0)`). The iterated arguments must have the same length, checked at run time. There is **no limit** on the number of arguments, so any N-ary function applies.
 
-## 2.6.6. Loop fusion — MLIR linalg.generic
+## 2.6.6. Loop fusion
 
-The compiler fuses consecutive dot operations into a single kernel.
+The compiler fuses consecutive dot operations into a single loop.
 
 ```rok
 let result = sin.(a) .+ cos.(b) .* 2.0;
 ```
 
-A naive lowering would need 3 temporary List allocations and 3 loops; rok's lowering converts this into a single `linalg.generic` op, giving one loop and zero temporary allocations. SIMD and GPU backends are also used automatically.
+A naive lowering would need 3 temporary List allocations and 3 loops. rok guarantees one loop with no intermediate collections; the mechanism (for example a `linalg.generic` op) is the compiler's choice.
 
 ```rok
 // conceptually equivalent to this single elementwise call
@@ -279,9 +279,9 @@ Dot trait impls map onto container types as follows.
 | `[T; N]` (fixed) | T:Add    | T:Mul    | T:PartialEq | fixed N — compile time                  |
 | `Slice<T>`       | T:Add    | T:Mul    | T:PartialEq | view — element-wise                     |
 | `i32`/`f64`/etc. | **none** | **none** | **none**    | scalars use ordinary `+`/`*`/`==`       |
-| `T \| none`       | T:DotAdd | T:DotMul | T:DotEq     | option propagation (`none .+ x = none`) |
+| `T \| none`       | (operator) | (operator) | (operator) | option propagation (`none .+ x = none`) |
 
-The dot meaning of `T | none` is option propagation: if either side is `none`, the result is `none`.
+The dot meaning of `T | none` is option propagation: if either side is `none`, the result is `none`. It is handled at the operator level, with no library impl.
 
 Numeric containers such as `Matrix<T>` / `Tensor<T>` are defined in external libraries, which implement the same dot traits directly and follow NumPy-style broadcasting rules.
 
