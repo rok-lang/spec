@@ -306,6 +306,7 @@ extern "C" {
         timer: extern "C" fn(deadline_ns: u64, waker: Ptr<u8>),
         park: extern "C" fn(key: Ptr<u8>, waker: Ptr<u8>),
         unpark: extern "C" fn(key: Ptr<u8>),
+        restart: extern "C" fn(),               // restart executor work lost with a failed REPL cell
     );                                          // the first installation wins
     unsafe fn rok_task_key(obj: Ptr<u8>) -> usize;   // GC object address as a park key
 }
@@ -454,6 +455,8 @@ rok_net_multicast_v4 rok_net_wait     rok_net_resolve    rok_net_gai_strerror
 `throw` / `try` / `catch` from [Error control flow](../003-expressions/314-error-control-flow.md) have no runtime symbols. A throwing function returns the error as part of its return value ([8.6.5](806-calling-convention.md#865-return-of-throwing-functions-value-based-error-propagation)), and the call site checks that value and branches ([8.9.6](809-lowering-control.md#896-try--catch--finally-value-based-branching)). There is therefore no runtime call to throw an error or fetch the current error, and there are no TLS slots or jmp_buf for error handling.
 
 ## 8.5.7. Diagnostic area
+
+Exit codes below (`101` etc.) reach the host as plain failure on `wasm32-wasi` ([4.16.4](../004-functions/416-entry-point.md#4164-exit-codes-and-unhandled-exceptions)).
 
 ### `rok_panic`
 
@@ -611,6 +614,17 @@ extern "C" {
         // called with the exit status, on the ending thread, before a panic,
         // uncaught error, exit or (Windows) stack overflow ends the process;
         // the process ends when it returns
+
+    // REPL host (session save / restore)
+    fn rok_world_stop();                                   // stop every other mutator (safepoint or parked)
+    fn rok_world_resume();
+    fn rok_world_threads(out: Ptr<u64>, cap: usize) -> usize;   // world stopped: OS ids of the other mutators (Windows)
+    fn rok_session_restored(lost: ConstPtr<u64>, n: usize);     // session put back; n == SIZE_MAX: every other thread is gone
+    fn rok_thread_lost(worker_id: u64) -> i32;             // 1 if that thread was found gone after a failed cell
+    fn rok_io_quiesce();                                   // Windows: cancel in-flight I/O before memory is put back
+    fn rok_watch_writes();                                 // Windows: write-watch the heap; call before runtime init
+    static rok_page_epoch: u64;                            // Windows: bumped when watched pages change without a write
+                                                           //   or a watched block is released
 }
 ```
 

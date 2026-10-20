@@ -1,10 +1,10 @@
-# 3.9. `rokon::` — the RokON data format
+# 3.9. `rokon::` — the ROKON data format
 
-RokON (Rok Object Notation) is a data format that writes values in rok's literal syntax. The file extension is `.rokon`. It fills the same role as Rust's RON and Zig's ZON; the package manifest `rok.rokon` and the lockfile `rok.lock` ([refs-lang 9.10.3](../../refs-lang/009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) use this format.
+ROKON (Rok Object Notation) is a data format that writes values in rok's literal syntax. The file extension is `.rokon`. It fills the same role as Rust's RON and Zig's ZON; the package manifest `rok.rokon` and the lockfile `rok.lock` ([refs-lang 9.10.3](../../refs-lang/009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) use this format.
 
 ## 3.9.1. Format
 
-RokON is a subset of rok expression syntax and is read with rok's lexer / parser. One file holds one value.
+ROKON is a subset of rok expression syntax and is read with rok's lexer / parser. One file holds one value.
 
 | Form        | Example                                               | Notes                                                 |
 |-------------|-------------------------------------------------------|-------------------------------------------------------|
@@ -23,7 +23,7 @@ RokON is a subset of rok expression syntax and is read with rok's lexer / parser
 - A trailing comma is allowed. Comments are `//` and `/* */`.
 - `{}` is both an empty struct and an empty dict (the target type decides). A single `{ .. }` may contain either fields (identifier keys) or keys (value keys), not both; mixing them is an error.
 - Not allowed: bare identifiers, operators (only unary `-` before a number is allowed), method calls, `..`, blocks, f-strings, Set literals (`{1, 2}`; write a Set as a list), `c'..'` literals, generic paths (`List<i32>::..`), and tokens left after the value. All are errors showing `line:col`.
-- NaN and infinity have no RokON notation. `nan` / `inf` in the input are rejected as bare identifiers.
+- NaN and infinity have no ROKON notation. `nan` / `inf` in the input are rejected as bare identifiers.
 
 > [!NOTE]
 > Known limitation: a dict whose first key is `none` (`{ none: 1 }`) is not supported, because the rok parser reads it as a block.
@@ -43,7 +43,7 @@ Config {
 
 ## 3.9.2. Correspondence with rok types
 
-| RokON          | rok type                                                                     |
+| ROKON          | rok type                                                                     |
 |----------------|------------------------------------------------------------------------------|
 | `none`         | `none` of `T \| none`                                                        |
 | `true` / `false` | `bool`                                                                     |
@@ -87,12 +87,12 @@ The canonical form emitted by `rokon::to_string` and by `rok` (when editing the 
 
 - Indentation is 4 spaces.
 - A value is written on one line if it fits within 100 columns; otherwise on multiple lines with a comma after each element.
-- Floats use the shortest notation that reads back to the same value (`1.0`, `1.0e300`). Attempting to write NaN / infinity panics ("NaN/infinity has no RokON form").
+- Floats use the shortest notation that reads back to the same value (`1.0`, `1.0e300`). Attempting to write NaN / infinity panics ("NaN/infinity has no ROKON form").
 - A variant with only named values has one canonical form, `E::V { .. }` (`Value::Variant` keeps no form flag).
 - Bidi controls (U+202A–U+202E, U+2066–U+2069) in strings and chars are written escaped (`\u{202e}`).
 - Reading the canonical form back yields the same value (round-trip). A reader rejects float literals out of range (`1e999`).
 
-`rokc fmt` checks that a `.rokon` file is RokON and only re-indents it. It does not rewrite it into canonical form, so comments and layout are preserved.
+`rokc fmt` checks that a `.rokon` file is ROKON and only re-indents it. It does not rewrite it into canonical form, so comments and layout are preserved.
 
 ## 3.9.5. Library: `rok::std::rokon`
 
@@ -177,6 +177,6 @@ print(rokon::to_string(cfg));
 |--------|-----------------------------|-----------------------------------|
 | RON    | `Name(field: v)`            | A dedicated syntax different from Rust |
 | ZON    | `.{ .name = "x" }`          | Zig's anonymous struct literal    |
-| RokON  | `Name { field: v }`         | rok's own literal syntax as is    |
+| ROKON  | `Name { field: v }`         | rok's own literal syntax as is    |
 
-RokON adds no separate syntax and uses rok literals directly, so a value written in source and a value written in a file look the same.
+ROKON adds no separate syntax and uses rok literals directly, so a value written in source and a value written in a file look the same.

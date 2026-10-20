@@ -15,6 +15,8 @@ impl_item       ::= fn_decl
                   | const_decl
 ```
 
+`impl <` 의 `<` 는 뒤에 제네릭 매개변수가 올 때만 (`<>`, `<T>`, `<T:`, `<T,`, `<T =`, `<const N`) `generics` 를 엽니다. 그 밖이면 대상 타입의 시작입니다. 예: inherent `impl <A as P>::Out { .. }`.
+
 ### 고유 `impl` (inherent). 메서드 부착
 
 먼저 고유 `impl` 의 예시부터 살펴보겠습니다.

@@ -50,6 +50,8 @@ Code of the standard library and dependency packages is compiled only once per s
    failure (panic, exit, signal, load failure): the previous snapshot takes over (9.7.0 rule 5)
 ```
 
+Step 3 forks on Unix. Hosts without fork (Windows) save the session's memory and threads before the cell and put them back when it fails, with the same observable result as the forked snapshot.
+
 The latency of one cell is about 0.1 seconds, most of it spent in the front end (informative).
 
 ## 9.6.6. Differences between JIT and AOT

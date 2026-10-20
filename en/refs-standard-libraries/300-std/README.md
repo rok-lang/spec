@@ -32,7 +32,7 @@ This tier consists of the following nine modules.
 - [3.6. `env::` — environment variables / args / current_dir / home_dir](306-env.md)
 - [3.7. `process::` — `Command` / `Child` / pidfd / kill_on_drop](307-process.md)
 - [3.8. `path::` — UTF-8 `Path` (Python-style) + `RawPath` escape hatch](308-path.md)
-- [3.9. `rokon::` — the RokON data format (`.rokon`)](309-rokon.md)
+- [3.9. `rokon::` — the ROKON data format (`.rokon`)](309-rokon.md)
 
 ## Core design principles
 

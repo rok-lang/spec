@@ -69,7 +69,7 @@ poll(frame, cx) -> Poll<Data>:
 
 ## 8.10.5. Frame allocation
 
-A frame is allocated on every coroutine call. There is no optimization that elides the allocation.
+A frame is allocated on every coroutine call. There is no dedicated elision for a coroutine run to completion by its caller; a frame that never escapes may be removed like any allocation ([7.2.12](../007-runtime/702-allocation.md#7212-allocation-elision)).
 
 ## 8.10.6. Generic monomorphization
 

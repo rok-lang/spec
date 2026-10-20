@@ -10,14 +10,14 @@ The cell session obeys the following rules. The implementation is the [9.6 JIT e
 2. **State persists.** Top-level `let` bindings of a cell, the state of `static`s, and `any` values (including `any Tr`) carry over to later cells. Bindings may be assigned, and a new `let` of the same name shadows with a new binding (9.7.3).
 3. **Items persist and may be redefined.** Items such as `fn` / `struct` / `impl` persist. If the same item is defined again, the new definition is used from the next cell. Even code compiled before the redefinition uses the new definition when a later cell reaches it again (a `g` calling a redefined `f` calls the new `f`). Redefining a `static` restarts its state. A binding whose type was redefined can no longer be used; an attempt to use it is reported with a note.
 4. **Identity of `any`.** The type tag of `any` is the same across all cells of a session. An `any` value stored in an earlier cell can be extracted in a later cell with `is` / patterns.
-5. **Failed cells.** A cell that panics, terminates the process or dies leaves no partial effect on the bindings. The session continues from the state before that cell. External effects that already happened (I/O etc.) are not undone.
+5. **Failed cells.** A cell that panics, terminates the process or dies leaves no partial effect on the bindings. The session continues from the state before that cell. External effects that already happened (I/O etc.) are not undone. Threads from earlier cells: after a failed cell the session keeps only the threads that are back where they were (Windows) or none of them (fork hosts). The runtime restarts its own executor threads; joining a user thread that is gone reports it lost (`JoinError` code `JOIN_LOST`, [stdlib 3.4](../../refs-standard-libraries/300-std/304-thread.md)).
 6. **Display.** An expression cell prints its value as `type: value` (Debug); without `Debug`, only the type is printed (9.7.7).
 
 The following bindings and effects are not supported.
 
 - Bindings of types that cannot be named at top level (closures, private types, etc.). They are rejected in the cell that creates them.
 - `exit()` inside a cell. That cell is treated as a failed cell (rule 5).
-- Threads spawned by a failed cell. They disappear with the cell.
+- Threads spawned by a failed cell. They do not survive it (rule 5).
 
 ## 9.7.1. Kinds of cell
 
@@ -124,7 +124,7 @@ panic / uncaught throw / process exit / segfault during execution.
   - the next cell can proceed.
 ```
 
-Bindings and items revert to the state before the cell (9.7.0 rule 5), but external effects that already happened (output, file writes, etc.) are not undone. A failed cell is not kept in the session, so the corrected cell can simply be entered again.
+Bindings and items revert to the state before the cell (9.7.0 rule 5), but external effects that already happened (output, file writes, etc.) are not undone. A failed cell is not kept in the session, so the corrected cell can simply be entered again. Hosts without fork (Windows) save the session's memory and threads before the cell and put them back when it fails, with the same observable result as the forked snapshot.
 
 ### JIT failure
 

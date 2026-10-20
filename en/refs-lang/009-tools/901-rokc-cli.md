@@ -24,7 +24,7 @@ As grammar rules:
 cli_invocation  ::= "rokc" subcommand option* arg*
 subcommand      ::= "build" | "emit" | "run" | "test" | "bench" | "check"
                   | "fmt" | "lint" | "doc" | "repl" | "jupyter" | "lsp"
-                  | "clean" | "demangle" | "rhir-text" | "inspect" | "version" | "help"
+                  | "clean" | "profdata" | "demangle" | "rhir-text" | "inspect" | "version" | "help"
 option          ::= "--" identifier ("=" value)?
                   | "-" letter
 ```
@@ -35,7 +35,7 @@ option          ::= "--" identifier ("=" value)?
 |---------------------|-------------------------------------------------------|
 | Build / run         | `build`, `emit`, `run`, `test`, `bench`, `check`      |
 | Package             | `clean`                                               |
-| Tools               | `fmt`, `lint`, `doc`, `lsp`                           |
+| Tools               | `fmt`, `lint`, `doc`, `lsp`, `profdata`                           |
 | Interactive         | `repl`, `jupyter`                                     |
 | Debug / diagnostic  | `demangle`, `rhir-text`, `inspect`                    |
 | Other               | `version`, `help`                                     |
@@ -76,6 +76,7 @@ Options:
 - `-O0` / `-O1` / `-O2` / `-O3` / `-Os` select the optimization level explicitly. `-O0` uses the native backend, the others the MLIR → LLVM backend ([9.2.10](902-aot-pipeline.md#9210-backend-selection)).
 - `--target=<triple>` selects the target platform, one of the 14 Tier 1 targets in [Platform targets](../000-meta/006-platform-targets.md). Any target can be built from any host ([0.2.4](../000-meta/002-pipeline.md#024-backends)).
 - `-L <dir>` adds a library search directory for `#[link]` ([5.9.9](../005-modules/509-extern-block.md#599-linklibname-naming-the-library)), searched before `LIBRARY_PATH`. May be repeated.
+- `-l [static=|dylib=]<name>` links the library `<name>` (searched like `#[link]`), and `--native-runtime <file>` names a shared library to ship beside the executable ([9.2.14](902-aot-pipeline.md#9214-linking-for-executables)). Both may be repeated; `rok` passes them for native packages ([9.10.4b](910-rok-frontend.md#9104b-native-packages)).
 - `-o` / `--out=<path>` selects the output location.
 - `--cfg <flag>` / `--cfg <key>=<value>` sets a cfg flag for [conditional compilation](../006-meta-system/603-cfg.md). May be repeated.
 - `--emit=<kind>[,<kind>..]` writes intermediate output (`ast`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expanded`) to `target/<profile>/build/<name>.<ext>` ([9.9.1](909-debug-tools.md#991-intermediate-output---emit)). Several kinds may be given at once separated by commas; in that case `-o` cannot be used. With `--emit`, no executable or archive is produced.
@@ -84,8 +85,28 @@ Options:
 - `-C overflow-checks[=yes|no]` turns overflow checks (panic) for fixed-width integer arithmetic on or off. The default is on only at `-O0`. An omitted value means `yes`. Operations on constant operands that cannot overflow skip the check.
 - `-C backend=native|llvm` overrides the backend the optimization level selects ([9.2.10](902-aot-pipeline.md#9210-backend-selection)).
 - `-C subsystem=console|windows` selects the Windows subsystem: `console` (default, `mainCRTStartup`) or `windows` (GUI, `WinMainCRTStartup`; [9.5.9](905-symbol-mangling.md#959-symbol-of-the-main-function)).
+- `-C profile-generate[=<dir>]` instruments the program and its source dependencies for profile-guided optimization. Running it writes a raw profile `<dir>/default_%m.profraw` (default `<dir>`: the working directory at run time; `LLVM_PROFILE_FILE` overrides the path). An instrumented executable links the profile runtime the toolchain ships for the target ([9.2.19](902-aot-pipeline.md#9219-installation-layout)). Not supported for wasm32-unknown-unknown (no file system).
+- `-C cs-profile-generate[=<dir>]`, with `-C profile-use`, instruments again after inlining (context-sensitive); merging its runs with that profile gives the one profile `-C profile-use` reads.
+- `-C profile-use=<file>` optimizes with an indexed profile from `rokc profdata merge`. A missing file is an error. Functions whose control flow changed since the profile was recorded are optimized without it, and one warning gives their count.
+- Both select the MLIR → LLVM backend at every level, and with them `-C backend=native` is an error. The standard library is compiled with the program (not taken from the cache), so it is profiled and optimized too. The REPL rejects both.
 
 If nothing has changed since the previous build, `rokc build` / `rokc run` print `Fresh` and skip the build ([9.2.16](902-aot-pipeline.md#9216-incremental-build)).
+
+### `rokc profdata merge`: profile merge
+
+```
+rokc profdata merge [-o <file>] <file | dir>...
+```
+
+Merges raw (`.profraw`) and indexed (`.profdata`) profiles into one indexed profile (default `default.profdata`) for `-C profile-use`. A directory stands for those files in it; empty raw profiles are skipped. It runs in process. Merge warnings (counter overflow, mismatched counters) are reported and the merge still writes its output.
+
+### `rokc profdata show`: profile summary
+
+```
+rokc profdata show [--all-functions] [--topn N] <file>
+```
+
+Prints a summary of a profile in `llvm-profdata show` form: the instrumentation level and the number of functions shown and in total. `--all-functions` adds each function's hash and counters; `--topn N` lists the N functions with the largest internal block counts.
 
 ### `rokc emit`: intermediate output
 
@@ -214,7 +235,7 @@ The kernel is registered by `rok jupyter install [--env <name>]` ([9.8.3](908-ju
 rokc fmt [path]
 ```
 
-`[path]` accepts files or directories (several allowed; the current directory if omitted) and rewrites them in place to the [standard format](#9111-standard-format-rokc-fmt). Directories are searched recursively for `.rok` files, skipping `target/` and directories beginning with `.`. `.rokon` files ([RokON](../../refs-standard-libraries/300-std/309-rokon.md#394-canonical-form)) are checked for being RokON and only re-indented (they are not rewritten in canonical form, so comments are preserved).
+`[path]` accepts files or directories (several allowed; the current directory if omitted) and rewrites them in place to the [standard format](#9111-standard-format-rokc-fmt). Directories are searched recursively for `.rok` files, skipping `target/` and directories beginning with `.`. `.rokon` files ([ROKON](../../refs-standard-libraries/300-std/309-rokon.md#394-canonical-form)) are checked for being ROKON and only re-indented (they are not rewritten in canonical form, so comments are preserved).
 
 Options:
 
@@ -400,6 +421,7 @@ The environment variables that affect `rokc` are:
 | `ROK_BACKEND`     | `native` or `llvm`; same as `-C backend=` |
 | `ROKC_VERBOSE`    | Equivalent to `--verbose`                                                                |
 | `ROK_TIME_PASSES` | Per-pass wall time on stderr when `1` ([9.9.5](909-debug-tools.md#rok_time_passes)) |
+| `LLVM_PROFILE_FILE` | Read by instrumented programs (`-C profile-generate`): the raw profile path |
 | `ROKC_TARGET_DIR` | Location of `target/` (default: inside the package)                                      |
 | `ROKC_NUM_JOBS`   | Default for `rokc test --threads` (CPU core count if unset)                              |
 | `NO_COLOR`        | If set, `--color=auto` does not use color                                                |
@@ -468,7 +490,7 @@ Writing `-` in an argument position, as in `rokc check -`, means standard input,
 
 ## 9.1.11. Standard format (`rokc fmt`)
 
-The standard format of `rokc fmt` is a **token-preserving layout rule**. It does not change tokens or comments within a line; it only sets line indentation and blank lines.
+The standard format of `rokc fmt` is a **token-preserving layout rule**. It does not change tokens or comments within a line; it only sets line indentation and blank lines. `rokc fmt` has no configuration by design: there is one standard format for all rok code.
 
 1. Indentation is 4 spaces per bracket (`(` `[` `{` `#[`) depth. A line beginning with a closing bracket takes the depth of the line that opened it. Tabs become spaces.
 2. A continuation line, i.e. one whose preceding token is not `;` `,` or a bracket (such as a line splitting a long expression), keeps the amount by which it was indented beyond the block indentation in the original file.

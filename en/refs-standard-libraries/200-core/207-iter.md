@@ -19,7 +19,7 @@ trait Iterator {
 
 The core behavior is simple: each call to `next` returns the next element, and returns `none` when there are no more elements.
 
-Note that the signature is `ref self`. The iterator itself holds **state** and updates it in place on every call.
+Note that the signature is `ref self`. The iterator itself holds **state** and updates it in place on every call. Iterators are values: a copied `ListIter` continues independently, and `next(ref self)` advances only that copy.
 
 ### Example (user code)
 

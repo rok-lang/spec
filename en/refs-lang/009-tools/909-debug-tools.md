@@ -202,7 +202,7 @@ In addition to `-v`, prints a `Reading <file>` line for each file processed and 
 
 - A function's `DW_AT_name` is its rok path (`geom::distance`); no linkage name (mangled symbol) is emitted, because debuggers do not understand `_Y` mangling.
 - Line numbers refer to lines of the original .rok file.
-- Local variables appear with their original names and types. Besides primitive types (integers, floating-point, `bool`, `char`), DWARF types are emitted for structs (field names), tuples, `str`, `any`, sum types and arrays. A sum type or enum is described as its tag and a union of its variants' payloads, named by variant; a `GcBuf<T>` reference as a pointer to its object (header, then the `T` elements). Functions the compiler makes (the C `main`, static initializer guards) have subprograms too.
+- Local variables appear with their original names and types. Besides primitive types (integers, floating-point, `bool`, `char`), DWARF types are emitted for structs (field names), tuples, `str`, `any`, sum types and arrays. A sum type or enum is a DWARF variant part: an artificial discriminant member, and one `DW_TAG_variant` per variant (dataless variants included) with `DW_AT_discr_value`, each holding a struct named `<Sum>::<Variant>`. Both back ends write the same form, and compile units use `DW_LANG_Rust` so debuggers read variant parts (there is no DWARF language code for rok). A `GcBuf<T>` reference is described as a pointer to its object (header, then the `T` elements). Functions the compiler makes (the C `main`, static initializer guards) have subprograms too.
 - A lexical block scope is emitted for each block, so shadowed names are visible only inside their block.
 - Locals with stack slots are placed in a single `llvm.alloca` in both debug and release, so `-g` attaches debug info to the same slot regardless of optimization level.
 
@@ -240,6 +240,19 @@ perf report
 ```
 
 rok functions are shown by their demangled names.
+
+### Profile-guided optimization
+
+Profile-guided optimization ([9.1.2](901-rokc-cli.md#rokc-build-aot-build)) takes three steps:
+
+```
+rokc build --release -C profile-generate=prof    # 1. instrumented build
+./target/release/my_binary <representative input> # 2. run; writes prof/default_*.profraw
+rokc profdata merge -o app.profdata prof          # 3. merge, then
+rokc build --release -C profile-use=app.profdata  #    rebuild with the profile
+```
+
+An optional context-sensitive stage builds with `-C profile-use=app.profdata -C cs-profile-generate=cs`, runs again, and merges `cs` with `app.profdata` into the final profile. `wasm32-wasi` is supported; `wasm32-unknown-unknown` is not.
 
 ### Tracy / Chrome trace (optional)
 

@@ -99,3 +99,7 @@ GC 포인터를 넘긴 `extern "C"` 호출 동안에는 따로 고정할 필요�
 ## 7.2.11. 할당 시간 vs heap 사용량
 
 fast path 는 상수 시간 (~ 4 명령어) 입니다. 평균 할당 비용은 fast path 가 정합니다.
+
+## 7.2.12. 할당 생략
+
+최적화기는 객체가 밖으로 나가지 않고 store 뒤에 읽히지도 않는 할당을 없앨 수 있습니다. 그런 할당은 safepoint 가 아니며 수집기의 통계에 세지 않습니다. 크기를 표현할 수 없는 할당 (`len * size + header` overflow) 은 언제나 런타임의 "allocation too large" 에 닿습니다.

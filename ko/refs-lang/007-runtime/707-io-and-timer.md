@@ -18,7 +18,7 @@
 
 reactor thread 는 첫 async I/O 대기 때 시작합니다.
 
-`wasm32-wasi` (preview 2 component) 에서는 드라이버가 `wasi:io/poll` 입니다. `wasm32-wasi-threads` (preview 1) 에서는 `poll_oneoff` 가 host 가 넘긴 소켓을 지켜봅니다.
+`wasm32-wasi` (preview 2 component) 에서는 드라이버가 `wasi:io/poll` 이며, host 가 네트워크 접근을 허락하면 `std::net` 이 `wasi:sockets` 로 동작합니다. `wasm32-wasi-threads` (preview 1) 에서는 `poll_oneoff` 가 host 가 넘긴 소켓을 지켜봅니다.
 
 ## 7.7.2. I/O 대기 패턴
 

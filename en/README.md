@@ -102,7 +102,7 @@ The terms below are used consistently across the English edition (the Korean edi
 | raw pointer; collection; iterator | 원시 포인터; 컬렉션; 반복자 |
 | evaluation order; incremental build | 평가 순서; 증분 빌드 |
 
-Names that are already English stay as they are in both editions: RokON, `rok.rokon`, `rok.lock`, `rokc`, `rok`, `rokls`, `rokr`, RHIR, HIR, MIR, MLIR, AOT, JIT, GC, Immix, LOS, TLAB, shadow stack, `scan_table`, niche optimization, sticky mark-bit, work-stealing, ABI, FFI, toolchain, sysroot.
+Names that are already English stay as they are in both editions: ROKON, `rok.rokon`, `rok.lock`, `rokc`, `rok`, `rokls`, `rokr`, RHIR, HIR, MIR, MLIR, AOT, JIT, GC, Immix, LOS, TLAB, shadow stack, `scan_table`, niche optimization, sticky mark-bit, work-stealing, ABI, FFI, toolchain, sysroot.
 
 ## License
 

@@ -306,6 +306,7 @@ extern "C" {
         timer: extern "C" fn(deadline_ns: u64, waker: Ptr<u8>),
         park: extern "C" fn(key: Ptr<u8>, waker: Ptr<u8>),
         unpark: extern "C" fn(key: Ptr<u8>),
+        restart: extern "C" fn(),               // 실패한 REPL 셀과 함께 사라진 executor 작업을 재시작
     );                                          // 처음 설치한 것이 이김
     unsafe fn rok_task_key(obj: Ptr<u8>) -> usize;   // GC 객체 주소를 park 키로
 }
@@ -454,6 +455,8 @@ rok_net_multicast_v4 rok_net_wait     rok_net_resolve    rok_net_gai_strerror
 [에러 제어 흐름](../003-expressions/314-error-control-flow.md) 의 `throw` / `try` / `catch` 에는 런타임 심볼이 없습니다. throwing 함수는 에러를 반환값의 일부로 돌려주고 ([8.6.5](806-calling-convention.md#865-throwing-함수의-반환-값-기반-에러-전달)), 호출 지점이 그 값을 검사해 분기합니다 ([8.9.6](809-lowering-control.md#896-try--catch--finally-값-기반-분기)). 따라서 에러를 던지거나 현재 에러를 꺼내기 위해 런타임을 호출하는 일은 없으며, 에러 처리를 위한 TLS 슬롯이나 jmp_buf 도 두지 않습니다.
 
 ## 8.5.7. Diagnostic 영역
+
+아래 종료 코드 (`101` 등) 는 `wasm32-wasi` 에서 host 에 단순 실패로 전해집니다 ([4.16.4](../004-functions/416-entry-point.md#4164-종료-코드와-미처리-예외)).
 
 ### `rok_panic`
 
@@ -611,6 +614,17 @@ extern "C" {
         // panic, 처리되지 않은 에러, exit, (Windows) stack overflow 가 프로세스를
         // 끝내기 전에, 끝나는 스레드에서 종료 상태와 함께 호출; hook 이 반환하면
         // 프로세스가 끝남
+
+    // REPL host (세션 저장 / 복원)
+    fn rok_world_stop();                                   // 다른 모든 mutator 를 멈춤 (safepoint 나 parked)
+    fn rok_world_resume();
+    fn rok_world_threads(out: Ptr<u64>, cap: usize) -> usize;   // world 정지 중: 다른 mutator 의 OS id (Windows)
+    fn rok_session_restored(lost: ConstPtr<u64>, n: usize);     // 세션을 되돌림. n == SIZE_MAX: 다른 스레드는 모두 사라짐
+    fn rok_thread_lost(worker_id: u64) -> i32;             // 실패한 셀 뒤에 그 스레드가 사라졌으면 1
+    fn rok_io_quiesce();                                   // Windows: 메모리를 되돌리기 전에 진행 중인 I/O 취소
+    fn rok_watch_writes();                                 // Windows: heap 을 write-watch. 런타임 초기화 전에 호출
+    static rok_page_epoch: u64;                            // Windows: watch 하는 page 가 쓰기 없이 바뀌거나
+                                                           //   watch 하는 block 이 해제되면 증가
 }
 ```
 

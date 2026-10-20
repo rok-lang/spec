@@ -99,3 +99,7 @@ During an `extern "C"` call that receives a GC pointer, no separate pinning is n
 ## 7.2.11. Allocation time vs heap usage
 
 The fast path is constant time (~4 instructions). The average allocation cost is determined by the fast path.
+
+## 7.2.12. Allocation elision
+
+The optimizer may remove an allocation whose object never escapes and is never read past its stores; such an allocation is no safepoint and is not counted by the collector's statistics. An allocation whose size cannot be represented (`len * size + header` overflowing) always reaches the runtime's "allocation too large".

@@ -15,6 +15,8 @@ impl_item       ::= fn_decl
                   | const_decl
 ```
 
+In `impl <`, the `<` opens `generics` only when a generic parameter follows (`<>`, `<T>`, `<T:`, `<T,`, `<T =`, `<const N`); otherwise it begins the target type, e.g. an inherent `impl <A as P>::Out { .. }`.
+
 ### Inherent `impl`: attaching methods
 
 First, an inherent `impl`:

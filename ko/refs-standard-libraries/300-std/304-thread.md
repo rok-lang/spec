@@ -25,7 +25,8 @@ struct Thread { /* OS handle — 제네릭 아님 */ }
 struct JoinHandle<T> { /* join 결과 T */ }
 struct ThreadId { /* opaque */ }
 
-struct JoinError { code: i32; }          // OS 수준 join 실패만 (errno)
+struct JoinError { code: i32; }          // OS join 에러 번호 (errno), 또는 JOIN_LOST
+const JOIN_LOST: i32 = -1;               // 실패한 REPL 셀과 함께 끝난 스레드
 // Display, Debug, Error 를 구현
 
 fn spawn<T: Send>(f: fn() -> T + Send) -> JoinHandle<T>;
@@ -75,7 +76,7 @@ impl<T> ThreadLocal<T> {
 
 ### panic 과 `JoinError`
 
-어느 스레드에서든 panic 이 나면 프로세스 전체가 종료 코드 101 로 끝납니다. 그래서 `join` 이 다른 스레드의 panic 을 받을 일은 없으며, `JoinError` 는 OS 수준의 join 실패만 나타냅니다.
+어느 스레드에서든 panic 이 나면 프로세스 전체가 종료 코드 101 로 끝납니다. 그래서 `join` 이 다른 스레드의 panic 을 받을 일은 없으며, `JoinError` 는 OS 수준의 join 실패, 또는 실패한 REPL 셀과 함께 끝난 스레드의 `JOIN_LOST` ([refs-lang 9.7.0](../../refs-lang/009-tools/907-jit-cells.md#970-셀-세션의-규칙)) 를 나타내며, 후자는 "thread join failed: the thread ended with a failed REPL cell" 로 표시됩니다.
 
 ## 3.4.3. 사용 예
 

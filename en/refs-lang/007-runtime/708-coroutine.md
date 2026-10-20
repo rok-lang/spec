@@ -55,7 +55,7 @@ The scheduler and runtime drive progress ([7.6](706-scheduler.md)).
 
 ## 7.8.6. Allocation elision
 
-A frame is allocated on every coroutine call. There is no allocation elision for the case where the caller immediately runs it to completion.
+A frame is allocated on every coroutine call. There is no dedicated elision for a coroutine run to completion by its caller; a frame that never escapes may be removed like any allocation ([7.2.12](702-allocation.md#7212-allocation-elision)).
 
 ## 7.8.7. Lowering of `yield` / `await`
 

@@ -122,7 +122,7 @@ MLIR plugin 은 rok 컴파일러에 내장된 MLIR 에 외부에서 빌드된 ML
 
 toolchain 을 이루는 실행 파일과 런타임입니다. `rokc` 는 LLVM, MLIR, lld 를 내장한 컴파일러 (rustc 에 해당, [9.1](../009-tools/901-rokc-cli.md)), `rok` 은 매니페스트와 의존성, 환경, toolchain 고정을 맡고 `rokc` 를 부르는 cargo 식 front-end ([9.10](../009-tools/910-rok-frontend.md)), `rokls` 는 편집기용 LSP 서버 실행 파일 (`rok lsp`), `rokr` 은 런타임 (`librokr.a`) 입니다. `$ROK_HOME/bin/` 의 실행 파일은 활성 toolchain (`$ROK_HOME/toolchains/<version>-<triple>/`) 으로 가는 proxy 이며, `rokc` 는 표준 라이브러리와 런타임을 자기 실행 파일 기준의 sysroot 에서 찾습니다 ([9.2.19](../009-tools/902-aot-pipeline.md#9219-설치-레이아웃)).
 
-## RokON
+## ROKON
 
 Rok Object Notation. rok 의 리터럴 문법 부분집합으로 값을 적는 데이터 형식이며, 확장자는 `.rokon` 입니다. 매니페스트 `rok.rokon` 과 lockfile `rok.lock` 이 이 형식입니다 ([stdlib 3.9](../../refs-standard-libraries/300-std/309-rokon.md)).
 
@@ -132,7 +132,7 @@ rok 의 기본 stone 레지스트리입니다. index 는 별도 git 저장소 `r
 
 ## rok.rokon / rok.lock
 
-패키지 루트의 매니페스트와 lockfile 입니다. 이름은 이 철자 그대로 (모두 소문자) 이며, 둘 다 [RokON](#rokon) 형식입니다. 의존성이 없는 패키지에는 필요하지 않습니다 ([0.3.4](003-source-units.md#034-매니페스트-rokrokon-는-선택)). `rok.rokon` 은 `Package { .. }` 값 하나로 의존성과 toolchain 고정을 선언하고, `rok.lock` 은 `rok update` 가 해소한 결과를 고정합니다.
+패키지 루트의 매니페스트와 lockfile 입니다. 이름은 이 철자 그대로 (모두 소문자) 이며, 둘 다 [ROKON](#rokon) 형식입니다. 의존성이 없는 패키지에는 필요하지 않습니다 ([0.3.4](003-source-units.md#034-매니페스트-rokrokon-는-선택)). `rok.rokon` 은 `Package { .. }` 값 하나로 의존성과 toolchain 고정을 선언하고, `rok.lock` 은 `rok update` 가 해소한 결과를 고정합니다.
 
 ## 환경 (environment)
 

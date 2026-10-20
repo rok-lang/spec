@@ -193,7 +193,7 @@ Each type implements `Error + Display + Debug`, and its `Display` body provides 
 | `ValueError`      | general invalid value (parsers / APIs, etc.)                               |
 | `IndexError`      | out-of-range argument to a throwing API that takes an index (the bounds check of `xs[10]` panics) |
 | `OverflowError`   | range exceeded in a checked conversion such as `try_into` (arithmetic overflow panics) |
-| `ParseError`      | parse failure such as `str → number` (RokON uses `RokonError`)             |
+| `ParseError`      | parse failure such as `str → number` (ROKON uses `RokonError`)             |
 | `ConversionError` | default for `TryFrom::Error`; failure of a non-numeric conversion ([2.11.4](211-conversion.md#2114-tryfromu-trait--fallible-conversion)); `try_from` of `NonNan` / `Finite` |
 | `ZeroError`       | 0 passed to `NonZero::try_from` ([2.2.2](202-non-zero.md#222-nonzerot--zero-forbidden)) |
 

@@ -24,7 +24,7 @@ rokc <subcommand> [options] [args]
 cli_invocation  ::= "rokc" subcommand option* arg*
 subcommand      ::= "build" | "emit" | "run" | "test" | "bench" | "check"
                   | "fmt" | "lint" | "doc" | "repl" | "jupyter" | "lsp"
-                  | "clean" | "demangle" | "rhir-text" | "inspect" | "version" | "help"
+                  | "clean" | "profdata" | "demangle" | "rhir-text" | "inspect" | "version" | "help"
 option          ::= "--" identifier ("=" value)?
                   | "-" letter
 ```
@@ -35,7 +35,7 @@ option          ::= "--" identifier ("=" value)?
 |-----------------|-------------------------------------------------------|
 | 빌드 / 실행     | `build`, `emit`, `run`, `test`, `bench`, `check`      |
 | 패키지          | `clean`                                               |
-| 도구            | `fmt`, `lint`, `doc`, `lsp`                           |
+| 도구            | `fmt`, `lint`, `doc`, `lsp`, `profdata`                           |
 | 인터랙티브      | `repl`, `jupyter`                                     |
 | 디버그 / 진단   | `demangle`, `rhir-text`, `inspect`                    |
 | 그 밖           | `version`, `help`                                     |
@@ -76,6 +76,7 @@ rokc build [path]
 - `-O0` / `-O1` / `-O2` / `-O3` / `-Os` 는 최적화 단계를 명시적으로 지정합니다. `-O0` 은 native backend 를, 나머지는 MLIR → LLVM backend 를 씁니다 ([9.2.10](902-aot-pipeline.md#9210-backend-선택)).
 - `--target=<triple>` 은 타깃 플랫폼을 지정하며, [플랫폼 타깃](../000-meta/006-platform-targets.md) 의 14 개 Tier 1 중 하나를 사용합니다. 어느 host 에서나 어느 대상이든 빌드할 수 있습니다 ([0.2.4](../000-meta/002-pipeline.md#024-backend)).
 - `-L <dir>` 은 `#[link]` 의 라이브러리 검색 디렉토리를 더합니다 ([5.9.9](../005-modules/509-extern-block.md#599-linklibname-라이브러리-명시)). `LIBRARY_PATH` 보다 먼저 찾습니다. 여러 번 쓸 수 있습니다.
+- `-l [static=|dylib=]<name>` 은 라이브러리 `<name>` 을 링크하며 (`#[link]` 처럼 찾음), `--native-runtime <file>` 은 실행 파일 옆에 둘 공유 라이브러리를 지정합니다 ([9.2.14](902-aot-pipeline.md#9214-링킹-실행-파일의-경우)). 둘 다 여러 번 쓸 수 있으며, `rok` 가 native 패키지에 대해 넘깁니다 ([9.10.4b](910-rok-frontend.md#9104b-native-패키지)).
 - `-o` / `--out=<path>` 는 출력 위치를 지정합니다.
 - `--cfg <flag>` / `--cfg <key>=<value>` 는 [조건부 컴파일](../006-meta-system/603-cfg.md) 의 cfg flag 를 설정합니다. 여러 번 쓸 수 있습니다.
 - `--emit=<kind>[,<kind>..]` 는 중간 산출물 (`ast`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expanded`) 을 `target/<profile>/build/<name>.<ext>` 에 씁니다 ([9.9.1](909-debug-tools.md#991-중간-산출물-출력---emit)). 쉼표로 여러 종류를 한 번에 지정하며, 이때는 `-o` 를 함께 쓸 수 없습니다. `--emit` 이 있으면 실행 파일이나 archive 는 만들지 않습니다.
@@ -84,8 +85,28 @@ rokc build [path]
 - `-C overflow-checks[=yes|no]` 는 고정 폭 정수 산술의 overflow 검사 (panic) 를 켜거나 끕니다. 기본값은 `-O0` 에서만 켬입니다. 값을 생략하면 `yes` 입니다. overflow 가 일어날 수 없는 상수 피연산자 연산은 검사를 생략합니다.
 - `-C backend=native|llvm` 은 최적화 수준이 고른 backend 를 바꿉니다 ([9.2.10](902-aot-pipeline.md#9210-backend-선택)).
 - `-C subsystem=console|windows` 는 Windows subsystem 을 고릅니다: `console` (기본, `mainCRTStartup`) 또는 `windows` (GUI, `WinMainCRTStartup`, [9.5.9](905-symbol-mangling.md#959-main-함수의-심볼)).
+- `-C profile-generate[=<dir>]` 는 profile-guided optimization 을 위해 프로그램과 소스 의존 패키지를 계측합니다. 실행하면 raw profile `<dir>/default_%m.profraw` 를 씁니다 (기본 `<dir>`: 실행 시점의 작업 디렉토리, `LLVM_PROFILE_FILE` 이 경로를 바꿈). 계측된 실행 파일은 toolchain 이 대상용으로 제공하는 profile 런타임을 링크합니다 ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)). wasm32-unknown-unknown 에서는 지원하지 않습니다 (파일 시스템 없음).
+- `-C cs-profile-generate[=<dir>]` 은 `-C profile-use` 와 함께 inlining 뒤에 다시 계측합니다 (context-sensitive). 그 실행들을 그 profile 과 합치면 `-C profile-use` 가 읽는 profile 하나가 됩니다.
+- `-C profile-use=<file>` 은 `rokc profdata merge` 로 만든 indexed profile 로 최적화합니다. 파일이 없으면 에러입니다. profile 을 기록한 뒤 제어 흐름이 바뀐 함수는 그것 없이 최적화하며, 그 수를 경고 하나로 알립니다.
+- 둘 다 어느 수준에서나 MLIR → LLVM backend 를 고르며, 함께 쓰는 `-C backend=native` 는 에러입니다. 표준 라이브러리는 cache 에서 가져오지 않고 프로그램과 함께 컴파일되므로 함께 profile 되고 최적화됩니다. REPL 은 둘 다 거부합니다.
 
 이전 빌드 뒤로 바뀐 것이 없으면 `rokc build` / `rokc run` 은 `Fresh` 를 출력하고 빌드를 건너뜁니다 ([9.2.16](902-aot-pipeline.md#9216-증분-빌드)).
+
+### `rokc profdata merge`: profile 병합
+
+```
+rokc profdata merge [-o <file>] <file | dir>...
+```
+
+raw (`.profraw`) 와 indexed (`.profdata`) profile 을 `-C profile-use` 용 indexed profile 하나 (기본 `default.profdata`) 로 합칩니다. 디렉토리는 그 안의 그런 파일들을 뜻하며, 빈 raw profile 은 건너뜁니다. 프로세스 안에서 실행합니다. 병합 경고 (counter overflow, counter 불일치) 는 보고하며, 병합은 그래도 결과를 씁니다.
+
+### `rokc profdata show`: profile 요약
+
+```
+rokc profdata show [--all-functions] [--topn N] <file>
+```
+
+profile 의 요약을 `llvm-profdata show` 형태로 출력합니다: 계측 수준과 보인 함수 수, 전체 함수 수. `--all-functions` 는 함수마다 hash 와 counter 를 더하고, `--topn N` 은 내부 block count 가 가장 큰 N 개 함수를 나열합니다.
 
 ### `rokc emit`: 중간 산출물
 
@@ -214,7 +235,7 @@ rokc jupyter [--connection-file <path>]
 rokc fmt [path]
 ```
 
-`[path]` 는 파일 또는 디렉토리를 받으며 (여러 개 가능, 생략하면 현재 디렉토리), [표준 포맷](#9111-표준-포맷-rokc-fmt) 에 맞게 in-place 로 수정합니다. 디렉토리는 재귀로 `.rok` 파일을 찾으며 `target/` 과 `.` 으로 시작하는 디렉토리는 건너뜁니다. `.rokon` 파일 ([RokON](../../refs-standard-libraries/300-std/309-rokon.md#394-정규-형식)) 은 RokON 인지 검사하고 들여쓰기만 다시 맞춥니다 (정규 형식으로 다시 쓰지 않으므로 주석이 남음).
+`[path]` 는 파일 또는 디렉토리를 받으며 (여러 개 가능, 생략하면 현재 디렉토리), [표준 포맷](#9111-표준-포맷-rokc-fmt) 에 맞게 in-place 로 수정합니다. 디렉토리는 재귀로 `.rok` 파일을 찾으며 `target/` 과 `.` 으로 시작하는 디렉토리는 건너뜁니다. `.rokon` 파일 ([ROKON](../../refs-standard-libraries/300-std/309-rokon.md#394-정규-형식)) 은 ROKON 인지 검사하고 들여쓰기만 다시 맞춥니다 (정규 형식으로 다시 쓰지 않으므로 주석이 남음).
 
 옵션은 다음과 같습니다.
 
@@ -400,6 +421,7 @@ rokc --cwd=examples/hello run
 | `ROK_BACKEND`     | `native` 또는 `llvm`. `-C backend=` 와 같음 |
 | `ROKC_VERBOSE`    | `--verbose` 와 동일                                                                      |
 | `ROK_TIME_PASSES` | `1` 이면 패스별 실제 시간을 stderr 에 출력 ([9.9.5](909-debug-tools.md#rok_time_passes)) |
+| `LLVM_PROFILE_FILE` | 계측된 프로그램 (`-C profile-generate`) 이 읽음: raw profile 경로 |
 | `ROKC_TARGET_DIR` | `target/` 의 위치 (기본은 패키지 안)                                                     |
 | `ROKC_NUM_JOBS`   | `rokc test --threads` 의 기본값 (없으면 CPU 코어 수)                                     |
 | `NO_COLOR`        | 있으면 `--color=auto` 가 색을 쓰지 않음                                                  |
@@ -468,7 +490,7 @@ rokc build --message-format=json
 
 ## 9.1.11. 표준 포맷 (`rokc fmt`)
 
-`rokc fmt` 의 표준 포맷은 **토큰을 보존하는 배치 규칙** 입니다. 줄 안의 토큰과 주석은 바꾸지 않고 줄의 들여쓰기와 공백 줄만 정합니다.
+`rokc fmt` 의 표준 포맷은 **토큰을 보존하는 배치 규칙** 입니다. 줄 안의 토큰과 주석은 바꾸지 않고 줄의 들여쓰기와 공백 줄만 정합니다. `rokc fmt` 는 의도적으로 설정이 없습니다: 모든 rok 코드에 표준 포맷은 하나입니다.
 
 1. 들여쓰기는 괄호 (`(` `[` `{` `#[`) 깊이마다 공백 4 칸입니다. 닫는 괄호로 시작하는 줄은 여는 줄의 깊이를 따릅니다. 탭은 공백으로 바뀝니다.
 2. 이어지는 줄, 곧 앞 토큰이 `;` `,` 나 괄호가 아닌 줄 (긴 식을 나눈 줄 등) 은 원래 파일에서 블록 들여쓰기보다 더 들여쓴 만큼을 유지합니다.

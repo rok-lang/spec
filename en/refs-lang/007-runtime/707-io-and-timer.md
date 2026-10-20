@@ -18,7 +18,7 @@ The driver for the target is compiled at build time, through the `target_os` bra
 
 The reactor thread starts on the first async I/O wait.
 
-On `wasm32-wasi` (a preview 2 component) the driver is `wasi:io/poll`. On `wasm32-wasi-threads` (preview 1) `poll_oneoff` watches the sockets the host passes in.
+On `wasm32-wasi` (a preview 2 component) the driver is `wasi:io/poll`, and `std::net` works through `wasi:sockets` when the host grants network access. On `wasm32-wasi-threads` (preview 1) `poll_oneoff` watches the sockets the host passes in.
 
 ## 7.7.2. I/O wait pattern
 

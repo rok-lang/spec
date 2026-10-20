@@ -209,7 +209,7 @@ extern "C" {
 }
 ```
 
-extern 블록의 `#[link("x")]` 나 `#[link(name = "x", kind = "static" | "dylib")]` 는 링커에 `-lx` 를 넘깁니다. 라이브러리 검색 경로는 `-L <dir>` 디렉토리, 그 다음 `LIBRARY_PATH` 입니다. Apple 대상에서 `kind = "static"` 은 거기서 찾은 `lib<name>.a` 를 경로로 링크합니다. `#[link]` 가 없는 경우에는 링킹 시점에 시스템 기본값 (`libc` 등) 이나 다른 메커니즘을 통해 해소됩니다. 자세한 `#[link]` 의 동작은 [내장 속성](../006-meta-system/602-built-in-attributes.md) 에서 정의됩니다.
+extern 블록의 `#[link("x")]` 나 `#[link(name = "x", kind = "static" | "dylib")]` 는 링커에 `-lx` 를 넘깁니다. 라이브러리 검색 경로는 `-L <dir>` 디렉토리, 그 다음 `LIBRARY_PATH` 입니다. Apple 대상에서 `kind = "static"` 은 거기서 찾은 `lib<name>.a` 를 경로로 링크합니다. rokc 의 `-l` 과 native 패키지의 `links` 도 같은 방식으로 라이브러리를 더합니다. `#[link]` 가 없는 경우에는 링킹 시점에 시스템 기본값 (`libc` 등) 이나 다른 메커니즘을 통해 해소됩니다. 자세한 `#[link]` 의 동작은 [내장 속성](../006-meta-system/602-built-in-attributes.md) 에서 정의됩니다.
 
 ## 5.9.10. `extern fn` 정의 (외부에 노출)
 

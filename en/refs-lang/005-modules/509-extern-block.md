@@ -209,7 +209,7 @@ extern "C" {
 }
 ```
 
-`#[link("x")]` or `#[link(name = "x", kind = "static" | "dylib")]` on an extern block passes `-lx` to the linker. The library search path is the `-L <dir>` directories, then `LIBRARY_PATH`. On Apple targets, `kind = "static"` links the `lib<name>.a` found there by its path. Without `#[link]`, symbols are resolved at link time through system defaults (`libc`, etc.) or other mechanisms. The behavior of `#[link]` is defined in [built-in attributes](../006-meta-system/602-built-in-attributes.md).
+`#[link("x")]` or `#[link(name = "x", kind = "static" | "dylib")]` on an extern block passes `-lx` to the linker. The library search path is the `-L <dir>` directories, then `LIBRARY_PATH`. On Apple targets, `kind = "static"` links the `lib<name>.a` found there by its path. rokc's `-l` and a native package's `links` add libraries the same way. Without `#[link]`, symbols are resolved at link time through system defaults (`libc`, etc.) or other mechanisms. The behavior of `#[link]` is defined in [built-in attributes](../006-meta-system/602-built-in-attributes.md).
 
 ## 5.9.10. `extern fn` definitions (exposed externally)
 

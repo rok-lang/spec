@@ -202,7 +202,7 @@ span 은 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_p
 
 - 함수의 `DW_AT_name` 은 rok 경로 (`geom::distance`) 이며, linkage name (맹글링된 심볼) 은 두지 않습니다. 디버거가 `_Y` 맹글링을 모르기 때문입니다.
 - 줄 번호는 원본 .rok 파일의 줄을 가리킵니다.
-- 지역 변수는 원본 이름과 타입으로 보입니다. 원시 타입 (정수, 부동소수, `bool`, `char`) 외에 struct (필드 이름), 튜플, `str`, `any`, sum 타입, 배열의 DWARF 타입을 냅니다. sum 타입과 enum 은 tag 와, 변형 이름이 붙은 변형 payload 들의 union 으로 기술합니다. `GcBuf<T>` 참조는 그 객체 (헤더, 그 다음 `T` 원소들) 를 가리키는 포인터로 기술합니다. 컴파일러가 만드는 함수 (C `main`, static 초기화 guard) 도 subprogram 을 가집니다.
+- 지역 변수는 원본 이름과 타입으로 보입니다. 원시 타입 (정수, 부동소수, `bool`, `char`) 외에 struct (필드 이름), 튜플, `str`, `any`, sum 타입, 배열의 DWARF 타입을 냅니다. sum 타입과 enum 은 DWARF variant part 입니다: artificial discriminant 멤버와, 변형마다 (데이터 없는 변형 포함) `DW_AT_discr_value` 를 가진 `DW_TAG_variant` 하나씩이며, 각각은 `<Sum>::<Variant>` 라는 이름의 struct 를 담습니다. 두 backend 가 같은 형태를 쓰며, 디버거가 variant part 를 읽도록 compile unit 은 `DW_LANG_Rust` 를 씁니다 (rok 의 DWARF 언어 코드는 없음). `GcBuf<T>` 참조는 그 객체 (헤더, 그 다음 `T` 원소들) 를 가리키는 포인터로 기술합니다. 컴파일러가 만드는 함수 (C `main`, static 초기화 guard) 도 subprogram 을 가집니다.
 - 블록마다 lexical block scope 를 내므로 가려진 (shadowed) 이름은 해당 블록 안에서만 보입니다.
 - 스택 슬롯을 가진 지역은 debug / release 모두 `llvm.alloca` 하나에 놓입니다. 그래서 `-g` 는 최적화 수준과 무관하게 같은 슬롯에 debug 정보를 붙입니다.
 
@@ -240,6 +240,19 @@ perf report
 ```
 
 이 경우 rok 함수가 demangled 이름으로 표시됩니다.
+
+### Profile-guided optimization
+
+Profile-guided optimization ([9.1.2](901-rokc-cli.md#rokc-build-aot-빌드)) 은 세 단계입니다:
+
+```
+rokc build --release -C profile-generate=prof    # 1. 계측 빌드
+./target/release/my_binary <대표 입력>            # 2. 실행 — prof/default_*.profraw 를 씀
+rokc profdata merge -o app.profdata prof          # 3. 병합한 뒤
+rokc build --release -C profile-use=app.profdata  #    profile 로 다시 빌드
+```
+
+선택인 context-sensitive 단계는 `-C profile-use=app.profdata -C cs-profile-generate=cs` 로 빌드해 다시 실행하고, `cs` 를 `app.profdata` 와 합쳐 최종 profile 을 만듭니다. `wasm32-wasi` 는 지원하고 `wasm32-unknown-unknown` 은 지원하지 않습니다.
 
 ### Tracy / Chrome trace (선택)
 

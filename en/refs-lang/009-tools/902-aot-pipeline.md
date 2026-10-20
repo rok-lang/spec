@@ -88,7 +88,7 @@ All `.rok` files are parsed into an AST according to the lexical / syntactic rul
 
 A directory module of [Modules](../005-modules/504-modules.md) combines all its .rok files into the body of one module.
 
-The manifest `rok.rokon` at the package root ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)) is not a module file. The manifest is read as a single [RokON](../../refs-standard-libraries/300-std/309-rokon.md) value (`Package { .. }`); top-level statement rules do not apply to it and it is not compiled.
+The manifest `rok.rokon` at the package root ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)) is not a module file. The manifest is read as a single [ROKON](../../refs-standard-libraries/300-std/309-rokon.md) value (`Package { .. }`); top-level statement rules do not apply to it and it is not compiled.
 
 ### Scanner pre-pass
 
@@ -142,7 +142,7 @@ The optimization level selects the code generator by default ([0.2.4](../000-met
 | `-O0`                    | native       |
 | `-O1` `-O2` `-O3` `-Os`  | MLIR → LLVM  |
 
-The native backend supports {aarch64, x86_64} × {macOS, Linux}. Other targets, modules that use [`__mlir_op` / `__mlir_type`](../../refs-standard-libraries/100-bare/109-mlir.md), and builds with MLIR plugins use the MLIR → LLVM backend at every level. The REPL follows the same selection (9.6.1). Both backends follow the runtime ABI of [8](../008-abi/README.md), so objects from either link together, including prebuilt dependencies built at another level.
+The native backend supports {aarch64, x86_64} × {macOS, Linux}. Other targets, modules that use [`__mlir_op` / `__mlir_type`](../../refs-standard-libraries/100-bare/109-mlir.md), builds with MLIR plugins, and builds with `-C profile-generate` / `-C profile-use` use the MLIR → LLVM backend at every level. The REPL follows the same selection (9.6.1). Both backends follow the runtime ABI of [8](../008-abi/README.md), so objects from either link together, including prebuilt dependencies built at another level.
 
 ## 9.2.11. Native backend
 
@@ -173,7 +173,7 @@ An executable is linked by the embedded lld:
 foo.o + <deps>/lib*.a + <sysroot>/lib/librokr.a + target libc  →  target/debug/foo
 ```
 
-A Mach-O executable links against the macOS SDK (Xcode Command Line Tools). A Windows executable links against import libraries `rokc` builds from module definitions it carries (derived from mingw-w64), with rok's own startup over the UCRT; no MSVC tools or Windows SDK are needed. For x86 Windows the import names come from mingw-w64's `lib32` definitions, with stdcall `@N` decoration, and images link with `/SAFESEH:NO`. Linux targets, native or cross, always link the shipped C library in `<sysroot>/lib/rok/targets/<triple>/`: musl statically, glibc through link stubs (executables need glibc 2.34 or later). Other libraries are found through `-L` and `LIBRARY_PATH`. The dynamic loaders named for 32-bit glibc targets are `/lib/ld-linux.so.2` (i686) and `/lib/ld-linux-armhf.so.3` (armv7hf). If `ROK_CC` is set, that C compiler driver performs the final link instead (`$ROK_CC <objects> <archives> -o <out>`); this is an optional override. Executables are dead-stripped: unreferenced functions and data are removed. With `-g` on Apple targets, the embedded `dsymutil` (LLVM's, linked into `rokc`) writes a `.dSYM` bundle next to the executable.
+A Mach-O executable links against the macOS SDK (Xcode Command Line Tools). A Windows executable links against import libraries `rokc` builds from module definitions it carries (derived from mingw-w64), with rok's own startup over the UCRT; no MSVC tools or Windows SDK are needed. rok's Windows startup runs the C initializers in `.CRT$XCA`..`.CRT$XCZ` before `main`. For x86 Windows the import names come from mingw-w64's `lib32` definitions, with stdcall `@N` decoration, and images link with `/SAFESEH:NO`. Linux targets, native or cross, always link the shipped C library in `<sysroot>/lib/rok/targets/<triple>/`: musl statically, glibc through link stubs (executables need glibc 2.34 or later). Other libraries are found through `-L` and `LIBRARY_PATH`. The dynamic loaders named for 32-bit glibc targets are `/lib/ld-linux.so.2` (i686) and `/lib/ld-linux-armhf.so.3` (armv7hf). If `ROK_CC` is set, that C compiler driver performs the final link instead (`$ROK_CC <objects> <archives> -o <out>`); this is an optional override. Shared libraries given with `--native-runtime` are copied beside the executable, which gets rpath `@loader_path` (Mach-O) / `$ORIGIN` (ELF); Windows loads DLLs from the executable's directory. Executables are dead-stripped: unreferenced functions and data are removed. With `-g` on Apple targets, the embedded `dsymutil` (LLVM's, linked into `rokc`) writes a `.dSYM` bundle next to the executable.
 
 ## 9.2.15. Output
 
@@ -213,12 +213,12 @@ Incremental builds are per package. If the fingerprint of the previous build equ
 
 - The compiler's identity (the same value as the RHIR producer), build options, diagnostic format (`--message-format`, color), input / output paths, `ROK_CC` if set
 - All `.rok` files and `rok.rokon` readable from the package and its dependencies
-- The `.a` of prebuilt dependencies, MLIR plugin files
+- The `.a` of prebuilt dependencies, MLIR plugin files, a `-C profile-use` file and the profile runtime
 - The size and modification time of the outputs
 
-Warnings emitted by a build are recorded, and a `Fresh` build prints them again.
+Warnings emitted by a build, the back end's included, are recorded, and a `Fresh` build prints them again.
 
-A native build without `--cfg`, `--target` or MLIR plugins links the prebuilt standard library from `lib/rok-cache/` (9.2.19), one folder per hash of toolchain, options and sources, built on first use under a lock. The REPL compiles the standard library from source.
+A native build without `--cfg`, `--target`, MLIR plugins, profile options or `-O3` links the prebuilt standard library from `lib/rok-cache/` (9.2.19), one folder per hash of toolchain, options and sources, built on first use under a lock. At `-O3` the standard library is compiled with the program (whole-program optimization). The REPL compiles the standard library from source.
 
 ## 9.2.17. Separation of compiler and runtime
 
@@ -256,7 +256,8 @@ $ROK_HOME/
 │       ├── bin/{rok, rokc, rokls}
 │       └── lib/
 │           ├── librokr.a        # runtime
-│           ├── rok/targets/<triple>/   # what --target links: the runtime (librokr.a / rokr.lib), Linux C library
+│           ├── rok/targets/<triple>/   # what --target links: the runtime (librokr.a / rokr.lib), Linux C library,
+│           │                           #   libclang_rt.profile.a (Windows clang_rt.profile.lib); the host's included
 │           └── rok/{core, std, bare}/   # standard library sources
 ├── cache/                       # git, registry, script locks (9.10.4)
 ├── envs/<name>/, envs/CURRENT   # named environments (9.10.5)

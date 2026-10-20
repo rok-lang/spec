@@ -122,7 +122,7 @@ An MLIR plugin is the mechanism for dynamically registering an externally built 
 
 The executables and runtime that make up the toolchain. `rokc` is the compiler (the counterpart of rustc, [9.1](../009-tools/901-rokc-cli.md)), with LLVM, MLIR and lld built in; `rok` is the cargo-like front-end that handles the manifest, dependencies, environments and toolchain pins and invokes `rokc` ([9.10](../009-tools/910-rok-frontend.md)); `rokls` is the LSP server executable for editors (`rok lsp`); and `rokr` is the runtime (`librokr.a`). The executables in `$ROK_HOME/bin/` are proxies to the active toolchain (`$ROK_HOME/toolchains/<version>-<triple>/`), and `rokc` finds the standard libraries and runtime in a sysroot relative to its own executable ([9.2.19](../009-tools/902-aot-pipeline.md#9219-installation-layout)).
 
-## RokON
+## ROKON
 
 Rok Object Notation. A data format for writing values using a subset of rok's literal syntax, with the extension `.rokon`. The manifest `rok.rokon` and the lockfile `rok.lock` use this format ([stdlib 3.9](../../refs-standard-libraries/300-std/309-rokon.md)).
 
@@ -132,7 +132,7 @@ rok's default stone registry. Its index is the separate git repository `rokstone
 
 ## rok.rokon / rok.lock
 
-The manifest and lockfile at the package root. The names are spelled exactly this way (all lowercase), and both use the [RokON](#rokon) format. A package without dependencies does not need them ([0.3.4](003-source-units.md#034-the-manifest-rokrokon-is-optional)). `rok.rokon` declares dependencies and toolchain pins as a single `Package { .. }` value, and `rok.lock` pins the results resolved by `rok update`.
+The manifest and lockfile at the package root. The names are spelled exactly this way (all lowercase), and both use the [ROKON](#rokon) format. A package without dependencies does not need them ([0.3.4](003-source-units.md#034-the-manifest-rokrokon-is-optional)). `rok.rokon` declares dependencies and toolchain pins as a single `Package { .. }` value, and `rok.lock` pins the results resolved by `rok update`.
 
 ## environment
 
