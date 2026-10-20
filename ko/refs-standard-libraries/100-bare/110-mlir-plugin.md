@@ -25,7 +25,7 @@
 | 다이얼렉트      | `mlirGetDialectPluginInfo()`      |
 | 패스 (선택)     | `mlirGetPassPluginInfo()`         |
 
-다이얼렉트 plugin 의 namespace 가 `__mlir_op::<"NS.op_name", ...>` 의 `NS` 자리에 들어갑니다. plugin 은 `rokc` 에 내장된 LLVM 버전으로 빌드해야 합니다.
+다이얼렉트 plugin 의 namespace 가 `__mlir_op::<"NS.op_name", ...>` 의 `NS` 자리에 들어갑니다. plugin 은 `rokc` 에 내장된 LLVM 버전으로 빌드해야 합니다. plugin 은 자기 MLIR 을 따로 갖지 않고 `rokc` 의 MLIR 을 씁니다: plugin 의 MLIR / LLVM 심볼은 해소하지 않은 채 두고, 로드할 때 `rokc` 가 export 하는 심볼에 묶입니다. 자기 MLIR 사본을 링크한 plugin 은 `rokc` 가 보지 못하는 registry 에 등록됩니다. 정확한 빌드 플래그는 구현이 정합니다.
 
 ## 1.10.3. plugin 로드
 
@@ -73,7 +73,7 @@ unsafe {
 
 plugin 사용자 (라이브러리 작성자 + 그 라이브러리를 쓰는 사용자) 가 부담하는 책임은 다음과 같습니다.
 
-- **LLVM 버전 일치**: plugin 이 빌드된 LLVM 버전이 `rokc` 에 내장된 것과 다르면 로드가 실패합니다.
+- **LLVM 버전 일치**: plugin 은 `rokc` 에 내장된 LLVM 버전으로 빌드되어 `rokc` 가 export 하는 MLIR / LLVM 심볼에 묶여야 합니다 (1.10.2). 그렇지 않으면 로드가 실패합니다.
 - **op 의미 검증**: op 이름과 시그니처는 MLIR 이 확인합니다. op 의 의미 / 부수효과 / GC 안전성은 plugin 작성자 책임입니다.
 - **GC root 추적**: plugin op 이 GC heap 객체를 다룰 때는 그 포인터를 shadow stack frame 슬롯에 두는 root 추적 ([refs-lang 7.4.1](../../refs-lang/007-runtime/704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack)) 을 plugin lowering 에서 지켜야 하며, 그렇지 않으면 GC cycle 에서 객체가 회수될 수 있습니다.
 - **target 가용성**: plugin 이 특정 target (GPU / FPGA / 양자 hw) 만 지원하는 경우, 해당 target 이 활성화되지 않은 빌드에서 호출하면 lowering 단계에서 에러가 납니다.

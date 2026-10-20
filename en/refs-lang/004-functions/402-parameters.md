@@ -131,11 +131,13 @@ sum(..xs);                         // sum(1, 2, 3) — received as variadic
 The following rules apply to spread:
 
 - A tuple spread has its length and types checked at compile time.
-- A list spread uses the runtime length; it is OK for a variadic or when the positions match.
+- A `List` / `Slice` spread into fixed parameters fills the slots up to the next argument, with a run-time length check. An array spread fills its length.
 - A Dict spread is converted to named arguments.
 - In a variadic position, tuple, `List`, `Slice` and array spreads may be mixed with ordinary arguments (`f(a, ..xs, b)`). A variadic parameter may be passed as-is to another variadic (`fn f(xs: ...i32) { g(..xs) }`).
 - Spreading a non-collection value is an error ("needs a tuple, a List, a Slice or an array").
 - Calling a variadic whose element type `T` is an open generic with no arguments cannot determine `T`, so a type annotation is required.
+
+- In a `List` literal, `..x` spreads a tuple, array, `List` or `Slice` (`[0, ..xs, 9]`); otherwise it is a range.
 
 ```rok
 let opts = {"lr": 0.01, "epochs": 100};

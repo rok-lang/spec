@@ -83,6 +83,9 @@ The work-stealing model has the problem that when a task calls a blocking syscal
 
 The compiler and runtime automatically send known blocking syscalls to a blocking pool worker, which is a separate OS thread and so does not hinder other tasks' progress. The detailed mechanism is left to the scheduler implementation.
 
+> [!NOTE]
+> In the reference runtime, a pool thread whose task stays in a blocking call hands its worker to a new thread. Tasks spawned with `spawn_local` pin their worker, which is never handed on.
+
 ## 7.6.8. Thread-per-core option
 
 By default there are N workers and tasks move freely between threads. With the thread-per-core option enabled, each task is pinned to a fixed worker and workers do not steal from each other; cache locality is maximized, suiting NUMA environments and datacenter workloads.

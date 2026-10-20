@@ -31,7 +31,7 @@ arr[i] = v;            →   <typeof(arr) as IndexSet<typeof(i)>>::index_set(ref
 matrix[i, j]           →   <typeof(matrix) as Index<(typeof(i), typeof(j))>>::index(matrix, (i, j))
 ```
 
-Reads and writes map to different traits, so attempting to write to read-only data is a compile error. Multidimensional indexing desugars to a single index trait call with the indices bundled into a tuple.
+Reads and writes map to different traits, so attempting to write to read-only data is a compile error. Multidimensional indexing desugars to a single index trait call with the indices bundled into a tuple: `g[i, j]` is `g[(i, j)]` through `Index<(I, J)>`. When a type has several `Index<K>` impls, the argument type selects one.
 
 ### Negative indices
 

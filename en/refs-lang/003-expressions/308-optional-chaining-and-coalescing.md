@@ -127,6 +127,8 @@ This is because the desugared `match` returns `none` immediately in the `none` b
 
 Consequently, when a method with side effects is placed in a chain, it is not called when the receiver is `none`.
 
+The chain is the run of postfix operations after `?.`: field access, method calls and indexing, including `?.[i]`. Parentheses end it: in `(x?.a).b`, `.b` applies to the result of `x?.a`, which may be `none`.
+
 ## 3.8.9. Alternatives to deep dot access
 
 When chaining becomes deep and complex, combining it with `??` or using explicit matching ([`match` expression](312-match-expression.md)) may be clearer.

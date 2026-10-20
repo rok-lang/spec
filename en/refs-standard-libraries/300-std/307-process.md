@@ -150,6 +150,8 @@ On top of the builder pattern, the standard library adds several modern reinforc
 
 These decisions consistently aim at reducing fd leaks, process leaks and signal races.
 
+With `Command::env`, the program is still looked up on the parent's `PATH`, not the child's.
+
 ## 3.7.5. Signal handling (advanced)
 
 Going a level deeper, there are the signal handling functions.

@@ -110,7 +110,7 @@ trait DotLogicalAnd<Rhs = Self> {
 }
 ```
 
-산술 dot 트레잇은 `Add`/`Sub`/`Mul`/`Div`/`Rem`/`Modulo` 와 완전히 대칭을 이루며, `Output` associated type 에 infix 어트리뷰트를 부착하는 형태입니다. 비교 dot 트레잇 또한 동일한 형태를 따르되, `Output` 이 보통 `Container<bool>` 로 결정된다는 점만 다릅니다. 논리 dot 트레잇 (`DotLogicalAnd` / `DotLogicalOr`) 은 `Container<bool>` 양쪽을 받아 `Container<bool>` 을 돌려주는 형태가 일반적이며, short-circuit 이 없으므로 양쪽 컨테이너가 모두 끝까지 평가됩니다.
+산술 dot 트레잇은 `Add`/`Sub`/`Mul`/`Div`/`Rem`/`Modulo` 와 완전히 대칭을 이루며, `Output` associated type 에 infix 어트리뷰트를 부착하는 형태입니다. 여섯 비교 dot 트레잇 (`DotEq`, `DotNe`, `DotLt`, `DotGt`, `DotLe`, `DotGe`) 도 같은 형태이며, 각자 `Output` 을 가지고 그것은 보통 `Container<bool>` 입니다. 논리 dot 트레잇 (`DotLogicalAnd` / `DotLogicalOr`) 은 `Container<bool>` 양쪽을 받아 `Container<bool>` 을 돌려주는 형태가 일반적이며, short-circuit 이 없으므로 양쪽 컨테이너가 모두 끝까지 평가됩니다.
 
 ### 함수 broadcast — 트레잇 X
 
@@ -252,7 +252,7 @@ let r = f64::pow.(a, b);             //→ [1.0, 4_194_304.0, ...]
 let m = max.(a, b);                  //→ [10.0, 20.0, 30.0]
 ```
 
-각 인자가 모두 **컨테이너**일 경우 zip 후 매핑되며, 인자 개수에는 **제한이 없어** 임의의 N-ary 함수까지 적용할 수 있습니다.
+`List`, `Slice`, 배열인 인자는 함께 순회하고, 그 밖의 인자는 매 호출에 그대로 넘깁니다 (`pow.(xs, 2.0)`). 순회하는 인자는 길이가 같아야 하며 런타임에 검사합니다. 인자 개수에는 **제한이 없어** 임의의 N-ary 함수까지 적용할 수 있습니다.
 
 ## 2.6.6. loop fusion — MLIR linalg.generic
 

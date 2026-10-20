@@ -25,7 +25,7 @@ This separation keeps rok independent of the evolution of MLIR's own dialect-def
 | Dialect         | `mlirGetDialectPluginInfo()`      |
 | Pass (optional) | `mlirGetPassPluginInfo()`         |
 
-The dialect plugin's namespace goes in the `NS` position of `__mlir_op::<"NS.op_name", ...>`. A plugin must be built against the LLVM version embedded in `rokc`.
+The dialect plugin's namespace goes in the `NS` position of `__mlir_op::<"NS.op_name", ...>`. A plugin must be built against the LLVM version embedded in `rokc`. The plugin uses `rokc`'s MLIR instead of carrying its own: its MLIR / LLVM symbols are left unresolved and bind at load time to the ones `rokc` exports. A plugin linked against its own copy of MLIR registers into registries `rokc` does not see. Exact build flags are implementation-defined.
 
 ## 1.10.3. Plugin loading
 
@@ -73,7 +73,7 @@ All call syntax of [1.9 rok::bare::mlir](109-mlir.md) (attributes / regions / va
 
 The responsibilities borne by plugin users (library authors + users of those libraries) are:
 
-- **LLVM version match**: if the LLVM version the plugin was built with differs from the one embedded in `rokc`, loading it fails.
+- **LLVM version match**: the plugin must be built against the LLVM version embedded in `rokc` and bind to `rokc`'s exported MLIR / LLVM symbols (1.10.2); otherwise loading it fails.
 - **Op semantic verification**: MLIR checks op names and signatures. The semantics / side effects / GC safety of ops are the plugin author's responsibility.
 - **GC root tracking**: when a plugin op handles GC heap objects, the plugin's lowering must uphold root tracking that keeps those pointers in shadow stack frame slots ([refs-lang 7.4.1](../../refs-lang/007-runtime/704-barriers-and-roots.md#741-root-tracking-a-shadow-stack-emitted-directly-by-the-compiler)); otherwise the objects may be reclaimed in a GC cycle.
 - **Target availability**: if a plugin supports only specific targets (GPU / FPGA / quantum hw), calling it in a build without that target enabled is an error at the lowering stage.

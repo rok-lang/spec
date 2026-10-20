@@ -110,7 +110,7 @@ trait DotLogicalAnd<Rhs = Self> {
 }
 ```
 
-Arithmetic dot traits are fully symmetric with `Add`/`Sub`/`Mul`/`Div`/`Rem`/`Modulo`: an `Output` associated type plus an infix attribute. Comparison dot traits have the same form, except that `Output` is usually `Container<bool>`. Logical dot traits (`DotLogicalAnd` / `DotLogicalOr`) typically take `Container<bool>` on both sides and return `Container<bool>`; with no short-circuit, both containers are evaluated to the end.
+Arithmetic dot traits are fully symmetric with `Add`/`Sub`/`Mul`/`Div`/`Rem`/`Modulo`: an `Output` associated type plus an infix attribute. The six comparison dot traits (`DotEq`, `DotNe`, `DotLt`, `DotGt`, `DotLe`, `DotGe`) have the same form, each with its own `Output`, usually `Container<bool>`. Logical dot traits (`DotLogicalAnd` / `DotLogicalOr`) typically take `Container<bool>` on both sides and return `Container<bool>`; with no short-circuit, both containers are evaluated to the end.
 
 ### Function broadcast — no trait
 
@@ -252,7 +252,7 @@ let r = f64::pow.(a, b);             //→ [1.0, 4_194_304.0, ...]
 let m = max.(a, b);                  //→ [10.0, 20.0, 30.0]
 ```
 
-When every argument is a **container**, they are zipped and then mapped; there is **no limit** on the number of arguments, so any N-ary function applies.
+Arguments that are a `List`, `Slice` or array are iterated together; any other argument is passed unchanged to every call (`pow.(xs, 2.0)`). The iterated arguments must have the same length, checked at run time. There is **no limit** on the number of arguments, so any N-ary function applies.
 
 ## 2.6.6. Loop fusion — MLIR linalg.generic
 

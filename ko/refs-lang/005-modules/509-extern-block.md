@@ -38,7 +38,7 @@ extern "C" {
 | `"system"` | OS 시스템 콜 ABI. 일부 플랫폼에서 `"C"` 와 다릅니다 (예: Win32 `stdcall`). |
 | `"rok"`    | 런타임 (`rokr`) 의 ABI. 아래 참고.                                          |
 
-`extern "rok"` 은 toolchain 이 선언하는 런타임 함수의 ABI 이며, 그 선언은 `rok::core::rt` 에 `pub(pkg)` 로 있습니다.
+`extern "rok"` 은 toolchain 이 선언하는 런타임 함수의 ABI 이며, 그 선언은 `rok::core::rt` 에 `pub(pkg)` 로 있습니다. `extern "rok"` 블록의 `#[no_safepoint]` 는 그 함수들이 할당도 block 도 하지 않음을 선언하며, 그 호출은 safepoint 가 아닙니다. toolchain 내부용이며 `extern "C"` 블록에서는 에러입니다.
 
 | 값                          | `extern "rok"` 의 전달                   |
 |-----------------------------|------------------------------------------|
@@ -209,7 +209,7 @@ extern "C" {
 }
 ```
 
-extern 블록의 `#[link("x")]` 나 `#[link(name = "x", kind = "static" | "dylib")]` 는 링커에 `-lx` 를 넘깁니다. 라이브러리 검색 경로는 C 드라이버의 것 (`LIBRARY_PATH`) 입니다. `#[link]` 가 없는 경우에는 링킹 시점에 시스템 기본값 (`libc` 등) 이나 다른 메커니즘을 통해 해소됩니다. 자세한 `#[link]` 의 동작은 [내장 속성](../006-meta-system/602-built-in-attributes.md) 에서 정의됩니다.
+extern 블록의 `#[link("x")]` 나 `#[link(name = "x", kind = "static" | "dylib")]` 는 링커에 `-lx` 를 넘깁니다. 라이브러리 검색 경로는 `-L <dir>` 디렉토리, 그 다음 `LIBRARY_PATH` 입니다. Apple 대상에서 `kind = "static"` 은 거기서 찾은 `lib<name>.a` 를 경로로 링크합니다. `#[link]` 가 없는 경우에는 링킹 시점에 시스템 기본값 (`libc` 등) 이나 다른 메커니즘을 통해 해소됩니다. 자세한 `#[link]` 의 동작은 [내장 속성](../006-meta-system/602-built-in-attributes.md) 에서 정의됩니다.
 
 ## 5.9.10. `extern fn` 정의 (외부에 노출)
 

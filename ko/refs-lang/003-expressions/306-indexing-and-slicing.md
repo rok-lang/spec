@@ -31,7 +31,7 @@ arr[i] = v;            →   <typeof(arr) as IndexSet<typeof(i)>>::index_set(ref
 matrix[i, j]           →   <typeof(matrix) as Index<(typeof(i), typeof(j))>>::index(matrix, (i, j))
 ```
 
-읽기와 쓰기는 서로 다른 트레잇으로 매핑되기 때문에, 읽기 전용 자료에 쓰기를 시도하면 컴파일 에러가 발생합니다. 또한 다차원 인덱싱은 인덱스들을 튜플로 묶어 단일 인덱스 트레잇 호출로 desugar 된다는 점도 알아두시면 좋겠습니다.
+읽기와 쓰기는 서로 다른 트레잇으로 매핑되기 때문에, 읽기 전용 자료에 쓰기를 시도하면 컴파일 에러가 발생합니다. 다차원 인덱싱은 인덱스들을 튜플로 묶어 단일 인덱스 트레잇 호출로 desugar 됩니다: `g[i, j]` 는 `Index<(I, J)>` 를 통한 `g[(i, j)]` 입니다. 한 타입에 `Index<K>` impl 이 여럿이면 인자 타입이 그중 하나를 고릅니다.
 
 ### 음수 인덱스
 

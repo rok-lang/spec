@@ -164,6 +164,7 @@ Internal helpers backing `FromStr` and `str::bytes` ([stdlib 2.15](../../refs-st
 
 ```
 extern "C" {
+    fn rok_str_eq(a: str, b: str) -> i32;                            // 1 if equal, else 0
     fn rok_str_byte(s: str, i: usize) -> u8;                         // i-th byte (bounds check is the caller's)
     fn rok_str_slice(s: str, start: usize, end: usize, at: str) -> str;  // s[start:end]. panics at location at if the range / UTF-8 boundary is wrong
     fn rok_str_parse_int(s: str, radix: u32, signed: i32, bits: u32, out: GcBuf<i64>) -> i32;
@@ -225,7 +226,9 @@ These families are runtime-internal helpers of the reference runtime and are not
 
 ### Functions that are not safepoints
 
-The following runtime functions are guaranteed never to allocate and never to block, so a call to them is not a safepoint ([8.4.2](804-safepoint.md#842-emission-sites), [8.9.12](809-lowering-control.md#8912-shadow-stack-frame)): `rok_str_len`, `rok_str_byte`, `rok_str_cmp`, `rok_str_eq_at`, `rok_str_find`, `rok_str_rfind`, `rok_str_char_count`, `rok_str_hash`, `rok_str_bytes_buf`, `rok_buf_copy`, the `rok_char_*` property and case functions, `rok_fmt_len`, `rok_f64_*`, `rok_f32_*`.
+On the rok side they are declared in an `extern "rok"` block marked `#[no_safepoint]` ([5.9.2](../005-modules/509-extern-block.md#592-abi-specifiers)).
+
+The following runtime functions are guaranteed never to allocate and never to block, so a call to them is not a safepoint ([8.4.2](804-safepoint.md#842-emission-sites), [8.9.12](809-lowering-control.md#8912-shadow-stack-frame)): `rok_str_len`, `rok_str_byte`, `rok_str_cmp`, `rok_str_eq`, `rok_str_eq_at`, `rok_str_find`, `rok_str_rfind`, `rok_str_char_count`, `rok_str_hash`, `rok_str_bytes_buf`, `rok_buf_copy`, the `rok_char_*` property and case functions, `rok_fmt_len`, `rok_f64_*`, `rok_f32_*`.
 
 ## 8.5.3. Coroutine area
 

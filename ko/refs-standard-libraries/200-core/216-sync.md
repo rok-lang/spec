@@ -242,7 +242,7 @@ impl Condvar {
 }
 ```
 
-`wait` 는 spurious wakeup 이 있을 수 있으므로 조건을 루프에서 다시 확인합니다.
+`wait` 는 spurious wakeup 이 있을 수 있으므로 조건을 루프에서 다시 확인합니다. `notify_one` 은 적어도 하나의 waiter 를 깨우며, async waiter 는 둘 이상 깨울 수도 있습니다.
 
 ### async 잠금과 취소
 

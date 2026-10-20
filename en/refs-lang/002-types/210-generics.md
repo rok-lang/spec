@@ -89,6 +89,13 @@ fn sum<T: Zero + Add>(xs: List<T>) -> T {
 }
 ```
 
+A variant constructor of a generic `enum` determines its instance from its arguments first, then from the type parameters' defaults, then from the `let` inference variable it is bound to; otherwise it is an error, ``type annotations needed``.
+
+```rok
+enum Pair<A, B> { One(A), Two(A, B) }
+let p = Pair::Two(1, "a");          // Pair<i32, str> — from the arguments
+```
+
 ## 2.10.3. Trait bounds
 
 Bounds state the traits a parameter must satisfy.
@@ -156,9 +163,7 @@ The gradualness of function parameters described in [The `any` slot](202-any-slo
 fn compute(x, y) { ... }
 ```
 
-This code is turned into an implicit generic. The compiler infers the required bounds from usage in the body, and the result is treated exactly as if rewritten with explicit generics. For example, if the body contains `x + y`, a `T: Add<U>` bound is added and the return type becomes that trait's associated type.
-
-In short, required bounds are inferred from usage in the body, and monomorphization happens according to the types at the call site.
+This code is turned into an implicit generic, `fn compute<T, U>(x: T, y: U)`. No bounds are synthesized ([4.2.2](../004-functions/402-parameters.md#422-omitting-the-type)): each instance is monomorphized at its call site and its body checked there, and an error also points at the call.
 
 If an explicit `any` is written on a parameter, it is not monomorphized but becomes a runtime dynamic slot. This difference is the core of gradual mode.
 

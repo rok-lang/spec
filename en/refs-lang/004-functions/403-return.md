@@ -65,9 +65,7 @@ fn double(x: i32) {
 }
 ```
 
-Inference has two cases. With a single path, the type of the last expression is used; with multiple paths (`return`, the last expression, etc.), their sum type is used.
-
-If the inferred result is ambiguous, it is a compile error requiring an explicit type.
+The inferred type is the type of all value paths (`return expr` and the final expression) when they agree, or their sum when they differ. It is a compile error if a value path is mixed with a path that returns no value, or if the return type depends on itself: a recursive function needs `-> T`.
 
 ## 4.3.5. Multiple returns: tuples
 

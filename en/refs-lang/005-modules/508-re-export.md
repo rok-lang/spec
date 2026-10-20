@@ -191,7 +191,7 @@ Such a cycle is an ERROR, detected by the compiler.
 
 ## 5.8.11. Implementation
 
-A re-export only adds an entry to the name table. The actual code and memory exist only at the original item; there is no wrapper function or copy, so the cost is zero.
+A re-export only adds an entry to the name table. The actual code and memory exist only at the original item; there is no wrapper function or copy, so the cost is zero. A chain of re-exports of any length resolves to the original item; there is no step limit.
 
 ## 5.8.12. Glob re-exports and visibility
 

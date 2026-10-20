@@ -139,7 +139,7 @@ Implementing a trait defined in one package for a type defined in another packag
 impl Display for i32 { ... }     // ERROR — both from external packages
 ```
 
-So at least one must hold: the trait is defined in the current package, or the target type is defined in the current package.
+So at least one must hold: the trait is defined in the current package, or the target type is defined in the current package. Built-in types (primitives, tuples, arrays, function types) count as defined in `rok::core`.
 
 The unit of this rule is the package of [Source units](../000-meta/003-source-units.md). Different modules within the same package may therefore `impl` freely.
 
@@ -152,6 +152,7 @@ A (trait, type) pair has only one `impl`, and there is no specialization.
 - A generic `impl` is monomorphized for each type it is used with.
 - A concrete `impl` overlaps a generic `impl` only when that concrete type satisfies the generic `impl`'s bounds.
 - Two generic `impl`s overlap if their targets (and trait arguments) unify; this is reported as an error at declaration. Bounds on parameters that remain generic after unification do not separate them. It is an error even if no type yet satisfies both bounds (same as Rust's coherence).
+- For overlap, `T?` and `T | none` are the same type.
 - Negative reasoning is done only for known types.
   1. A parameter that becomes a concrete type through unification has its bound checked. `impl<U: Num> X for Pair<U, i32>` and `impl<U> X for Pair<str, U>` unify with `U = str`, but `str: Num` does not hold, so they do not overlap.
   2. A bound on a known type constructor (`List<T>: Iterator`) separates the two if none of that trait's impls targets that constructor or a bare parameter. So `impl<I: Iterator> IntoIterator for I` and `impl<T> IntoIterator for List<T>` can coexist.

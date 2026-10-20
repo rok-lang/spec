@@ -75,6 +75,7 @@ rokc build [path]
 - `--bootstrap <file>` 은 미리 읽을 표준 라이브러리 루트 (여러 번 가능), `--rokr <lib>` 는 링크할 런타임입니다. 기본값은 sysroot 의 `lib/rok/{core,std,bare}/lib.rok` 와 `lib/librokr.a` 입니다 ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)). 찾지 못하면 찾아본 경로를 나열하는 에러입니다.
 - `-O0` / `-O1` / `-O2` / `-O3` / `-Os` 는 최적화 단계를 명시적으로 지정합니다. `-O0` 은 native backend 를, 나머지는 MLIR → LLVM backend 를 씁니다 ([9.2.10](902-aot-pipeline.md#9210-backend-선택)).
 - `--target=<triple>` 은 타깃 플랫폼을 지정하며, [플랫폼 타깃](../000-meta/006-platform-targets.md) 의 13 개 Tier 1 중 하나를 사용합니다. 어느 host 에서나 어느 대상이든 빌드할 수 있습니다 ([0.2.4](../000-meta/002-pipeline.md#024-backend)).
+- `-L <dir>` 은 `#[link]` 의 라이브러리 검색 디렉토리를 더합니다 ([5.9.9](../005-modules/509-extern-block.md#599-linklibname-라이브러리-명시)). `LIBRARY_PATH` 보다 먼저 찾습니다. 여러 번 쓸 수 있습니다.
 - `-o` / `--out=<path>` 는 출력 위치를 지정합니다.
 - `--cfg <flag>` / `--cfg <key>=<value>` 는 [조건부 컴파일](../006-meta-system/603-cfg.md) 의 cfg flag 를 설정합니다. 여러 번 쓸 수 있습니다.
 - `--emit=<kind>[,<kind>..]` 는 중간 산출물 (`ast`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expanded`) 을 `target/<profile>/build/<name>.<ext>` 에 씁니다 ([9.9.1](909-debug-tools.md#991-중간-산출물-출력---emit)). 쉼표로 여러 종류를 한 번에 지정하며, 이때는 `-o` 를 함께 쓸 수 없습니다. `--emit` 이 있으면 실행 파일이나 archive 는 만들지 않습니다.
@@ -355,7 +356,7 @@ rokc <subcommand> --help
 | 옵션                             | 의미                                                        |
 |----------------------------------|-------------------------------------------------------------|
 | `--verbose` / `-v`               | 단계별 시간 표시 ([9.9.5](909-debug-tools.md#995-로그--진행-표시)) |
-| `-vv`                            | 더 자세한 로그                                              |
+| `-vv`                            | 더 자세한 로그: `Reading <file>` 과 `Specialized <path>(sig)` 줄 ([9.9.5](909-debug-tools.md#995-로그--진행-표시)) |
 | `--quiet` / `-q`                 | 진행 줄을 출력하지 않음 (진단은 출력)                       |
 | `--color=auto\|always\|never`    | 진단의 색상 출력                                            |
 | `--no-color`                     | `--color=never` 와 같음                                     |
@@ -395,7 +396,7 @@ rokc --cwd=examples/hello run
 | 변수              | 의미                                                                                     |
 |-------------------|------------------------------------------------------------------------------------------|
 | `ROK_CC`          | 내장 lld 대신 마지막 링크를 하는 선택적 C 컴파일러 드라이버 ([9.2.14](902-aot-pipeline.md#9214-링킹-실행-파일의-경우)) |
-| `ROK_SYSROOT`     | ELF 링크의 sysroot: libc crt 파일과 GCC 런타임 ([9.2.14](902-aot-pipeline.md#9214-링킹-실행-파일의-경우)) |
+| `ROK_SYSROOT`     | ELF 링크에서 제공된 libc stub 대신 쓸 실제 sysroot ([9.2.14](902-aot-pipeline.md#9214-링킹-실행-파일의-경우)) |
 | `ROK_BACKEND`     | `native` 또는 `llvm`. `-C backend=` 와 같음 |
 | `ROKC_VERBOSE`    | `--verbose` 와 동일                                                                      |
 | `ROK_TIME_PASSES` | `1` 이면 패스별 실제 시간을 stderr 에 출력 ([9.9.5](909-debug-tools.md#rok_time_passes)) |

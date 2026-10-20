@@ -192,7 +192,7 @@ span 은 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_p
 
 ### `-vv` (매우 자세히)
 
-`-v` 에 더해 처리한 파일 목록과 [specialize](../000-meta/007-glossary.md#specialize) 한 (item, type) 쌍을 출력합니다.
+`-v` 에 더해 처리한 파일마다 `Reading <file>` 줄을, [specialize](../000-meta/007-glossary.md#specialize) 한 (item, type) 쌍마다 `Specialized <path>(sig)` 줄을 출력합니다.
 
 ## 9.9.6. 디버거 통합: gdb / lldb
 

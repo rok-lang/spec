@@ -184,6 +184,8 @@ primitive 타입의 `*Assign` impl 에는 모두 `#[intrinsic("rok.OP_assign.TYP
 | `str`        | `AddAssign<str>`, `AddAssign<char>`         | `s = s + t` — 새 str 로 교체 (str 은 불변)      |
 | `Dict<K,V>`  | `AddAssign<Dict<K,V>>`                      | merge — 기존 키 덮어씀                          |
 
+`a op= b` 는 왼쪽 타입이 `XxxAssign` 을 구현하면 `XxxAssign::xxx_assign` (`AddAssign::add_assign` 등) 을 부르고, 아니면 `a = a op b` 입니다.
+
 ## 2.4.7. 컬렉션의 *Assign — 핵심 사용처
 
 `List<T>` / `Dict<K,V>` 같은 가변 컨테이너에서는 `*Assign` 가 **진짜 in-place** 동작을 수행합니다.

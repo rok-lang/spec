@@ -108,7 +108,7 @@ A full collection with concurrent mark has two pauses, an initial and a final on
 
 When a safepoint is reached, every live GC object variable of the mutator must be registered in the shadow stack.
 
-The compiler guarantees this by linking the shadow stack frame from [Barriers and root tracking](../007-runtime/704-barriers-and-roots.md) directly at function entry. GC pointer locals live in the frame's slots, so when a value changes in the body, the slot changes with it.
+The compiler guarantees this by linking the shadow stack frame from [Barriers and root tracking](../007-runtime/704-barriers-and-roots.md) directly at function entry. A local holding GC references at a safepoint is registered in the frame, and the registered word is kept current at every write. The compiler may also keep a private copy (in a register), since a collection never rewrites a root word: objects reached directly from roots are not moved ([7.4.1](../007-runtime/704-barriers-and-roots.md#741-root-tracking-a-shadow-stack-emitted-directly-by-the-compiler)).
 
 ## 8.4.8. Loop back-edge poll
 
@@ -123,7 +123,9 @@ loop:
 
 The cost of this poll is again two instructions and one branch, negligible compared to the loop body.
 
-The compiler uses LLVM's loop recognition to detect every natural loop and emits a poll for each.
+The poll stays on the back edge. Its slow path (the `rok_runtime_yield` call) may branch to a re-entry block placed before the loop header instead of returning into the edge.
+
+The compiler detects every natural loop and emits a poll for each.
 
 ## 8.4.9. Inline functions and polls
 
@@ -138,6 +140,7 @@ A thread inside C or a blocking runtime call cannot reach a safepoint, so it cou
 - The compiler brackets every `extern "C"` call: `PARKED` for the duration of the call, `RUNNING` after it, then a yield-flag check. The caller's argument roots stay in its shadow-stack frame. The fast path is inline; `rok_enter_native` / `rok_leave_native` are the slow paths ([8.5.2](805-extern-symbols.md#852-runtime-area)).
 - Every `extern "C" fn` definition starts with `rok_native_reenter` and ends with `rok_native_resume`, so a C callback runs as a mutator.
 - The runtime brackets its own blocking calls (I/O wait, `rok_sync_wait`, join, sleep) the same way.
+- A call through an `extern "C"` declaration of a `rok_*` symbol ([8.5](805-extern-symbols.md), the runtime's reserved prefix) is not bracketed: the runtime function runs as a mutator.
 
 ```
 call_extern_c:
@@ -165,7 +168,7 @@ fn long_loop() {
 }
 ```
 
-The compiler already emits polls on loop back-edges, so users almost never need to call it directly. This pattern is used only in special situations such as inside inline assembly.
+`rok_runtime_yield` is a `rok_*` symbol, so the call is not bracketed (8.4.10) and the thread yields as a running mutator. The compiler already emits polls on loop back-edges, so users almost never need to call it directly. This pattern is used only in special situations such as inside inline assembly.
 
 ## 8.4.12. Stability
 

@@ -75,6 +75,7 @@ Options:
 - `--bootstrap <file>` gives a standard library root to preload (may be repeated); `--rokr <lib>` gives the runtime to link. The defaults are the sysroot's `lib/rok/{core,std,bare}/lib.rok` and `lib/librokr.a` ([9.2.19](902-aot-pipeline.md#9219-installation-layout)). If not found, it is an error that lists the paths searched.
 - `-O0` / `-O1` / `-O2` / `-O3` / `-Os` select the optimization level explicitly. `-O0` uses the native backend, the others the MLIR → LLVM backend ([9.2.10](902-aot-pipeline.md#9210-backend-selection)).
 - `--target=<triple>` selects the target platform, one of the 13 Tier 1 targets in [Platform targets](../000-meta/006-platform-targets.md). Any target can be built from any host ([0.2.4](../000-meta/002-pipeline.md#024-backends)).
+- `-L <dir>` adds a library search directory for `#[link]` ([5.9.9](../005-modules/509-extern-block.md#599-linklibname-naming-the-library)), searched before `LIBRARY_PATH`. May be repeated.
 - `-o` / `--out=<path>` selects the output location.
 - `--cfg <flag>` / `--cfg <key>=<value>` sets a cfg flag for [conditional compilation](../006-meta-system/603-cfg.md). May be repeated.
 - `--emit=<kind>[,<kind>..]` writes intermediate output (`ast`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expanded`) to `target/<profile>/build/<name>.<ext>` ([9.9.1](909-debug-tools.md#991-intermediate-output---emit)). Several kinds may be given at once separated by commas; in that case `-o` cannot be used. With `--emit`, no executable or archive is produced.
@@ -355,7 +356,7 @@ The global options are listed below. They may appear before or after the subcomm
 | Option                           | Meaning                                                     |
 |----------------------------------|-------------------------------------------------------------|
 | `--verbose` / `-v`               | Show per-phase timing ([9.9.5](909-debug-tools.md#995-logging--progress-display)) |
-| `-vv`                            | More detailed logging                                       |
+| `-vv`                            | More detailed logging: `Reading <file>` and `Specialized <path>(sig)` lines ([9.9.5](909-debug-tools.md#995-logging--progress-display)) |
 | `--quiet` / `-q`                 | Do not print progress lines (diagnostics are still printed) |
 | `--color=auto\|always\|never`    | Colored diagnostic output                                   |
 | `--no-color`                     | Equivalent to `--color=never`                               |
@@ -395,7 +396,7 @@ The environment variables that affect `rokc` are:
 | Variable          | Meaning                                                                                  |
 |-------------------|------------------------------------------------------------------------------------------|
 | `ROK_CC`          | Optional C compiler driver that performs the final link instead of the embedded lld ([9.2.14](902-aot-pipeline.md#9214-linking-for-executables)) |
-| `ROK_SYSROOT`     | Sysroot for ELF links: libc crt files and GCC runtime ([9.2.14](902-aot-pipeline.md#9214-linking-for-executables)) |
+| `ROK_SYSROOT`     | Real sysroot for ELF links instead of the shipped libc stubs ([9.2.14](902-aot-pipeline.md#9214-linking-for-executables)) |
 | `ROK_BACKEND`     | `native` or `llvm`; same as `-C backend=` |
 | `ROKC_VERBOSE`    | Equivalent to `--verbose`                                                                |
 | `ROK_TIME_PASSES` | Per-pass wall time on stderr when `1` ([9.9.5](909-debug-tools.md#rok_time_passes)) |

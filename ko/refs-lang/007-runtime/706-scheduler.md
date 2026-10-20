@@ -83,6 +83,9 @@ work-stealing 모델은 task 가 blocking syscall 을 호출하면 그 worker �
 
 컴파일러와 런타임이 알려진 blocking syscall 을 blocking pool worker 로 자동으로 보내고, 그 worker 는 별도의 OS thread 이기 때문에 다른 task 의 진행을 방해하지 않습니다. 자세한 메커니즘은 스케줄러 구현이 결정하도록 두었습니다.
 
+> [!NOTE]
+> 참조 런타임에서는 task 가 blocking 호출에 머무는 pool thread 가 자기 worker 를 새 thread 에 넘깁니다. `spawn_local` 로 띄운 task 는 worker 를 고정하며, 그 worker 는 넘겨지지 않습니다.
+
 ## 7.6.8. Thread-per-core 옵션
 
 기본 동작은 N 개의 worker 를 두고 task 가 thread 사이를 자유롭게 이동하도록 하는 형태입니다. 다만 thread-per-core 옵션을 켜면 각 task 가 고정된 worker 에 pinning 되고, worker 끼리 steal 하지 않으며, 그 결과 cache locality 가 극대화되어 NUMA 환경이나 데이터센터 워크로드에 적합한 동작을 얻을 수 있습니다.

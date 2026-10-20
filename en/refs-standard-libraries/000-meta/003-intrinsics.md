@@ -103,7 +103,7 @@ When the method is taken out as an `fn` value (`let f = i32::add;`), calling tha
 
 ## 0.3.5. Intrinsics in user code
 
-`#[intrinsic(...)]` is a mechanism that operates only at the boundary where the standard library is coupled to the compiler, so user code cannot attach this attribute directly.
+`#[intrinsic(...)]` is a mechanism that operates only at the boundary where the standard library is coupled to the compiler, so user code cannot attach this attribute directly: on a function, a generic function or a method alike.
 
 ```rok
 // user code — rejected.

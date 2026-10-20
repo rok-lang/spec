@@ -108,7 +108,7 @@ STW 수집 (minor, evacuation 이 있는 full, `rok_gc_collect`) 은 pause 한 �
 
 safepoint 에 도달했을 때, mutator 의 살아있는 모든 GC 객체 변수가 shadow stack 에 등록되어 있어야 합니다.
 
-이 보장은 컴파일러가 [배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md) 의 shadow stack frame 을 함수 진입 시 직접 link 함으로써 이루어집니다. GC 포인터 지역 변수는 frame 의 슬롯에 살기 때문에, 본체에서 값이 바뀌면 슬롯도 함께 바뀝니다.
+이 보장은 컴파일러가 [배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md) 의 shadow stack frame 을 함수 진입 시 직접 link 함으로써 이루어집니다. safepoint 에서 GC 참조를 가진 지역 변수는 frame 에 등록되며, 등록된 word 는 쓸 때마다 최신으로 유지합니다. 수집은 루트 word 를 다시 쓰지 않으므로 (루트에서 바로 닿는 객체는 옮기지 않음, [7.4.1](../007-runtime/704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack)) 컴파일러는 (레지스터에) 사본을 따로 둘 수도 있습니다.
 
 ## 8.4.8. Loop back-edge poll
 
@@ -123,7 +123,9 @@ loop:
 
 이 poll 의 비용 역시 위에서 본 것처럼 2 개 명령어와 분기 1 개로, 루프 본체에 비하면 무시할 수 있는 수준입니다.
 
-컴파일러는 LLVM 의 루프 인식을 활용해 모든 자연 루프를 검출한 뒤 poll 을 emit 합니다.
+poll 은 back edge 에 남습니다. 그 slow path (`rok_runtime_yield` 호출) 는 edge 로 돌아오는 대신 루프 header 앞의 재진입 블록으로 분기할 수 있습니다.
+
+컴파일러는 모든 자연 루프를 검출해 각각에 poll 을 emit 합니다.
 
 ## 8.4.9. inline 함수와 poll
 
@@ -138,6 +140,7 @@ C 나 blocking 런타임 호출 안의 스레드는 safepoint 에 닿을 수 없
 - 컴파일러는 모든 `extern "C"` 호출을 감쌉니다. 호출 동안 `PARKED`, 뒤에 `RUNNING`, 그다음 yield flag 를 봅니다. 호출자의 인자 루트는 그 shadow-stack frame 에 남습니다. fast path 는 inline 이고, `rok_enter_native` / `rok_leave_native` 가 slow path 입니다 ([8.5.2](805-extern-symbols.md#852-runtime-영역)).
 - 모든 `extern "C" fn` 정의는 `rok_native_reenter` 로 시작해 `rok_native_resume` 로 끝나며, C callback 이 mutator 로 돕니다.
 - 런타임은 자기의 blocking 호출 (I/O 대기, `rok_sync_wait`, join, sleep) 을 같은 방식으로 감쌉니다.
+- `rok_*` 심볼 ([8.5](805-extern-symbols.md), 런타임의 예약 접두사) 의 `extern "C"` 선언을 통한 호출은 감싸지 않습니다: 런타임 함수는 mutator 로 실행됩니다.
 
 ```
 call_extern_c:
@@ -165,7 +168,7 @@ fn long_loop() {
 }
 ```
 
-다만 컴파일러가 이미 루프 back-edge 에 poll 을 emit 하므로, 사용자가 직접 호출해야 할 일은 거의 없습니다. 이 패턴은 인라인 어셈블리 안과 같은 특수한 상황에서만 사용합니다.
+`rok_runtime_yield` 는 `rok_*` 심볼이므로 호출을 감싸지 않으며 (8.4.10), 스레드는 실행 중인 mutator 로서 양보합니다. 다만 컴파일러가 이미 루프 back-edge 에 poll 을 emit 하므로, 사용자가 직접 호출해야 할 일은 거의 없습니다. 이 패턴은 인라인 어셈블리 안과 같은 특수한 상황에서만 사용합니다.
 
 ## 8.4.12. 안정성
 

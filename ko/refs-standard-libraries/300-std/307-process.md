@@ -150,6 +150,8 @@ using child = try Command::new("long_running")
 
 이러한 결정은 fd 누수와 process 누수, 그리고 신호 race 를 줄이는 방향으로 일관되게 정렬됩니다.
 
+`Command::env` 를 써도 프로그램은 자식이 아니라 부모의 `PATH` 에서 찾습니다.
+
 ## 3.7.5. 신호 처리 (advanced)
 
 조금 더 깊은 영역으로 내려가면 신호 처리 함수들이 자리 잡고 있습니다.

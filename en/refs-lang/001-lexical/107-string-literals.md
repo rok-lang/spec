@@ -104,6 +104,7 @@ The inside of a hole `{ .. }` consists of ordinary tokens read by the ordinary l
 ```rok
 f"name = {user.name ?? "anon"}"     // OK
 f"name = {user.name ?? \"anon\"}"   // ERROR — \ inside a hole
+f"{\"ab\".replace("a", "b")}"  // ERROR — write f"{"ab".replace("a", "b")}"
 ```
 
 ### Format specifiers

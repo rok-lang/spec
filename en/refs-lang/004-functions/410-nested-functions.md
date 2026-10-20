@@ -130,7 +130,7 @@ fn outer() {
 }
 ```
 
-Each level's function is visible only inside that level's body, and the rule that inner functions do not capture outer variables or functions still holds.
+A nested function is visible in its whole block (hoisted). It sees the nested functions of its own block and of every enclosing block, but no locals of any of them.
 
 ## 4.10.10. Where nested functions are useful
 

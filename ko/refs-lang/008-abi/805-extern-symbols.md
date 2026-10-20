@@ -164,6 +164,7 @@ extern "C" {
 
 ```
 extern "C" {
+    fn rok_str_eq(a: str, b: str) -> i32;                            // 같으면 1, 아니면 0
     fn rok_str_byte(s: str, i: usize) -> u8;                         // i 번째 바이트 (경계 검사는 호출자)
     fn rok_str_slice(s: str, start: usize, end: usize, at: str) -> str;  // s[start:end]. 범위 / UTF-8 경계가 틀리면 at 위치로 panic
     fn rok_str_parse_int(s: str, radix: u32, signed: i32, bits: u32, out: GcBuf<i64>) -> i32;
@@ -225,7 +226,9 @@ extern "C" {
 
 ### safepoint 가 아닌 함수
 
-다음 런타임 함수는 할당도 block 도 하지 않음이 보장되므로, 그 호출은 safepoint 가 아닙니다 ([8.4.2](804-safepoint.md#842-emit-위치), [8.9.12](809-lowering-control.md#8912-shadow-stack-frame)): `rok_str_len`, `rok_str_byte`, `rok_str_cmp`, `rok_str_eq_at`, `rok_str_find`, `rok_str_rfind`, `rok_str_char_count`, `rok_str_hash`, `rok_str_bytes_buf`, `rok_buf_copy`, `rok_char_*` 속성 / 대소문자 함수, `rok_fmt_len`, `rok_f64_*`, `rok_f32_*`.
+rok 쪽에서는 `#[no_safepoint]` 가 붙은 `extern "rok"` 블록에 선언합니다 ([5.9.2](../005-modules/509-extern-block.md#592-abi-명시)).
+
+다음 런타임 함수는 할당도 block 도 하지 않음이 보장되므로, 그 호출은 safepoint 가 아닙니다 ([8.4.2](804-safepoint.md#842-emit-위치), [8.9.12](809-lowering-control.md#8912-shadow-stack-frame)): `rok_str_len`, `rok_str_byte`, `rok_str_cmp`, `rok_str_eq`, `rok_str_eq_at`, `rok_str_find`, `rok_str_rfind`, `rok_str_char_count`, `rok_str_hash`, `rok_str_bytes_buf`, `rok_buf_copy`, `rok_char_*` 속성 / 대소문자 함수, `rok_fmt_len`, `rok_f64_*`, `rok_f32_*`.
 
 ## 8.5.3. Coroutine 영역
 

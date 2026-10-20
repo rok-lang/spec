@@ -242,7 +242,7 @@ impl Condvar {
 }
 ```
 
-`wait` can wake spuriously, so the condition is re-checked in a loop.
+`wait` can wake spuriously, so the condition is re-checked in a loop. `notify_one` wakes at least one waiter, and may wake more than one async waiter.
 
 ### Async locks and cancellation
 

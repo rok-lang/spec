@@ -57,9 +57,9 @@ rok jupyter --connection-file <path>        # 의존성을 해소한 뒤 rokc ju
 | `kernel_info_request`  | `language_info` 의 name `rok`, mimetype `text/x-rok`, file_extension `.rok`, `protocol_version` `"5.3"` |
 | `execute_request`      | 아래 "실행" 참조                                                                       |
 | `is_complete_request`  | REPL 의 이어 쓰기 규칙으로 `complete` / `incomplete` 판정                              |
-| `complete_request`     | 세션의 바인딩과 항목 이름만 후보로                                                     |
-| `inspect_request`      | 늘 `found: false`                                                                      |
-| `history_request`      | 빈 목록                                                                                |
+| `complete_request`     | 세션의 이름, 멤버, 키워드를 후보로 (9.8.5)                                             |
+| `inspect_request`      | 커서의 이름에 대한 `text/plain` 도움말과 `found: true` (9.8.6), 아니면 `false`         |
+| `history_request`      | 이 커널이 실행한 셀들                                                                  |
 | `comm_info_request`    | 빈 목록                                                                                |
 | `shutdown_request`     | shell 이나 control 에서. 응답 후 종료                                                  |
 | `interrupt_request`    | control 에서 (9.8.4)                                                                   |
@@ -120,7 +120,7 @@ shell 이나 control 소켓의 `shutdown_request` 에 응답한 뒤 세션을 �
 
 ## 9.8.6. inspect_request: 도움말
 
-`inspect_request` (Shift+Tab) 는 커서의 이름의 시그니처와 문서 주석 ([어휘 구조](../001-lexical/102-lexical-structure.md) 의 `///` / `//!`) 을 `text/plain` 으로 응답합니다. 모르는 이름이면 `found: false` 입니다.
+`inspect_request` (Shift+Tab) 는 `found: true` 와 함께, 커서의 이름을 `name: type` 으로, 그리고 그 시그니처와 문서 주석 ([어휘 구조](../001-lexical/102-lexical-structure.md) 의 `///` / `//!`) 을 `text/plain` 으로 응답합니다. 모르는 이름이면 `found: false` 입니다.
 
 ## 9.8.7. REPL 과 Jupyter 의 코드 공유
 

@@ -104,6 +104,7 @@ f"""
 ```rok
 f"name = {user.name ?? "anon"}"     // OK
 f"name = {user.name ?? \"anon\"}"   // ERROR — 구멍 안의 \
+f"{\"ab\".replace("a", "b")}"  // ERROR — f"{"ab".replace("a", "b")}" 로 씀
 ```
 
 ### 형식 지정자

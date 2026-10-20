@@ -57,9 +57,9 @@ The detailed format follows the Jupyter wire protocol standard. Every request is
 | `kernel_info_request`  | `language_info` with name `rok`, mimetype `text/x-rok`, file_extension `.rok`, `protocol_version` `"5.3"` |
 | `execute_request`      | See "Execution" below                                                                  |
 | `is_complete_request`  | `complete` / `incomplete` decided by the REPL continuation rules                       |
-| `complete_request`     | Only the session's binding and item names as candidates                                |
-| `inspect_request`      | Always `found: false`                                                                  |
-| `history_request`      | Empty list                                                                             |
+| `complete_request`     | Session names, members and keywords as candidates (9.8.5)                              |
+| `inspect_request`      | `found: true` with `text/plain` help for the name at the cursor (9.8.6), else `false`  |
+| `history_request`      | The cells executed by this kernel                                                      |
 | `comm_info_request`    | Empty list                                                                             |
 | `shutdown_request`     | On shell or control. Exits after replying                                              |
 | `interrupt_request`    | On control (9.8.4)                                                                     |
@@ -120,7 +120,7 @@ After replying to a `shutdown_request` on the shell or control socket, the kerne
 
 ## 9.8.6. inspect_request: help
 
-`inspect_request` (Shift+Tab) replies with the signature and doc comments (`///` / `//!` of [Lexical structure](../001-lexical/102-lexical-structure.md)) of the name at the cursor as `text/plain`. For an unknown name it is `found: false`.
+`inspect_request` (Shift+Tab) replies with `found: true` and, as `text/plain`, the name at the cursor as `name: type`, its signature and doc comments (`///` / `//!` of [Lexical structure](../001-lexical/102-lexical-structure.md)). For an unknown name it is `found: false`.
 
 ## 9.8.7. Code sharing between REPL and Jupyter
 

@@ -50,7 +50,7 @@ When the same method name exists in several traits and an inherent `impl` and is
 
 The fully qualified form is `<Type as Trait>::item`. `Type as Trait` is written inside angle brackets, followed by `::` and an item name or method call. Here `as` is a keyword use stating which trait the type is viewed through. The same `as` token has a different meaning in expression position (binary use), defined in the expression specification.
 
-The fully qualified form is valid both in type position (`<T as Tr>::X` as an associated type) and in call position (`<T as Tr>::m(x)`). For a generic trait, the impl matching the arguments is selected. `<T as Tr<A>>::X` and `T::X` under the bound `T: Tr<A>` are the `X` of the `Tr<A>` impl, which may differ from the `X` of the same type's `Tr<B>` impl.
+The fully qualified form is valid both in type position (`<T as Tr>::X` as an associated type) and in call position (`<T as Tr>::m(x)`). For a generic trait, the impl matching the arguments is selected. `<T as Tr<A>>::X` and `T::X` under the bound `T: Tr<A>` are the `X` of the `Tr<A>` impl, which may differ from the `X` of the same type's `Tr<B>` impl. A projection such as `<Sq as Shape>::Out` is valid in function signatures, `static` types, struct fields and enum payloads, regardless of the order in which the type, trait and impl are declared.
 
 The fully qualified form rarely appears in ordinary use. It is used explicitly only when disambiguation is needed or automatic inference fails.
 

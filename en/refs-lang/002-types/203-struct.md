@@ -96,7 +96,7 @@ let p = Point { x: 5.0f64, ..base };
 
 Here `..base` means take all fields of base as they are, overriding the explicitly written fields with new values.
 
-Syntactically: an instance value follows the `..` token ([Punctuation and operator tokens](../001-lexical/110-punctuation-and-operator-tokens.md)). `..` may appear only once in an instance creation expression; two or more spreads are not allowed. Placing the spread after the explicit fields is the idiomatic style.
+Syntactically: an instance value follows the `..` token ([Punctuation and operator tokens](../001-lexical/110-punctuation-and-operator-tokens.md)). `..` may appear only once in an instance creation expression; two or more spreads are not allowed. Placing the spread after the explicit fields is the idiomatic style. The written fields are evaluated first, in field order, then the base.
 
 ## 2.3.5. Visibility
 

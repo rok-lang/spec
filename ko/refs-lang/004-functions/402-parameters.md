@@ -131,11 +131,13 @@ sum(..xs);                         // sum(1, 2, 3) — variadic 받음
 spread 에는 다음 규칙이 적용됩니다.
 
 - 튜플 spread 는 컴파일 타임에 길이와 타입을 검증합니다.
-- 리스트 spread 는 런타임 길이를 사용하며, variadic 또는 위치 일치 시 OK 입니다.
+- 고정 매개변수로의 `List` / `Slice` spread 는 다음 인자 앞까지의 자리를 채우며, 길이는 런타임에 검사합니다. 배열 spread 는 그 길이만큼 채웁니다.
 - Dict spread 는 named 인자로 변환됩니다.
 - variadic 자리에는 튜플, `List`, `Slice`, 배열 spread 를 일반 인자와 섞어 넘길 수 있습니다 (`f(a, ..xs, b)`). variadic 매개변수를 그대로 다른 variadic 에 넘길 수도 있습니다 (`fn f(xs: ...i32) { g(..xs) }`).
 - 컬렉션이 아닌 값을 spread 하면 에러입니다 ("needs a tuple, a List, a Slice or an array").
 - 원소 타입 `T` 가 제네릭으로 열려 있는 variadic 을 인자 없이 부르면 `T` 를 정할 수 없으므로 타입 표기가 필요합니다.
+
+- `List` 리터럴 안의 `..x` 는 튜플, 배열, `List`, `Slice` 를 펼칩니다 (`[0, ..xs, 9]`). 그 밖이면 범위입니다.
 
 ```rok
 let opts = {"lr": 0.01, "epochs": 100};

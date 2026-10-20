@@ -46,6 +46,8 @@ ShadowFrame {
 
 GC 참조를 들고 있고 safepoint 에 닿을 수 있는 함수만 frame 이 필요합니다 ([8.4.2](../008-abi/804-safepoint.md#842-emit-위치)). 반환하지 않는 함수 (panic) 와 할당도 block 도 하지 않는 런타임 함수 ([8.5.2](../008-abi/805-extern-symbols.md#safepoint-가-아닌-함수)) 의 호출은 세지 않습니다. 그런 함수에 컴파일러는 다음 코드를 직접 emit 합니다.
 
+safepoint 를 넘어 살아 있는 지역 변수만 root 가 필요합니다.
+
 1. 진입 시 GC 참조 word 들을 0 으로 채웁니다.
 2. 기계 스택에 `ShadowFrame` 을 잡고 `slots` 에 그 word 들의 주소를 기록합니다. `prev` 에 현재 `rok_tls_shadow_stack_top` 을 저장한 뒤 머리를 이 frame 으로 바꿉니다 (link).
 3. 모든 `return` 직전에 머리를 `prev` 로 되돌립니다 (unlink). 에러 반환도 일반 `return` 이므로 같은 경로를 지납니다. panic 은 프로세스를 끝내므로 unlink 가 필요 없습니다.

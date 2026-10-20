@@ -192,7 +192,7 @@ Showing the time of each stage is useful for diagnosing build bottlenecks. The s
 
 ### `-vv` (very verbose)
 
-In addition to `-v`, prints the list of files processed and the (item, type) pairs [specialized](../000-meta/007-glossary.md#specialize).
+In addition to `-v`, prints a `Reading <file>` line for each file processed and a `Specialized <path>(sig)` line for each (item, type) pair [specialized](../000-meta/007-glossary.md#specialize).
 
 ## 9.9.6. Debugger integration: gdb / lldb
 
