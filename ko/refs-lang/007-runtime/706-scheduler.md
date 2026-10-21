@@ -90,7 +90,7 @@ work-stealing 모델은 task 가 blocking syscall 을 호출하면 그 worker �
 
 기본 동작은 N 개의 worker 를 두고 task 가 thread 사이를 자유롭게 이동하도록 하는 형태입니다. 다만 thread-per-core 옵션을 켜면 각 task 가 고정된 worker 에 pinning 되고, worker 끼리 steal 하지 않으며, 그 결과 cache locality 가 극대화되어 NUMA 환경이나 데이터센터 워크로드에 적합한 동작을 얻을 수 있습니다.
 
-이 옵션은 `rokc` 빌드 옵션이나 환경 변수 같은 런타임 설정으로 켜고 끌 수 있습니다.
+환경 변수 `ROK_THREAD_PER_CORE=1` 로 켜며, `ROK_WORKERS=<n>` 이 N 을 정합니다 (기본값: 온라인 CPU 수).
 
 ## 7.6.9. 우선순위 / 공정성
 

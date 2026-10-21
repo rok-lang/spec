@@ -43,7 +43,7 @@ rokc rokhir-text path/to/foo.rokhir      # or libfoo.a — reads the sibling foo
 This command prints the [ROKHIR](904-rokhir-bytecode.md) of a prebuilt library in human-readable form. After the version, producer and meta, each interface file follows as `--- <path>` and its text (source with concrete function bodies cut down to `;`).
 
 ```
-rokhir 2
+rokhir 3
 producer: rokc 0.1.0 (1f2a40-17f3a9c2e1b0c4d8)
 package: geom (hash: 3f8a1c2b)
 source: /home/me/geom
@@ -203,7 +203,7 @@ In addition to `-v`, prints a `Reading <file>` line for each file processed and 
 
 - A function's `DW_AT_name` is its rok path (`geom::distance`); no linkage name (mangled symbol) is emitted, because debuggers do not understand `_Y` mangling.
 - Line numbers refer to lines of the original .rok file.
-- Local variables appear with their original names and types. Besides primitive types (integers, floating-point, `bool`, `char`), DWARF types are emitted for structs (field names), tuples, `str`, `any`, sum types and arrays. A sum type or enum is a DWARF variant part: an artificial discriminant member, and one `DW_TAG_variant` per variant (dataless variants included) with `DW_AT_discr_value`, each holding a struct named `<Sum>::<Variant>`. Both back ends write the same form, and compile units use `DW_LANG_Rust` so debuggers read variant parts (there is no DWARF language code for rok). A `GcBuf<T>` reference is described as a pointer to its object (header, then the `T` elements). An `any` value is a variant part over the types stored into it, with the stored tag as the discriminant. A variable captured by reference shows as its value. Functions the compiler makes (the C `main`, static initializer guards) have subprograms too.
+- Local variables appear with their original names and types. Besides primitive types (integers, floating-point, `bool`, `char`), DWARF types are emitted for structs (field names), tuples, `str`, `any`, sum types and arrays. A sum type or enum is a DWARF variant part: an artificial discriminant member, and one `DW_TAG_variant` per variant (dataless variants included) with `DW_AT_discr_value`, each holding a struct named `<Sum>::<Variant>`. Both back ends write the same form, and compile units use `DW_LANG_Rust` so debuggers read variant parts (there is no DWARF language code for rok). A `GcBuf<T>` reference is described as a pointer to its object (header, then the `T` elements). An `any` value is a variant part over the types stored into it, with the stored tag as the discriminant. A variable captured by reference shows as its value. Functions the compiler makes (the C `main`, static initializer guards) have subprograms too. Compiler-generated locals (names beginning `#` or `__`) are omitted.
 - A lexical block scope is emitted for each block, so shadowed names are visible only inside their block.
 - Locals with stack slots are placed in a single `llvm.alloca` in both debug and release, so `-g` attaches debug info to the same slot regardless of optimization level.
 
@@ -265,12 +265,15 @@ The runtime reads the following environment variables.
 
 | Variable                  | Effect                                                                       |
 |---------------------------|------------------------------------------------------------------------------|
-| `ROK_GC_LOG=1`            | Prints the kind (minor / full), pause time, mark count and sweep result of each collection to stderr |
+| `ROK_GC_LOG=1`            | Prints the kind (minor / full), pause time, mark count and sweep result of each collection to stderr. A concurrent full collection logs its start pause (a minor collection) and its finish pause separately; the sweep result is the live bytes before -> after |
 | `ROK_GC_STATS=1`          | At exit, prints collection counts (minor / full), pause time and collector CPU time to stderr. The second line gives block count / resident size / evacuation count / bytes moved |
 | `ROK_GC_CONCURRENT=auto\|always\|off` | Concurrent marking for full collections. `auto` applies when old objects are 32 MiB or more ([7.5](../007-runtime/705-concurrent-collection.md)) |
 | `ROK_GC_EVAC=always`      | For testing. Evacuation on every full collection ([7.3.1](../007-runtime/703-gc-algorithm.md#731-immix-mark-region)) |
 | `ROK_GC_STRESS=N`         | For testing. Collects every N allocations (every 8th of those is full)       |
-| `ROK_HEAP_DUMP=on_oom`    | On OOM, prints the heap's object distribution and large objects to stderr. Format is runtime-defined |
+| `ROK_HEAP_DUMP=on_oom`    | On OOM, prints to stderr the totals, the top 32 types by bytes and the 32 largest large objects. Best effort: it allocates nothing and takes no lock. Format is runtime-defined |
+| `ROK_WORKERS=<n>`         | Number of executor workers N (default: the online CPUs) ([7.6.8](../007-runtime/706-scheduler.md#768-thread-per-core-option)) |
+| `ROK_THREAD_PER_CORE=1`   | Thread-per-core: tasks pinned to their worker, no stealing (7.6.8) |
+| `ROK_DYNAMIC_WORKERS=1`   | Idle workers park and are taken back when every active worker is busy ([7.7.8](../007-runtime/707-io-and-timer.md#778-dynamic-adjustment-of-worker-count)) |
 
 ## 9.9.9. REPL / Jupyter debugging
 

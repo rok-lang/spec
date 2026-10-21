@@ -216,6 +216,7 @@ fn strict_zone() { ... }
 | `non_camel_case_types`   | 타입, 트레잇, 변형 이름이 UpperCamelCase 가 아님: 첫 글자가 소문자가 아니고, `__` 가 없으며, `_` 는 대소문자가 없는 문자 사이에만 (`V1_0`) |
 | `non_upper_case_globals` | `const` / `static` 이름이 UPPER_SNAKE_CASE 가 아님                 |
 | `confusable_idents`      | 서로 닮은 식별자 ([1.4](../001-lexical/104-identifiers.md))        |
+| `use_after_handoff`      | 다른 소유자가 가져간 뒤 (`Mutex::new`, `send`, `Handoff::new`) 쓴 값, 또는 `using` 블록이 끝난 뒤의 guard 의 값 ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md)) |
 
 | 그룹                | 포함                                                                                         |
 |---------------------|----------------------------------------------------------------------------------------------|

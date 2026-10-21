@@ -42,9 +42,10 @@ struct Pinned<T> {
     // 내부: GC 의 pin set 등록
 }
 
-trait Pinnable {}                       // List<T>, str
+trait Pinnable {}                       // List<T>, str, GcPtr<T>
 impl<T> Pinnable for List<T> {}
 impl Pinnable for str {}
+impl<T> Pinnable for GcPtr<T> {}
 
 fn pin<T: Pinnable>(obj: T) -> Pinned<T>;
 
@@ -97,6 +98,19 @@ struct Ptr<T>   { /* raw — root 추적 X */ }
 타입 시스템 차원에서 두 종류를 분리해 두었기 때문에, 사용자 코드는 일반적으로
 `GcPtr` 만 다루게 됩니다 (보이지 않게 `List<T>` 등으로 wrap 되어 있기 때문입니다).
 `Ptr<T>` 는 unsafe 진입 이후에 비로소 명시적으로 모습을 드러냅니다.
+
+### 연산
+
+```rok
+impl<T> GcPtr<T> {
+    fn new(value: T) -> GcPtr<T>;           // value 를 담은 새 GC cell
+    fn get(self) -> T;
+    fn set(self, value: T);                 // GcPtr 의 모든 복사본이 봄
+    fn same(self, other: GcPtr<T>) -> bool; // 동일성: 같은 cell
+}
+impl<T> !Sync for GcPtr<T> {}
+impl<T> Pinnable for GcPtr<T> {}
+```
 
 ### 내부 구현 — GcPtr 의 형태
 
@@ -162,13 +176,17 @@ impl<T> Pinned<List<T>> {
     fn as_data_many_ptr(self) -> ManyPtr<T>; // 다수 ptr
 }
 
+impl<T> Pinned<GcPtr<T>> {
+    fn as_value_ptr(self) -> Ptr<T>;         // cell 의 값
+}
+
 impl Pinned<str> {
     fn as_bytes_ptr(self) -> ConstPtr<u8>;   // UTF-8 bytes
     fn as_c_str(self) -> ConstPtr<c_char>;   // null-terminated 보장 안 함 — 별도 변환
 }
 ```
 
-이 container 메서드들이 추출 API 이며, 제네릭 `as_ptr` 은 없습니다. container 별로 전용 추출 메서드가 마련됩니다. buffer 시작이나
+이 container 메서드들이 추출 API 이며, 제네릭 `as_ptr` 은 없으며, `as_value_ptr` 는 `List` 의 `as_data_ptr` 와 구별되는 이름입니다. container 별로 전용 추출 메서드가 마련됩니다. buffer 시작이나
 null-terminated 형태처럼, 각 컨테이너의 layout 에 맞춘 형태로 꺼내 쓸 수 있도록
 한 것입니다.
 
@@ -182,6 +200,7 @@ null-terminated 형태처럼, 각 컨테이너의 layout 에 맞춘 형태로 �
 | `pin<T>()`       | (위와 동일)                    |
 | `GcPtr<T>`       | shadow stack frame 슬롯 (컴파일러 emit) |
 | `as_data_ptr` 등 | container 별 layout 의존       |
+| `Weak<T>`        | `rok_gc_weak_new` / `rok_gc_weak_get` (1.6.9) |
 
 ## 1.6.8. 다른 언어와의 비교
 
@@ -203,3 +222,20 @@ rok 이 다른 언어와 갈라지는 가장 큰 지점은 두 가지입니다.
 
 > 이 정책은 rok pointer 모델의 backbone 입니다. unsafe 와 GC, 두 영역이 안전하게
 > 만나는 접점입니다.
+
+## 1.6.9. `Weak<T>` — 약한 참조
+
+```rok
+// rok::bare::gc
+struct Weak<T> { /* opaque */ }
+
+impl<T> Weak<T> {
+    fn new(target: GcPtr<T>) -> Weak<T>;
+    fn get(self) -> GcPtr<T> | none;        // 대상이 해제되면 none
+}
+impl<T> !Sync for Weak<T> {}
+```
+
+약한 참조는 객체를 살려 두지 않습니다. 수집이 객체를 해제하면 그 객체를 가리키는 모든 `Weak` 은 `none` 을 읽으며, 객체를 옮기는 수집은 `Weak` 을 갱신합니다. 이것이 `WEAK_REF` scan 종류 ([refs-lang 8.2.8](../../refs-lang/008-abi/802-scan-table.md#828-weak_ref)) 의 라이브러리 인터페이스입니다.
+
+런타임에서 `Weak` 은 `WEAK_REF` word 하나를 담은 type id `3` ([refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-런타임-예약-type-id)) 의 GC cell 이며, `rok_gc_weak_new` 로 만들고 `rok_gc_weak_get` 으로 읽습니다 ([refs-lang 8.5.12](../../refs-lang/008-abi/805-extern-symbols.md#8512-보조-심볼-부록-비규범)).

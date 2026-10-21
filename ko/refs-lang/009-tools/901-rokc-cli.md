@@ -73,7 +73,7 @@ rokc build [path]
 - `--extern <name>=<dir | src/lib.rok | <name>.rokhir | lib<name>.a>` 는 의존 패키지 하나를 최상위 경로 `name` 에 mount 합니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 소스 (`dir` / `src/lib.rok`) 는 같은 빌드에서 함께 컴파일하고, 미리 빌드한 패키지 (`.rokhir` / `.a`, 하나를 주면 옆의 짝을 찾음) 는 ROKHIR 을 읽고 archive 를 링크합니다. 여러 번 쓸 수 있고, 보통 `rok` 가 채웁니다. `name` 은 식별자이며, 패키지 이름의 `-` 를 `_` 로 바꾼 것입니다 ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)).
 - `--extern-feature <name>=<f>` 는 소스 의존 패키지 `name` 을 `cfg(feature = "<f>")` 로 빌드합니다. feature 마다 하나씩, 여러 번 줄 수 있습니다. 의존 패키지가 보는 것은 이것뿐입니다: `--cfg` 의 `feature` 키는 컴파일 중인 패키지의 것입니다. 보통 `rok` 이 채웁니다.
 - `--name <n>` 은 패키지 이름 ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock) 의 이름 규칙) 을 정합니다. 산출물은 `lib<n>.a` / `<n>.rokhir` 이고 mount 이름은 `-` 를 `_` 로 바꾼 것입니다. 기본은 디렉토리 이름입니다. `--extern a-b=..` 도 `a_b` 로 묶습니다.
-- `--bootstrap <file>` 은 미리 읽을 표준 라이브러리 루트 (여러 번 가능), `--rokr <lib>` 는 링크할 런타임입니다. 기본값은 sysroot 의 `lib/rok/{core,std,bare}/lib.rok` 와 `lib/librokr.a` 입니다 ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)). 찾지 못하면 찾아본 경로를 나열하는 에러입니다.
+- `--bootstrap <file>` 은 미리 읽을 표준 라이브러리 루트 (여러 번 가능), `--rokr <lib>` 는 링크할 런타임입니다. 기본값은 sysroot 의 `lib/rok/{core,std,bare}/src/lib.rok` 와 `lib/librokr.a` 입니다 ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)). bootstrap 루트의 tier 는 그 `src/` 위 디렉토리의 이름이며, `bare` 루트 없이 `core/src/lib.rok` 를 주면 그 옆의 `bare/src/lib.rok` 도 읽습니다. 찾지 못하면 찾아본 경로를 나열하는 에러입니다.
 - `-O0` / `-O1` / `-O2` / `-O3` / `-Os` 는 최적화 단계를 명시적으로 지정합니다. `-O0` 은 native backend 를, 나머지는 MLIR → LLVM backend 를 씁니다 ([9.2.10](902-aot-pipeline.md#9210-backend-선택)).
 - `--target=<target>` 은 타깃 플랫폼을 지정합니다: [플랫폼 타깃](../000-meta/006-platform-targets.md) 의 14 개 Tier 1 같은 내장 이름, 또는 `<name>.rokon` 타깃 명세 파일 ([0.6.5](../000-meta/006-platform-targets.md#065-타깃-명세)). 어느 host 에서나 어느 대상이든 빌드할 수 있습니다 ([0.2.4](../000-meta/002-pipeline.md#024-backend)).
 - `-L <dir>` 은 `#[link]` 의 라이브러리 검색 디렉토리를 더합니다 ([5.9.9](../005-modules/509-extern-block.md#599-linklibname-라이브러리-명시)). `LIBRARY_PATH` 보다 먼저 찾습니다. 여러 번 쓸 수 있습니다.
@@ -81,10 +81,11 @@ rokc build [path]
 - `-o` / `--out=<path>` 는 출력 위치를 지정합니다.
 - `--cfg <flag>` / `--cfg <key>=<value>` 는 [조건부 컴파일](../006-meta-system/603-cfg.md) 의 cfg flag 를 설정합니다. 여러 번 쓸 수 있습니다.
 - `--emit=<kind>[,<kind>..]` 는 중간 산출물 (`ast`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expanded`) 을 `target/<profile>/build/<name>.<ext>` 에 씁니다 ([9.9.1](909-debug-tools.md#991-중간-산출물-출력---emit)). 쉼표로 여러 종류를 한 번에 지정하며, 이때는 `-o` 를 함께 쓸 수 없습니다. `--emit` 이 있으면 실행 파일이나 archive 는 만들지 않습니다.
-- `--load-mlir-plugin <path|name>` 은 MLIR 다이얼렉트 plugin 을, `--load-mlir-pass-plugin <path|name>` 은 패스 plugin 을 (둘 다 `rokc` 의 MLIR 에, 같은 고정 LLVM 으로 빌드한 것을) 로드하고, `--mlir-pass <pass>` 는 LLVM 다이얼렉트로 변환하기 전에 그 패스를 실행합니다 ([rok::bare::mlir::plugin](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-로드)). 모두 여러 번 쓸 수 있으며, `rok` 도 그대로 넘깁니다.
+- `--load-mlir-plugin <path|name>` 은 MLIR 다이얼렉트 plugin 을, `--load-mlir-pass-plugin <path|name>` 은 패스 plugin 을 (둘 다 `rokc` 의 MLIR 에, 같은 고정 LLVM 으로 빌드하고 Windows 에서는 `rokc.exe` 의 import library 에 링크한 것을) 로드하고, `--mlir-pass <pass>` 는 LLVM 다이얼렉트로 변환하기 전에 그 패스를 실행합니다 ([rok::bare::mlir::plugin](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-로드)). 모두 여러 번 쓸 수 있으며, `rok` 도 그대로 넘깁니다.
 - `-g` / `--debug` 는 DWARF 디버그 정보를 냅니다 ([9.9](909-debug-tools.md#dwarf-디버그-정보)).
 - `-C overflow-checks[=yes|no]` 는 고정 폭 정수 산술의 overflow 검사 (panic) 를 켜거나 끕니다. 기본값은 `-O0` 에서만 켬입니다. 값을 생략하면 `yes` 입니다. overflow 가 일어날 수 없는 상수 피연산자 연산은 검사를 생략합니다.
 - `-C backend=native|llvm` 은 최적화 수준이 고른 backend 를 바꿉니다 ([9.2.10](902-aot-pipeline.md#9210-backend-선택)).
+- `-C target-cpu=<cpu>|native` 는 triple 의 baseline 대신 그 CPU 를 대상으로 합니다 ([0.6.4](../000-meta/006-platform-targets.md#064-simd)). `native` 는 빌드하는 기계의 CPU 입니다. `-C target-feature=+f1,-f2,..` 는 개별 기능 (`+avx2` 등) 을 켜거나 끕니다. 그렇게 만든 바이너리는 그 기능이 없는 CPU 에서 돌지 않을 수 있습니다. native backend (`-O0`) 에서는 이 옵션을 경고로 알리고 baseline 용으로 빌드합니다. `native` 는 target 이 host 플랫폼일 때만 받습니다.
 - `-C subsystem=console|windows` 는 Windows subsystem 을 고릅니다: `console` (기본, `mainCRTStartup`) 또는 `windows` (GUI, `WinMainCRTStartup`, [9.5.9](905-symbol-mangling.md#959-main-함수의-심볼)).
 - `-C profile-generate[=<dir>]` 는 profile-guided optimization 을 위해 프로그램과 소스 의존 패키지를 계측합니다. 실행하면 raw profile `<dir>/default_%m.profraw` 를 씁니다 (기본 `<dir>`: 실행 시점의 작업 디렉토리, `LLVM_PROFILE_FILE` 이 경로를 바꿈). 계측된 실행 파일은 toolchain 이 대상용으로 제공하는 profile 런타임을 링크합니다 ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)). wasm32-unknown-unknown 에서는 지원하지 않습니다 (파일 시스템 없음).
 - `-C cs-profile-generate[=<dir>]` 은 `-C profile-use` 와 함께 inlining 뒤에 다시 계측합니다 (context-sensitive). 그 실행들을 그 profile 과 합치면 `-C profile-use` 가 읽는 profile 하나가 됩니다.
@@ -251,7 +252,7 @@ rokc fmt [path]
 rokc check [path] [--check-library]
 ```
 
-front end 를 타입 검사와 MIR 생성까지 돌리고 lint 와 함께 진단을 냅니다. 코드 생성 (MLIR 포함) 은 하지 않습니다. 옵션은 `rokc build` 와 같습니다. `--check-library` 는 도달 여부와 무관하게 라이브러리의 모든 본문을 낮추고 검사합니다.
+front end 를 타입 검사와 MIR 생성까지 돌리고 lint 와 함께 진단을 냅니다. 코드 생성 (MLIR 포함) 은 하지 않습니다. 옵션은 `rokc build` 와 같습니다. `--check-library` 는 도달 여부와 무관하게 라이브러리의 모든 본문을 낮추고 검사하며, 모든 제네릭 본체를 그 바운드에 맞춰 검사합니다 ([2.10.9](../002-types/210-generics.md#2109-본체-검사)).
 
 ### `rokc lint`: 린터
 
@@ -420,7 +421,7 @@ rokc --cwd=examples/hello run
 | `2`   | 사용법 에러 (잘못된 옵션, 모르는 서브명령 등)   |
 | `101` | rokc 내부 에러 (panic)                          |
 
-`rokc` 는 `ROK_HOME` 을 읽지 않습니다 (sysroot 는 실행 파일 기준). rokc 자신이 panic 하면 (internal compiler error) 메시지를 출력하고 `101` 로 끝납니다. `rokc run` 은 실행한 프로그램의 종료 코드로 끝납니다 (9.1.2).
+`rokc` 는 `ROK_HOME` 을 읽지 않습니다 (sysroot 는 실행 파일 기준). rokc 자신이 panic 하면 (internal compiler error) 메시지를 출력하고 `101` 로 끝납니다. `rokc lsp`, `rokc repl`, `rokc jupyter` 는 이것을 견딥니다: language server 는 분석한 버퍼의 에러 진단으로 보고하고, REPL / kernel 은 그 셀을 실패시킵니다 ([9.7.5](907-jit-cells.md#975-에러-모드)). 둘 다 계속 서비스합니다. `rokc run` 은 실행한 프로그램의 종료 코드로 끝납니다 (9.1.2).
 
 ## 9.1.7. 환경 변수
 

@@ -42,6 +42,8 @@ All steps run inside `rokc`. This ABI block defines the lowering rules for the s
 
 ## 8.7.3. Core ops per dialect
 
+Which dialects `rokc` emits is implementation-defined. `rokc` emits `func`, `arith`, `cf` and `llvm` (and `math` where it lowers math intrinsics); `scf` and `index` may be used. The ops below are the core of each dialect.
+
 ### `func`
 
 ```
@@ -128,14 +130,7 @@ Stack slots, object access and low-level intrinsics belong to the `llvm` dialect
 
 ## 8.7.4. Dialect priority
 
-```
-where possible → arith / scf / cf / index / math / func
-when needed → llvm
-```
-
-When the same semantics can be expressed in several dialects, higher-level dialects such as `scf` and `arith` are preferred. `llvm` is used only when they cannot express it at all.
-
-Following this priority lets MLIR's standard passes optimize more effectively.
+Lowering may use `scf`, `index` and `math` where they express the semantics, and `llvm` where nothing else does; the choice is implementation-defined (8.7.3).
 
 ## 8.7.5. Library / acceleration-domain dialects
 
@@ -156,14 +151,14 @@ The mechanism by which library authors call dialects, and their safety responsib
 
 ## 8.7.6. `extern` functions (runtime functions)
 
-The `rok_*` functions listed in [Extern "C" symbols](805-extern-symbols.md) are declared as external declarations of `func.func`.
+The `rok_*` functions listed in [Extern "C" symbols](805-extern-symbols.md) are declared as external `llvm.func` declarations (the declaration form is implementation-defined).
 
 ```
-func.func private @rok_gc_alloc_slow(i64, i64, i32) -> !llvm.ptr
-func.func private @rok_runtime_yield()
+llvm.func @rok_gc_alloc_slow(i64, i64, i32) -> !llvm.ptr
+llvm.func @rok_runtime_yield()
 ```
 
-Calls use `func.call` or `llvm.call`.
+Calls use `llvm.call`.
 
 ## 8.7.7. TLS access
 

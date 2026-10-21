@@ -183,7 +183,7 @@ payload 가 box 참조인지는 tag 에 실립니다.
 - mark 단계에서는 weak `ref` 를 따라가지 않습니다.
 - sweep 후에는 weak `ref` 가 가리키던 객체가 수집되었다면, weak `ref` 슬롯을 0 으로 클리어합니다.
 
-이 메커니즘은 캐시나 옵저버 패턴 등에 유용하며, 정확한 라이브러리 인터페이스는 표준 라이브러리 사양에서 정합니다.
+이 메커니즘은 캐시나 옵저버 패턴 등에 유용하며, 그 라이브러리 인터페이스는 `Weak<T>` 입니다 ([stdlib 1.6.9](../../refs-standard-libraries/100-bare/106-gc-pin.md#169-weakt--약한-참조)).
 
 ## 8.2.9. INTERIOR_REF
 
@@ -209,14 +209,15 @@ ScanTable 포맷의 호환성은 version 필드가 다룹니다.
 
 ## 8.2.12. 런타임 예약 type id
 
-다음 두 type id 는 런타임이 직접 정의하며, 컴파일러는 ScanTable 을 등록하지 않습니다 ([8.1.2](801-object-header-abi.md#812-type_id-offset-0-u32-little-endian)).
+다음 세 type id 는 런타임이 직접 정의하며, 컴파일러는 ScanTable 을 등록하지 않습니다 ([8.1.2](801-object-header-abi.md#812-type_id-offset-0-u32-little-endian)).
 
 | type id | 의미              | scan                                                    |
 |---------|-------------------|---------------------------------------------------------|
 | `1`     | GC 문자열         | payload 는 바이트이며 scan 하지 않음                    |
 | `2`     | word-traced buffer | payload 의 모든 word 를 모호한 word (`AMBIGUOUS_WORD`) 로 scan |
+| `3`     | weak cell (`Weak<T>`) | `WEAK_REF` word 하나 (8.2.8); `rok_gc_weak_new` 로 만듦 |
 
-두 종류는 type id `1` 또는 `2` 로 `rok_gc_alloc_slow` 를 불러 할당합니다 ([8.5.1](805-extern-symbols.md#851-gc-영역)). 표준 라이브러리의 [`GcBuf<T>`](../../refs-standard-libraries/200-core/209-collections.md#2912-gcbuft--raw-gc-buffer) 가 이 위에 놓입니다.
+id `1` 과 `2` 는 type id `1` 또는 `2` 로 `rok_gc_alloc_slow` 를 불러 할당합니다 ([8.5.1](805-extern-symbols.md#851-gc-영역)). 표준 라이브러리의 [`GcBuf<T>`](../../refs-standard-libraries/200-core/209-collections.md#2912-gcbuft--raw-gc-buffer) 가 이 위에 놓입니다.
 
 ## 8.2.13. 등록 시점
 

@@ -2,6 +2,8 @@
 
 `rok::core::crypto` 는 TLS 스택에 필요한 알고리즘을 순수 계산으로 제공합니다. 모든 target 에서 동일하게 동작하므로 `rok::core` (0.1) 에 둡니다. 난수는 OS 가 필요하므로 `rok::std::crypto::random` (3.10) 에 있으며, 무작위 입력이 필요한 함수 (키, nonce, encapsulation) 는 그 입력을 인자로 받습니다. 비밀 데이터에 대한 연산은 constant time 으로 수행됩니다: 어떤 분기도, 어떤 메모리 인덱스도 비밀에 의존하지 않습니다.
 
+아래의 모든 항목은 `rok::core::crypto::` 에서 쓸 수 있으며, 주석은 그것을 함께 export 하는 하위 모듈을 가리킵니다.
+
 바이트 인자는 `Bytes` 를 받습니다.
 
 ```rok
@@ -98,17 +100,22 @@ struct RsaPublicKey {                               // crypto::rsa (RFC 8017), 2
     fn new(n: Bytes, e: Bytes) throws (ValueError) -> RsaPublicKey;
     fn from_pkcs1_der(der: Bytes) throws (ValueError) -> RsaPublicKey;
     fn bits(self) -> usize;
+    fn modulus(self) -> List<u8>;                   // big-endian, 앞의 0 바이트 없음
+    fn exponent(self) -> List<u8>;
     fn verify_pkcs1v15(self, hash: HashAlgorithm, msg: Bytes, signature: Bytes) -> bool;
-    fn verify_pss(self, hash: HashAlgorithm, msg: Bytes, signature: Bytes) -> bool;  // MGF1(hash), salt 길이 = 해시 길이
+    fn verify_pss(self, hash: HashAlgorithm, msg: Bytes, signature: Bytes, salt_len: usize | none = none) -> bool;  // MGF1(hash); none: salt 길이 = 해시 길이
 }
 struct RsaPrivateKey {
     fn from_pkcs1_der(der: Bytes) throws (ValueError) -> RsaPrivateKey;   // RSAPrivateKey, 소수 두 개
     fn public_key(self) -> RsaPublicKey;
     fn bits(self) -> usize;
+    fn sign_pkcs1v15(self, hash: HashAlgorithm, msg: Bytes) throws (ValueError) -> List<u8>;  // 결정적
     fn sign_pss(self, hash: HashAlgorithm, msg: Bytes, salt: Bytes) throws (ValueError) -> List<u8>;  // salt: 새 난수, 해시 길이
 }
 ```
 
 Ed25519 검증은 cofactorless 이며, 정규형이 아닌 인코딩과 S ≥ L 을 거부합니다. ECDSA 와 RSA 검증은 인코딩에 엄격합니다 (최소 DER, 정확한 서명 길이).
 
-ECDSA 개인 키는 곡선의 크기 이하인 big-endian 스칼라 `1 <= d < n` 입니다. nonce 는 결정적으로 유도되므로 (RFC 6979, `hash` 를 쓰는 HMAC-DRBG) 서명에 무작위 입력이 필요 없습니다. RSA 서명은 base blinding 을 곁들인 CRT 를 쓰며 (blinding 인수는 `salt`, 메시지, 키에서 유도), 결과를 돌려주기 전에 공개 키로 검사합니다. 일관되지 않은 키는 `ValueError` 입니다. 서명은 비밀에 대한 다른 연산처럼 constant time 으로 수행됩니다.
+ECDSA 개인 키는 곡선의 크기 이하인 big-endian 스칼라 `1 <= d < n` 입니다. nonce 는 결정적으로 유도되므로 (RFC 6979, `hash` 를 쓰는 HMAC-DRBG) 서명에 무작위 입력이 필요 없습니다. RSA 서명은 base blinding 을 곁들인 CRT 를 쓰며 (blinding 인수는 키, 메시지, 그리고 PSS 이면 `salt` 에서 유도하므로 PKCS #1 v1.5 서명에는 무작위 입력이 필요 없음), 결과를 돌려주기 전에 공개 키로 검사합니다. 일관되지 않은 키는 `ValueError` 입니다. 서명은 비밀에 대한 다른 연산처럼 constant time 으로 수행됩니다. PSS 검증은 modulus 에 들어가는 어떤 salt 길이든 받으며 (`salt_len`), 서명은 해시 길이만큼의 salt 를 씁니다.
+
+비밀 값은 보통의 `List<u8>` 와 다른 GC 객체입니다: 계산은 그것을 복사하고, 수집기는 옛 메모리를 지우지 않은 채 옮기고 해제하므로, `rok::core::crypto` 는 키를 메모리에서 지운다고 약속하지 않습니다.

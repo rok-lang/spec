@@ -25,7 +25,7 @@ This separation keeps rok independent of the evolution of MLIR's own dialect-def
 | Dialect         | `mlirGetDialectPluginInfo()`      |
 | Pass (optional) | `mlirGetPassPluginInfo()`         |
 
-The dialect plugin's namespace goes in the `NS` position of `__mlir_op::<"NS.op_name", ...>`. A plugin must be built against the LLVM version embedded in `rokc`. The plugin uses `rokc`'s MLIR instead of carrying its own: its MLIR / LLVM symbols are left unresolved and bind at load time to the ones `rokc` exports. A plugin linked against its own copy of MLIR registers into registries `rokc` does not see. Exact build flags are implementation-defined.
+The dialect plugin's namespace goes in the `NS` position of `__mlir_op::<"NS.op_name", ...>`. A plugin must be built against the LLVM version embedded in `rokc`. The plugin uses `rokc`'s MLIR instead of carrying its own: its MLIR / LLVM symbols are left unresolved and bind at load time to the ones `rokc` exports. `rokc` exports the MLIR it links (the dialects of [refs-lang 8.7.1](../../refs-lang/008-abi/807-mlir-dialects.md#871-dialects-used-by-ordinary-code-recap) and [8.7.5](../../refs-lang/008-abi/807-mlir-dialects.md#875-library--acceleration-domain-dialects) and the infrastructure they use) and LLVM's support library; a plugin may build on those and must carry anything else (for example other upstream dialects) itself. A plugin linked against its own copy of MLIR registers into registries `rokc` does not see. On Windows `rokc.exe` exports these symbols through an import library shipped with the toolchain's MLIR plugin development files; a plugin DLL links against it, uses the same C runtime as `rokc` (the dynamic release CRT) and exports its entry points. A DLL cannot reach data `rokc.exe` exports except through `__declspec(dllimport)`; the plugin development headers arrange this for MLIR's explicit TypeIDs, and other such data is not available to plugins. Exact build flags are implementation-defined.
 
 ## 1.10.3. Plugin loading
 
@@ -45,7 +45,7 @@ rokc build --load-mlir-pass-plugin mypasses --mlir-pass my-lower main.rok
 | `--load-mlir-pass-plugin <path\|name>` | loads a pass plugin                             |
 | `--mlir-pass <pass>`                   | runs `<pass>` before conversion to the LLVM dialect |
 
-All may be repeated. A `name` that is not a path is looked up as `lib<name>.dylib` / `lib<name>.so` / `<name>.dll` in the directories of `ROK_MLIR_PLUGIN_PATH` (lookup details are implementation-defined). If a plugin fails to load, it is a build error. Plugin files are part of the incremental build fingerprint ([refs-lang 9.2.16](../../refs-lang/009-tools/902-aot-pipeline.md#9216-incremental-build)), and `rok` passes these options to `rokc` unchanged.
+All may be repeated. A `name` that is not a path is looked up as the host's library file name (`lib<name>.dylib` or `lib<name>.so` on macOS, `lib<name>.so` on Linux, `<name>.dll` on Windows) in the directories of `ROK_MLIR_PLUGIN_PATH` (lookup details are implementation-defined). If a plugin fails to load, it is a build error. Plugin files are part of the incremental build fingerprint ([refs-lang 9.2.16](../../refs-lang/009-tools/902-aot-pipeline.md#9216-incremental-build)), and `rok` passes these options to `rokc` unchanged.
 
 ### Package manifest declaration
 

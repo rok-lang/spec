@@ -83,7 +83,7 @@ Static trait methods with no arguments determine `Self` the same way. A call on 
 
 ```rok
 let z: i32 = Zero::zero();          // Self = i32 — rok::core::num::Zero
-fn sum<T: Zero + Add>(xs: List<T>) -> T {
+fn sum<T: Zero + Add<Output = T>>(xs: List<T>) -> T {
     let acc: T = T::zero();          // Self = T
     ...
 }
@@ -106,7 +106,7 @@ fn print_all<T: Display>(items: List<T>) { ... }
 fn sort_all<T: Ord + Clone>(ref items: List<T>) { ... }
 ```
 
-A single bound is written as `Param: Trait`; multiple bounds are joined with `+`. Without bounds, no operation can be applied to the parameter; values can only be moved.
+A single bound is written as `Param: Trait`; multiple bounds are joined with `+`. Without bounds, only what every type supports applies to the parameter: moving, `Reflect`, storage into `any`, sums with `none`, and `is` (2.10.9).
 
 ## 2.10.4. where clauses
 
@@ -194,7 +194,15 @@ fn double<T: Add<T, Output = T>>(x: T) -> T {
 }
 ```
 
-Because of this rule, generic bodies are checked independently of call sites, so the body is guaranteed to compile whatever concrete type a call passes. Implicit parameters ([4.2.2](../004-functions/402-parameters.md#422-omitting-the-type)) are exempt.
+Because of this rule, generic bodies are checked independently of call sites, so the body is guaranteed to compile whatever concrete type a call passes. The rule extends as follows.
+
+- Trait default method bodies are generic bodies: `Self` is opaque and bounded by the trait, and trait parameters are opaque.
+- Every type, bound or not, supports moving, `Reflect` ([6.10.1](../006-meta-system/610-reflection.md#6101-reflect--automatically-implemented-trait)), storage into `any`, sums with `none`, and `is`.
+- A function with any implicit parameter ([4.2.2](../004-functions/402-parameters.md#422-omitting-the-type)) is exempt as a whole.
+- Const parameters are checked with their values unknown; types are equal when their const expressions are equal as values ([2.11.5](211-const-generics.md#2115-arithmetic-in-const-expressions)).
+- A `where` clause on a non-parameter type is assumed in the body.
+- An instance of a body that fails its check adds no errors of its own.
+- A type test (`is`, a type pattern) on a value whose type involves a type parameter is checked as refutable and decided per instance.
 
 ## 2.10.10. Generics vs trait-as-type
 

@@ -27,6 +27,7 @@ async fn yield_now();                                   // await — yields once
 fn registrations() -> usize;                            // diagnostic — parked wakers + pending timers of the running pool (implementation-defined)
 fn readable(fd: i32) -> IoReady;                       // await — until fd becomes readable (refs-lang 7.7.2)
 fn writable(fd: i32) -> IoReady;
+fn wake_io(fd: i32);                                   // wakes the readable / writable waiters of fd (used after close / shutdown; low-level)
 ```
 
 `sleep` and `timeout` measure their duration from the first poll.
@@ -168,7 +169,7 @@ impl<T> Future for Task<T> {              // `await t` — suspend until complet
 
 ## 2.18.3. Scheduler model — work-stealing
 
-A process has one executor. It starts on first use and consists of as many worker threads as there are CPUs (`cpu_count()`), a blocking lane, and an I/O driver. `block_on` attaches the calling thread to this executor as a guest worker and runs `f` to completion. Tasks still running when `block_on` returns keep running. `par::*` and `spawn_blocking` use the same executor.
+A process has one executor. It starts on first use and consists of as many worker threads as there are CPUs (`cpu_count()`), a blocking lane, and an I/O driver. `block_on` attaches the calling thread to this executor as a guest worker and runs `f` to completion. Tasks still running when `block_on` returns keep running. `block_on` returns only after the `spawn_local` tasks pinned to its thread are done too; they cannot move to another thread. `par::*` and `spawn_blocking` use the same executor.
 
 A task created with `spawn` can run on any worker, so it must be `Future + Send` and its result must be `Send` too. A task from `spawn_local` is pinned to the worker that created it.
 

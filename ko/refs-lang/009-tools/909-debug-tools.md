@@ -43,7 +43,7 @@ rokc rokhir-text path/to/foo.rokhir      # 또는 libfoo.a — 옆의 foo.rokhir
 위 명령은 미리 빌드한 라이브러리의 [ROKHIR](904-rokhir-bytecode.md) 을 사람이 읽을 수 있는 형식으로 출력합니다. 버전, producer, meta 다음에 interface 파일마다 `--- <경로>` 와 그 텍스트 (구체 함수 본문이 `;` 로 잘린 소스) 가 이어집니다.
 
 ```
-rokhir 2
+rokhir 3
 producer: rokc 0.1.0 (1f2a40-17f3a9c2e1b0c4d8)
 package: geom (hash: 3f8a1c2b)
 source: /home/me/geom
@@ -203,7 +203,7 @@ span 은 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_p
 
 - 함수의 `DW_AT_name` 은 rok 경로 (`geom::distance`) 이며, linkage name (맹글링된 심볼) 은 두지 않습니다. 디버거가 `_Y` 맹글링을 모르기 때문입니다.
 - 줄 번호는 원본 .rok 파일의 줄을 가리킵니다.
-- 지역 변수는 원본 이름과 타입으로 보입니다. 원시 타입 (정수, 부동소수, `bool`, `char`) 외에 struct (필드 이름), 튜플, `str`, `any`, sum 타입, 배열의 DWARF 타입을 냅니다. sum 타입과 enum 은 DWARF variant part 입니다: artificial discriminant 멤버와, 변형마다 (데이터 없는 변형 포함) `DW_AT_discr_value` 를 가진 `DW_TAG_variant` 하나씩이며, 각각은 `<Sum>::<Variant>` 라는 이름의 struct 를 담습니다. 두 backend 가 같은 형태를 쓰며, 디버거가 variant part 를 읽도록 compile unit 은 `DW_LANG_Rust` 를 씁니다 (rok 의 DWARF 언어 코드는 없음). `GcBuf<T>` 참조는 그 객체 (헤더, 그 다음 `T` 원소들) 를 가리키는 포인터로 기술합니다. `any` 값은 그 안에 저장된 타입들에 대한 variant part 이며, discriminant 는 저장된 tag 입니다. 참조로 캡처한 변수는 그 값으로 보입니다. 컴파일러가 만드는 함수 (C `main`, static 초기화 guard) 도 subprogram 을 가집니다.
+- 지역 변수는 원본 이름과 타입으로 보입니다. 원시 타입 (정수, 부동소수, `bool`, `char`) 외에 struct (필드 이름), 튜플, `str`, `any`, sum 타입, 배열의 DWARF 타입을 냅니다. sum 타입과 enum 은 DWARF variant part 입니다: artificial discriminant 멤버와, 변형마다 (데이터 없는 변형 포함) `DW_AT_discr_value` 를 가진 `DW_TAG_variant` 하나씩이며, 각각은 `<Sum>::<Variant>` 라는 이름의 struct 를 담습니다. 두 backend 가 같은 형태를 쓰며, 디버거가 variant part 를 읽도록 compile unit 은 `DW_LANG_Rust` 를 씁니다 (rok 의 DWARF 언어 코드는 없음). `GcBuf<T>` 참조는 그 객체 (헤더, 그 다음 `T` 원소들) 를 가리키는 포인터로 기술합니다. `any` 값은 그 안에 저장된 타입들에 대한 variant part 이며, discriminant 는 저장된 tag 입니다. 참조로 캡처한 변수는 그 값으로 보입니다. 컴파일러가 만드는 함수 (C `main`, static 초기화 guard) 도 subprogram 을 가집니다. 컴파일러가 만든 지역 변수 (이름이 `#` 이나 `__` 로 시작) 는 빠집니다.
 - 블록마다 lexical block scope 를 내므로 가려진 (shadowed) 이름은 해당 블록 안에서만 보입니다.
 - 스택 슬롯을 가진 지역은 debug / release 모두 `llvm.alloca` 하나에 놓입니다. 그래서 `-g` 는 최적화 수준과 무관하게 같은 슬롯에 debug 정보를 붙입니다.
 
@@ -265,12 +265,15 @@ rokc build --release -C profile-use=app.profdata  #    profile 로 다시 빌드
 
 | 변수                      | 효과                                                                         |
 |---------------------------|------------------------------------------------------------------------------|
-| `ROK_GC_LOG=1`            | 수집마다 종류 (minor / full), pause 시간, mark 수, sweep 결과를 stderr 에 출력 |
+| `ROK_GC_LOG=1`            | 수집마다 종류 (minor / full), pause 시간, mark 수, sweep 결과를 stderr 에 출력. 동시 full 수집은 시작 pause (minor 수집) 와 끝 pause 를 따로 기록하며, sweep 결과는 살아 있는 바이트의 전 -> 후 |
 | `ROK_GC_STATS=1`          | 종료 시 수집 횟수 (minor / full), pause 시간, 수집기 CPU 시간을 stderr 에 출력. 둘째 줄은 block 수 / 상주 크기 / evacuation 횟수 / 옮긴 바이트 |
 | `ROK_GC_CONCURRENT=auto\|always\|off` | full 수집의 동시 mark. `auto` 는 old 객체 32 MiB 이상일 때 ([7.5](../007-runtime/705-concurrent-collection.md)) |
 | `ROK_GC_EVAC=always`      | 테스트용. full 수집마다 evacuation ([7.3.1](../007-runtime/703-gc-algorithm.md#731-immix-mark-region)) |
 | `ROK_GC_STRESS=N`         | 테스트용. 할당 N 번마다 수집 (그 8 번째마다 full)                            |
-| `ROK_HEAP_DUMP=on_oom`    | OOM 시 heap 의 객체 분포와 큰 객체를 stderr 에 출력. 형식은 런타임이 정함    |
+| `ROK_HEAP_DUMP=on_oom`    | OOM 시 합계, 바이트 기준 상위 32 개 타입, 가장 큰 큰 객체 32 개를 stderr 에 출력. 최선 노력: 할당하지 않고 lock 을 잡지 않음. 형식은 런타임이 정함 |
+| `ROK_WORKERS=<n>`         | executor worker 수 N (기본값: 온라인 CPU 수) ([7.6.8](../007-runtime/706-scheduler.md#768-thread-per-core-옵션)) |
+| `ROK_THREAD_PER_CORE=1`   | thread-per-core: task 를 자기 worker 에 고정하고 stealing 하지 않음 (7.6.8) |
+| `ROK_DYNAMIC_WORKERS=1`   | idle worker 는 park 하고, 모든 활성 worker 가 바쁘면 다시 씀 ([7.7.8](../007-runtime/707-io-and-timer.md#778-worker-수의-동적-조절)) |
 
 ## 9.9.9. REPL / Jupyter 디버그
 

@@ -27,6 +27,7 @@ async fn yield_now();                                   // await — 다른 read
 fn registrations() -> usize;                            // 진단용 — 실행 중 pool 의 park 한 waker + 대기 timer 수 (구현이 정함)
 fn readable(fd: i32) -> IoReady;                       // await — fd 가 읽기 가능해질 때까지 (refs-lang 7.7.2)
 fn writable(fd: i32) -> IoReady;
+fn wake_io(fd: i32);                                   // fd 의 readable / writable 대기자를 깨움 (close / shutdown 뒤에 씀; 저수준)
 ```
 
 `sleep` 과 `timeout` 은 첫 poll 부터 시간을 잽니다.
@@ -170,7 +171,7 @@ impl<T> Future for Task<T> {              // `await t` — 완료까지 suspend
 
 ## 2.18.3. 스케줄러 모델 — work-stealing
 
-프로세스에는 executor 가 하나 있습니다. 처음 쓸 때 시작하며, CPU 수 (`cpu_count()`) 만큼의 worker thread, blocking lane, I/O driver 로 이루어집니다. `block_on` 은 부른 스레드를 guest worker 로 이 executor 에 붙여 `f` 를 끝까지 실행합니다. `block_on` 이 돌아올 때 실행 중인 task 는 계속 실행됩니다. `par::*` 와 `spawn_blocking` 도 같은 executor 를 씁니다.
+프로세스에는 executor 가 하나 있습니다. 처음 쓸 때 시작하며, CPU 수 (`cpu_count()`) 만큼의 worker thread, blocking lane, I/O driver 로 이루어집니다. `block_on` 은 부른 스레드를 guest worker 로 이 executor 에 붙여 `f` 를 끝까지 실행합니다. `block_on` 이 돌아올 때 실행 중인 task 는 계속 실행됩니다. 다만 `block_on` 은 그 스레드에 고정된 `spawn_local` task 들도 끝난 뒤에야 돌아옵니다. 그 task 들은 다른 스레드로 옮겨 갈 수 없기 때문입니다. `par::*` 와 `spawn_blocking` 도 같은 executor 를 씁니다.
 
 `spawn` 한 task 는 어느 worker 에서든 실행될 수 있으므로 `Future + Send` 이고 결과도 `Send` 여야 합니다. `spawn_local` 의 task 는 그것을 만든 worker 에 고정됩니다.
 

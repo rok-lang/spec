@@ -44,7 +44,7 @@ Standard library additions (PascalCase struct + `#[keyword(...)]`):
 | `none_type`  | Type of the `none` literal    | `rok::core::marker::NoneSentinel`                         | 2.13 |
 | `int_type`   | `int` auto-promote type       | `rok::core::num::Int` + `#[keyword("int")]`               | 2.1  |
 | `float_type` | `float` auto-promote type     | `rok::core::num::Float` + `#[keyword("float")]`           | 2.1  |
-| `range_type` | `Range<T>` (`a..b`)           | `rok::core::iter::Range` + `#[literal( expr ".." expr )]` | 2.7  |
+| `range_type` | `Range<T>` (`a..b`)           | `rok::core::range::Range` + `#[literal( expr ".." expr )]` | 2.7  |
 
 A compiler that provides the primitive types built in may leave `i32_type` … `str_type`, `none_type` and `char_type` unattached.
 

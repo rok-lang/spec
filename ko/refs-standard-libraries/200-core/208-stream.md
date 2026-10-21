@@ -110,8 +110,8 @@ trait Stream {
     async fn for_each(self, f: fn(Item));
 
     // async-specific
-    fn buffer_unordered(self, n: usize) -> BufferUnordered<Self>;
-    fn buffered(self, n: usize) -> Buffered<Self>;
+    fn buffer_unordered(self, n: usize) -> BufferUnordered<Self> where Item: Future;
+    fn buffered(self, n: usize) -> Buffered<Self> where Item: Future;
     fn throttle(self, dur: Duration) -> Throttle<Self>;
 }
 ```

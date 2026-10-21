@@ -73,7 +73,7 @@ Options:
 - `--extern <name>=<dir | src/lib.rok | <name>.rokhir | lib<name>.a>` mounts one dependency package at the top-level path `name` ([9.2.3](902-aot-pipeline.md#923-dependency-resolution)). Source (`dir` / `src/lib.rok`) is compiled together in the same build; a prebuilt package (`.rokhir` / `.a`; given one, its sibling is located) has its ROKHIR read and its archive linked. May be given multiple times and is normally filled in by `rok`. `name` is an identifier: the package name with `-` replaced by `_` ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)).
 - `--extern-feature <name>=<f>` builds the source dependency `name` with `cfg(feature = "<f>")`. Repeatable, one per feature. A dependency sees only these: the `feature` keys of `--cfg` belong to the package being compiled. Normally filled in by `rok`.
 - `--name <n>` sets the package name (naming rules of [9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)). The outputs are `lib<n>.a` / `<n>.rokhir` and the mount name is the name with `-` replaced by `_`. The default is the directory name. `--extern a-b=..` is likewise bound as `a_b`.
-- `--bootstrap <file>` gives a standard library root to preload (may be repeated); `--rokr <lib>` gives the runtime to link. The defaults are the sysroot's `lib/rok/{core,std,bare}/lib.rok` and `lib/librokr.a` ([9.2.19](902-aot-pipeline.md#9219-installation-layout)). If not found, it is an error that lists the paths searched.
+- `--bootstrap <file>` gives a standard library root to preload (may be repeated); `--rokr <lib>` gives the runtime to link. The defaults are the sysroot's `lib/rok/{core,std,bare}/src/lib.rok` and `lib/librokr.a` ([9.2.19](902-aot-pipeline.md#9219-installation-layout)). A bootstrap root's tier is the name of the directory above its `src/`; given `core/src/lib.rok` without a `bare` root, `bare/src/lib.rok` beside it is loaded too. If not found, it is an error that lists the paths searched.
 - `-O0` / `-O1` / `-O2` / `-O3` / `-Os` select the optimization level explicitly. `-O0` uses the native backend, the others the MLIR → LLVM backend ([9.2.10](902-aot-pipeline.md#9210-backend-selection)).
 - `--target=<target>` selects the target platform: a built-in name such as the 14 Tier 1 targets of [Platform targets](../000-meta/006-platform-targets.md), or a `<name>.rokon` target specification file ([0.6.5](../000-meta/006-platform-targets.md#065-target-specifications)). Any target can be built from any host ([0.2.4](../000-meta/002-pipeline.md#024-backends)).
 - `-L <dir>` adds a library search directory for `#[link]` ([5.9.9](../005-modules/509-extern-block.md#599-linklibname-naming-the-library)), searched before `LIBRARY_PATH`. May be repeated.
@@ -81,10 +81,11 @@ Options:
 - `-o` / `--out=<path>` selects the output location.
 - `--cfg <flag>` / `--cfg <key>=<value>` sets a cfg flag for [conditional compilation](../006-meta-system/603-cfg.md). May be repeated.
 - `--emit=<kind>[,<kind>..]` writes intermediate output (`ast`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expanded`) to `target/<profile>/build/<name>.<ext>` ([9.9.1](909-debug-tools.md#991-intermediate-output---emit)). Several kinds may be given at once separated by commas; in that case `-o` cannot be used. With `--emit`, no executable or archive is produced.
-- `--load-mlir-plugin <path|name>` loads an MLIR dialect plugin, `--load-mlir-pass-plugin <path|name>` loads a pass plugin (both into `rokc`'s MLIR; built against the same pinned LLVM), and `--mlir-pass <pass>` runs that pass before conversion to the LLVM dialect ([rok::bare::mlir::plugin](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-loading)). All may be repeated, and `rok` passes them through unchanged.
+- `--load-mlir-plugin <path|name>` loads an MLIR dialect plugin, `--load-mlir-pass-plugin <path|name>` loads a pass plugin (both into `rokc`'s MLIR; built against the same pinned LLVM, on Windows linked against `rokc.exe`'s import library), and `--mlir-pass <pass>` runs that pass before conversion to the LLVM dialect ([rok::bare::mlir::plugin](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-loading)). All may be repeated, and `rok` passes them through unchanged.
 - `-g` / `--debug` emits DWARF debug information ([9.9](909-debug-tools.md#dwarf-debug-information)).
 - `-C overflow-checks[=yes|no]` turns overflow checks (panic) for fixed-width integer arithmetic on or off. The default is on only at `-O0`. An omitted value means `yes`. Operations on constant operands that cannot overflow skip the check.
 - `-C backend=native|llvm` overrides the backend the optimization level selects ([9.2.10](902-aot-pipeline.md#9210-backend-selection)).
+- `-C target-cpu=<cpu>|native` targets that CPU instead of the triple's baseline ([0.6.4](../000-meta/006-platform-targets.md#064-simd)); `native` is the CPU of the build machine. `-C target-feature=+f1,-f2,..` turns individual features (`+avx2`, ...) on or off. The resulting binary may not run on CPUs without them. With the native backend (`-O0`) the options are noted (a warning) and code is built for the baseline. `native` is accepted only when the target is the host platform.
 - `-C subsystem=console|windows` selects the Windows subsystem: `console` (default, `mainCRTStartup`) or `windows` (GUI, `WinMainCRTStartup`; [9.5.9](905-symbol-mangling.md#959-symbol-of-the-main-function)).
 - `-C profile-generate[=<dir>]` instruments the program and its source dependencies for profile-guided optimization. Running it writes a raw profile `<dir>/default_%m.profraw` (default `<dir>`: the working directory at run time; `LLVM_PROFILE_FILE` overrides the path). An instrumented executable links the profile runtime the toolchain ships for the target ([9.2.19](902-aot-pipeline.md#9219-installation-layout)). Not supported for wasm32-unknown-unknown (no file system).
 - `-C cs-profile-generate[=<dir>]`, with `-C profile-use`, instruments again after inlining (context-sensitive); merging its runs with that profile gives the one profile `-C profile-use` reads.
@@ -251,7 +252,7 @@ A file with lexical errors is left untouched and the error is reported, with exi
 rokc check [path] [--check-library]
 ```
 
-Runs the front end through type checking and MIR building, plus lints, and reports diagnostics. No code generation (no MLIR) is performed. Options are the same as `rokc build`. `--check-library` lowers and checks every body of a library regardless of reachability.
+Runs the front end through type checking and MIR building, plus lints, and reports diagnostics. No code generation (no MLIR) is performed. Options are the same as `rokc build`. `--check-library` lowers and checks every body of a library regardless of reachability, and checks every generic body against its bounds ([2.10.9](../002-types/210-generics.md#2109-body-checking)).
 
 ### `rokc lint`: linter
 
@@ -420,7 +421,7 @@ Exit codes are defined as follows.
 | `2`   | Usage error (invalid option, unknown subcommand, etc.) |
 | `101` | rokc internal error (panic)                          |
 
-`rokc` does not read `ROK_HOME` (the sysroot is relative to the executable). If rokc itself panics (internal compiler error), it prints a message and exits with `101`. `rokc run` exits with the exit code of the program it ran (9.1.2).
+`rokc` does not read `ROK_HOME` (the sysroot is relative to the executable). If rokc itself panics (internal compiler error), it prints a message and exits with `101`. `rokc lsp`, `rokc repl` and `rokc jupyter` survive it: the language server reports it as an error diagnostic of the analysed buffer, the REPL / kernel fails that cell ([9.7.5](907-jit-cells.md#975-error-modes)); both keep serving. `rokc run` exits with the exit code of the program it ran (9.1.2).
 
 ## 9.1.7. Environment variables
 

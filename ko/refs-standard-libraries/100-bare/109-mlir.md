@@ -145,6 +145,8 @@ unsafe {
 
 기본 stdlib 가 사용하는 8 다이얼렉트 (`arith` / `scf` / `cf` / `memref` / `index` / `math` / `func` / `llvm`) 외에도 `linalg` / `tensor` / `vector` / `gpu` / `affine` / `async` 가 라이브러리 작성자에게 열려 있습니다.
 
+등록되는 것은 이 다이얼렉트들과, lowering 에 쓰는 `bufferization` / `ub` / `dlti` 뿐입니다. 그 밖의 upstream 다이얼렉트의 op 는 로드하지 않은 plugin 의 op 처럼 `rokc` 가 알지 못합니다 ([1.10.7](110-mlir-plugin.md#1107-빌드-격리)).
+
 ## 1.9.4. 안전 책임
 
 `rok::bare::mlir` 사용자는 다음 책임을 집니다.

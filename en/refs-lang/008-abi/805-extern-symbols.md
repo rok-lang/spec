@@ -545,7 +545,7 @@ The area of each symbol prefix is summarized below.
 | `rok_timer_*`   | Timers         |
 | `rok_panic`     | Diagnostics    |
 
-This prefix convention avoids symbol collisions with external libraries and user code.
+This prefix convention avoids symbol collisions with external libraries and user code. The tables of 8.5.1 – 8.5.7 list the normative runtime symbols; the runtime may export further implementation-defined `rok_*` symbols (e.g. `rok_fmt_*`, `rok_os_*`, `rok_stdio_*`, `rok_static_init_*`).
 
 ## 8.5.9. Compatibility of function signatures
 
@@ -591,7 +591,7 @@ The example shows the LLVM IR structure combining the fast path and the slow pat
 ## 8.5.12. Auxiliary symbols (appendix, non-normative)
 
 > [!IMPORTANT]
-> This section is **non-normative**. The symbols below are auxiliary symbols exported by the reference runtime (`rokr`). They are not part of the main ABI tables (8.5.1 ~ 8.5.11) and carry no stability promise.
+> This section is **non-normative**. The symbols below are auxiliary symbols exported by the reference runtime (`rokr`). They are not part of the main ABI tables (8.5.1 ~ 8.5.11) and carry no stability promise; the runtime may export further implementation-defined `rok_*` symbols (8.5.8).
 
 Signatures use the same notation as the main text (`Ptr<T>` = mutable raw pointer, `ConstPtr<T>` = read-only raw pointer). String arguments are NUL-terminated C strings.
 
@@ -611,6 +611,8 @@ extern "rok" {
 
     // GC
     fn rok_gc_collect_young();                             // force a minor collection
+    fn rok_gc_weak_new(target: Ptr<u8>) -> Ptr<u8>;       // a weak cell (type id 3) to target
+    fn rok_gc_weak_get(cell: Ptr<u8>) -> Ptr<u8>;         // the target, or null once freed
 
     // process exit
     fn rok_set_exit_hook(hook: extern "C" fn(i32) | null);

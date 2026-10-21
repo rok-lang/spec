@@ -556,7 +556,7 @@ rok differs most in these ways. First, all 6 collections have first-class litera
 
 ## 2.9.12. `GcBuf<T>` — raw GC buffer
 
-`GcBuf<T>` in `rok::core::collections::raw` is the fixed-length GC buffer used by collection implementations such as `List` / `Dict`, and is a type known to the compiler. It sits on top of the runtime's word-traced buffer (type id `2`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-runtime-reserved-type-ids)).
+`GcBuf<T>` in `rok::core::collections::raw` is the fixed-length GC buffer used by collection implementations such as `List` / `Dict`, and is a type known to the compiler. `GcBuf` is defined by `rok::bare` (`rok::bare::mem`) and re-exported here. It sits on top of the runtime's word-traced buffer (type id `2`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-runtime-reserved-type-ids)).
 
 ```rok
 struct GcBuf<T> { /* representation known to the compiler */ }

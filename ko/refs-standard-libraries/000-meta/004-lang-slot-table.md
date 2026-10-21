@@ -44,7 +44,7 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 | `none_type`  | `none` 리터럴의 타입      | `rok::core::marker::NoneSentinel`                          | 2.13 |
 | `int_type`   | `int` auto-promote 타입   | `rok::core::num::Int` + `#[keyword("int")]`                | 2.1  |
 | `float_type` | `float` auto-promote 타입 | `rok::core::num::Float` + `#[keyword("float")]`            | 2.1  |
-| `range_type` | `Range<T>` (`a..b`)       | `rok::core::iter::Range` + `#[literal( expr ".." expr )]`  | 2.7  |
+| `range_type` | `Range<T>` (`a..b`)       | `rok::core::range::Range` + `#[literal( expr ".." expr )]`  | 2.7  |
 
 기본 타입을 내장으로 제공하는 컴파일러는 `i32_type` … `str_type`, `none_type`, `char_type` 을 붙이지 않은 채 둘 수 있습니다.
 

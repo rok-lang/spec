@@ -312,7 +312,7 @@ trait Sync { }      // 공유 참조로 여러 스레드에서 읽어도 안전
 - 원시 숫자, `bool`, `char`, `c_char`, `str`, `none` 은 `Send + Sync` 입니다.
 - `struct`, `enum`, `union`, 튜플, 배열, 합 타입은 모든 필드 (구성 요소) 가 `Send` 이면 `Send`, 모두 `Sync` 이면 `Sync` 입니다. 제네릭 컨테이너의 `Send` 는 같은 규칙으로 `T` 에 따릅니다.
 - 컬렉션 (`List`, `Dict`, `Set`, `StrBuf`, `Deque`, `BinaryHeap`, `OrderedDict`, `OrderedSet`, `Slice`) 은 `Send` 이고 `!Sync` 입니다. 가변 핸들을 공유하기 때문입니다. 스레드 사이에서는 `Mutex` / `RwLock` / 채널로 공유합니다.
-- rok 에는 move 의미가 없습니다. 값을 넘겨도 (`Mutex::new(xs)`, `tx.send(xs)`) 보낸 쪽의 핸들은 같은 객체를 가리킵니다. 그 뒤에 그 핸들을 쓰거나, 잠금을 푼 뒤 guard 에서 꺼낸 핸들을 쓰는 것은 data race 입니다. 프로그래머가 지켜야 하는 규칙이며, 정의되지 않은 동작이 없음은 라이브러리 타입만 보장합니다. 이를 찾는 lint 가 계획되어 있습니다.
+- rok 에는 move 의미가 없습니다. 값을 넘겨도 (`Mutex::new(xs)`, `tx.send(xs)`) 보낸 쪽의 핸들은 같은 객체를 가리킵니다. 그 뒤에 그 핸들을 쓰거나, 잠금을 푼 뒤 guard 에서 꺼낸 핸들을 쓰는 것은 data race 입니다. 프로그래머가 지켜야 하는 규칙이며, 정의되지 않은 동작이 없음은 라이브러리 타입만 보장합니다. lint `use_after_handoff` ([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)) 는 `Mutex::new` / `RwLock::new` / `Sender::send` / `try_send` / `send_async` / `Handoff::new` 가 가져간 지역 변수를, 또는 그 값을 꺼낸 (`get`) 또는 넣은 (`set`) guard 의 `using` 블록이 끝난 뒤의 지역 변수를 어느 경로에서든 쓰면 경고합니다. 그 지역 변수에 새 값을 대입하면 이 상태가 끝나고, `set` 은 앞선 `get` 이 돌려준 것을 풀어 주며, `Sync` 타입의 값은 예외입니다. spawn 한 클로저나 future 의 캡처는 검사가 필요 없습니다: 그것들은 `Send + Sync` 여야 하기 때문입니다.
 - 다음은 제외됩니다: `Cell<T>`, 원시 포인터 (`Ptr<T>`, `ConstPtr<T>`, `CPtr<T>`), 맨 `any` 와 bound 에 `Send` / `Sync` 가 없는 `any Tr`, bound 없는 함수 타입. 이 밖의 예외는 각 타입의 장에서 정합니다.
 - 함수 타입은 `fn(..) -> R + Send` 처럼 bound 를 적었을 때만 그 트레잇을 가집니다 ([refs-lang 4.4](../../refs-lang/004-functions/404-function-type.md#send--sync-bound)).
 

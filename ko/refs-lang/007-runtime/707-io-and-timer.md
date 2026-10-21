@@ -111,12 +111,7 @@ park 가 진행되는 동안 CPU 사용량은 0 이므로, idle worker 가 많�
 
 기본값은 N = CPU 코어 수로 고정됩니다.
 
-조정 가능한 옵션은 다음과 같습니다.
-
-- blocking syscall 이 검출되면 임시로 worker 를 추가합니다 (해당 worker 가 blocking 상태인 동안에만 유지됩니다).
-- 과도하게 idle 한 상태에서는 worker 하나를 일시적으로 park 하고 다른 worker 가 더 많은 일을 처리하도록 합니다.
-
-이러한 동적 조절은 런타임 설정 사항이며, 기본은 off 상태입니다. 기능을 켜면 자동으로 작동합니다.
+켜면 (`ROK_DYNAMIC_WORKERS=1`) 과도하게 idle 한 worker 는 park 하며, push 는 다른 worker 를 먼저 깨웁니다. 모든 활성 worker 가 바쁘면 park 한 worker 를 다시 씁니다. 호출 안에서 block 된 worker 는 모든 모드에서 대체됩니다 ([7.6.7](706-scheduler.md#767-blocking-syscall-자동-검출)).
 
 ## 7.7.9. Cancellation
 

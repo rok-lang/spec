@@ -145,6 +145,8 @@ All dialects the compiler understands, per [refs-lang 8.7](../../refs-lang/008-a
 
 Besides the 8 dialects used by the base stdlib (`arith` / `scf` / `cf` / `memref` / `index` / `math` / `func` / `llvm`), `linalg` / `tensor` / `vector` / `gpu` / `affine` / `async` are open to library authors.
 
+Only these dialects, plus `bufferization` / `ub` / `dlti` for lowering, are registered. Ops of other upstream dialects are unknown to `rokc`, the same as an unloaded plugin's ([1.10.7](110-mlir-plugin.md#1107-build-isolation)).
+
 ## 1.9.4. Safety responsibilities
 
 Users of `rok::bare::mlir` bear the following responsibilities.

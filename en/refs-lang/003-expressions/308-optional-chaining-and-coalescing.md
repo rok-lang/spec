@@ -111,7 +111,7 @@ Here `user?.profile?.name` yields `str | none`, and the following `?? "anonymous
 
 ## 3.8.7. Distinguishing `?.` and `?`
 
-`?.` is optional chaining, but a standalone `?` has no meaning in expression position. The Rust-style `?` automatic propagation shorthand is explicitly rejected in [error control flow](314-error-control-flow.md), though the token itself remains reserved.
+`?.` is optional chaining; postfix `?` on a `T | none` value is defined in [3.14.10](314-error-control-flow.md).
 
 That `?.` and `?` `.` are distinct tokens is guaranteed by the longest-match rule of [punctuation and operator tokens](../001-lexical/110-punctuation-and-operator-tokens.md).
 

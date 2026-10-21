@@ -216,6 +216,7 @@ The default level of every lint is `warn`.
 | `non_camel_case_types`   | Type, trait, or variant names not in UpperCamelCase: no lowercase first letter, no `__`, and `_` only between characters without case (`V1_0`) |
 | `non_upper_case_globals` | `const` / `static` names not in UPPER_SNAKE_CASE                    |
 | `confusable_idents`      | Identifiers that resemble each other ([1.4](../001-lexical/104-identifiers.md)) |
+| `use_after_handoff`      | A value used after another owner took it (`Mutex::new`, `send`, `Handoff::new`), or a guard's value after its `using` block ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md)) |
 
 | Group               | Includes                                                                                     |
 |---------------------|----------------------------------------------------------------------------------------------|

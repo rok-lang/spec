@@ -42,6 +42,8 @@ object
 
 ## 8.7.3. 다이얼렉트 별 핵심 op
 
+`rokc` 가 어느 다이얼렉트를 emit 하는지는 구현이 정합니다. `rokc` 는 `func`, `arith`, `cf`, `llvm` 을 (그리고 수학 intrinsic 을 낮추는 곳에서는 `math` 를) emit 하며, `scf` 와 `index` 는 쓸 수 있습니다. 아래는 각 다이얼렉트의 핵심 op 입니다.
+
 ### `func`
 
 ```
@@ -128,14 +130,7 @@ llvm.intr.expect / llvm.intr.assume
 
 ## 8.7.4. 다이얼렉트 사용 우선순위
 
-```
-가능하면 → arith / scf / cf / index / math / func
-필요시 → llvm
-```
-
-같은 의미를 여러 다이얼렉트로 표현할 수 있는 경우에는 `scf` 나 `arith` 같은 고차원 다이얼렉트를 우선해서 사용합니다. `llvm` 은 그것들로 도저히 표현할 수 없을 때에만 꺼내 쓰는 것이 원칙입니다.
-
-이러한 우선순위를 따르면 MLIR 의 표준 패스가 한층 더 효과적으로 최적화를 수행할 수 있습니다.
+lowering 은 의미를 표현할 수 있는 곳에서 `scf`, `index`, `math` 를, 그 밖의 것으로는 표현할 수 없는 곳에서 `llvm` 을 쓸 수 있으며, 그 선택은 구현이 정합니다 (8.7.3).
 
 ## 8.7.5. 라이브러리 / 가속 영역 다이얼렉트
 
@@ -156,14 +151,14 @@ llvm.intr.expect / llvm.intr.assume
 
 ## 8.7.6. `extern` function (런타임 함수)
 
-[Extern "C" 심볼](805-extern-symbols.md) 에 등장하는 `rok_*` 함수들은 `func.func` 의 external declaration 형태로 선언합니다.
+[Extern "C" 심볼](805-extern-symbols.md) 에 등장하는 `rok_*` 함수들은 외부 `llvm.func` 선언으로 선언합니다 (선언 형태는 구현이 정함).
 
 ```
-func.func private @rok_gc_alloc_slow(i64, i64, i32) -> !llvm.ptr
-func.func private @rok_runtime_yield()
+llvm.func @rok_gc_alloc_slow(i64, i64, i32) -> !llvm.ptr
+llvm.func @rok_runtime_yield()
 ```
 
-호출은 `func.call` 또는 `llvm.call` 로 이루어집니다.
+호출은 `llvm.call` 로 이루어집니다.
 
 ## 8.7.7. TLS 접근
 

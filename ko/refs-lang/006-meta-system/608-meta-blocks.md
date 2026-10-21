@@ -173,7 +173,7 @@ pub(pkg) @attribute { ... }
 | `pub` (`pub(pkg)` 포함) | 빌드 전체. `use` 없이 `#[derive(X)]` / `#[x]` 로 씀 |
 | 비공개                  | 메타 블록을 정의한 파일 안                        |
 
-derive 와 attribute 이름은 모듈 경로를 갖지 않는 빌드 전역 이름입니다 (6.8.11).
+derive 와 attribute 이름은 모듈 경로를 갖지 않는 빌드 전역 이름입니다 (6.8.11). 메타 블록이나 키워드 처리기의 `#[cfg]` 는 그것을 정의한 패키지의 cfg (그 패키지 자신의 feature, [9.10.4c](../009-tools/910-rok-frontend.md#9104c-features)) 로 평가합니다.
 
 ## 6.8.7. 본체 시작자 (`@derive` / `@attribute`)
 

@@ -56,15 +56,7 @@ rok 은 LLVM 이 코드 생성을 지원하는 플랫폼이라면 어느 host �
 
 ## 0.6.4. SIMD
 
-각 Tier 1 타깃에서는 다음과 같은 SIMD 명령 세트가 자동으로 감지되며 기본적으로 활성화됩니다.
-
-| 타깃      | SIMD                |
-|-----------|---------------------|
-| `x86_64`  | SSE / AVX / AVX-512 |
-| `aarch64` | NEON / SVE          |
-| `i686`    | SSE2 (baseline)     |
-| `armv7`   | NEON                |
-| `wasm32`  | WASM SIMD128        |
+빌드는 기본으로 triple 의 baseline CPU 를 대상으로 하므로 바이너리는 이식 가능합니다: `x86_64` 는 x86-64 baseline (SSE2), `aarch64-apple-darwin` 은 `apple-m1`, 그 밖의 `aarch64` 는 armv8-a (NEON), `wasm32` 는 SIMD128. 더 넓은 명령 세트 (AVX, AVX-512, SVE 등) 는 `-C target-cpu=<cpu>|native` 와 `-C target-feature=+avx2,...` 로 켭니다 ([9.1](../009-tools/901-rokc-cli.md)). 컴파일러는 런타임 기능 감지를 하지 않으며, 필요한 프로그램은 스스로 합니다.
 
 다만 SIMD 의 라이브러리 표면 자체는 본 사양의 다른 문서에서 별도로 정의하고 있으니, 그쪽을 함께 참고합니다.
 

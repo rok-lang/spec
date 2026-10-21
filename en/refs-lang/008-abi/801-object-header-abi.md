@@ -39,7 +39,8 @@ The reserved id ranges are as follows.
 | `0`            | invalid / null              |
 | `1`            | runtime — GC string (not traced) |
 | `2`            | runtime — word-traced buffer |
-| `3` ~ `0xFFFF` | standard library / runtime (reserved) |
+| `3`            | runtime — weak cell (`Weak<T>`) |
+| `4` ~ `0xFFFF` | standard library / runtime (reserved) |
 | `0x10000` ~    | user / other package types  |
 
 The exact id mapping of standard library types is defined in the standard library specification. Ids the compiler assigns to user types start at `0x10000`.

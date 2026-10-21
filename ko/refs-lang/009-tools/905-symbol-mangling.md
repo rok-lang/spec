@@ -247,7 +247,7 @@ debugger 출력.
     (mangled: _Y3f8a1c2b_geom_distance_a7c91d8e44b2f190)
 ```
 
-이 정보 덕분에 gdb, lldb, VS Code 같은 도구들이 rok 함수를 원본 이름으로 표시해 줄 수 있습니다.
+이 정보 덕분에 gdb, lldb, VS Code 같은 도구들이 rok 함수를 원본 이름으로 표시해 줄 수 있습니다. 코루틴의 resume 함수 이름은 `<creator>::{coroutine#k}` 이며, `k` 는 그 creator 의 클로저와 코루틴을 함께 셉니다.
 
 ## 9.5.11. 안정성
 

@@ -71,7 +71,7 @@ impl Iterator {
     fn skip(self, n: usize) -> Skip<Self>;
     fn step_by(self, step: usize) -> StepBy<Self>;
     fn rev(self) -> Rev<Self>;                    // DoubleEndedIterator 만
-    fn flatten<U: IntoIterator>(self) -> Flatten<Self> where Item: IntoIterator;
+    fn flatten(self) -> Flatten<Self> where Item: IntoIterator;
     fn flat_map<U: IntoIterator>(self, f: fn(Item) -> U) -> FlatMap<Self, U>;
     fn peekable(self) -> Peekable<Self>;          // 다음 원소 미리 보기
 

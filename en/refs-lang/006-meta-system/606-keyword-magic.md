@@ -136,7 +136,7 @@ Most DSL-like patterns are served by combining a function with a trailing closur
 
 Keyword registration is processed at the scanner pre-pass, before other meta processing (cfg, meta block expansion, etc.).
 
-Because of this order, cfg can be applied conditionally to keyword handlers themselves, and keywords can be used inside meta block bodies.
+Because of this order, cfg can be applied conditionally to keyword handlers themselves, and keywords can be used inside meta block bodies. A meta block's or keyword handler's `#[cfg]` is evaluated with the cfg of the package that defines it (its own features, [9.10.4c](../009-tools/910-rok-frontend.md#9104c-features)).
 
 ## 6.6.14. Use sparingly
 

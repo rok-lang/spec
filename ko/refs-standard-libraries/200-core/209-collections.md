@@ -556,7 +556,7 @@ rok 의 가장 큰 차이점은 다음과 같습니다. 첫째로 6 가지 컬�
 
 ## 2.9.12. `GcBuf<T>` — raw GC buffer
 
-`rok::core::collections::raw` 의 `GcBuf<T>` 는 `List` / `Dict` 같은 컬렉션 구현이 쓰는 고정 길이 GC buffer 이며, 컴파일러가 아는 타입입니다. 런타임의 word-traced buffer (type id `2`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-런타임-예약-type-id)) 위에 놓입니다.
+`rok::core::collections::raw` 의 `GcBuf<T>` 는 `List` / `Dict` 같은 컬렉션 구현이 쓰는 고정 길이 GC buffer 이며, 컴파일러가 아는 타입입니다. `GcBuf` 는 `rok::bare` (`rok::bare::mem`) 가 정의하며 여기서 다시 내보냅니다. 런타임의 word-traced buffer (type id `2`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-런타임-예약-type-id)) 위에 놓입니다.
 
 ```rok
 struct GcBuf<T> { /* 컴파일러가 아는 표현 */ }

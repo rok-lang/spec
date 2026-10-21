@@ -34,9 +34,10 @@ struct Pinned<T> {
     // internal: registered in the GC's pin set
 }
 
-trait Pinnable {}                       // List<T>, str
+trait Pinnable {}                       // List<T>, str, GcPtr<T>
 impl<T> Pinnable for List<T> {}
 impl Pinnable for str {}
+impl<T> Pinnable for GcPtr<T> {}
 
 fn pin<T: Pinnable>(obj: T) -> Pinned<T>;
 
@@ -84,6 +85,19 @@ struct Ptr<T>   { /* raw — no root tracking */ }
 | Valid for  | As long as the object is reachable | Only within the pin guard's scope           |
 
 Because the type system separates the two kinds, user code normally deals only with `GcPtr` (invisibly wrapped in `List<T>` etc.). `Ptr<T>` appears explicitly only after entering unsafe.
+
+### Operations
+
+```rok
+impl<T> GcPtr<T> {
+    fn new(value: T) -> GcPtr<T>;           // a new GC cell holding value
+    fn get(self) -> T;
+    fn set(self, value: T);                 // every copy of the GcPtr sees it
+    fn same(self, other: GcPtr<T>) -> bool; // identity: the same cell
+}
+impl<T> !Sync for GcPtr<T> {}
+impl<T> Pinnable for GcPtr<T> {}
+```
 
 ### Internal implementation — the form of GcPtr
 
@@ -147,13 +161,17 @@ impl<T> Pinned<List<T>> {
     fn as_data_many_ptr(self) -> ManyPtr<T>; // many ptr
 }
 
+impl<T> Pinned<GcPtr<T>> {
+    fn as_value_ptr(self) -> Ptr<T>;         // the cell's value
+}
+
 impl Pinned<str> {
     fn as_bytes_ptr(self) -> ConstPtr<u8>;   // UTF-8 bytes
     fn as_c_str(self) -> ConstPtr<c_char>;   // null termination not guaranteed — convert separately
 }
 ```
 
-These container methods are the extraction API: there is no generic `as_ptr`. Each container gets dedicated extraction methods, so data can be taken out in a form matching each container's layout, such as the buffer start or a null-terminated form.
+These container methods are the extraction API: there is no generic `as_ptr`; `as_value_ptr` is named apart from `List`'s `as_data_ptr`. Each container gets dedicated extraction methods, so data can be taken out in a form matching each container's layout, such as the buffer start or a null-terminated form.
 
 ## 1.6.7. GC runtime linkage
 
@@ -165,6 +183,7 @@ Each item maps to GC runtime calls as follows.
 | `pin<T>()`       | (same as above)                |
 | `GcPtr<T>`       | shadow stack frame slot (compiler-emitted) |
 | `as_data_ptr` etc. | depends on each container's layout |
+| `Weak<T>`        | `rok_gc_weak_new` / `rok_gc_weak_get` (1.6.9) |
 
 ## 1.6.8. Comparison with other languages
 
@@ -182,3 +201,20 @@ rok diverges from other languages at two main points.
 2. Release is based on the `using` block. `Pinned<T>` is dropped on leaving the `using` block, so an unpin is never missed. This is safer than Go's manual `defer` approach.
 
 > This policy is the backbone of rok's pointer model: the point where the two domains, unsafe and the GC, meet safely.
+
+## 1.6.9. `Weak<T>` — weak references
+
+```rok
+// rok::bare::gc
+struct Weak<T> { /* opaque */ }
+
+impl<T> Weak<T> {
+    fn new(target: GcPtr<T>) -> Weak<T>;
+    fn get(self) -> GcPtr<T> | none;        // none once the target is freed
+}
+impl<T> !Sync for Weak<T> {}
+```
+
+A weak reference does not keep its object alive. Once a collection frees the object, every `Weak` to it reads `none`; a collection that moves the object updates the `Weak`. This is the library interface of the `WEAK_REF` scan kind ([refs-lang 8.2.8](../../refs-lang/008-abi/802-scan-table.md#828-weak_ref)).
+
+At run time a `Weak` is a GC cell of type id `3` ([refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-runtime-reserved-type-ids)) holding one `WEAK_REF` word, made by `rok_gc_weak_new` and read by `rok_gc_weak_get` ([refs-lang 8.5.12](../../refs-lang/008-abi/805-extern-symbols.md#8512-auxiliary-symbols-appendix-non-normative)).

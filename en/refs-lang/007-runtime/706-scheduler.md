@@ -90,7 +90,7 @@ The compiler and runtime automatically send known blocking syscalls to a blockin
 
 By default there are N workers and tasks move freely between threads. With the thread-per-core option enabled, each task is pinned to a fixed worker and workers do not steal from each other; cache locality is maximized, suiting NUMA environments and datacenter workloads.
 
-This option can be toggled through runtime configuration such as a `rokc` build option or an environment variable.
+It is toggled with the environment variable `ROK_THREAD_PER_CORE=1`; `ROK_WORKERS=<n>` sets N (default: the online CPUs).
 
 ## 7.6.9. Priority / fairness
 

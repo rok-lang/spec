@@ -84,7 +84,7 @@ The current type of the value in an `any` slot can be checked with the postfix o
 if v is i32 { ... }
 ```
 
-The check is a single runtime tag comparison. On `any`, `is (A | B)` and the pattern `x: A | B` match both when the stored value is an `A` or a `B` and when a whole sum `A | B` value is stored. The binding is re-tagged as the sum `A | B`. If the operand's static type is neither `any` nor a sum type, the type check `e is T` is a compile-time constant.
+The check is a single runtime tag comparison. On `any`, `is (A | B)` and the pattern `x: A | B` match both when the stored value is an `A` or a `B` and when a whole sum `A | B` value is stored. The binding is re-tagged as the sum `A | B`. If the operand's static type is neither `any` nor a sum type, the type check `e is T` is a compile-time constant. With a sum target it tests membership: on a value of a plain type `A`, `e is (A | B)` is `true`.
 
 For a value whose static type is an `enum`, `e is Enum::Variant` checks the variant. It is a runtime variant comparison and is `true` for that variant regardless of the payload. It does not narrow; use `match` or `if let` when the payload is needed.
 
@@ -109,6 +109,7 @@ The narrowing rules are:
 - `x` is `T` in the following `&&` terms, the `then` block of `if`, and the body of `while`.
 - No narrowing happens under `||` or `!`, in the `else` block, or on field paths (`p.x is T`).
 - A variant check `x is Enum::Variant` (2.2.5) does not narrow.
+- When the operand's static type is a plain member `A` of the checked sum, `x is (A | B)` does not narrow; `x` keeps type `A`.
 - Within the narrowed scope, `x` has type `T`. Assigning to `x` (or its fields / elements) is converted back and written to the original slot. Assigning a value of the declared type that is not `T` ends the narrowing for the rest of that scope: `x` has its declared type again, and normal flow typing continues. Assigning a value outside the declared type is still a type error.
 
 ```rok

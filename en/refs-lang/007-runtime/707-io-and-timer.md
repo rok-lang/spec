@@ -111,12 +111,7 @@ CPU usage is zero while parked, so many idle workers cost nothing extra.
 
 By default, N is fixed to the number of CPU cores.
 
-Adjustable options:
-
-- When a blocking syscall is detected, a worker is added temporarily (kept only while that worker is blocked).
-- When excessively idle, one worker is temporarily parked and other workers take on more work.
-
-This dynamic adjustment is a runtime setting and is off by default. When enabled, it works automatically.
+When enabled (`ROK_DYNAMIC_WORKERS=1`), an excessively idle worker parks and pushes wake the others first; it is taken back when every active worker is busy. A worker blocked in a call is replaced in every mode ([7.6.7](706-scheduler.md#767-automatic-detection-of-blocking-syscalls)).
 
 ## 7.7.9. Cancellation
 

@@ -381,7 +381,8 @@ rok toolchain remove <version>
 
 ### 배포
 
-- 릴리스 archive 는 `rok-<version>-<triple>.tar.gz` (와 `.sha256`) 이며, 안은 toolchain 레이아웃입니다.
+- 릴리스 archive 는 `rok-<version>-<triple>.tar.gz` (Windows 는 `.zip`) 이며, 안은 toolchain 레이아웃입니다. 옆에 `<archive>.sha256` 이 있습니다: archive 의 SHA-256 을 hex 로 적고, 그 뒤에 파일 이름이 올 수 있습니다 (sha256sum 형식).
+- `install.sh`, `install.ps1`, `rok toolchain install --from <url>` 은 같은 곳에서 `<url>.sha256` 을 받아, SHA-256 이 다른 archive 를 거부합니다. `.sha256` 이 없으면 에러입니다. 경로로 준 archive 는 `<path>.sha256` 이 있을 때 그것과 대조합니다. 서명은 정의하지 않으며, 출처는 HTTPS 가 보증합니다.
 - `install.sh` (<https://rok-lang.org/install.sh>) 는 archive 나 `rok-lang` 조직의 GitHub release 에서 `$ROK_HOME` 에 설치합니다.
 
 ## 9.10.7. 단일 파일 스크립트의 inline 매니페스트

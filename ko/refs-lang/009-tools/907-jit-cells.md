@@ -113,7 +113,7 @@ parse error / type error / 의미 에러.
   - 사용자에게 에러 표시.
 ```
 
-이 단계는 완전한 transactional 동작을 보장하므로, 에러가 발생하기 직전의 상태가 그대로 유지됩니다.
+이 단계는 완전한 transactional 동작을 보장하므로, 에러가 발생하기 직전의 상태가 그대로 유지됩니다. 셀을 컴파일하다가 rokc 자신이 panic 해도 (internal compiler error), `rokc lsp`, `rokc repl`, `rokc jupyter` 는 이것을 견딥니다: language server 는 분석한 버퍼의 에러 진단으로 보고하고, REPL / kernel 은 그 셀을 실패시킵니다. 둘 다 계속 서비스합니다.
 
 ### 셀 런타임 에러
 

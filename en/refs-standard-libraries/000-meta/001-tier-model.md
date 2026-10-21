@@ -84,6 +84,8 @@ either: once a low-level tier starts depending on a high-level one, the layering
 meaning. Finally, circular dependencies among individual `rok::std::*` modules are forbidden, so
 each std module remains a unit that can be built independently.
 
+The rule governs what a tier writes: its `use`s and paths. The implicit `use rok::core::**` still supplies every tier the language's vocabulary (the 0.4 slot items, `List`, `Slice`, `Result`, `panic`) that bare's own signatures use (1.6, 1.7).
+
 ## 0.1.3. Build units
 
 Each of the three tiers is processed as a separate build unit (a separate archive) and can be cached per compilation.

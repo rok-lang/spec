@@ -2,6 +2,8 @@
 
 `rok::core::crypto` provides the algorithms a TLS stack needs, as pure computation: they behave identically on every target, so they live in `rok::core` (0.1). Randomness needs the OS and is `rok::std::crypto::random` (3.10); functions that need random input (keys, nonces, encapsulation) take it as an argument. Operations on secret data run in constant time: no branch and no memory index depends on a secret.
 
+Every item below is available at `rok::core::crypto::`; the comment names the submodule that also exports it.
+
 Byte arguments take `Bytes`:
 
 ```rok
@@ -98,17 +100,22 @@ struct RsaPublicKey {                               // crypto::rsa (RFC 8017), 2
     fn new(n: Bytes, e: Bytes) throws (ValueError) -> RsaPublicKey;
     fn from_pkcs1_der(der: Bytes) throws (ValueError) -> RsaPublicKey;
     fn bits(self) -> usize;
+    fn modulus(self) -> List<u8>;                   // big-endian, no leading zero bytes
+    fn exponent(self) -> List<u8>;
     fn verify_pkcs1v15(self, hash: HashAlgorithm, msg: Bytes, signature: Bytes) -> bool;
-    fn verify_pss(self, hash: HashAlgorithm, msg: Bytes, signature: Bytes) -> bool;  // MGF1(hash), salt length = hash length
+    fn verify_pss(self, hash: HashAlgorithm, msg: Bytes, signature: Bytes, salt_len: usize | none = none) -> bool;  // MGF1(hash); none: salt length = hash length
 }
 struct RsaPrivateKey {
     fn from_pkcs1_der(der: Bytes) throws (ValueError) -> RsaPrivateKey;   // RSAPrivateKey, two primes
     fn public_key(self) -> RsaPublicKey;
     fn bits(self) -> usize;
+    fn sign_pkcs1v15(self, hash: HashAlgorithm, msg: Bytes) throws (ValueError) -> List<u8>;  // deterministic
     fn sign_pss(self, hash: HashAlgorithm, msg: Bytes, salt: Bytes) throws (ValueError) -> List<u8>;  // salt: fresh random, hash length
 }
 ```
 
 Ed25519 verification is cofactorless and rejects non-canonical encodings and S ≥ L. ECDSA and RSA verification are strict about encodings (minimal DER, exact signature length).
 
-An ECDSA private key is a big-endian scalar `1 <= d < n` of at most the curve's size; the nonce is derived deterministically (RFC 6979, HMAC-DRBG with `hash`), so signing needs no random input. RSA signing uses the CRT with base blinding (the blinding factor is derived from `salt`, the message and the key) and checks the result against the public key before returning it; an inconsistent key is a `ValueError`. Signing runs in constant time like the other operations on secrets.
+An ECDSA private key is a big-endian scalar `1 <= d < n` of at most the curve's size; the nonce is derived deterministically (RFC 6979, HMAC-DRBG with `hash`), so signing needs no random input. RSA signing uses the CRT with base blinding (the blinding factor is derived from the key, the message and, for PSS, `salt`, so PKCS #1 v1.5 signing needs no random input) and checks the result against the public key before returning it; an inconsistent key is a `ValueError`. Signing runs in constant time like the other operations on secrets. PSS verification accepts any salt length that fits the modulus (`salt_len`); signing uses a salt as long as the hash.
+
+Secret values are ordinary `List<u8>` and other GC objects: computation copies them and the collector moves and frees them without clearing the old memory, so `rok::core::crypto` does not promise to erase keys from memory.

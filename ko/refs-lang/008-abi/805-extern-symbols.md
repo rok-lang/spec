@@ -545,7 +545,7 @@ thread '<name>' has overflowed its stack
 | `rok_timer_*`   | 타이머         |
 | `rok_panic`     | 진단           |
 
-이러한 접두사 규약을 통해 외부 라이브러리나 사용자 코드와의 심볼 충돌을 피합니다.
+이러한 접두사 규약을 통해 외부 라이브러리나 사용자 코드와의 심볼 충돌을 피합니다. 8.5.1 – 8.5.7 의 표가 규범적인 런타임 심볼이며, 런타임은 구현이 정하는 `rok_*` 심볼 (예: `rok_fmt_*`, `rok_os_*`, `rok_stdio_*`, `rok_static_init_*`) 을 더 내보낼 수 있습니다.
 
 ## 8.5.9. 함수 시그니처의 호환성
 
@@ -591,7 +591,7 @@ cont:
 ## 8.5.12. 보조 심볼 (부록, 비규범)
 
 > [!IMPORTANT]
-> 이 절은 **비규범 (non-normative)** 입니다. 아래 심볼은 참조 런타임 (`rokr`) 이 내보내는 보조 심볼입니다. ABI 본 표 (8.5.1 ~ 8.5.11) 의 일부가 아니며 안정성 약속이 없습니다.
+> 이 절은 **비규범 (non-normative)** 입니다. 아래 심볼은 참조 런타임 (`rokr`) 이 내보내는 보조 심볼입니다. ABI 본 표 (8.5.1 ~ 8.5.11) 의 일부가 아니며 안정성 약속이 없습니다. 런타임은 구현이 정하는 `rok_*` 심볼을 더 내보낼 수 있습니다 (8.5.8).
 
 시그니처는 본문과 같은 표기 (`Ptr<T>` = 가변 raw 포인터, `ConstPtr<T>` = 읽기 전용 raw 포인터) 를 따릅니다. 문자열 인자는 NUL 종료 C 문자열입니다.
 
@@ -611,6 +611,8 @@ extern "rok" {
 
     // GC
     fn rok_gc_collect_young();                             // minor 수집을 강제
+    fn rok_gc_weak_new(target: Ptr<u8>) -> Ptr<u8>;       // target 을 가리키는 weak cell (type id 3)
+    fn rok_gc_weak_get(cell: Ptr<u8>) -> Ptr<u8>;         // 대상, 해제되었으면 null
 
     // 프로세스 종료
     fn rok_set_exit_hook(hook: extern "C" fn(i32) | null);

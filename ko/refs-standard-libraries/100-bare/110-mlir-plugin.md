@@ -25,7 +25,7 @@
 | 다이얼렉트      | `mlirGetDialectPluginInfo()`      |
 | 패스 (선택)     | `mlirGetPassPluginInfo()`         |
 
-다이얼렉트 plugin 의 namespace 가 `__mlir_op::<"NS.op_name", ...>` 의 `NS` 자리에 들어갑니다. plugin 은 `rokc` 에 내장된 LLVM 버전으로 빌드해야 합니다. plugin 은 자기 MLIR 을 따로 갖지 않고 `rokc` 의 MLIR 을 씁니다: plugin 의 MLIR / LLVM 심볼은 해소하지 않은 채 두고, 로드할 때 `rokc` 가 export 하는 심볼에 묶입니다. 자기 MLIR 사본을 링크한 plugin 은 `rokc` 가 보지 못하는 registry 에 등록됩니다. 정확한 빌드 플래그는 구현이 정합니다.
+다이얼렉트 plugin 의 namespace 가 `__mlir_op::<"NS.op_name", ...>` 의 `NS` 자리에 들어갑니다. plugin 은 `rokc` 에 내장된 LLVM 버전으로 빌드해야 합니다. plugin 은 자기 MLIR 을 따로 갖지 않고 `rokc` 의 MLIR 을 씁니다: plugin 의 MLIR / LLVM 심볼은 해소하지 않은 채 두고, 로드할 때 `rokc` 가 export 하는 심볼에 묶입니다. `rokc` 는 자기가 링크하는 MLIR ([refs-lang 8.7.1](../../refs-lang/008-abi/807-mlir-dialects.md#871-일반-코드-사용-다이얼렉트-재확인) 과 [8.7.5](../../refs-lang/008-abi/807-mlir-dialects.md#875-라이브러리--가속-영역-다이얼렉트) 의 다이얼렉트와 그것들이 쓰는 기반) 와 LLVM 의 support 라이브러리를 export 합니다. plugin 은 그 위에 지을 수 있으며, 그 밖의 것 (예: 다른 upstream 다이얼렉트) 은 스스로 갖춰야 합니다. 자기 MLIR 사본을 링크한 plugin 은 `rokc` 가 보지 못하는 registry 에 등록됩니다. Windows 에서 `rokc.exe` 는 toolchain 의 MLIR plugin 개발 파일과 함께 배포되는 import library 로 이 심볼들을 export 합니다. plugin DLL 은 그것에 링크하고, `rokc` 와 같은 C 런타임 (동적 release CRT) 을 쓰며, 자기 진입점을 export 합니다. DLL 은 `rokc.exe` 가 export 하는 데이터에 `__declspec(dllimport)` 를 통해서만 닿을 수 있습니다. plugin 개발 헤더가 MLIR 의 explicit TypeID 에 대해 이것을 갖춰 두며, 그 밖의 그런 데이터는 plugin 이 쓸 수 없습니다. 정확한 빌드 플래그는 구현이 정합니다.
 
 ## 1.10.3. plugin 로드
 
@@ -45,7 +45,7 @@ rokc build --load-mlir-pass-plugin mypasses --mlir-pass my-lower main.rok
 | `--load-mlir-pass-plugin <path\|name>` | 패스 plugin 로드                                |
 | `--mlir-pass <pass>`                   | LLVM 다이얼렉트로 변환하기 전에 `<pass>` 실행   |
 
-모두 여러 번 쓸 수 있습니다. 경로가 아닌 이름 `name` 은 `ROK_MLIR_PLUGIN_PATH` 의 디렉토리에서 `lib<name>.dylib` / `lib<name>.so` / `<name>.dll` 을 찾습니다 (탐색 세부는 구현 정의). plugin 을 로드하지 못하면 빌드 에러입니다. plugin 파일은 증분 빌드의 fingerprint 에 들어가며 ([refs-lang 9.2.16](../../refs-lang/009-tools/902-aot-pipeline.md#9216-증분-빌드)), `rok` 는 이 옵션들을 `rokc` 에 그대로 넘깁니다.
+모두 여러 번 쓸 수 있습니다. 경로가 아닌 이름 `name` 은 `ROK_MLIR_PLUGIN_PATH` 의 디렉토리에서 host 의 라이브러리 파일 이름 (macOS 는 `lib<name>.dylib` 또는 `lib<name>.so`, Linux 는 `lib<name>.so`, Windows 는 `<name>.dll`) 으로 찾습니다 (탐색 세부는 구현 정의). plugin 을 로드하지 못하면 빌드 에러입니다. plugin 파일은 증분 빌드의 fingerprint 에 들어가며 ([refs-lang 9.2.16](../../refs-lang/009-tools/902-aot-pipeline.md#9216-증분-빌드)), `rok` 는 이 옵션들을 `rokc` 에 그대로 넘깁니다.
 
 ### 패키지 매니페스트 선언
 

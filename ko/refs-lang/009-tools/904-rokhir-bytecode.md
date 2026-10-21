@@ -19,7 +19,7 @@ ROKHIR file (little-endian):
 +-----------------------------------+
 |  Header                           |  (16 bytes fixed)
 |    magic       "ROKH"    (4 bytes)  |
-|    version     u32  (= 2)         |
+|    version     u32  (= 3)         |
 |    flags       u32                |
 |    body_offset u32                |
 +-----------------------------------+
@@ -46,7 +46,7 @@ ROKHIR file (little-endian):
 | 필드          | 크기 | 의미                                                         |
 |---------------|------|--------------------------------------------------------------|
 | `magic`       | 4    | `"ROKH"`                                                       |
-| `version`     | u32  | 포맷 버전 (`2`). 레이아웃이나 body 의 내용이 바뀌면 올림     |
+| `version`     | u32  | 포맷 버전 (`3`). 레이아웃이나 body 의 내용이 바뀌면 올림: 2 는 `features` meta, 3 은 body 의 `.wit` 파일을 더함 |
 | `flags`       | u32  | 예약 (0)                                                     |
 | `body_offset` | u32  | body 의 시작 offset                                          |
 
@@ -80,6 +80,8 @@ body 는 패키지의 **모든 소스 파일** 을 (경로, 텍스트) 쌍으로
 - 구체 (concrete) 함수의 본문은 `;` 로 잘라 냅니다. 줄바꿈은 남기므로 진단의 줄 번호가 원본과 같습니다. 이 함수들은 archive 의 심볼로 링크됩니다.
 - 다운스트림이 단형화하거나 inline 해야 하는 본문은 남깁니다: 제네릭 함수, `async` / `yield` 함수, `#[inline]` 함수, `extern "C"` 정의, 트레잇의 기본 메서드, 제네릭 `impl` 의 메서드.
 - 시그니처, 타입, 트레잇, `impl`, `use` 같은 선언은 그대로 둡니다.
+
+소스 파일 뒤에는 패키지의 `ffi::wit` 항목이 읽는 `.wit` 파일이 ([stdlib 1.8](../../refs-standard-libraries/100-bare/108-wit.md)) 그 `deps/` 와 함께 통째로 옵니다. 경로는 source dir 기준이며 `..` 로 그 밖으로 나갈 수 있습니다. 다운스트림은 WIT 를 디스크가 아니라 body 에서 읽습니다.
 
 ## 9.4.8. 분리 컴파일을 위한 규칙
 

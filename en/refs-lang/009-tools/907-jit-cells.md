@@ -113,7 +113,7 @@ parse error / type error / semantic error.
   - the error is shown to the user.
 ```
 
-This step is fully transactional, so the state just before the error is preserved.
+This step is fully transactional, so the state just before the error is preserved. If rokc itself panics (internal compiler error) while compiling a cell, `rokc lsp`, `rokc repl` and `rokc jupyter` survive it: the language server reports it as an error diagnostic of the analysed buffer, the REPL / kernel fails that cell; both keep serving.
 
 ### Cell runtime errors
 

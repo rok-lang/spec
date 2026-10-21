@@ -381,7 +381,8 @@ rok toolchain remove <version>
 
 ### Distribution
 
-- A release archive is `rok-<version>-<triple>.tar.gz` (and `.sha256`), containing the toolchain layout.
+- A release archive is `rok-<version>-<triple>.tar.gz` (Windows `.zip`), containing the toolchain layout, with `<archive>.sha256` beside it: the archive's SHA-256 in hex, optionally followed by the file name (sha256sum format).
+- `install.sh`, `install.ps1` and `rok toolchain install --from <url>` download `<url>.sha256` from the same place and refuse an archive whose SHA-256 differs; a missing `.sha256` is an error. An archive given by path is checked against `<path>.sha256` when that file exists. Signatures are not defined; HTTPS vouches for the origin.
 - `install.sh` (<https://rok-lang.org/install.sh>) installs into `$ROK_HOME` from an archive or from GitHub releases of the `rok-lang` organization.
 
 ## 9.10.7. Inline manifest for single-file scripts

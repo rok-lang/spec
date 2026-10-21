@@ -247,7 +247,7 @@ debugger output.
     (mangled: _Y3f8a1c2b_geom_distance_a7c91d8e44b2f190)
 ```
 
-This lets tools such as gdb, lldb and VS Code display rok functions by their original names.
+This lets tools such as gdb, lldb and VS Code display rok functions by their original names. A coroutine's resume function is named `<creator>::{coroutine#k}`, where `k` counts the closures and coroutines of that creator together.
 
 ## 9.5.11. Stability
 

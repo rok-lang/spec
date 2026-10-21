@@ -81,7 +81,7 @@ A type-check pattern matches only when the value of the dynamic slot or sum type
 
 This pattern expresses the narrowing mechanism of the [`any` slot](../002-types/202-any-slot.md) and [sum types](../002-types/206-sum-types.md) in pattern form.
 
-The type after `:` is a full `type_expr`, so it includes `|`. `n: i32 | i64` is a single type-check pattern narrowing the value to the sum `i32 | i64`. An or-pattern of type-check patterns is written with parentheses: `(n: i32) | (m: i64)`.
+The type after `:` is a full `type_expr`, so it includes `|`. `n: i32 | i64` is a single type-check pattern narrowing the value to the sum `i32 | i64`. An or-pattern of type-check patterns is written with parentheses: `(n: i32) | (m: i64)`. `v: A | B` on a value of plain type `A` always matches; `v` is the value as `A | B`.
 
 ```rok
 match v {

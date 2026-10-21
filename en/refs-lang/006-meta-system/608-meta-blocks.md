@@ -173,7 +173,7 @@ The visibility keyword is attached to the template block itself. Its effect:
 | `pub` (including `pub(pkg)`)  | The whole build. Used as `#[derive(X)]` / `#[x]` without `use` |
 | private                       | Within the file that defines the meta block                |
 
-Derive and attribute names are build-global names without a module path (6.8.11).
+Derive and attribute names are build-global names without a module path (6.8.11). A meta block's or keyword handler's `#[cfg]` is evaluated with the cfg of the package that defines it (its own features, [9.10.4c](../009-tools/910-rok-frontend.md#9104c-features)).
 
 ## 6.8.7. Body introducers (`@derive` / `@attribute`)
 
