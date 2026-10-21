@@ -95,7 +95,7 @@ fn const_cast<T>(p: ConstPtr<T>) -> Ptr<T>;
 let s: str = "hello";              // immortal const
 let p: ConstPtr<u8> = s.as_ptr();
 let m: Ptr<u8> = rok::bare::const_cast(p);
-unsafe { m.write(b'H') };          // SEGFAULT — immortal const 쓰기
+unsafe { m.write(c'H') };          // SEGFAULT — immortal const 쓰기
 ```
 
 C 의 `const_cast<T*>` 와 정확히 동형입니다. 사용처는 read-only API 를 임시로 mutability 가 필요한 자리에 wrapping 하는 정도로 한정되며, 일반 코드에서는 **사용하지 말 것**.

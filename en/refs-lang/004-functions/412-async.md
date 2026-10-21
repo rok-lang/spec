@@ -10,7 +10,7 @@ Asynchronous definitions have three grammatical forms.
 async_fn        ::= "async" fn_decl
 async_block     ::= "async" block
 async_closure   ::= "async" closure_expr
-await_expr      ::= "await" expr
+await_expr      ::= "await" unary_expr
 ```
 
 ```rok
@@ -23,7 +23,7 @@ In all three forms, the result is a value of the library type `AsyncFuture<T>` (
 
 ## 4.12.2. The `await` operator
 
-`await` is a prefix operator applied to a value implementing `Future<Output = T>`; its result is `T`.
+`await` is a prefix unary operator ([3.2.3](../003-expressions/302-precedence-and-associativity.md#323-precedence-and-associativity-table), prec=12) applied to a value implementing `Future<Output = T>`; its result is `T`. `await f() == x` is `(await f()) == x`.
 
 ```rok
 await expr

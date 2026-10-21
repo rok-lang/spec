@@ -201,6 +201,7 @@ let t = parser::lex(src);
 - 의존 패키지의 이름은 최상위 경로입니다. 이름은 `rok.rokon` 의 `deps` 키에서 `-` 를 `_` 로 바꾼 것이며 (`rok-syntax` → `rok_syntax::..`), 빌드 도구가 `rokc --extern name=..` 로 등록합니다 ([9.2.3](../009-tools/902-aot-pipeline.md#923-의존성-해소), [9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock)). Rust 의 `extern crate` 같은 별도 선언은 필요하지 않습니다.
 - 의존 패키지 안의 `pkg::` 는 그 의존 패키지 자신의 루트입니다.
 - 사용자 패키지의 모듈이 의존 패키지와 같은 이름이면 에러입니다.
+- 빌드 중인 패키지 자신으로 해소되는 의존성은 에러입니다. 패키지는 자기 항목을 `pkg::` 로 가리킵니다.
 
 ### 패키지 경계
 

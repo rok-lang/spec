@@ -10,7 +10,7 @@
 async_fn        ::= "async" fn_decl
 async_block     ::= "async" block
 async_closure   ::= "async" closure_expr
-await_expr      ::= "await" expr
+await_expr      ::= "await" unary_expr
 ```
 
 ```rok
@@ -23,7 +23,7 @@ async || { ... await expr; ... }                     // 클로저 수식어
 
 ## 4.12.2. `await` 연산자
 
-`await` 는 `Future<Output = T>` 를 구현하는 값 위에 적용되는 prefix 연산자이며, 결과는 `T` 입니다.
+`await` 는 `Future<Output = T>` 를 구현하는 값 위에 적용되는 전위 단항 연산자 ([3.2.3](../003-expressions/302-precedence-and-associativity.md#323-우선순위와-결합성-표), prec=12) 이며, 결과는 `T` 입니다. `await f() == x` 는 `(await f()) == x` 입니다.
 
 ```rok
 await expr

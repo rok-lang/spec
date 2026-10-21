@@ -22,7 +22,7 @@ use rok::std::thread::Builder;
 
 ## 모듈 목차
 
-본 tier 는 다음 아홉 모듈로 구성합니다.
+본 tier 는 다음 열 모듈로 구성합니다.
 
 - [3.1. `fs::` — 파일 시스템 (atomic ops, Dir 캡슐, reflink copy)](301-fs.md)
 - [3.2. `net::` — TCP / UDP / Unix + TLS 1.3](302-net.md)
@@ -33,6 +33,7 @@ use rok::std::thread::Builder;
 - [3.7. `process::` — `Command` / `Child` / pidfd / kill_on_drop](307-process.md)
 - [3.8. `path::` — UTF-8 `Path` (Python 식) + `RawPath` 이스케이프](308-path.md)
 - [3.9. `rokon::` — ROKON 데이터 형식 (`.rokon`)](309-rokon.md)
+- [3.10. `crypto::` — OS 난수 원천](310-crypto.md)
 
 ## 핵심 디자인 원칙
 
@@ -83,7 +84,7 @@ try tls_conn.write_all(req);
 let resp = try tls_conn.read_to_end();
 ```
 
-backend 로는 rustls 또는 aws-lc-rs 식을 상정합니다 (memory-safe, no OpenSSL FFI).
+스택은 `rok::core::crypto` ([2.21](../200-core/221-crypto.md)) 위에 rok 로 작성한 자체 구현이며, OS 나 서드파티 TLS 라이브러리는 쓰지 않습니다 ([3.2.5](302-net.md#325-tls-13--nettls)).
 
 반면 HTTP/1, HTTP/2, HTTP/3 (QUIC) 은 **std 외부** 에 둡니다 — 별도 `rok/http` 패키지로 분리합니다. Go `net/http` 의 **1.0 frozen** 사례에서 얻은 학습입니다.
 

@@ -327,7 +327,7 @@ trait FromStr {
 }
 ```
 
-`str.parse::<T>()` is `throws (T::Err)` and dispatches through this trait. For numeric types and `bool`, `Err` is core's `ParseError { input, pos, reason }` ([2.14.4](214-error.md#2144-built-in-error-types)). Numeric parsing is implemented on top of the runtime helpers `rok_str_int_status` / `rok_str_to_i64` / `rok_str_to_u64` / `rok_str_float_ok` / `rok_str_to_f64` ([refs-lang 8.5](../../refs-lang/008-abi/805-extern-symbols.md#string-helpers)).
+`str.parse::<T>()` is `throws (T::Err)` and dispatches through this trait. For numeric types and `bool`, `Err` is core's `ParseError { input, pos, reason }` ([2.14.4](214-error.md#2144-built-in-error-types)). Numeric parsing is implemented on top of the runtime helpers `rok_str_parse_int` / `rok_str_parse_float` ([refs-lang 8.5](../../refs-lang/008-abi/805-extern-symbols.md#string-helpers)). Float `FromStr` fails with `number out of range` when finite digits exceed the type's range; `inf` / `NaN` text parses.
 
 ```rok
 let n: i32 = try "42".parse();         // FromStr for i32

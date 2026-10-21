@@ -169,7 +169,7 @@ extern "rok" {
     fn rok_str_slice(s: str, start: usize, end: usize, at: str) -> str;  // s[start:end]. 범위 / UTF-8 경계가 틀리면 at 위치로 panic
     fn rok_str_parse_int(s: str, radix: u32, signed: i32, bits: u32, out: GcBuf<i64>) -> i32;
                                         // 0 ok, 1 빈 문자열, 2 잘못된 자릿수, 3 범위 밖; 값의 비트는 out[0]
-    fn rok_str_parse_float(s: str, out: GcBuf<f64>) -> i32;           // 0 ok, 2 잘못됨; 값은 out[0]
+    fn rok_str_parse_float(s: str, out: GcBuf<f64>) -> i32;           // 0 ok, 2 잘못됨, 3 범위 초과 (유한한 숫자가 타입 범위를 넘음); 값은 out[0]
 }
 ```
 

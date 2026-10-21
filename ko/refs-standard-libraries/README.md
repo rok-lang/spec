@@ -34,7 +34,7 @@ rok::std   (target-dep — uses rok::core + rok::bare)
 |------------|---------------|---------------------------------|------------------------------------------------|
 | `rok::bare` | `rok::bare::*` | [`100-bare/`](100-bare/README.md) | `Ptr`, `ConstPtr`, `transmute`, raw alloc, pin |
 | `rok::core` | `rok::core::*` | [`200-core/`](200-core/README.md) | 숫자, 연산자, iter, 컬렉션, fmt, sync, task    |
-| `rok::std` | `rok::std::*` | [`300-std/`](300-std/README.md) | fs, net, time, thread, io, env, process, path  |
+| `rok::std` | `rok::std::*` | [`300-std/`](300-std/README.md) | fs, net, time, thread, io, env, process, path, crypto (random) |
 
 ---
 
@@ -89,6 +89,7 @@ rok::std   (target-dep — uses rok::core + rok::bare)
 - 2.18. [`task::` API](200-core/218-task.md)
 - 2.19. [`par::` API](200-core/219-par.md)
 - 2.20. [`Future` / `await` 통합](200-core/220-future.md)
+- 2.21. [`crypto::` — 해시, MAC, AEAD, 키 교환, 서명](200-core/221-crypto.md)
 
 > [!NOTE]
 > 텐서 / 자동 미분 / SIMD / GPU 등 과학 컴퓨팅 / AI 영역은 표준 라이브러리에 포함되지 않고 외부 라이브러리로 분리됩니다. 외부 라이브러리는 [`rok::bare::mlir`](100-bare/109-mlir.md) 모듈을 통해 MLIR 다이얼렉트에 직접 접근할 수 있습니다.
@@ -106,6 +107,7 @@ target-dep 영역. 명시 import.
 - 3.7. [`process::` — `Command` / pidfd / kill_on_drop](300-std/307-process.md)
 - 3.8. [`path::` — UTF-8 `Path` + `/` 연산자 (Python pathlib 식)](300-std/308-path.md)
 - 3.9. [`rokon::` — ROKON 데이터 형식 (`.rokon`)](300-std/309-rokon.md)
+- 3.10. [`crypto::` — OS 난수 원천](300-std/310-crypto.md)
 
 ---
 

@@ -37,7 +37,7 @@ The language fixes the precedence and associativity of every built-in operator t
 ```
 Level Operators                                       Assoc
 13   postfix: member access (.), ?., method call, indexing, ?   left
-12   prefix unary: - ! ~ √                            —
+12   prefix unary: - ! ~ √ await                      —
 11   as is (postfix conversion / type test)           left
 10   << >>                                            left
  9   ∘ (function composition)                         left
@@ -60,6 +60,9 @@ The Unicode operators in the table (`× ⋅ ÷ ∩ ∪ ∘ √ ≡ ≠ ≤ ≥ �
 
 > [!IMPORTANT]
 > **Binding of `try` with `catch` / `finally`**: `try` / `try?` / `try!` and the `catch` / `finally` clauses of [error control flow](314-error-control-flow.md) are also language syntax with no trait connection. `try` is a prefix form, but unlike the prefix unary operators in the table (prec=12) it covers the entire expression to its right. Its operand extends up to a `catch` / `finally` clause, the statement terminator `;`, a closing bracket, or a comma, so `try a + b()` is `try (a + b())`. The `catch` / `finally` clauses bind tighter than assignment (prec=-1) and weaker than every other operator, attaching to the whole expression on their left. Thus `try parse(s) catch _ { 0 }` is `(try parse(s)) catch _ { 0 }`, and `x = try f() catch _ { 0 }` is `x = ((try f()) catch _ { 0 })`.
+
+> [!IMPORTANT]
+> **`await`**: `await` is a prefix unary operator at prec=12, like `-` and `!`, so its operand is a unary expression: `await f() == x` is `(await f()) == x` ([4.12.2](../004-functions/412-async.md#4122-the-await-operator)).
 
 > [!IMPORTANT]
 > **`as` and `is`**: these two postfix operators are language syntax with no trait connection and share one level (prec=11). They are weaker than prefix unary and stronger than arithmetic, so `-x as i64` is `(-x) as i64` and `a + b is i32` is `a + (b is i32)`. The result of `e is T` is `bool` ([2.2.5](../002-types/202-any-slot.md#225-checking-the-slots-current-type)).

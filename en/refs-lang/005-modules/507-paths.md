@@ -201,6 +201,7 @@ let t = parser::lex(src);
 - The name of a dependency package is a top-level path. The name is the `deps` key in `rok.rokon` with `-` replaced by `_` (`rok-syntax` → `rok_syntax::..`), and the build tool registers it with `rokc --extern name=..` ([9.2.3](../009-tools/902-aot-pipeline.md#923-dependency-resolution), [9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock)). No separate declaration such as Rust's `extern crate` is needed.
 - `pkg::` inside a dependency package is that dependency's own root.
 - A module of the user package with the same name as a dependency package is an error.
+- A dependency that resolves to the package being built is an error; a package names its own items with `pkg::`.
 
 ### Package boundaries
 

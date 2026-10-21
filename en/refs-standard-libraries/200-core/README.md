@@ -77,6 +77,10 @@ The modules provided by the rok tier, grouped by area:
 - [2.19. `par::` — parallel processing API](219-par.md)
 - [2.20. `Future` / `await` integration](220-future.md)
 
+### Cryptography
+
+- [2.21. `crypto::` — hashes, MACs, AEADs, key exchange, signatures](221-crypto.md)
+
 > [!NOTE]
 > Scientific computing areas such as tensors, automatic differentiation, SIMD and GPU are not part of the rok tier; they are split out into **external libraries**. External libraries can access MLIR dialects directly through the [`rok::bare::mlir`](../100-bare/) module.
 

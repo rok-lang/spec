@@ -409,7 +409,7 @@ Names bound by `match` arm patterns and the `S { x }` shorthand are not renamed.
 
 Generated items are placed in the **use site's module**. Identifiers not bound within the template (e.g. `compute()`, `now()`, `log()`) are therefore resolved at the use site, not in the meta block's module.
 
-Template authors use absolute paths (`rok::core::..`, the library's `pkg::..`) or only names visible at the use site (items of the implicit `use rok::core::**;`, etc.).
+Template authors use absolute paths (`rok::core::..`, the library's `pkg::..`) or only names visible at the use site (items of the implicit `use rok::core::**;`, etc.). `pkg::` in a template names the package that defines the meta block, wherever it expands.
 
 ```rok
 #[impl_derive(MyHash)] pub @derive {

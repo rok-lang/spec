@@ -34,7 +34,7 @@ rok::std   (target-dep — uses rok::core + rok::bare)
 |-------------|----------------|------------------------------------|------------------------------------------------|
 | `rok::bare` | `rok::bare::*` | [`100-bare/`](100-bare/README.md)  | `Ptr`, `ConstPtr`, `transmute`, raw alloc, pin |
 | `rok::core` | `rok::core::*` | [`200-core/`](200-core/README.md)  | Numbers, operators, iter, collections, fmt, sync, task |
-| `rok::std` | `rok::std::*` | [`300-std/`](300-std/README.md)    | fs, net, time, thread, io, env, process, path  |
+| `rok::std` | `rok::std::*` | [`300-std/`](300-std/README.md)    | fs, net, time, thread, io, env, process, path, crypto (random) |
 
 ---
 
@@ -89,6 +89,7 @@ Safe area. All targets. `use rok::core::**;` applied implicitly (no separate pre
 - 2.18. [`task::` API](200-core/218-task.md)
 - 2.19. [`par::` API](200-core/219-par.md)
 - 2.20. [`Future` / `await` integration](200-core/220-future.md)
+- 2.21. [`crypto::` — hashes, MACs, AEADs, key exchange, signatures](200-core/221-crypto.md)
 
 > [!NOTE]
 > Scientific computing / AI areas such as tensors / automatic differentiation / SIMD / GPU are not part of the standard libraries and are split out into external libraries. External libraries can access MLIR dialects directly through the [`rok::bare::mlir`](100-bare/109-mlir.md) module.
@@ -106,6 +107,7 @@ Target-dependent area. Explicit import.
 - 3.7. [`process::` — `Command` / pidfd / kill_on_drop](300-std/307-process.md)
 - 3.8. [`path::` — UTF-8 `Path` + `/` operator (Python pathlib style)](300-std/308-path.md)
 - 3.9. [`rokon::` — the ROKON data format (`.rokon`)](300-std/309-rokon.md)
+- 3.10. [`crypto::` — the OS random source](300-std/310-crypto.md)
 
 ---
 

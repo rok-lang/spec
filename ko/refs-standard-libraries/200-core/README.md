@@ -77,6 +77,10 @@ use rok::core::ops::{Add, Sub};
 - [2.19. `par::` — 병렬 처리 API](219-par.md)
 - [2.20. `Future` / `await` 통합](220-future.md)
 
+### 암호
+
+- [2.21. `crypto::` — 해시, MAC, AEAD, 키 교환, 서명](221-crypto.md)
+
 > [!NOTE]
 > 텐서 / 자동 미분 / SIMD / GPU 같은 과학 컴퓨팅 영역은 rok tier 에 두지 않고 **외부 라이브러리** 로 분리합니다. 외부 라이브러리는 [`rok::bare::mlir`](../100-bare/) 모듈을 통해 MLIR 다이얼렉트에 직접 접근할 수 있습니다.
 

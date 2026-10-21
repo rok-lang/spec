@@ -95,7 +95,7 @@ This function strips const. The danger is obvious: if the original lives in a re
 let s: str = "hello";              // immortal const
 let p: ConstPtr<u8> = s.as_ptr();
 let m: Ptr<u8> = rok::bare::const_cast(p);
-unsafe { m.write(b'H') };          // SEGFAULT — write to immortal const
+unsafe { m.write(c'H') };          // SEGFAULT — write to immortal const
 ```
 
 It is exactly isomorphic to C's `const_cast<T*>`. Its use is limited to temporarily wrapping a read-only API where mutability is required; ordinary code **must not use it**.

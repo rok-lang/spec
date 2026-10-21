@@ -169,7 +169,7 @@ extern "rok" {
     fn rok_str_slice(s: str, start: usize, end: usize, at: str) -> str;  // s[start:end]. panics at location at if the range / UTF-8 boundary is wrong
     fn rok_str_parse_int(s: str, radix: u32, signed: i32, bits: u32, out: GcBuf<i64>) -> i32;
                                         // 0 ok, 1 empty, 2 invalid digit, 3 out of range; value bits in out[0]
-    fn rok_str_parse_float(s: str, out: GcBuf<f64>) -> i32;           // 0 ok, 2 invalid; value in out[0]
+    fn rok_str_parse_float(s: str, out: GcBuf<f64>) -> i32;           // 0 ok, 2 invalid, 3 out of range (finite digits past the type's range); value in out[0]
 }
 ```
 

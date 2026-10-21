@@ -155,7 +155,7 @@ pub use foo::very_long_name as short_name;
 pub use foo::geom;               // 모듈 자체 재내보내기
 ```
 
-이 경우 외부 사용자는 `my_pkg::geom::Point` 로 접근할 수 있습니다.
+이 경우 외부 사용자는 `my_pkg::geom::Point` 로 접근할 수 있습니다. 재내보낸 모듈을 거치는 경로는 그 모듈을 거치는 것과 똑같이 해소됩니다.
 
 ## 5.8.9. `prelude` 패턴
 

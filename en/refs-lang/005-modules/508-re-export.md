@@ -155,7 +155,7 @@ A module itself, not only items, can be re-exported.
 pub use foo::geom;               // re-exports the module itself
 ```
 
-External users can then access `my_pkg::geom::Point`.
+External users can then access `my_pkg::geom::Point`. Paths through a re-exported module resolve as through the module.
 
 ## 5.8.9. The `prelude` pattern
 

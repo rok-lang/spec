@@ -188,7 +188,7 @@ fn _placeholder() { }
 fn strict_zone() { ... }
 ```
 
-These attributes change the diagnostic level of the linter (`rokc lint`, [9.1.2](../009-tools/901-rokc-cli.md#rokc-lint-linter)) within the scope of the item they are attached to. `allow` ignores the diagnostic, `warn` emits it as a warning, and `deny` emits it as an error. Inner forms such as `#![allow(..)]` apply to the enclosing module (the whole file at the file head). The argument is a lint name or a group name.
+These attributes change the diagnostic level of the linter (`rokc lint`, [9.1.2](../009-tools/901-rokc-cli.md#rokc-lint-linter)) within the scope of the item they are attached to. `allow` ignores the diagnostic, `warn` emits it as a warning, and `deny` emits it as an error. Inner forms such as `#![allow(..)]` apply to the enclosing module (the whole file at the file head). The argument is a lint name or a group name. An item's `#[allow]` also covers its variants, fields and methods.
 
 The level is determined in the following order, later overriding earlier: each lint's default level < the `lints` field of `rok.rokon` (after its `lints_from` chain) ([9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) < CLI `-A` / `-W` / `-D` < attributes in source (the innermost wins). `lints` is treated as if prepended to the CLI flags, so CLI flags written after it override it. The code of lint diagnostics is `E503`.
 
@@ -213,7 +213,7 @@ The default level of every lint is `warn`.
 | `redundant_cast`         | `x as T` where `x` is already `T`                                   |
 | `redundant_clone`        | `.clone()` on a value of a primitive type                           |
 | `non_snake_case`         | Function, local variable, parameter, or module names not in snake_case |
-| `non_camel_case_types`   | Type, trait, or variant names not in UpperCamelCase                 |
+| `non_camel_case_types`   | Type, trait, or variant names not in UpperCamelCase: no lowercase first letter, no `__`, and `_` only between characters without case (`V1_0`) |
 | `non_upper_case_globals` | `const` / `static` names not in UPPER_SNAKE_CASE                    |
 | `confusable_idents`      | Identifiers that resemble each other ([1.4](../001-lexical/104-identifiers.md)) |
 

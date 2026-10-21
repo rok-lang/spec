@@ -22,7 +22,7 @@ use rok::std::thread::Builder;
 
 ## Module index
 
-This tier consists of the following nine modules.
+This tier consists of the following ten modules.
 
 - [3.1. `fs::` — file system (atomic ops, Dir capsules, reflink copy)](301-fs.md)
 - [3.2. `net::` — TCP / UDP / Unix + TLS 1.3](302-net.md)
@@ -33,6 +33,7 @@ This tier consists of the following nine modules.
 - [3.7. `process::` — `Command` / `Child` / pidfd / kill_on_drop](307-process.md)
 - [3.8. `path::` — UTF-8 `Path` (Python-style) + `RawPath` escape hatch](308-path.md)
 - [3.9. `rokon::` — the ROKON data format (`.rokon`)](309-rokon.md)
+- [3.10. `crypto::` — the OS random source](310-crypto.md)
 
 ## Core design principles
 
@@ -83,7 +84,7 @@ try tls_conn.write_all(req);
 let resp = try tls_conn.read_to_end();
 ```
 
-The backend is assumed to be in the style of rustls or aws-lc-rs (memory-safe, no OpenSSL FFI).
+The stack is rok's own, written on `rok::core::crypto` ([2.21](../200-core/221-crypto.md)); no OS or third-party TLS library is used ([3.2.5](302-net.md#325-tls-13--nettls)).
 
 HTTP/1, HTTP/2 and HTTP/3 (QUIC), on the other hand, live **outside std**, split into a separate `rok/http` package. This is the lesson from Go's `net/http` being **frozen at 1.0**.
 
