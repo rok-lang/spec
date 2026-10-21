@@ -465,7 +465,7 @@ trait ExactSizeIterator: Iterator {
 }
 ```
 
-`len()` 은 남은 원소 수입니다. `count()` 의 default impl 은 이 트레잇을 활용하여 O(1) 로 동작합니다. `List`, `Slice`, `Range` 의 iterator 와 구성 iterator 가 모두 `ExactSizeIterator` 인 `Enumerate`, `Zip`, `Take`, `Skip`, `StepBy`, `Rev`, `Map` 이 이 트레잇을 impl 합니다.
+`len()` 은 남은 원소 수입니다. 표준 라이브러리의 `ExactSizeIterator` 타입은 `count()` 를 `len()` 으로 답하므로, `count()` 는 `Map` 의 함수를 부르지 않습니다. `List`, `Slice`, `Range` 의 iterator 와 구성 iterator 가 모두 `ExactSizeIterator` 인 `Enumerate`, `Zip`, `Take`, `Skip`, `StepBy`, `Rev`, `Map` 이 이 트레잇을 impl 합니다.
 
 ## 2.7.10a. `GenIter<T>` / `TryGenIter<T, E>` — 제너레이터의 값
 

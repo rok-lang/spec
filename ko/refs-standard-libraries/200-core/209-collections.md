@@ -553,7 +553,7 @@ impl<T> GcBuf<T> {
     #[intrinsic("rok.buf_new")]
     unsafe fn new(len: usize) -> GcBuf<T>;           // 모든 word 를 0 (null) 으로
     #[intrinsic("rok.buf_get")]
-    unsafe fn get(self, i: usize) -> T;        // 범위 밖이면 panic
+    unsafe fn get(self, i: usize) -> T;        // 경계 검사 없음 (길이는 소유자가 관리)
     #[intrinsic("rok.buf_set")]
     unsafe fn set(self, i: usize, v: T);       // write barrier 포함
 }
@@ -564,5 +564,8 @@ impl<T> GcBuf<T> {
 `GcBuf<T>` 와 그 primitive (`buf_new` / `buf_get` / `buf_set`, `new` / `get` / `set`, `GcBuf` 인덱싱) 는 `unsafe` 입니다. 컬렉션이 지키는 원소 타입과 초기화 검사를 건너뛰기 때문입니다.
 
 ```rok
+#[intrinsic("rok.buf_same")]
 fn buf_same<T>(a: GcBuf<T>, b: GcBuf<T>) -> bool;   // 같은 buffer 인가 (내용이 아니라 정체). 아무것도 고정하지 않음
+#[intrinsic("rok.buf_erase")]
+pub(pkg) fn buf_erase<T>(buf: GcBuf<T>) -> GcBuf<u8>;   // 어떤 GC 객체든 받는 런타임 매개변수를 위해 GcBuf<u8> 로 타입을 바꿈
 ```

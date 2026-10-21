@@ -2,7 +2,7 @@
 
 The `rok::core::str` module provides the authoritative definitions of the string and character types. rok follows a **UTF-8 first** policy: every in-process string is handled as UTF-8, and `c_char` is used only at FFI boundaries.
 
-This chapter defines three of the 48 lang slots. First, `str_type` is bound to `rok::core::str::str`, a lowercase struct that is a language built-in. Second, `char_type` is bound to `rok::core::str::Char`, a standard library addition carrying `#[keyword("char")]`. Third, `cchar_type` is bound to `rok::core::str::c_char`, likewise a language built-in.
+This chapter defines three of the 48 lang slots. First, `str_type` is bound to `rok::core::str::str`, a lowercase struct that is a language built-in. Second, `char_type` is the built-in `char`, whose methods this chapter defines. Third, `cchar_type` is bound to `rok::core::str::c_char`, likewise a language built-in.
 
 ## 2.15.1. String model — immutable `str` and mutable `StrBuf`
 
@@ -176,17 +176,9 @@ The intent must be stated explicitly, as in `s.chars().next()` or `s.byte(0)`.
 
 The results of `s[a:b]`, `lines`, `split*`, `split_whitespace`, `split_once`, `trim*` and `strip_*` are `str` values sharing the original bytes, in O(1) ([refs-lang 8.8.1](../../refs-lang/008-abi/808-lowering-types.md#881-primitive-integers--floating-point)). A small piece therefore keeps a large original alive. There is no API to detach it. `as_bytes()` is likewise a read-only `Slice<u8>` view without copying.
 
-## 2.15.4. `char` — Unicode scalar value (standard library addition)
+## 2.15.4. `char` — Unicode scalar value
 
-```rok
-#[keyword("char")]
-#[lang("char_type")]
-struct Char {
-    value: u32;        // Unicode code point — excluding surrogates
-}
-```
-
-`char` is a **standard library addition** type registered with `#[keyword("char")]`, so user code writes it as lowercase `char`. The struct itself is PascalCase `Char`.
+`char` is a language built-in type ([2.1](201-numbers.md)): a 4-byte Unicode scalar value, not a struct. This module defines its methods.
 
 The Unicode scalar value range is the union of 0..=0xD7FF and 0xE000..=0x10FFFF. The surrogate range 0xD800..=0xDFFF is used as an **automatic niche**, so `char | none` can be encoded in 4B.
 
@@ -361,7 +353,7 @@ How the types are registered and where they are implemented:
 | `str`    | `str` (lowercase)    | language built-in     | standard library |
 | `StrBuf` | `StrBuf`             | ordinary type        | standard library |
 | `c_char` | `c_char` (lowercase) | language built-in     | standard library |
-| `char`   | `Char` (PascalCase)  | `#[keyword("char")]` | standard library |
+| `char`   | `char` (built-in)    | language built-in    | compiler (methods: standard library) |
 
 As for intrinsics, some `str` method bodies and some `char` methods carry `#[intrinsic("rok.str.*")]` or `#[intrinsic("rok.char.*")]`.
 

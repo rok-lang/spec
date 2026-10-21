@@ -465,7 +465,7 @@ trait ExactSizeIterator: Iterator {
 }
 ```
 
-`len()` is the number of remaining elements. The default impl of `count()` uses this trait to run in O(1). The iterators of `List`, `Slice` and `Range`, and `Enumerate`, `Zip`, `Take`, `Skip`, `StepBy`, `Rev`, `Map` when their component iterators are all `ExactSizeIterator`, implement this trait.
+`len()` is the number of remaining elements. Standard-library `ExactSizeIterator` types answer `count()` from `len()`, so `Map`'s function is not called by `count()`. The iterators of `List`, `Slice` and `Range`, and `Enumerate`, `Zip`, `Take`, `Skip`, `StepBy`, `Rev`, `Map` when their component iterators are all `ExactSizeIterator`, implement this trait.
 
 ## 2.7.10a. `GenIter<T>` / `TryGenIter<T, E>` — the value of a generator
 

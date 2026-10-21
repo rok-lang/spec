@@ -2,7 +2,7 @@
 
 `rok::core::str` 모듈은 문자열과 문자 타입의 권위 정의를 제공합니다. rok 은 **UTF-8 우선** 정책을 채택하고 있어서, 모든 in-process 문자열은 UTF-8 로 다루며, FFI 경계에서만 `c_char` 를 사용합니다.
 
-이 장은 48 개의 lang slot 중 세 개를 정의합니다. 첫째로 `str_type` 은 `rok::core::str::str` 에 연결되며 언어 기본값에 해당하는 lowercase struct 입니다. 둘째로 `char_type` 은 `rok::core::str::Char` 에 연결되며 표준 라이브러리 추가 타입으로 `#[keyword("char")]` 가 부착됩니다. 셋째로 `cchar_type` 은 `rok::core::str::c_char` 에 연결되며 마찬가지로 언어 기본값입니다.
+이 장은 48 개의 lang slot 중 세 개를 정의합니다. 첫째로 `str_type` 은 `rok::core::str::str` 에 연결되며 언어 기본값에 해당하는 lowercase struct 입니다. 둘째로 `char_type` 은 내장 `char` 이며, 이 장이 그 메서드를 정의합니다. 셋째로 `cchar_type` 은 `rok::core::str::c_char` 에 연결되며 마찬가지로 언어 기본값입니다.
 
 ## 2.15.1. 문자열 모델 — 불변 `str` 과 가변 `StrBuf`
 
@@ -176,17 +176,9 @@ let c = s[0];                  // ERROR — `Index<usize>` 정의 안 함
 
 `s[a:b]`, `lines`, `split*`, `split_whitespace`, `split_once`, `trim*`, `strip_*` 의 결과는 원래 바이트를 공유하는 `str` 이며 O(1) 입니다 ([refs-lang 8.8.1](../../refs-lang/008-abi/808-lowering-types.md#881-원시-정수--부동소수)). 그래서 작은 조각이 큰 원본을 살려 둡니다. 떼어 내는 API 는 없습니다. `as_bytes()` 도 복사 없는 읽기 전용 `Slice<u8>` view 입니다.
 
-## 2.15.4. `char` — Unicode scalar value (표준 라이브러리 추가)
+## 2.15.4. `char` — Unicode scalar value
 
-```rok
-#[keyword("char")]
-#[lang("char_type")]
-struct Char {
-    value: u32;        // Unicode code point — surrogate 제외
-}
-```
-
-`char` 는 **표준 라이브러리 추가** 타입으로, `#[keyword("char")]` 로 등록되어 사용자 코드는 lowercase `char` 로 표기합니다. struct 본문은 PascalCase `Char` 입니다.
+`char` 는 언어 내장 타입입니다 ([2.1](201-numbers.md)): struct 가 아닌 4 바이트 Unicode scalar value 이며, 이 모듈이 그 메서드를 정의합니다.
 
 Unicode scalar value 의 범위는 0..=0xD7FF 와 0xE000..=0x10FFFF 의 합집합입니다. Surrogate 범위인 0xD800..=0xDFFF 는 **자동 niche** 로 활용되어, `char | none` 이 4B 로 인코딩될 수 있습니다.
 
@@ -361,7 +353,7 @@ let c: Color = try "red".parse();
 | `str`    | `str` (lowercase)    | 언어 기본값          | 표준 라이브러리 |
 | `StrBuf` | `StrBuf`             | 일반 타입            | 표준 라이브러리 |
 | `c_char` | `c_char` (lowercase) | 언어 기본값          | 표준 라이브러리 |
-| `char`   | `Char` (PascalCase)  | `#[keyword("char")]` | 표준 라이브러리 |
+| `char`   | `char` (내장)        | 언어 기본            | 컴파일러 (메서드: 표준 라이브러리) |
 
 intrinsic 부착에 관해서는, `str` 메서드 본문 일부와 `char` 메서드 일부에 `#[intrinsic("rok.str.*")]` 또는 `#[intrinsic("rok.char.*")]` 가 부착됩니다.
 

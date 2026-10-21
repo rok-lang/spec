@@ -101,7 +101,7 @@ const TWELVE: i64 = gcd(24i64, 36i64);          // compile time
 let y = double(user_input);                      // runtime call
 ```
 
-- A `const fn` may call only `const fn`s. The standard library marks pure functions as `const fn`.
+- A `const fn` may call only `const fn`s. Calls through `fn` values or closures inside a `const fn` are checked only when evaluated, since a static check cannot follow them. The standard library marks pure functions as `const fn`.
 - The body must be pure. I/O and access to mutable globals are errors.
 - A result successfully evaluated at compile time equals the runtime result for the same arguments. An operation that would overflow at runtime is an error at compile time (5.2.4).
 - A `const fn` cannot take a type as an argument (`const fn sizeof(T: type)` is an error). Type introspection belongs to meta blocks.

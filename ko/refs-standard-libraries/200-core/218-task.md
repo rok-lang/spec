@@ -29,6 +29,8 @@ fn readable(fd: i32) -> IoReady;                       // await — fd 가 읽�
 fn writable(fd: i32) -> IoReady;
 ```
 
+`sleep` 과 `timeout` 은 첫 poll 부터 시간을 잽니다.
+
 ### 사용 예
 
 실제 사용 예시는 다음과 같습니다.
@@ -231,7 +233,7 @@ let r = try await t.join() catch _: CancellationError { fallback() };
 별도 모듈인 `thread` 는 M:N 모델이 아니라 **OS thread** 를 직접 spawn 합니다.
 
 ```rok
-use rok::core::thread::*;
+use rok::std::thread;
 
 let t = thread::spawn { os_level_work() };
 let r = t.join();              // OS-level 동기 대기

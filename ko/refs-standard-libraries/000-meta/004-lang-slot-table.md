@@ -33,6 +33,7 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 | `bool_type`  | `bool` primitive             | `rok::core::num::bool`   | 2.1  |
 | `cchar_type` | `c_char` primitive (FFI)     | `rok::core::str::c_char` | 2.15 |
 | `str_type`   | `str` primitive (UTF-8 view) | `rok::core::str::str`    | 2.15 |
+| `char_type`  | `char` primitive (Unicode scalar) | `char` (메서드: `rok::core::str`) | 2.15 |
 
 다음으로 표준 라이브러리가 추가로 제공하는 PascalCase 타입들이 있습니다. 이쪽은 `#[keyword(...)]` 로 사용자에게 익숙한 소문자 별칭을 따로 노출하는데, `int` 와 `float` 의 auto-promote, `none` sentinel, `Range` 리터럴 같이 언어 문법과 직접 얽힌 항목들이 여기에 모입니다.
 
@@ -43,8 +44,9 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 | `none_type`  | `none` 리터럴의 타입      | `rok::core::marker::NoneSentinel`                          | 2.13 |
 | `int_type`   | `int` auto-promote 타입   | `rok::core::num::Int` + `#[keyword("int")]`                | 2.1  |
 | `float_type` | `float` auto-promote 타입 | `rok::core::num::Float` + `#[keyword("float")]`            | 2.1  |
-| `char_type`  | `char` Unicode scalar     | `rok::core::str::Char` + `#[keyword("char")]`              | 2.15 |
 | `range_type` | `Range<T>` (`a..b`)       | `rok::core::iter::Range` + `#[literal( expr ".." expr )]`  | 2.7  |
+
+기본 타입을 내장으로 제공하는 컴파일러는 `i32_type` … `str_type`, `none_type`, `char_type` 을 붙이지 않은 채 둘 수 있습니다.
 
 ## 0.4.3. 트레잇 슬롯 (30)
 
@@ -89,7 +91,7 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 | `sync_trait`        | 자동 marker — 스레드 공유 안전       | `rok::core::marker::Sync`    | 2.13 |
 
 > [!NOTE]
-> 비교 슬롯의 이름과 트레잇 이름은 일대일로 겹치지 않습니다. `eq_trait` 는 동등 연산자를 정의하는 `PartialEq` 에, `cmp_trait` 는 순서 비교 연산자를 정의하는 `PartialOrd` 에 부착됩니다. marker 트레잇인 `Eq` 는 메서드가 없고 컴파일러가 이름으로 찾을 일이 없으므로 슬롯을 두지 않습니다.
+> 비교 슬롯의 이름과 트레잇 이름은 일대일로 겹치지 않습니다. `eq_trait` 는 동등 연산자를 정의하는 `PartialEq` 에, `cmp_trait` 는 순서 비교 연산자를 정의하는 `PartialOrd` 에 부착됩니다. marker 트레잇 `Eq`, `Copy`, `Default` 에는 슬롯이 없습니다: 합 타입이 이들을 구조적으로 얻으므로 (`T` 가 `Eq` 이면 `T | none` 도 `Eq`, 그 `Default` 는 `none`), 컴파일러는 `rok::core` 의 고정 경로로 이들을 찾습니다.
 
 ## 0.4.4. 함수 슬롯 (3)
 

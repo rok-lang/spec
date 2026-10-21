@@ -67,3 +67,25 @@ On each Tier 1 target, the following SIMD instruction sets are detected automati
 | `wasm32`  | WASM SIMD128        |
 
 The library surface for SIMD itself is defined separately in other documents of this specification.
+
+## 0.6.5. Target specifications
+
+Every target is described by one target specification; the compiler, the linker and the runtime build read nothing else about a target. A target is named by `--target`: a built-in name (`rokc --print target-list`: the Tier 1 targets of 0.6.1 and the targets of 0.6.2), or the path of a file `<name>.rokon` holding a ROKON value `TargetSpec { .. }` (a custom target, named by the file's stem).
+
+`rokc --print target-spec [--target=<t>]` prints a target's specification in that form, so a custom target usually starts as a copy of a built-in one. A custom file must give every field; an unknown field is an error. A custom target's runtime and, where the target ships one, its C library come from `lib/rok/targets/<name>/` of the toolchain; without that directory, a build that links fails naming it.
+
+| Field | Meaning |
+|-------|---------|
+| `llvm_target`, `deployment_target` | LLVM's triple; the minimum OS version appended to it (Mach-O; `MACOSX_DEPLOYMENT_TARGET` overrides) |
+| `arch`, `os`, `env`, `family`, `endian`, `pointer_width` | The `target_*` cfg values ([6.3.2](../006-meta-system/603-cfg.md)); an empty `env` / `family` sets no key |
+| `vendor` | Informational |
+| `wide_align`, `max_atomic_width`, `c_abi`, `data_layout` | `i64` / `u64` / `f64` alignment, the widest atomic, the C calling convention ([8.6.3](../008-abi/806-calling-convention.md)), LLVM's data layout |
+| `cpu`, `features` | The default CPU and features (the SIMD baseline of 0.6.4) |
+| `object_format`, `linker`, `pre_link_args`, `crt_objects`, `late_link_args` | Object format and lld flavor; the target's own linker arguments; C runtime objects; arguments or files after the inputs |
+| `dynamic_linking`, `dynamic_loader`, `libc` | Shared-library support, the ELF interpreter, the C library and whether it ships with the toolchain |
+| `rust_target` | The Rust target the runtime is built for |
+| `exe_suffix`, `staticlib_prefix` / `staticlib_suffix`, `dylib_prefix` / `dylib_suffix`, `c_symbol_prefix` | File and symbol naming |
+| `stack_size`, `stack_probes`, `threads` | The main thread's stack, stack probing, thread support |
+| `native_backend`, `repl`, `profile_runtime` | rok's own `-O0` backend, the REPL host, the runtime of `-C profile-generate` |
+
+A specification has a stable hash; every build cache keys on it.

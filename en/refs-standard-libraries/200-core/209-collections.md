@@ -553,7 +553,7 @@ impl<T> GcBuf<T> {
     #[intrinsic("rok.buf_new")]
     unsafe fn new(len: usize) -> GcBuf<T>;           // every word set to 0 (null)
     #[intrinsic("rok.buf_get")]
-    unsafe fn get(self, i: usize) -> T;        // panics when out of range
+    unsafe fn get(self, i: usize) -> T;        // no bounds check (the owner tracks the length)
     #[intrinsic("rok.buf_set")]
     unsafe fn set(self, i: usize, v: T);       // includes the write barrier
 }
@@ -564,5 +564,8 @@ Each element occupies one word. Ordinary user code uses `List<T>`; `GcBuf<T>` is
 `GcBuf<T>` and its primitives (`buf_new` / `buf_get` / `buf_set`, `new` / `get` / `set`, indexing a `GcBuf`) are `unsafe`: they skip the element-type and initialization checks the collections keep.
 
 ```rok
+#[intrinsic("rok.buf_same")]
 fn buf_same<T>(a: GcBuf<T>, b: GcBuf<T>) -> bool;   // whether they are the same buffer (identity, not contents). Pins nothing
+#[intrinsic("rok.buf_erase")]
+pub(pkg) fn buf_erase<T>(buf: GcBuf<T>) -> GcBuf<u8>;   // typed as GcBuf<u8> for runtime parameters taking any GC object
 ```

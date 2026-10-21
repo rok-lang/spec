@@ -33,6 +33,7 @@ Language defaults (lowercase struct, no `#[keyword]` needed):
 | `bool_type`  | `bool` primitive             | `rok::core::num::bool`   | 2.1  |
 | `cchar_type` | `c_char` primitive (FFI)     | `rok::core::str::c_char` | 2.15 |
 | `str_type`   | `str` primitive (UTF-8 view) | `rok::core::str::str`    | 2.15 |
+| `char_type`  | `char` primitive (Unicode scalar) | `char` (methods: `rok::core::str`) | 2.15 |
 
 Second, there are the PascalCase types additionally provided by the standard library. These expose a familiar lowercase alias to users separately via `#[keyword(...)]`; items directly entangled with language syntax gather here, such as the auto-promoting `int` and `float`, the `none` sentinel, and the `Range` literal.
 
@@ -43,8 +44,9 @@ Standard library additions (PascalCase struct + `#[keyword(...)]`):
 | `none_type`  | Type of the `none` literal    | `rok::core::marker::NoneSentinel`                         | 2.13 |
 | `int_type`   | `int` auto-promote type       | `rok::core::num::Int` + `#[keyword("int")]`               | 2.1  |
 | `float_type` | `float` auto-promote type     | `rok::core::num::Float` + `#[keyword("float")]`           | 2.1  |
-| `char_type`  | `char` Unicode scalar         | `rok::core::str::Char` + `#[keyword("char")]`             | 2.15 |
 | `range_type` | `Range<T>` (`a..b`)           | `rok::core::iter::Range` + `#[literal( expr ".." expr )]` | 2.7  |
+
+A compiler that provides the primitive types built in may leave `i32_type` … `str_type`, `none_type` and `char_type` unattached.
 
 ## 0.4.3. Trait slots (30)
 
@@ -89,7 +91,7 @@ Next come the operator trait slots. The dispatch target of an operator token is 
 | `sync_trait`        | Auto marker — safe to share across threads | `rok::core::marker::Sync`  | 2.13 |
 
 > [!NOTE]
-> Comparison slot names and trait names do not correspond one-to-one. `eq_trait` is attached to `PartialEq`, which defines the equality operators, and `cmp_trait` to `PartialOrd`, which defines the ordering operators. The marker trait `Eq` has no methods and the compiler never needs to find it by name, so it has no slot.
+> Comparison slot names and trait names do not correspond one-to-one. `eq_trait` is attached to `PartialEq`, which defines the equality operators, and `cmp_trait` to `PartialOrd`, which defines the ordering operators. The marker traits `Eq`, `Copy` and `Default` have no slots: sum types get them structurally (`T | none` is `Eq` when `T` is; its `Default` is `none`), so the compiler finds them by their fixed paths in `rok::core`.
 
 ## 0.4.4. Function slots (3)
 

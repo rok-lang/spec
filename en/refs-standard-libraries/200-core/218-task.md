@@ -29,6 +29,8 @@ fn readable(fd: i32) -> IoReady;                       // await — until fd bec
 fn writable(fd: i32) -> IoReady;
 ```
 
+`sleep` and `timeout` measure their duration from the first poll.
+
 ### Example
 
 ```rok
@@ -229,7 +231,7 @@ let r = try await t.join() catch _: CancellationError { fallback() };
 The separate `thread` module spawns **OS threads** directly rather than using the M:N model.
 
 ```rok
-use rok::core::thread::*;
+use rok::std::thread;
 
 let t = thread::spawn { os_level_work() };
 let r = t.join();              // OS-level synchronous wait

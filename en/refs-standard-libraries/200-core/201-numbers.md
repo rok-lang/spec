@@ -202,8 +202,8 @@ Language built-ins are tokens the compiler (lexer/parser) recognizes directly, s
 does not register them as keywords. This automatically guarantees that users cannot
 redefine these names.
 
-The standard library additions (`int` / `float` / `char`), in contrast, are registered with `#[keyword(...)]`.
-The `#[keyword]` attribute is attached to the `Int` / `Float` / `Char` definitions in this module ([refs-lang
+The standard library additions (`int` / `float`), in contrast, are registered with `#[keyword(...)]`.
+The `#[keyword]` attribute is attached to the `Int` / `Float` definitions in this module ([refs-lang
 6.6](../../refs-lang/006-meta-system/606-keyword-magic.md) is authoritative).
 
 ### Standard library form of the built-in primitives

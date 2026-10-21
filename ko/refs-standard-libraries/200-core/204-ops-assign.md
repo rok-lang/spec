@@ -248,3 +248,13 @@ rok 은 `AddAssign` 을 `Add` 의 supertrait 로 묶지 **않습니다**. 따라
 ```rok
 xs.dot_add_assign(ys);    // 메서드 호출 (broadcast in-place)
 ```
+
+```rok
+impl<T> List<T> {
+    fn dot_add_assign(self, rhs: List<T>) where T: Add<Output = T>;
+    // dot_OP_assign 도 같음 — OP 는 add, sub, mul, div, rem, modulo,
+    // bitand, bitor, bitxor, shl, shr 이며 각각 T: OP<Output = T> 필요
+}
+```
+
+길이가 같아야 하며, 다르면 panic 입니다. `Slice` 형태는 없습니다.

@@ -4,7 +4,7 @@
 
 | 파일        | 내용                                                                          |
 |-------------|-------------------------------------------------------------------------------|
-| `libfoo.a`  | concrete 코드의 object `foo.o` 하나를 담은 표준 `ar` archive                  |
+| `libfoo.a`  | 패키지의 object 를 codegen unit 마다 하나씩 담은 표준 `ar` archive ([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |
 | `foo.rokhir`  | 다운스트림이 단형화와 이름 해소에 쓰는 인터페이스 ([9.4](904-rokhir-bytecode.md)) |
 
 두 파일은 같은 디렉토리에 놓입니다. `--extern foo=libfoo.a` 와 `--extern foo=foo.rokhir` 는 서로 옆의 짝을 찾습니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 버전과 producer 같은 메타는 ROKHIR 의 header 에 있습니다 ([9.4](904-rokhir-bytecode.md)).
@@ -15,12 +15,14 @@
 
 ```
 ar t libfoo.a
-foo.o
+part0.o
+part1.o
+...
 ```
 
-## 9.3.2. `foo.o`
+## 9.3.2. object
 
-[AOT 빌드 파이프라인](902-aot-pipeline.md) 이 만든 표준 ELF / Mach-O / COFF object 입니다. 패키지의 [concrete fn](../000-meta/007-glossary.md#concrete-fn--generic-fn) 가운데 패키지의 root 에서 닿는 것만 담습니다 ([9.2.8](902-aot-pipeline.md#928-specialize-단형화)).
+각 object 는 [AOT 빌드 파이프라인](902-aot-pipeline.md) 이 codegen unit 하나에 대해 만든 표준 ELF / Mach-O / COFF object 입니다. 모두 합쳐 패키지의 [concrete fn](../000-meta/007-glossary.md#concrete-fn--generic-fn) 가운데 패키지의 root 에서 닿는 것만 담습니다 ([9.2.8](902-aot-pipeline.md#928-specialize-단형화)).
 
 | 섹션      | 내용                                                        |
 |-----------|-------------------------------------------------------------|
@@ -41,7 +43,7 @@ ScanTable 은 일반 상수 데이터이며, 생성된 등록 코드가 프로�
 
 ## 9.3.5. 심볼 노출
 
-archive 가 노출하는 심볼은 `foo.o` 의 전역 심볼이며, [심볼 맹글링](905-symbol-mangling.md) 을 따릅니다.
+archive 가 노출하는 심볼은 그 object 들의 전역 심볼이며, [심볼 맹글링](905-symbol-mangling.md) 을 따릅니다.
 
 ```
 nm libfoo.a

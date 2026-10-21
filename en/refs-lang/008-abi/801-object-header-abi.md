@@ -104,7 +104,7 @@ The alignment requirement at each location is as follows.
 | payload start (offset 16) | 8 bytes (automatic, since the header is 16 bytes) |
 | Each field               | The alignment of its type           |
 
-If a field inside `payload` requires alignment greater than 8 bytes (e.g. `#[repr(align(16))]`), the object start is aligned to that amount as well.
+If a field inside `payload` requires alignment greater than 8 bytes (e.g. `#[repr(align(16))]`), the payload start is aligned to that amount: the header sits 16 bytes before an aligned address, and the gap before it belongs to the collector ([8.1.4](#814-gc_word-offset-8-u64-or-ptr)).
 
 ## 8.1.7. Total size of header + payload
 

@@ -4,7 +4,7 @@ The build output of a library package `foo` is two files ([9.2.15](902-aot-pipel
 
 | File        | Contents                                                                      |
 |-------------|-------------------------------------------------------------------------------|
-| `libfoo.a`  | A standard `ar` archive holding a single object `foo.o` with the concrete code |
+| `libfoo.a`  | A standard `ar` archive holding the package's objects, one per codegen unit ([9.2.16](902-aot-pipeline.md#9216-incremental-build)) |
 | `foo.rokhir`  | The interface used downstream for monomorphization and name resolution ([9.4](904-rokhir-bytecode.md)) |
 
 The two files sit in the same directory. `--extern foo=libfoo.a` and `--extern foo=foo.rokhir` each locate the sibling ([9.2.3](902-aot-pipeline.md#923-dependency-resolution)). Metadata such as version and producer is in the ROKHIR header ([9.4](904-rokhir-bytecode.md)).
@@ -15,12 +15,14 @@ The two files sit in the same directory. `--extern foo=libfoo.a` and `--extern f
 
 ```
 ar t libfoo.a
-foo.o
+part0.o
+part1.o
+...
 ```
 
-## 9.3.2. `foo.o`
+## 9.3.2. The objects
 
-A standard ELF / Mach-O / COFF object produced by the [AOT build pipeline](902-aot-pipeline.md). It contains only those of the package's [concrete fns](../000-meta/007-glossary.md#concrete-fn--generic-fn) reachable from the package's roots ([9.2.8](902-aot-pipeline.md#928-specialize-monomorphization)).
+Each object is a standard ELF / Mach-O / COFF object produced by the [AOT build pipeline](902-aot-pipeline.md) for one codegen unit. Together they contain only those of the package's [concrete fns](../000-meta/007-glossary.md#concrete-fn--generic-fn) reachable from the package's roots ([9.2.8](902-aot-pipeline.md#928-specialize-monomorphization)).
 
 | Section   | Contents                                                    |
 |-----------|-------------------------------------------------------------|
@@ -41,7 +43,7 @@ When a dependency's ROKHIR is read, its `version` and producer (the `rokc` that 
 
 ## 9.3.5. Symbol exposure
 
-The symbols an archive exposes are the global symbols of `foo.o`, following [Symbol mangling](905-symbol-mangling.md).
+The symbols an archive exposes are the global symbols of its objects, following [Symbol mangling](905-symbol-mangling.md).
 
 ```
 nm libfoo.a

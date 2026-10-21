@@ -64,3 +64,16 @@ Operations on almost all values outside the list above are the library's decisio
 Instead, the specification states the following: which trait method call the operation desugars into; the location convention for which library tier defines that trait; and the form of the compile error that occurs when it is not defined.
 
 This split is how rok's design slogan, "a small language, rich libraries", is realized at the specification level.
+
+## 0.4.4. Implementation limits
+
+The language sets no fixed limits on nesting, chain length, value size or compile-time evaluation. An implementation may set its own; they are implementation-defined, not language requirements. rok's are:
+
+| Limit | rok |
+|-------|-----|
+| Parser nesting depth | 256 |
+| Operator / postfix chain links ([3.2.6a](../003-expressions/302-precedence-and-associativity.md#326a-implementation-limits)) | 4096 |
+| Value type size ([2.6.3](../002-types/206-sum-types.md)) | 65536 flattened scalar slots or 4 GiB |
+| `const` evaluation ([5.2.4](../005-modules/502-const.md)) | 4,000,000 steps, call depth 128 |
+
+Exceeding one is a compile error.

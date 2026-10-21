@@ -86,7 +86,7 @@ This scheme was chosen for the following reasons.
 
 ## 8.6.6. rok-to-rok calling convention
 
-Calls between rok functions pass scalars in the registers of 8.6.2. Aggregates (structs, tuples, arrays, `str`) are passed and returned as first-class aggregates, lowered the way LLVM's SelectionDAG lowers them on the target. Both backends produce exactly this lowering, so code from either calls the other. It differs from the C ABI classification of 8.6.3.
+Calls between rok functions pass scalars in the registers of 8.6.2. An aggregate (struct, tuple, array, `str`) over 64 bytes is passed by address, as a pointer to a caller-owned copy, and returned through a leading result pointer; this holds for every rok-to-rok call, including calls into prebuilt code, exported functions and function values. Smaller aggregates are passed and returned as first-class aggregates, lowered the way LLVM's SelectionDAG lowers them on the target. Both backends produce exactly this lowering, so code from either calls the other. It differs from the C ABI classification of 8.6.3. The rules below apply to aggregates of 64 bytes or less.
 
 **Arguments**
 
@@ -108,7 +108,7 @@ Calls between rok functions pass scalars in the registers of 8.6.2. Aggregates (
 
 A callee must not rely on the upper bits of narrow integer or `bool` arguments and results; a caller may extend them. The native backend masks an incoming `bool` to bit 0 and re-extends narrow values.
 
-A function no other module can reach (internal, never used as a value) may use an implementation-defined convention; rokc passes aggregates over 64 bytes to such functions by address and returns them through a leading result pointer.
+A function no other module can reach (internal, never used as a value) may use an implementation-defined convention.
 
 Calls to `extern "C"` and `extern "rok"` runtime functions use the C ABI rules of 8.6.1–8.6.5.
 

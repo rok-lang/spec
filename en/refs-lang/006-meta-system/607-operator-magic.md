@@ -147,7 +147,7 @@ Only the token differs; the registration mechanism is exactly the same.
 
 ## 6.7.8. Visibility of mappings
 
-A registration through attributes such as `#[infix]` takes effect only where the trait is visible. Where the trait is not visible, the operator does not work either.
+A registration through attributes such as `#[infix]` takes effect only where the trait is visible. Visible means accessible under [5.6](../005-modules/506-visibility.md): a `pub` trait reachable by path suffices; no `use` is needed. Where the trait is not visible, the operator does not work either.
 
 This rule fits library isolation: a user-defined operator trait defined in a package works only in code that imports that package.
 

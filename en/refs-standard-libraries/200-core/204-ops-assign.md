@@ -248,3 +248,13 @@ Where needed, the user calls a method such as `dot_add_assign` explicitly.
 ```rok
 xs.dot_add_assign(ys);    // method call (broadcast in place)
 ```
+
+```rok
+impl<T> List<T> {
+    fn dot_add_assign(self, rhs: List<T>) where T: Add<Output = T>;
+    // likewise dot_OP_assign for OP in add, sub, mul, div, rem, modulo,
+    // bitand, bitor, bitxor, shl, shr — each requiring T: OP<Output = T>
+}
+```
+
+The lengths must match; otherwise it panics. There is no `Slice` form.

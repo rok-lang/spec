@@ -40,7 +40,7 @@ impl Command {
 
     // execution
     fn spawn(self) throws (IoError) -> Child;
-    fn output(self) throws (IoError) -> Output;          // wait + collect
+    fn output(self) throws (IoError) -> Output;          // wait + collect: stdout / stderr left at Inherit are piped; an Inherit stdin is null
     fn status(self) throws (IoError) -> ExitStatus;      // wait, no output
 }
 

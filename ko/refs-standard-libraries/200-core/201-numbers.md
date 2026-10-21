@@ -204,8 +204,8 @@ impl Float {
 별도로 키워드 등록을 하지 않습니다. 그 결과 사용자가 이 이름들을 재정의할 수
 없다는 사실이 자동으로 보장됩니다.
 
-이에 비해 표준 라이브러리 추가 (`int` / `float` / `char`) 는 `#[keyword(...)]` 로
-등록됩니다. 이 모듈의 `Int` / `Float` / `Char` 정의에서 `#[keyword]` attribute
+이에 비해 표준 라이브러리 추가 (`int` / `float`) 는 `#[keyword(...)]` 로
+등록됩니다. 이 모듈의 `Int` / `Float` 정의에서 `#[keyword]` attribute
 가 부착됩니다 ([refs-lang
 6.6](../../refs-lang/006-meta-system/606-keyword-magic.md) 가 권위입니다).
 

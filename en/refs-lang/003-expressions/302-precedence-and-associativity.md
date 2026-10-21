@@ -120,7 +120,7 @@ Parentheses act as grouping tokens in the lexical and syntactic phases and direc
 
 ## 3.2.6a. Implementation limits
 
-A chain of more than 4096 operators / postfix operations is an error (parser limit).
+A chain of more than 4096 operators / postfix operations, or nesting deeper than 256, is an error. These are rok's limits (implementation-defined, [0.4.4](../000-meta/004-language-vs-standard-libraries.md#044-implementation-limits)).
 
 ## 3.2.7. Two tokens with the same precedence and different associativity
 

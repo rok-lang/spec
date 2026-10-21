@@ -200,7 +200,7 @@ User: User { id: 1, name: "Alice" }
 | `Reflect` 자동   | 컴파일러 + `rok::core::reflect`                   | type info table — binary 부착 |
 | `Inspect` derive | `rok::core::reflect` + 메타 블록 `#[impl_derive]` | template token 기반 코드 생성 |
 | `MethodInfo`     | `rok::core::reflect`                              | 단순 struct                   |
-| `any` 타입       | 컴파일러 내장 + `rok::core::reflect::any`         | type tag + payload            |
+| `any` 타입       | 컴파일러 내장                                     | type tag + payload            |
 
 ## 2.12.6. 다른 언어와의 비교
 

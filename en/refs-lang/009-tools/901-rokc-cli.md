@@ -64,7 +64,7 @@ The package name (the output name) is the name of the package directory; for an 
 rokc build [path]
 ```
 
-`[path]` follows the package selection rules above. Output is placed in the per-profile `target/` of [9.2.15](902-aot-pipeline.md#9215-output). An executable package produces `target/<profile>/<name>`; a library package produces `target/<profile>/lib<name>.a` (and `<name>.o`) plus the interface `target/<profile>/<name>.rokhir` ([9.4](904-rokhir-bytecode.md)). The profile is `release` for `-O2` / `-O3` / `-Os` (including `--release`) and `debug` otherwise; with `--target=<triple>` the directory is `target/<triple>/<profile>/`. If `--target-dir=<dir>` or `ROKC_TARGET_DIR` is set, that directory is used instead of `target/`.
+`[path]` follows the package selection rules above. Output is placed in the per-profile `target/` of [9.2.15](902-aot-pipeline.md#9215-output). An executable package produces `target/<profile>/<name>`; a library package produces `target/<profile>/lib<name>.a` plus the interface `target/<profile>/<name>.rokhir` ([9.4](904-rokhir-bytecode.md)). The profile is `release` for `-O2` / `-O3` / `-Os` (including `--release`) and `debug` otherwise; with `--target=<target>` the directory is `target/<name>/<profile>/`. If `--target-dir=<dir>` or `ROKC_TARGET_DIR` is set, that directory is used instead of `target/`.
 
 Options:
 
@@ -74,7 +74,7 @@ Options:
 - `--name <n>` sets the package name (naming rules of [9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)). The outputs are `lib<n>.a` / `<n>.rokhir` and the mount name is the name with `-` replaced by `_`. The default is the directory name. `--extern a-b=..` is likewise bound as `a_b`.
 - `--bootstrap <file>` gives a standard library root to preload (may be repeated); `--rokr <lib>` gives the runtime to link. The defaults are the sysroot's `lib/rok/{core,std,bare}/lib.rok` and `lib/librokr.a` ([9.2.19](902-aot-pipeline.md#9219-installation-layout)). If not found, it is an error that lists the paths searched.
 - `-O0` / `-O1` / `-O2` / `-O3` / `-Os` select the optimization level explicitly. `-O0` uses the native backend, the others the MLIR → LLVM backend ([9.2.10](902-aot-pipeline.md#9210-backend-selection)).
-- `--target=<triple>` selects the target platform, one of the 14 Tier 1 targets in [Platform targets](../000-meta/006-platform-targets.md). Any target can be built from any host ([0.2.4](../000-meta/002-pipeline.md#024-backends)).
+- `--target=<target>` selects the target platform: a built-in name such as the 14 Tier 1 targets of [Platform targets](../000-meta/006-platform-targets.md), or a `<name>.rokon` target specification file ([0.6.5](../000-meta/006-platform-targets.md#065-target-specifications)). Any target can be built from any host ([0.2.4](../000-meta/002-pipeline.md#024-backends)).
 - `-L <dir>` adds a library search directory for `#[link]` ([5.9.9](../005-modules/509-extern-block.md#599-linklibname-naming-the-library)), searched before `LIBRARY_PATH`. May be repeated.
 - `-l [static=|dylib=]<name>` links the library `<name>` (searched like `#[link]`), and `--native-runtime <file>` names a shared library to ship beside the executable ([9.2.14](902-aot-pipeline.md#9214-linking-for-executables)). Both may be repeated; `rok` passes them for native packages ([9.10.4b](910-rok-frontend.md#9104b-native-packages)).
 - `-o` / `--out=<path>` selects the output location.
@@ -348,7 +348,7 @@ Prints one line `rokc <version> (<commit> <date>)` to stdout. With `-v`, `host: 
 ### `rokc --print cfg`: active cfg
 
 ```
-rokc --print cfg [--target=<triple>] [-O<n>] [--cfg ..]
+rokc --print cfg [--target=<target>] [-O<n>] [--cfg ..]
 ```
 
 Prints the cfg of the build the options describe ([6.3](../006-meta-system/603-cfg.md)), one per line: a flag as `flag`, a key as `key="value"` (as rustc does). The keys include `target_env`, and `debug_assertions` is set at `-O0`.
@@ -361,6 +361,15 @@ target_family="unix"
 target_os="macos"
 target_pointer_width="64"
 ```
+
+### `rokc --print target-list` / `target-spec`: targets
+
+```
+rokc --print target-list
+rokc --print target-spec [--target=<target>]
+```
+
+`target-list` prints the built-in target names, one per line. `target-spec` prints the target's specification as ROKON ([0.6.5](../000-meta/006-platform-targets.md#065-target-specifications)); without `--target`, the host's.
 
 ### `rokc help`: help
 
@@ -383,6 +392,7 @@ The global options are listed below. They may appear before or after the subcomm
 | `--color=auto\|always\|never`    | Colored diagnostic output                                   |
 | `--no-color`                     | Equivalent to `--color=never`                               |
 | `--cwd=<path>`                   | Change working directory before running                     |
+| `--print cfg\|target-list\|target-spec` | Print the active cfg, the built-in target names, or a target's specification (9.1.4) |
 | `--message-format=human\|json`   | Diagnostic format. `json` writes one line per diagnostic to stdout (9.1.8) |
 | `-A` / `-W` / `-D <lint \| group>` | Lint level (`--allow` / `--warn` / `--deny`). Applies to `check` / `lint` / `lsp`. May be repeated; the later one wins |
 

@@ -64,7 +64,7 @@ option          ::= "--" identifier ("=" value)?
 rokc build [path]
 ```
 
-`[path]` 는 위의 패키지 지정 규칙을 따릅니다. 산출물은 [9.2.15](902-aot-pipeline.md#9215-산출물) 의 profile 별 `target/` 에 놓입니다. 실행 패키지는 `target/<profile>/<name>`, 라이브러리 패키지는 `target/<profile>/lib<name>.a` (와 `<name>.o`) 와 인터페이스 `target/<profile>/<name>.rokhir` ([9.4](904-rokhir-bytecode.md)) 입니다. profile 은 `-O2` / `-O3` / `-Os` (`--release` 포함) 이면 `release`, 그 밖에는 `debug` 이며, `--target=<triple>` 이면 `target/<triple>/<profile>/` 입니다. `--target-dir=<dir>` 나 `ROKC_TARGET_DIR` 이 있으면 `target/` 대신 그 디렉토리를 씁니다.
+`[path]` 는 위의 패키지 지정 규칙을 따릅니다. 산출물은 [9.2.15](902-aot-pipeline.md#9215-산출물) 의 profile 별 `target/` 에 놓입니다. 실행 패키지는 `target/<profile>/<name>`, 라이브러리 패키지는 `target/<profile>/lib<name>.a` 와 인터페이스 `target/<profile>/<name>.rokhir` ([9.4](904-rokhir-bytecode.md)) 입니다. profile 은 `-O2` / `-O3` / `-Os` (`--release` 포함) 이면 `release`, 그 밖에는 `debug` 이며, `--target=<target>` 이면 `target/<name>/<profile>/` 입니다. `--target-dir=<dir>` 나 `ROKC_TARGET_DIR` 이 있으면 `target/` 대신 그 디렉토리를 씁니다.
 
 옵션은 다음과 같습니다.
 
@@ -74,7 +74,7 @@ rokc build [path]
 - `--name <n>` 은 패키지 이름 ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock) 의 이름 규칙) 을 정합니다. 산출물은 `lib<n>.a` / `<n>.rokhir` 이고 mount 이름은 `-` 를 `_` 로 바꾼 것입니다. 기본은 디렉토리 이름입니다. `--extern a-b=..` 도 `a_b` 로 묶습니다.
 - `--bootstrap <file>` 은 미리 읽을 표준 라이브러리 루트 (여러 번 가능), `--rokr <lib>` 는 링크할 런타임입니다. 기본값은 sysroot 의 `lib/rok/{core,std,bare}/lib.rok` 와 `lib/librokr.a` 입니다 ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)). 찾지 못하면 찾아본 경로를 나열하는 에러입니다.
 - `-O0` / `-O1` / `-O2` / `-O3` / `-Os` 는 최적화 단계를 명시적으로 지정합니다. `-O0` 은 native backend 를, 나머지는 MLIR → LLVM backend 를 씁니다 ([9.2.10](902-aot-pipeline.md#9210-backend-선택)).
-- `--target=<triple>` 은 타깃 플랫폼을 지정하며, [플랫폼 타깃](../000-meta/006-platform-targets.md) 의 14 개 Tier 1 중 하나를 사용합니다. 어느 host 에서나 어느 대상이든 빌드할 수 있습니다 ([0.2.4](../000-meta/002-pipeline.md#024-backend)).
+- `--target=<target>` 은 타깃 플랫폼을 지정합니다: [플랫폼 타깃](../000-meta/006-platform-targets.md) 의 14 개 Tier 1 같은 내장 이름, 또는 `<name>.rokon` 타깃 명세 파일 ([0.6.5](../000-meta/006-platform-targets.md#065-타깃-명세)). 어느 host 에서나 어느 대상이든 빌드할 수 있습니다 ([0.2.4](../000-meta/002-pipeline.md#024-backend)).
 - `-L <dir>` 은 `#[link]` 의 라이브러리 검색 디렉토리를 더합니다 ([5.9.9](../005-modules/509-extern-block.md#599-linklibname-라이브러리-명시)). `LIBRARY_PATH` 보다 먼저 찾습니다. 여러 번 쓸 수 있습니다.
 - `-l [static=|dylib=]<name>` 은 라이브러리 `<name>` 을 링크하며 (`#[link]` 처럼 찾음), `--native-runtime <file>` 은 실행 파일 옆에 둘 공유 라이브러리를 지정합니다 ([9.2.14](902-aot-pipeline.md#9214-링킹-실행-파일의-경우)). 둘 다 여러 번 쓸 수 있으며, `rok` 가 native 패키지에 대해 넘깁니다 ([9.10.4b](910-rok-frontend.md#9104b-native-패키지)).
 - `-o` / `--out=<path>` 는 출력 위치를 지정합니다.
@@ -348,7 +348,7 @@ stdout 에 `rokc <버전> (<commit> <date>)` 한 줄을 출력합니다. `-v` �
 ### `rokc --print cfg`: 활성 cfg
 
 ```
-rokc --print cfg [--target=<triple>] [-O<n>] [--cfg ..]
+rokc --print cfg [--target=<target>] [-O<n>] [--cfg ..]
 ```
 
 옵션이 가리키는 빌드의 cfg ([6.3](../006-meta-system/603-cfg.md)) 를 한 줄에 하나씩 출력합니다: 플래그는 `flag`, 키는 `key="value"` (rustc 와 같음). 키에는 `target_env` 가 있고, `debug_assertions` 는 `-O0` 에서 켜집니다.
@@ -361,6 +361,15 @@ target_family="unix"
 target_os="macos"
 target_pointer_width="64"
 ```
+
+### `rokc --print target-list` / `target-spec`: 타깃
+
+```
+rokc --print target-list
+rokc --print target-spec [--target=<target>]
+```
+
+`target-list` 는 내장 타깃 이름을 한 줄에 하나씩 출력합니다. `target-spec` 은 타깃의 명세를 ROKON 으로 출력하며 ([0.6.5](../000-meta/006-platform-targets.md#065-타깃-명세)), `--target` 이 없으면 host 의 것입니다.
 
 ### `rokc help`: 도움말
 
@@ -383,6 +392,7 @@ rokc <subcommand> --help
 | `--color=auto\|always\|never`    | 진단의 색상 출력                                            |
 | `--no-color`                     | `--color=never` 와 같음                                     |
 | `--cwd=<path>`                   | 작업 디렉토리를 바꾼 뒤 실행                                |
+| `--print cfg\|target-list\|target-spec` | 활성 cfg, 내장 타깃 이름, 타깃 명세를 출력 (9.1.4) |
 | `--message-format=human\|json`   | 진단 형식. `json` 은 stdout 에 한 줄씩 (9.1.8)              |
 | `-A` / `-W` / `-D <lint \| group>` | lint 수준 (`--allow` / `--warn` / `--deny`). `check` / `lint` / `lsp` 에 적용. 여러 번 쓸 수 있고 뒤의 것이 이김 |
 

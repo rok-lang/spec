@@ -101,7 +101,7 @@ const TWELVE: i64 = gcd(24i64, 36i64);          // 컴파일 타임
 let y = double(user_input);                      // 런타임 호출
 ```
 
-- `const fn` 은 `const fn` 만 부를 수 있습니다. 표준 라이브러리는 순수 함수를 `const fn` 으로 표시합니다.
+- `const fn` 은 `const fn` 만 부를 수 있습니다. `const fn` 안에서 `fn` 값이나 클로저를 통한 호출은 정적 검사가 따라갈 수 없으므로 평가될 때에만 검사합니다. 표준 라이브러리는 순수 함수를 `const fn` 으로 표시합니다.
 - 본체는 순수해야 합니다. I/O 와 전역 mutable 접근은 에러입니다.
 - 컴파일 타임 평가에 성공한 결과는 같은 인자의 런타임 결과와 같습니다. 런타임에 overflow 할 연산은 컴파일 타임에 에러입니다 (5.2.4).
 - 타입을 인자로 받을 수 없습니다 (`const fn sizeof(T: type)` 는 에러). 타입 introspection 은 메타 블록의 영역입니다.

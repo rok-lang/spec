@@ -158,7 +158,7 @@ target/debug/build/foo.o
 
 ## 9.2.13. Archives
 
-A library package puts its objects into a standard `ar` archive, written by `rokc` itself, and writes the interface file `foo.rokhir` ([ROKHIR format](904-rokhir-bytecode.md)) next to it.
+A library package puts its objects, one per codegen unit (9.2.16), into a standard `ar` archive written by `rokc` itself, and writes the interface file `foo.rokhir` ([ROKHIR format](904-rokhir-bytecode.md)) next to it.
 
 ```
 target/debug/libfoo.a
@@ -185,7 +185,6 @@ target/
 │   ├── foo                     # executable (for main)
 │   ├── libfoo.a                # package archive (for lib)
 │   ├── foo.rokhir                # interface (for lib, 9.4)
-│   ├── foo.o                   # the archive's object (for lib)
 │   ├── build/                  # intermediates and --emit output (foo.mlir, ...)
 │   └── deps/                   # prebuilt dependencies (lib<dep>.a, <dep>.rokhir, <dep>.fp)
 ├── release/                    # --release
@@ -198,7 +197,7 @@ target/
 | Output          | Path                                                              |
 |-----------------|-------------------------------------------------------------------|
 | Executable      | `target/<profile>/<name>`                                         |
-| Library         | `target/<profile>/lib<name>.a` and `target/<profile>/<name>.o`    |
+| Library         | `target/<profile>/lib<name>.a`                                    |
 | `--emit=<kind>` | `target/<profile>/build/<name>.<ext>` (`hir` `mir` `mlir` `ll` `s` `o`) |
 | Intermediates   | `target/<profile>/build/`                                         |
 | Dependencies    | `target/<profile>/deps/` (`lib<dep>.a`, `<dep>.rokhir`, `<dep>.fp`, 9.2.3) |
@@ -223,13 +222,14 @@ A native build without `--cfg`, `--target`, MLIR plugins, profile options or `-O
 
 ### Codegen units
 
-Within a package, a build that is not `Fresh` reuses compiled code by codegen units. rokc divides an executable's code into units: each module of the package is one, and so is each module of a library whose instances it compiles (instances may be spread over several units by their type arguments), plus one unit for what the program has once (statics, the C `main`, GC type registration).
+Within a package, a build that is not `Fresh` reuses compiled code by codegen units. rokc divides a package's code (an executable's or a library's) into units: each module of the package is one, and so is each module of a library whose instances it compiles (instances may be spread over several units by their type arguments), plus one unit for what the program has once (statics, the C `main`, GC type registration).
 
 - A unit is compiled only when its key changed since the last build into the same target directory. Otherwise its result, kept under `target/<profile>/incremental/<name>/`, is reused; then everything is linked.
-- A unit's key covers its functions' code, the signatures and code-generation facts of what it uses from other units (a function's signature change recompiles its callers' units), the statics and GC types it uses, the target, the optimization level, the code generation options and the compiler's identity.
-- Symbols and GC type ids do not depend on what other units contain ([9.5.7](905-symbol-mangling.md#957-collision-avoidance-typehash-stability)), so the executable is the one a clean build makes.
+- An anonymous file's units are kept in the target directory used without a package (`--target-dir`, `ROKC_TARGET_DIR`, else `<system temporary directory>/rokc-target/`), under `[<triple>/]<profile>/incremental/<stem>-<hash of its path>/`.
+- A unit's key covers its functions' code, the signatures and code-generation facts of what it uses from other units (a function's signature change recompiles its callers' units), the statics and GC types it uses, the target, the optimization level, the code generation options, the compiler's identity and, under `-g`, the paths of the source files its debug info names (adding a file recompiles only the units that refer to it).
+- Symbols and GC type ids do not depend on what other units contain (a unit reads GC type ids from symbols the package's shared unit defines; [9.5.7](905-symbol-mangling.md#957-collision-avoidance-typehash-stability)), so the output is the one a clean build makes.
 - Optimized builds still inline across units (ThinLTO, whose per-unit results are cached too).
-- Profile-guided builds (`-C profile-generate`, `-C profile-use`), builds with MLIR plugins or passes, and library packages are compiled whole.
+- Profile-guided builds (`-C profile-generate`, `-C profile-use`), and builds with MLIR plugins or passes are compiled whole.
 - `-v` reports how many units were reused and compiled; `-vv` names the compiled ones.
 
 ## 9.2.17. Separation of compiler and runtime

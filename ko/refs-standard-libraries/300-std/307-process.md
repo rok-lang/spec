@@ -40,7 +40,7 @@ impl Command {
 
     // 실행
     fn spawn(self) throws (IoError) -> Child;
-    fn output(self) throws (IoError) -> Output;          // wait + collect
+    fn output(self) throws (IoError) -> Output;          // 대기 + 수집: Inherit 인 stdout / stderr 는 pipe, Inherit 인 stdin 은 null
     fn status(self) throws (IoError) -> ExitStatus;      // wait, no output
 }
 

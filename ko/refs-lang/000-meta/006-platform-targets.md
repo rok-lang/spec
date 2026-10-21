@@ -67,3 +67,25 @@ rok 은 LLVM 이 코드 생성을 지원하는 플랫폼이라면 어느 host �
 | `wasm32`  | WASM SIMD128        |
 
 다만 SIMD 의 라이브러리 표면 자체는 본 사양의 다른 문서에서 별도로 정의하고 있으니, 그쪽을 함께 참고합니다.
+
+## 0.6.5. 타깃 명세
+
+모든 타깃은 하나의 타깃 명세로 기술됩니다. 컴파일러, 링커, 런타임 빌드는 타깃에 대해 그 밖의 것을 읽지 않습니다. 타깃은 `--target` 으로 지정합니다: 내장 이름 (`rokc --print target-list`: 0.6.1 의 Tier 1 타깃과 0.6.2 의 타깃), 또는 ROKON 값 `TargetSpec { .. }` 을 담은 파일 `<name>.rokon` 의 경로 (custom 타깃, 이름은 파일의 stem).
+
+`rokc --print target-spec [--target=<t>]` 은 타깃의 명세를 그 형태로 출력하므로, custom 타깃은 보통 내장 타깃의 사본에서 시작합니다. custom 파일은 모든 필드를 주어야 하며, 모르는 필드는 에러입니다. custom 타깃의 런타임과 (그 타깃이 제공한다면) C 라이브러리는 toolchain 의 `lib/rok/targets/<name>/` 에서 오며, 그 디렉토리가 없으면 링크하는 빌드는 그것을 밝히며 실패합니다.
+
+| 필드 | 의미 |
+|------|------|
+| `llvm_target`, `deployment_target` | LLVM triple. 그 뒤에 붙는 최소 OS 버전 (Mach-O, `MACOSX_DEPLOYMENT_TARGET` 이 덮음) |
+| `arch`, `os`, `env`, `family`, `endian`, `pointer_width` | `target_*` cfg 값 ([6.3.2](../006-meta-system/603-cfg.md)). 비어 있는 `env` / `family` 는 키를 두지 않음 |
+| `vendor` | 정보용 |
+| `wide_align`, `max_atomic_width`, `c_abi`, `data_layout` | `i64` / `u64` / `f64` 정렬, 가장 넓은 atomic, C 호출 규약 ([8.6.3](../008-abi/806-calling-convention.md)), LLVM data layout |
+| `cpu`, `features` | 기본 CPU 와 feature (0.6.4 의 SIMD 기준선) |
+| `object_format`, `linker`, `pre_link_args`, `crt_objects`, `late_link_args` | object 형식과 lld flavor, 타깃 자체의 링커 인자, C 런타임 object, 입력 뒤의 인자나 파일 |
+| `dynamic_linking`, `dynamic_loader`, `libc` | 공유 라이브러리 지원, ELF interpreter, C 라이브러리와 그것이 toolchain 과 함께 오는지 |
+| `rust_target` | 런타임을 빌드하는 Rust 타깃 |
+| `exe_suffix`, `staticlib_prefix` / `staticlib_suffix`, `dylib_prefix` / `dylib_suffix`, `c_symbol_prefix` | 파일과 심볼 이름 |
+| `stack_size`, `stack_probes`, `threads` | main 스레드의 스택, stack probing, 스레드 지원 |
+| `native_backend`, `repl`, `profile_runtime` | rok 자신의 `-O0` backend, REPL host, `-C profile-generate` 의 런타임 |
+
+명세에는 안정된 해시가 있으며, 모든 빌드 cache 는 그것을 키로 씁니다.

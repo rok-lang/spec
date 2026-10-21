@@ -200,7 +200,7 @@ The display form is `{type_name_of}: {Debug}`. For a type without `Debug`, only 
 | `Reflect` (automatic) | compiler + `rok::core::reflect`                | type info table — attached to the binary |
 | `Inspect` derive   | `rok::core::reflect` + meta block `#[impl_derive]` | code generation from template tokens |
 | `MethodInfo`       | `rok::core::reflect`                              | plain struct                      |
-| `any` type         | compiler built-in + `rok::core::reflect::any`     | type tag + payload                |
+| `any` type         | compiler built-in                                 | type tag + payload                |
 
 ## 2.12.6. Comparison with other languages
 
