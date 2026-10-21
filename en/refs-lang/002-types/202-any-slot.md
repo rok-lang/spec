@@ -109,13 +109,13 @@ The narrowing rules are:
 - `x` is `T` in the following `&&` terms, the `then` block of `if`, and the body of `while`.
 - No narrowing happens under `||` or `!`, in the `else` block, or on field paths (`p.x is T`).
 - A variant check `x is Enum::Variant` (2.2.5) does not narrow.
-- Within the narrowed scope, `x` is a new binding of type `T`. Assigning to `x` (or its fields/elements) is converted back and written to the original slot. Assigning a value that is not `T` is a type error.
+- Within the narrowed scope, `x` has type `T`. Assigning to `x` (or its fields / elements) is converted back and written to the original slot. Assigning a value of the declared type that is not `T` ends the narrowing for the rest of that scope: `x` has its declared type again, and normal flow typing continues. Assigning a value outside the declared type is still a type error.
 
 ```rok
 let v: any = 1i32;
 if v is i32 && v > 0i32 {      // v: i32 in the second term
     v = v + 1i32;              // written to the original any slot
-    v = "x";                   // ERROR — v is i32 in the narrowed scope
+    v = "x";                   // ends the narrowing: v is any again
 }
 if v is i32 || flag { ... }    // no narrowing
 ```

@@ -47,7 +47,7 @@ The global options of `rok` are:
 | `--cwd <dir>`    | Change directory before running                                   |
 | `-q`, `--quiet`  | Reduce output                                                     |
 
-Environment variables are `ROK_HOME` (default `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6), `ROK_REGISTRY` and `ROK_REGISTRY_TOKEN` (9.10.4a).
+Environment variables are `ROK_HOME` (default `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6), `ROK_REGISTRY` (the index) and `ROK_REGISTRY_TOKEN` (the registry API token) (9.10.4a).
 
 ## 9.10.2. `rok new` / `rok init`: package creation
 
@@ -208,7 +208,7 @@ The order is `ROK_REGISTRY` > `Config { registry: "<url>" }` in `$ROK_HOME/confi
 
 ### Index format
 
-The root of the index repository has a `config.rokon` (`Registry { name, dl, api }`). A stone is one file at the shard path of its published lowercase name (`-` kept as is).
+The root of the index repository has a `config.rokon`, `Config { api: "<url>" }`: the base URL of the registry's API (`https://rokstones.io` for rokstones.io). It must be `https://`, except `http://127.0.0.1` and `http://localhost`. A stone is one file at the shard path of its published lowercase name (`-` kept as is).
 
 | Name length | Path                     |
 |-------------|--------------------------|
@@ -246,13 +246,19 @@ rok publish [--index <checkout>] [--commit]
 rok yank [--native] --vers <version> [--undo] [--index <checkout>] [name]   # name required with --native
 ```
 
-- `search` searches the index by name. Index lookups accept either spelling, `-` or `_`.
+- `search` searches the index by name and prints one line per match: `<name> <newest version> — <description>` (the description part omitted when the entry has none). Index lookups accept either spelling, `-` or `_`.
 - `publish` is a dry run by default. It requires a clean work tree, the package at the repository root, and a `lib.rok`. Normal path / git dependencies are rejected, and path / git dev dependencies are dropped. It checks for conflicts with the same version and with names equal under `-` / `_` and case folding. A name already owned under a different spelling is rejected. A dry run without `--index` only prints the entry; with `--index` it is also checked against that checkout.
-- With `--commit`, `publish` creates a commit "Publish <name> <vers>": with `--index`, in that checkout (not pushed); without it, in a fresh clone of the configured index ("Which index"), which is then pushed to the index.
-- `yank` sets (or with `--undo` clears) `yanked` for that version and commits: in the checkout given by `--index`, else in a fresh clone of the configured index, pushed.
-- Pushing to the index needs a token; an `--index` checkout needs none. The token is `ROK_REGISTRY_TOKEN` if set and non-empty, else the one `rok login` saved. Without either, it is an error "run `rok login` first".
-- `rok login` takes a GitHub token (read from standard input, not echoed, when omitted). Being allowed to publish means having write access to the index repository: `login` asks the index's git receive-pack with the token (a dry-run push; nothing is sent) and refuses a token that cannot push ("publishing is limited to the index's maintainers"). It then saves `Credentials { token: ".." }` in `$ROK_HOME/credentials.rokon` (mode 0600 on Unix). `rok logout` removes that file.
-- The token reaches git only through its environment (as an HTTPS `Authorization` header, with credential helpers disabled): never on a command line, in a url or in the clone's git config, and never printed.
+- With `--commit`, `publish` adds the entry: with `--index`, as a commit "Publish <name> <vers>" in that checkout (not pushed); without it, through the registry API of the configured index ("Which index"), which adds it to the index. The client never writes to the index repository itself.
+- `yank` sets (or with `--undo` clears) `yanked` for that version: with `--index`, as a commit in that checkout; otherwise through the registry API.
+- The registry API is at `api` of the index's `config.rokon`. Requests carry `Authorization: Bearer <token>`, and bodies are single-line ROKON (`application/rokon; charset=utf-8`):
+  - `GET <api>/api/v1/me` → `Me { login: "..", publish: <bool> }`
+  - `POST <api>/api/v1/publish`, body the index line (`Stone { .. }` / `Native { .. }`) → `Published { name, vers, file }`
+  - `POST <api>/api/v1/yank`, body `Yank { name, vers, undo: <bool>, native: <bool> }` → `Yanked { name, vers, yanked }`
+
+  A failure is a 4xx / 5xx status with `Error { message: ".." }`, whose message `rok` reports; 401 means the token is not valid.
+- The registry API needs a token; an `--index` checkout needs none. The token is `ROK_REGISTRY_TOKEN` if set and non-empty, else the one `rok login` saved. Without either, it is an error "run `rok login` first".
+- `rok login` takes a rokstones.io account token, created on the website (`<api>/me`, signed in with GitHub; currently only the registry's maintainers can create one). When the token is omitted it is read from standard input, not echoed (echo is restored on Ctrl-C). `login` asks `/api/v1/me`: it refuses a token the API rejects, and an account whose `publish` is false ("this account cannot publish yet: publishing is open to rokstones.io maintainers only"), saving nothing. Otherwise it saves `Credentials { token: ".." }` in `$ROK_HOME/credentials.rokon` (mode 0600 on Unix) and prints "Logged in as <login>". `rok logout` removes that file.
+- The token reaches `curl` only on its standard input: never on a command line or in the environment, and never printed (errors show `***`).
 
 ## 9.10.4b. Native packages
 
@@ -290,7 +296,7 @@ rok publish --native <file> [--index <dir>] [--commit]
 rok yank --native --vers <version> [--undo] [--index <dir>] <name>
 ```
 
-`publish --native` fetches and checks every target, and requires absolute urls, a license file, and dependencies from an index only. `--commit` and `yank --native` follow the stone rules: an `--index` checkout, else the configured index, pushed with the token.
+`publish --native` fetches and checks every target, and requires absolute urls, a license file, and dependencies from an index only. `--commit` and `yank --native` follow the stone rules: an `--index` checkout, else the registry API with the token (`native: true` in `Yank`).
 
 - On ELF targets a runtime library's soname must equal its file name. A `dylib` link for a `-musl` target is an error.
 - `repl` / `jupyter` load native packages: shared libraries through the system loader, static archives linked into the session. `check` / `lint` / `doc` link nothing.

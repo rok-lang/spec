@@ -160,7 +160,7 @@ This is consistent with the principle of minimizing reserved keywords in [keywor
 ## 4.8.9. Combining with named arguments
 
 ```rok
-fn run(ref state: State, name: str = "task") |body: fn() -> ()| { ... }
+fn run(name: str = "task", body: fn() -> ()) { ... }
 
 run("compute") { ... };           // positional + trailing OK
 run(name: "compute") { ... };     // named + trailing OK

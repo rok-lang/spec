@@ -203,13 +203,13 @@ target/
 | Dependencies    | `target/<profile>/deps/` (`lib<dep>.a`, `<dep>.rokhir`, `<dep>.fp`, 9.2.3) |
 | Cross build     | `target/<triple>/<profile>/...` (same structure as above)         |
 | Documentation   | `target/doc/`                                                     |
-| Incremental     | `target/<profile>/incremental/<name>/` (codegen units, 9.2.16)    |
+| Incremental     | `target/<profile>/incremental/<name>/` (codegen units) and `target/<profile>/incremental/<name>-<hash>/` (the front end), 9.2.16 |
 
 The name `foo` is the package name (9.2.2). `-o` changes the path of a single output; `--target-dir=<dir>` and the environment variable `ROKC_TARGET_DIR` change the location of `target/` itself. `rokc clean` / `rok clean` delete the whole `target/`. A library's ROKHIR is `foo.rokhir` next to the archive ([9.4](904-rokhir-bytecode.md)).
 
 ## 9.2.16. Incremental build
 
-Incremental builds are per package. If the fingerprint of the previous build equals the current one, `rokc build` / `rokc run` print `Fresh` and skip the build. The fingerprint includes:
+Incremental builds work at three levels: a package whose inputs did not change is not built at all; a package that is built takes the parses and lowered bodies of its unchanged files and functions from the last build (front end, below); and its code is compiled by codegen units, of which only the changed ones are compiled again. If the fingerprint of the previous build equals the current one, `rokc build` / `rokc run` print `Fresh` and skip the build. The fingerprint includes:
 
 - The compiler's identity (the same value as the ROKHIR producer), build options, diagnostic format (`--message-format`, color), input / output paths, `ROK_CC` if set
 - All `.rok` files and `rok.rokon` readable from the package and its dependencies
@@ -219,6 +219,17 @@ Incremental builds are per package. If the fingerprint of the previous build equ
 Warnings emitted by a build, the back end's included, are recorded, and a `Fresh` build prints them again.
 
 A native build without `--cfg`, `--target`, MLIR plugins, profile options or `-O3` links the prebuilt standard library from `lib/rok-cache/` (9.2.19), one folder per hash of toolchain, options and sources, built on first use under a lock. At `-O3` the standard library is compiled with the program (whole-program optimization). The REPL compiles the standard library from source.
+
+### Front end
+
+A build of a package (`check`, `build`, `run`, `test`, `bench`, `doc`, `lint`) keeps what its front end computed under `target/<profile>/incremental/<name>-<hash>/`, where `<hash>` names the package root, with one subdirectory per kind of build (target, cfg, test or not, which libraries are prebuilt). The next build of the same kind takes from it:
+
+- The parse of each file whose text and parse inputs (the build's extension operators, the package's keywords, meta blocks and `#[literal]` patterns, and cfg) are unchanged.
+- The lowering (name resolution, type checking, generic instantiation) of each plain function body: a non-generic, non-`const` function, or a method of a non-generic `impl`, whose return type is written or is `()`. It is reused when its own text and position are unchanged, the program's interface is unchanged, every signature, instance and other fact the lowering read is the same now, and the text before every position its result names outside the body is unchanged.
+- The interface is every item except the plain bodies and the plain functions' parameters and return types. A body edit lowers that body again; a plain function's signature edit lowers it and the bodies that read its signature; any other change to an item (a type, a trait, an `impl` header, a generic function, a `use`) lowers every body again.
+- Functions, types and instances a reused lowering made are numbered as in a clean build; diagnostics, the program and its symbols are those of a clean build.
+
+Signatures, `impl` registration, coherence and the whole-program checks run in every build. Nothing kept is required: a missing, damaged or stale entry is computed again. A lone file outside any package keeps nothing unless `ROKC_INCREMENTAL` names a directory. `ROKC_INCREMENTAL=<dir>` keeps the results under `<dir>/<name>-<hash>/`; `ROKC_INCREMENTAL=0` turns them off. `ROKC_INCR_VERIFY=1` also lowers every body again and fails the build if a reused lowering differs. `-v` reports how many files' parses and bodies were reused.
 
 ### Codegen units
 

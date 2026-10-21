@@ -267,7 +267,7 @@ impl Drop for Container {
 | `MutexGuard<T>`                  | ✗           | ✗             | ✓ (`using` 해제 시)             | `rok::bare::unlock`                   |
 | `Channel::Sender<T>`             | ✓           | ✗             | ✗ (`close()` 로 닫음)           | (위와 동일)                          |
 
-표 뒤에 자리 잡은 원칙은 단순합니다. 먼저 모든 primitive 와 내부 GC 타입은 `Clone` 을 구현하고, 그 가운데 비트 복사가 의미적으로 옳은 것들만 `Copy` 가 됩니다. 그다음 `str` 과 컬렉션은 `Clone` 이지만 `Copy` 는 아닙니다. 비트 복사가 깊은 복제의 의미를 보존하지 않기 때문입니다. 또한 `Drop` 은 `File`, `Socket`, `MutexGuard` 처럼 외부 자원을 감싸는 wrapper 만 구현합니다. 이 타입들은 자원 중복 소유를 막기 위해 보통 `Clone` 을 구현하지 않습니다.
+표 뒤에 자리 잡은 원칙은 단순합니다. 먼저 모든 primitive 와 내부 GC 타입은 `Clone` 을 구현하고, 그 가운데 비트 복사가 의미적으로 옳은 것들만 `Copy` 가 됩니다. 컬렉션은 `Clone` 이지만 `Copy` 는 아닙니다. 핸들의 비트 복사가 깊은 복제의 의미를 보존하지 않기 때문입니다. `str` 은 불변이므로 그 `(ptr, len)` 의 복사가 곧 독립된 사본이어서 `Copy` 입니다. 또한 `Drop` 은 `File`, `Socket`, `MutexGuard` 처럼 외부 자원을 감싸는 wrapper 만 구현합니다. 이 타입들은 자원 중복 소유를 막기 위해 보통 `Clone` 을 구현하지 않습니다.
 
 ## 2.13.7. 다른 언어와의 비교
 

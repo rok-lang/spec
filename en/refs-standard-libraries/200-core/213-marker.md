@@ -267,7 +267,7 @@ How the main standard library types relate to the three traits:
 | `MutexGuard<T>`                  | ✗           | ✗              | ✓ (on `using` release)          | `rok::bare::unlock`                   |
 | `Channel::Sender<T>`             | ✓           | ✗              | ✗ (closed with `close()`)       | (same as above)                      |
 
-The principle behind the table is simple. Every primitive and internal GC type implements `Clone`, and only those for which a bit copy is semantically correct are `Copy`. `str` and the collections are `Clone` but not `Copy`, because a bit copy does not preserve the meaning of a deep copy. `Drop` is implemented only by wrappers around external resources such as `File`, `Socket` and `MutexGuard`. These types usually do not implement `Clone`, to prevent duplicate ownership of the resource.
+The principle behind the table is simple. Every primitive and internal GC type implements `Clone`, and only those for which a bit copy is semantically correct are `Copy`. The collections are `Clone` but not `Copy`, because a bit copy of a handle does not preserve the meaning of a deep copy. `str` is `Copy`: it is immutable, so copying its `(ptr, len)` is an independent copy. `Drop` is implemented only by wrappers around external resources such as `File`, `Socket` and `MutexGuard`. These types usually do not implement `Clone`, to prevent duplicate ownership of the resource.
 
 ## 2.13.7. Comparison with other languages
 

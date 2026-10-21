@@ -179,7 +179,7 @@ i32: 3
 i32: 42
 ```
 
-If an expression or block is not closed, the `...` prompt is shown and input continues.
+If an expression or block is not closed, the `...` prompt is shown and input continues. When standard input ends inside an incomplete cell, the cell is not run, an error is reported, and `rokc repl` exits with 1. A cell that fails does not change the exit code.
 
 ## 9.7.9. Input unit: Jupyter cell
 

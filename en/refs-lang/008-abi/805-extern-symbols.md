@@ -42,7 +42,7 @@ typedef struct {
 The [TLAB](../000-meta/007-glossary.md#tlab-thread-local-allocation-buffer) slow path from [Allocation](../007-runtime/702-allocation.md). **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_gc_alloc_slow(size: usize, align: usize, type_id: u32) -> GcBuf<u8>;
 }
 ```
@@ -61,7 +61,7 @@ It never returns null. Out of memory is fatal (`rok_oom`), and a request above `
 Allocates raw memory outside the GC ([stdlib 1.4 alloc](../../refs-standard-libraries/100-bare/104-alloc.md)). **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_alloc_raw(size: usize, align: usize, zeroed: i32) -> usize;
     fn rok_realloc_raw(ptr: usize, old_size: usize, align: usize, new_size: usize) -> usize;
 }
@@ -74,7 +74,7 @@ If `zeroed` is nonzero, the allocated memory is zero-filled. `rok_alloc_raw` ret
 The write barrier slow path from [Barriers and root tracking](../007-runtime/704-barriers-and-roots.md). **Thread-safety: `caller-thread-only`** (records into the wb log buffer in TLS).
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_gc_wb_slow(obj: Ptr<u8>);
 }
 ```
@@ -86,7 +86,7 @@ The argument `obj` is a pointer to the object containing the modified slot; ther
 Registers a type's [ScanTable](802-scan-table.md). **Thread-safety: `process-init`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_gc_register_type(type_id: u32, scan_table: ConstPtr<u8>);
 }
 ```
@@ -98,7 +98,7 @@ Called at process start, before entering mt, so no synchronization is needed.
 Pinning of [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) objects (see [Object layout and memory spaces](../007-runtime/701-object-layout.md) and [`extern` blocks (FFI declarations)](../005-modules/509-extern-block.md)). **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_gc_pin(obj: Ptr<u8>) -> Ptr<u8>;       // returns the pinned object (same address)
     fn rok_gc_unpin(obj: Ptr<u8>);
 }
@@ -111,7 +111,7 @@ A GC pointer passed to an `extern "C"` function or a blocking runtime call is no
 An explicit [GC](../000-meta/007-glossary.md#gc-garbage-collector) trigger, rarely used. **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_gc_collect();
 }
 ```
@@ -125,7 +125,7 @@ Performs a full collection and returns after it finishes.
 Initializes the runtime. **Thread-safety: `process-init`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_runtime_init();
 }
 ```
@@ -139,7 +139,7 @@ The runtime additionally exports the thread-local data symbol `rok_tls_shadow_st
 Shuts down the runtime. **Thread-safety: `process-shutdown`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_runtime_shutdown();
 }
 ```
@@ -151,7 +151,7 @@ Called right after `main()` ends. Every other rok thread stops for good at its n
 Terminates the process immediately. **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_exit(code: i32) -> !;
 }
 ```
@@ -163,7 +163,7 @@ extern "C" {
 Internal helpers backing `FromStr` and `str::bytes` ([stdlib 2.15](../../refs-standard-libraries/200-core/215-string.md)). **Thread-safety: `thread-safe`**. `str` arguments use the struct form of the preamble.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_str_eq(a: str, b: str) -> i32;                            // 1 if equal, else 0
     fn rok_str_byte(s: str, i: usize) -> u8;                         // i-th byte (bounds check is the caller's)
     fn rok_str_slice(s: str, start: usize, end: usize, at: str) -> str;  // s[start:end]. panics at location at if the range / UTF-8 boundary is wrong
@@ -178,7 +178,7 @@ extern "C" {
 The `yield` function of the [Safepoint protocol](804-safepoint.md), i.e. the slow path of the safepoint poll. **Thread-safety: `caller-thread-only`** (called by the calling mutator as a result of polling its own yield_flag).
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_runtime_yield();
 }
 ```
@@ -188,7 +188,7 @@ extern "C" {
 Slow paths of the native bracket ([8.4.10](804-safepoint.md#8410-native-calls)). **Thread-safety: `caller-thread-only`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_enter_native();                // entering C: this thread counts as PARKED
     fn rok_leave_native();                // back from C: wait out a running collection
 }
@@ -201,7 +201,7 @@ The compiler inlines the fast path around every `extern "C"` call: a seq_cst sto
 The entry and exit of every `extern "C" fn` definition, so that a C callback runs as a mutator. **Thread-safety: `caller-thread-only`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_native_reenter() -> u32;       // if the thread was PARKED (inside C), leave native; returns whether it was
     fn rok_native_resume(parked: u32);    // re-enter native if reenter left it
 }
@@ -212,7 +212,7 @@ extern "C" {
 Worker thread lifecycle. **Thread-safety: `rok_thread_init` is `per-thread-init`, `rok_thread_shutdown` is `per-thread-shutdown`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_thread_init();
     fn rok_thread_shutdown();
 }
@@ -237,7 +237,7 @@ The following runtime functions are guaranteed never to allocate and never to bl
 Allocates a [coroutine](../007-runtime/708-coroutine.md) frame. **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_coro_frame_alloc(size: usize, type_id: u32) -> GcBuf<u8>;
 }
 ```
@@ -251,7 +251,7 @@ The compiler does not emit these two symbols (`await` uses the parking registry 
 **Thread-safety: `rok_coro_park` is `caller-thread-only`** (parks the calling coroutine itself), **`rok_coro_unpark` is `thread-safe`** (may be called from another thread).
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_coro_park(frame: Ptr<u8>, waker: Ptr<u8>);
     fn rok_coro_unpark(frame: Ptr<u8>);
 }
@@ -270,7 +270,7 @@ The task runtime (spawn, join, cancel, executor) is rok code in `rok::core::task
 Functions that store and retrieve the current thread's executor worker ([stdlib 2.18](../../refs-standard-libraries/200-core/218-task.md)) in the TLS slot `rok_tls_task_worker` ([8.3.1](803-tls-slots.md#831-tls-slot-structure)), plus a clock. **Thread-safety: `caller-thread-only`** (`rok_time_now_ns` is `thread-safe`).
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_task_worker_present() -> i32;       // 1 if this thread is a worker
     fn rok_task_worker_get() -> usize;         // worker object address, 0 if none
     fn rok_task_worker_set(w: usize);          // a live GC object or 0. Pinned while installed
@@ -284,7 +284,7 @@ extern "C" {
 Creates a 1:1 OS thread. **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_thread_spawn(f: RokFn, stack_size: usize, id: u64) -> usize;
     fn rok_thread_new_id() -> u64;
     fn rok_thread_id() -> u64;                        // worker id of the current thread
@@ -300,7 +300,7 @@ extern "C" {
 The executor of `rok::core::task` installs hooks into the runtime. The runtime's I/O driver, timer, and `rok_coro_park` / `rok_coro_unpark` use these hooks to wake and suspend tasks. **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_task_hooks_install(
         io: extern "C" fn(fd: i32, interest: u32, waker: Ptr<u8>),
         timer: extern "C" fn(deadline_ns: u64, waker: Ptr<u8>),
@@ -319,7 +319,7 @@ extern "C" {
 Waiting and waking for synchronization primitives (`Mutex`, `Condvar`, `Once`). **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_sync_wait(buf: Ptr<u8>, index: usize, expected: i32, timeout_ns: i64);   // wait while the GcBuf<i32> element equals expected. timeout_ns < 0 means forever
     fn rok_sync_wake(buf: Ptr<u8>, index: usize);                                    // wake all threads waiting on that element
 }
@@ -332,7 +332,7 @@ extern "C" {
 **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_thread_join(handle: usize) -> i32;          // 0 on success
 }
 ```
@@ -342,7 +342,7 @@ extern "C" {
 **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_thread_detach(handle: usize) -> i32;   // OS resources are released when it ends; can no longer be joined. 0 on success
     fn rok_cpu_count() -> usize;                  // number of online CPUs (at least 1) — size of the par pool
 }
@@ -353,7 +353,7 @@ extern "C" {
 Back the lazy initialization of `static`s whose initializer is not `const` ([5.3](../005-modules/503-static.md)). **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_static_init_begin(state: Ptr<u8>) -> i32;   // 1: caller runs the initializer, 0: already ready
     fn rok_static_init_end(state: Ptr<u8>);            // publish initialization completion
 }
@@ -364,7 +364,7 @@ extern "C" {
 ### `rok_gc_add_root`
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_gc_add_root(word: ConstPtr<usize>);   // register a static's reference word as a GC root until process exit
 }
 ```
@@ -392,7 +392,7 @@ rok_os_abort
 The lock-free Chase-Lev deque of the task scheduler ([7.6.2](../007-runtime/706-scheduler.md#762-work-stealing-structure)). The deque and its ring are GC objects traced by the GC, so elements that exist only inside a deque are kept alive. **Thread-safety:** `push` / `pop` only from the owning thread; `steal` and `len` from any thread.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_deque_new() -> GcBuf<u8>;                                 // empty deque (GC object)
     unsafe fn rok_deque_push(d: Ptr<u8>, item: usize);               // owner: push at the end (GC reference)
     unsafe fn rok_deque_pop(d: Ptr<u8>, out: Ptr<u8>, index: usize) -> i32;    // owner: newest element into out[index], 1 if any
@@ -412,7 +412,7 @@ Let C or low-level code register a task to be woken when an fd is ready or at a 
 **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_io_register(fd: i32, interest: u32, waker: Ptr<u8>);
     fn rok_timer_register(deadline: u64, waker: Ptr<u8>);
 }
@@ -428,7 +428,7 @@ extern "C" {
 Internal symbols making up the reactor of the [I/O driver](../007-runtime/707-io-and-timer.md). They are not covered by ABI stability and may change. **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_io_poller() -> i32;                    // the process's kqueue / epoll fd (created on first call)
     fn rok_io_watch(fd: i32) -> i32;              // register fd for read / write edge-triggered (re-registering is harmless), 0 or -errno
     fn rok_io_poll(out: Ptr<u8>, max: usize) -> i32;   // blocks until something changes (parked for the GC), event count or -errno
@@ -463,7 +463,7 @@ Exit codes below (`101` etc.) reach the host as plain failure on `wasm32-wasi` (
 **Thread-safety: `thread-safe`** (callable from any thread; the process exits immediately).
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_panic(msg: ConstPtr<u8>, msg_len: usize);   // does not return
 }
 ```
@@ -475,7 +475,7 @@ An unrecoverable panic; fatal. This function does not return: it prints the mess
 **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_panic_str(msg: str) -> !;          // msg is (ptr, len)
 }
 ```
@@ -513,7 +513,7 @@ Handle errors propagated out of the entry point ([4.16.4](../004-functions/416-e
 **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_oom() -> !;
 }
 ```
@@ -593,7 +593,7 @@ The example shows the LLVM IR structure combining the fast path and the slow pat
 Signatures use the same notation as the main text (`Ptr<T>` = mutable raw pointer, `ConstPtr<T>` = read-only raw pointer). String arguments are NUL-terminated C strings.
 
 ```
-extern "C" {
+extern "rok" {
     // memory
     fn rok_free(ptr: Ptr<u8>);                             // null ignored
     fn rok_load_i32(ptr: ConstPtr<i32>) -> i32;

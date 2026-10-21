@@ -100,13 +100,13 @@ In the following positions, all keywords, including reserved keywords, are used 
 - Immediately after `.` (member access, method call): `x.type`, `stream.match(p)`
 - `struct` / `enum` field name declarations: `struct Token { type: Kind; }`
 - Field names in `struct` literals and `struct` patterns: `Ev { match: 1 }`, `Ev { match: m } => ...`
-- Names of named arguments: `f(type: 1)`
+- Names of named arguments: `f(type: 1)`. A named argument names a parameter, and a parameter name cannot be a reserved keyword, so only contextual keywords appear here in practice.
 
 `self` is an exception and cannot be an identifier even in these positions. Raw identifiers (Rust's `r#fn`) are still not provided ([1.4.4](104-identifiers.md#144-collision-with-keywords)).
 
 ```rok
 struct Token { type: Kind; for: str; }   // field name — OK
 let k = tok.type;                         // after . — OK
-make(type: Kind::Ident, if: true);        // named argument — OK
+make(type: Kind::Ident);                  // named argument (contextual keyword) — OK
 struct S { self: i32; }                   // ERROR — self is the exception
 ```

@@ -145,7 +145,7 @@ impl<T> MutexGuard<T> {
 
 ### Example
 
-A guard bound with `using` is `drop`ped on leaving the block, releasing the lock. A guard received without `using` is not released automatically, so it must always be bound with `using`.
+A guard bound with `using` is `drop`ped on leaving the block, releasing the lock. A guard received without `using` is not released automatically, so it must always be bound with `using`. Binding a guard with a plain `let` (or `if let`) that is never released by `using`, or discarding a guard returned by `lock`, is a compile error.
 
 ```rok
 static STATE: Mutex<List<i32>> = Mutex::new([]);
@@ -220,6 +220,8 @@ using w = CONFIG.write() {       // briefly blocks all readers
     w.reload_from_file();
 }
 ```
+
+The same rule holds for `RwLock` guards: binding the guard of `read` / `write` with a plain `let` (or `if let`) that `using` never releases, or discarding it, is a compile error.
 
 ## 2.16.4a. `Once` / `Condvar`
 

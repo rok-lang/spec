@@ -125,7 +125,7 @@ The layout of a GC object holding one i32 is as follows.
 ```
 offset  0:  type_id = ID_I32     (4 bytes)
 offset  4:  gc_flags = 0          (4 bytes)
-offset  8:  gc_word = 0           (8 bytes)
+offset  8:  gc_word = 24          (total size, 8 bytes)
 offset 16:  i32 value             (4 bytes)
 offset 20:  padding               (4 bytes, for 8-byte alignment)
 total: 24 bytes

@@ -47,7 +47,7 @@ rok --env sci       # = rok repl --env sci
 | `--cwd <dir>`    | 디렉토리를 바꾼 뒤 실행                                           |
 | `-q`, `--quiet`  | 출력을 줄임                                                       |
 
-환경 변수는 `ROK_HOME` (기본 `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6), `ROK_REGISTRY` 와 `ROK_REGISTRY_TOKEN` (9.10.4a) 입니다.
+환경 변수는 `ROK_HOME` (기본 `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6), `ROK_REGISTRY` (index) 와 `ROK_REGISTRY_TOKEN` (registry API 토큰) (9.10.4a) 입니다.
 
 ## 9.10.2. `rok new` / `rok init`: 패키지 생성
 
@@ -208,7 +208,7 @@ pre-release 버전 (`1.3.0-beta.1`) 은 요구가 같은 major.minor.patch 의 p
 
 ### index 형식
 
-index 저장소의 루트에 `config.rokon` (`Registry { name, dl, api }`) 이 있습니다. stone 하나는 publish 된 소문자 이름 (`-` 는 그대로) 의 shard 경로에 있는 파일 하나입니다.
+index 저장소의 루트에는 `config.rokon`, `Config { api: "<url>" }` 가 있습니다: registry API 의 기준 URL 입니다 (rokstones.io 는 `https://rokstones.io`). `https://` 여야 하며, `http://127.0.0.1` 과 `http://localhost` 만 예외입니다. stone 하나는 publish 된 소문자 이름 (`-` 는 그대로) 의 shard 경로에 있는 파일 하나입니다.
 
 | 이름 길이 | 경로                     |
 |-----------|--------------------------|
@@ -246,13 +246,19 @@ rok publish [--index <checkout>] [--commit]
 rok yank [--native] --vers <version> [--undo] [--index <checkout>] [name]   # --native 면 name 필수
 ```
 
-- `search` 는 index 에서 이름으로 찾습니다. index 조회는 `-` / `_` 어느 쪽 철자든 받습니다.
+- `search` 는 index 에서 이름으로 찾아, 찾은 것마다 한 줄 `<name> <newest version> — <description>` 을 출력합니다 (항목에 description 이 없으면 그 부분은 생략). index 조회는 `-` / `_` 어느 쪽 철자든 받습니다.
 - `publish` 는 기본이 dry run 입니다. 깨끗한 work tree, 저장소 루트의 패키지, `lib.rok` 를 요구합니다. path / git 의 normal 의존은 거부하고, path / git 의 dev 의존은 뺍니다. 같은 버전과, `-` / `_` 와 대소문자를 같게 본 이름의 충돌을 검사합니다. 다른 철자가 이미 가진 이름은 거부합니다. `--index` 없는 dry run 은 항목만 출력하고, `--index` 가 있으면 그 checkout 에 대해서도 검사합니다.
-- `--commit` 이면 `publish` 는 "Publish <name> <vers>" 커밋을 만듭니다: `--index` 가 있으면 그 checkout 에 (push 하지 않음), 없으면 설정된 index ("Which index") 를 새로 clone 한 곳에 만들고 index 로 push 합니다.
-- `yank` 는 그 버전의 `yanked` 를 켜고 (`--undo` 면 끄고) 커밋합니다: `--index` 로 준 checkout 에, 없으면 설정된 index 를 새로 clone 한 곳에 커밋하고 push 합니다.
-- index 로 push 하려면 토큰이 필요하며, `--index` checkout 에는 필요 없습니다. 토큰은 `ROK_REGISTRY_TOKEN` 이 설정되어 비어 있지 않으면 그것, 아니면 `rok login` 이 저장한 것입니다. 둘 다 없으면 "run `rok login` first" 에러입니다.
-- `rok login` 은 GitHub 토큰을 받습니다 (생략하면 표준 입력에서 읽으며 화면에 보이지 않습니다). publish 할 수 있다는 것은 index 저장소에 쓰기 권한이 있다는 뜻입니다: `login` 은 토큰으로 index 의 git receive-pack 에 물어보고 (dry-run push; 아무것도 보내지 않음), push 할 수 없는 토큰은 거부합니다 ("publishing is limited to the index's maintainers"). 그런 다음 `$ROK_HOME/credentials.rokon` 에 `Credentials { token: ".." }` 를 저장합니다 (Unix 에서는 mode 0600). `rok logout` 은 그 파일을 지웁니다.
-- 토큰은 git 의 환경으로만 전달되며 (HTTPS `Authorization` 헤더로, credential helper 는 끔), 명령줄, url, clone 의 git 설정에 들어가지 않고 출력되지도 않습니다.
+- `--commit` 이면 `publish` 는 항목을 더합니다: `--index` 가 있으면 그 checkout 에 "Publish <name> <vers>" 커밋으로 (push 하지 않음), 없으면 설정된 index ("Which index") 의 registry API 로 더하며, API 가 그것을 index 에 넣습니다. 클라이언트는 index 저장소에 직접 쓰지 않습니다.
+- `yank` 는 그 버전의 `yanked` 를 켭니다 (`--undo` 면 끕니다): `--index` 가 있으면 그 checkout 의 커밋으로, 없으면 registry API 로.
+- registry API 는 index 의 `config.rokon` 의 `api` 에 있습니다. 요청은 `Authorization: Bearer <token>` 을 실으며, body 는 한 줄 ROKON (`application/rokon; charset=utf-8`) 입니다:
+  - `GET <api>/api/v1/me` → `Me { login: "..", publish: <bool> }`
+  - `POST <api>/api/v1/publish`, body 는 index 줄 (`Stone { .. }` / `Native { .. }`) → `Published { name, vers, file }`
+  - `POST <api>/api/v1/yank`, body `Yank { name, vers, undo: <bool>, native: <bool> }` → `Yanked { name, vers, yanked }`
+
+  실패는 4xx / 5xx 상태와 `Error { message: ".." }` 이며, `rok` 는 그 message 를 보고합니다. 401 은 토큰이 유효하지 않다는 뜻입니다.
+- registry API 에는 토큰이 필요하며, `--index` checkout 에는 필요 없습니다. 토큰은 `ROK_REGISTRY_TOKEN` 이 설정되어 비어 있지 않으면 그것, 아니면 `rok login` 이 저장한 것입니다. 둘 다 없으면 "run `rok login` first" 에러입니다.
+- `rok login` 은 웹사이트에서 만든 rokstones.io 계정 토큰을 받습니다 (`<api>/me`, GitHub 로 로그인. 지금은 registry 의 maintainer 만 만들 수 있음). 생략하면 표준 입력에서 화면에 보이지 않게 읽습니다 (Ctrl-C 에도 echo 를 되돌림). `login` 은 `/api/v1/me` 에 물어, API 가 거부하는 토큰과 `publish` 가 false 인 계정 ("this account cannot publish yet: publishing is open to rokstones.io maintainers only") 은 아무것도 저장하지 않고 거절합니다. 그 밖이면 `$ROK_HOME/credentials.rokon` 에 `Credentials { token: ".." }` 를 저장하고 (Unix 에서는 mode 0600) "Logged in as <login>" 을 출력합니다. `rok logout` 은 그 파일을 지웁니다.
+- 토큰은 `curl` 의 표준 입력으로만 전달되며, 명령줄이나 환경에 들어가지 않고 출력되지도 않습니다 (에러는 `***` 로 보임).
 
 ## 9.10.4b. Native 패키지
 
@@ -290,7 +296,7 @@ rok publish --native <file> [--index <dir>] [--commit]
 rok yank --native --vers <version> [--undo] [--index <dir>] <name>
 ```
 
-`publish --native` 는 모든 target 을 받아 검사하며, 절대 url, 라이선스 파일, index 에서 온 의존성만을 요구합니다. `--commit` 과 `yank --native` 는 stone 과 같은 규칙을 따릅니다: `--index` checkout, 없으면 설정된 index 에 토큰으로 push 합니다.
+`publish --native` 는 모든 target 을 받아 검사하며, 절대 url, 라이선스 파일, index 에서 온 의존성만을 요구합니다. `--commit` 과 `yank --native` 는 stone 과 같은 규칙을 따릅니다: `--index` checkout, 없으면 토큰으로 registry API (`Yank` 의 `native: true`).
 
 - ELF 대상에서 runtime 라이브러리의 soname 은 파일 이름과 같아야 합니다. `-musl` 대상의 `dylib` link 는 에러입니다.
 - `repl` / `jupyter` 는 native 패키지를 로드합니다: 공유 라이브러리는 시스템 loader 로, static archive 는 세션에 링크합니다. `check` / `lint` / `doc` 는 아무것도 링크하지 않습니다.

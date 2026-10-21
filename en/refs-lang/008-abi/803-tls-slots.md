@@ -4,27 +4,31 @@ Each OS thread (= scheduler worker = mutator) holds runtime information at fixed
 
 ## 8.3.1. TLS slot structure
 
-TLS slots are not one block; each slot is a separate `thread_local` global exported by the runtime. The compiler accesses slots by symbol name, not by fixed offset.
+The TLS slots are one `thread_local` block, `rok_tls`, defined and exported by the runtime; each slot is at a fixed offset in it. Compiled code takes the block's address once per function and reaches each slot at its offset. On Mach-O, ELF and COFF each slot of the table is also exported under its own symbol, at its place in the block; wasm32 exports only the block.
 
-| Symbol                      | Type | Meaning                                 |
-|-----------------------------|------|-----------------------------------------|
-| `rok_tls_yield_flag`        | u8   | Whether to `yield` at a safepoint       |
-| `rok_tls_tlab_cursor`       | ptr  | Next allocation position in the TLAB    |
-| `rok_tls_tlab_limit`        | ptr  | End of the TLAB                         |
-| `rok_tls_shadow_stack_top`  | ptr  | Head of the shadow stack chain          |
-| `rok_tls_wb_log_cursor`     | ptr  | Position in the write barrier log       |
-| `rok_tls_wb_log_limit`      | ptr  | End of the write barrier log            |
-| `rok_tls_satb_cursor`       | ptr  | Position in the SATB buffer (during concurrent mark) |
-| `rok_tls_satb_limit`        | ptr  | End of the SATB buffer                  |
-| `rok_tls_mutator_state`     | u8   | Mutator state                           |
-| `rok_tls_worker_id`         | u64  | Worker id                               |
-| `rok_tls_task_worker`       | ptr  | This thread's executor worker (GC object, 0 if none) |
-| `rok_tls_stack_guard`       | [usize; 2] | `[lo, hi)` — a fault in this range is a stack overflow of this thread (`[0, 0)` means unknown, [8.5.7](805-extern-symbols.md#stack-overflow)) |
-| `rok_tls_held_locks`       | ptr  | Record of the locks this thread holds (null: none yet); in a session host, locks a thread that is gone held while blocked are released |
+`p` is the pointer width in bytes.
 
-The **ABI contract** is the symbol name, type and meaning in the table above. The placement and offsets of slots relative to each other are determined by the linker and LLVM's TLS model and are not part of the ABI.
+| Offset   | Symbol                      | Type | Meaning                                 |
+|----------|-----------------------------|------|-----------------------------------------|
+| 0        | `rok_tls_shadow_stack_top`  | ptr  | Head of the shadow stack chain          |
+| p        | `rok_tls_tlab_cursor`       | ptr  | Next allocation position in the TLAB    |
+| 2p       | `rok_tls_tlab_limit`        | ptr  | End of the TLAB                         |
+| 3p       | `rok_tls_wb_log_cursor`     | ptr  | Position in the write barrier log       |
+| 4p       | `rok_tls_wb_log_limit`      | ptr  | End of the write barrier log            |
+| 5p       | `rok_tls_satb_cursor`       | ptr  | Position in the SATB buffer (during concurrent mark) |
+| 6p       | `rok_tls_satb_limit`        | ptr  | End of the SATB buffer                  |
+| 7p       | `rok_tls_task_worker`       | ptr  | This thread's executor worker (GC object, 0 if none) |
+| 8p       | `rok_tls_stack_guard`       | [usize; 2] | `[lo, hi)` — a fault in this range is a stack overflow of this thread (`[0, 0)` means unknown, [8.5.7](805-extern-symbols.md#stack-overflow)) |
+| 10p      | `rok_tls_worker_id`         | u64  | Worker id                               |
+| 10p+8    | `rok_tls_yield_flag`        | u8   | Whether to `yield` at a safepoint       |
+| 10p+9    | `rok_tls_mutator_state`     | u8   | Mutator state                           |
 
-**Implementation-defined slots**: the runtime may freely keep thread-local variables not listed above for statistics, profiling, debugging and so on. The compiler and external packages must not reference them.
+The **ABI contract** is the block symbol, each slot's offset, type and meaning, and the slot symbol names. The block is 8-aligned and at least 10p+10 bytes; implementation-defined slots may follow the last ABI slot.
+
+**Implementation-defined slots**: the runtime may keep further thread-local state, after the ABI slots or elsewhere, for scheduling, statistics, profiling, debugging and so on. The compiler and external packages must not reference it.
+
+> [!NOTE]
+> rok's runtime places `task_lane` at 10p+16, `static_inits` at 11p+16 and `held_locks` (the locks this thread holds; in a session host, locks a thread that is gone held while blocked are released) at 12p+16.
 
 ## 8.3.2. Access mechanism
 
@@ -37,7 +41,7 @@ Each OS and architecture has its own TLS access mechanism.
 | macOS x86_64   | `%gs:offset`                          |
 | Windows x86_64 | TEB (Thread Environment Block) offset |
 | `wasm32-wasi-threads` | `__tls_base` global + offset   |
-| other WASM (no threads) | each slot is a plain global  |
+| other WASM (no threads) | the block is a plain global  |
 
 The compiler emits the appropriate instructions per target; LLVM's `__thread` and TLS models handle this automatically.
 
@@ -111,11 +115,11 @@ The thread's worker id (used inside the scheduler), used for [work-stealing](../
 
 ## 8.3.4. Slot width and alignment
 
-Each slot has the width and alignment of its type. Each slot is a separate global, so no padding needs to be arranged.
+Each slot has the width of its type and lies at an offset aligned to it.
 
 ## 8.3.5. 32-bit vs. 64-bit
 
-ptr-typed slots have the target's pointer width (8 bytes on 64-bit, 4 bytes on 32-bit). Slots are accessed by symbol, so there are no offsets to reconcile between the two.
+Pointer slots are p bytes (8 on 64-bit, 4 on 32-bit), so offsets differ between 32-bit and 64-bit as given by the table.
 
 ## 8.3.6. TLS slot initialization
 
@@ -150,23 +154,24 @@ rok_thread_shutdown():
 
 ## 8.3.8. Form of compiler emission
 
-Each TLS slot is a `thread_local` global defined and exported by the runtime. The compiler references it as an external declaration and generates code of the following form.
+The block is a `thread_local` global defined and exported by the runtime. The compiler references it as an external declaration, takes its address once per function and loads slots at their offsets.
 
 ```mlir
-; LLVM IR — defined by the runtime; compiler output has external declarations
-@rok_tls_yield_flag = external thread_local global i8
-@rok_tls_tlab_cursor = external thread_local global ptr
-...
+; LLVM IR — defined by the runtime; compiler output has an external declaration
+@rok_tls = external thread_local global [N x i8]
 
-; safepoint poll
-%flag = load i8, i8* @rok_tls_yield_flag
+%t = call ptr @llvm.threadlocal.address(ptr @rok_tls)   ; once per function
+
+; safepoint poll (yield_flag at 10p+8)
+%flag_p = getelementptr i8, ptr %t, i64 88               ; 10p+8 with p = 8
+%flag = load i8, ptr %flag_p
 %check = icmp ne i8 %flag, 0
 br i1 %check, label %slow, label %cont
 ```
 
 The LLVM backend then lowers this to target-specific TLS instructions.
 
-On ELF, `rok_tls_*` slots use the initial-exec TLS model (the compiler emits access code in this model and does not rely on linker relaxation). The runtime is always statically linked into the executable, so this model suffices. Mach-O uses the platform's TLV descriptor scheme. An implementation whose toolchain cannot choose a TLS model may use general-dynamic instead.
+On ELF, `rok_tls` and the `rok_tls_*` slot symbols use the initial-exec TLS model (the compiler emits access code in this model and does not rely on linker relaxation). The runtime is always statically linked into the executable, so this model suffices. Mach-O uses the platform's TLV descriptor scheme. An implementation whose toolchain cannot choose a TLS model may use general-dynamic instead.
 
 ### `rok_tls_shadow_stack_top`
 
@@ -180,6 +185,6 @@ LLVM's `llvm.gcroot` and `llvm_gc_root_chain` are not used. `llvm_gc_root_chain`
 
 ## 8.3.9. Stability
 
-The symbol names, types and meanings in the 8.3.1 table are part of the [ABI](../000-meta/007-glossary.md#abi-application-binary-interface); changes follow the stability policy in the [overview](README.md). Adding a new symbol is a minor compatible change; changing the name, type or meaning of an existing symbol is a major `break`.
+The symbol names, types and meanings in the 8.3.1 table are part of the [ABI](../000-meta/007-glossary.md#abi-application-binary-interface); changes follow the stability policy in the [overview](README.md). Changing an offset is a major `break`; a new slot takes an offset after the existing ones, a minor compatible change. Changing the name, type or meaning of an existing slot is also a major `break`.
 
 Implementation-defined slots are not part of the ABI and may change freely even within the same major version.

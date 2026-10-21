@@ -42,7 +42,7 @@ typedef struct {
 [할당](../007-runtime/702-allocation.md) 의 [TLAB](../000-meta/007-glossary.md#tlab-thread-local-allocation-buffer) slow path 에 해당합니다. **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_gc_alloc_slow(size: usize, align: usize, type_id: u32) -> GcBuf<u8>;
 }
 ```
@@ -61,7 +61,7 @@ null 을 반환하지 않습니다. 메모리 부족은 fatal (`rok_oom`) 이며
 GC 밖의 raw 메모리를 할당합니다 ([stdlib 1.4 alloc](../../refs-standard-libraries/100-bare/104-alloc.md)). **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_alloc_raw(size: usize, align: usize, zeroed: i32) -> usize;
     fn rok_realloc_raw(ptr: usize, old_size: usize, align: usize, new_size: usize) -> usize;
 }
@@ -74,7 +74,7 @@ extern "C" {
 [배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md) 의 write barrier slow path 에 해당합니다. **Thread-safety: `caller-thread-only`** (TLS 의 wb log buffer 에 기록).
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_gc_wb_slow(obj: Ptr<u8>);
 }
 ```
@@ -86,7 +86,7 @@ extern "C" {
 [ScanTable](802-scan-table.md) 의 타입을 등록합니다. **Thread-safety: `process-init`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_gc_register_type(type_id: u32, scan_table: ConstPtr<u8>);
 }
 ```
@@ -98,7 +98,7 @@ extern "C" {
 [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) 객체의 pinning 을 담당합니다 ([객체 레이아웃과 메모리 공간](../007-runtime/701-object-layout.md), [`extern` 블록 (FFI 선언)](../005-modules/509-extern-block.md) 참조). **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_gc_pin(obj: Ptr<u8>) -> Ptr<u8>;       // 고정된 객체 (같은 주소) 반환
     fn rok_gc_unpin(obj: Ptr<u8>);
 }
@@ -111,7 +111,7 @@ extern "C" {
 명시적인 [GC](../000-meta/007-glossary.md#gc-garbage-collector) 트리거이며, 드물게 사용됩니다. **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_gc_collect();
 }
 ```
@@ -125,7 +125,7 @@ full 수집을 하고, 수집이 끝난 뒤 돌아옵니다.
 런타임을 초기화합니다. **Thread-safety: `process-init`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_runtime_init();
 }
 ```
@@ -139,7 +139,7 @@ extern "C" {
 런타임을 종료합니다. **Thread-safety: `process-shutdown`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_runtime_shutdown();
 }
 ```
@@ -151,7 +151,7 @@ extern "C" {
 프로세스를 즉시 종료합니다. **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_exit(code: i32) -> !;
 }
 ```
@@ -163,7 +163,7 @@ extern "C" {
 `FromStr` 과 `str::bytes` 를 뒷받침하는 내부 helper 입니다 ([stdlib 2.15](../../refs-standard-libraries/200-core/215-string.md)). **Thread-safety: `thread-safe`**. `str` 인자는 머리말의 구조체 형태입니다.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_str_eq(a: str, b: str) -> i32;                            // 같으면 1, 아니면 0
     fn rok_str_byte(s: str, i: usize) -> u8;                         // i 번째 바이트 (경계 검사는 호출자)
     fn rok_str_slice(s: str, start: usize, end: usize, at: str) -> str;  // s[start:end]. 범위 / UTF-8 경계가 틀리면 at 위치로 panic
@@ -178,7 +178,7 @@ extern "C" {
 [Safepoint 프로토콜](804-safepoint.md) 의 `yield` 함수, 즉 safepoint poll 의 slow path 입니다. **Thread-safety: `caller-thread-only`** (호출자 mutator 가 자기 yield_flag 를 polling 한 결과로 호출).
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_runtime_yield();
 }
 ```
@@ -188,7 +188,7 @@ extern "C" {
 native bracket 의 slow path 입니다 ([8.4.10](804-safepoint.md#8410-native-호출)). **Thread-safety: `caller-thread-only`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_enter_native();                // C 로 들어감: 이 스레드는 PARKED
     fn rok_leave_native();                // C 에서 돌아옴: 진행 중인 수집을 기다림
 }
@@ -201,7 +201,7 @@ extern "C" {
 모든 `extern "C" fn` 정의의 입구와 출구이며, C callback 이 mutator 로 돌게 합니다. **Thread-safety: `caller-thread-only`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_native_reenter() -> u32;       // 스레드가 PARKED (C 안) 였으면 native 를 떠남; 그랬는지 반환
     fn rok_native_resume(parked: u32);    // reenter 가 떠났으면 다시 native 로
 }
@@ -212,7 +212,7 @@ extern "C" {
 worker thread 의 lifecycle 을 담당합니다. **Thread-safety: `rok_thread_init` 은 `per-thread-init`, `rok_thread_shutdown` 은 `per-thread-shutdown`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_thread_init();
     fn rok_thread_shutdown();
 }
@@ -237,7 +237,7 @@ rok 쪽에서는 `#[no_safepoint]` 가 붙은 `extern "rok"` 블록에 선언합
 [코루틴](../007-runtime/708-coroutine.md) 의 frame 을 할당합니다. **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_coro_frame_alloc(size: usize, type_id: u32) -> GcBuf<u8>;
 }
 ```
@@ -251,7 +251,7 @@ extern "C" {
 **Thread-safety: `rok_coro_park` 는 `caller-thread-only`** (호출자 코루틴 자신을 park), **`rok_coro_unpark` 는 `thread-safe`** (다른 thread 에서 호출 가능).
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_coro_park(frame: Ptr<u8>, waker: Ptr<u8>);
     fn rok_coro_unpark(frame: Ptr<u8>);
 }
@@ -270,7 +270,7 @@ task 런타임 (spawn, join, cancel, executor) 은 `rok::core::task` 의 rok 코
 현재 스레드의 executor worker ([stdlib 2.18](../../refs-standard-libraries/200-core/218-task.md)) 를 TLS 슬롯 `rok_tls_task_worker` ([8.3.1](803-tls-slots.md#831-tls-슬롯-구조)) 에 두고 꺼내는 함수와 시계입니다. **Thread-safety: `caller-thread-only`** (`rok_time_now_ns` 는 `thread-safe`).
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_task_worker_present() -> i32;       // 이 스레드가 worker 이면 1
     fn rok_task_worker_get() -> usize;         // worker 객체 주소, 없으면 0
     fn rok_task_worker_set(w: usize);          // 살아 있는 GC 객체 또는 0. 설치하는 동안 pin
@@ -284,7 +284,7 @@ extern "C" {
 1:1 OS thread 를 생성합니다. **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_thread_spawn(f: RokFn, stack_size: usize, id: u64) -> usize;
     fn rok_thread_new_id() -> u64;
     fn rok_thread_id() -> u64;                        // 현재 스레드의 worker id
@@ -300,7 +300,7 @@ extern "C" {
 `rok::core::task` 의 executor 가 런타임에 hook 을 설치합니다. 런타임의 I/O driver, timer, `rok_coro_park` / `rok_coro_unpark` 는 이 hook 으로 task 를 깨우고 멈춥니다. **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_task_hooks_install(
         io: extern "C" fn(fd: i32, interest: u32, waker: Ptr<u8>),
         timer: extern "C" fn(deadline_ns: u64, waker: Ptr<u8>),
@@ -319,7 +319,7 @@ extern "C" {
 동기화 primitive (`Mutex`, `Condvar`, `Once`) 의 대기와 깨우기입니다. **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_sync_wait(buf: Ptr<u8>, index: usize, expected: i32, timeout_ns: i64);   // GcBuf<i32> 원소가 expected 인 동안 대기. timeout_ns < 0 이면 무한
     fn rok_sync_wake(buf: Ptr<u8>, index: usize);                                    // 그 원소에서 대기 중인 스레드를 모두 깨움
 }
@@ -332,7 +332,7 @@ extern "C" {
 **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_thread_join(handle: usize) -> i32;          // 0 이면 성공
 }
 ```
@@ -342,7 +342,7 @@ extern "C" {
 **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_thread_detach(handle: usize) -> i32;   // 끝나면 OS 자원 반환, 더 이상 join 불가. 0 이면 성공
     fn rok_cpu_count() -> usize;                  // 온라인 CPU 수 (최소 1) — par 풀의 크기
 }
@@ -353,7 +353,7 @@ extern "C" {
 `const` 가 아닌 초기값을 가진 `static` 의 지연 초기화 ([5.3](../005-modules/503-static.md)) 를 뒷받침합니다. **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_static_init_begin(state: Ptr<u8>) -> i32;   // 1: 호출자가 초기화식 실행, 0: 이미 준비됨
     fn rok_static_init_end(state: Ptr<u8>);            // 초기화 완료 공개
 }
@@ -364,7 +364,7 @@ extern "C" {
 ### `rok_gc_add_root`
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_gc_add_root(word: ConstPtr<usize>);   // static 의 참조 word 를 프로세스 끝까지 GC root 로 등록
 }
 ```
@@ -392,7 +392,7 @@ rok_os_abort
 task 스케줄러 ([7.6.2](../007-runtime/706-scheduler.md#762-work-stealing-구조)) 의 lock-free Chase-Lev deque 입니다. deque 와 그 ring 은 GC 객체이며 GC 가 추적합니다. 그래서 deque 안에만 있는 원소도 살아 있습니다. **Thread-safety:** `push` / `pop` 은 소유 thread 만, `steal` 과 `len` 은 어느 thread 든.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_deque_new() -> GcBuf<u8>;                                 // 빈 deque (GC 객체)
     unsafe fn rok_deque_push(d: Ptr<u8>, item: usize);               // 소유자: 끝에 넣음 (GC 참조)
     unsafe fn rok_deque_pop(d: Ptr<u8>, out: Ptr<u8>, index: usize) -> i32;    // 소유자: 가장 새 원소를 out[index] 에, 있으면 1
@@ -412,7 +412,7 @@ C 나 저수준 코드가 task 를 fd 준비나 시각에 깨우도록 등록합
 **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_io_register(fd: i32, interest: u32, waker: Ptr<u8>);
     fn rok_timer_register(deadline: u64, waker: Ptr<u8>);
 }
@@ -428,7 +428,7 @@ extern "C" {
 [I/O 드라이버](../007-runtime/707-io-and-timer.md) 의 reactor 를 이루는 내부 심볼입니다. ABI 안정 대상이 아니며 바뀔 수 있습니다. **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_io_poller() -> i32;                    // 프로세스의 kqueue / epoll fd (처음 부를 때 생성)
     fn rok_io_watch(fd: i32) -> i32;              // fd 를 읽기 / 쓰기 edge-triggered 로 등록 (다시 걸어도 무해), 0 또는 -errno
     fn rok_io_poll(out: Ptr<u8>, max: usize) -> i32;   // 변화가 올 때까지 막힘 (GC 에는 park), 사건 수 또는 -errno
@@ -463,7 +463,7 @@ rok_net_multicast_v4 rok_net_wait     rok_net_resolve    rok_net_gai_strerror
 **Thread-safety: `thread-safe`** (어떤 thread 에서든 호출 가능, 호출 즉시 프로세스 종료).
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_panic(msg: ConstPtr<u8>, msg_len: usize);   // 반환 안 함
 }
 ```
@@ -475,7 +475,7 @@ extern "C" {
 **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_panic_str(msg: str) -> !;          // msg 는 (ptr, len)
 }
 ```
@@ -513,7 +513,7 @@ extern "rok" {
 **Thread-safety: `thread-safe`**.
 
 ```
-extern "C" {
+extern "rok" {
     fn rok_oom() -> !;
 }
 ```
@@ -593,7 +593,7 @@ cont:
 시그니처는 본문과 같은 표기 (`Ptr<T>` = 가변 raw 포인터, `ConstPtr<T>` = 읽기 전용 raw 포인터) 를 따릅니다. 문자열 인자는 NUL 종료 C 문자열입니다.
 
 ```
-extern "C" {
+extern "rok" {
     // 메모리
     fn rok_free(ptr: Ptr<u8>);                             // null 무시
     fn rok_load_i32(ptr: ConstPtr<i32>) -> i32;

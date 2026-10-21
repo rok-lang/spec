@@ -433,6 +433,8 @@ The environment variables that affect `rokc` are:
 | `ROK_TIME_PASSES` | Per-pass wall time on stderr when `1` ([9.9.5](909-debug-tools.md#rok_time_passes)) |
 | `LLVM_PROFILE_FILE` | Read by instrumented programs (`-C profile-generate`): the raw profile path |
 | `ROKC_TARGET_DIR` | Location of `target/` (default: inside the package)                                      |
+| `ROKC_INCREMENTAL` | Where the front end keeps parses and lowered bodies (default `target/<profile>/incremental/`; `0`: nowhere), [9.2.16](902-aot-pipeline.md#9216-incremental-build) |
+| `ROKC_INCR_VERIFY` | `1`: lower every body again and fail on a difference ([9.2.16](902-aot-pipeline.md#9216-incremental-build)) |
 | `ROKC_NUM_JOBS`   | Default for `rokc test --threads` (CPU core count if unset)                              |
 | `NO_COLOR`        | If set, `--color=auto` does not use color                                                |
 

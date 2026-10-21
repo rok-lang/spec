@@ -145,7 +145,7 @@ impl<T> MutexGuard<T> {
 
 ### 사용 예
 
-가드를 `using` 으로 묶으면 블록을 빠져나갈 때 `drop` 되어 잠금이 해제됩니다. `using` 없이 받은 가드는 자동으로 풀리지 않으므로 반드시 `using` 으로 묶습니다.
+가드를 `using` 으로 묶으면 블록을 빠져나갈 때 `drop` 되어 잠금이 해제됩니다. `using` 없이 받은 가드는 자동으로 풀리지 않으므로 반드시 `using` 으로 묶습니다. `using` 으로 해제되지 않는 일반 `let` (또는 `if let`) 으로 가드를 묶거나, `lock` 이 돌려준 가드를 버리면 컴파일 에러입니다.
 
 ```rok
 static STATE: Mutex<List<i32>> = Mutex::new([]);
@@ -220,6 +220,8 @@ using w = CONFIG.write() {       // 잠시 모든 reader 차단
     w.reload_from_file();
 }
 ```
+
+`RwLock` 가드에도 같은 규칙이 적용됩니다: `read` / `write` 의 가드를 `using` 이 해제하지 않는 일반 `let` (또는 `if let`) 으로 묶거나 버리면 컴파일 에러입니다.
 
 ## 2.16.4a. `Once` / `Condvar`
 

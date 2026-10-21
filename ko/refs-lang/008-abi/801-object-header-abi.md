@@ -125,7 +125,7 @@ i32 한 개를 담는 GC 객체의 레이아웃은 다음과 같습니다.
 ```
 offset  0:  type_id = ID_I32     (4 바이트)
 offset  4:  gc_flags = 0          (4 바이트)
-offset  8:  gc_word = 0           (8 바이트)
+offset  8:  gc_word = 24          (총 크기, 8 바이트)
 offset 16:  i32 value             (4 바이트)
 offset 20:  padding               (4 바이트, 8 바이트 정렬용)
 total: 24 bytes

@@ -160,7 +160,7 @@ retry(3) { ... }                   // retry 키워드처럼 보임
 ## 4.8.9. 이름 있는 인자와의 결합
 
 ```rok
-fn run(ref state: State, name: str = "task") |body: fn() -> ()| { ... }
+fn run(name: str = "task", body: fn() -> ()) { ... }
 
 run("compute") { ... };           // 위치 + 트레일링 OK
 run(name: "compute") { ... };     // named + 트레일링 OK

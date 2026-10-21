@@ -100,13 +100,13 @@ rok::core::iter::Iterator       // 경로 루트
 - `.` 바로 뒤 (멤버 접근, 메서드 호출): `x.type`, `stream.match(p)`
 - `struct` / `enum` 필드 이름 선언: `struct Token { type: Kind; }`
 - `struct` 리터럴과 `struct` 패턴의 필드 이름: `Ev { match: 1 }`, `Ev { match: m } => ...`
-- 이름 있는 인자의 이름: `f(type: 1)`
+- 이름 있는 인자의 이름: `f(type: 1)`. 이름 있는 인자는 매개변수를 가리키고 매개변수 이름은 예약 키워드일 수 없으므로, 실제로 여기에는 문맥 키워드만 옵니다.
 
 `self` 는 예외로, 이 자리에서도 식별자가 될 수 없습니다. raw 식별자 (Rust 의 `r#fn`) 는 여전히 두지 않습니다 ([1.4.4](104-identifiers.md#144-키워드와의-충돌)).
 
 ```rok
 struct Token { type: Kind; for: str; }   // 필드 이름 — OK
 let k = tok.type;                         // . 뒤 — OK
-make(type: Kind::Ident, if: true);        // 이름 있는 인자 — OK
+make(type: Kind::Ident);                  // 이름 있는 인자 (문맥 키워드) — OK
 struct S { self: i32; }                   // ERROR — self 는 예외
 ```

@@ -203,13 +203,13 @@ target/
 | 의존 패키지     | `target/<profile>/deps/` (`lib<dep>.a`, `<dep>.rokhir`, `<dep>.fp`, 9.2.3) |
 | 교차 빌드       | `target/<triple>/<profile>/...` (위와 같은 구조)                  |
 | 문서            | `target/doc/`                                                     |
-| 증분            | `target/<profile>/incremental/<name>/` (codegen unit, 9.2.16)     |
+| 증분            | `target/<profile>/incremental/<name>/` (codegen unit) 과 `target/<profile>/incremental/<name>-<hash>/` (front end), 9.2.16 |
 
 이름 `foo` 는 패키지 이름입니다 (9.2.2). `-o` 는 산출물 하나의 경로를, `--target-dir=<dir>` 와 환경 변수 `ROKC_TARGET_DIR` 은 `target/` 자체의 위치를 바꿉니다. `rokc clean` / `rok clean` 은 `target/` 전체를 지웁니다. 라이브러리의 ROKHIR 은 archive 옆의 `foo.rokhir` 입니다 ([9.4](904-rokhir-bytecode.md)).
 
 ## 9.2.16. 증분 빌드
 
-증분 빌드는 패키지 단위입니다. `rokc build` / `rokc run` 은 이전 빌드의 fingerprint 와 지금의 것이 같으면 `Fresh` 를 출력하고 빌드를 건너뜁니다. fingerprint 는 다음을 포함합니다.
+증분 빌드는 세 수준에서 동작합니다: 입력이 바뀌지 않은 패키지는 빌드하지 않고, 빌드하는 패키지는 바뀌지 않은 파일과 함수의 파싱과 lowering 한 본체를 지난 빌드에서 가져오며 (아래 front end), 그 코드는 codegen unit 으로 컴파일해 바뀐 unit 만 다시 컴파일합니다. `rokc build` / `rokc run` 은 이전 빌드의 fingerprint 와 지금의 것이 같으면 `Fresh` 를 출력하고 빌드를 건너뜁니다. fingerprint 는 다음을 포함합니다.
 
 - 컴파일러의 정체 (ROKHIR producer 와 같은 값), 빌드 옵션, 진단 형식 (`--message-format`, 색), 입력 / 출력 경로, 설정되어 있으면 `ROK_CC`
 - 패키지와 의존성에서 읽을 수 있는 모든 `.rok` 파일과 `rok.rokon`
@@ -219,6 +219,17 @@ target/
 빌드가 낸 경고는 back end 의 것까지 기록해 두며, `Fresh` 인 빌드는 그 경고를 다시 출력합니다.
 
 `--cfg`, `--target`, MLIR plugin, profile 옵션, `-O3` 가 없는 native 빌드는 `lib/rok-cache/` (9.2.19) 의 미리 빌드한 표준 라이브러리를 링크합니다. 폴더는 toolchain, 옵션, 소스의 hash 마다 하나이며, 처음 쓸 때 lock 아래에서 빌드합니다. `-O3` 에서는 표준 라이브러리를 프로그램과 함께 컴파일합니다 (whole-program 최적화). REPL 은 표준 라이브러리를 소스에서 컴파일합니다.
+
+### Front end
+
+패키지의 빌드 (`check`, `build`, `run`, `test`, `bench`, `doc`, `lint`) 는 front end 가 계산한 것을 `target/<profile>/incremental/<name>-<hash>/` 에 둡니다. `<hash>` 는 패키지 루트를 가리키며, 빌드 종류 (target, cfg, test 여부, 어떤 라이브러리가 미리 빌드되었는지) 마다 하위 디렉토리가 하나씩 있습니다. 같은 종류의 다음 빌드는 여기서 다음을 가져옵니다.
+
+- 텍스트와 파싱 입력 (빌드의 확장 연산자, 패키지의 키워드, 메타 블록과 `#[literal]` 패턴, cfg) 이 바뀌지 않은 각 파일의 파싱.
+- 각 plain 함수 본체의 lowering (이름 해소, 타입 검사, 제네릭 인스턴스화). plain 함수는 반환 타입을 적었거나 `()` 인, 제네릭도 `const` 도 아닌 함수, 또는 제네릭이 아닌 `impl` 의 메서드입니다. 그 자신의 텍스트와 위치가 같고, 프로그램의 인터페이스가 같고, lowering 이 읽은 모든 시그니처, 인스턴스, 그 밖의 사실이 지금도 같고, 그 결과가 본체 밖에서 가리키는 모든 위치 앞의 텍스트가 같으면 재사용합니다.
+- 인터페이스는 plain 본체와 plain 함수의 매개변수, 반환 타입을 뺀 모든 항목입니다. 본체를 고치면 그 본체를 다시 lowering 하고, plain 함수의 시그니처를 고치면 그것과 그 시그니처를 읽은 본체들을 다시 lowering 하며, 항목의 그 밖의 변경 (타입, 트레잇, `impl` 머리, 제네릭 함수, `use`) 은 모든 본체를 다시 lowering 합니다.
+- 재사용한 lowering 이 만든 함수, 타입, 인스턴스는 깨끗한 빌드와 같이 번호가 매겨지며, 진단, 프로그램, 그 심볼은 깨끗한 빌드의 것과 같습니다.
+
+시그니처, `impl` 등록, coherence, 프로그램 전체 검사는 모든 빌드에서 실행합니다. 보관한 것이 꼭 있어야 하지는 않습니다: 없거나 망가졌거나 오래된 항목은 다시 계산합니다. 패키지 밖의 단독 파일은 `ROKC_INCREMENTAL` 이 디렉토리를 가리키지 않으면 아무것도 보관하지 않습니다. `ROKC_INCREMENTAL=<dir>` 은 결과를 `<dir>/<name>-<hash>/` 에 두고, `ROKC_INCREMENTAL=0` 은 끕니다. `ROKC_INCR_VERIFY=1` 은 모든 본체를 따로 다시 lowering 해, 재사용한 lowering 이 다르면 빌드를 실패시킵니다. `-v` 는 파싱과 본체를 재사용한 파일 수를 보고합니다.
 
 ### Codegen unit
 

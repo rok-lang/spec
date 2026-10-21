@@ -433,6 +433,8 @@ rokc --cwd=examples/hello run
 | `ROK_TIME_PASSES` | `1` 이면 패스별 실제 시간을 stderr 에 출력 ([9.9.5](909-debug-tools.md#rok_time_passes)) |
 | `LLVM_PROFILE_FILE` | 계측된 프로그램 (`-C profile-generate`) 이 읽음: raw profile 경로 |
 | `ROKC_TARGET_DIR` | `target/` 의 위치 (기본은 패키지 안)                                                     |
+| `ROKC_INCREMENTAL` | front end 가 파싱과 lowering 한 본체를 두는 곳 (기본 `target/<profile>/incremental/`, `0`: 두지 않음), [9.2.16](902-aot-pipeline.md#9216-증분-빌드) |
+| `ROKC_INCR_VERIFY` | `1`: 모든 본체를 다시 lowering 하고 다르면 실패 ([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |
 | `ROKC_NUM_JOBS`   | `rokc test --threads` 의 기본값 (없으면 CPU 코어 수)                                     |
 | `NO_COLOR`        | 있으면 `--color=auto` 가 색을 쓰지 않음                                                  |
 

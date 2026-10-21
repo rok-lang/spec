@@ -41,7 +41,7 @@ match p.as_ptr() {
         let typed: Ptr<u32> = rok::bare::ptr_cast::<u32>(raw);
         // use
         unsafe {
-            for i in 0..1000 { typed.add(i).write(i as u32); }
+            for i in 0u32..1000u32 { typed.add(i as usize).write(i); }
         }
         unsafe { rok::bare::alloc::dealloc(raw, layout) };
     }

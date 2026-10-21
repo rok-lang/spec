@@ -37,7 +37,7 @@ fn early(x: i32) -> i32 {
 
 fn validate(s: str) -> bool {
     if s.len() == 0 { return false; }
-    if !s.is_ascii() { return false; }
+    if s.starts_with("#") { return false; }
     true
 }
 ```
