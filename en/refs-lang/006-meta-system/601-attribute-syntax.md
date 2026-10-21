@@ -98,10 +98,13 @@ Attributes may be attached to the following:
 | `trait` / `impl`                    | `#[deprecated] trait T { ... }`         |
 | `const` / `static`                  | `#[deprecated] const X: i32 = 0;`       |
 | Module                              | `#[cfg(test)] mod tests { ... }`        |
-| Fields / variants within an item    | `struct S { #[deprecated] x: i32; }`    |
+| Fields / variants within an item (including tuple-variant fields) | `struct S { #[deprecated] x: i32; }`, `enum E { V(#[cfg(x)] i32) }` |
 | Trait methods / associated items    | `#[infix("+")] fn add(...);`            |
 | `use` / `extern`                    | `#[link("m")] extern "C" { ... }`       |
-| Expressions (certain positions)     | `#[cfg(test)] my_test_call();` (limited) |
+| Statements (only `#[cfg]`)          | `#[cfg(test)] my_test_call();`          |
+| Match arms (only `#[cfg]`)          | `#[cfg(debug_assertions)] Op::Trace => trace(),` |
+| Struct literal fields (only `#[cfg]`) | `S { #[cfg(x)] extra: 1, .. }`        |
+| Function parameters (only `#[cfg]`) | `fn f(#[cfg(x)] extra: i32) { ... }`    |
 
 Which attributes are meaningful in each position depends on each attribute's definition; for example, `#[derive]` applies only to types and `#[inline]` only to functions.
 

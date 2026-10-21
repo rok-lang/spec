@@ -98,10 +98,13 @@ mod m {
 | `trait` / `impl`            | `#[deprecated] trait T { ... }`         |
 | `const` / `static`          | `#[deprecated] const X: i32 = 0;`       |
 | 모듈                        | `#[cfg(test)] mod tests { ... }`        |
-| 항목 안의 필드 / 변형       | `struct S { #[deprecated] x: i32; }`    |
+| 항목 안의 필드 / 변형 (tuple 변형의 필드 포함) | `struct S { #[deprecated] x: i32; }`, `enum E { V(#[cfg(x)] i32) }` |
 | 트레잇 메서드 / 연관 항목   | `#[infix("+")] fn add(...);`            |
 | `use` / `extern`            | `#[link("m")] extern "C" { ... }`       |
-| 식 (특정 자리)              | `#[cfg(test)] my_test_call();` (제한적) |
+| 문 (`#[cfg]` 만)            | `#[cfg(test)] my_test_call();`          |
+| match arm (`#[cfg]` 만)     | `#[cfg(debug_assertions)] Op::Trace => trace(),` |
+| 구조체 리터럴 필드 (`#[cfg]` 만) | `S { #[cfg(x)] extra: 1, .. }`      |
+| 함수 매개변수 (`#[cfg]` 만) | `fn f(#[cfg(x)] extra: i32) { ... }`    |
 
 각 위치에서 어떤 속성이 의미를 갖는지는 해당 속성의 정의에 달려 있습니다. 예컨대 `#[derive]` 는 타입에만, `#[inline]` 은 함수에만 적용되는 식으로 동작합니다.
 

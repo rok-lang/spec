@@ -175,6 +175,9 @@ fn select<S1: Stream, S2: Stream>(a: S1, b: S2) -> Select<S1, S2>;  // Stream<It
 
 각 함수의 의미를 정리하면, `merge` 는 두 stream 의 union 을 만들고, `zip` 은 두 stream 을 pair 로 묶으며, `select` 는 race 식으로 먼저 준비되는 쪽을 취합니다.
 
+> [!NOTE]
+> `select` 는 `task::select` 와 이름이 같습니다. 묵시 `use rok::core::**;` 아래에서 맨 이름은 모호하므로 ([refs-lang 5.5.6](../../refs-lang/005-modules/505-use.md#556-glob--재귀-glob-의-충돌)), `stream::select` 로 적거나 import 합니다.
+
 ## 2.8.8a. `AsyncStream<T>` / `TryAsyncStream<T, E>` — 비동기 스트림의 값
 
 `async yield fn` 호출과 `async yield { .. }` 블록의 값입니다 ([refs-lang 4.1.11](../../refs-lang/004-functions/401-function-declaration.md#코루틴-함수의-결과-타입)).

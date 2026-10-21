@@ -38,16 +38,18 @@ unsafe { raw.read() };                          // UB — raw 가 stale
 
 ```rok
 struct Pinned<T> {
-    obj: GcPtr<T>;
+    obj: T;
     // 내부: GC 의 pin set 등록
 }
 
-fn pin<T>(obj: GcPtr<T>) -> Pinned<T>;
+trait Pinnable {}                       // List<T>, str
+impl<T> Pinnable for List<T> {}
+impl Pinnable for str {}
+
+fn pin<T: Pinnable>(obj: T) -> Pinned<T>;
 
 impl<T> Pinned<T> {
-    fn as_ptr(self) -> Ptr<T>;
-    fn as_const_ptr(self) -> ConstPtr<T>;
-    fn obj(self) -> GcPtr<T>;
+    fn obj(self) -> T;
 }
 
 impl<T> Drop for Pinned<T> {
@@ -59,7 +61,7 @@ impl<T> Drop for Pinned<T> {
 
 `using` 으로 묶는 guard 입니다. `pin()` 이 반환한 `Pinned<T>` 가 `using` 블록 안에 있는
 동안 GC 는 해당 객체를 이동시키지 않으며, 블록을 빠져나갈 때 `Pinned::drop` 이 불려 unpin
-됩니다. `using` 없이 받은 `Pinned<T>` 는 자동으로 풀리지 않습니다.
+됩니다. `using` 없이 받은 `Pinned<T>` 는 자동으로 풀리지 않습니다. pin 은 셉니다: 객체는 그만큼 unpin 된 뒤에야 다시 움직입니다.
 
 ### 사용 예 — FFI 호출
 
@@ -67,7 +69,7 @@ impl<T> Drop for Pinned<T> {
 let buf: List<u8> = read_input();
 
 using pin = rok::bare::gc::pin(buf) {
-    let raw: Ptr<u8> = pin.as_ptr().cast::<u8>();
+    let raw: Ptr<u8> = pin.as_data_ptr();
     unsafe {
         ffi::process(raw, buf.len());          // FFI 가 buf 데이터 사용
     }
@@ -89,7 +91,7 @@ struct Ptr<T>   { /* raw — root 추적 X */ }
 | GC root    | **자동 추적**                 | **추적하지 않음**                                |
 | 이동 시    | **자동 갱신**                 | **stale**                                        |
 | 사용처     | 일반 코드 (`List`/`Dict`/...) | unsafe + FFI 만                                  |
-| 생성       | GC alloc (`List::new()` 등)   | `gc::pin().as_ptr()` 또는 `alloc::alloc(layout)` |
+| 생성       | GC alloc (`List::new()` 등)   | `gc::pin().as_data_ptr()` 또는 `alloc::alloc(layout)` |
 | valid 기간 | 객체 reachable 동안           | pin guard scope 안만                             |
 
 타입 시스템 차원에서 두 종류를 분리해 두었기 때문에, 사용자 코드는 일반적으로
@@ -152,14 +154,9 @@ drop(Pinned):
 
 짧은 FFI 자리에는 자동 판단이 적용됩니다. 컴파일러가 "이 FFI 호출 동안 GC 가 돌지 않는다"는 사실을 보장할 수 있는 경우 pin 이 자동으로 생략됩니다. 다만 일반적인 경우에는 **명시 pin** 을 권장합니다.
 
-## 1.6.6. `as_ptr` 외 추출 메서드
+## 1.6.6. 추출 메서드
 
 ```rok
-impl<T> Pinned<T> {
-    fn as_ptr(self) -> Ptr<T>;
-    fn as_const_ptr(self) -> ConstPtr<T>;
-}
-
 impl<T> Pinned<List<T>> {
     fn as_data_ptr(self) -> Ptr<T>;          // List 의 buffer 시작
     fn as_data_many_ptr(self) -> ManyPtr<T>; // 다수 ptr
@@ -171,7 +168,7 @@ impl Pinned<str> {
 }
 ```
 
-container 별로 전용 추출 메서드가 마련됩니다. buffer 시작이나
+이 container 메서드들이 추출 API 이며, 제네릭 `as_ptr` 은 없습니다. container 별로 전용 추출 메서드가 마련됩니다. buffer 시작이나
 null-terminated 형태처럼, 각 컨테이너의 layout 에 맞춘 형태로 꺼내 쓸 수 있도록
 한 것입니다.
 

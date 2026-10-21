@@ -38,6 +38,8 @@ The supported ABIs:
 | `"system"` | The OS system-call ABI. Differs from `"C"` on some platforms (e.g. Win32 `stdcall`). |
 | `"rok"`    | The ABI of the runtime (`rokr`). See below.                                      |
 
+On targets where `"system"` and `"C"` coincide (every Tier 1 target but 32-bit x86 Windows), `"system"` is `"C"`. On 32-bit x86 Windows it is stdcall ([5.9.10](#5910-extern-fn-definitions-exposed-externally)).
+
 `extern "rok"` is the ABI of runtime functions declared by the toolchain; those declarations live in `rok::core::rt` as `pub(pkg)`. `#[no_safepoint]` on an `extern "rok"` block declares that its functions neither allocate nor block; calls to them are not safepoints. It is toolchain-internal and an error on `extern "C"` blocks.
 
 | Value                           | Passing under `extern "rok"`             |
@@ -101,15 +103,18 @@ The types of parameters, returns, and `static`s must all be FFI-compatible. The 
 
 A `str` parameter in an `extern "C"` signature is a single NUL-terminated `char*`. If a NUL follows the bytes, the bytes are passed as is; otherwise (a slice, etc.) a copy pinned for the duration of the call is passed. C must not retain that pointer after the call returns. A `str` return is a `char*` whose length is measured with `strlen`. If it contains an interior NUL, the C side sees only up to the first NUL. If the returned `char*` is null the behavior is undefined, so a C string that may be null is received as `CPtr<c_char>` ([stdlib 1.7.2](../../refs-standard-libraries/100-bare/107-ffi.md#172-cstr--cstring--null-terminated-string)).
 
+A `pub` function of an `extern` block in module `m` is also reachable as `m::f`; its symbol is unprefixed. A `rok_*` name in an `extern "C"` block may not take or return `str` ([8.5](../008-abi/805-extern-symbols.md)).
+
 Writing an incompatible type produces a compile warning or error. The exact checking rules are defined in [Calling Convention](../008-abi/806-calling-convention.md).
 
 ### C function pointer types
 
 ```
-c_fn_type ::= "unsafe"? "extern" "\"C\"" "fn" "(" (type_expr ("," type_expr)*)? ")" ("->" unary_type)?
+c_fn_type ::= "unsafe"? "extern" ("\"C\"" | "\"system\"") "fn" "(" (type_expr ("," type_expr)*)? ")" ("->" unary_type)?
 ```
 
-- The ABI string may only be `"C"`. Anything else is an error.
+- The ABI string may only be `"C"` or `"system"`. Anything else is an error.
+- `extern "system" fn(..) -> R` follows the same rules as `extern "C" fn(..) -> R`, so Win32 callbacks are expressible. It is a distinct type only on 32-bit x86 Windows, where it is stdcall; elsewhere the two are the same type.
 - Values of this type are made only from named C-ABI functions. The value of a C declaration in an `extern` block has type `unsafe extern "C" fn(..)` and cannot be put in a safe (non-`unsafe`) position; a rok `extern "C" fn` definition (its C entry point, 5.9.10) yields a safe `extern "C" fn(..)` value.
 - rok `fn` values (including closures and variables of function type) and C function pointers do not convert to each other.
 - Calling through a type without `unsafe` is safe; calling through `unsafe extern "C" fn` requires `unsafe`.
@@ -228,7 +233,9 @@ extern "C" fn callback(arg: i32) -> i32 {
 
 An `extern "ABI"` qualifier on an ordinary function declaration marks the function to be compiled compatible with that ABI. An `extern "C" fn` definition keeps its mangled symbol name ([9.5](../009-tools/905-symbol-mangling.md)); if a name visible from C is needed, add `#[export_name("...")]` as well.
 
-`extern "C" fn` definitions have these restrictions:
+An `extern "ABI" fn` definition takes `"C"` or `"system"`; any other ABI string is an error. On 32-bit x86 Windows an `extern "system"` declaration or definition is stdcall: the callee pops its arguments, and the symbol is `_name@N` as with MSVC.
+
+`extern "C"` and `extern "system"` fn definitions have these restrictions:
 
 - They cannot be generic, `async`, or `throws`.
 - Parameter and return types must be FFI-compatible types from 5.9.4; non-FFI types such as `str` cannot be used. (The `str` conversion of 5.9.4 applies only to declarations that *call* C functions.)

@@ -14,6 +14,7 @@ This part defines rok's meta-system: attributes, magic, and meta [blocks](../000
 - [6.8. User-defined meta blocks](608-meta-blocks.md)
 - [6.9. Template tokens and expansion](609-template-tokens.md)
 - [6.10. Reflection](610-reflection.md)
+- [6.11. Compile-time file embedding](611-include.md)
 
 ## Three-level structure
 

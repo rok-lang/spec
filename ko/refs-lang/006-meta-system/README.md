@@ -14,6 +14,7 @@
 - [6.8. 사용자 정의 메타 블록](608-meta-blocks.md)
 - [6.9. 템플릿 토큰과 확장](609-template-tokens.md)
 - [6.10. 리플렉션](610-reflection.md)
+- [6.11. 컴파일 시점 파일 포함](611-include.md)
 
 ## 세 단계의 구조
 

@@ -26,15 +26,15 @@ The input, output and responsibility of each step are kept clearly separate.
 
 ## 9.2.2. Package discovery
 
-Starting from the path of `rokc build [path]` and searching upward, `main.rok` or `lib.rok` is located. If `[path]` itself is `lib.rok` or `main.rok`, that is the package; otherwise (starting from the containing directory if path is a file) the search moves up one directory at a time.
+Starting from the path of `rokc build [path]` and searching upward, a directory containing `src/main.rok` or `src/lib.rok` is located (starting from the containing directory if path is a file); the search moves up one directory at a time.
 
-If found, that directory is the package root (see [Source units](../000-meta/003-source-units.md)). The other cases:
+If found, that directory is the package root and its `src/` the package's source (see [Source units](../000-meta/003-source-units.md)). The other cases:
 
-- It is an error for one directory to contain both `main.rok` and `lib.rok`.
-- If path is a file and no package is found walking upward, it is an anonymous executable package consisting of that single file ([4.16.8](../004-functions/416-entry-point.md#4168-single-file-execution)). File submodules (`mod foo;`) are an error.
+- It is an error for one directory to contain both `src/main.rok` and `src/lib.rok`.
+- If path is a file outside the found package's `src/` (a script or tool beside the package's source), or no package is found walking upward, it is an anonymous executable package consisting of that single file ([4.16.8](../004-functions/416-entry-point.md#4168-single-file-execution)). File submodules (`mod foo;`) are an error.
 - If path is a directory and there is no package, it is an error.
 
-The package name is the name of the root directory (for an anonymous package, the file name without `.rok`) and becomes the output name (9.2.15).
+The package name is the name of the package directory (for an anonymous package, the file name without `.rok`) and becomes the output name (9.2.15).
 
 ## 9.2.3. Dependency resolution
 
@@ -50,7 +50,7 @@ rokc build --extern util=../util --extern parser=target/debug/deps/libparser.a
 
 | Path                              | Dependency package                                                           |
 |-----------------------------------|------------------------------------------------------------------------------|
-| `<dir>` / `<dir>/lib.rok`         | Source. That `lib.rok` is compiled together in the same build                |
+| `<dir>` / `<dir>/src/lib.rok`     | Source. That `src/lib.rok` is compiled together in the same build            |
 | `<name>.rokhir` / `lib<name>.a`     | Prebuilt package. Given either one, the sibling file in the same directory is located. ROKHIR ([9.4](904-rokhir-bytecode.md)) is read for declarations and generics, and the archive is linked |
 
 - User code uses that package's items via `use name::..`.
@@ -74,9 +74,12 @@ target/<profile>/deps/
 If the fingerprint matches, it is not rebuilt. The fingerprint includes:
 
 - The identity of `rokc` (the same value as the ROKHIR producer)
-- Build options: `--release` / `-O*`, `-g`, `--target`, `--cfg`, `--bootstrap`
-- All `.rok` files and `rok.rokon` of that dependency package
+- Build options: `--release` / `-O*`, `-g`, `--target`, `--cfg` (without its `feature` keys), `--bootstrap`
+- The dependency's features (`--extern-feature`)
+- All files under that dependency package's `src/`, and its `rok.rokon`
 - The fingerprints of dependency packages built before it
+
+A prebuilt package's interface is read with the features it was built with (its ROKHIR meta, [9.4.6](904-rokhir-bytecode.md#946-meta)), not the consumer's.
 
 Every command that compiles uses this path: `build` / `run` / `test` / `bench` / `check` / `lint` / `doc` / `lsp` / `repl` / `jupyter`, single-file scripts, and named environments. The REPL host also links the prebuilt archives. If there is neither a package nor `--target-dir`, they are placed under `rokc-target/` in the system temporary directory.
 
@@ -212,7 +215,8 @@ The name `foo` is the package name (9.2.2). `-o` changes the path of a single ou
 Incremental builds work at three levels: a package whose inputs did not change is not built at all; a package that is built takes the parses and lowered bodies of its unchanged files and functions from the last build (front end, below); and its code is compiled by codegen units, of which only the changed ones are compiled again. If the fingerprint of the previous build equals the current one, `rokc build` / `rokc run` print `Fresh` and skip the build. The fingerprint includes:
 
 - The compiler's identity (the same value as the ROKHIR producer), build options, diagnostic format (`--message-format`, color), input / output paths, `ROK_CC` if set
-- All `.rok` files and `rok.rokon` readable from the package and its dependencies
+- The files under `src/` of the package and its dependencies, their `rok.rokon`, and every other file the build read (`#[path]` / `include_str!` outside `src/`)
+- Files read by `include_str!` / `include_bytes!` ([6.11](../006-meta-system/611-include.md)), with their contents
 - The `.a` of prebuilt dependencies, MLIR plugin files, a `-C profile-use` file and the profile runtime
 - The size and modification time of the outputs
 

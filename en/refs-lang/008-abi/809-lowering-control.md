@@ -275,8 +275,9 @@ This is lowered to the following MLIR with the fast path inlined.
 
 ```
 ; fast path
-%cursor_ptr = llvm.mlir.addressof @rok_tls_tlab_cursor
-%limit_ptr = llvm.mlir.addressof @rok_tls_tlab_limit
+%t = llvm.mlir.addressof @rok_tls : !llvm.ptr
+%cursor_ptr = llvm.getelementptr %t[8] : (!llvm.ptr) -> !llvm.ptr, i8    ; tlab_cursor at p
+%limit_ptr = llvm.getelementptr %t[16] : (!llvm.ptr) -> !llvm.ptr, i8    ; tlab_limit at 2p
 
 %cursor = llvm.load %cursor_ptr : !llvm.ptr -> !llvm.ptr
 %new_cursor = llvm.getelementptr %cursor[24] : !llvm.ptr
@@ -363,7 +364,8 @@ Consider also the [Safepoint protocol](804-safepoint.md).
 
 ```
 ; safepoint poll
-%flag_ptr = llvm.mlir.addressof @rok_tls_yield_flag
+%t = llvm.mlir.addressof @rok_tls : !llvm.ptr
+%flag_ptr = llvm.getelementptr %t[88] : (!llvm.ptr) -> !llvm.ptr, i8    ; yield_flag at 10p+8
 %flag = llvm.load %flag_ptr : !llvm.ptr -> i8
 %need_yield = arith.cmpi "ne", %flag, %0 : i8
 
@@ -392,7 +394,7 @@ Example of a function with 2 GC reference words (`%x`, `%y`). Slots hold the add
 llvm.store %null, %x : !llvm.ptr, !llvm.ptr
 llvm.store %null, %y : !llvm.ptr, !llvm.ptr
 %frame = llvm.alloca %c1 x !llvm.struct<(ptr, i64, array<2 x ptr>)> : (i64) -> !llvm.ptr
-%head_ptr = llvm.mlir.addressof @rok_tls_shadow_stack_top : !llvm.ptr
+%head_ptr = llvm.mlir.addressof @rok_tls : !llvm.ptr             ; shadow stack head at offset 0
 %head = llvm.load %head_ptr : !llvm.ptr -> !llvm.ptr
 %prev_p = llvm.getelementptr %frame[0, 0] : (!llvm.ptr) -> !llvm.ptr
 llvm.store %head, %prev_p : !llvm.ptr, !llvm.ptr
@@ -412,7 +414,7 @@ llvm.store %obj, %x : !llvm.ptr, !llvm.ptr
 llvm.store %saved, %head_ptr : !llvm.ptr, !llvm.ptr
 ```
 
-`@rok_tls_shadow_stack_top` is the thread-local symbol of [8.3.8](803-tls-slots.md#838-form-of-compiler-emission). An error return is also an ordinary `return` ([8.9.6](#896-try--catch--finally-value-based-branching)), so it passes through the same unlink. A function needs a frame only if it holds GC references and can reach a safepoint ([8.4.2](804-safepoint.md#842-emission-sites)). Calls to functions that never return (panics) and to runtime functions that neither allocate nor block ([8.5.2](805-extern-symbols.md#functions-that-are-not-safepoints)) do not count.
+`@rok_tls` is the thread-local block of [8.3.8](803-tls-slots.md#838-form-of-compiler-emission); the shadow stack head is its slot at offset 0. An error return is also an ordinary `return` ([8.9.6](#896-try--catch--finally-value-based-branching)), so it passes through the same unlink. A function needs a frame only if it holds GC references and can reach a safepoint ([8.4.2](804-safepoint.md#842-emission-sites)). Calls to functions that never return (panics) and to runtime functions that neither allocate nor block ([8.5.2](805-extern-symbols.md#functions-that-are-not-safepoints)) do not count.
 
 ### Module data layout
 

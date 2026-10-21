@@ -46,11 +46,11 @@ option          ::= "--" identifier ("=" value)?
 
 | `path`                    | 패키지                                                                                                  |
 |---------------------------|---------------------------------------------------------------------------------------------------------|
-| 패키지 디렉토리           | 그 디렉토리. `main.rok` 나 `lib.rok` 가 없으면 위로 찾음 (9.2.2)                                          |
-| 패키지 안의 파일          | 파일에서 위로 올라가며 처음 `main.rok` / `lib.rok` 가 있는 디렉토리                                       |
-| 어떤 패키지에도 없는 파일 | 그 파일 하나로 된 익명 실행 패키지 ([4.16.8](../004-functions/416-entry-point.md#4168-단일-파일-실행)) |
+| 패키지 디렉토리           | 그 디렉토리. `src/main.rok` 나 `src/lib.rok` 가 없으면 위로 찾음 (9.2.2)                                  |
+| 패키지 `src/` 안의 파일   | 그 패키지: 파일에서 위로 올라가며 처음 `src/main.rok` / `src/lib.rok` 가 있는 디렉토리                    |
+| 그 밖의 파일              | 그 파일 하나로 된 익명 실행 패키지 ([4.16.8](../004-functions/416-entry-point.md#4168-단일-파일-실행)). 패키지 디렉토리 안이지만 `src/` 밖에 있는 `.rok` 파일도 포함 |
 
-한 디렉토리에 `main.rok` 와 `lib.rok` 가 함께 있으면 에러입니다 ([0.3](../000-meta/003-source-units.md)). 디렉토리를 주었는데 위로 올라가도 패키지가 없으면 에러입니다. 익명 패키지는 파일 서브모듈 (`mod foo;`) 을 가질 수 없습니다.
+한 디렉토리에 `src/main.rok` 와 `src/lib.rok` 가 함께 있으면 에러입니다 ([0.3](../000-meta/003-source-units.md)). 디렉토리를 주었는데 위로 올라가도 패키지가 없으면 에러입니다. 익명 패키지는 파일 서브모듈 (`mod foo;`) 을 가질 수 없습니다.
 
 패키지 이름 (산출물 이름) 은 패키지 디렉토리의 이름이며, 익명 패키지는 파일 이름에서 `.rok` 를 뗀 것입니다.
 
@@ -70,7 +70,8 @@ rokc build [path]
 
 - `--release` 는 최적화 빌드 (`-O2` 와 같음) 를 `release` profile 로 수행하며, 기본값은 `debug` profile 의 디버그 빌드 (`-O0`) 입니다.
 - `--target-dir=<dir>` 는 `target/` 의 위치를 바꿉니다 (`ROKC_TARGET_DIR` 과 같음).
-- `--extern <name>=<dir | lib.rok | <name>.rokhir | lib<name>.a>` 는 의존 패키지 하나를 최상위 경로 `name` 에 mount 합니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 소스 (`dir` / `lib.rok`) 는 같은 빌드에서 함께 컴파일하고, 미리 빌드한 패키지 (`.rokhir` / `.a`, 하나를 주면 옆의 짝을 찾음) 는 ROKHIR 을 읽고 archive 를 링크합니다. 여러 번 쓸 수 있고, 보통 `rok` 가 채웁니다. `name` 은 식별자이며, 패키지 이름의 `-` 를 `_` 로 바꾼 것입니다 ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)).
+- `--extern <name>=<dir | src/lib.rok | <name>.rokhir | lib<name>.a>` 는 의존 패키지 하나를 최상위 경로 `name` 에 mount 합니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 소스 (`dir` / `src/lib.rok`) 는 같은 빌드에서 함께 컴파일하고, 미리 빌드한 패키지 (`.rokhir` / `.a`, 하나를 주면 옆의 짝을 찾음) 는 ROKHIR 을 읽고 archive 를 링크합니다. 여러 번 쓸 수 있고, 보통 `rok` 가 채웁니다. `name` 은 식별자이며, 패키지 이름의 `-` 를 `_` 로 바꾼 것입니다 ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)).
+- `--extern-feature <name>=<f>` 는 소스 의존 패키지 `name` 을 `cfg(feature = "<f>")` 로 빌드합니다. feature 마다 하나씩, 여러 번 줄 수 있습니다. 의존 패키지가 보는 것은 이것뿐입니다: `--cfg` 의 `feature` 키는 컴파일 중인 패키지의 것입니다. 보통 `rok` 이 채웁니다.
 - `--name <n>` 은 패키지 이름 ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock) 의 이름 규칙) 을 정합니다. 산출물은 `lib<n>.a` / `<n>.rokhir` 이고 mount 이름은 `-` 를 `_` 로 바꾼 것입니다. 기본은 디렉토리 이름입니다. `--extern a-b=..` 도 `a_b` 로 묶습니다.
 - `--bootstrap <file>` 은 미리 읽을 표준 라이브러리 루트 (여러 번 가능), `--rokr <lib>` 는 링크할 런타임입니다. 기본값은 sysroot 의 `lib/rok/{core,std,bare}/lib.rok` 와 `lib/librokr.a` 입니다 ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)). 찾지 못하면 찾아본 경로를 나열하는 에러입니다.
 - `-O0` / `-O1` / `-O2` / `-O3` / `-Os` 는 최적화 단계를 명시적으로 지정합니다. `-O0` 은 native backend 를, 나머지는 MLIR → LLVM backend 를 씁니다 ([9.2.10](902-aot-pipeline.md#9210-backend-선택)).
@@ -208,7 +209,7 @@ rokc repl [path]
 - 기본 모드는 각 셀을 native backend 로 컴파일해 세션 동안 사는 JIT host 프로세스에 넘기고, host 가 그것을 로드해 한 번 실행합니다 ([9.6](906-jit-engine.md)). 바인딩, `static` 상태, `any` 값이 셀 사이에 이어집니다. 최상위에서 이름을 적을 수 없는 타입 (클로저, 비공개 타입 등) 의 바인딩은 만들 때 거부합니다.
 - 진단과 panic 위치는 셀 자신의 텍스트 기준 `<repl>:line:col` 로 표시합니다.
 - 입력은 줄 편집과 history 를 지원하며, history 는 `$ROK_HOME/repl_history` 에 남습니다.
-- 경로가 없으면 빈 세션으로 시작합니다. 프로그램 경로 (단독 `.rok` 파일이나 `main.rok` 가 있는 패키지) 는 로드해 실행하며 (top-level 문은 셀로, `fn main` 은 진입점으로), 세션이 이어집니다 ([9.7.10](907-jit-cells.md#9710-프로그램-로드-repl-path)). 라이브러리 패키지 경로 (`lib.rok`) 는 의존성으로 붙이고 `use <name>::*;` 를 첫 셀로 넣으며, `:reset` 뒤에도 다시 넣습니다.
+- 경로가 없으면 빈 세션으로 시작합니다. 프로그램 경로 (단독 `.rok` 파일이나 `src/main.rok` 가 있는 패키지) 는 로드해 실행하며 (top-level 문은 셀로, `fn main` 은 진입점으로), 세션이 이어집니다 ([9.7.10](907-jit-cells.md#9710-프로그램-로드-repl-path)). 라이브러리 패키지 경로 (`src/lib.rok`) 는 의존성으로 붙이고 `use <name>::*;` 를 첫 셀로 넣으며, `:reset` 뒤에도 다시 넣습니다.
 - 경로가 둘 이상이면 사용법 에러입니다. `-` 는 받지 않으며, 표준 입력은 셀 입력입니다.
 
 `rok` 와 `rok repl` ([9.10](910-rok-frontend.md)) 은 의존성을 붙여 같은 REPL 을 실행합니다.
@@ -235,7 +236,7 @@ rokc jupyter [--connection-file <path>]
 rokc fmt [path]
 ```
 
-`[path]` 는 파일 또는 디렉토리를 받으며 (여러 개 가능, 생략하면 현재 디렉토리), [표준 포맷](#9111-표준-포맷-rokc-fmt) 에 맞게 in-place 로 수정합니다. 디렉토리는 재귀로 `.rok` 파일을 찾으며 `target/` 과 `.` 으로 시작하는 디렉토리는 건너뜁니다. `.rokon` 파일 ([ROKON](../../refs-standard-libraries/300-std/309-rokon.md#394-정규-형식)) 은 ROKON 인지 검사하고 들여쓰기만 다시 맞춥니다 (정규 형식으로 다시 쓰지 않으므로 주석이 남음).
+`[path]` 는 파일 또는 디렉토리를 받으며 (여러 개 가능, 생략하면 현재 디렉토리), [표준 포맷](#9111-표준-포맷-rokc-fmt) 에 맞게 in-place 로 수정합니다. 패키지인 디렉토리 (9.2.2) 는 그 `src/` 와 `tests/` 디렉토리, 그리고 `rok.rokon` 을 포맷하며, 그 안의 다른 파일은 건드리지 않습니다. 디렉토리는 재귀로 `.rok` 파일을 찾으며 `target/` 과 `.` 으로 시작하는 디렉토리는 건너뜁니다. `.rokon` 파일 ([ROKON](../../refs-standard-libraries/300-std/309-rokon.md#394-정규-형식)) 은 ROKON 인지 검사하고 들여쓰기만 다시 맞춥니다 (정규 형식으로 다시 쓰지 않으므로 주석이 남음).
 
 옵션은 다음과 같습니다.
 

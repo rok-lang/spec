@@ -90,6 +90,8 @@ struct Ed25519 {                                    // crypto::ed25519 (RFC 8032
 }
 enum EcCurve { P256, P384 }                         // crypto::ecdsa (FIPS 186-5)
 struct Ecdsa {
+    fn public_key(curve: EcCurve, private_key: Bytes) throws (ValueError) -> List<u8>;  // SEC1 비압축
+    fn sign(curve: EcCurve, hash: HashAlgorithm, private_key: Bytes, msg: Bytes) throws (ValueError) -> List<u8>;  // DER, RFC 6979 nonce
     fn verify(curve: EcCurve, hash: HashAlgorithm, public_key: Bytes, msg: Bytes, signature: Bytes) -> bool;  // SEC1 비압축 키, DER 서명
 }
 struct RsaPublicKey {                               // crypto::rsa (RFC 8017), 2048..4096 bits
@@ -99,6 +101,14 @@ struct RsaPublicKey {                               // crypto::rsa (RFC 8017), 2
     fn verify_pkcs1v15(self, hash: HashAlgorithm, msg: Bytes, signature: Bytes) -> bool;
     fn verify_pss(self, hash: HashAlgorithm, msg: Bytes, signature: Bytes) -> bool;  // MGF1(hash), salt 길이 = 해시 길이
 }
+struct RsaPrivateKey {
+    fn from_pkcs1_der(der: Bytes) throws (ValueError) -> RsaPrivateKey;   // RSAPrivateKey, 소수 두 개
+    fn public_key(self) -> RsaPublicKey;
+    fn bits(self) -> usize;
+    fn sign_pss(self, hash: HashAlgorithm, msg: Bytes, salt: Bytes) throws (ValueError) -> List<u8>;  // salt: 새 난수, 해시 길이
+}
 ```
 
 Ed25519 검증은 cofactorless 이며, 정규형이 아닌 인코딩과 S ≥ L 을 거부합니다. ECDSA 와 RSA 검증은 인코딩에 엄격합니다 (최소 DER, 정확한 서명 길이).
+
+ECDSA 개인 키는 곡선의 크기 이하인 big-endian 스칼라 `1 <= d < n` 입니다. nonce 는 결정적으로 유도되므로 (RFC 6979, `hash` 를 쓰는 HMAC-DRBG) 서명에 무작위 입력이 필요 없습니다. RSA 서명은 base blinding 을 곁들인 CRT 를 쓰며 (blinding 인수는 `salt`, 메시지, 키에서 유도), 결과를 돌려주기 전에 공개 키로 검사합니다. 일관되지 않은 키는 `ValueError` 입니다. 서명은 비밀에 대한 다른 연산처럼 constant time 으로 수행됩니다.

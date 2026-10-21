@@ -53,7 +53,7 @@ pkg::config::DEFAULT_TIMEOUT
 pkg::main_module::run
 ```
 
-`pkg::` starts from the package's root module (`main.rok` or `lib.rok`) and is written the same way anywhere in the package. It is the standard form for safe absolute references in large codebases.
+`pkg::` starts from the package's root module (`src/main.rok` or `src/lib.rok`) and is written the same way anywhere in the package. It is the standard form for safe absolute references in large codebases.
 
 ## 5.7.3. `sup::`: from the parent module
 

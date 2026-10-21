@@ -7,6 +7,7 @@ token           ::= identifier
                   | keyword
                   | numeric_lit
                   | string_lit
+                  | byte_string_lit
                   | char_lit
                   | sentinel_lit                  // true | false | none
                   | punctuation
@@ -28,7 +29,7 @@ The compiler's lexical analyzer (the **lexer**) reads a source file and produces
 | Identifier                   | `count`, `α`, `Δt`                  |
 | Keyword                      | `let`, `if`, `fn`                   |
 | Numeric literal              | `42`, `3.14`, `0xFF`, `1_000`       |
-| String literal               | `"hello"`, `r"raw\n"`, `f"x = {x}"` |
+| String literal               | `"hello"`, `r"raw\n"`, `f"x = {x}"`, `b"bytes"` |
 | Character literal            | `'A'`, `c'A'`                       |
 | Boolean / sentinel literal   | `true`, `false`, `none`             |
 | Operator / punctuation       | `+`, `==`, `..`, `[`, `;`           |

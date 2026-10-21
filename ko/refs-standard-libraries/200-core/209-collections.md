@@ -89,6 +89,8 @@ impl<T> List<T> {
     fn insert(self, idx: usize, x: T);
     fn remove(self, idx: usize) -> T;
     fn clear(self);
+    fn truncate(self, len: usize);              // 앞의 len 개만 남김; 더 적으면 그대로
+    fn drain(self, r: Range<usize>) -> List<T>; // r 의 원소를 순서대로 빼서 돌려줌; r 이 거꾸로이거나 len() 을 넘어 끝나면 panic
 
     fn get(self, idx: usize) -> T | none;       // safe — out-of-bounds → none
     fn first(self) -> T | none;
@@ -109,6 +111,10 @@ impl<T> List<T> {
 ```rok
 impl List<str> {
     fn join(self, sep: str) -> str;              // 원소를 sep 로 이어 붙임
+}
+
+impl List<u8> {
+    fn find(self, needle: Slice<u8> | List<u8>) -> usize | none;   // self[:].find(needle)
 }
 ```
 
@@ -157,7 +163,7 @@ let total: i32 = ys.into_iter().sum();   //→ 60
 ### 용량과 제거 — 공통 규칙
 
 - `reserve`, `with_capacity`, `repeat`, 확장에서 크기가 overflow 하면 최적화 수준과 무관하게 "capacity overflow" 로 panic 합니다.
-- 원소를 빼면 (`pop`, `remove`, `clear` 등) 참조도 놓습니다. GC 는 그 컬렉션을 통해 더 이상 그 원소를 보지 않습니다.
+- 원소를 빼면 (`pop`, `remove`, `clear`, `truncate`, `drain` 등) 참조도 놓습니다. GC 는 그 컬렉션을 통해 더 이상 그 원소를 보지 않습니다.
 
 ## 2.9.3. `Dict<K, V>` — hash map
 
@@ -434,12 +440,18 @@ impl<T> Slice<T> {
     fn to_list(self) -> List<T>;             // 새 List 할당
 }
 
+impl Slice<u8> {
+    fn find(self, needle: Slice<u8> | List<u8>) -> usize | none;   // 처음 나타나는 offset; 빈 needle 은 0
+}
+
 impl<T> Index<usize> for Slice<T> { ... }               // s[i] — 범위 밖이면 panic
 impl<T> Sliceable<Range<usize>> for Slice<T> { ... }    // s[a:b] — view 의 view, 범위는 길이에 맞춰 잘라 맞춤
 impl<T> IntoIterator for Slice<T> { ... }
 impl<T: PartialEq> PartialEq for Slice<T> { ... }
 impl<T: Debug> Debug for Slice<T> { ... }
 ```
+
+바이트 문자열은 `find` 의 needle 로 넘길 수 있습니다 (그 `Slice<u8>` 규칙, [refs-lang 1.7.5](../../refs-lang/001-lexical/107-string-literals.md#175-바이트-문자열)).
 
 `Slice` 는 읽기 전용입니다 (`IndexSet` 없음). 음수 인덱스는 끝에서부터 셉니다 ([refs-lang 3.6.1](../../refs-lang/003-expressions/306-indexing-and-slicing.md#361-인덱싱-arri)).
 

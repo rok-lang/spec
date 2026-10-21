@@ -17,7 +17,9 @@ poll:
 In LLVM IR:
 
 ```mlir
-%flag = load i8, i8* @rok_tls_yield_flag
+%t = call ptr @llvm.threadlocal.address(ptr @rok_tls)
+%flag_p = getelementptr i8, ptr %t, i64 88    ; yield_flag at 10p+8, p = 8
+%flag = load i8, ptr %flag_p
 %check = icmp ne i8 %flag, 0
 br i1 %check, label %slow, label %cont
 
@@ -43,8 +45,8 @@ The compiler emits safepoint polls at the following sites.
 
 The detailed emission policy is up to the compiler; this specification guarantees only the following minimum frequency.
 
-- Every loop back-edge has a poll, and every cycle of calls contains a poll.
-- A function that can reach no safepoint (no loop, allocation, indirect call, lazy `static`, or call to a function that may reach one) needs none.
+- Every loop back-edge has a poll, except a loop with a compile-time constant trip count of at most 64 whose body reaches no safepoint; every cycle of calls contains a poll.
+- A function that can reach no safepoint (no loop but such bounded loops, no allocation, indirect call, lazy `static`, or call to a function that may reach one) needs none.
 
 Together these bound the time from a yield request to the next safepoint.
 
@@ -112,7 +114,7 @@ The compiler guarantees this by linking the shadow stack frame from [Barriers an
 
 ## 8.4.8. Loop back-edge poll
 
-If a long loop does not cooperate with the GC, STW waits forever. The compiler therefore emits a poll on every loop back-edge.
+If a long loop does not cooperate with the GC, STW waits forever. The compiler therefore emits a poll on every loop back-edge (8.4.2's bounded loops aside).
 
 ```
 loop:
@@ -125,7 +127,7 @@ The cost of this poll is again two instructions and one branch, negligible compa
 
 The poll stays on the back edge. Its slow path (the `rok_runtime_yield` call) may branch to a re-entry block placed before the loop header instead of returning into the edge.
 
-The compiler detects every natural loop and emits a poll for each.
+The compiler detects every natural loop and emits a poll for each but the bounded loops of 8.4.2.
 
 ## 8.4.9. Inline functions and polls
 
@@ -172,6 +174,6 @@ fn long_loop() {
 
 ## 8.4.12. Stability
 
-The ABI is the slot symbol `rok_tls_yield_flag` and its type (u8). The offset is not ABI ([8.3.1](803-tls-slots.md#831-tls-slot-structure)).
+The ABI is the slot at offset 10p+8 of `rok_tls` (`rok_tls_yield_flag`) and its type (u8) ([8.3.1](803-tls-slots.md#831-tls-slot-structure)).
 
 `rok_runtime_yield` follows a simple calling convention with no arguments and no return value.

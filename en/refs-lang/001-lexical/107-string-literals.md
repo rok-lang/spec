@@ -1,6 +1,6 @@
 # 1.7. String literals
 
-A string literal is a token representing a sequence of characters. This document covers only the lexical form; which library type the result evaluates to is decided by the standard library's literal handlers.
+A string literal is a token representing a sequence of characters. This document covers only the lexical form; which library type the result evaluates to is decided by the standard library's literal handlers. A byte string (1.7.5) is the exception: its type is fixed by the language.
 
 ## 1.7.1. Ordinary strings
 
@@ -182,3 +182,21 @@ The expression inside a hole is processed by the ordinary expression parser.
 ## 1.7.4. Automatic concatenation of adjacent strings
 
 C- and Python-style automatic concatenation of adjacent strings (`"abc" "def"` → `"abcdef"`) is not adopted. Concatenation requires an explicit operator or method.
+
+## 1.7.5. Byte strings
+
+```
+byte_string_lit  ::= 'b"' byte_string_item* '"'
+byte_string_item ::= <any ASCII byte except '"' or '\'> | byte_escape
+```
+
+A byte string is the `b` prefix followed by double quotes. It evaluates to a fixed array `[u8; N]` holding its bytes, where `N` is their count.
+
+```rok
+let magic = b"\x7FELF";          // [u8; 4]
+let req: Slice<u8> = b"GET /\r\n";
+```
+
+Characters written directly must be ASCII; any other byte is written as an escape. Escape sequences follow the table of 1.7.1 as for `c'A'` ([1.8.1](108-character-literals.md#181-two-kinds)): `\xHH` may be any value `\x00`–`\xFF`, and every escape's value must lie within `U+0000`–`U+00FF`. A non-ASCII character written directly, or an escape above `U+00FF`, is a lexical error. Line continuation (`\` + line terminator) is not supported.
+
+Where the expected type is `Slice<u8>`, or a sum type with a `Slice<u8>` member and no array member, the literal is instead a `Slice<u8>` view of that array, as if written `b"..."[:]`.

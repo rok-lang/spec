@@ -19,7 +19,7 @@ ROKHIR file (little-endian):
 +-----------------------------------+
 |  Header                           |  (16 bytes fixed)
 |    magic       "ROKH"    (4 bytes)  |
-|    version     u32  (= 1)         |
+|    version     u32  (= 2)         |
 |    flags       u32                |
 |    body_offset u32                |
 +-----------------------------------+
@@ -31,6 +31,7 @@ ROKHIR file (little-endian):
 |    source dir           str       |
 |    gc type offset       varint    |
 |    gc type count        varint    |
+|    features  varint n, n × str    |
 +-----------------------------------+
 |  Body (at body_offset)            |
 |    file count           varint    |
@@ -45,7 +46,7 @@ ROKHIR file (little-endian):
 | Field         | Size | Meaning                                                      |
 |---------------|------|--------------------------------------------------------------|
 | `magic`       | 4    | `"ROKH"`                                                       |
-| `version`     | u32  | Format version (`1`). Bumped when the layout or body content changes |
+| `version`     | u32  | Format version (`2`). Bumped when the layout or body content changes |
 | `flags`       | u32  | Reserved (0)                                                 |
 | `body_offset` | u32  | Start offset of the body                                     |
 
@@ -70,6 +71,7 @@ The same PrefixVarInt as MLIR bytecode, a variant of LEB128. The number of leadi
 | hash             | Package hash ([0.3.3](../000-meta/003-source-units.md#033-package-identifier)). The value used in symbol mangling. For the standard library package `rok` it is a `pkg=hash;…` list, one entry per tier |
 | source dir       | The directory holding the package source at build time. The base for file paths in the body; downstream reads the body, not the disk |
 | gc type offset / count | This package's GC type id range `[offset, offset + count)` (9.4.8)          |
+| features         | The `feature` cfg values the package was built with. Downstream parses the body with the build's other cfg and these features |
 
 ## 9.4.7. Body
 
@@ -102,7 +104,7 @@ If any of the following differs, the ROKHIR is rejected with a "rebuild" error.
 
 ## 9.4.10. ROKHIR inspection
 
-`rokc rokhir-text <file>` prints the ROKHIR's version, producer, meta, and the paths and text of the interface files ([9.9.2](909-debug-tools.md#992-rokhir-inspection)). `rokc inspect` ([9.9.14](909-debug-tools.md#9914-package-inspection)) shows a summary together with the archive.
+`rokc rokhir-text <file>` prints the ROKHIR's version, producer, meta (including `features:`), and the paths and text of the interface files ([9.9.2](909-debug-tools.md#992-rokhir-inspection)). `rokc inspect` ([9.9.14](909-debug-tools.md#9914-package-inspection)) shows a summary together with the archive.
 
 ## 9.4.11. Stability
 

@@ -26,15 +26,15 @@
 
 ## 9.2.2. 패키지 발견
 
-`rokc build [path]` 의 path 부터 상위 방향으로 탐색하여 `main.rok` 또는 `lib.rok` 을 찾습니다. 만약 `[path]` 자체가 `lib.rok` 이거나 `main.rok` 이라면 그것이 곧 패키지가 되고, 그 외의 경우에는 (path 가 파일이면 그 디렉토리부터) 디렉토리를 위로 한 단계씩 올라가며 찾습니다.
+`rokc build [path]` 의 path 부터 상위 방향으로 탐색하여 `src/main.rok` 또는 `src/lib.rok` 가 있는 디렉토리를 찾습니다 (path 가 파일이면 그 디렉토리부터). 디렉토리를 위로 한 단계씩 올라가며 찾습니다.
 
-찾았다면 그 디렉토리가 패키지 루트가 됩니다 ([소스 단위](../000-meta/003-source-units.md) 참고). 그 밖의 경우는 다음과 같습니다.
+찾았다면 그 디렉토리가 패키지 루트가 되고, 그 `src/` 가 패키지의 소스가 됩니다 ([소스 단위](../000-meta/003-source-units.md) 참고). 그 밖의 경우는 다음과 같습니다.
 
-- 한 디렉토리에 `main.rok` 와 `lib.rok` 가 함께 있으면 에러입니다.
-- path 가 파일이고 위로 올라가도 패키지가 없으면, 그 파일 하나로 된 익명 실행 패키지입니다 ([4.16.8](../004-functions/416-entry-point.md#4168-단일-파일-실행)). 파일 서브모듈 (`mod foo;`) 은 에러입니다.
+- 한 디렉토리에 `src/main.rok` 와 `src/lib.rok` 가 함께 있으면 에러입니다.
+- path 가 찾은 패키지의 `src/` 밖의 파일 (패키지 소스 옆의 스크립트나 도구) 이거나 위로 올라가도 패키지가 없으면, 그 파일 하나로 된 익명 실행 패키지입니다 ([4.16.8](../004-functions/416-entry-point.md#4168-단일-파일-실행)). 파일 서브모듈 (`mod foo;`) 은 에러입니다.
 - path 가 디렉토리이고 패키지가 없으면 에러입니다.
 
-패키지 이름은 루트 디렉토리의 이름 (익명 패키지는 파일 이름에서 `.rok` 를 뗀 것) 이며, 산출물 이름이 됩니다 (9.2.15).
+패키지 이름은 패키지 디렉토리의 이름 (익명 패키지는 파일 이름에서 `.rok` 를 뗀 것) 이며, 산출물 이름이 됩니다 (9.2.15).
 
 ## 9.2.3. 의존성 해소
 
@@ -50,7 +50,7 @@ rokc build --extern util=../util --extern parser=target/debug/deps/libparser.a
 
 | 경로                              | 의존 패키지                                                                  |
 |-----------------------------------|------------------------------------------------------------------------------|
-| `<dir>` / `<dir>/lib.rok`         | 소스. 그 `lib.rok` 를 같은 빌드에서 함께 컴파일                               |
+| `<dir>` / `<dir>/src/lib.rok`     | 소스. 그 `src/lib.rok` 를 같은 빌드에서 함께 컴파일                           |
 | `<name>.rokhir` / `lib<name>.a`     | 미리 빌드한 패키지. 둘 중 하나를 주면 같은 디렉토리의 짝 파일을 찾음. ROKHIR ([9.4](904-rokhir-bytecode.md)) 을 읽어 선언과 제네릭을 얻고 archive 를 링크 |
 
 - 사용자 코드는 `use name::..` 로 그 패키지의 항목을 씁니다.
@@ -74,9 +74,12 @@ target/<profile>/deps/
 fingerprint 가 같으면 다시 빌드하지 않습니다. fingerprint 에 들어가는 것은 다음입니다.
 
 - `rokc` 의 정체 (ROKHIR producer 와 같은 값)
-- 빌드 옵션: `--release` / `-O*`, `-g`, `--target`, `--cfg`, `--bootstrap`
-- 그 의존 패키지의 모든 `.rok` 파일과 `rok.rokon`
+- 빌드 옵션: `--release` / `-O*`, `-g`, `--target`, `--cfg` (`feature` 키 제외), `--bootstrap`
+- 그 의존 패키지의 feature (`--extern-feature`)
+- 그 의존 패키지의 `src/` 아래 모든 파일과 `rok.rokon`
 - 그보다 먼저 빌드한 의존 패키지들의 fingerprint
+
+미리 빌드한 패키지의 interface 는 소비하는 쪽의 feature 가 아니라 그 패키지가 빌드된 feature (그 ROKHIR meta, [9.4.6](904-rokhir-bytecode.md#946-meta)) 로 읽습니다.
 
 컴파일하는 모든 명령이 이 경로를 씁니다: `build` / `run` / `test` / `bench` / `check` / `lint` / `doc` / `lsp` / `repl` / `jupyter`, 단일 파일 스크립트, 이름 있는 환경. REPL host 도 미리 빌드한 archive 를 링크합니다. 패키지도 `--target-dir` 도 없으면 시스템 임시 디렉토리의 `rokc-target/` 아래에 둡니다.
 
@@ -212,7 +215,8 @@ target/
 증분 빌드는 세 수준에서 동작합니다: 입력이 바뀌지 않은 패키지는 빌드하지 않고, 빌드하는 패키지는 바뀌지 않은 파일과 함수의 파싱과 lowering 한 본체를 지난 빌드에서 가져오며 (아래 front end), 그 코드는 codegen unit 으로 컴파일해 바뀐 unit 만 다시 컴파일합니다. `rokc build` / `rokc run` 은 이전 빌드의 fingerprint 와 지금의 것이 같으면 `Fresh` 를 출력하고 빌드를 건너뜁니다. fingerprint 는 다음을 포함합니다.
 
 - 컴파일러의 정체 (ROKHIR producer 와 같은 값), 빌드 옵션, 진단 형식 (`--message-format`, 색), 입력 / 출력 경로, 설정되어 있으면 `ROK_CC`
-- 패키지와 의존성에서 읽을 수 있는 모든 `.rok` 파일과 `rok.rokon`
+- 패키지와 의존성의 `src/` 아래 파일, 그 `rok.rokon`, 그리고 빌드가 읽은 그 밖의 모든 파일 (`src/` 밖의 `#[path]` / `include_str!`)
+- `include_str!` / `include_bytes!` ([6.11](../006-meta-system/611-include.md)) 가 읽는 파일과 그 내용
 - 미리 빌드한 의존성의 `.a`, MLIR plugin 파일, `-C profile-use` 파일과 profile 런타임
 - 산출물의 크기와 수정 시각
 

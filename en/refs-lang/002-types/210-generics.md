@@ -194,7 +194,7 @@ fn double<T: Add<T, Output = T>>(x: T) -> T {
 }
 ```
 
-Because of this rule, generic bodies are checked independently of call sites, so the body is guaranteed to compile whatever concrete type a call passes.
+Because of this rule, generic bodies are checked independently of call sites, so the body is guaranteed to compile whatever concrete type a call passes. Implicit parameters ([4.2.2](../004-functions/402-parameters.md#422-omitting-the-type)) are exempt.
 
 ## 2.10.10. Generics vs trait-as-type
 

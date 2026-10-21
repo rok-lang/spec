@@ -19,7 +19,7 @@ ROKHIR file (little-endian):
 +-----------------------------------+
 |  Header                           |  (16 bytes fixed)
 |    magic       "ROKH"    (4 bytes)  |
-|    version     u32  (= 1)         |
+|    version     u32  (= 2)         |
 |    flags       u32                |
 |    body_offset u32                |
 +-----------------------------------+
@@ -31,6 +31,7 @@ ROKHIR file (little-endian):
 |    source dir           str       |
 |    gc type offset       varint    |
 |    gc type count        varint    |
+|    features  varint n, n × str    |
 +-----------------------------------+
 |  Body (at body_offset)            |
 |    file count           varint    |
@@ -45,7 +46,7 @@ ROKHIR file (little-endian):
 | 필드          | 크기 | 의미                                                         |
 |---------------|------|--------------------------------------------------------------|
 | `magic`       | 4    | `"ROKH"`                                                       |
-| `version`     | u32  | 포맷 버전 (`1`). 레이아웃이나 body 의 내용이 바뀌면 올림     |
+| `version`     | u32  | 포맷 버전 (`2`). 레이아웃이나 body 의 내용이 바뀌면 올림     |
 | `flags`       | u32  | 예약 (0)                                                     |
 | `body_offset` | u32  | body 의 시작 offset                                          |
 
@@ -70,6 +71,7 @@ MLIR bytecode 와 같은 PrefixVarInt 이며 LEB128 의 변형입니다. 첫 바
 | hash             | 패키지 해시 ([0.3.3](../000-meta/003-source-units.md#033-패키지-식별자)). 심볼 맹글링에 쓰인 값. 표준 라이브러리 패키지 `rok` 에서는 tier 마다 하나씩인 `pkg=hash;…` 목록 |
 | source dir       | 빌드 때 패키지 소스가 있던 디렉토리. body 의 파일 경로의 기준이며, 다운스트림은 디스크가 아니라 body 를 읽음 |
 | gc type offset / count | 이 패키지의 GC type id 구간 `[offset, offset + count)` (9.4.8)              |
+| features         | 패키지를 빌드할 때의 `feature` cfg 값. downstream 은 빌드의 다른 cfg 와 이 feature 로 body 를 파싱합니다 |
 
 ## 9.4.7. Body
 
@@ -102,7 +104,7 @@ body 는 패키지의 **모든 소스 파일** 을 (경로, 텍스트) 쌍으로
 
 ## 9.4.10. ROKHIR 검사
 
-`rokc rokhir-text <file>` 은 ROKHIR 의 버전, producer, meta 와 interface 파일들의 경로와 텍스트를 출력합니다 ([9.9.2](909-debug-tools.md#992-rokhir-검사)). `rokc inspect` ([9.9.14](909-debug-tools.md#9914-패키지-검사)) 는 archive 와 함께 요약을 보여 줍니다.
+`rokc rokhir-text <file>` 은 ROKHIR 의 버전, producer, meta (`features:` 포함) 와 interface 파일들의 경로와 텍스트를 출력합니다 ([9.9.2](909-debug-tools.md#992-rokhir-검사)). `rokc inspect` ([9.9.14](909-debug-tools.md#9914-패키지-검사)) 는 archive 와 함께 요약을 보여 줍니다.
 
 ## 9.4.11. 안정성
 

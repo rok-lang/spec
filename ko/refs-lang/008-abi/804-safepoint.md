@@ -17,7 +17,9 @@ poll:
 이를 LLVM IR 로 표현하면 다음과 같습니다.
 
 ```mlir
-%flag = load i8, i8* @rok_tls_yield_flag
+%t = call ptr @llvm.threadlocal.address(ptr @rok_tls)
+%flag_p = getelementptr i8, ptr %t, i64 88    ; yield_flag at 10p+8, p = 8
+%flag = load i8, ptr %flag_p
 %check = icmp ne i8 %flag, 0
 br i1 %check, label %slow, label %cont
 
@@ -43,8 +45,8 @@ cont:
 
 자세한 emit 정책은 컴파일러가 결정하며, 본 사양에서는 최소 빈도만 다음과 같이 약속합니다.
 
-- 모든 루프 back-edge 에 poll 을 두고, 모든 호출 순환에 poll 이 들어갑니다.
-- safepoint 에 닿을 수 없는 함수 (루프, 할당, 간접 호출, lazy `static`, safepoint 에 닿을 수 있는 함수의 호출이 없음) 에는 poll 이 필요 없습니다.
+- 모든 루프 back-edge 에 poll 을 둡니다. 단, 반복 횟수가 64 이하의 컴파일 시점 상수이고 본체가 safepoint 에 닿지 않는 루프는 예외입니다. 모든 호출 순환에 poll 이 들어갑니다.
+- safepoint 에 닿을 수 없는 함수 (그런 유한 루프 말고는 루프가 없고, 할당, 간접 호출, lazy `static`, safepoint 에 닿을 수 있는 함수의 호출이 없음) 에는 poll 이 필요 없습니다.
 
 이 둘이 함께 yield 요청에서 다음 safepoint 까지의 시간을 유한하게 묶습니다.
 
@@ -112,7 +114,7 @@ safepoint 에 도달했을 때, mutator 의 살아있는 모든 GC 객체 변수
 
 ## 8.4.8. Loop back-edge poll
 
-긴 루프가 GC 와 협력하지 않으면 STW 가 무한히 대기합니다. 그래서 컴파일러는 모든 루프의 back-edge 에 poll 을 emit 합니다.
+긴 루프가 GC 와 협력하지 않으면 STW 가 무한히 대기합니다. 그래서 컴파일러는 모든 루프의 back-edge 에 poll 을 emit 합니다 (8.4.2 의 유한 루프는 예외).
 
 ```
 loop:
@@ -125,7 +127,7 @@ loop:
 
 poll 은 back edge 에 남습니다. 그 slow path (`rok_runtime_yield` 호출) 는 edge 로 돌아오는 대신 루프 header 앞의 재진입 블록으로 분기할 수 있습니다.
 
-컴파일러는 모든 자연 루프를 검출해 각각에 poll 을 emit 합니다.
+컴파일러는 모든 자연 루프를 검출해, 8.4.2 의 유한 루프를 뺀 각각에 poll 을 emit 합니다.
 
 ## 8.4.9. inline 함수와 poll
 
@@ -172,6 +174,6 @@ fn long_loop() {
 
 ## 8.4.12. 안정성
 
-ABI 는 슬롯 심볼 `rok_tls_yield_flag` 과 그 타입 (u8) 입니다. offset 은 ABI 가 아닙니다 ([8.3.1](803-tls-slots.md#831-tls-슬롯-구조)).
+ABI 는 `rok_tls` 의 offset 10p+8 슬롯 (`rok_tls_yield_flag`) 과 그 타입 (u8) 입니다 ([8.3.1](803-tls-slots.md#831-tls-슬롯-구조)).
 
 `rok_runtime_yield` 의 시그니처는 인자도 반환값도 없는 단순한 호출 규약을 따릅니다.

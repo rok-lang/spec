@@ -175,6 +175,9 @@ fn select<S1: Stream, S2: Stream>(a: S1, b: S2) -> Select<S1, S2>;  // Stream<It
 
 `merge` produces the union of two streams, `zip` pairs two streams, and `select` races them, taking whichever is ready first.
 
+> [!NOTE]
+> `select` shares its name with `task::select`; under the implicit `use rok::core::**;` the bare name is ambiguous ([refs-lang 5.5.6](../../refs-lang/005-modules/505-use.md#556-glob--recursive-glob-conflicts)): write `stream::select` or import it.
+
 ## 2.8.8a. `AsyncStream<T>` / `TryAsyncStream<T, E>` — the value of an async stream
 
 These are the values of an `async yield fn` call and of an `async yield { .. }` block ([refs-lang 4.1.11](../../refs-lang/004-functions/401-function-declaration.md#result-types-of-coroutine-functions)).

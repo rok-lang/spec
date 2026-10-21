@@ -30,16 +30,18 @@ The solution is **pinning**: explicitly telling the GC "do not move this object"
 
 ```rok
 struct Pinned<T> {
-    obj: GcPtr<T>;
+    obj: T;
     // internal: registered in the GC's pin set
 }
 
-fn pin<T>(obj: GcPtr<T>) -> Pinned<T>;
+trait Pinnable {}                       // List<T>, str
+impl<T> Pinnable for List<T> {}
+impl Pinnable for str {}
+
+fn pin<T: Pinnable>(obj: T) -> Pinned<T>;
 
 impl<T> Pinned<T> {
-    fn as_ptr(self) -> Ptr<T>;
-    fn as_const_ptr(self) -> ConstPtr<T>;
-    fn obj(self) -> GcPtr<T>;
+    fn obj(self) -> T;
 }
 
 impl<T> Drop for Pinned<T> {
@@ -49,7 +51,7 @@ impl<T> Drop for Pinned<T> {
 }
 ```
 
-It is a guard bound with `using`. While the `Pinned<T>` returned by `pin()` is inside a `using` block, the GC does not move the object; on leaving the block `Pinned::drop` is called and the object is unpinned. A `Pinned<T>` obtained without `using` is not released automatically.
+It is a guard bound with `using`. While the `Pinned<T>` returned by `pin()` is inside a `using` block, the GC does not move the object; on leaving the block `Pinned::drop` is called and the object is unpinned. A `Pinned<T>` obtained without `using` is not released automatically. Pins count: an object moves again only after as many unpins.
 
 ### Example — FFI call
 
@@ -57,7 +59,7 @@ It is a guard bound with `using`. While the `Pinned<T>` returned by `pin()` is i
 let buf: List<u8> = read_input();
 
 using pin = rok::bare::gc::pin(buf) {
-    let raw: Ptr<u8> = pin.as_ptr().cast::<u8>();
+    let raw: Ptr<u8> = pin.as_data_ptr();
     unsafe {
         ffi::process(raw, buf.len());          // FFI uses buf's data
     }
@@ -78,7 +80,7 @@ struct Ptr<T>   { /* raw — no root tracking */ }
 | GC root    | **Traced automatically**      | **Not traced**                                   |
 | On move    | **Updated automatically**     | **Stale**                                        |
 | Used in    | Ordinary code (`List`/`Dict`/...) | unsafe + FFI only                            |
-| Created by | GC alloc (`List::new()` etc.) | `gc::pin().as_ptr()` or `alloc::alloc(layout)`   |
+| Created by | GC alloc (`List::new()` etc.) | `gc::pin().as_data_ptr()` or `alloc::alloc(layout)`   |
 | Valid for  | As long as the object is reachable | Only within the pin guard's scope           |
 
 Because the type system separates the two kinds, user code normally deals only with `GcPtr` (invisibly wrapped in `List<T>` etc.). `Ptr<T>` appears explicitly only after entering unsafe.
@@ -137,14 +139,9 @@ Pinning is **unnecessary** in the following situations.
 
 Short FFI calls get automatic treatment: if the compiler can guarantee that the GC does not run during the FFI call, the pin is omitted automatically. In the general case, however, an **explicit pin** is recommended.
 
-## 1.6.6. Extraction methods besides `as_ptr`
+## 1.6.6. Extraction methods
 
 ```rok
-impl<T> Pinned<T> {
-    fn as_ptr(self) -> Ptr<T>;
-    fn as_const_ptr(self) -> ConstPtr<T>;
-}
-
 impl<T> Pinned<List<T>> {
     fn as_data_ptr(self) -> Ptr<T>;          // start of the List's buffer
     fn as_data_many_ptr(self) -> ManyPtr<T>; // many ptr
@@ -156,7 +153,7 @@ impl Pinned<str> {
 }
 ```
 
-Each container gets dedicated extraction methods, so data can be taken out in a form matching each container's layout, such as the buffer start or a null-terminated form.
+These container methods are the extraction API: there is no generic `as_ptr`. Each container gets dedicated extraction methods, so data can be taken out in a form matching each container's layout, such as the buffer start or a null-terminated form.
 
 ## 1.6.7. GC runtime linkage
 

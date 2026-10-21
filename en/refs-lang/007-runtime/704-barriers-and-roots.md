@@ -18,7 +18,7 @@ Tier 1 of [Platform targets](../000-meta/006-platform-targets.md) includes 32-bi
 LLVM's `gc "shadow-stack"` strategy (`llvm.gcroot`) is not used. Its chain head, `llvm_gc_root_chain`, is a single process-wide global, so a per-thread shadow stack is impossible with it.
 
 > [!IMPORTANT]
-> rok's root tracking is a shadow stack whose frame push / pop the compiler emits directly. The chain head is the exported thread-local symbol `rok_tls_shadow_stack_top`, one per thread ([8.3.8](../008-abi/803-tls-slots.md#838-form-of-compiler-emission)). It works the same way on all Tier 1 targets (including 32-bit ARM / x86 / WASM).
+> rok's root tracking is a shadow stack whose frame push / pop the compiler emits directly. The chain head is the slot at offset 0 of `rok_tls` (`rok_tls_shadow_stack_top`), one per thread ([8.3.8](../008-abi/803-tls-slots.md#838-form-of-compiler-emission)). It works the same way on all Tier 1 targets (including 32-bit ARM / x86 / WASM).
 
 ### Structure of the shadow stack
 
@@ -133,7 +133,7 @@ extern "C" {
 
 ## 7.4.3. Safepoint polling
 
-A collection proceeds while all mutator threads are stopped at safepoints. The compiler emits a safepoint poll in every function and loop ([8.4](../008-abi/804-safepoint.md)).
+A collection proceeds while all mutator threads are stopped at safepoints. The compiler emits a safepoint poll in every function and loop (8.4.2's exceptions aside) ([8.4](../008-abi/804-safepoint.md)).
 
 ```
 poll:

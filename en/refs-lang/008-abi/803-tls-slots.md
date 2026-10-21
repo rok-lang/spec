@@ -1,14 +1,14 @@
 # 8.3. Mutator TLS slot layout
 
-Each OS thread (= scheduler worker = mutator) holds runtime information at fixed locations in thread-local storage (TLS). Code emitted by the compiler and the runtime read and write the same TLS slots, so this document defines the symbol name and type of each slot.
+Each OS thread (= scheduler worker = mutator) holds runtime information at fixed locations in thread-local storage (TLS). Code emitted by the compiler and the runtime read and write the same TLS slots, so this document defines the offset and type of each slot.
 
 ## 8.3.1. TLS slot structure
 
-The TLS slots are one `thread_local` block, `rok_tls`, defined and exported by the runtime; each slot is at a fixed offset in it. Compiled code takes the block's address once per function and reaches each slot at its offset. On Mach-O, ELF and COFF each slot of the table is also exported under its own symbol, at its place in the block; wasm32 exports only the block.
+The TLS slots are one `thread_local` block, `rok_tls`, defined and exported by the runtime; each slot is at a fixed offset in it. Compiled code takes the block's address once per function and reaches each slot at its offset.
 
 `p` is the pointer width in bytes.
 
-| Offset   | Symbol                      | Type | Meaning                                 |
+| Offset   | Slot                        | Type | Meaning                                 |
 |----------|-----------------------------|------|-----------------------------------------|
 | 0        | `rok_tls_shadow_stack_top`  | ptr  | Head of the shadow stack chain          |
 | p        | `rok_tls_tlab_cursor`       | ptr  | Next allocation position in the TLAB    |
@@ -23,7 +23,7 @@ The TLS slots are one `thread_local` block, `rok_tls`, defined and exported by t
 | 10p+8    | `rok_tls_yield_flag`        | u8   | Whether to `yield` at a safepoint       |
 | 10p+9    | `rok_tls_mutator_state`     | u8   | Mutator state                           |
 
-The **ABI contract** is the block symbol, each slot's offset, type and meaning, and the slot symbol names. The block is 8-aligned and at least 10p+10 bytes; implementation-defined slots may follow the last ABI slot.
+The **ABI contract** is the block symbol `rok_tls` and each slot's offset, type and meaning. Slot names are for reference only; they are not symbols. The block is 8-aligned and at least 10p+10 bytes; implementation-defined slots may follow the last ABI slot.
 
 **Implementation-defined slots**: the runtime may keep further thread-local state, after the ABI slots or elsewhere, for scheduling, statistics, profiling, debugging and so on. The compiler and external packages must not reference it.
 
@@ -171,20 +171,16 @@ br i1 %check, label %slow, label %cont
 
 The LLVM backend then lowers this to target-specific TLS instructions.
 
-On ELF, `rok_tls` and the `rok_tls_*` slot symbols use the initial-exec TLS model (the compiler emits access code in this model and does not rely on linker relaxation). The runtime is always statically linked into the executable, so this model suffices. Mach-O uses the platform's TLV descriptor scheme. An implementation whose toolchain cannot choose a TLS model may use general-dynamic instead.
+On ELF, `rok_tls` uses the initial-exec TLS model (the compiler emits access code in this model and does not rely on linker relaxation). The runtime is always statically linked into the executable, so this model suffices. Mach-O uses the platform's TLV descriptor scheme. An implementation whose toolchain cannot choose a TLS model may use general-dynamic instead.
 
-### `rok_tls_shadow_stack_top`
+### Shadow stack head
 
-```
-@rok_tls_shadow_stack_top = thread_local global ptr null     ; defined and exported by the runtime
-```
-
-The head of the [shadow stack](../000-meta/007-glossary.md#shadow-stack) chain from [Barriers and root tracking](../007-runtime/704-barriers-and-roots.md#741-root-tracking-a-shadow-stack-emitted-directly-by-the-compiler), i.e. the address of the innermost `ShadowFrame` (null if none). It is a thread-local symbol exported by the runtime and is the only chain head. Function entry code emitted by the compiler links the frame and unlinks it immediately before every `return`.
+The slot at offset 0 of `rok_tls` (`rok_tls_shadow_stack_top`) is the head of the [shadow stack](../000-meta/007-glossary.md#shadow-stack) chain from [Barriers and root tracking](../007-runtime/704-barriers-and-roots.md#741-root-tracking-a-shadow-stack-emitted-directly-by-the-compiler), i.e. the address of the innermost `ShadowFrame` (null if none). It is the only chain head. Function entry code emitted by the compiler links the frame and unlinks it immediately before every `return`.
 
 LLVM's `llvm.gcroot` and `llvm_gc_root_chain` are not used. `llvm_gc_root_chain` is a single process-global and cannot express per-thread chains.
 
 ## 8.3.9. Stability
 
-The symbol names, types and meanings in the 8.3.1 table are part of the [ABI](../000-meta/007-glossary.md#abi-application-binary-interface); changes follow the stability policy in the [overview](README.md). Changing an offset is a major `break`; a new slot takes an offset after the existing ones, a minor compatible change. Changing the name, type or meaning of an existing slot is also a major `break`.
+The offsets, types and meanings in the 8.3.1 table are part of the [ABI](../000-meta/007-glossary.md#abi-application-binary-interface); changes follow the stability policy in the [overview](README.md). Changing an offset is a major `break`; a new slot takes an offset after the existing ones, a minor compatible change. Changing the type or meaning of an existing slot is also a major `break`.
 
 Implementation-defined slots are not part of the ABI and may change freely even within the same major version.

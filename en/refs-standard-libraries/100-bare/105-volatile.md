@@ -28,8 +28,9 @@ unsafe {
 The API consists of just two functions, read and write.
 
 ```rok
-unsafe fn volatile_read<T>(src: ConstPtr<T>) -> T;
-unsafe fn volatile_write<T>(dst: Ptr<T>, value: T);
+// rok::bare::volatile
+unsafe fn read<T>(src: ConstPtr<T>) -> T;
+unsafe fn write<T>(dst: Ptr<T>, value: T);
 ```
 
 The same operations are available as the methods `Ptr<T>::read_volatile` / `write_volatile`, which often read more naturally ([1.1.2](101-ptr.md#112-ptrt--strict-provenance-api)).
@@ -56,6 +57,6 @@ Variables shared between threads must therefore use [`Atomic<T>`](../200-core/21
 
 ## 1.5.5. lowering
 
-`volatile_read` and `volatile_write` lower to LLVM's `load volatile` / `store volatile`; their intrinsic names are `rok.volatile.read.T` and `rok.volatile.write.T` respectively.
+`volatile::read` and `volatile::write` lower to LLVM's `load volatile` / `store volatile`; their intrinsic names are `rok.volatile.read.T` and `rok.volatile.write.T` respectively.
 
 Atomics are covered in detail in [2.16 sync](../200-core/216-sync.md); this chapter is authoritative only for non-atomic cases.

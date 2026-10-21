@@ -33,8 +33,9 @@ unsafe {
 API 는 단출하게 read 와 write 두 함수로 구성됩니다.
 
 ```rok
-unsafe fn volatile_read<T>(src: ConstPtr<T>) -> T;
-unsafe fn volatile_write<T>(dst: Ptr<T>, value: T);
+// rok::bare::volatile
+unsafe fn read<T>(src: ConstPtr<T>) -> T;
+unsafe fn write<T>(dst: Ptr<T>, value: T);
 ```
 
 같은 동작을 `Ptr<T>::read_volatile` / `write_volatile` 메서드 형태로도 쓸 수 있고,
@@ -65,7 +66,7 @@ atomic 보장을 주지는 않습니다.
 
 ## 1.5.5. lowering
 
-`volatile_read` 와 `volatile_write` 는 LLVM 의 `load volatile` / `store volatile` 로 lower 되며, intrinsic 이름은 각각 `rok.volatile.read.T` 와 `rok.volatile.write.T` 입니다.
+`volatile::read` 와 `volatile::write` 는 LLVM 의 `load volatile` / `store volatile` 로 lower 되며, intrinsic 이름은 각각 `rok.volatile.read.T` 와 `rok.volatile.write.T` 입니다.
 
 자세한 atomic 관련 내용은 [2.16 sync](../200-core/216-sync.md) 에서 다루고, 이 장은
 atomic 이 아닌 자리에 한해서만 권위를 가집니다.

@@ -89,8 +89,9 @@ A library package of a [source unit](../000-meta/003-source-units.md) compiles t
 
 ```
 foo/
-├── lib.rok                  <- input
-└── ...
+├── src/
+│   ├── lib.rok              <- input
+│   └── ...
        v rokc build
 foo/target/debug/
 ├── libfoo.a                 <- artifact (static archive)

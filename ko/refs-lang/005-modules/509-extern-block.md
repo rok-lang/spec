@@ -38,6 +38,8 @@ extern "C" {
 | `"system"` | OS 시스템 콜 ABI. 일부 플랫폼에서 `"C"` 와 다릅니다 (예: Win32 `stdcall`). |
 | `"rok"`    | 런타임 (`rokr`) 의 ABI. 아래 참고.                                          |
 
+`"system"` 과 `"C"` 가 같은 target (32-bit x86 Windows 를 뺀 모든 Tier 1 target) 에서는 `"system"` 이 `"C"` 입니다. 32-bit x86 Windows 에서는 stdcall 입니다 ([5.9.10](#5910-extern-fn-정의-외부에-노출)).
+
 `extern "rok"` 은 toolchain 이 선언하는 런타임 함수의 ABI 이며, 그 선언은 `rok::core::rt` 에 `pub(pkg)` 로 있습니다. `extern "rok"` 블록의 `#[no_safepoint]` 는 그 함수들이 할당도 block 도 하지 않음을 선언하며, 그 호출은 safepoint 가 아닙니다. toolchain 내부용이며 `extern "C"` 블록에서는 에러입니다.
 
 | 값                          | `extern "rok"` 의 전달                   |
@@ -101,15 +103,18 @@ extern "C" {
 
 `extern "C"` 시그니처의 `str` 매개변수는 NUL 로 끝나는 `char*` 하나입니다. 바이트 뒤에 NUL 이 있으면 그 바이트를 그대로 넘기고, 없으면 (slice 등) 호출 동안 고정한 사본을 넘깁니다. C 는 호출이 끝난 뒤 그 포인터를 보관하면 안 됩니다. `str` 반환은 `char*` 이며 길이는 `strlen` 으로 잽니다. 내부에 NUL 이 있으면 C 쪽에서는 첫 NUL 까지만 보입니다. 반환된 `char*` 가 null 이면 동작은 정의되지 않으므로, null 일 수 있는 C 문자열은 `CPtr<c_char>` 로 받습니다 ([stdlib 1.7.2](../../refs-standard-libraries/100-bare/107-ffi.md#172-cstr--cstring--null-terminated-string)).
 
+모듈 `m` 의 `extern` 블록에 있는 `pub` 함수는 `m::f` 로도 닿을 수 있으며, 그 심볼에는 접두어가 붙지 않습니다. `extern "C"` 블록의 `rok_*` 이름은 `str` 을 받거나 돌려줄 수 없습니다 ([8.5](../008-abi/805-extern-symbols.md)).
+
 호환되지 않는 타입을 적으시면 컴파일 경고나 에러가 발생합니다. 정확한 검사 규칙은 [Calling Convention](../008-abi/806-calling-convention.md) 에서 정의됩니다.
 
 ### C 함수 포인터 타입
 
 ```
-c_fn_type ::= "unsafe"? "extern" "\"C\"" "fn" "(" (type_expr ("," type_expr)*)? ")" ("->" unary_type)?
+c_fn_type ::= "unsafe"? "extern" ("\"C\"" | "\"system\"") "fn" "(" (type_expr ("," type_expr)*)? ")" ("->" unary_type)?
 ```
 
-- ABI 문자열은 `"C"` 만 됩니다. 그 밖은 에러입니다.
+- ABI 문자열은 `"C"` 나 `"system"` 만 됩니다. 그 밖은 에러입니다.
+- `extern "system" fn(..) -> R` 은 `extern "C" fn(..) -> R` 과 같은 규칙을 따르므로 Win32 callback 을 표현할 수 있습니다. 별개의 타입인 것은 stdcall 인 32-bit x86 Windows 에서뿐이며, 그 밖에서는 두 타입이 같습니다.
 - 이 타입의 값은 이름 있는 C-ABI 함수로만 만듭니다. `extern` 블록의 C 선언의 값은 `unsafe extern "C" fn(..)` 타입이라 안전한 (`unsafe` 없는) 자리에 넣을 수 없고, rok 의 `extern "C" fn` 정의 (그 C 진입점, 5.9.10) 는 안전한 `extern "C" fn(..)` 값을 줍니다.
 - rok `fn` 값 (클로저, 함수 타입 변수 포함) 과 C 함수 포인터는 서로 변환되지 않습니다.
 - `unsafe` 가 없는 타입으로 부르는 것은 안전하고, `unsafe extern "C" fn` 으로 부를 때는 `unsafe` 가 필요합니다.
@@ -228,7 +233,9 @@ extern "C" fn callback(arg: i32) -> i32 {
 
 일반 함수 선언에 `extern "ABI"` 수식어를 붙이시면 그 함수를 해당 ABI 호환으로 컴파일하라는 표시가 됩니다. `extern "C" fn` 정의도 심볼 이름은 맹글링된 이름 ([9.5](../009-tools/905-symbol-mangling.md)) 그대로이며, C 에서 보이는 이름이 필요하면 `#[export_name("...")]` 을 함께 붙입니다.
 
-`extern "C" fn` 정의에는 다음 제약이 있습니다.
+`extern "ABI" fn` 정의는 `"C"` 나 `"system"` 을 받으며, 그 밖의 ABI 문자열은 에러입니다. 32-bit x86 Windows 에서 `extern "system"` 선언과 정의는 stdcall 입니다: 피호출자가 인자를 pop 하며, 심볼은 MSVC 처럼 `_name@N` 입니다.
+
+`extern "C"` 와 `extern "system"` fn 정의에는 다음 제약이 있습니다.
 
 - 제네릭, `async`, `throws` 일 수 없습니다.
 - 매개변수와 반환 타입은 5.9.4 의 FFI 호환 타입이어야 하며, `str` 같은 비 FFI 타입은 쓸 수 없습니다. (5.9.4 의 `str` 변환은 C 함수를 *호출* 하는 선언에만 적용됩니다.)

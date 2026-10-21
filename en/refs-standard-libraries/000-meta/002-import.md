@@ -58,23 +58,12 @@ The code above works without any use statement, because the compiler **implicitl
 
 ### Name collision policy
 
-If a name brought in by `**` collides with a user-defined name, it is cut off immediately as a **compile error**.
+A user-defined item whose name `**` also brings in shadows it in that module: lookup takes the module's own items and its `use`s before the implicit `use rok::core::**` ([refs-lang 5.7.1](../../refs-lang/005-modules/507-paths.md#571-starting-identifier-of-a-path)). The core item stays reachable by its path or an alias.
 
 ```rok
-struct List<T> { ... }                  // ERROR — collides with rok::core::collections::List
+struct List<T> { ... }                  // OK — shadows rok::core::collections::List here
+let xs: rok::core::collections::List<i32> = [1, 2];   // the core List, by path
 ```
-
-There are two ways to resolve it.
-
-```rok
-struct MyList<T> { ... }                // a different name
-// or
-use rok::core::collections::List as CoreList;
-struct List<T> { ... }                  // OK — the implicit import brought in List, but it is
-                                        //      already handled by the alias. The user's List wins.
-```
-
-This policy differs from the silent shadowing of an automatic prelude (as in Rust, where `let String = 5;` simply passes). An explicit collision error was judged far more debugging-friendly.
 
 ## 0.2.4. Tiers **not** applied implicitly
 
@@ -111,8 +100,10 @@ In special situations the implicit `use rok::core::**;` itself can be turned off
 use rok::core::ops::Add;
 let r = a + b;   // OK (Add explicit)
 
-let xs = [1, 2, 3];   // ERROR — List not imported
+let m = Mutex::new(0);   // ERROR — Mutex not imported
 ```
+
+Literals are compiler-defined and stay available; only names (and the operators of traits not imported, [refs-lang 6.7.8](../../refs-lang/006-meta-system/607-operator-magic.md#678-visibility-of-mappings)) are lost.
 
 Uses include the following. The standard library itself needs this attribute, since importing itself would create a cycle, as do `no_std` or `no_rok` environments (rare, but embedded). It is also useful in teaching or demo code to show at a glance where each item comes from.
 

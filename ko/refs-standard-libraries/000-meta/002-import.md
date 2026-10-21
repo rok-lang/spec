@@ -58,23 +58,12 @@ fn main() {
 
 ### 이름 충돌 정책
 
-`**` 가 끌어온 이름과 사용자 정의 이름이 부딪히면 **컴파일 에러** 로 바로 끊어 버립니다.
+`**` 도 끌어오는 이름의 사용자 정의 항목은 그 모듈에서 그것을 가립니다: 이름 찾기는 묵시 `use rok::core::**` 보다 모듈 자신의 항목과 그 `use` 를 먼저 봅니다 ([refs-lang 5.7.1](../../refs-lang/005-modules/507-paths.md#571-경로의-시작-식별자)). core 항목은 경로나 별칭으로 계속 닿을 수 있습니다.
 
 ```rok
-struct List<T> { ... }                  // ERROR — rok::core::collections::List 와 충돌
+struct List<T> { ... }                  // OK — 여기서 rok::core::collections::List 를 가림
+let xs: rok::core::collections::List<i32> = [1, 2];   // 경로로 가리킨 core 의 List
 ```
-
-해결 방법은 두 가지입니다.
-
-```rok
-struct MyList<T> { ... }                // 다른 이름
-// 또는
-use rok::core::collections::List as CoreList;
-struct List<T> { ... }                  // OK — 묵시 import 가 List 가져왔지만 별칭으로
-                                        //      이미 처리. 사용자 List 가 우선.
-```
-
-이 정책은 자동 prelude 의 silent shadow (Rust 의 `let String = 5;` 가 그대로 통과해 버리는 식) 와 결을 달리합니다. 명시적인 충돌 에러 쪽이 훨씬 디버깅 친화적이라는 판단입니다.
 
 ## 0.2.4. 묵시 적용 **안 되는** tier
 
@@ -111,8 +100,10 @@ use rok::std::time::Instant;
 use rok::core::ops::Add;
 let r = a + b;   // OK (Add 명시)
 
-let xs = [1, 2, 3];   // ERROR — List 미 import
+let m = Mutex::new(0);   // ERROR — Mutex 미 import
 ```
+
+리터럴은 컴파일러가 정의하므로 계속 쓸 수 있습니다. 잃는 것은 이름 (과 import 하지 않은 트레잇의 연산자, [refs-lang 6.7.8](../../refs-lang/006-meta-system/607-operator-magic.md#678-매핑의-가시성)) 뿐입니다.
 
 쓸 일이 생기는 곳은 다음과 같습니다. 표준 라이브러리 자체가 자기 자신을 import 하면 cycle 이 발생하므로 이 attribute 가 필요하고, `no_std` 나 `no_rok` 환경 (드물지만 임베디드) 에서도 마찬가지입니다. 학습용이나 데모 코드에서 어떤 항목이 어디서 오는지 한눈에 보여 주고 싶을 때도 유용한 도구입니다.
 

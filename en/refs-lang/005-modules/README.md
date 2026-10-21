@@ -41,12 +41,13 @@ A package has many modules. Each module is either a single file (`foo.rok`) or a
 
 ```
 my_pkg/
-├── lib.rok                  <- root module body
-├── geom.rok                 <- geom module    (single-file: geom.rok)
-├── parsing.rok              <- parsing module body
-└── parsing/                 <- parsing's submodules
-    ├── lexer.rok                parsing::lexer
-    └── parser.rok               parsing::parser
+└── src/
+    ├── lib.rok                  <- root module body
+    ├── geom.rok                 <- geom module    (single-file: geom.rok)
+    ├── parsing.rok              <- parsing module body
+    └── parsing/                 <- parsing's submodules
+        ├── lexer.rok                parsing::lexer
+        └── parser.rok               parsing::parser
 ```
 
 ## Items: named definitions within a module

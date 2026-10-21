@@ -90,6 +90,8 @@ struct Ed25519 {                                    // crypto::ed25519 (RFC 8032
 }
 enum EcCurve { P256, P384 }                         // crypto::ecdsa (FIPS 186-5)
 struct Ecdsa {
+    fn public_key(curve: EcCurve, private_key: Bytes) throws (ValueError) -> List<u8>;  // SEC1 uncompressed
+    fn sign(curve: EcCurve, hash: HashAlgorithm, private_key: Bytes, msg: Bytes) throws (ValueError) -> List<u8>;  // DER, RFC 6979 nonce
     fn verify(curve: EcCurve, hash: HashAlgorithm, public_key: Bytes, msg: Bytes, signature: Bytes) -> bool;  // SEC1 uncompressed key, DER signature
 }
 struct RsaPublicKey {                               // crypto::rsa (RFC 8017), 2048..4096 bits
@@ -99,6 +101,14 @@ struct RsaPublicKey {                               // crypto::rsa (RFC 8017), 2
     fn verify_pkcs1v15(self, hash: HashAlgorithm, msg: Bytes, signature: Bytes) -> bool;
     fn verify_pss(self, hash: HashAlgorithm, msg: Bytes, signature: Bytes) -> bool;  // MGF1(hash), salt length = hash length
 }
+struct RsaPrivateKey {
+    fn from_pkcs1_der(der: Bytes) throws (ValueError) -> RsaPrivateKey;   // RSAPrivateKey, two primes
+    fn public_key(self) -> RsaPublicKey;
+    fn bits(self) -> usize;
+    fn sign_pss(self, hash: HashAlgorithm, msg: Bytes, salt: Bytes) throws (ValueError) -> List<u8>;  // salt: fresh random, hash length
+}
 ```
 
 Ed25519 verification is cofactorless and rejects non-canonical encodings and S ≥ L. ECDSA and RSA verification are strict about encodings (minimal DER, exact signature length).
+
+An ECDSA private key is a big-endian scalar `1 <= d < n` of at most the curve's size; the nonce is derived deterministically (RFC 6979, HMAC-DRBG with `hash`), so signing needs no random input. RSA signing uses the CRT with base blinding (the blinding factor is derived from `salt`, the message and the key) and checks the result against the public key before returning it; an inconsistent key is a `ValueError`. Signing runs in constant time like the other operations on secrets.

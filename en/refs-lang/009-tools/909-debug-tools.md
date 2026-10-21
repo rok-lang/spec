@@ -43,11 +43,12 @@ rokc rokhir-text path/to/foo.rokhir      # or libfoo.a — reads the sibling foo
 This command prints the [ROKHIR](904-rokhir-bytecode.md) of a prebuilt library in human-readable form. After the version, producer and meta, each interface file follows as `--- <path>` and its text (source with concrete function bodies cut down to `;`).
 
 ```
-rokhir 1
+rokhir 2
 producer: rokc 0.1.0 (1f2a40-17f3a9c2e1b0c4d8)
 package: geom (hash: 3f8a1c2b)
 source: /home/me/geom
 gc types: 4096..4160
+features: tls
 
 --- lib.rok
 pub struct Point { pub x: f64; pub y: f64; }

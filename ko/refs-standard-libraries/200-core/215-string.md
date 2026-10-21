@@ -46,6 +46,7 @@ struct str {
 ```rok
 impl str {
     fn from_utf8(bytes: List<u8> | Slice<u8>) throws (Utf8Error) -> str;
+    fn from_utf8_lossy(bytes: List<u8> | Slice<u8>) -> str;   // 잘못된 시퀀스마다 → U+FFFD
 
     fn len(self) -> usize;                  // byte 길이
     fn is_empty(self) -> bool;
@@ -317,6 +318,8 @@ let invalid: List<u8> = [0xFF, 0xFE];
 let s: str = try str::from_utf8(invalid);
                                           //→ throw Utf8Error { ... }
 ```
+
+`str::from_utf8_lossy(bytes)` 는 던지지 않습니다: 잘못된 시퀀스의 maximal subpart 하나하나 (Unicode §3.9, U+FFFD Substitution of Maximal Subparts; WHATWG UTF-8 decoder 의 동작) 가 U+FFFD 하나가 됩니다.
 
 ## 2.15.7. `FromStr` 트레잇 — 파싱
 

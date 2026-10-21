@@ -29,7 +29,7 @@ let p: Ptr<u8> = unsafe { alloc(layout) };
 
 - [1.3. `MaybeUninit<T>` / `transmute_unchecked` — bit-level 변환](103-mem.md)
 - [1.4. raw allocation (`alloc`, `dealloc`, `realloc`)](104-alloc.md)
-- [1.5. volatile 메모리 접근 — `volatile_read` / `volatile_write`](105-volatile.md)
+- [1.5. volatile 메모리 접근 — `volatile::read` / `volatile::write`](105-volatile.md)
 
 ### GC 통합
 

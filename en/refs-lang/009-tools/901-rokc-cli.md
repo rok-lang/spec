@@ -46,11 +46,11 @@ The `[path]` of `build` / `run` / `test` / `check` / `clean` is one of the follo
 
 | `path`                       | Package                                                                                                 |
 |------------------------------|---------------------------------------------------------------------------------------------------------|
-| Package directory            | That directory. If it has no `main.rok` or `lib.rok`, the search moves upward (9.2.2)                   |
-| File inside a package        | The first directory containing `main.rok` / `lib.rok`, walking upward from the file                     |
-| File not in any package      | An anonymous executable package consisting of that single file ([4.16.8](../004-functions/416-entry-point.md#4168-single-file-execution)) |
+| Package directory            | That directory. If it has no `src/main.rok` or `src/lib.rok`, the search moves upward (9.2.2)           |
+| File in a package's `src/`   | That package: the first directory containing `src/main.rok` / `src/lib.rok`, walking upward from the file |
+| Any other file               | An anonymous executable package consisting of that single file ([4.16.8](../004-functions/416-entry-point.md#4168-single-file-execution)), including a `.rok` file in a package directory outside its `src/` |
 
-It is an error for one directory to contain both `main.rok` and `lib.rok` ([0.3](../000-meta/003-source-units.md)). It is an error if a directory is given and no package is found walking upward. An anonymous package cannot have file submodules (`mod foo;`).
+It is an error for one directory to contain both `src/main.rok` and `src/lib.rok` ([0.3](../000-meta/003-source-units.md)). It is an error if a directory is given and no package is found walking upward. An anonymous package cannot have file submodules (`mod foo;`).
 
 The package name (the output name) is the name of the package directory; for an anonymous package it is the file name without `.rok`.
 
@@ -70,7 +70,8 @@ Options:
 
 - `--release` performs an optimized build (equivalent to `-O2`) in the `release` profile; the default is a debug build (`-O0`) in the `debug` profile.
 - `--target-dir=<dir>` relocates `target/` (equivalent to `ROKC_TARGET_DIR`).
-- `--extern <name>=<dir | lib.rok | <name>.rokhir | lib<name>.a>` mounts one dependency package at the top-level path `name` ([9.2.3](902-aot-pipeline.md#923-dependency-resolution)). Source (`dir` / `lib.rok`) is compiled together in the same build; a prebuilt package (`.rokhir` / `.a`; given one, its sibling is located) has its ROKHIR read and its archive linked. May be given multiple times and is normally filled in by `rok`. `name` is an identifier: the package name with `-` replaced by `_` ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)).
+- `--extern <name>=<dir | src/lib.rok | <name>.rokhir | lib<name>.a>` mounts one dependency package at the top-level path `name` ([9.2.3](902-aot-pipeline.md#923-dependency-resolution)). Source (`dir` / `src/lib.rok`) is compiled together in the same build; a prebuilt package (`.rokhir` / `.a`; given one, its sibling is located) has its ROKHIR read and its archive linked. May be given multiple times and is normally filled in by `rok`. `name` is an identifier: the package name with `-` replaced by `_` ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)).
+- `--extern-feature <name>=<f>` builds the source dependency `name` with `cfg(feature = "<f>")`. Repeatable, one per feature. A dependency sees only these: the `feature` keys of `--cfg` belong to the package being compiled. Normally filled in by `rok`.
 - `--name <n>` sets the package name (naming rules of [9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)). The outputs are `lib<n>.a` / `<n>.rokhir` and the mount name is the name with `-` replaced by `_`. The default is the directory name. `--extern a-b=..` is likewise bound as `a_b`.
 - `--bootstrap <file>` gives a standard library root to preload (may be repeated); `--rokr <lib>` gives the runtime to link. The defaults are the sysroot's `lib/rok/{core,std,bare}/lib.rok` and `lib/librokr.a` ([9.2.19](902-aot-pipeline.md#9219-installation-layout)). If not found, it is an error that lists the paths searched.
 - `-O0` / `-O1` / `-O2` / `-O3` / `-Os` select the optimization level explicitly. `-O0` uses the native backend, the others the MLIR → LLVM backend ([9.2.10](902-aot-pipeline.md#9210-backend-selection)).
@@ -208,7 +209,7 @@ This mode runs as a terminal interactive shell. Cell semantics follow the rules 
 - The default mode compiles each cell with the native backend and hands the code to a JIT host process that lives for the session; the host loads it and runs it once ([9.6](906-jit-engine.md)). Bindings, `static` state and `any` values carry over between cells. A binding whose type cannot be named at top level (closures, private types, etc.) is rejected when created.
 - Diagnostics and panic locations name `<repl>:line:col` over the cell's own text.
 - Input has line editing and history; the history persists in `$ROK_HOME/repl_history`.
-- Without a path the session starts empty. A program path (a lone `.rok` file or a package with `main.rok`) is loaded and run, top-level statements as cells and `fn main` as the entry, and the session continues ([9.7.10](907-jit-cells.md#9710-loading-a-program-repl-path)). A library package path (`lib.rok`) is added as a dependency and `use <name>::*;` is the first cell, again after `:reset`.
+- Without a path the session starts empty. A program path (a lone `.rok` file or a package with `src/main.rok`) is loaded and run, top-level statements as cells and `fn main` as the entry, and the session continues ([9.7.10](907-jit-cells.md#9710-loading-a-program-repl-path)). A library package path (`src/lib.rok`) is added as a dependency and `use <name>::*;` is the first cell, again after `:reset`.
 - More than one path is a usage error. `-` is not accepted; standard input is the cell input.
 
 `rok` and `rok repl` ([9.10](910-rok-frontend.md)) run the same REPL with dependencies attached.
@@ -235,7 +236,7 @@ The kernel is registered by `rok jupyter install [--env <name>]` ([9.8.3](908-ju
 rokc fmt [path]
 ```
 
-`[path]` accepts files or directories (several allowed; the current directory if omitted) and rewrites them in place to the [standard format](#9111-standard-format-rokc-fmt). Directories are searched recursively for `.rok` files, skipping `target/` and directories beginning with `.`. `.rokon` files ([ROKON](../../refs-standard-libraries/300-std/309-rokon.md#394-canonical-form)) are checked for being ROKON and only re-indented (they are not rewritten in canonical form, so comments are preserved).
+`[path]` accepts files or directories (several allowed; the current directory if omitted) and rewrites them in place to the [standard format](#9111-standard-format-rokc-fmt). A directory that is a package (9.2.2) is formatted as its `src/` and `tests/` directories and its `rok.rokon`; other files in it are left alone. Directories are searched recursively for `.rok` files, skipping `target/` and directories beginning with `.`. `.rokon` files ([ROKON](../../refs-standard-libraries/300-std/309-rokon.md#394-canonical-form)) are checked for being ROKON and only re-indented (they are not rewritten in canonical form, so comments are preserved).
 
 Options:
 

@@ -89,8 +89,9 @@ AOT direct exec      rokc build → run artifact
 
 ```
 foo/
-├── lib.rok                  <- input
-└── ...
+├── src/
+│   ├── lib.rok              <- input
+│   └── ...
        v rokc build
 foo/target/debug/
 ├── libfoo.a                 <- artifact (static archive)

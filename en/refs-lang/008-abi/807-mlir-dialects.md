@@ -167,14 +167,13 @@ Calls use `func.call` or `llvm.call`.
 
 ## 8.7.7. TLS access
 
-Access to the TLS slots from [Mutator TLS slots](803-tls-slots.md) uses thread_local globals of the `llvm` dialect.
+Access to the TLS slots from [Mutator TLS slots](803-tls-slots.md) uses the `llvm` dialect's thread_local global `rok_tls`, at each slot's offset.
 
 ```
-llvm.mlir.global thread_local @rok_tls_yield_flag(0 : i8) : i8
-llvm.mlir.global thread_local @rok_tls_tlab_cursor(0 : i64) : i64
-...
+llvm.mlir.global external thread_local @rok_tls() : !llvm.array<N x i8>
 
-%flag_ptr = llvm.mlir.addressof @rok_tls_yield_flag
+%t = llvm.mlir.addressof @rok_tls : !llvm.ptr
+%flag_ptr = llvm.getelementptr %t[88] : (!llvm.ptr) -> !llvm.ptr, i8   ; yield_flag at 10p+8, p = 8
 %flag = llvm.load %flag_ptr : !llvm.ptr -> i8
 ```
 

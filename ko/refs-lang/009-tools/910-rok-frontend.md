@@ -23,7 +23,8 @@
 위임하는 서브명령은 같은 이름의 `rokc` 서브명령을 실행합니다. `rok` 는 자기 전역 옵션 (`--env` / `--offline` / `--locked` / `--cwd`, `--` 앞 어디든) 만 소비하고, 나머지 인자는 그대로 넘기며 다음을 더합니다.
 
 - 의존 패키지마다 `--extern name=<소스 디렉토리>`. `rok.lock` 을 따라 준비하며, 의존되는 쪽이 의존하는 쪽보다 앞입니다 (`rok deps` 가 출력하는 순서). 미리 빌드는 `rokc` 가 합니다 ([9.2.3](902-aot-pipeline.md#미리-빌드한-의존-패키지)).
-- 매니페스트의 `lints` 를 `-A` / `-W` / `-D` 로 (인자 앞에). 매니페스트는 경로가 고르는 프로젝트의 것입니다: `.rok` 파일이면 그 파일 위치나 그 위에서 `main.rok`, `lib.rok`, `rok.rokon` 중 하나가 있는 가장 가까운 디렉토리. `main.rok` / `lib.rok` 패키지 안의 파일은 그 패키지를 고릅니다 ([9.1.1](901-rokc-cli.md#911-일반-형태)). `rok.rokon` 만 있는 디렉토리의 단독 파일은 그 매니페스트의 `lints` (와 `lints_from`) 와 의존성을 가진 단일 파일 패키지로 컴파일합니다.
+- 패키지 자신의 feature 는 `--cfg feature=<f>` 로, 각 의존 패키지의 feature 는 `--extern-feature <name>=<f>` 로 (9.10.4c). build / run / test / bench / check / lint / doc / emit / repl / lsp / jupyter / deps 의 feature 옵션 `--features <f,..>` (여러 번 가능, `<dep>/<f>` 도), `--all-features`, `--no-default-features` 는 `rok` 이 소비합니다 (`--` 앞).
+- 매니페스트의 `lints` 를 `-A` / `-W` / `-D` 로 (인자 앞에). 매니페스트는 경로가 고르는 프로젝트의 것입니다: `.rok` 파일이면 그 파일 위치나 그 위에서 `src/main.rok`, `src/lib.rok`, `rok.rokon` 중 하나가 있는 가장 가까운 디렉토리. 패키지 `src/` 안의 파일은 그 패키지를 고릅니다 ([9.1.1](901-rokc-cli.md#911-일반-형태)). `rok.rokon` 이 있는 디렉토리의 그 밖의 단독 파일 (패키지 `src/` 옆의 스크립트, 또는 `rok.rokon` 만 있는 디렉토리) 은 그 매니페스트의 `lints` (와 `lints_from`) 와 의존성을 가진 단일 파일 패키지로 컴파일합니다.
 - 패키지 밖 (환경, 스크립트) 이면 `--target-dir` 에 그 환경이나 스크립트의 `target/`.
 
 `rok repl <path>` 는 `run` 처럼 그 경로의 프로젝트에서 의존성과 lint 를 정하고, 매니페스트 이름을 넘깁니다 (`--name`).
@@ -56,11 +57,19 @@ rok new [--lib | --bin] <name>
 rok init [--lib | --bin] [dir]
 ```
 
-`rok new` 는 `<name>` 디렉토리를 만들고 기본 파일을 채웁니다. `--bin` (기본값) 은 인사말을 출력하는 `main.rok` 를, `--lib` 는 예시 함수와 `#[test]` 하나를 담은 `lib.rok` 를 만듭니다. `<name>` 이 이미 있으면 에러입니다.
+`rok new` 는 `<name>` 디렉토리를 만들고 기본 파일을 채웁니다. `--bin` (기본값) 은 인사말을 출력하는 `src/main.rok` 를, `--lib` 는 예시 함수와 `#[test]` 하나를 담은 `src/lib.rok` 를 만듭니다. `<name>` 이 이미 있으면 에러입니다.
 
-`rok init` 은 이미 있는 디렉토리 (생략하면 현재 디렉토리) 를 패키지로 만듭니다. 그 디렉토리에 `main.rok` 나 `lib.rok` 가 이미 있으면 에러입니다.
+`rok init` 은 이미 있는 디렉토리 (생략하면 현재 디렉토리) 를 패키지로 만듭니다. 그 디렉토리에 `src/main.rok` 나 `src/lib.rok` 가 이미 있으면 에러입니다.
 
 두 명령은 정규 형식 ([ROKON 3.9.4](../../refs-standard-libraries/300-std/309-rokon.md#394-정규-형식)) 의 `rok.rokon` 과 `target/` 을 담은 `.gitignore` 도 쓰며, git 저장소 안이 아니면 `git init` 을 합니다. `init` 은 디렉토리 이름을 이름 규칙 (9.10.3) 에 맞게 바꿔 패키지 이름으로 씁니다.
+
+```
+hello/
+├── .gitignore        <- target/
+├── rok.rokon
+└── src/
+    └── main.rok
+```
 
 ## 9.10.3. `rok.rokon` / `rok.lock`
 
@@ -79,12 +88,14 @@ Package {
     deps: {                          // 패키지 이름 (문자열) -> Dep
         "util": Dep::path("../util"),
         "parser": Dep::git("https://example.com/parser.git", tag: "v1.2"),
-        "json": "1.4",                                   // stone (= Dep::version("1.4"))
+        "http": "0.9",                                   // stone (= Dep::version("0.9"))
+        "json": Dep::version("^1.4", optional: true),    // feature 가 켤 때만 (9.10.4c)
         "csv": Dep::version("^0.3", registry: "https://example.com/index"),
     },
     dev_deps: {                      // deps 와 같은 형태. test / bench 에서만
         "fixtures": Dep::path("tests/fixtures"),
     },
+    features: { "default": ["json"], "json": ["dep:json"], "tls": ["http/tls"], "full": ["json", "tls"] },
     native: { "zlib": "^1.3", "png": Dep::native(url: "vendor/png.rokon", sha256: "<64 hex>") },
     lints_from: "..",                // 문자열, 선택 — ../rok.rokon 의 lints 에서 시작
     lints: { "dead_code": "allow", "nonstandard_style": "deny" },
@@ -92,15 +103,16 @@ Package {
 ```
 
 - 값은 ROKON 의 리터럴 (문자열, `{ "k": v }` dict, 빈 dict `{}`) 과 `Dep::path("..")` / `Dep::git("url", rev | tag | branch: "..")` / `Dep::version("req", registry: "url")` 입니다. `Dep::git` 의 `rev` / `tag` / `branch` 는 많아야 하나이고, `Dep::version` 의 `registry` 는 선택입니다. 의존성 값이 문자열 하나면 `Dep::version` 의 줄임입니다.
+- `Dep::path` / `Dep::git` / `Dep::version` 은 `optional: true`, `features: ["<f>", ..]`, `default_features: false` 도 받습니다 (9.10.4c). optional 인 dev 의존은 에러입니다.
 - `Dep::registry` 는 `rok.lock` 전용이며 `rok.rokon` 에 쓰면 에러입니다.
 - 패키지 이름 (`deps` 의 키, `name`) 은 `[a-z0-9_-]+` 의 소문자 ASCII 이며 글자로 시작합니다 (숫자, `-`, `_` 로 시작하면 에러). 키는 문자열입니다 (`"rok-syntax": Dep::version("^0.1")`).
 - 코드에서는 `-` 를 `_` 로 바꾼 이름이 그 패키지를 가리키는 최상위 경로입니다 (`rok-syntax` → `use rok_syntax::..`, `--extern rok_syntax=..`).
 - 레지스트리와 한 의존 그래프 안에서 이름은 `-` 와 `_` 를 같게, 대소문자를 구분하지 않고 비교합니다. 그래서 `rok-syntax` 와 `rok_syntax` 는 함께 있을 수 없습니다.
-- 의존 패키지는 `lib.rok` 를 가진 라이브러리 패키지여야 합니다. 전이 의존은 의존 패키지의 `deps` 입니다 (`dev_deps` 는 전이되지 않음).
+- 의존 패키지는 `src/lib.rok` 를 가진 라이브러리 패키지여야 합니다. 전이 의존은 의존 패키지의 `deps` 입니다 (`dev_deps` 는 전이되지 않음).
 - `native` 는 native 패키지 이름 (자기 이름 공간: 패키지와 native 패키지는 같은 이름을 쓸 수 있음) 을 `Dep::native("req"[, registry: "url"])`, 요구 문자열, 또는 `Dep::native(url: "<url 또는 매니페스트 기준 경로>", sha256: "<64 자리 hex>")` 에 대응시킵니다 (9.10.4b). `deps` / `dev_deps` 의 `Dep::native` 는 에러입니다. 그래프의 모든 패키지의 native 의존이 실행 파일에 링크됩니다 (`dev_deps` 로만 닿는 것은 test / bench 에서만).
 - `lints` 는 lint 수준을 정합니다 (lint 나 그룹 이름 → `"allow"` | `"warn"` | `"deny"`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). `rokc lint` 의 CLI 플래그 앞에 붙은 것처럼 다뤄지므로, CLI `-A/-W/-D` 와 코드의 속성이 이를 덮습니다.
 - `lints_from` 은 시작 lint 수준을 주는 `rok.rokon` 이 있는 디렉토리를 가리킵니다 (이 매니페스트의 디렉토리 기준 상대 경로, 또는 절대 경로). 그 매니페스트의 `lints` 를 그 자신의 `lints_from` 사슬 뒤에 먼저 적용하고, 이 매니페스트의 `lints` 가 그 뒤에 오므로, 여기 항목이 사슬의 같은 lint 나 그룹을 덮습니다 (모든 항목은 이 순서로 `-A`/`-W`/`-D` 로 넘어가며 뒤의 플래그가 이깁니다). 빌드하거나 검사하는 패키지 (와 환경의 매니페스트) 에만 적용되며, 의존 패키지의 매니페스트는 lint 에 쓰지 않습니다. 디렉토리가 없거나, `rok.rokon` 이 없거나, 사슬이 이미 지난 매니페스트로 돌아오면 (순환) 에러입니다. `rok env import` 는 상대 `lints_from` 을 절대 경로로 바꿔 씁니다. 스크립트의 `//! ```rokon` 블록에서는 쓸 수 없습니다.
-- 에러: 모르는 필드 / `Dep` 종류 / 이름 있는 인자, 중복, 규칙에 맞지 않는 패키지 이름, ROKON 이 아닌 문법, `Package { .. }` 하나가 아닌 것, 뒤에 남은 토큰. 진단은 `file:line:col` 과 caret 으로 위치를 보여 줍니다.
+- 에러: 모르는 필드 / `Dep` 종류 / 이름 있는 인자, 중복, 9.10.4c 의 규칙을 어기는 `features`, 규칙에 맞지 않는 패키지 이름, ROKON 이 아닌 문법, `Package { .. }` 하나가 아닌 것, 뒤에 남은 토큰. 진단은 `file:line:col` 과 caret 으로 위치를 보여 줍니다.
 
 | 의존성 출처 | 형태                                                         | `rok.lock` 에 고정  |
 |-------------|--------------------------------------------------------------|---------------------|
@@ -150,6 +162,7 @@ Lock {
 
 - `Locked` 의 `source` 는 `Dep::git(..)` 또는 `Dep::registry(..)` 입니다.
 - `packages` 필드가 없으면 빈 리스트로 읽습니다.
+- feature 는 기록하지 않습니다: lock 은 optional 인 것을 포함해 그래프의 모든 패키지를 고정하므로, 빌드가 켜는 feature 에 의존하지 않습니다.
 - index 의 native 패키지는 선택 필드 `natives: [LockedNative { name, vers, source: Dep::registry("<index>"), sha256 }]` 에 고정하며, 이름 순으로 정렬하고 비어 있지 않을 때만 씁니다. `sha256` 은 `yanked: false` 로 둔 항목의 정규 index 줄의 SHA-256 이며, 항목이 바뀌면 "run `rok update`" 에러입니다.
 - `version` 이 `1` 이 아니면 "unsupported lockfile version" 에러입니다.
 - lock 을 읽다 난 모든 에러는 "(delete rok.lock and run `rok update` to make it again)" 를 덧붙입니다.
@@ -160,14 +173,15 @@ Lock {
 rok add <name> --path <dir> [--dev] [--env <env>]
 rok add <name> --git <url> [--rev <rev> | --tag <tag> | --branch <branch>] [--dev] [--env <env>]
 rok add <name>[@<req>] [--registry <url>] [--dev] [--env <env>]      # stone
+rok add <name> .. [--features <f,..>] [--no-default-features] [--optional]   # 위의 어느 것과도
 rok remove <name>
 rok update [name...]
-rok deps [--dev]
+rok deps [--dev] [--features <f,..>] [--all-features] [--no-default-features]
 ```
 
-- `add` / `remove` 는 `rok.rokon` 을 고치며, 주석과 배치를 보존합니다. `--dev` 는 `dev_deps` 에 넣고, `--env` 는 그 이름 있는 환경의 `rok.rokon` 을 고칩니다. stone 을 요구 없이 더하면 `^<가장 새 버전>` 을 적습니다.
+- `add` / `remove` 는 `rok.rokon` 을 고치며, 주석과 배치를 보존합니다. `--dev` 는 `dev_deps` 에 넣고, `--env` 는 그 이름 있는 환경의 `rok.rokon` 을 고칩니다. stone 을 요구 없이 더하면 `^<가장 새 버전>` 을 적습니다. `--features`, `--no-default-features`, `--optional` 은 `Dep::..` 에 적습니다. `--optional` 은 패키지에 같은 이름의 feature 가 없으면 feature `"<name>": ["dep:<name>"]` 도 더합니다.
 - 빌드는 `rok.lock` 의 커밋과 버전을 씁니다. 새로 선언된 의존은 lock 에 더하고 지운 의존은 정리하지만, 이미 고정된 것을 옮기는 것은 `update` 뿐입니다. `update` 는 이름을 주면 그 패키지만, 없으면 모든 git 의존과 stone 을 다시 해소합니다.
-- `deps` 는 해소한 의존 패키지를 `<코드 이름>=<lib.rok 경로>` 줄로 (코드 이름은 `-` 를 `_` 로 바꾼 것), 의존되는 쪽이 먼저 오는 순서로 출력합니다 (`--dev` 는 dev 의존 포함). native 패키지마다 (의존하는 쪽이 먼저, host 용) `# native <name> <vers>` 와 그 `rokc` 인자를 한 줄에 하나씩 출력합니다.
+- `deps` 는 해소한 의존 패키지를 `<코드 이름>=<그 src/lib.rok 경로>` 줄로 (코드 이름은 `-` 를 `_` 로 바꾼 것), 의존되는 쪽이 먼저 오는 순서로 출력합니다 (`--dev` 는 dev 의존 포함). 각 줄 뒤에는 그 `--extern-feature=<코드 이름>=<f>` 줄들이 옵니다. `deps` 는 feature 옵션과 `--dev` 를 받습니다. native 패키지마다 (의존하는 쪽이 먼저, host 용) `# native <name> <vers>` 와 그 `rokc` 인자를 한 줄에 하나씩 출력합니다.
 - `rok.lock` 은 버전 관리에 함께 넣습니다.
 
 ### 캐시
@@ -224,6 +238,7 @@ Stone { name: "json", vers: "1.4.2", deps: [{ name: "util", req: "^0.3", kind: "
 ```
 
 - `deps` 의 `kind` 는 `"normal"`, `"dev"`, `"native"` 중 하나이며, `registry` 는 선택입니다.
+- feature 가 있는 stone 은 `deps` 뒤에 `features: { "<name>": ["<entry>", ..] }` 를 가지며, 9.10.4c 처럼 검사합니다. `normal` 의존은 `optional: true`, `features: [..]`, `default_features: false` 를 가질 수 있습니다 (기본값이 아닐 때만 적음). `dev` / `native` 의존은 optional 일 수 없고, native 의존에는 feature 가 없습니다. `rok publish` 가 `rok.rokon` 에서 이것들을 적고, 해소는 항목에서 읽습니다.
 - `native/<shard path>` 는 native 패키지를 한 줄에 `Native { .. }` 하나씩 담습니다 ([9.10.4b](#9104b-native-패키지)).
 - 매니페스트의 `description`, `license`, `repository` 는 선택인 뒤쪽 필드로 들어갑니다.
 - 패키지는 `source` 저장소의 루트에 있습니다. `cksum` 은 그 커밋의 git tree hash 이며, checkout 뒤에 검증합니다.
@@ -247,7 +262,7 @@ rok yank [--native] --vers <version> [--undo] [--index <checkout>] [name]   # --
 ```
 
 - `search` 는 index 에서 이름으로 찾아, 찾은 것마다 한 줄 `<name> <newest version> — <description>` 을 출력합니다 (항목에 description 이 없으면 그 부분은 생략). index 조회는 `-` / `_` 어느 쪽 철자든 받습니다.
-- `publish` 는 기본이 dry run 입니다. 깨끗한 work tree, 저장소 루트의 패키지, `lib.rok` 를 요구합니다. path / git 의 normal 의존은 거부하고, path / git 의 dev 의존은 뺍니다. 같은 버전과, `-` / `_` 와 대소문자를 같게 본 이름의 충돌을 검사합니다. 다른 철자가 이미 가진 이름은 거부합니다. `--index` 없는 dry run 은 항목만 출력하고, `--index` 가 있으면 그 checkout 에 대해서도 검사합니다.
+- `publish` 는 기본이 dry run 입니다. 깨끗한 work tree, 저장소 루트의 패키지, `src/lib.rok` 를 요구합니다. path / git 의 normal 의존은 거부하고, path / git 의 dev 의존은 뺍니다. 같은 버전과, `-` / `_` 와 대소문자를 같게 본 이름의 충돌을 검사합니다. 다른 철자가 이미 가진 이름은 거부합니다. `--index` 없는 dry run 은 항목만 출력하고, `--index` 가 있으면 그 checkout 에 대해서도 검사합니다.
 - `--commit` 이면 `publish` 는 항목을 더합니다: `--index` 가 있으면 그 checkout 에 "Publish <name> <vers>" 커밋으로 (push 하지 않음), 없으면 설정된 index ("Which index") 의 registry API 로 더하며, API 가 그것을 index 에 넣습니다. 클라이언트는 index 저장소에 직접 쓰지 않습니다.
 - `yank` 는 그 버전의 `yanked` 를 켭니다 (`--undo` 면 끕니다): `--index` 가 있으면 그 checkout 의 커밋으로, 없으면 registry API 로.
 - registry API 는 index 의 `config.rokon` 의 `api` 에 있습니다. 요청은 `Authorization: Bearer <token>` 을 실으며, body 는 한 줄 ROKON (`application/rokon; charset=utf-8`) 입니다:
@@ -302,6 +317,25 @@ rok yank --native --vers <version> [--undo] [--index <dir>] <name>
 - `repl` / `jupyter` 는 native 패키지를 로드합니다: 공유 라이브러리는 시스템 loader 로, static archive 는 세션에 링크합니다. `check` / `lint` / `doc` 는 아무것도 링크하지 않습니다.
 - 실행 파일 옆의 사본은 빌드 산출물입니다.
 
+## 9.10.4c. Features
+
+패키지는 `features` 에 feature 를 선언합니다. feature 이름에서 그 feature 가 켜는 것들의 리스트로 가는 dict 입니다. 이름은 `[a-z0-9][a-z0-9_-]*` 이며, 무엇인지 말해 주는 단어입니다 (`http1`, `http2`, `tls`). 각 항목은 다음 중 하나입니다.
+
+| 항목        | 켜는 것                                                              |
+|-------------|----------------------------------------------------------------------|
+| `<f>`       | 이 패키지의 feature `f`                                              |
+| `dep:<d>`   | optional 의존 `d`                                                    |
+| `<d>/<f>`   | 의존 `d` 의 feature `f`, 그리고 `d` 가 optional 이면 `d` 자체        |
+| `<d>?/<f>`  | optional 의존 `d` 의 feature `f`. 다른 무언가가 `d` 를 켤 때만       |
+
+- `default` 는 끄지 않는 한 켜져 있는 보통의 feature 입니다. 빌드하는 패키지는 `--no-default-features` 로, 의존에서는 `default_features: false` 로 끕니다.
+- optional 의존 (`optional: true`) 은 켜진 feature 의 `dep:<d>` 나 `<d>/<f>` 항목이 켤 때만 빌드에 들어갑니다. 그 이름의 묵시 feature 는 없으며, 켜는 항목이 하나도 없으면 에러입니다.
+- 항목이 패키지에 없는 feature 나 (`deps` 의) 의존을 가리키거나, `dep:` 나 `?` 가 optional 이 아닌 의존을 가리키거나, feature 가 순환하면 에러입니다. 진단은 `file:line:col` 을 보여 줍니다. 의존 패키지에 없는 feature 를 요구해도 에러입니다.
+- 해소: lock 은 그래프 전체를 덮습니다. 빌드는 루트 패키지의 feature (끄지 않으면 `default`, `--features`, `--all-features` 이면 모든 feature) 에서 시작해, 켜진 의존마다 그 의존에 요구한 feature 와 그 의존의 `default` 를 가지고 따라갑니다. feature 는 더해지기만 하고 합쳐집니다: 패키지마다 그래프 전체에서 feature 집합은 하나입니다. 루트의 `dev_deps` 와 그것들이 요구하는 feature 는 `test` / `bench` 에서만 셉니다. 결과는 어떤 것의 순서에도 의존하지 않습니다.
+- `--features` 는 루트의 feature 이름과, 직접 의존에 대한 `<dep>/<f>` 를 받습니다.
+- 각 패키지는 켜진 feature 에 대해서만 정확히 `cfg(feature = "<f>")` 로 컴파일됩니다 ([6.3.6](../006-meta-system/603-cfg.md#636-매개변수의-출처)). native 패키지에는 feature 가 없습니다.
+- 스크립트의 ```` ```rokon ```` 블록에는 `features` 가 없습니다 (9.10.7).
+
 ## 9.10.5. 환경
 
 uv / conda 식 환경을 둡니다. 활성화 단계는 없습니다.
@@ -352,7 +386,7 @@ rok toolchain remove <version>
 
 ## 9.10.7. 단일 파일 스크립트의 inline 매니페스트
 
-익명 패키지 ([4.16.8](../004-functions/416-entry-point.md#4168-단일-파일-실행)) 는 파일 맨 앞의 `//!` 줄 안에 ```` ```rokon ```` 블록으로 `Package { deps: { .. } }` 를 담아 의존성을 선언합니다 (uv 의 inline script metadata 와 같음). 블록에는 `deps` 만 둘 수 있습니다. 다른 언어의 코드 블록은 무시합니다. path 는 스크립트 디렉토리 기준입니다. 스크립트의 lockfile 은 캐시 (`cache/scripts/`) 에 둡니다.
+익명 패키지 ([4.16.8](../004-functions/416-entry-point.md#4168-단일-파일-실행)) 는 파일 맨 앞의 `//!` 줄 안에 ```` ```rokon ```` 블록으로 `Package { deps: { .. } }` 를 담아 의존성을 선언합니다 (uv 의 inline script metadata 와 같음). 블록에는 `deps` 만 둘 수 있습니다 (`features` 가 없으므로 optional 의존도 없음). 다른 언어의 코드 블록은 무시합니다. path 는 스크립트 디렉토리 기준입니다. 스크립트의 lockfile 은 캐시 (`cache/scripts/`) 에 둡니다.
 
 ````rok
 //! ```rokon

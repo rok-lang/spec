@@ -86,7 +86,10 @@ This scheme was chosen for the following reasons.
 
 ## 8.6.6. rok-to-rok calling convention
 
-Calls between rok functions pass scalars in the registers of 8.6.2. An aggregate (struct, tuple, array, `str`) over 64 bytes is passed by address, as a pointer to a caller-owned copy, and returned through a leading result pointer; this holds for every rok-to-rok call, including calls into prebuilt code, exported functions and function values. Smaller aggregates are passed and returned as first-class aggregates, lowered the way LLVM's SelectionDAG lowers them on the target. Both backends produce exactly this lowering, so code from either calls the other. It differs from the C ABI classification of 8.6.3. The rules below apply to aggregates of 64 bytes or less.
+Calls between rok functions pass scalars in the registers of 8.6.2. An aggregate (struct, tuple, array, `str`) over 64 bytes is passed by address and returned through a leading result pointer. The callee copies a by-address argument on entry, so the caller's value is not modified. This holds for every rok-to-rok call, including calls into prebuilt code, exported functions and function values. Smaller aggregates are passed and returned as first-class aggregates, lowered the way LLVM's SelectionDAG lowers them on the target. Both backends produce exactly this lowering, so code from either calls the other. It differs from the C ABI classification of 8.6.3. The rules below apply to aggregates of 64 bytes or less.
+
+> [!NOTE]
+> A value passed by address is moved in memory (`memcpy`), never as a first-class aggregate.
 
 **Arguments**
 

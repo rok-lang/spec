@@ -132,7 +132,7 @@ extern "rok" {
 
 호출 시점은 프로세스 시작 직후이자 `main()` 이전이며, 효과로는 worker 풀을 생성하고 GC 공간을 mmap 하며 I/O driver 를 초기화합니다. 컴파일러가 생성한 C-ABI `main` 은 이 호출 직후에 `rok.register_types` 를 호출합니다 ([8.2.13](802-scan-table.md#8213-등록-시점)).
 
-런타임은 이 밖에 thread-local 데이터 심볼 `rok_tls_shadow_stack_top` 을 export 합니다 ([8.3.8](803-tls-slots.md#838-컴파일러-emit-의-형식)).
+런타임은 이 밖에 thread-local 블록 `rok_tls` 를 export 합니다 ([8.3.8](803-tls-slots.md#838-컴파일러-emit-의-형식)).
 
 ### `rok_runtime_shutdown`
 
@@ -354,12 +354,12 @@ extern "rok" {
 
 ```
 extern "rok" {
-    fn rok_static_init_begin(state: Ptr<u8>) -> i32;   // 1: 호출자가 초기화식 실행, 0: 이미 준비됨
+    fn rok_static_init_begin(state: Ptr<u8>, at: ConstPtr<u8>, at_len: usize) -> i32;   // 1: 호출자가 초기화식 실행, 0: 이미 준비됨
     fn rok_static_init_end(state: Ptr<u8>);            // 초기화 완료 공개
 }
 ```
 
-`state` 는 그 `static` 의 상태 바이트 (0 새로, 1 진행 중, 2 준비됨) 입니다. 다른 스레드가 초기화 중이면 `rok_static_init_begin` 은 끝날 때까지 기다리며, 그동안 GC 에 대해 정지한 것으로 봅니다.
+`state` 는 그 `static` 의 상태 바이트 (0 새로, 1 진행 중, 2 준비됨) 입니다. 다른 스레드가 초기화 중이면 `rok_static_init_begin` 은 끝날 때까지 기다리며, 그동안 GC 에 대해 정지한 것으로 봅니다. `at` / `at_len` 은 그 static 을 읽는 코드의 `path:line:col` 이며, 자기 static 을 읽는 초기화식은 그 자리에서 panic 합니다 ([4.14.13](../004-functions/414-throws.md#41413-panic-과-fatal-에러)).
 
 ### `rok_gc_add_root`
 
@@ -564,9 +564,12 @@ thread '<name>' has overflowed its stack
 
 ```mlir
 ; LLVM IR (fast path 실패 시)
-%cursor = load i8*, i8** @rok_tls_tlab_cursor
+%t = call ptr @llvm.threadlocal.address(ptr @rok_tls)
+%cursor_p = getelementptr i8, ptr %t, i64 8          ; tlab_cursor at p
+%cursor = load i8*, i8** %cursor_p
 %new_cursor = getelementptr i8, i8* %cursor, i64 24
-%limit = load i8*, i8** @rok_tls_tlab_limit
+%limit_p = getelementptr i8, ptr %t, i64 16          ; tlab_limit at 2p
+%limit = load i8*, i8** %limit_p
 %check = icmp ugt i8* %new_cursor, %limit
 br i1 %check, label %slow, label %fast
 
@@ -575,7 +578,7 @@ slow:
   br label %cont
 
 fast:
-  store i8* %new_cursor, i8** @rok_tls_tlab_cursor
+  store i8* %new_cursor, i8** %cursor_p
   br label %cont
 
 cont:

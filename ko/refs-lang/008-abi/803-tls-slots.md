@@ -1,14 +1,14 @@
 # 8.3. Mutator TLS 슬롯 레이아웃
 
-각 OS thread (= scheduler worker = mutator) 는 thread-local storage (TLS) 의 정해진 자리에 런타임 정보를 가지게 됩니다. 컴파일러가 emit 하는 코드와 런타임이 동일한 TLS 슬롯을 읽고 쓰기 때문에, 본 문서에서 각 슬롯의 심볼 이름과 타입을 정의합니다.
+각 OS thread (= scheduler worker = mutator) 는 thread-local storage (TLS) 의 정해진 자리에 런타임 정보를 가지게 됩니다. 컴파일러가 emit 하는 코드와 런타임이 동일한 TLS 슬롯을 읽고 쓰기 때문에, 본 문서에서 각 슬롯의 offset 과 타입을 정의합니다.
 
 ## 8.3.1. TLS 슬롯 구조
 
-TLS 슬롯은 런타임이 정의하고 export 하는 하나의 `thread_local` 블록 `rok_tls` 이며, 각 슬롯은 그 안의 고정 offset 에 있습니다. 컴파일된 코드는 함수마다 블록의 주소를 한 번 얻고, 각 슬롯을 그 offset 으로 접근합니다. Mach-O, ELF, COFF 에서는 표의 각 슬롯을 블록 안의 그 자리에 자기 심볼로도 export 하며, wasm32 는 블록만 export 합니다.
+TLS 슬롯은 런타임이 정의하고 export 하는 하나의 `thread_local` 블록 `rok_tls` 이며, 각 슬롯은 그 안의 고정 offset 에 있습니다. 컴파일된 코드는 함수마다 블록의 주소를 한 번 얻고, 각 슬롯을 그 offset 으로 접근합니다.
 
 `p` 는 바이트 단위의 포인터 폭입니다.
 
-| Offset   | 심볼                        | 타입 | 의미                                    |
+| Offset   | 슬롯                        | 타입 | 의미                                    |
 |----------|-----------------------------|------|-----------------------------------------|
 | 0        | `rok_tls_shadow_stack_top`  | ptr  | shadow stack 체인 머리                  |
 | p        | `rok_tls_tlab_cursor`       | ptr  | TLAB 의 다음 할당 위치                  |
@@ -23,7 +23,7 @@ TLS 슬롯은 런타임이 정의하고 export 하는 하나의 `thread_local` �
 | 10p+8    | `rok_tls_yield_flag`        | u8   | safepoint 에서 `yield` 해야 하는지      |
 | 10p+9    | `rok_tls_mutator_state`     | u8   | mutator 상태                            |
 
-**ABI 계약** 은 블록 심볼, 각 슬롯의 offset, 타입, 의미, 그리고 슬롯 심볼 이름입니다. 블록은 8 정렬이며 적어도 10p+10 바이트입니다. 마지막 ABI 슬롯 뒤에 구현이 정하는 슬롯이 올 수 있습니다.
+**ABI 계약** 은 블록 심볼 `rok_tls` 와 각 슬롯의 offset, 타입, 의미입니다. 슬롯 이름은 가리키기 위한 것일 뿐 심볼이 아닙니다. 블록은 8 정렬이며 적어도 10p+10 바이트입니다. 마지막 ABI 슬롯 뒤에 구현이 정하는 슬롯이 올 수 있습니다.
 
 **impl-defined 슬롯**: 런타임은 스케줄링, 통계, 프로파일링, 디버깅 등을 위한 thread-local 상태를 ABI 슬롯 뒤나 다른 곳에 더 둘 수 있습니다. 컴파일러와 외부 패키지는 이것을 참조해서는 안 됩니다.
 
@@ -171,20 +171,16 @@ br i1 %check, label %slow, label %cont
 
 이후 LLVM 백엔드가 타깃별 TLS 명령어로 lower 해 주게 됩니다.
 
-`rok_tls` 와 `rok_tls_*` 슬롯 심볼은 ELF 에서 initial-exec TLS 모델을 씁니다 (컴파일러가 접근 코드를 이 모델로 emit 하므로 링커의 relax 에 기대지 않음). 런타임은 항상 실행 파일에 정적으로 링크되므로 이 모델로 충분합니다. Mach-O 는 플랫폼의 TLV 디스크립터 방식을 씁니다. 툴체인이 TLS 모델을 고를 수 없는 구현은 general-dynamic 으로 대신해도 됩니다.
+`rok_tls` 는 ELF 에서 initial-exec TLS 모델을 씁니다 (컴파일러가 접근 코드를 이 모델로 emit 하므로 링커의 relax 에 기대지 않음). 런타임은 항상 실행 파일에 정적으로 링크되므로 이 모델로 충분합니다. Mach-O 는 플랫폼의 TLV 디스크립터 방식을 씁니다. 툴체인이 TLS 모델을 고를 수 없는 구현은 general-dynamic 으로 대신해도 됩니다.
 
-### `rok_tls_shadow_stack_top`
+### shadow stack 머리
 
-```
-@rok_tls_shadow_stack_top = thread_local global ptr null     ; 런타임 정의, export
-```
-
-[배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack) 의 [shadow stack](../000-meta/007-glossary.md#shadow-stack) 체인 머리, 즉 가장 안쪽 `ShadowFrame` 의 주소입니다 (없으면 null). 런타임이 export 하는 thread-local 심볼이며, 체인 머리는 이것 하나뿐입니다. 컴파일러가 emit 하는 함수 진입 코드가 frame 을 link 하고 모든 `return` 직전에 unlink 합니다.
+`rok_tls` 의 offset 0 슬롯 (`rok_tls_shadow_stack_top`) 은 [배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack) 의 [shadow stack](../000-meta/007-glossary.md#shadow-stack) 체인 머리, 즉 가장 안쪽 `ShadowFrame` 의 주소입니다 (없으면 null). 체인 머리는 이것 하나뿐입니다. 컴파일러가 emit 하는 함수 진입 코드가 frame 을 link 하고 모든 `return` 직전에 unlink 합니다.
 
 LLVM 의 `llvm.gcroot` 와 `llvm_gc_root_chain` 은 쓰지 않습니다. `llvm_gc_root_chain` 은 프로세스 전역 하나뿐이라 thread 별 체인을 표현할 수 없기 때문입니다.
 
 ## 8.3.9. 안정성
 
-8.3.1 표의 심볼 이름, 타입, 의미가 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 의 일부이며, 변경 시에는 [개요](README.md) 의 안정성 정책을 따릅니다. offset 을 바꾸는 것은 major `break` 이며, 새 슬롯은 기존 슬롯 뒤의 offset 을 받으므로 minor compatible 변경입니다. 기존 슬롯의 이름, 타입, 의미를 바꾸는 것도 major `break` 입니다.
+8.3.1 표의 offset, 타입, 의미가 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 의 일부이며, 변경 시에는 [개요](README.md) 의 안정성 정책을 따릅니다. offset 을 바꾸는 것은 major `break` 이며, 새 슬롯은 기존 슬롯 뒤의 offset 을 받으므로 minor compatible 변경입니다. 기존 슬롯의 타입, 의미를 바꾸는 것도 major `break` 입니다.
 
 impl-defined 슬롯은 ABI 의 일부가 아니므로 같은 major 안에서도 자유롭게 바뀔 수 있습니다.

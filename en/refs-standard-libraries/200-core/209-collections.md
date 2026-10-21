@@ -89,6 +89,8 @@ impl<T> List<T> {
     fn insert(self, idx: usize, x: T);
     fn remove(self, idx: usize) -> T;
     fn clear(self);
+    fn truncate(self, len: usize);              // keeps the first len elements; no change if fewer
+    fn drain(self, r: Range<usize>) -> List<T>; // removes and returns r's elements in order; panics if r is reversed or ends past len()
 
     fn get(self, idx: usize) -> T | none;       // safe — out-of-bounds → none
     fn first(self) -> T | none;
@@ -109,6 +111,10 @@ impl<T> List<T> {
 ```rok
 impl List<str> {
     fn join(self, sep: str) -> str;              // joins the elements with sep
+}
+
+impl List<u8> {
+    fn find(self, needle: Slice<u8> | List<u8>) -> usize | none;   // self[:].find(needle)
 }
 ```
 
@@ -157,7 +163,7 @@ let total: i32 = ys.into_iter().sum();   //→ 60
 ### Capacity and removal — common rules
 
 - A size that overflows in `reserve`, `with_capacity`, `repeat` or growth panics with "capacity overflow", at every optimization level.
-- Removing an element (`pop`, `remove`, `clear`, ..) releases the reference: the GC no longer sees it through the collection.
+- Removing an element (`pop`, `remove`, `clear`, `truncate`, `drain`, ..) releases the reference: the GC no longer sees it through the collection.
 
 ## 2.9.3. `Dict<K, V>` — hash map
 
@@ -434,12 +440,18 @@ impl<T> Slice<T> {
     fn to_list(self) -> List<T>;             // allocates a new List
 }
 
+impl Slice<u8> {
+    fn find(self, needle: Slice<u8> | List<u8>) -> usize | none;   // offset of the first occurrence; an empty needle is at 0
+}
+
 impl<T> Index<usize> for Slice<T> { ... }               // s[i] — panics when out of range
 impl<T> Sliceable<Range<usize>> for Slice<T> { ... }    // s[a:b] — a view of a view; the range is clamped to the length
 impl<T> IntoIterator for Slice<T> { ... }
 impl<T: PartialEq> PartialEq for Slice<T> { ... }
 impl<T: Debug> Debug for Slice<T> { ... }
 ```
+
+A byte string passes as the needle of `find` (its `Slice<u8>` rule, [refs-lang 1.7.5](../../refs-lang/001-lexical/107-string-literals.md#175-byte-strings)).
 
 `Slice` is read-only (no `IndexSet`). Negative indices count from the end ([refs-lang 3.6.1](../../refs-lang/003-expressions/306-indexing-and-slicing.md#361-indexing-arri)).
 

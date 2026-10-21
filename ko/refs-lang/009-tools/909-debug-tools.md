@@ -43,11 +43,12 @@ rokc rokhir-text path/to/foo.rokhir      # 또는 libfoo.a — 옆의 foo.rokhir
 위 명령은 미리 빌드한 라이브러리의 [ROKHIR](904-rokhir-bytecode.md) 을 사람이 읽을 수 있는 형식으로 출력합니다. 버전, producer, meta 다음에 interface 파일마다 `--- <경로>` 와 그 텍스트 (구체 함수 본문이 `;` 로 잘린 소스) 가 이어집니다.
 
 ```
-rokhir 1
+rokhir 2
 producer: rokc 0.1.0 (1f2a40-17f3a9c2e1b0c4d8)
 package: geom (hash: 3f8a1c2b)
 source: /home/me/geom
 gc types: 4096..4160
+features: tls
 
 --- lib.rok
 pub struct Point { pub x: f64; pub y: f64; }

@@ -111,21 +111,23 @@ Inline submodules (`mod bar { ... }`), on the other hand, may be used freely eve
 
 ## 5.4.4. Package root
 
-The `main.rok` or `lib.rok` defined in [source units](../000-meta/003-source-units.md) is the body file of the package root module, and the package directory itself serves as the root module's folder.
+The `src/main.rok` or `src/lib.rok` defined in [source units](../000-meta/003-source-units.md) is the body file of the package root module, and the package's source directory `src/` serves as the root module's folder.
 
 The root module is recognized automatically without a `mod` declaration, and every other module is a node in the tree starting from the root.
 
 ```
 my_pkg/
-├── lib.rok                   <- root module body (declares `mod geom; mod parsing;`)
-├── geom.rok                  <- geom module    (single-file: geom.rok)
-├── parsing.rok               <- parsing module body
-└── parsing/                  <- parsing's submodules (declared inside parsing.rok)
-    ├── lexer.rok                 parsing::lexer
-    └── parser.rok                parsing::parser
+├── rok.rokon
+└── src/
+    ├── lib.rok                   <- root module body (declares `mod geom; mod parsing;`)
+    ├── geom.rok                  <- geom module    (single-file: geom.rok)
+    ├── parsing.rok               <- parsing module body
+    └── parsing/                  <- parsing's submodules (declared inside parsing.rok)
+        ├── lexer.rok                 parsing::lexer
+        └── parser.rok                parsing::parser
 ```
 
-The root module is always in folder form: the package directory is its folder, and `lib.rok` (library) or `main.rok` (executable) is its body file. The package root has no separate folder such as `lib/`.
+The root module is always in folder form: `src/` is its folder, and `lib.rok` (library) or `main.rok` (executable) is its body file. `mod foo;` in the root maps to `src/foo.rok`; a `foo.rok` beside `src/` is never a module. `#[path(..)]` (5.4.6) stays relative to the declaring file.
 
 ## 5.4.5. Inline modules: defined within the body
 

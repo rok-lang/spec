@@ -46,6 +46,7 @@ struct str {
 ```rok
 impl str {
     fn from_utf8(bytes: List<u8> | Slice<u8>) throws (Utf8Error) -> str;
+    fn from_utf8_lossy(bytes: List<u8> | Slice<u8>) -> str;   // each ill-formed sequence → U+FFFD
 
     fn len(self) -> usize;                  // byte length
     fn is_empty(self) -> bool;
@@ -317,6 +318,8 @@ let invalid: List<u8> = [0xFF, 0xFE];
 let s: str = try str::from_utf8(invalid);
                                           //→ throw Utf8Error { ... }
 ```
+
+`str::from_utf8_lossy(bytes)` never throws: each maximal subpart of an ill-formed sequence (Unicode §3.9, U+FFFD Substitution of Maximal Subparts; the WHATWG UTF-8 decoder's behavior) becomes one U+FFFD.
 
 ## 2.15.7. `FromStr` trait — parsing
 

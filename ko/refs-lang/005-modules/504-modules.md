@@ -111,21 +111,23 @@ mod bar;            // ERROR — foo/ 가 없으므로 매핑할 자리가 없�
 
 ## 5.4.4. 패키지 루트
 
-[소스 단위](../000-meta/003-source-units.md) 에서 정의한 `main.rok` 또는 `lib.rok` 이 패키지 루트 모듈의 본체 파일이며, 패키지 디렉토리 자체가 루트 모듈의 폴더 역할을 맡습니다.
+[소스 단위](../000-meta/003-source-units.md) 에서 정의한 `src/main.rok` 또는 `src/lib.rok` 이 패키지 루트 모듈의 본체 파일이며, 패키지의 소스 디렉토리 `src/` 가 루트 모듈의 폴더 역할을 맡습니다.
 
 루트 모듈은 별도의 `mod` 선언 없이 자동으로 인식되고, 다른 모든 모듈은 루트에서 시작하는 트리의 노드가 됩니다.
 
 ```
 my_pkg/
-├── lib.rok                   <- root module body (declares `mod geom; mod parsing;`)
-├── geom.rok                  <- geom module    (single-file: geom.rok)
-├── parsing.rok               <- parsing module body
-└── parsing/                  <- parsing's submodules (declared inside parsing.rok)
-    ├── lexer.rok                 parsing::lexer
-    └── parser.rok                parsing::parser
+├── rok.rokon
+└── src/
+    ├── lib.rok                   <- root module body (declares `mod geom; mod parsing;`)
+    ├── geom.rok                  <- geom module    (single-file: geom.rok)
+    ├── parsing.rok               <- parsing module body
+    └── parsing/                  <- parsing's submodules (declared inside parsing.rok)
+        ├── lexer.rok                 parsing::lexer
+        └── parser.rok                parsing::parser
 ```
 
-루트 모듈은 항상 폴더 형태이며, 패키지 디렉토리가 그 폴더가 되고 `lib.rok` (라이브러리) 또는 `main.rok` (실행) 이 본체 파일이 됩니다. 패키지 루트는 별도의 `lib/` 같은 폴더를 두지 않습니다.
+루트 모듈은 항상 폴더 형태이며, `src/` 가 그 폴더가 되고 `lib.rok` (라이브러리) 또는 `main.rok` (실행) 이 본체 파일이 됩니다. 루트의 `mod foo;` 는 `src/foo.rok` 에 대응하며, `src/` 옆의 `foo.rok` 는 결코 모듈이 아닙니다. `#[path(..)]` (5.4.6) 는 여전히 선언한 파일 기준입니다.
 
 ## 5.4.5. 인라인 모듈: 본체 안에 정의
 

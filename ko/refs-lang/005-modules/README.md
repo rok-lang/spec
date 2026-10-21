@@ -41,12 +41,13 @@ package
 
 ```
 my_pkg/
-├── lib.rok                  <- root module body
-├── geom.rok                 <- geom module    (single-file: geom.rok)
-├── parsing.rok              <- parsing module body
-└── parsing/                 <- parsing's submodules
-    ├── lexer.rok                parsing::lexer
-    └── parser.rok               parsing::parser
+└── src/
+    ├── lib.rok                  <- root module body
+    ├── geom.rok                 <- geom module    (single-file: geom.rok)
+    ├── parsing.rok              <- parsing module body
+    └── parsing/                 <- parsing's submodules
+        ├── lexer.rok                parsing::lexer
+        └── parser.rok               parsing::parser
 ```
 
 ## 항목: 모듈 안의 명명된 정의

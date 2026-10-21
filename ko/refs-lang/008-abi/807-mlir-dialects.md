@@ -167,14 +167,13 @@ func.func private @rok_runtime_yield()
 
 ## 8.7.7. TLS 접근
 
-[Mutator TLS 슬롯](803-tls-slots.md) 에서 다루는 TLS 슬롯 접근에는 `llvm` 다이얼렉트의 thread_local global 을 사용합니다.
+[Mutator TLS 슬롯](803-tls-slots.md) 에서 다루는 TLS 슬롯 접근에는 `llvm` 다이얼렉트의 thread_local global `rok_tls` 를 각 슬롯의 offset 으로 사용합니다.
 
 ```
-llvm.mlir.global thread_local @rok_tls_yield_flag(0 : i8) : i8
-llvm.mlir.global thread_local @rok_tls_tlab_cursor(0 : i64) : i64
-...
+llvm.mlir.global external thread_local @rok_tls() : !llvm.array<N x i8>
 
-%flag_ptr = llvm.mlir.addressof @rok_tls_yield_flag
+%t = llvm.mlir.addressof @rok_tls : !llvm.ptr
+%flag_ptr = llvm.getelementptr %t[88] : (!llvm.ptr) -> !llvm.ptr, i8   ; yield_flag at 10p+8, p = 8
 %flag = llvm.load %flag_ptr : !llvm.ptr -> i8
 ```
 

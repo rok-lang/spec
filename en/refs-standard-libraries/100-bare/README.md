@@ -29,7 +29,7 @@ The implicitly applied `use rok::core::**;` does not include unsafe items. `rok:
 
 - [1.3. `MaybeUninit<T>` / `transmute_unchecked` — bit-level conversion](103-mem.md)
 - [1.4. raw allocation (`alloc`, `dealloc`, `realloc`)](104-alloc.md)
-- [1.5. volatile memory access — `volatile_read` / `volatile_write`](105-volatile.md)
+- [1.5. volatile memory access — `volatile::read` / `volatile::write`](105-volatile.md)
 
 ### GC integration
 

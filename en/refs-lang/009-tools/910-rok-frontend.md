@@ -23,7 +23,8 @@ A package without dependencies builds by file conventions alone, without a manif
 A delegated subcommand runs the `rokc` subcommand of the same name. `rok` consumes only its own global options (`--env` / `--offline` / `--locked` / `--cwd`, anywhere before `--`), passes the remaining arguments through unchanged, and adds the following.
 
 - `--extern name=<source directory>` for each dependency package. They are prepared according to `rok.lock`, with dependencies before their dependents (the order `rok deps` prints). Prebuilding is done by `rokc` ([9.2.3](902-aot-pipeline.md#prebuilt-dependency-packages)).
-- The manifest's `lints` as `-A` / `-W` / `-D` (before the arguments). The manifest is that of the project the path selects: for a `.rok` file, the nearest directory at or above the file containing `main.rok`, `lib.rok` or `rok.rokon`. A file inside a `main.rok` / `lib.rok` package selects that package ([9.1.1](901-rokc-cli.md#911-general-form)). A lone file in a directory that has only `rok.rokon` is compiled as a single-file package with that manifest's `lints` (and `lints_from`) and dependencies.
+- The package's own features as `--cfg feature=<f>`, and each dependency's as `--extern-feature <name>=<f>` (9.10.4c). The feature options `--features <f,..>` (repeatable; `<dep>/<f>` too), `--all-features` and `--no-default-features` of build / run / test / bench / check / lint / doc / emit / repl / lsp / jupyter / deps are consumed by `rok` (before `--`).
+- The manifest's `lints` as `-A` / `-W` / `-D` (before the arguments). The manifest is that of the project the path selects: for a `.rok` file, the nearest directory at or above the file containing `src/main.rok`, `src/lib.rok` or `rok.rokon`. A file in the `src/` of a package selects that package ([9.1.1](901-rokc-cli.md#911-general-form)). A lone file elsewhere in a directory that has `rok.rokon` (a script beside a package's `src/`, or a directory with only `rok.rokon`) is compiled as a single-file package with that manifest's `lints` (and `lints_from`) and dependencies.
 - Outside a package (environments, scripts), `--target-dir` set to the `target/` of that environment or script.
 
 `rok repl <path>` resolves dependencies and lints from the project of that path, as `run` does, and passes the manifest name (`--name`).
@@ -56,11 +57,19 @@ rok new [--lib | --bin] <name>
 rok init [--lib | --bin] [dir]
 ```
 
-`rok new` creates the directory `<name>` and fills in default files. `--bin` (the default) creates a `main.rok` that prints a greeting; `--lib` creates a `lib.rok` with an example function and one `#[test]`. It is an error if `<name>` already exists.
+`rok new` creates the directory `<name>` and fills in default files. `--bin` (the default) creates `src/main.rok`, which prints a greeting; `--lib` creates `src/lib.rok` with an example function and one `#[test]`. It is an error if `<name>` already exists.
 
-`rok init` turns an existing directory (the current directory if omitted) into a package. It is an error if that directory already contains `main.rok` or `lib.rok`.
+`rok init` turns an existing directory (the current directory if omitted) into a package. It is an error if that directory already contains `src/main.rok` or `src/lib.rok`.
 
 Both commands also write `rok.rokon` in canonical form ([ROKON 3.9.4](../../refs-standard-libraries/300-std/309-rokon.md#394-canonical-form)) and a `.gitignore` containing `target/`, and run `git init` if not inside a git repository. `init` uses the directory name, adjusted to the naming rules (9.10.3), as the package name.
+
+```
+hello/
+├── .gitignore        <- target/
+├── rok.rokon
+└── src/
+    └── main.rok
+```
 
 ## 9.10.3. `rok.rokon` / `rok.lock`
 
@@ -79,12 +88,14 @@ Package {
     deps: {                          // package name (string) -> Dep
         "util": Dep::path("../util"),
         "parser": Dep::git("https://example.com/parser.git", tag: "v1.2"),
-        "json": "1.4",                                   // stone (= Dep::version("1.4"))
+        "http": "0.9",                                   // stone (= Dep::version("0.9"))
+        "json": Dep::version("^1.4", optional: true),    // only with a feature (9.10.4c)
         "csv": Dep::version("^0.3", registry: "https://example.com/index"),
     },
     dev_deps: {                      // same form as deps. test / bench only
         "fixtures": Dep::path("tests/fixtures"),
     },
+    features: { "default": ["json"], "json": ["dep:json"], "tls": ["http/tls"], "full": ["json", "tls"] },
     native: { "zlib": "^1.3", "png": Dep::native(url: "vendor/png.rokon", sha256: "<64 hex>") },
     lints_from: "..",                // string, optional — start from ../rok.rokon's lints
     lints: { "dead_code": "allow", "nonstandard_style": "deny" },
@@ -92,15 +103,16 @@ Package {
 ```
 
 - Values are ROKON literals (strings, `{ "k": v }` dicts, the empty dict `{}`) and `Dep::path("..")` / `Dep::git("url", rev | tag | branch: "..")` / `Dep::version("req", registry: "url")`. `Dep::git` takes at most one of `rev` / `tag` / `branch`, and `registry` of `Dep::version` is optional. A dependency value that is a single string is shorthand for `Dep::version`.
+- `Dep::path` / `Dep::git` / `Dep::version` also take `optional: true`, `features: ["<f>", ..]` and `default_features: false` (9.10.4c); an optional dev dependency is an error.
 - `Dep::registry` is for `rok.lock` only; using it in `rok.rokon` is an error.
 - Package names (keys of `deps`, `name`) are lowercase ASCII `[a-z0-9_-]+` beginning with a letter (beginning with a digit, `-` or `_` is an error). Keys are strings (`"rok-syntax": Dep::version("^0.1")`).
 - In code, the name with `-` replaced by `_` is the top-level path referring to that package (`rok-syntax` → `use rok_syntax::..`, `--extern rok_syntax=..`).
 - In the registry and within one dependency graph, names are compared treating `-` and `_` as equal and ignoring case. So `rok-syntax` and `rok_syntax` cannot coexist.
-- A dependency package must be a library package with a `lib.rok`. Transitive dependencies are the `deps` of the dependency package (`dev_deps` are not transitive).
+- A dependency package must be a library package with a `src/lib.rok`. Transitive dependencies are the `deps` of the dependency package (`dev_deps` are not transitive).
 - `native` maps native package names (their own namespace: a package and a native package may share a name) to `Dep::native("req"[, registry: "url"])`, a requirement string, or `Dep::native(url: "<url or path relative to the manifest>", sha256: "<64 hex digits>")` (9.10.4b). `Dep::native` in `deps` / `dev_deps` is an error. Native dependencies of every package in the graph are linked into executables (those reached only through `dev_deps`, only for test / bench).
 - `lints` sets lint levels (lint or group name → `"allow"` | `"warn"` | `"deny"`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)). They are treated as if prepended to the CLI flags of `rokc lint`, so CLI `-A/-W/-D` and attributes in code override them.
 - `lints_from` names a directory (relative to this manifest's directory, or absolute) whose `rok.rokon` supplies starting lint levels. That manifest's `lints`, after its own `lints_from` chain, are applied first, and this manifest's `lints` follow, so an entry here overrides the same lint or group from the chain (all entries are passed as `-A`/`-W`/`-D` in this order; later flags win). It applies only to the package being built or checked (and to an environment's manifest); dependencies' manifests are never consulted for lints. It is an error if the directory does not exist, contains no `rok.rokon`, or if the chain returns to a manifest already in it (a cycle). `rok env import` rewrites a relative `lints_from` as an absolute path. A script's `//! ```rokon` block may not use it.
-- Errors: unknown fields / `Dep` kinds / named arguments, duplicates, package names violating the rules, syntax that is not ROKON, anything other than a single `Package { .. }`, trailing tokens. Diagnostics show the location with `file:line:col` and a caret.
+- Errors: unknown fields / `Dep` kinds / named arguments, duplicates, `features` that break the rules of 9.10.4c, package names violating the rules, syntax that is not ROKON, anything other than a single `Package { .. }`, trailing tokens. Diagnostics show the location with `file:line:col` and a caret.
 
 | Dependency source | Form                                                         | Pinned in `rok.lock` |
 |-------------------|--------------------------------------------------------------|----------------------|
@@ -150,6 +162,7 @@ Lock {
 
 - The `source` of `Locked` is `Dep::git(..)` or `Dep::registry(..)`.
 - A missing `packages` field is read as an empty list.
+- Features are not recorded: the lock pins every package of the graph, optional ones included, so it does not depend on the features a build enables.
 - Native packages from an index are pinned in an optional `natives: [LockedNative { name, vers, source: Dep::registry("<index>"), sha256 }]`, sorted by name and written only when non-empty. `sha256` is the SHA-256 of the entry's canonical index line with `yanked: false`; a changed entry is a "run `rok update`" error.
 - If `version` is not `1`, it is an "unsupported lockfile version" error.
 - Every error raised while reading the lock appends "(delete rok.lock and run `rok update` to make it again)".
@@ -160,14 +173,15 @@ Lock {
 rok add <name> --path <dir> [--dev] [--env <env>]
 rok add <name> --git <url> [--rev <rev> | --tag <tag> | --branch <branch>] [--dev] [--env <env>]
 rok add <name>[@<req>] [--registry <url>] [--dev] [--env <env>]      # stone
+rok add <name> .. [--features <f,..>] [--no-default-features] [--optional]   # with any of the above
 rok remove <name>
 rok update [name...]
-rok deps [--dev]
+rok deps [--dev] [--features <f,..>] [--all-features] [--no-default-features]
 ```
 
-- `add` / `remove` edit `rok.rokon`, preserving comments and layout. `--dev` adds to `dev_deps`, and `--env` edits the `rok.rokon` of that named environment. Adding a stone without a requirement writes `^<newest version>`.
+- `add` / `remove` edit `rok.rokon`, preserving comments and layout. `--dev` adds to `dev_deps`, and `--env` edits the `rok.rokon` of that named environment. Adding a stone without a requirement writes `^<newest version>`. `--features`, `--no-default-features` and `--optional` are written into the `Dep::..`; `--optional` also adds the feature `"<name>": ["dep:<name>"]` unless the package has a feature of that name.
 - Builds use the commits and versions in `rok.lock`. Newly declared dependencies are added to the lock and removed ones are cleaned up, but only `update` moves something already pinned. Given names, `update` re-resolves only those packages; otherwise it re-resolves all git dependencies and stones.
-- `deps` prints the resolved dependency packages as lines `<code name>=<lib.rok path>` (the code name has `-` replaced by `_`), dependencies first (`--dev` includes dev dependencies). For each native package (dependents first, for the host) it also prints `# native <name> <vers>` followed by its `rokc` arguments, one per line.
+- `deps` prints the resolved dependency packages as lines `<code name>=<path of its src/lib.rok>` (the code name has `-` replaced by `_`), dependencies first (`--dev` includes dev dependencies). Each such line is followed by its `--extern-feature=<code name>=<f>` lines; `deps` takes the feature options and `--dev`. For each native package (dependents first, for the host) it also prints `# native <name> <vers>` followed by its `rokc` arguments, one per line.
 - `rok.lock` is committed to version control.
 
 ### Cache
@@ -224,6 +238,7 @@ Stone { name: "json", vers: "1.4.2", deps: [{ name: "util", req: "^0.3", kind: "
 ```
 
 - The `kind` in `deps` is `"normal"`, `"dev"` or `"native"`; `registry` is optional.
+- A stone with features has `features: { "<name>": ["<entry>", ..] }` after `deps`, checked as in 9.10.4c. A `normal` dependency may have `optional: true`, `features: [..]` and `default_features: false` (written only when not the default); `dev` / `native` ones may not be optional, and native ones have no features. `rok publish` writes them from `rok.rokon`; resolution reads them from the entry.
 - `native/<shard path>` holds native packages, one `Native { .. }` per line ([9.10.4b](#9104b-native-packages)).
 - `description`, `license` and `repository` from the manifest appear as optional trailing fields.
 - The package is at the root of the `source` repository. `cksum` is the git tree hash of that commit, verified after checkout.
@@ -247,7 +262,7 @@ rok yank [--native] --vers <version> [--undo] [--index <checkout>] [name]   # na
 ```
 
 - `search` searches the index by name and prints one line per match: `<name> <newest version> — <description>` (the description part omitted when the entry has none). Index lookups accept either spelling, `-` or `_`.
-- `publish` is a dry run by default. It requires a clean work tree, the package at the repository root, and a `lib.rok`. Normal path / git dependencies are rejected, and path / git dev dependencies are dropped. It checks for conflicts with the same version and with names equal under `-` / `_` and case folding. A name already owned under a different spelling is rejected. A dry run without `--index` only prints the entry; with `--index` it is also checked against that checkout.
+- `publish` is a dry run by default. It requires a clean work tree, the package at the repository root, and a `src/lib.rok`. Normal path / git dependencies are rejected, and path / git dev dependencies are dropped. It checks for conflicts with the same version and with names equal under `-` / `_` and case folding. A name already owned under a different spelling is rejected. A dry run without `--index` only prints the entry; with `--index` it is also checked against that checkout.
 - With `--commit`, `publish` adds the entry: with `--index`, as a commit "Publish <name> <vers>" in that checkout (not pushed); without it, through the registry API of the configured index ("Which index"), which adds it to the index. The client never writes to the index repository itself.
 - `yank` sets (or with `--undo` clears) `yanked` for that version: with `--index`, as a commit in that checkout; otherwise through the registry API.
 - The registry API is at `api` of the index's `config.rokon`. Requests carry `Authorization: Bearer <token>`, and bodies are single-line ROKON (`application/rokon; charset=utf-8`):
@@ -302,6 +317,25 @@ rok yank --native --vers <version> [--undo] [--index <dir>] <name>
 - `repl` / `jupyter` load native packages: shared libraries through the system loader, static archives linked into the session. `check` / `lint` / `doc` link nothing.
 - Copies beside an executable are build outputs.
 
+## 9.10.4c. Features
+
+A package declares features in `features`, a dict from feature name to the list of what the feature enables. Names are `[a-z0-9][a-z0-9_-]*`, words that say what they are (`http1`, `http2`, `tls`). Each entry is one of:
+
+| Entry       | Enables                                                              |
+|-------------|----------------------------------------------------------------------|
+| `<f>`       | Feature `f` of this package                                          |
+| `dep:<d>`   | The optional dependency `d`                                          |
+| `<d>/<f>`   | Feature `f` of dependency `d`, and `d` itself if it is optional      |
+| `<d>?/<f>`  | Feature `f` of the optional dependency `d`, only if something else enables `d` |
+
+- `default` is an ordinary feature that is on unless turned off: `--no-default-features` for the package being built, `default_features: false` on a dependency.
+- An optional dependency (`optional: true`) is in the build only when a `dep:<d>` or `<d>/<f>` entry of an enabled feature enables it. There is no implicit feature of its name, and it is an error if no entry enables it.
+- It is an error if an entry names a feature or dependency (of `deps`) the package does not have, if `dep:` or `?` names a non-optional dependency, or if features form a cycle. Diagnostics show `file:line:col`. It is an error if a dependency is asked for a feature it does not have.
+- Resolution: the lock covers the whole graph. The build then starts from the root package's features (`default` unless turned off, `--features`, or every feature with `--all-features`) and follows every enabled dependency, with the features it asks of it plus its `default`. Features are additive and unified: each package has one feature set for the whole graph. The root's `dev_deps` and the features they ask count only for `test` / `bench`. The result does not depend on the order of anything.
+- `--features` takes the root's feature names and `<dep>/<f>` for its direct dependencies.
+- Each package is compiled with `cfg(feature = "<f>")` for exactly its enabled features ([6.3.6](../006-meta-system/603-cfg.md#636-where-parameters-come-from)). Native packages have no features.
+- A script's ```` ```rokon ```` block has no `features` (9.10.7).
+
 ## 9.10.5. Environments
 
 Environments follow uv / conda. There is no activation step.
@@ -352,7 +386,7 @@ rok toolchain remove <version>
 
 ## 9.10.7. Inline manifest for single-file scripts
 
-An anonymous package ([4.16.8](../004-functions/416-entry-point.md#4168-single-file-execution)) declares dependencies with a ```` ```rokon ```` block holding `Package { deps: { .. } }` inside the `//!` lines at the very start of the file (like uv's inline script metadata). The block may contain only `deps`. Code blocks of other languages are ignored. Paths are relative to the script directory. The script's lockfile is kept in the cache (`cache/scripts/`).
+An anonymous package ([4.16.8](../004-functions/416-entry-point.md#4168-single-file-execution)) declares dependencies with a ```` ```rokon ```` block holding `Package { deps: { .. } }` inside the `//!` lines at the very start of the file (like uv's inline script metadata). The block may contain only `deps` (no `features`, so no optional dependencies). Code blocks of other languages are ignored. Paths are relative to the script directory. The script's lockfile is kept in the cache (`cache/scripts/`).
 
 ````rok
 //! ```rokon

@@ -114,7 +114,7 @@ let v: i32 | none = xs.get(0);    // ERROR — xs: List<i32 | none>
 // mismatched types: `let v` expects `i32 | none`, found `(i32 | none)?`
 ```
 
-**Operations.** Patterns, `is`, `?.`, `??` and `?` act on the **outermost layer**. The other side of the outer layer is bound to the inner `T`.
+**Operations.** Patterns, `is`, `?.`, `??` and `?` act on the **outermost layer**. The other side of the outer layer is bound to the inner `T`. A binding pattern after arms that cover every outer-layer term binds the inner layer.
 
 **Diagnostic notation.** Diagnostics show nested layers in parentheses. If the outer layer is only `none`, it is written `(i32 | none)?`; otherwise as `(i32 | E) | E`, `(i32 | none) | str | none`. `(i32 | none)?` is also valid source with the same meaning.
 

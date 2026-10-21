@@ -153,3 +153,5 @@ let x = (y = 1);           // x = unit (nearly meaningless)
 ```
 
 This pattern is discouraged, and tools or linters may warn about it.
+
+Outside statement position, an assignment is written in parentheses `(y = 1)` or as a match arm body. An unparenthesized `let x = y = 1;` is not supported.

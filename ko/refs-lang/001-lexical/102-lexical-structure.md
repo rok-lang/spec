@@ -7,6 +7,7 @@ token           ::= identifier
                   | keyword
                   | numeric_lit
                   | string_lit
+                  | byte_string_lit
                   | char_lit
                   | sentinel_lit                  // true | false | none
                   | punctuation
@@ -28,7 +29,7 @@ line_terminator ::= U+000A | U+000D U+000A? | U+000D
 | 식별자 (identifier)    | `count`, `α`, `Δt`                  |
 | 키워드 (keyword)       | `let`, `if`, `fn`                   |
 | 숫자 리터럴            | `42`, `3.14`, `0xFF`, `1_000`       |
-| 문자열 리터럴          | `"hello"`, `r"raw\n"`, `f"x = {x}"` |
+| 문자열 리터럴          | `"hello"`, `r"raw\n"`, `f"x = {x}"`, `b"bytes"` |
 | 문자 리터럴            | `'A'`, `c'A'`                       |
 | 진리값 / 센티넬 리터럴 | `true`, `false`, `none`             |
 | 연산자 / 구두점        | `+`, `==`, `..`, `[`, `;`           |

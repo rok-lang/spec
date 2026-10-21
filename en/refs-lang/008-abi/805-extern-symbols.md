@@ -132,7 +132,7 @@ extern "rok" {
 
 Called right after process start, before `main()`. Effects: creates the worker pool, mmaps the GC spaces and initializes the I/O driver. The compiler-generated C-ABI `main` calls `rok.register_types` right after this call ([8.2.13](802-scan-table.md#8213-registration-time)).
 
-The runtime additionally exports the thread-local data symbol `rok_tls_shadow_stack_top` ([8.3.8](803-tls-slots.md#838-form-of-compiler-emission)).
+The runtime additionally exports the thread-local block `rok_tls` ([8.3.8](803-tls-slots.md#838-form-of-compiler-emission)).
 
 ### `rok_runtime_shutdown`
 
@@ -354,12 +354,12 @@ Back the lazy initialization of `static`s whose initializer is not `const` ([5.3
 
 ```
 extern "rok" {
-    fn rok_static_init_begin(state: Ptr<u8>) -> i32;   // 1: caller runs the initializer, 0: already ready
+    fn rok_static_init_begin(state: Ptr<u8>, at: ConstPtr<u8>, at_len: usize) -> i32;   // 1: caller runs the initializer, 0: already ready
     fn rok_static_init_end(state: Ptr<u8>);            // publish initialization completion
 }
 ```
 
-`state` is the state byte of that `static` (0 new, 1 in progress, 2 ready). If another thread is initializing, `rok_static_init_begin` waits until it finishes, during which the thread is considered stopped with respect to the GC.
+`state` is the state byte of that `static` (0 new, 1 in progress, 2 ready). If another thread is initializing, `rok_static_init_begin` waits until it finishes, during which the thread is considered stopped with respect to the GC. `at` / `at_len` is the `path:line:col` of the code reading the static; an initializer that reads its own static panics there ([4.14.13](../004-functions/414-throws.md#41413-panics-and-fatal-errors)).
 
 ### `rok_gc_add_root`
 
@@ -564,9 +564,12 @@ All functions above use the target platform's C ABI calling convention, e.g. Sys
 
 ```mlir
 ; LLVM IR (when the fast path fails)
-%cursor = load i8*, i8** @rok_tls_tlab_cursor
+%t = call ptr @llvm.threadlocal.address(ptr @rok_tls)
+%cursor_p = getelementptr i8, ptr %t, i64 8          ; tlab_cursor at p
+%cursor = load i8*, i8** %cursor_p
 %new_cursor = getelementptr i8, i8* %cursor, i64 24
-%limit = load i8*, i8** @rok_tls_tlab_limit
+%limit_p = getelementptr i8, ptr %t, i64 16          ; tlab_limit at 2p
+%limit = load i8*, i8** %limit_p
 %check = icmp ugt i8* %new_cursor, %limit
 br i1 %check, label %slow, label %fast
 
@@ -575,7 +578,7 @@ slow:
   br label %cont
 
 fast:
-  store i8* %new_cursor, i8** @rok_tls_tlab_cursor
+  store i8* %new_cursor, i8** %cursor_p
   br label %cont
 
 cont:

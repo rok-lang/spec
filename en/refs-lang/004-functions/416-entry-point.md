@@ -4,7 +4,7 @@ This section defines what code runs, and in what order, when an executable packa
 
 ## 4.16.1. Entry module: `main.rok`
 
-The root file `main.rok` of an executable package ([0.3.1](../000-meta/003-source-units.md#executable-package-mainrok)) is the **entry module**. The entry module provides the entry point in **exactly one** of the following two forms.
+The root file `src/main.rok` of an executable package ([0.3.1](../000-meta/003-source-units.md#executable-package-srcmainrok)) is the **entry module**. The entry module provides the entry point in **exactly one** of the following two forms.
 
 | Form                  | Entry point                                          | Use                              |
 |-----------------------|------------------------------------------------------|----------------------------------|
@@ -130,7 +130,7 @@ The rationale for this decision:
 - **AOT is the reference for meaning** ([0.1.4](../000-meta/001-execution-modes.md#014-semantic-baseline)). Supporting import-time execution in AOT output would require synthesizing per-module initialization functions and their call order at link time. Definition-only modules need no such machinery.
 - **No initialization order semantics.** Import-time code across modules would require defining "which module is initialized first" and "what is visible during cyclic imports". rok ensures these questions never arise. Initial values of global state are determined at compile time (4.16.7).
 - **Caching and incremental builds.** Since a module's meaning is determined by its definitions alone, caches based on content hashes ([0.3.3](../000-meta/003-source-units.md#033-package-identifier)) and incremental builds need not account for execution side effects.
-- **Package kind is determined by file presence** ([0.3.4](../000-meta/003-source-units.md#034-the-manifest-rokrokon-is-optional)). Executable code lives exactly in `main.rok`, so the answers to "is this an executable package?" and "where is the executable code?" always coincide.
+- **Package kind is determined by file presence** ([0.3.4](../000-meta/003-source-units.md#034-the-manifest-rokrokon-is-optional)). Executable code lives exactly in `src/main.rok`, so the answers to "is this an executable package?" and "where is the executable code?" always coincide.
 
 ## 4.16.7. Global state
 
@@ -145,11 +145,11 @@ rokc run hello.rok
 rokc build hello.rok
 ```
 
-If the file given as an argument is not inside any package directory, `rokc` constructs an **anonymous executable package** consisting of that file alone and treats the file as the package's `main.rok`. The file name has no meaning, and the entry point rules (4.16.1 – 4.16.5) apply exactly as for `main.rok`. An anonymous package cannot have file-based submodules (`mod foo;`), but inline modules may be used. Dependencies, if needed, are declared in an inline manifest block at the head of the file ([9.10.7](../009-tools/910-rok-frontend.md#9107-inline-manifest-for-single-file-scripts)). The detailed command forms are defined in [`rokc` CLI](../009-tools/901-rokc-cli.md).
+If the file given as an argument is not in the `src/` of a package, `rokc` constructs an **anonymous executable package** consisting of that file alone and treats the file as the package's `main.rok`. The file name has no meaning, and the entry point rules (4.16.1 – 4.16.5) apply exactly as for `main.rok`. A `.rok` file beside a package's `src/`, such as a script in its root, is also run this way. An anonymous package cannot have file-based submodules (`mod foo;`), but inline modules may be used. Dependencies, if needed, are declared in an inline manifest block at the head of the file ([9.10.7](../009-tools/910-rok-frontend.md#9107-inline-manifest-for-single-file-scripts)). The detailed command forms are defined in [`rokc` CLI](../009-tools/901-rokc-cli.md).
 
 ## 4.16.9. No entry point attribute
 
-rok has **no** attribute for designating the entry point (e.g., `#[main]`). The file name `main.rok` already designates the entry module, and the name `main` (or top-level statements) designates the entry function, so there is no second means of expressing the same information. Keeping a single mechanism for determining the entry point means "which function runs" can be determined from the file structure alone. `main` is not a reserved word, and the language does not reserve the name `#[main]` either.
+rok has **no** attribute for designating the entry point (e.g., `#[main]`). The root file `src/main.rok` already designates the entry module, and the name `main` (or top-level statements) designates the entry function, so there is no second means of expressing the same information. Keeping a single mechanism for determining the entry point means "which function runs" can be determined from the file structure alone. `main` is not a reserved word, and the language does not reserve the name `#[main]` either.
 
 ## 4.16.10. Relationship to JIT / REPL
 
