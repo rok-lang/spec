@@ -181,7 +181,7 @@ The type tuple of the generic arguments is serialized deterministically and then
 type tuple → canonical serialization → SHA-256 → first 16 characters
 ```
 
-The same types yield the same hash however many times the build is redone. The same specialization in a different build also gets the same symbol name.
+The same types yield the same hash however many times the build is redone. The same specialization in a different build also gets the same symbol name. Names rokc gives to closures and other generated functions derive from the item they are written in (for an instance, also its type arguments), so they too are the same in every build.
 
 This stability is what makes separate builds, incremental builds, and symbol matching between dependency packages possible.
 
@@ -225,8 +225,11 @@ main                                (Linux / macOS)
 mainCRTStartup                      (Windows console)
 WinMainCRTStartup + WinMain         (Windows GUI, -C subsystem=windows)
 _start                              (no-OS)
-__main_void                         (wasm32; called by wasi-libc's _start)
+__main_void                         (wasm32-wasi*; called by wasi-libc's _start)
+_initialize, then main              (wasm32-unknown-unknown; reactor exports called by the host)
 ```
+
+On `wasm32-unknown-unknown` the module is a reactor: the host calls `_initialize`, then the export `main`, and the runtime stays up afterwards (no shutdown). `#[export_name("x")]` functions are wasm exports named `x`. On every wasm32 target the runtime starts on the first of `__main_void`, `main` or an exported call.
 
 On Windows, rok's own startup object provides `mainCRTStartup` (console) or `WinMainCRTStartup` and `WinMain` (GUI), which call the rokc-generated `main` wrapper.
 

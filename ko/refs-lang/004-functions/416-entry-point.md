@@ -18,7 +18,7 @@ top_stmt    ::= let_stmt | let_else_stmt | expr ";" | block_like_expr ";"?   // 
 module_file ::= item*                          // lib.rok 및 main.rok 가 아닌 모든 모듈 파일
 ```
 
-`item` 은 [모듈 안의 항목](../005-modules/504-modules.md#547-모듈-안의-항목) (`fn`, `struct`, `enum`, `trait`, `impl`, `const`, `static`, `mod`, `use` 등) 이고, `let_stmt` / `let_else_stmt` / `expr ";"` 은 [블록 표현식](../003-expressions/309-block-expressions.md) 의 문장과 같습니다. 제어 흐름 (`if`, `match`, `for`, `while`, `loop`, `try`) 은 모두 식이므로 `expr ";"` 에 포함됩니다. 함수 본체와 달리 종결자 없는 마지막 식 (`tail_expr`) 은 두지 않습니다 — 암묵 `main` 은 값을 반환하지 않기 때문입니다. 항목만 있고 문장도 `fn main` 도 없는 `main.rok` 는 빈 암묵 `main` 을 가집니다.
+`item` 은 [모듈 안의 항목](../005-modules/504-modules.md#547-모듈-안의-항목) (`fn`, `struct`, `enum`, `trait`, `impl`, `const`, `static`, `mod`, `use` 등) 이고, `let_stmt` / `let_else_stmt` / `expr ";"` 은 [블록 표현식](../003-expressions/309-block-expressions.md) 의 문장과 같습니다. 제어 흐름 (`if`, `match`, `for`, `while`, `loop`, `try`) 은 모두 식이므로 `expr ";"` 에 포함됩니다. 함수 본체와 달리 종결자 없는 마지막 식 (`tail_expr`) 은 두지 않습니다 — 암묵 `main` 은 값을 반환하지 않기 때문입니다. 항목만 있고 문장도 `fn main` 도 없는 `main.rok` 는 빈 암묵 `main` 을 가집니다. 단 WIT 를 export 하는 패키지는 예외로, 진입점 없는 reactor 입니다 ([stdlib 1.8.2](../../refs-standard-libraries/100-bare/108-wit.md#export)).
 
 > [!IMPORTANT]
 > 한 `main.rok` 안에 top-level 문과 `fn main` 선언이 **함께** 있으면 **컴파일 에러** 입니다. 두 진입점 가운데 어느 쪽이 실행되는지를 독자가 추측해야 하는 상황을 원천적으로 막기 위함입니다.
@@ -102,7 +102,7 @@ fn main() throws {          // 암묵 main 의 형태 — 4.16.4 참고
 
 **암묵 `main`** 은 타입을 적지 않은 `fn main() throws` (에러 타입 `any Error`) 로 취급됩니다 (본체에 `await` 가 있으면 `async fn main() throws`, 4.16.5). 따라서 top-level 문에서 `try` 로 표시한 throwing 호출의 에러는 별도의 `catch` 없이 진입점 밖으로 전파될 수 있고, 미처리 예외는 위 규칙대로 종료 코드 `1` 이 됩니다. 정상적으로 끝까지 실행되면 종료 코드는 `0` 입니다.
 
-`wasm32-wasi` (preview 2 component) 에서는 `wasi:cli/exit` 가 성공과 실패만 전하므로, 0 이 아닌 종료 코드 (`1`, `101` 포함) 는 모두 host 에 실패 (status 1) 로 전해집니다. `wasm32-wasi-threads` (preview 1) 는 코드를 그대로 전하지만, 일부 WASI host 는 126 이상의 `proc_exit` 코드를 trap 으로 다룹니다.
+`wasm32-wasi` (preview 2 component) 에서는 `wasi:cli/exit` 가 성공과 실패만 전하므로, 0 이 아닌 종료 코드 (`1`, `101` 포함) 는 모두 host 에 실패 (status 1) 로 전해집니다. `wasm32-wasi-threads` (preview 1) 는 코드를 그대로 전하지만, host 가 126 이상의 `proc_exit` 를 실패 (status 1) 로 바꿀 수 있습니다. `abort` 같은 trap 은 134 로 끝납니다.
 
 > [!IMPORTANT]
 > **top-level `return` 은 허용하지 않습니다.** `main.rok` 의 top-level 에 `return` 이 나타나면 컴파일 에러입니다. 암묵 `main` 에서 0 이 아닌 종료 코드가 필요하면 `env::exit(code)` 를 호출하고, 반환값으로 종료 코드를 표현하고 싶다면 명시 `fn main() -> i32` 형태를 씁니다. top-level `return` 을 허용하면 "어떤 타입의 `return` 이 허용되는가", "top-level 블록 안쪽의 `return` 은 무엇을 반환하는가" 같은 규칙이 암묵 `main` 에만 추가되므로, 진입점 형태를 둘로 나누는 쪽이 더 단순합니다.

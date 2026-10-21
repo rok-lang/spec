@@ -7,7 +7,7 @@ This block specifies the rok compiler `rokc`, the front-end `rok`, and the execu
 - [9.1. `rokc` CLI interface](901-rokc-cli.md)
 - [9.2. AOT build pipeline](902-aot-pipeline.md)
 - [9.3. Package archive (.a) format](903-package-archive.md)
-- [9.4. RHIR format](904-rhir-bytecode.md)
+- [9.4. ROKHIR format](904-rokhir-bytecode.md)
 - [9.5. Symbol mangling scheme](905-symbol-mangling.md)
 - [9.6. JIT engine (RokJitSession)](906-jit-engine.md)
 - [9.7. JIT cell execution flow and state management](907-jit-cells.md)
@@ -47,7 +47,7 @@ rokc  (compiler)
   │
   ├── debug / diagnostic
   │   ├── rokc demangle   : symbol demangle
-  │   ├── rokc rhir-text  : RHIR interface text dump
+  │   ├── rokc rokhir-text  : ROKHIR interface text dump
   │   └── rokc inspect    : package inspect
   │
   └── rokc version / help
@@ -85,7 +85,7 @@ The implementation of each surface is covered in the following documents.
 
 ## Package build output
 
-A library package of a [source unit](../000-meta/003-source-units.md) compiles to `libfoo.a` and the interface `foo.rhir`.
+A library package of a [source unit](../000-meta/003-source-units.md) compiles to `libfoo.a` and the interface `foo.rokhir`.
 
 ```
 foo/
@@ -94,18 +94,18 @@ foo/
        v rokc build
 foo/target/debug/
 ├── libfoo.a                 <- artifact (static archive)
-├── foo.rhir                 <- interface (RHIR)
+├── foo.rokhir                 <- interface (ROKHIR)
 ├── build/                   <- intermediates (foo.o, ...)
 └── ...
 ```
 
 The per-profile layout is defined in [9.2.15](902-aot-pipeline.md#9215-output), and the [archive](../000-meta/007-glossary.md#archive) format in [Package archive](903-package-archive.md).
 
-## RHIR: portable IR for generic functions
+## ROKHIR: portable IR for generic functions
 
-Generic functions must be [monomorphized](../000-meta/007-glossary.md#monomorphization) at the call site, so binary code alone is not enough. An interface file, RHIR, therefore sits next to the library. RHIR holds the package source with concrete function bodies stripped (because monomorphization takes the AST as input).
+Generic functions must be [monomorphized](../000-meta/007-glossary.md#monomorphization) at the call site, so binary code alone is not enough. An interface file, ROKHIR, therefore sits next to the library. ROKHIR holds the package source with concrete function bodies stripped (because monomorphization takes the AST as input).
 
-The detailed format is defined in [RHIR format](904-rhir-bytecode.md).
+The detailed format is defined in [ROKHIR format](904-rokhir-bytecode.md).
 
 ## Single dependency: `librokr.a`
 

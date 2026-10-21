@@ -34,16 +34,16 @@ target/debug/build/foo.expanded.rok
 
 여러 단계를 한 번에 지정하려면 `--emit=mlir,llvmir,asm` 처럼 쉼표로 구분하면 됩니다. 종류가 하나면 `-o <path>` 로 위치를 바꿀 수 있습니다. `--emit` 을 주면 실행 파일이나 archive 는 만들지 않습니다.
 
-## 9.9.2. RHIR 검사
+## 9.9.2. ROKHIR 검사
 
 ```
-rokc rhir-text path/to/foo.rhir      # 또는 libfoo.a — 옆의 foo.rhir 를 읽음
+rokc rokhir-text path/to/foo.rokhir      # 또는 libfoo.a — 옆의 foo.rokhir 를 읽음
 ```
 
-위 명령은 미리 빌드한 라이브러리의 [RHIR](904-rhir-bytecode.md) 을 사람이 읽을 수 있는 형식으로 출력합니다. 버전, producer, meta 다음에 interface 파일마다 `--- <경로>` 와 그 텍스트 (구체 함수 본문이 `;` 로 잘린 소스) 가 이어집니다.
+위 명령은 미리 빌드한 라이브러리의 [ROKHIR](904-rokhir-bytecode.md) 을 사람이 읽을 수 있는 형식으로 출력합니다. 버전, producer, meta 다음에 interface 파일마다 `--- <경로>` 와 그 텍스트 (구체 함수 본문이 `;` 로 잘린 소스) 가 이어집니다.
 
 ```
-rhir 1
+rokhir 1
 producer: rokc 0.1.0 (1f2a40-17f3a9c2e1b0c4d8)
 package: geom (hash: 3f8a1c2b)
 source: /home/me/geom
@@ -55,7 +55,7 @@ pub fn distance(p1: Point, p2: Point) -> f64;
 pub fn id<T>(x: T) -> T { x }
 ```
 
-이 출력은 [RHIR](../000-meta/007-glossary.md#rhir-rok-hir-bytecode) 의 정확성과 호환성을 검증할 때 활용하면 됩니다.
+이 출력은 [ROKHIR](../000-meta/007-glossary.md#rokhir-rok-hir-bytecode) 의 정확성과 호환성을 검증할 때 활용하면 됩니다.
 
 ## 9.9.3. 심볼 demangle
 
@@ -202,7 +202,7 @@ span 은 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_p
 
 - 함수의 `DW_AT_name` 은 rok 경로 (`geom::distance`) 이며, linkage name (맹글링된 심볼) 은 두지 않습니다. 디버거가 `_Y` 맹글링을 모르기 때문입니다.
 - 줄 번호는 원본 .rok 파일의 줄을 가리킵니다.
-- 지역 변수는 원본 이름과 타입으로 보입니다. 원시 타입 (정수, 부동소수, `bool`, `char`) 외에 struct (필드 이름), 튜플, `str`, `any`, sum 타입, 배열의 DWARF 타입을 냅니다. sum 타입과 enum 은 DWARF variant part 입니다: artificial discriminant 멤버와, 변형마다 (데이터 없는 변형 포함) `DW_AT_discr_value` 를 가진 `DW_TAG_variant` 하나씩이며, 각각은 `<Sum>::<Variant>` 라는 이름의 struct 를 담습니다. 두 backend 가 같은 형태를 쓰며, 디버거가 variant part 를 읽도록 compile unit 은 `DW_LANG_Rust` 를 씁니다 (rok 의 DWARF 언어 코드는 없음). `GcBuf<T>` 참조는 그 객체 (헤더, 그 다음 `T` 원소들) 를 가리키는 포인터로 기술합니다. 컴파일러가 만드는 함수 (C `main`, static 초기화 guard) 도 subprogram 을 가집니다.
+- 지역 변수는 원본 이름과 타입으로 보입니다. 원시 타입 (정수, 부동소수, `bool`, `char`) 외에 struct (필드 이름), 튜플, `str`, `any`, sum 타입, 배열의 DWARF 타입을 냅니다. sum 타입과 enum 은 DWARF variant part 입니다: artificial discriminant 멤버와, 변형마다 (데이터 없는 변형 포함) `DW_AT_discr_value` 를 가진 `DW_TAG_variant` 하나씩이며, 각각은 `<Sum>::<Variant>` 라는 이름의 struct 를 담습니다. 두 backend 가 같은 형태를 쓰며, 디버거가 variant part 를 읽도록 compile unit 은 `DW_LANG_Rust` 를 씁니다 (rok 의 DWARF 언어 코드는 없음). `GcBuf<T>` 참조는 그 객체 (헤더, 그 다음 `T` 원소들) 를 가리키는 포인터로 기술합니다. `any` 값은 그 안에 저장된 타입들에 대한 variant part 이며, discriminant 는 저장된 tag 입니다. 참조로 캡처한 변수는 그 값으로 보입니다. 컴파일러가 만드는 함수 (C `main`, static 초기화 guard) 도 subprogram 을 가집니다.
 - 블록마다 lexical block scope 를 내므로 가려진 (shadowed) 이름은 해당 블록 안에서만 보입니다.
 - 스택 슬롯을 가진 지역은 debug / release 모두 `llvm.alloca` 하나에 놓입니다. 그래서 `-g` 는 최적화 수준과 무관하게 같은 슬롯에 debug 정보를 붙입니다.
 
@@ -355,16 +355,16 @@ rokls
 미리 빌드한 라이브러리 패키지의 정보를 한 번에 확인할 수 있습니다.
 
 ```
-rokc inspect path/to/libfoo.a        # 또는 foo.rhir — 짝 파일을 함께 읽음
+rokc inspect path/to/libfoo.a        # 또는 foo.rokhir — 짝 파일을 함께 읽음
 ```
 
-이 명령은 RHIR ([9.4](904-rhir-bytecode.md)) 과 [archive](../000-meta/007-glossary.md#archive) 의 정보를 다음과 같이 표시합니다.
+이 명령은 ROKHIR ([9.4](904-rokhir-bytecode.md)) 과 [archive](../000-meta/007-glossary.md#archive) 의 정보를 다음과 같이 표시합니다.
 
 ```
 Package: foo
 Hash: 3f8a1c2b
 rokc version: 0.1.0
-RHIR version: 1
+ROKHIR version: 1
 GC type ids: 4096..4160
 
 Exports:
@@ -372,7 +372,7 @@ Exports:
   pub struct Point
   ...
 
-Generic items (RHIR):
+Generic items (ROKHIR):
   pub fn id<T>(x: T) -> T
   ...
 
@@ -380,12 +380,12 @@ Concrete .o files:
   foo.o (15 KB)
 ```
 
-`rokc rhir-text <file>` 은 RHIR 의 버전, producer, meta 와 interface 파일 전체를 출력합니다 (9.9.2).
+`rokc rokhir-text <file>` 은 ROKHIR 의 버전, producer, meta 와 interface 파일 전체를 출력합니다 (9.9.2).
 
 이를 통해 패키지의 외부에 보이는 모습을 한눈에 파악할 수 있습니다.
 
 ## 9.9.15. 정리
 
-지금까지 살펴본 도구들이 rok 의 개발과 디버그 경험의 핵심을 이룹니다. 표준 도구 (gdb, perf, jupyter) 와의 통합과 rok 고유 도구 (`rokc demangle`, `rokc rhir-text` 등) 가 결합되어 풍부한 진단 환경을 제공합니다.
+지금까지 살펴본 도구들이 rok 의 개발과 디버그 경험의 핵심을 이룹니다. 표준 도구 (gdb, perf, jupyter) 와의 통합과 rok 고유 도구 (`rokc demangle`, `rokc rokhir-text` 등) 가 결합되어 풍부한 진단 환경을 제공합니다.
 
 이로써 9 장 (실행과 툴) 을 마무리하며, 본 사양 전체가 큰 그림을 완성합니다.

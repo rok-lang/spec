@@ -21,7 +21,7 @@ rok 의 사양은 0장부터 9장까지 열 개의 장으로 구성됩니다. �
 | 6 | [메타 시스템](006-meta-system/README.md)               | 속성, lang/literal/keyword 매직, 메타 블록, 리플렉션                |
 | 7 | [런타임 모델](007-runtime/README.md)                   | 객체 layout, GC, 스케줄러, 코루틴, 안전점                           |
 | 8 | [런타임 ABI / MLIR lowering](008-abi/README.md)        | 헤더, 스캔 테이블, TLS, calling convention, MLIR 다이얼렉트         |
-| 9 | [실행 / 툴](009-tools/README.md)                       | rokc CLI, AOT 파이프라인, .a 패키지, RHIR, JIT, Jupyter             |
+| 9 | [실행 / 툴](009-tools/README.md)                       | rokc CLI, AOT 파이프라인, .a 패키지, ROKHIR, JIT, Jupyter             |
 
 먼저 0장은 이후의 모든 장이 전제하는 빌드 모델, 플랫폼 가정, 표기법을 모아둡니다. 이를 한 번 읽어두면 본문에서 반복되는 약속을 다시 추적할 필요가 없습니다. 그다음 1장 어휘 구조가 가장 앞에 오는 이유는 명료합니다. 토큰의 형태가 정의되어야 비로소 타입과 식이 형식을 갖출 수 있기 때문입니다. 이어지는 2장 타입과 3장 표현식, 4장 함수는 한 모듈 내부에서 값을 만들고 다루는 데 필요한 핵심 구조를 차례로 도입합니다.
 

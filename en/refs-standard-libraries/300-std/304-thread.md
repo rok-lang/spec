@@ -123,11 +123,11 @@ try thread::spawn(|| {
 
 Per-platform support:
 
-| Item            | linux/macos/windows   | wasm32-wasi               | wasm32-wasi-threads |
+| Item            | linux/macos/windows   | wasm32-wasi / browser     | wasm32-wasi-threads |
 |-----------------|-----------------------|---------------------------|---------------------|
-| `spawn`         | ✓                     | throws `Unsupported`      | ✓ (wasi-threads)    |
-| `Builder`       | ✓                     | throws `Unsupported`      | partial             |
-| `local`         | ✓                     | ✓ (one thread)            | partial             |
-| `park`/`unpark` | futex / WaitOnAddress | ✗                         | partial             |
+| `spawn`         | ✓                     | throws `Unsupported`      | ✓                   |
+| `Builder`       | ✓                     | throws `Unsupported`      | ✓                   |
+| `local`         | ✓                     | ✓ (one thread)            | ✓                   |
+| `park`/`unpark` | futex / WaitOnAddress | ✓                         | ✓                   |
 
-Desktop OSes have consistent behavior. `wasm32-wasi` has no threads; on `wasm32-wasi-threads` the rest will be filled in as the threads proposal progresses.
+On `wasm32-wasi` and in the browser there is one thread: `thread::current().name()` is `none`. On `wasm32-wasi-threads`, `rok_cpu_count()` and the available parallelism are 4, since WASI cannot report a core count.

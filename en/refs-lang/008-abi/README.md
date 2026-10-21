@@ -35,4 +35,4 @@ This model follows the same approach as Swift ABI Stability: the specification i
 
 The contract in this block is part of the language version (SemVer). ABI changes come with an explicit version bump. Minor / patch releases may only add and must not break compatibility. Major releases may break compatibility, but do so in a way the package manager can detect.
 
-The RHIR header of a prebuilt package records the `rokc` that built it ([9.4](../009-tools/904-rhir-bytecode.md)). Using a package built by a different `rokc` is an error that asks for a rebuild.
+The ROKHIR header of a prebuilt package records the `rokc` that built it ([9.4](../009-tools/904-rokhir-bytecode.md)). Using a package built by a different `rokc` is an error that asks for a rebuild.

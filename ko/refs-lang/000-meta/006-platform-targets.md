@@ -31,6 +31,9 @@ rok 은 LLVM 이 코드 생성을 지원하는 플랫폼이라면 어느 host �
 | `wasm32-wasi`            | 서버사이드 WASM: WASI preview 2 component. `wasi:sockets` 네트워크, 스레드 없음 (`thread::spawn` 은 `Unsupported` 를 throw) |
 | `wasm32-wasi-threads`    | 스레드가 있는 서버사이드 WASM: wasi-threads 를 쓰는 WASI preview 1 core module (공유 메모리). 네트워크는 host 가 넘긴 listener 에서만, connect / bind / DNS 는 `Unsupported` 를 throw |
 
+> [!NOTE]
+> wasmtime 은 v46 뒤에 wasi-threads 를 제거했으므로, `wasm32-wasi-threads` 는 앞으로 WASI shared-everything-threads 에 기대게 됩니다.
+
 ### 32-bit
 
 마지막으로 32-bit 영역인데, 여전히 활발하게 사용되는 임베디드 및 레거시 환경을 위해 다음 세 타깃을 정식으로 지원합니다.

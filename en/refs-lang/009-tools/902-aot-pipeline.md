@@ -8,7 +8,7 @@ The build proceeds in 11 steps, all inside `rokc`.
 
 ```
 1. package discovery       (find package root)
-2. dependency resolve      (resolve deps to sources or prebuilt .rhir + .a)
+2. dependency resolve      (resolve deps to sources or prebuilt .rokhir + .a)
 3. source parse            (.rok → AST)
 4. name / visibility       (resolve)
 5. type check              (type check)
@@ -51,29 +51,29 @@ rokc build --extern util=../util --extern parser=target/debug/deps/libparser.a
 | Path                              | Dependency package                                                           |
 |-----------------------------------|------------------------------------------------------------------------------|
 | `<dir>` / `<dir>/lib.rok`         | Source. That `lib.rok` is compiled together in the same build                |
-| `<name>.rhir` / `lib<name>.a`     | Prebuilt package. Given either one, the sibling file in the same directory is located. RHIR ([9.4](904-rhir-bytecode.md)) is read for declarations and generics, and the archive is linked |
+| `<name>.rokhir` / `lib<name>.a`     | Prebuilt package. Given either one, the sibling file in the same directory is located. ROKHIR ([9.4](904-rokhir-bytecode.md)) is read for declarations and generics, and the archive is linked |
 
 - User code uses that package's items via `use name::..`.
 - `pkg::` inside a dependency package refers to that dependency package itself.
 - A dependency package is a separate package. Only `pub` items are usable from outside; `pub(pkg)` / `pub(sub)` / private items are not ([5.7.14](../005-modules/507-paths.md#5714-paths-between-packages)).
 - It is an error for a module of the user package to have the same name as a dependency package.
 
-`rokc build` on a library package produces both `lib<name>.a` and `<name>.rhir`. `--name <n>` sets the package name (the output name and mount name); the default is the directory name.
+`rokc build` on a library package produces both `lib<name>.a` and `<name>.rokhir`. `--name <n>` sets the package name (the output name and mount name); the default is the directory name.
 
 ### Prebuilt dependency packages
 
-`rokc` prebuilds each source `--extern` **once**, in the order given, into `target/[<triple>/]<profile>/deps/`. Each dependency package sees all previously built dependency packages. Subsequent compilation uses these `lib<name>.a` and `<name>.rhir` instead of the source.
+`rokc` prebuilds each source `--extern` **once**, in the order given, into `target/[<triple>/]<profile>/deps/`. Each dependency package sees all previously built dependency packages. Subsequent compilation uses these `lib<name>.a` and `<name>.rokhir` instead of the source.
 
 ```
 target/<profile>/deps/
 ├── lib<name>.a
-├── <name>.rhir
+├── <name>.rokhir
 └── <name>.fp               # fingerprint
 ```
 
 If the fingerprint matches, it is not rebuilt. The fingerprint includes:
 
-- The identity of `rokc` (the same value as the RHIR producer)
+- The identity of `rokc` (the same value as the ROKHIR producer)
 - Build options: `--release` / `-O*`, `-g`, `--target`, `--cfg`, `--bootstrap`
 - All `.rok` files and `rok.rokon` of that dependency package
 - The fingerprints of dependency packages built before it
@@ -158,11 +158,11 @@ target/debug/build/foo.o
 
 ## 9.2.13. Archives
 
-A library package puts its objects into a standard `ar` archive, written by `rokc` itself, and writes the interface file `foo.rhir` ([RHIR format](904-rhir-bytecode.md)) next to it.
+A library package puts its objects into a standard `ar` archive, written by `rokc` itself, and writes the interface file `foo.rokhir` ([ROKHIR format](904-rokhir-bytecode.md)) next to it.
 
 ```
 target/debug/libfoo.a
-target/debug/foo.rhir
+target/debug/foo.rokhir
 ```
 
 ## 9.2.14. Linking (for executables)
@@ -184,10 +184,10 @@ target/
 ├── debug/                      # profile (default)
 │   ├── foo                     # executable (for main)
 │   ├── libfoo.a                # package archive (for lib)
-│   ├── foo.rhir                # interface (for lib, 9.4)
+│   ├── foo.rokhir                # interface (for lib, 9.4)
 │   ├── foo.o                   # the archive's object (for lib)
 │   ├── build/                  # intermediates and --emit output (foo.mlir, ...)
-│   └── deps/                   # prebuilt dependencies (lib<dep>.a, <dep>.rhir, <dep>.fp)
+│   └── deps/                   # prebuilt dependencies (lib<dep>.a, <dep>.rokhir, <dep>.fp)
 ├── release/                    # --release
 │   └── ...
 ├── aarch64-unknown-linux-gnu/  # cross build (--target=<triple>)
@@ -201,17 +201,18 @@ target/
 | Library         | `target/<profile>/lib<name>.a` and `target/<profile>/<name>.o`    |
 | `--emit=<kind>` | `target/<profile>/build/<name>.<ext>` (`hir` `mir` `mlir` `ll` `s` `o`) |
 | Intermediates   | `target/<profile>/build/`                                         |
-| Dependencies    | `target/<profile>/deps/` (`lib<dep>.a`, `<dep>.rhir`, `<dep>.fp`, 9.2.3) |
+| Dependencies    | `target/<profile>/deps/` (`lib<dep>.a`, `<dep>.rokhir`, `<dep>.fp`, 9.2.3) |
 | Cross build     | `target/<triple>/<profile>/...` (same structure as above)         |
 | Documentation   | `target/doc/`                                                     |
+| Incremental     | `target/<profile>/incremental/<name>/` (codegen units, 9.2.16)    |
 
-The name `foo` is the package name (9.2.2). `-o` changes the path of a single output; `--target-dir=<dir>` and the environment variable `ROKC_TARGET_DIR` change the location of `target/` itself. `rokc clean` / `rok clean` delete the whole `target/`. A library's RHIR is `foo.rhir` next to the archive ([9.4](904-rhir-bytecode.md)).
+The name `foo` is the package name (9.2.2). `-o` changes the path of a single output; `--target-dir=<dir>` and the environment variable `ROKC_TARGET_DIR` change the location of `target/` itself. `rokc clean` / `rok clean` delete the whole `target/`. A library's ROKHIR is `foo.rokhir` next to the archive ([9.4](904-rokhir-bytecode.md)).
 
 ## 9.2.16. Incremental build
 
 Incremental builds are per package. If the fingerprint of the previous build equals the current one, `rokc build` / `rokc run` print `Fresh` and skip the build. The fingerprint includes:
 
-- The compiler's identity (the same value as the RHIR producer), build options, diagnostic format (`--message-format`, color), input / output paths, `ROK_CC` if set
+- The compiler's identity (the same value as the ROKHIR producer), build options, diagnostic format (`--message-format`, color), input / output paths, `ROK_CC` if set
 - All `.rok` files and `rok.rokon` readable from the package and its dependencies
 - The `.a` of prebuilt dependencies, MLIR plugin files, a `-C profile-use` file and the profile runtime
 - The size and modification time of the outputs
@@ -219,6 +220,17 @@ Incremental builds are per package. If the fingerprint of the previous build equ
 Warnings emitted by a build, the back end's included, are recorded, and a `Fresh` build prints them again.
 
 A native build without `--cfg`, `--target`, MLIR plugins, profile options or `-O3` links the prebuilt standard library from `lib/rok-cache/` (9.2.19), one folder per hash of toolchain, options and sources, built on first use under a lock. At `-O3` the standard library is compiled with the program (whole-program optimization). The REPL compiles the standard library from source.
+
+### Codegen units
+
+Within a package, a build that is not `Fresh` reuses compiled code by codegen units. rokc divides an executable's code into units: each module of the package is one, and so is each module of a library whose instances it compiles (instances may be spread over several units by their type arguments), plus one unit for what the program has once (statics, the C `main`, GC type registration).
+
+- A unit is compiled only when its key changed since the last build into the same target directory. Otherwise its result, kept under `target/<profile>/incremental/<name>/`, is reused; then everything is linked.
+- A unit's key covers its functions' code, the signatures and code-generation facts of what it uses from other units (a function's signature change recompiles its callers' units), the statics and GC types it uses, the target, the optimization level, the code generation options and the compiler's identity.
+- Symbols and GC type ids do not depend on what other units contain ([9.5.7](905-symbol-mangling.md#957-collision-avoidance-typehash-stability)), so the executable is the one a clean build makes.
+- Optimized builds still inline across units (ThinLTO, whose per-unit results are cached too).
+- Profile-guided builds (`-C profile-generate`, `-C profile-use`), builds with MLIR plugins or passes, and library packages are compiled whole.
+- `-v` reports how many units were reused and compiled; `-vv` names the compiled ones.
 
 ## 9.2.17. Separation of compiler and runtime
 

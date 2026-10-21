@@ -10,7 +10,7 @@
 |-------------------------------------------------------------------|-----------------------------------------|
 | `new`, `init`                                                     | 패키지 생성 (9.10.2)                    |
 | `add`, `remove`, `update`, `deps`                                 | 의존성 (9.10.4)                         |
-| `search`, `publish`, `yank`                                       | stone (9.10.4a)                         |
+| `search`, `publish`, `yank`, `login`, `logout`                    | stone (9.10.4a)                         |
 | `env`                                                             | 환경 (9.10.5)                           |
 | `toolchain`                                                       | toolchain (9.10.6)                      |
 | `build`, `check`, `run`, `test`, `bench`, `emit`                  | 의존성을 붙여 `rokc` 에 위임            |
@@ -47,7 +47,7 @@ rok --env sci       # = rok repl --env sci
 | `--cwd <dir>`    | 디렉토리를 바꾼 뒤 실행                                           |
 | `-q`, `--quiet`  | 출력을 줄임                                                       |
 
-환경 변수는 `ROK_HOME` (기본 `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6), `ROK_REGISTRY` (9.10.4a) 입니다.
+환경 변수는 `ROK_HOME` (기본 `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6), `ROK_REGISTRY` 와 `ROK_REGISTRY_TOKEN` (9.10.4a) 입니다.
 
 ## 9.10.2. `rok new` / `rok init`: 패키지 생성
 
@@ -236,17 +236,23 @@ Stone { name: "json", vers: "1.4.2", deps: [{ name: "util", req: "^0.3", kind: "
 - lock 은 index 와 대조합니다. 고정된 버전의 `rev` 가 바뀌었으면 "run `rok update`" 에러입니다.
 - `--offline` 은 캐시된 index 를 쓰고, `--locked` 를 지킵니다.
 
-### `rok search` / `publish` / `yank`
+### `rok search` / `publish` / `yank` / `login` / `logout`
 
 ```
 rok search [--native] <query>
+rok login [<token>]
+rok logout
 rok publish [--index <checkout>] [--commit]
-rok yank [--native] --vers <version> [--undo] --index <checkout> [name]   # --native 면 name 필수
+rok yank [--native] --vers <version> [--undo] [--index <checkout>] [name]   # --native 면 name 필수
 ```
 
 - `search` 는 index 에서 이름으로 찾습니다. index 조회는 `-` / `_` 어느 쪽 철자든 받습니다.
-- `publish` 는 기본이 dry run 입니다. 깨끗한 work tree, 저장소 루트의 패키지, `lib.rok` 를 요구합니다. path / git 의 normal 의존은 거부하고, path / git 의 dev 의존은 뺍니다. 같은 버전과, `-` / `_` 와 대소문자를 같게 본 이름의 충돌을 검사합니다. 다른 철자가 이미 가진 이름은 거부합니다. `--commit` 이면 index checkout 에 "Publish <name> <vers>" 커밋을 만들며, push 는 하지 않습니다.
-- `yank` 는 index checkout 의 그 버전 `yanked` 를 켜거나 (`--undo` 면 끔) 커밋합니다.
+- `publish` 는 기본이 dry run 입니다. 깨끗한 work tree, 저장소 루트의 패키지, `lib.rok` 를 요구합니다. path / git 의 normal 의존은 거부하고, path / git 의 dev 의존은 뺍니다. 같은 버전과, `-` / `_` 와 대소문자를 같게 본 이름의 충돌을 검사합니다. 다른 철자가 이미 가진 이름은 거부합니다. `--index` 없는 dry run 은 항목만 출력하고, `--index` 가 있으면 그 checkout 에 대해서도 검사합니다.
+- `--commit` 이면 `publish` 는 "Publish <name> <vers>" 커밋을 만듭니다: `--index` 가 있으면 그 checkout 에 (push 하지 않음), 없으면 설정된 index ("Which index") 를 새로 clone 한 곳에 만들고 index 로 push 합니다.
+- `yank` 는 그 버전의 `yanked` 를 켜고 (`--undo` 면 끄고) 커밋합니다: `--index` 로 준 checkout 에, 없으면 설정된 index 를 새로 clone 한 곳에 커밋하고 push 합니다.
+- index 로 push 하려면 토큰이 필요하며, `--index` checkout 에는 필요 없습니다. 토큰은 `ROK_REGISTRY_TOKEN` 이 설정되어 비어 있지 않으면 그것, 아니면 `rok login` 이 저장한 것입니다. 둘 다 없으면 "run `rok login` first" 에러입니다.
+- `rok login` 은 GitHub 토큰을 받습니다 (생략하면 표준 입력에서 읽으며 화면에 보이지 않습니다). publish 할 수 있다는 것은 index 저장소에 쓰기 권한이 있다는 뜻입니다: `login` 은 토큰으로 index 의 git receive-pack 에 물어보고 (dry-run push; 아무것도 보내지 않음), push 할 수 없는 토큰은 거부합니다 ("publishing is limited to the index's maintainers"). 그런 다음 `$ROK_HOME/credentials.rokon` 에 `Credentials { token: ".." }` 를 저장합니다 (Unix 에서는 mode 0600). `rok logout` 은 그 파일을 지웁니다.
+- 토큰은 git 의 환경으로만 전달되며 (HTTPS `Authorization` 헤더로, credential helper 는 끔), 명령줄, url, clone 의 git 설정에 들어가지 않고 출력되지도 않습니다.
 
 ## 9.10.4b. Native 패키지
 
@@ -281,10 +287,10 @@ rok add --native <name>[@<req>]
 rok remove --native <name>
 rok search --native <query>
 rok publish --native <file> [--index <dir>] [--commit]
-rok yank --native --vers <version> [--undo] --index <dir> <name>
+rok yank --native --vers <version> [--undo] [--index <dir>] <name>
 ```
 
-`publish --native` 는 모든 target 을 받아 검사하며, 절대 url, 라이선스 파일, index 에서 온 의존성만을 요구합니다.
+`publish --native` 는 모든 target 을 받아 검사하며, 절대 url, 라이선스 파일, index 에서 온 의존성만을 요구합니다. `--commit` 과 `yank --native` 는 stone 과 같은 규칙을 따릅니다: `--index` checkout, 없으면 설정된 index 에 토큰으로 push 합니다.
 
 - ELF 대상에서 runtime 라이브러리의 soname 은 파일 이름과 같아야 합니다. `-musl` 대상의 `dylib` link 는 에러입니다.
 - `repl` / `jupyter` 는 native 패키지를 로드합니다: 공유 라이브러리는 시스템 loader 로, static archive 는 세션에 링크합니다. `check` / `lint` / `doc` 는 아무것도 링크하지 않습니다.

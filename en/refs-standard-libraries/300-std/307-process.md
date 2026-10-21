@@ -184,3 +184,6 @@ Per-platform support:
 | `pidfd`          | linux 5.3+ | ✗     | ✗               | ✗    |
 | `kill_on_drop`   | ✓          | ✓     | ✓               | ✗    |
 | signal handler   | ✓          | ✓     | (limited)       | ✗    |
+| `process::id()`  | ✓          | ✓     | ✓               | `0` (wasm32) |
+
+On wasm32 targets the items marked ✗ fail at run time with `IoErrorKind::Unsupported`.

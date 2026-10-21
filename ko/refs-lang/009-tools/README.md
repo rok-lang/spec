@@ -7,7 +7,7 @@
 - [9.1. `rokc` CLI 인터페이스](901-rokc-cli.md)
 - [9.2. AOT 빌드 파이프라인](902-aot-pipeline.md)
 - [9.3. 패키지 아카이브 (.a) 포맷](903-package-archive.md)
-- [9.4. RHIR 포맷](904-rhir-bytecode.md)
+- [9.4. ROKHIR 포맷](904-rokhir-bytecode.md)
 - [9.5. 심볼 맹글링 스킴](905-symbol-mangling.md)
 - [9.6. JIT 엔진 (RokJitSession)](906-jit-engine.md)
 - [9.7. JIT 셀 실행 흐름과 상태 관리](907-jit-cells.md)
@@ -47,7 +47,7 @@ rokc  (compiler)
   │
   ├── debug / diagnostic
   │   ├── rokc demangle   : symbol demangle
-  │   ├── rokc rhir-text  : RHIR interface text dump
+  │   ├── rokc rokhir-text  : ROKHIR interface text dump
   │   └── rokc inspect    : package inspect
   │
   └── rokc version / help
@@ -85,7 +85,7 @@ AOT direct exec      rokc build → run artifact
 
 ## 패키지 빌드 산출물
 
-[소스 단위](../000-meta/003-source-units.md) 의 라이브러리 패키지는 `libfoo.a` 와 인터페이스 `foo.rhir` 로 컴파일됩니다.
+[소스 단위](../000-meta/003-source-units.md) 의 라이브러리 패키지는 `libfoo.a` 와 인터페이스 `foo.rokhir` 로 컴파일됩니다.
 
 ```
 foo/
@@ -94,18 +94,18 @@ foo/
        v rokc build
 foo/target/debug/
 ├── libfoo.a                 <- artifact (static archive)
-├── foo.rhir                 <- interface (RHIR)
+├── foo.rokhir                 <- interface (ROKHIR)
 ├── build/                   <- intermediates (foo.o, ...)
 └── ...
 ```
 
 profile 별 레이아웃은 [9.2.15](902-aot-pipeline.md#9215-산출물), [archive](../000-meta/007-glossary.md#archive) 의 형식은 [패키지 아카이브](903-package-archive.md) 가 정의합니다.
 
-## RHIR: 제네릭 함수의 휴대용 IR
+## ROKHIR: 제네릭 함수의 휴대용 IR
 
-제네릭 함수는 호출 지점에서 [단형화](../000-meta/007-glossary.md#monomorphization-단형화) 해야 하므로 바이너리 코드만으로는 부족합니다. 따라서 라이브러리 옆에 인터페이스 파일 RHIR 을 둡니다. RHIR 은 구체 함수 본문을 잘라 낸 패키지 소스를 담습니다 (단형화가 AST 를 입력으로 쓰므로).
+제네릭 함수는 호출 지점에서 [단형화](../000-meta/007-glossary.md#monomorphization-단형화) 해야 하므로 바이너리 코드만으로는 부족합니다. 따라서 라이브러리 옆에 인터페이스 파일 ROKHIR 을 둡니다. ROKHIR 은 구체 함수 본문을 잘라 낸 패키지 소스를 담습니다 (단형화가 AST 를 입력으로 쓰므로).
 
-자세한 형식은 [RHIR 포맷](904-rhir-bytecode.md) 에서 정의합니다.
+자세한 형식은 [ROKHIR 포맷](904-rokhir-bytecode.md) 에서 정의합니다.
 
 ## 단일 의존성: `librokr.a`
 

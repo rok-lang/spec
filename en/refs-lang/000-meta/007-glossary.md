@@ -12,7 +12,7 @@ AOT is the mode that compiles source ahead of time into a static artifact (`.a` 
 
 ## archive
 
-An archive is the output of a compiled package: a `.a` file in standard ar format. It holds the objects for concrete code; the library's interface (RHIR) is the `<name>.rhir` file beside it.
+An archive is the output of a compiled package: a `.a` file in standard ar format. It holds the objects for concrete code; the library's interface (ROKHIR) is the `<name>.rokhir` file beside it.
 
 ## block
 
@@ -70,9 +70,9 @@ The LOS is the GC's space dedicated to large objects. Objects at or above the th
 
 Monomorphization is the process of compiling a generic function separately for each concrete type at its call sites. It gains zero indirect-call cost at the price of compile time and binary size.
 
-## RHIR (rok HIR bytecode)
+## ROKHIR (rok HIR bytecode)
 
-RHIR is the interface file (`<name>.rhir`) of a prebuilt library package. It sits beside the archive and lets downstream packages read declarations and specialize generic fns. Its body is the package source with concrete function bodies stripped out ([9.4](../009-tools/904-rhir-bytecode.md)).
+ROKHIR is the interface file (`<name>.rokhir`) of a prebuilt library package. It sits beside the archive and lets downstream packages read declarations and specialize generic fns. Its body is the package source with concrete function bodies stripped out ([9.4](../009-tools/904-rokhir-bytecode.md)).
 
 ## niche optimization
 

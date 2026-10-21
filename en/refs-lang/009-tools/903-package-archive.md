@@ -5,9 +5,9 @@ The build output of a library package `foo` is two files ([9.2.15](902-aot-pipel
 | File        | Contents                                                                      |
 |-------------|-------------------------------------------------------------------------------|
 | `libfoo.a`  | A standard `ar` archive holding a single object `foo.o` with the concrete code |
-| `foo.rhir`  | The interface used downstream for monomorphization and name resolution ([9.4](904-rhir-bytecode.md)) |
+| `foo.rokhir`  | The interface used downstream for monomorphization and name resolution ([9.4](904-rokhir-bytecode.md)) |
 
-The two files sit in the same directory. `--extern foo=libfoo.a` and `--extern foo=foo.rhir` each locate the sibling ([9.2.3](902-aot-pipeline.md#923-dependency-resolution)). Metadata such as version and producer is in the RHIR header ([9.4](904-rhir-bytecode.md)).
+The two files sit in the same directory. `--extern foo=libfoo.a` and `--extern foo=foo.rokhir` each locate the sibling ([9.2.3](902-aot-pipeline.md#923-dependency-resolution)). Metadata such as version and producer is in the ROKHIR header ([9.4](904-rokhir-bytecode.md)).
 
 ## 9.3.1. Standard ar archive
 
@@ -37,7 +37,7 @@ Every library output is a static `.a`. Dynamic libraries are not a standard rok 
 
 ## 9.3.4. Version compatibility check
 
-When a dependency's RHIR is read, its `version` and producer (the `rokc` that produced that RHIR) are compared with the current `rokc`. If they differ, it is an error stating what to rebuild ([9.4.9](904-rhir-bytecode.md#949-reading-and-rejection)).
+When a dependency's ROKHIR is read, its `version` and producer (the `rokc` that produced that ROKHIR) are compared with the current `rokc`. If they differ, it is an error stating what to rebuild ([9.4.9](904-rokhir-bytecode.md#949-reading-and-rejection)).
 
 ## 9.3.5. Symbol exposure
 
@@ -72,4 +72,4 @@ clang main.c libfoo.a librokr.a -o my_binary
 
 ## 9.3.8. Stability
 
-The archive format follows the [ABI stability policy](../008-abi/README.md); the RHIR format follows [9.4](904-rhir-bytecode.md).
+The archive format follows the [ABI stability policy](../008-abi/README.md); the ROKHIR format follows [9.4](904-rokhir-bytecode.md).

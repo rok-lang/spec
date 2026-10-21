@@ -181,7 +181,7 @@ _Y + 8 + _ + path (수십) + _ + 이름 (수~수십) + _ + 16
 타입 튜플 → canonical 직렬화 → SHA-256 → 앞 16 글자
 ```
 
-같은 타입이라면 빌드를 몇 번 다시 하더라도 동일한 해시가 나옵니다. 다른 빌드에서 일어난 같은 specialization 도 같은 심볼 이름을 갖게 됩니다.
+같은 타입이라면 빌드를 몇 번 다시 하더라도 동일한 해시가 나옵니다. 다른 빌드에서 일어난 같은 specialization 도 같은 심볼 이름을 갖게 됩니다. rokc 가 클로저와 그 밖의 생성된 함수에 붙이는 이름은 그것이 적힌 항목 (인스턴스면 그 타입 인자까지) 에서 나오므로, 이것도 모든 빌드에서 같습니다.
 
 이러한 안정성 덕분에 분리 빌드와 증분 빌드, 그리고 의존 패키지 사이의 심볼 매칭이 가능해집니다.
 
@@ -225,8 +225,11 @@ main                                (Linux / macOS)
 mainCRTStartup                      (Windows console)
 WinMainCRTStartup + WinMain         (Windows GUI, -C subsystem=windows)
 _start                              (no-OS)
-__main_void                         (wasm32; wasi-libc 의 _start 가 부름)
+__main_void                         (wasm32-wasi*; wasi-libc 의 _start 가 부름)
+_initialize, then main              (wasm32-unknown-unknown; host 가 부르는 reactor export)
 ```
+
+`wasm32-unknown-unknown` 에서 모듈은 reactor 입니다: host 가 `_initialize` 를, 그 다음 export `main` 을 부르며, 런타임은 그 뒤에도 살아 있습니다 (shutdown 없음). `#[export_name("x")]` 함수는 이름이 `x` 인 wasm export 입니다. 모든 wasm32 타깃에서 런타임은 `__main_void`, `main`, export 호출 가운데 처음 것에서 시작합니다.
 
 Windows 에서는 rok 자신의 startup object 가 `mainCRTStartup` (console) 이나 `WinMainCRTStartup` 과 `WinMain` (GUI) 을 제공하며, 이것이 rokc 가 생성한 `main` wrapper 를 부릅니다.
 

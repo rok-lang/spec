@@ -24,7 +24,7 @@ As grammar rules:
 cli_invocation  ::= "rokc" subcommand option* arg*
 subcommand      ::= "build" | "emit" | "run" | "test" | "bench" | "check"
                   | "fmt" | "lint" | "doc" | "repl" | "jupyter" | "lsp"
-                  | "clean" | "profdata" | "demangle" | "rhir-text" | "inspect" | "version" | "help"
+                  | "clean" | "profdata" | "demangle" | "rokhir-text" | "inspect" | "version" | "help"
 option          ::= "--" identifier ("=" value)?
                   | "-" letter
 ```
@@ -37,7 +37,7 @@ option          ::= "--" identifier ("=" value)?
 | Package             | `clean`                                               |
 | Tools               | `fmt`, `lint`, `doc`, `lsp`, `profdata`                           |
 | Interactive         | `repl`, `jupyter`                                     |
-| Debug / diagnostic  | `demangle`, `rhir-text`, `inspect`                    |
+| Debug / diagnostic  | `demangle`, `rokhir-text`, `inspect`                    |
 | Other               | `version`, `help`                                     |
 
 ### Package selection (`path`)
@@ -64,14 +64,14 @@ The package name (the output name) is the name of the package directory; for an 
 rokc build [path]
 ```
 
-`[path]` follows the package selection rules above. Output is placed in the per-profile `target/` of [9.2.15](902-aot-pipeline.md#9215-output). An executable package produces `target/<profile>/<name>`; a library package produces `target/<profile>/lib<name>.a` (and `<name>.o`) plus the interface `target/<profile>/<name>.rhir` ([9.4](904-rhir-bytecode.md)). The profile is `release` for `-O2` / `-O3` / `-Os` (including `--release`) and `debug` otherwise; with `--target=<triple>` the directory is `target/<triple>/<profile>/`. If `--target-dir=<dir>` or `ROKC_TARGET_DIR` is set, that directory is used instead of `target/`.
+`[path]` follows the package selection rules above. Output is placed in the per-profile `target/` of [9.2.15](902-aot-pipeline.md#9215-output). An executable package produces `target/<profile>/<name>`; a library package produces `target/<profile>/lib<name>.a` (and `<name>.o`) plus the interface `target/<profile>/<name>.rokhir` ([9.4](904-rokhir-bytecode.md)). The profile is `release` for `-O2` / `-O3` / `-Os` (including `--release`) and `debug` otherwise; with `--target=<triple>` the directory is `target/<triple>/<profile>/`. If `--target-dir=<dir>` or `ROKC_TARGET_DIR` is set, that directory is used instead of `target/`.
 
 Options:
 
 - `--release` performs an optimized build (equivalent to `-O2`) in the `release` profile; the default is a debug build (`-O0`) in the `debug` profile.
 - `--target-dir=<dir>` relocates `target/` (equivalent to `ROKC_TARGET_DIR`).
-- `--extern <name>=<dir | lib.rok | <name>.rhir | lib<name>.a>` mounts one dependency package at the top-level path `name` ([9.2.3](902-aot-pipeline.md#923-dependency-resolution)). Source (`dir` / `lib.rok`) is compiled together in the same build; a prebuilt package (`.rhir` / `.a`; given one, its sibling is located) has its RHIR read and its archive linked. May be given multiple times and is normally filled in by `rok`. `name` is an identifier: the package name with `-` replaced by `_` ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)).
-- `--name <n>` sets the package name (naming rules of [9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)). The outputs are `lib<n>.a` / `<n>.rhir` and the mount name is the name with `-` replaced by `_`. The default is the directory name. `--extern a-b=..` is likewise bound as `a_b`.
+- `--extern <name>=<dir | lib.rok | <name>.rokhir | lib<name>.a>` mounts one dependency package at the top-level path `name` ([9.2.3](902-aot-pipeline.md#923-dependency-resolution)). Source (`dir` / `lib.rok`) is compiled together in the same build; a prebuilt package (`.rokhir` / `.a`; given one, its sibling is located) has its ROKHIR read and its archive linked. May be given multiple times and is normally filled in by `rok`. `name` is an identifier: the package name with `-` replaced by `_` ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)).
+- `--name <n>` sets the package name (naming rules of [9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)). The outputs are `lib<n>.a` / `<n>.rokhir` and the mount name is the name with `-` replaced by `_`. The default is the directory name. `--extern a-b=..` is likewise bound as `a_b`.
 - `--bootstrap <file>` gives a standard library root to preload (may be repeated); `--rokr <lib>` gives the runtime to link. The defaults are the sysroot's `lib/rok/{core,std,bare}/lib.rok` and `lib/librokr.a` ([9.2.19](902-aot-pipeline.md#9219-installation-layout)). If not found, it is an error that lists the paths searched.
 - `-O0` / `-O1` / `-O2` / `-O3` / `-Os` select the optimization level explicitly. `-O0` uses the native backend, the others the MLIR → LLVM backend ([9.2.10](902-aot-pipeline.md#9210-backend-selection)).
 - `--target=<triple>` selects the target platform, one of the 14 Tier 1 targets in [Platform targets](../000-meta/006-platform-targets.md). Any target can be built from any host ([0.2.4](../000-meta/002-pipeline.md#024-backends)).
@@ -98,7 +98,7 @@ If nothing has changed since the previous build, `rokc build` / `rokc run` print
 rokc profdata merge [-o <file>] <file | dir>...
 ```
 
-Merges raw (`.profraw`) and indexed (`.profdata`) profiles into one indexed profile (default `default.profdata`) for `-C profile-use`. A directory stands for those files in it; empty raw profiles are skipped. It runs in process. Merge warnings (counter overflow, mismatched counters) are reported and the merge still writes its output.
+Merges raw (`.profraw`), indexed (`.profdata`) and text (`.proftext`, LLVM's text profile format) profiles into one indexed profile (default `default.profdata`) for `-C profile-use`. A directory stands for those files in it; empty raw profiles are skipped. It runs in process. Merge warnings (counter overflow, mismatched counters) are reported and the merge still writes its output.
 
 ### `rokc profdata show`: profile summary
 
@@ -303,25 +303,25 @@ rokc demangle <symbol>...
 
 For each symbol it prints a block in the [9.5.4](905-symbol-mangling.md) format, separated by blank lines ([9.9.3](909-debug-tools.md#993-symbol-demangle)). If any argument is not a rok symbol, the exit code is `1`.
 
-### `rokc rhir-text`: [RHIR](../000-meta/007-glossary.md#rhir-rok-hir-bytecode) text output
+### `rokc rokhir-text`: [ROKHIR](../000-meta/007-glossary.md#rokhir-rok-hir-bytecode) text output
 
-`rokc rhir-text` prints the RHIR of a prebuilt library as text.
+`rokc rokhir-text` prints the ROKHIR of a prebuilt library as text.
 
 ```
-rokc rhir-text path/to/foo.rhir      # or libfoo.a — reads the sibling foo.rhir
+rokc rokhir-text path/to/foo.rokhir      # or libfoo.a — reads the sibling foo.rokhir
 ```
 
-It prints the header fields, producer, meta and interface files; the format is described in [RHIR format](904-rhir-bytecode.md).
+It prints the header fields, producer, meta and interface files; the format is described in [ROKHIR format](904-rokhir-bytecode.md).
 
 ### `rokc inspect`: package inspection
 
 `rokc inspect` gives an overview of an archive's contents.
 
 ```
-rokc inspect path/to/libfoo.a        # or foo.rhir
+rokc inspect path/to/libfoo.a        # or foo.rokhir
 ```
 
-It shows the package name and hash, rokc version, RHIR version, GC type id range, exports, [generic](../000-meta/007-glossary.md#generic) items, and archive members with their sizes ([9.9.14](909-debug-tools.md#9914-package-inspection)).
+It shows the package name and hash, rokc version, ROKHIR version, GC type id range, exports, [generic](../000-meta/007-glossary.md#generic) items, and archive members with their sizes ([9.9.14](909-debug-tools.md#9914-package-inspection)).
 
 ## 9.1.4. Auxiliary subcommands
 

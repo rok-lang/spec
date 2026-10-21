@@ -616,8 +616,17 @@ extern "C" {
         // 프로세스가 끝남
 
     // REPL host (세션 저장 / 복원)
-    fn rok_world_stop();                                   // 다른 모든 mutator 를 멈춤 (safepoint 나 parked)
-    fn rok_world_resume();
+    fn rok_session_hold(timeout_ns: i64) -> i32;          // 조용한 순간에 world 를 멈춤: 실행 중인 poll / blocking job 이
+                                                           //   없고 lock 안에서 멈춘 스레드가 없을 때. 0: timeout_ns 안에
+                                                           //   못 함 (요청은 남음)
+    fn rok_session_unhold();                               // 대기 중이거나 얻은 hold 를 거둠
+    fn rok_session_resume();                               // hold 뒤에 world 를 재개
+    fn rok_session_enter();                                // poll / blocking job 둘레의 executor 스레드 gate
+    fn rok_session_leave();
+    fn rok_session_pass();
+    fn rok_lock_notes() -> i32;                            // 세션 host 에서 1
+    fn rok_lock_note(word: GcBuf<i32>, kind: i32) -> i32;  // kind: 0 Mutex, 1 read, 2 write, 3 실행 중인 Once; 1 = 기록함
+    fn rok_lock_drop(word: GcBuf<i32>);
     fn rok_world_threads(out: Ptr<u64>, cap: usize) -> usize;   // world 정지 중: 다른 mutator 의 OS id (Windows)
     fn rok_session_restored(lost: ConstPtr<u64>, n: usize);     // 세션을 되돌림. n == SIZE_MAX: 다른 스레드는 모두 사라짐
     fn rok_thread_lost(worker_id: u64) -> i32;             // 실패한 셀 뒤에 그 스레드가 사라졌으면 1

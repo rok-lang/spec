@@ -616,8 +616,17 @@ extern "C" {
         // the process ends when it returns
 
     // REPL host (session save / restore)
-    fn rok_world_stop();                                   // stop every other mutator (safepoint or parked)
-    fn rok_world_resume();
+    fn rok_session_hold(timeout_ns: i64) -> i32;          // stop the world at a quiet moment: no poll / blocking job
+                                                           //   running, no thread stopped inside a lock; 0: not within
+                                                           //   timeout_ns (still requested)
+    fn rok_session_unhold();                               // withdraw a pending or granted hold
+    fn rok_session_resume();                               // resume the world after a hold
+    fn rok_session_enter();                                // executor threads' gates around a poll / blocking job
+    fn rok_session_leave();
+    fn rok_session_pass();
+    fn rok_lock_notes() -> i32;                            // 1 in a session host
+    fn rok_lock_note(word: GcBuf<i32>, kind: i32) -> i32;  // kind: 0 Mutex, 1 read, 2 write, 3 running Once; 1 = noted
+    fn rok_lock_drop(word: GcBuf<i32>);
     fn rok_world_threads(out: Ptr<u64>, cap: usize) -> usize;   // world stopped: OS ids of the other mutators (Windows)
     fn rok_session_restored(lost: ConstPtr<u64>, n: usize);     // session put back; n == SIZE_MAX: every other thread is gone
     fn rok_thread_lost(worker_id: u64) -> i32;             // 1 if that thread was found gone after a failed cell

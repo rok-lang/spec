@@ -34,16 +34,16 @@ target/debug/build/foo.expanded.rok
 
 To select several steps at once, separate them with commas, as in `--emit=mlir,llvmir,asm`. With a single kind, `-o <path>` changes the location. With `--emit`, no executable or archive is produced.
 
-## 9.9.2. RHIR inspection
+## 9.9.2. ROKHIR inspection
 
 ```
-rokc rhir-text path/to/foo.rhir      # or libfoo.a — reads the sibling foo.rhir
+rokc rokhir-text path/to/foo.rokhir      # or libfoo.a — reads the sibling foo.rokhir
 ```
 
-This command prints the [RHIR](904-rhir-bytecode.md) of a prebuilt library in human-readable form. After the version, producer and meta, each interface file follows as `--- <path>` and its text (source with concrete function bodies cut down to `;`).
+This command prints the [ROKHIR](904-rokhir-bytecode.md) of a prebuilt library in human-readable form. After the version, producer and meta, each interface file follows as `--- <path>` and its text (source with concrete function bodies cut down to `;`).
 
 ```
-rhir 1
+rokhir 1
 producer: rokc 0.1.0 (1f2a40-17f3a9c2e1b0c4d8)
 package: geom (hash: 3f8a1c2b)
 source: /home/me/geom
@@ -55,7 +55,7 @@ pub fn distance(p1: Point, p2: Point) -> f64;
 pub fn id<T>(x: T) -> T { x }
 ```
 
-This output is useful for verifying the correctness and compatibility of [RHIR](../000-meta/007-glossary.md#rhir-rok-hir-bytecode).
+This output is useful for verifying the correctness and compatibility of [ROKHIR](../000-meta/007-glossary.md#rokhir-rok-hir-bytecode).
 
 ## 9.9.3. Symbol demangle
 
@@ -202,7 +202,7 @@ In addition to `-v`, prints a `Reading <file>` line for each file processed and 
 
 - A function's `DW_AT_name` is its rok path (`geom::distance`); no linkage name (mangled symbol) is emitted, because debuggers do not understand `_Y` mangling.
 - Line numbers refer to lines of the original .rok file.
-- Local variables appear with their original names and types. Besides primitive types (integers, floating-point, `bool`, `char`), DWARF types are emitted for structs (field names), tuples, `str`, `any`, sum types and arrays. A sum type or enum is a DWARF variant part: an artificial discriminant member, and one `DW_TAG_variant` per variant (dataless variants included) with `DW_AT_discr_value`, each holding a struct named `<Sum>::<Variant>`. Both back ends write the same form, and compile units use `DW_LANG_Rust` so debuggers read variant parts (there is no DWARF language code for rok). A `GcBuf<T>` reference is described as a pointer to its object (header, then the `T` elements). Functions the compiler makes (the C `main`, static initializer guards) have subprograms too.
+- Local variables appear with their original names and types. Besides primitive types (integers, floating-point, `bool`, `char`), DWARF types are emitted for structs (field names), tuples, `str`, `any`, sum types and arrays. A sum type or enum is a DWARF variant part: an artificial discriminant member, and one `DW_TAG_variant` per variant (dataless variants included) with `DW_AT_discr_value`, each holding a struct named `<Sum>::<Variant>`. Both back ends write the same form, and compile units use `DW_LANG_Rust` so debuggers read variant parts (there is no DWARF language code for rok). A `GcBuf<T>` reference is described as a pointer to its object (header, then the `T` elements). An `any` value is a variant part over the types stored into it, with the stored tag as the discriminant. A variable captured by reference shows as its value. Functions the compiler makes (the C `main`, static initializer guards) have subprograms too.
 - A lexical block scope is emitted for each block, so shadowed names are visible only inside their block.
 - Locals with stack slots are placed in a single `llvm.alloca` in both debug and release, so `-g` attaches debug info to the same slot regardless of optimization level.
 
@@ -355,16 +355,16 @@ The detailed LSP specification is outside this specification (the LSP standard +
 Information about a prebuilt library package can be viewed at once.
 
 ```
-rokc inspect path/to/libfoo.a        # or foo.rhir — the sibling file is read too
+rokc inspect path/to/libfoo.a        # or foo.rokhir — the sibling file is read too
 ```
 
-This command shows information from the RHIR ([9.4](904-rhir-bytecode.md)) and the [archive](../000-meta/007-glossary.md#archive) as follows.
+This command shows information from the ROKHIR ([9.4](904-rokhir-bytecode.md)) and the [archive](../000-meta/007-glossary.md#archive) as follows.
 
 ```
 Package: foo
 Hash: 3f8a1c2b
 rokc version: 0.1.0
-RHIR version: 1
+ROKHIR version: 1
 GC type ids: 4096..4160
 
 Exports:
@@ -372,7 +372,7 @@ Exports:
   pub struct Point
   ...
 
-Generic items (RHIR):
+Generic items (ROKHIR):
   pub fn id<T>(x: T) -> T
   ...
 
@@ -380,12 +380,12 @@ Concrete .o files:
   foo.o (15 KB)
 ```
 
-`rokc rhir-text <file>` prints the RHIR's version, producer, meta and all interface files (9.9.2).
+`rokc rokhir-text <file>` prints the ROKHIR's version, producer, meta and all interface files (9.9.2).
 
 This gives an at-a-glance view of what the package exposes externally.
 
 ## 9.9.15. Summary
 
-The tools above form the core of rok's development and debugging experience. Integration with standard tools (gdb, perf, jupyter) combined with rok-specific tools (`rokc demangle`, `rokc rhir-text`, etc.) provides a rich diagnostic environment.
+The tools above form the core of rok's development and debugging experience. Integration with standard tools (gdb, perf, jupyter) combined with rok-specific tools (`rokc demangle`, `rokc rokhir-text`, etc.) provides a rich diagnostic environment.
 
 This concludes chapter 9 (execution and tools) and completes the overall picture of this specification.

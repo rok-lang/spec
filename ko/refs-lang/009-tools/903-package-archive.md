@@ -5,9 +5,9 @@
 | 파일        | 내용                                                                          |
 |-------------|-------------------------------------------------------------------------------|
 | `libfoo.a`  | concrete 코드의 object `foo.o` 하나를 담은 표준 `ar` archive                  |
-| `foo.rhir`  | 다운스트림이 단형화와 이름 해소에 쓰는 인터페이스 ([9.4](904-rhir-bytecode.md)) |
+| `foo.rokhir`  | 다운스트림이 단형화와 이름 해소에 쓰는 인터페이스 ([9.4](904-rokhir-bytecode.md)) |
 
-두 파일은 같은 디렉토리에 놓입니다. `--extern foo=libfoo.a` 와 `--extern foo=foo.rhir` 는 서로 옆의 짝을 찾습니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 버전과 producer 같은 메타는 RHIR 의 header 에 있습니다 ([9.4](904-rhir-bytecode.md)).
+두 파일은 같은 디렉토리에 놓입니다. `--extern foo=libfoo.a` 와 `--extern foo=foo.rokhir` 는 서로 옆의 짝을 찾습니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 버전과 producer 같은 메타는 ROKHIR 의 header 에 있습니다 ([9.4](904-rokhir-bytecode.md)).
 
 ## 9.3.1. 표준 ar archive
 
@@ -37,7 +37,7 @@ ScanTable 은 일반 상수 데이터이며, 생성된 등록 코드가 프로�
 
 ## 9.3.4. 버전 호환 검사
 
-의존 패키지의 RHIR 을 읽을 때 RHIR 의 `version` 과 producer (그 RHIR 을 만든 `rokc`) 를 지금의 `rokc` 와 비교합니다. 다르면 무엇을 다시 빌드할지 밝히는 에러입니다 ([9.4.9](904-rhir-bytecode.md#949-읽기와-거부)).
+의존 패키지의 ROKHIR 을 읽을 때 ROKHIR 의 `version` 과 producer (그 ROKHIR 을 만든 `rokc`) 를 지금의 `rokc` 와 비교합니다. 다르면 무엇을 다시 빌드할지 밝히는 에러입니다 ([9.4.9](904-rokhir-bytecode.md#949-읽기와-거부)).
 
 ## 9.3.5. 심볼 노출
 
@@ -72,4 +72,4 @@ clang main.c libfoo.a librokr.a -o my_binary
 
 ## 9.3.8. 안정성
 
-archive 의 형식은 [ABI 안정성 정책](../008-abi/README.md) 을, RHIR 의 형식은 [9.4](904-rhir-bytecode.md) 를 따릅니다.
+archive 의 형식은 [ABI 안정성 정책](../008-abi/README.md) 을, ROKHIR 의 형식은 [9.4](904-rokhir-bytecode.md) 를 따릅니다.

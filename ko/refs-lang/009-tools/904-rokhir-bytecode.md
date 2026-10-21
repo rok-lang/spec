@@ -1,24 +1,24 @@
-# 9.4. RHIR 포맷
+# 9.4. ROKHIR 포맷
 
-미리 빌드한 라이브러리 패키지의 인터페이스 파일 `<name>.rhir` 를 정의합니다. [RHIR](../000-meta/007-glossary.md#rhir-rok-hir-bytecode) 파일은 그 패키지의 `lib<name>.a` ([패키지 아카이브](903-package-archive.md)) 옆에 놓이며, archive 의 멤버가 아닙니다.
+미리 빌드한 라이브러리 패키지의 인터페이스 파일 `<name>.rokhir` 를 정의합니다. [ROKHIR](../000-meta/007-glossary.md#rokhir-rok-hir-bytecode) 파일은 그 패키지의 `lib<name>.a` ([패키지 아카이브](903-package-archive.md)) 옆에 놓이며, archive 의 멤버가 아닙니다.
 
 ## 9.4.1. 동기
 
 [AOT 빌드 파이프라인](902-aot-pipeline.md) 의 단형화는 호출 지점의 구체 타입을 기준으로 [specialize](../000-meta/007-glossary.md#specialize) 합니다. 따라서 다른 패키지가 한 패키지의 [generic](../000-meta/007-glossary.md#generic--제네릭) `fn` 을 호출하면 그 호출 지점에서 specialize 가 일어나야 합니다. [concrete fn](../000-meta/007-glossary.md#concrete-fn--generic-fn) 의 obj 만으로는 부족하므로, 다운스트림이 읽을 인터페이스를 따로 둡니다.
 
-단형화의 입력은 AST 입니다. 그래서 RHIR 의 body 는 **잘라 낸 패키지 소스** 이며, 다운스트림의 파서가 그것을 읽습니다.
+단형화의 입력은 AST 입니다. 그래서 ROKHIR 의 body 는 **잘라 낸 패키지 소스** 이며, 다운스트림의 파서가 그것을 읽습니다.
 
 ## 9.4.2. 외부 라이브러리 미사용
 
-의존성 0 원칙에 따라 직렬화 라이브러리도 사용하지 않으며, RHIR 은 직접 설계합니다.
+의존성 0 원칙에 따라 직렬화 라이브러리도 사용하지 않으며, ROKHIR 은 직접 설계합니다.
 
 ## 9.4.3. 전체 레이아웃
 
 ```
-RHIR file (little-endian):
+ROKHIR file (little-endian):
 +-----------------------------------+
 |  Header                           |  (16 bytes fixed)
-|    magic       "RHIR"  (4 bytes)  |
+|    magic       "ROKH"    (4 bytes)  |
 |    version     u32  (= 1)         |
 |    flags       u32                |
 |    body_offset u32                |
@@ -44,7 +44,7 @@ RHIR file (little-endian):
 
 | 필드          | 크기 | 의미                                                         |
 |---------------|------|--------------------------------------------------------------|
-| `magic`       | 4    | `"RHIR"`                                                     |
+| `magic`       | 4    | `"ROKH"`                                                       |
 | `version`     | u32  | 포맷 버전 (`1`). 레이아웃이나 body 의 내용이 바뀌면 올림     |
 | `flags`       | u32  | 예약 (0)                                                     |
 | `body_offset` | u32  | body 의 시작 offset                                          |
@@ -92,20 +92,20 @@ body 는 패키지의 **모든 소스 파일** 을 (경로, 텍스트) 쌍으로
 
 ## 9.4.9. 읽기와 거부
 
-`--extern name=<name>.rhir` 나 `--extern name=lib<name>.a` 는 서로 옆의 짝 파일을 찾습니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 다운스트림은 body 를 소스 overlay 로 파싱해 선언을 얻고, 잘린 함수는 미리 빌드된 심볼로 선언하며, 제네릭은 그 자리에서 단형화한 뒤 archive 를 링크합니다.
+`--extern name=<name>.rokhir` 나 `--extern name=lib<name>.a` 는 서로 옆의 짝 파일을 찾습니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 다운스트림은 body 를 소스 overlay 로 파싱해 선언을 얻고, 잘린 함수는 미리 빌드된 심볼로 선언하며, 제네릭은 그 자리에서 단형화한 뒤 archive 를 링크합니다.
 
-다음이 하나라도 다르면 RHIR 을 거부하고 "다시 빌드하라 (rebuild)" 는 에러를 냅니다.
+다음이 하나라도 다르면 ROKHIR 을 거부하고 "다시 빌드하라 (rebuild)" 는 에러를 냅니다.
 
 - `version`
-- producer (다른 `rokc` 가 만든 RHIR)
-- name (`--extern` 이름과 RHIR 의 mount 이름)
+- producer (다른 `rokc` 가 만든 ROKHIR)
+- name (`--extern` 이름과 ROKHIR 의 mount 이름)
 
-## 9.4.10. RHIR 검사
+## 9.4.10. ROKHIR 검사
 
-`rokc rhir-text <file>` 은 RHIR 의 버전, producer, meta 와 interface 파일들의 경로와 텍스트를 출력합니다 ([9.9.2](909-debug-tools.md#992-rhir-검사)). `rokc inspect` ([9.9.14](909-debug-tools.md#9914-패키지-검사)) 는 archive 와 함께 요약을 보여 줍니다.
+`rokc rokhir-text <file>` 은 ROKHIR 의 버전, producer, meta 와 interface 파일들의 경로와 텍스트를 출력합니다 ([9.9.2](909-debug-tools.md#992-rokhir-검사)). `rokc inspect` ([9.9.14](909-debug-tools.md#9914-패키지-검사)) 는 archive 와 함께 요약을 보여 줍니다.
 
 ## 9.4.11. 안정성
 
-RHIR 은 같은 `rokc` 가 만든 것만 읽습니다 (9.4.9). 포맷이 바뀌면 `version` 을 올리며, 버전이 다르면 다시 빌드해야 합니다. [개요](../008-abi/README.md) 의 안정성 정책을 적용합니다.
+ROKHIR 은 같은 `rokc` 가 만든 것만 읽습니다 (9.4.9). 포맷이 바뀌면 `version` 을 올리며, 버전이 다르면 다시 빌드해야 합니다. [개요](../008-abi/README.md) 의 안정성 정책을 적용합니다.
 
-표준 라이브러리는 RHIR 로 배포하지 않습니다 ([9.3.6](903-package-archive.md#936-표준-라이브러리)).
+표준 라이브러리는 ROKHIR 로 배포하지 않습니다 ([9.3.6](903-package-archive.md#936-표준-라이브러리)).

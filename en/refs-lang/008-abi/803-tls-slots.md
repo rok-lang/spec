@@ -20,6 +20,7 @@ TLS slots are not one block; each slot is a separate `thread_local` global expor
 | `rok_tls_worker_id`         | u64  | Worker id                               |
 | `rok_tls_task_worker`       | ptr  | This thread's executor worker (GC object, 0 if none) |
 | `rok_tls_stack_guard`       | [usize; 2] | `[lo, hi)` — a fault in this range is a stack overflow of this thread (`[0, 0)` means unknown, [8.5.7](805-extern-symbols.md#stack-overflow)) |
+| `rok_tls_held_locks`       | ptr  | Record of the locks this thread holds (null: none yet); in a session host, locks a thread that is gone held while blocked are released |
 
 The **ABI contract** is the symbol name, type and meaning in the table above. The placement and offsets of slots relative to each other are determined by the linker and LLVM's TLS model and are not part of the ABI.
 

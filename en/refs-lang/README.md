@@ -21,7 +21,7 @@ The rok specification consists of ten chapters, numbered 0 through 9. The chapte
 | 6 | [Meta-system](006-meta-system/README.md)                      | Attributes, lang/literal/keyword magic, meta blocks, reflection             |
 | 7 | [Runtime model](007-runtime/README.md)                        | Object layout, GC, scheduler, coroutines, safepoints                        |
 | 8 | [Runtime ABI / MLIR lowering](008-abi/README.md)              | Headers, scan tables, TLS, calling convention, MLIR dialects                |
-| 9 | [Execution / tools](009-tools/README.md)                      | rokc CLI, AOT pipeline, .a packages, RHIR, JIT, Jupyter                     |
+| 9 | [Execution / tools](009-tools/README.md)                      | rokc CLI, AOT pipeline, .a packages, ROKHIR, JIT, Jupyter                     |
 
 Chapter 0 collects the build model, platform assumptions and notation that every later chapter presupposes; reading it once means the conventions repeated in the body need not be tracked down again. Chapter 1, lexical structure, comes next for a simple reason: types and expressions can take form only once the shape of tokens is defined. Chapters 2 (types), 3 (expressions) and 4 (functions) then introduce, in turn, the core structures needed to create and manipulate values inside a single module.
 

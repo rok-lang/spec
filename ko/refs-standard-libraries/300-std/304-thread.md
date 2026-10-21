@@ -123,11 +123,11 @@ try thread::spawn(|| {
 
 플랫폼별 지원 현황은 다음과 같이 정리됩니다.
 
-| 항목            | linux/macos/windows   | wasm32-wasi               | wasm32-wasi-threads |
+| 항목            | linux/macos/windows   | wasm32-wasi / 브라우저    | wasm32-wasi-threads |
 |-----------------|-----------------------|---------------------------|---------------------|
-| `spawn`         | ✓                     | `Unsupported` 를 throw    | ✓ (wasi-threads)    |
-| `Builder`       | ✓                     | `Unsupported` 를 throw    | partial             |
-| `local`         | ✓                     | ✓ (스레드 하나)           | partial             |
-| `park`/`unpark` | futex / WaitOnAddress | ✗                         | partial             |
+| `spawn`         | ✓                     | `Unsupported` 를 throw    | ✓                   |
+| `Builder`       | ✓                     | `Unsupported` 를 throw    | ✓                   |
+| `local`         | ✓                     | ✓ (스레드 하나)           | ✓                   |
+| `park`/`unpark` | futex / WaitOnAddress | ✓                         | ✓                   |
 
-데스크톱 계열 OS 에서는 일관된 동작을 보장합니다. `wasm32-wasi` 에는 스레드가 없고, `wasm32-wasi-threads` 의 나머지는 thread proposal 의 진전에 맞춰 채워질 영역입니다.
+`wasm32-wasi` 와 브라우저에는 스레드가 하나이며 `thread::current().name()` 은 `none` 입니다. `wasm32-wasi-threads` 에서 `rok_cpu_count()` 와 사용 가능한 병렬도는 4 입니다. WASI 는 코어 수를 알려 줄 수 없기 때문입니다.

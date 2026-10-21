@@ -24,7 +24,7 @@ rokc <subcommand> [options] [args]
 cli_invocation  ::= "rokc" subcommand option* arg*
 subcommand      ::= "build" | "emit" | "run" | "test" | "bench" | "check"
                   | "fmt" | "lint" | "doc" | "repl" | "jupyter" | "lsp"
-                  | "clean" | "profdata" | "demangle" | "rhir-text" | "inspect" | "version" | "help"
+                  | "clean" | "profdata" | "demangle" | "rokhir-text" | "inspect" | "version" | "help"
 option          ::= "--" identifier ("=" value)?
                   | "-" letter
 ```
@@ -37,7 +37,7 @@ option          ::= "--" identifier ("=" value)?
 | 패키지          | `clean`                                               |
 | 도구            | `fmt`, `lint`, `doc`, `lsp`, `profdata`                           |
 | 인터랙티브      | `repl`, `jupyter`                                     |
-| 디버그 / 진단   | `demangle`, `rhir-text`, `inspect`                    |
+| 디버그 / 진단   | `demangle`, `rokhir-text`, `inspect`                    |
 | 그 밖           | `version`, `help`                                     |
 
 ### 패키지 지정 (`path`)
@@ -64,14 +64,14 @@ option          ::= "--" identifier ("=" value)?
 rokc build [path]
 ```
 
-`[path]` 는 위의 패키지 지정 규칙을 따릅니다. 산출물은 [9.2.15](902-aot-pipeline.md#9215-산출물) 의 profile 별 `target/` 에 놓입니다. 실행 패키지는 `target/<profile>/<name>`, 라이브러리 패키지는 `target/<profile>/lib<name>.a` (와 `<name>.o`) 와 인터페이스 `target/<profile>/<name>.rhir` ([9.4](904-rhir-bytecode.md)) 입니다. profile 은 `-O2` / `-O3` / `-Os` (`--release` 포함) 이면 `release`, 그 밖에는 `debug` 이며, `--target=<triple>` 이면 `target/<triple>/<profile>/` 입니다. `--target-dir=<dir>` 나 `ROKC_TARGET_DIR` 이 있으면 `target/` 대신 그 디렉토리를 씁니다.
+`[path]` 는 위의 패키지 지정 규칙을 따릅니다. 산출물은 [9.2.15](902-aot-pipeline.md#9215-산출물) 의 profile 별 `target/` 에 놓입니다. 실행 패키지는 `target/<profile>/<name>`, 라이브러리 패키지는 `target/<profile>/lib<name>.a` (와 `<name>.o`) 와 인터페이스 `target/<profile>/<name>.rokhir` ([9.4](904-rokhir-bytecode.md)) 입니다. profile 은 `-O2` / `-O3` / `-Os` (`--release` 포함) 이면 `release`, 그 밖에는 `debug` 이며, `--target=<triple>` 이면 `target/<triple>/<profile>/` 입니다. `--target-dir=<dir>` 나 `ROKC_TARGET_DIR` 이 있으면 `target/` 대신 그 디렉토리를 씁니다.
 
 옵션은 다음과 같습니다.
 
 - `--release` 는 최적화 빌드 (`-O2` 와 같음) 를 `release` profile 로 수행하며, 기본값은 `debug` profile 의 디버그 빌드 (`-O0`) 입니다.
 - `--target-dir=<dir>` 는 `target/` 의 위치를 바꿉니다 (`ROKC_TARGET_DIR` 과 같음).
-- `--extern <name>=<dir | lib.rok | <name>.rhir | lib<name>.a>` 는 의존 패키지 하나를 최상위 경로 `name` 에 mount 합니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 소스 (`dir` / `lib.rok`) 는 같은 빌드에서 함께 컴파일하고, 미리 빌드한 패키지 (`.rhir` / `.a`, 하나를 주면 옆의 짝을 찾음) 는 RHIR 을 읽고 archive 를 링크합니다. 여러 번 쓸 수 있고, 보통 `rok` 가 채웁니다. `name` 은 식별자이며, 패키지 이름의 `-` 를 `_` 로 바꾼 것입니다 ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)).
-- `--name <n>` 은 패키지 이름 ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock) 의 이름 규칙) 을 정합니다. 산출물은 `lib<n>.a` / `<n>.rhir` 이고 mount 이름은 `-` 를 `_` 로 바꾼 것입니다. 기본은 디렉토리 이름입니다. `--extern a-b=..` 도 `a_b` 로 묶습니다.
+- `--extern <name>=<dir | lib.rok | <name>.rokhir | lib<name>.a>` 는 의존 패키지 하나를 최상위 경로 `name` 에 mount 합니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 소스 (`dir` / `lib.rok`) 는 같은 빌드에서 함께 컴파일하고, 미리 빌드한 패키지 (`.rokhir` / `.a`, 하나를 주면 옆의 짝을 찾음) 는 ROKHIR 을 읽고 archive 를 링크합니다. 여러 번 쓸 수 있고, 보통 `rok` 가 채웁니다. `name` 은 식별자이며, 패키지 이름의 `-` 를 `_` 로 바꾼 것입니다 ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)).
+- `--name <n>` 은 패키지 이름 ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock) 의 이름 규칙) 을 정합니다. 산출물은 `lib<n>.a` / `<n>.rokhir` 이고 mount 이름은 `-` 를 `_` 로 바꾼 것입니다. 기본은 디렉토리 이름입니다. `--extern a-b=..` 도 `a_b` 로 묶습니다.
 - `--bootstrap <file>` 은 미리 읽을 표준 라이브러리 루트 (여러 번 가능), `--rokr <lib>` 는 링크할 런타임입니다. 기본값은 sysroot 의 `lib/rok/{core,std,bare}/lib.rok` 와 `lib/librokr.a` 입니다 ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)). 찾지 못하면 찾아본 경로를 나열하는 에러입니다.
 - `-O0` / `-O1` / `-O2` / `-O3` / `-Os` 는 최적화 단계를 명시적으로 지정합니다. `-O0` 은 native backend 를, 나머지는 MLIR → LLVM backend 를 씁니다 ([9.2.10](902-aot-pipeline.md#9210-backend-선택)).
 - `--target=<triple>` 은 타깃 플랫폼을 지정하며, [플랫폼 타깃](../000-meta/006-platform-targets.md) 의 14 개 Tier 1 중 하나를 사용합니다. 어느 host 에서나 어느 대상이든 빌드할 수 있습니다 ([0.2.4](../000-meta/002-pipeline.md#024-backend)).
@@ -98,7 +98,7 @@ rokc build [path]
 rokc profdata merge [-o <file>] <file | dir>...
 ```
 
-raw (`.profraw`) 와 indexed (`.profdata`) profile 을 `-C profile-use` 용 indexed profile 하나 (기본 `default.profdata`) 로 합칩니다. 디렉토리는 그 안의 그런 파일들을 뜻하며, 빈 raw profile 은 건너뜁니다. 프로세스 안에서 실행합니다. 병합 경고 (counter overflow, counter 불일치) 는 보고하며, 병합은 그래도 결과를 씁니다.
+raw (`.profraw`), indexed (`.profdata`), text (`.proftext`, LLVM 의 text profile 형식) profile 을 `-C profile-use` 용 indexed profile 하나 (기본 `default.profdata`) 로 합칩니다. 디렉토리는 그 안의 그런 파일들을 뜻하며, 빈 raw profile 은 건너뜁니다. 프로세스 안에서 실행합니다. 병합 경고 (counter overflow, counter 불일치) 는 보고하며, 병합은 그래도 결과를 씁니다.
 
 ### `rokc profdata show`: profile 요약
 
@@ -303,25 +303,25 @@ rokc demangle <symbol>...
 
 심볼마다 [9.5.4](905-symbol-mangling.md) 형식의 블록을 빈 줄로 나눠 출력합니다 ([9.9.3](909-debug-tools.md#993-심볼-demangle)). rok 심볼이 아닌 인자가 있으면 종료 코드는 `1` 입니다.
 
-### `rokc rhir-text`: [RHIR](../000-meta/007-glossary.md#rhir-rok-hir-bytecode) 텍스트 출력
+### `rokc rokhir-text`: [ROKHIR](../000-meta/007-glossary.md#rokhir-rok-hir-bytecode) 텍스트 출력
 
-`rokc rhir-text` 는 미리 빌드한 라이브러리의 RHIR 을 텍스트로 출력합니다.
+`rokc rokhir-text` 는 미리 빌드한 라이브러리의 ROKHIR 을 텍스트로 출력합니다.
 
 ```
-rokc rhir-text path/to/foo.rhir      # 또는 libfoo.a — 옆의 foo.rhir 를 읽음
+rokc rokhir-text path/to/foo.rokhir      # 또는 libfoo.a — 옆의 foo.rokhir 를 읽음
 ```
 
-header 필드, producer, meta 와 interface 파일들을 출력하며, 포맷은 [RHIR 포맷](904-rhir-bytecode.md) 에 기술됩니다.
+header 필드, producer, meta 와 interface 파일들을 출력하며, 포맷은 [ROKHIR 포맷](904-rokhir-bytecode.md) 에 기술됩니다.
 
 ### `rokc inspect`: 패키지 검사
 
 `rokc inspect` 는 archive 의 내용을 한눈에 살펴볼 수 있도록 합니다.
 
 ```
-rokc inspect path/to/libfoo.a        # 또는 foo.rhir
+rokc inspect path/to/libfoo.a        # 또는 foo.rokhir
 ```
 
-패키지 이름과 해시, rokc 버전, RHIR 버전, GC type id 구간, exports, [generic](../000-meta/007-glossary.md#generic--제네릭) items, archive 멤버와 크기를 한 번에 표시합니다 ([9.9.14](909-debug-tools.md#9914-패키지-검사)).
+패키지 이름과 해시, rokc 버전, ROKHIR 버전, GC type id 구간, exports, [generic](../000-meta/007-glossary.md#generic--제네릭) items, archive 멤버와 크기를 한 번에 표시합니다 ([9.9.14](909-debug-tools.md#9914-패키지-검사)).
 
 ## 9.1.4. 보조 서브명령
 

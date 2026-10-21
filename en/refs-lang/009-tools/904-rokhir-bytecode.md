@@ -1,24 +1,24 @@
-# 9.4. RHIR format
+# 9.4. ROKHIR format
 
-This section defines the interface file `<name>.rhir` of a prebuilt library package. An [RHIR](../000-meta/007-glossary.md#rhir-rok-hir-bytecode) file sits next to that package's `lib<name>.a` ([Package archive](903-package-archive.md)) and is not a member of the archive.
+This section defines the interface file `<name>.rokhir` of a prebuilt library package. An [ROKHIR](../000-meta/007-glossary.md#rokhir-rok-hir-bytecode) file sits next to that package's `lib<name>.a` ([Package archive](903-package-archive.md)) and is not a member of the archive.
 
 ## 9.4.1. Motivation
 
 Monomorphization in the [AOT build pipeline](902-aot-pipeline.md) [specializes](../000-meta/007-glossary.md#specialize) by the concrete types at the call site. So when another package calls a [generic](../000-meta/007-glossary.md#generic) `fn` of a package, specialization must happen at that call site. The object code of [concrete fns](../000-meta/007-glossary.md#concrete-fn--generic-fn) alone is not enough, so a separate interface is provided for downstream to read.
 
-The input of monomorphization is the AST. The RHIR body is therefore **stripped package source**, which the downstream parser reads.
+The input of monomorphization is the AST. The ROKHIR body is therefore **stripped package source**, which the downstream parser reads.
 
 ## 9.4.2. No external libraries
 
-Under the zero-dependency principle no serialization library is used either; RHIR is designed from scratch.
+Under the zero-dependency principle no serialization library is used either; ROKHIR is designed from scratch.
 
 ## 9.4.3. Overall layout
 
 ```
-RHIR file (little-endian):
+ROKHIR file (little-endian):
 +-----------------------------------+
 |  Header                           |  (16 bytes fixed)
-|    magic       "RHIR"  (4 bytes)  |
+|    magic       "ROKH"    (4 bytes)  |
 |    version     u32  (= 1)         |
 |    flags       u32                |
 |    body_offset u32                |
@@ -44,7 +44,7 @@ RHIR file (little-endian):
 
 | Field         | Size | Meaning                                                      |
 |---------------|------|--------------------------------------------------------------|
-| `magic`       | 4    | `"RHIR"`                                                     |
+| `magic`       | 4    | `"ROKH"`                                                       |
 | `version`     | u32  | Format version (`1`). Bumped when the layout or body content changes |
 | `flags`       | u32  | Reserved (0)                                                 |
 | `body_offset` | u32  | Start offset of the body                                     |
@@ -92,20 +92,20 @@ A prebuilt library cannot see the whole program at once, so packages are reconci
 
 ## 9.4.9. Reading and rejection
 
-`--extern name=<name>.rhir` or `--extern name=lib<name>.a` each locate the sibling file ([9.2.3](902-aot-pipeline.md#923-dependency-resolution)). Downstream parses the body as a source overlay to obtain declarations, declares stripped functions as prebuilt symbols, monomorphizes generics in place, and then links the archive.
+`--extern name=<name>.rokhir` or `--extern name=lib<name>.a` each locate the sibling file ([9.2.3](902-aot-pipeline.md#923-dependency-resolution)). Downstream parses the body as a source overlay to obtain declarations, declares stripped functions as prebuilt symbols, monomorphizes generics in place, and then links the archive.
 
-If any of the following differs, the RHIR is rejected with a "rebuild" error.
+If any of the following differs, the ROKHIR is rejected with a "rebuild" error.
 
 - `version`
-- producer (an RHIR made by a different `rokc`)
-- name (the `--extern` name versus the RHIR's mount name)
+- producer (an ROKHIR made by a different `rokc`)
+- name (the `--extern` name versus the ROKHIR's mount name)
 
-## 9.4.10. RHIR inspection
+## 9.4.10. ROKHIR inspection
 
-`rokc rhir-text <file>` prints the RHIR's version, producer, meta, and the paths and text of the interface files ([9.9.2](909-debug-tools.md#992-rhir-inspection)). `rokc inspect` ([9.9.14](909-debug-tools.md#9914-package-inspection)) shows a summary together with the archive.
+`rokc rokhir-text <file>` prints the ROKHIR's version, producer, meta, and the paths and text of the interface files ([9.9.2](909-debug-tools.md#992-rokhir-inspection)). `rokc inspect` ([9.9.14](909-debug-tools.md#9914-package-inspection)) shows a summary together with the archive.
 
 ## 9.4.11. Stability
 
-Only RHIR made by the same `rokc` is read (9.4.9). When the format changes, `version` is bumped, and a different version requires a rebuild. The stability policy of the [Overview](../008-abi/README.md) applies.
+Only ROKHIR made by the same `rokc` is read (9.4.9). When the format changes, `version` is bumped, and a different version requires a rebuild. The stability policy of the [Overview](../008-abi/README.md) applies.
 
-The standard library is not distributed as RHIR ([9.3.6](903-package-archive.md#936-standard-library)).
+The standard library is not distributed as ROKHIR ([9.3.6](903-package-archive.md#936-standard-library)).

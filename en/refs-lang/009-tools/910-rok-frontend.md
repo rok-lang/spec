@@ -10,7 +10,7 @@ A package without dependencies builds by file conventions alone, without a manif
 |-------------------------------------------------------------------|-----------------------------------------|
 | `new`, `init`                                                     | Create a package (9.10.2)               |
 | `add`, `remove`, `update`, `deps`                                 | Dependencies (9.10.4)                   |
-| `search`, `publish`, `yank`                                       | Stones (9.10.4a)                        |
+| `search`, `publish`, `yank`, `login`, `logout`                    | Stones (9.10.4a)                        |
 | `env`                                                             | Environments (9.10.5)                   |
 | `toolchain`                                                       | Toolchain (9.10.6)                      |
 | `build`, `check`, `run`, `test`, `bench`, `emit`                  | Delegated to `rokc` with dependencies attached |
@@ -47,7 +47,7 @@ The global options of `rok` are:
 | `--cwd <dir>`    | Change directory before running                                   |
 | `-q`, `--quiet`  | Reduce output                                                     |
 
-Environment variables are `ROK_HOME` (default `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6) and `ROK_REGISTRY` (9.10.4a).
+Environment variables are `ROK_HOME` (default `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6), `ROK_REGISTRY` and `ROK_REGISTRY_TOKEN` (9.10.4a).
 
 ## 9.10.2. `rok new` / `rok init`: package creation
 
@@ -236,17 +236,23 @@ Stone { name: "json", vers: "1.4.2", deps: [{ name: "util", req: "^0.3", kind: "
 - The lock is checked against the index. If the `rev` of a pinned version has changed, it is a "run `rok update`" error.
 - `--offline` uses the cached index and respects `--locked`.
 
-### `rok search` / `publish` / `yank`
+### `rok search` / `publish` / `yank` / `login` / `logout`
 
 ```
 rok search [--native] <query>
+rok login [<token>]
+rok logout
 rok publish [--index <checkout>] [--commit]
-rok yank [--native] --vers <version> [--undo] --index <checkout> [name]   # name required with --native
+rok yank [--native] --vers <version> [--undo] [--index <checkout>] [name]   # name required with --native
 ```
 
 - `search` searches the index by name. Index lookups accept either spelling, `-` or `_`.
-- `publish` is a dry run by default. It requires a clean work tree, the package at the repository root, and a `lib.rok`. Normal path / git dependencies are rejected, and path / git dev dependencies are dropped. It checks for conflicts with the same version and with names equal under `-` / `_` and case folding. A name already owned under a different spelling is rejected. With `--commit`, it creates a commit "Publish <name> <vers>" in the index checkout; it does not push.
-- `yank` sets (or with `--undo` clears) `yanked` for that version in the index checkout and commits.
+- `publish` is a dry run by default. It requires a clean work tree, the package at the repository root, and a `lib.rok`. Normal path / git dependencies are rejected, and path / git dev dependencies are dropped. It checks for conflicts with the same version and with names equal under `-` / `_` and case folding. A name already owned under a different spelling is rejected. A dry run without `--index` only prints the entry; with `--index` it is also checked against that checkout.
+- With `--commit`, `publish` creates a commit "Publish <name> <vers>": with `--index`, in that checkout (not pushed); without it, in a fresh clone of the configured index ("Which index"), which is then pushed to the index.
+- `yank` sets (or with `--undo` clears) `yanked` for that version and commits: in the checkout given by `--index`, else in a fresh clone of the configured index, pushed.
+- Pushing to the index needs a token; an `--index` checkout needs none. The token is `ROK_REGISTRY_TOKEN` if set and non-empty, else the one `rok login` saved. Without either, it is an error "run `rok login` first".
+- `rok login` takes a GitHub token (read from standard input, not echoed, when omitted). Being allowed to publish means having write access to the index repository: `login` asks the index's git receive-pack with the token (a dry-run push; nothing is sent) and refuses a token that cannot push ("publishing is limited to the index's maintainers"). It then saves `Credentials { token: ".." }` in `$ROK_HOME/credentials.rokon` (mode 0600 on Unix). `rok logout` removes that file.
+- The token reaches git only through its environment (as an HTTPS `Authorization` header, with credential helpers disabled): never on a command line, in a url or in the clone's git config, and never printed.
 
 ## 9.10.4b. Native packages
 
@@ -281,10 +287,10 @@ rok add --native <name>[@<req>]
 rok remove --native <name>
 rok search --native <query>
 rok publish --native <file> [--index <dir>] [--commit]
-rok yank --native --vers <version> [--undo] --index <dir> <name>
+rok yank --native --vers <version> [--undo] [--index <dir>] <name>
 ```
 
-`publish --native` fetches and checks every target, and requires absolute urls, a license file, and dependencies from an index only.
+`publish --native` fetches and checks every target, and requires absolute urls, a license file, and dependencies from an index only. `--commit` and `yank --native` follow the stone rules: an `--index` checkout, else the configured index, pushed with the token.
 
 - On ELF targets a runtime library's soname must equal its file name. A `dylib` link for a `-musl` target is an error.
 - `repl` / `jupyter` load native packages: shared libraries through the system loader, static archives linked into the session. `check` / `lint` / `doc` link nothing.

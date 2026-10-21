@@ -12,7 +12,7 @@ AOT 는 소스를 미리 컴파일하여 정적 산출물(`.a` 또는 실행 파
 
 ## archive
 
-archive 는 컴파일된 패키지의 산출물로서, 표준 ar 형식의 `.a` 파일입니다. concrete 코드의 obj 를 담으며, 라이브러리의 인터페이스 (RHIR) 는 그 옆의 `<name>.rhir` 파일입니다.
+archive 는 컴파일된 패키지의 산출물로서, 표준 ar 형식의 `.a` 파일입니다. concrete 코드의 obj 를 담으며, 라이브러리의 인터페이스 (ROKHIR) 는 그 옆의 `<name>.rokhir` 파일입니다.
 
 ## block (블록)
 
@@ -70,9 +70,9 @@ LOS 는 GC 의 큰 객체 전용 공간입니다. 임계(8 KB / 2 KB) 이상의 
 
 단형화는 generic 함수를 호출 지점의 구체 타입별로 별도로 컴파일하는 과정을 뜻합니다. 간접 호출 비용이 0 이라는 이점을 얻는 대신, 컴파일 시간과 바이너리 크기를 비용으로 치릅니다.
 
-## RHIR (rok HIR bytecode)
+## ROKHIR (rok HIR bytecode)
 
-RHIR 은 미리 빌드한 라이브러리 패키지의 인터페이스 파일 (`<name>.rhir`) 입니다. archive 옆에 놓이며, 다운스트림 패키지가 선언을 읽고 generic fn 을 specialize 할 수 있게 합니다. body 는 구체 함수 본문을 잘라 낸 패키지 소스입니다 ([9.4](../009-tools/904-rhir-bytecode.md)).
+ROKHIR 은 미리 빌드한 라이브러리 패키지의 인터페이스 파일 (`<name>.rokhir`) 입니다. archive 옆에 놓이며, 다운스트림 패키지가 선언을 읽고 generic fn 을 specialize 할 수 있게 합니다. body 는 구체 함수 본문을 잘라 낸 패키지 소스입니다 ([9.4](../009-tools/904-rokhir-bytecode.md)).
 
 ## niche optimization
 

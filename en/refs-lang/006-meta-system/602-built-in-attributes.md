@@ -89,6 +89,19 @@ extern "C" { ... }
 | `"libname"`                 | Plain library name          |
 | `name = "..."`              | Library name (key-value)    |
 | `kind = "static" / "dylib"` | Link kind                   |
+| `wasm_import_module = "m"` | wasm32: the block's functions are imported from core module `m`; ignored elsewhere |
+
+### `#[link_name = "sym"]`
+
+`#[link_name = "sym"]` on an extern function gives the symbol it links to, or its import name inside a `wasm_import_module` block.
+
+```rok
+#[link(wasm_import_module = "env")]
+extern "C" {
+    #[link_name = "log_line"]
+    fn host_log(ptr: ConstPtr<u8>, len: usize);
+}
+```
 
 ## 6.2.4. `#[inline]` inlining hints
 
@@ -120,9 +133,9 @@ fn test_addition() {
 }
 ```
 
-`assert_eq` is in [stdlib 2.14.5](../../refs-standard-libraries/200-core/214-error.md#assert--assert_eq--assert_ne). `#[test]` on a function marks it as a test function. The test runner (`rokc test`, etc.) collects and runs such functions automatically. In ordinary builds they are excluded, as if `#[cfg(test)]` were also attached.
+`assert_eq` is in [stdlib 2.14.5](../../refs-standard-libraries/200-core/214-error.md#assert--assert_eq--assert_ne). `#[test]` on a function marks it as a test function. The test runner (`rokc test`, etc.) collects and runs such functions automatically. In ordinary builds they are excluded, as if `#[cfg(test)]` were also attached. A test function is run whatever its own visibility and that of its enclosing modules; `#[test]` does not change visibility for other code.
 
-`#[bench]` marks a benchmark function and, like `#[test]`, implies `#[cfg(test)]`. `rokc bench` collects and runs them ([9.1.2](../009-tools/901-rokc-cli.md#rokc-bench-benchmarks)).
+`#[bench]` marks a benchmark function and, like `#[test]`, implies `#[cfg(test)]`. `rokc bench` collects and runs them ([9.1.2](../009-tools/901-rokc-cli.md#rokc-bench-benchmarks)). A benchmark function is run whatever its own visibility and that of its enclosing modules; `#[bench]` does not change visibility for other code.
 
 ## 6.2.6. `#[cold]` rarely called functions
 

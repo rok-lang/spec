@@ -31,6 +31,9 @@ Three WebAssembly targets are supported, covering browser-based and server-side 
 | `wasm32-wasi`            | Server-side WASM: a WASI preview 2 component. `wasi:sockets` networking; no threads (`thread::spawn` throws `Unsupported`) |
 | `wasm32-wasi-threads`    | Server-side WASM with threads: a WASI preview 1 core module using wasi-threads (shared memory). Networking only on listeners the host passes in; connect / bind / DNS throw `Unsupported` |
 
+> [!NOTE]
+> wasmtime removed wasi-threads after v46, so `wasm32-wasi-threads` will depend on WASI shared-everything-threads in the future.
+
 ### 32-bit
 
 For embedded and legacy environments still in active use, the following three 32-bit targets are officially supported.

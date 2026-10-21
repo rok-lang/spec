@@ -143,10 +143,10 @@ fn load_config() throws (ConfigError) -> Config {
 
 | 모듈                | linux/macos/windows | wasm32-wasi   | wasm32-wasi-threads | wasm32 (browser) |
 |---------------------|---------------------|---------------|---------------------|------------------|
-| `rok::std::fs`      | ✓                   | ✓ (cap-based) | ✓ (cap-based)       | ✗ (no FS API)    |
+| `rok::std::fs`      | ✓                   | ✓ (cap-based) | ✓ (cap-based)       | ✗ (every call `Unsupported`) |
 | `rok::std::net`     | ✓ (+ TLS 1.3)       | ✓ (`wasi:sockets`) | host 가 넘긴 listener 만 | ✗ (use `fetch`) |
 | `rok::std::time`    | ✓                   | ✓             | ✓                   | ✓ (Date.now)     |
-| `rok::std::thread`  | ✓                   | ✗ (no threads) | ✓ (wasi-threads)   | ✗ (no threads)   |
+| `rok::std::thread`  | ✓                   | one thread (`spawn` `Unsupported`) | ✓ (wasi-threads) | one thread (`spawn` `Unsupported`) |
 | `rok::std::io`      | ✓                   | ✓             | ✓                   | console / stdin 은 EOF |
 | `rok::std::env`     | ✓                   | ✓             | ✓                   | ✗                |
 | `rok::std::process` | ✓                   | ✗             | ✗                   | ✗                |

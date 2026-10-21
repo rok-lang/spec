@@ -94,7 +94,7 @@ There are two forms of doc comments.
 - `/// text` is the attribute `#[doc = "text"]`, and `//! text` is `#![doc = "text"]` ([6.2.8](../006-meta-system/602-built-in-attributes.md#628-doc---doc-comment-form)).
 - A line starting with `////` is an ordinary comment.
 - A doc comment in a position where an attribute cannot appear (inside an expression, between statements, etc.) is ignored.
-- The RHIR interface text of a prebuilt package ([9.4](../009-tools/904-rhir-bytecode.md)) preserves doc comments.
+- The ROKHIR interface text of a prebuilt package ([9.4](../009-tools/904-rokhir-bytecode.md)) preserves doc comments.
 
 Block-form doc comments (`/** ... */`, `/*! ... */`) are not adopted; the single-line form is used uniformly for tool friendliness and consistency.
 

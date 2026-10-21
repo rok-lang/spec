@@ -184,3 +184,6 @@ Windows 에서는 콘솔 이벤트가 신호 번호로 대응됩니다: Ctrl-C �
 | `pidfd`          | linux 5.3+ | ✗     | ✗               | ✗    |
 | `kill_on_drop`   | ✓          | ✓     | ✓               | ✗    |
 | signal handler   | ✓          | ✓     | (limited)       | ✗    |
+| `process::id()`  | ✓          | ✓     | ✓               | `0` (wasm32) |
+
+wasm32 타깃에서 ✗ 로 표시한 항목은 런타임에 `IoErrorKind::Unsupported` 로 실패합니다.

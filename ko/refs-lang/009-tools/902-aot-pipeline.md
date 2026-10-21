@@ -8,7 +8,7 @@
 
 ```
 1. package discovery       (find package root)
-2. dependency resolve      (resolve deps to sources or prebuilt .rhir + .a)
+2. dependency resolve      (resolve deps to sources or prebuilt .rokhir + .a)
 3. source parse            (.rok → AST)
 4. name / visibility       (resolve)
 5. type check              (type check)
@@ -51,29 +51,29 @@ rokc build --extern util=../util --extern parser=target/debug/deps/libparser.a
 | 경로                              | 의존 패키지                                                                  |
 |-----------------------------------|------------------------------------------------------------------------------|
 | `<dir>` / `<dir>/lib.rok`         | 소스. 그 `lib.rok` 를 같은 빌드에서 함께 컴파일                               |
-| `<name>.rhir` / `lib<name>.a`     | 미리 빌드한 패키지. 둘 중 하나를 주면 같은 디렉토리의 짝 파일을 찾음. RHIR ([9.4](904-rhir-bytecode.md)) 을 읽어 선언과 제네릭을 얻고 archive 를 링크 |
+| `<name>.rokhir` / `lib<name>.a`     | 미리 빌드한 패키지. 둘 중 하나를 주면 같은 디렉토리의 짝 파일을 찾음. ROKHIR ([9.4](904-rokhir-bytecode.md)) 을 읽어 선언과 제네릭을 얻고 archive 를 링크 |
 
 - 사용자 코드는 `use name::..` 로 그 패키지의 항목을 씁니다.
 - 의존 패키지 안의 `pkg::` 는 그 의존 패키지 자신을 가리킵니다.
 - 의존 패키지는 별개의 패키지입니다. `pub` 항목만 바깥에서 쓸 수 있고, `pub(pkg)` / `pub(sub)` / 비공개 항목은 쓸 수 없습니다 ([5.7.14](../005-modules/507-paths.md#5714-패키지-사이-경로)).
 - 사용자 패키지의 모듈이 의존 패키지와 같은 이름이면 에러입니다.
 
-라이브러리 패키지를 `rokc build` 하면 `lib<name>.a` 와 `<name>.rhir` 를 함께 만듭니다. `--name <n>` 은 패키지 이름 (산출물 이름과 mount 이름) 을 정하며, 기본은 디렉토리 이름입니다.
+라이브러리 패키지를 `rokc build` 하면 `lib<name>.a` 와 `<name>.rokhir` 를 함께 만듭니다. `--name <n>` 은 패키지 이름 (산출물 이름과 mount 이름) 을 정하며, 기본은 디렉토리 이름입니다.
 
 ### 미리 빌드한 의존 패키지
 
-`rokc` 는 소스로 받은 `--extern` 을 주어진 순서대로 **한 번씩** 미리 빌드해 `target/[<triple>/]<profile>/deps/` 에 둡니다. 각 의존 패키지는 앞서 빌드한 의존 패키지를 모두 봅니다. 그 뒤의 컴파일은 소스 대신 이 `lib<name>.a` 와 `<name>.rhir` 를 씁니다.
+`rokc` 는 소스로 받은 `--extern` 을 주어진 순서대로 **한 번씩** 미리 빌드해 `target/[<triple>/]<profile>/deps/` 에 둡니다. 각 의존 패키지는 앞서 빌드한 의존 패키지를 모두 봅니다. 그 뒤의 컴파일은 소스 대신 이 `lib<name>.a` 와 `<name>.rokhir` 를 씁니다.
 
 ```
 target/<profile>/deps/
 ├── lib<name>.a
-├── <name>.rhir
+├── <name>.rokhir
 └── <name>.fp               # fingerprint
 ```
 
 fingerprint 가 같으면 다시 빌드하지 않습니다. fingerprint 에 들어가는 것은 다음입니다.
 
-- `rokc` 의 정체 (RHIR producer 와 같은 값)
+- `rokc` 의 정체 (ROKHIR producer 와 같은 값)
 - 빌드 옵션: `--release` / `-O*`, `-g`, `--target`, `--cfg`, `--bootstrap`
 - 그 의존 패키지의 모든 `.rok` 파일과 `rok.rokon`
 - 그보다 먼저 빌드한 의존 패키지들의 fingerprint
@@ -158,11 +158,11 @@ target/debug/build/foo.o
 
 ## 9.2.13. archive
 
-라이브러리 패키지는 `rokc` 가 직접 쓰는 표준 `ar` archive 에 object 를 넣고, 그 옆에 인터페이스 파일 `foo.rhir` ([RHIR 형식](904-rhir-bytecode.md)) 을 씁니다.
+라이브러리 패키지는 `rokc` 가 직접 쓰는 표준 `ar` archive 에 object 를 넣고, 그 옆에 인터페이스 파일 `foo.rokhir` ([ROKHIR 형식](904-rokhir-bytecode.md)) 을 씁니다.
 
 ```
 target/debug/libfoo.a
-target/debug/foo.rhir
+target/debug/foo.rokhir
 ```
 
 ## 9.2.14. 링킹 (실행 파일의 경우)
@@ -184,10 +184,10 @@ target/
 ├── debug/                      # profile (기본)
 │   ├── foo                     # executable (for main)
 │   ├── libfoo.a                # package archive (for lib)
-│   ├── foo.rhir                # interface (for lib, 9.4)
+│   ├── foo.rokhir                # interface (for lib, 9.4)
 │   ├── foo.o                   # the archive's object (for lib)
 │   ├── build/                  # intermediates and --emit output (foo.mlir, ...)
-│   └── deps/                   # prebuilt dependencies (lib<dep>.a, <dep>.rhir, <dep>.fp)
+│   └── deps/                   # prebuilt dependencies (lib<dep>.a, <dep>.rokhir, <dep>.fp)
 ├── release/                    # --release
 │   └── ...
 ├── aarch64-unknown-linux-gnu/  # cross build (--target=<triple>)
@@ -201,17 +201,18 @@ target/
 | 라이브러리      | `target/<profile>/lib<name>.a` 와 `target/<profile>/<name>.o`     |
 | `--emit=<kind>` | `target/<profile>/build/<name>.<ext>` (`hir` `mir` `mlir` `ll` `s` `o`) |
 | 중간 산출물     | `target/<profile>/build/`                                         |
-| 의존 패키지     | `target/<profile>/deps/` (`lib<dep>.a`, `<dep>.rhir`, `<dep>.fp`, 9.2.3) |
+| 의존 패키지     | `target/<profile>/deps/` (`lib<dep>.a`, `<dep>.rokhir`, `<dep>.fp`, 9.2.3) |
 | 교차 빌드       | `target/<triple>/<profile>/...` (위와 같은 구조)                  |
 | 문서            | `target/doc/`                                                     |
+| 증분            | `target/<profile>/incremental/<name>/` (codegen unit, 9.2.16)     |
 
-이름 `foo` 는 패키지 이름입니다 (9.2.2). `-o` 는 산출물 하나의 경로를, `--target-dir=<dir>` 와 환경 변수 `ROKC_TARGET_DIR` 은 `target/` 자체의 위치를 바꿉니다. `rokc clean` / `rok clean` 은 `target/` 전체를 지웁니다. 라이브러리의 RHIR 은 archive 옆의 `foo.rhir` 입니다 ([9.4](904-rhir-bytecode.md)).
+이름 `foo` 는 패키지 이름입니다 (9.2.2). `-o` 는 산출물 하나의 경로를, `--target-dir=<dir>` 와 환경 변수 `ROKC_TARGET_DIR` 은 `target/` 자체의 위치를 바꿉니다. `rokc clean` / `rok clean` 은 `target/` 전체를 지웁니다. 라이브러리의 ROKHIR 은 archive 옆의 `foo.rokhir` 입니다 ([9.4](904-rokhir-bytecode.md)).
 
 ## 9.2.16. 증분 빌드
 
 증분 빌드는 패키지 단위입니다. `rokc build` / `rokc run` 은 이전 빌드의 fingerprint 와 지금의 것이 같으면 `Fresh` 를 출력하고 빌드를 건너뜁니다. fingerprint 는 다음을 포함합니다.
 
-- 컴파일러의 정체 (RHIR producer 와 같은 값), 빌드 옵션, 진단 형식 (`--message-format`, 색), 입력 / 출력 경로, 설정되어 있으면 `ROK_CC`
+- 컴파일러의 정체 (ROKHIR producer 와 같은 값), 빌드 옵션, 진단 형식 (`--message-format`, 색), 입력 / 출력 경로, 설정되어 있으면 `ROK_CC`
 - 패키지와 의존성에서 읽을 수 있는 모든 `.rok` 파일과 `rok.rokon`
 - 미리 빌드한 의존성의 `.a`, MLIR plugin 파일, `-C profile-use` 파일과 profile 런타임
 - 산출물의 크기와 수정 시각
@@ -219,6 +220,17 @@ target/
 빌드가 낸 경고는 back end 의 것까지 기록해 두며, `Fresh` 인 빌드는 그 경고를 다시 출력합니다.
 
 `--cfg`, `--target`, MLIR plugin, profile 옵션, `-O3` 가 없는 native 빌드는 `lib/rok-cache/` (9.2.19) 의 미리 빌드한 표준 라이브러리를 링크합니다. 폴더는 toolchain, 옵션, 소스의 hash 마다 하나이며, 처음 쓸 때 lock 아래에서 빌드합니다. `-O3` 에서는 표준 라이브러리를 프로그램과 함께 컴파일합니다 (whole-program 최적화). REPL 은 표준 라이브러리를 소스에서 컴파일합니다.
+
+### Codegen unit
+
+패키지 안에서 `Fresh` 가 아닌 빌드는 컴파일한 코드를 codegen unit 단위로 재사용합니다. rokc 는 실행 파일의 코드를 unit 으로 나눕니다: 패키지의 모듈마다 하나, 그 인스턴스를 컴파일하는 라이브러리의 모듈마다 하나 (인스턴스는 타입 인자에 따라 여러 unit 에 나뉠 수 있음), 그리고 프로그램에 한 번만 있는 것 (static, C `main`, GC 타입 등록) 을 위한 unit 하나입니다.
+
+- unit 은 같은 target 디렉토리로의 지난 빌드 이후 그 키가 바뀌었을 때만 컴파일합니다. 아니면 `target/<profile>/incremental/<name>/` 에 둔 결과를 재사용하고, 그 뒤 모두 링크합니다.
+- unit 의 키는 그 함수들의 코드, 다른 unit 에서 쓰는 것의 시그니처와 코드 생성 정보 (함수의 시그니처가 바뀌면 호출자의 unit 을 다시 컴파일), 쓰는 static 과 GC 타입, target, 최적화 수준, 코드 생성 옵션, 컴파일러의 정체를 담습니다.
+- 심볼과 GC type id 는 다른 unit 의 내용에 의존하지 않으므로 ([9.5.7](905-symbol-mangling.md#957-충돌-회피-typehash-의-안정성)), 실행 파일은 깨끗한 빌드가 만드는 것과 같습니다.
+- 최적화 빌드도 unit 사이에서 inline 합니다 (ThinLTO, unit 별 결과도 cache 됨).
+- profile-guided 빌드 (`-C profile-generate`, `-C profile-use`), MLIR plugin 이나 pass 를 쓰는 빌드, 라이브러리 패키지는 통째로 컴파일합니다.
+- `-v` 는 재사용하고 컴파일한 unit 의 수를, `-vv` 는 컴파일한 unit 의 이름을 보고합니다.
 
 ## 9.2.17. 컴파일러와 런타임의 분리
 
