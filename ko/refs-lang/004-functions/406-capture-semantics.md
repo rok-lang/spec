@@ -151,6 +151,14 @@ par::for_each(xs, [ref buf] |x| { buf.push(x) });
 
 대신 reduce 를 쓰거나 (`par::reduce(xs, 0, |a, b| a + b)`), `Mutex` / `RwLock` / `Atomic` / 채널로 공유하거나, 스레드에서 값을 돌려받습니다 (`join()`).
 
+이렇게 공유한 값은 새 소유자의 것입니다: `Mutex::new(buf)` 나 `tx.send(buf)` 뒤에 `buf` 를 쓰면 컴파일 에러입니다 ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--스레드-경계-marker)). lock 을 통해 쓰거나 `buf.clone()` 을 넘깁니다.
+
+```rok
+let m = Mutex::new(buf);
+buf.push(1);
+// ERROR: `buf` was moved into the `Mutex`; use it through the lock: using g = m.lock() { g.get().push(1) }
+```
+
 자세한 병렬·동시성 규칙은 표준 라이브러리 사양이 정의하며, 본 장은 언어 수준의 캡처 메커니즘까지만 다룹니다.
 
 ## 4.6.10. 캡처 변수의 가시 범위

@@ -147,6 +147,8 @@ impl<T> MutexGuard<T> {
 
 가드를 `using` 으로 묶으면 블록을 빠져나갈 때 `drop` 되어 잠금이 해제됩니다. `using` 없이 받은 가드는 자동으로 풀리지 않으므로 반드시 `using` 으로 묶습니다. 가드는 호출, 메서드 호출, `await` 에서 받습니다. 받은 가드는 바인딩 (`let`, 패턴, `using`) 을 초기화하거나, 변수에 대입하거나, 호출자에게 넘기는 (`return`, 함수의 값) 데에만 쓸 수 있습니다. 함수에 넘기거나, 그 위에서 메서드를 부르거나, 필드나 컬렉션에 저장하거나, 버리면 컴파일 에러입니다. `using` 으로 묶은 가드는 함수에 넘길 수 있으며, `using` 없이 묶은 가드는 넘긴다고 해서 해제되지 않습니다. `using` 으로 해제되지 않는 일반 `let` (또는 `if let`) 으로 가드를 묶거나, `lock` 이 돌려준 가드를 버리면 컴파일 에러입니다.
 
+`Mutex::new(value)` 는 `value` 를 넘겨받습니다: 그 뒤에 호출자의 핸들을 쓰면 컴파일 에러이며, guard 의 `using` 블록이 끝난 뒤 `get` 이 돌려준 것이나 `set` 이 준 것을 쓰는 것도 그렇습니다 ([2.13.9](213-marker.md#2139-send--sync--스레드-경계-marker)). `using` 블록 안에서 다루거나 `clone()` 을 남깁니다.
+
 ```rok
 static STATE: Mutex<List<i32>> = Mutex::new([]);
 
@@ -222,6 +224,8 @@ using w = CONFIG.write() {       // 잠시 모든 reader 차단
 ```
 
 `RwLock<T>` 는 `T` 가 `Send + Sync` 일 때만 `Sync` 이므로 ([2.16.5](#send--sync-마커)), 여기서 `Config` 는 `Sync` 여야 합니다.
+
+`Mutex` 와 마찬가지로 `RwLock::new(value)` 는 `value` 를 넘겨받습니다: 그 뒤에 호출자의 핸들을 쓰면 컴파일 에러이며, `using` 블록이 끝난 뒤 guard 의 `get` 이 돌려준 것이나 `set` 이 준 것을 쓰는 것도 그렇습니다 ([2.13.9](213-marker.md#2139-send--sync--스레드-경계-marker)). `using` 블록 안에서 다루거나 `clone()` 을 남깁니다.
 
 `RwLock` 가드에도 같은 규칙이 적용됩니다: `read` / `write` 의 가드를 `using` 이 해제하지 않는 일반 `let` (또는 `if let`) 으로 묶거나 버리면 컴파일 에러입니다.
 

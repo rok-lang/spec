@@ -188,7 +188,7 @@ fn _placeholder() { }
 fn strict_zone() { ... }
 ```
 
-이 속성들은 부착된 항목의 범위 안에서 린터 (`rokc lint`, [9.1.2](../009-tools/901-rokc-cli.md#rokc-lint-린터)) 의 진단 수준을 변경합니다. `allow` 는 진단을 무시하고, `warn` 은 진단을 경고로 발생시키며, `deny` 는 진단을 에러로 발생시킵니다. 내부 형태 `#![allow(..)]` 등은 둘러싼 모듈 (파일 머리에서는 파일 전체) 에 적용됩니다. 인자는 lint 이름이나 그룹 이름입니다. 항목의 `#[allow]` 는 그 변형, 필드, 메서드에도 적용됩니다.
+이 속성들은 부착된 항목의 범위 안에서 lint 진단의 수준을 변경합니다. lint 는 패키지를 컴파일하는 모든 명령에서 돕니다: `rokc build`, `run`, `test`, `bench`, `emit`, `check`, `lint` ([9.1.2](../009-tools/901-rokc-cli.md#rokc-lint-린터)), 그리고 language server (`doc` 은 아님). 빌드하는 패키지만 검사하며 의존 패키지는 검사하지 않습니다. `warn` lint 는 출력되며 빌드를 실패시키지 않고, `deny` lint 는 에러이며 빌드는 종료 코드 1 로 실패합니다. `allow` 는 진단을 무시하고, `warn` 은 진단을 경고로 발생시키며, `deny` 는 진단을 에러로 발생시킵니다. 내부 형태 `#![allow(..)]` 등은 둘러싼 모듈 (파일 머리에서는 파일 전체) 에 적용됩니다. 인자는 lint 이름이나 그룹 이름입니다. 항목의 `#[allow]` 는 그 변형, 필드, 메서드에도 적용됩니다.
 
 수준은 다음 순서로 정해지며, 뒤의 것이 앞의 것을 이깁니다: 각 lint 의 기본 수준 < `rok.rokon` 의 `lints` 필드 (그 `lints_from` 사슬 뒤) ([9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) < CLI 의 `-A` / `-W` / `-D` < 소스의 속성 (가장 안쪽 것이 이김). `lints` 는 CLI 플래그 앞에 붙은 것처럼 다뤄지므로, 뒤에 적은 CLI 플래그가 이를 덮습니다. lint 진단의 코드는 `E503` 입니다.
 
@@ -200,7 +200,9 @@ fn strict_zone() { ... }
 | `unused_imports`         | 모듈이 이름을 쓰지 않는 `use`                                      |
 | `dead_code`              | 아무도 부르지 않는 비 `pub` 함수                                   |
 | `unreachable_code`       | `return` / `break` / `continue` / `throw` / `panic` 뒤의 문장      |
-| `unused_must_use`        | `#[must_use]` 함수의 결과를 버림                                   |
+| `unused_must_use`        | `#[must_use]` 함수의 결과, 또는 `#[must_use]` 타입의 값을 버림 ([6.2.11](#6211-must_use-결과-무시-경고)) |
+| `unused_doc_comments`    | 설명하지 않는 것 (문, match arm, 구조체 리터럴이나 tuple 필드, 식) 에 붙은 문서 주석. 일반 주석은 `//` 를 씀 |
+| `write_to_copy`          | 아무도 나중에 읽지 않는 사본에 필드를 대입함: 값으로 받은 매개변수나 `self`, `for` 바인딩, 원소의 `let` (`xs[i]`, [2.3.8](../002-types/203-struct.md#238-값-의미)) 이며, 이후의 읽기, 루프 반복, 반환, 호출 어느 것도 그 변경을 볼 수 없을 때. 같은 변수에 대한 다른 쓰기에만 쓰이는 읽기는 세지 않으며, 클로저나 코루틴 블록이 언급하는 변수는 검사하지 않음 |
 | `ignored_error`          | `try? f();` 문장이 에러를 조용히 버림. `let _ = try? f();` 는 의도한 best-effort 호출의 표시이며 보고하지 않음 |
 | `shadowed_loop_var`      | `for` 본체의 `let` 이 루프 변수를 다시 묶음                        |
 | `nan_comparison`         | NaN 과의 비교 (늘 거짓, `!=` 는 늘 참)                             |
@@ -216,13 +218,15 @@ fn strict_zone() { ... }
 | `non_camel_case_types`   | 타입, 트레잇, 변형 이름이 UpperCamelCase 가 아님: 첫 글자가 소문자가 아니고, `__` 가 없으며, `_` 는 대소문자가 없는 문자 사이에만 (`V1_0`) |
 | `non_upper_case_globals` | `const` / `static` 이름이 UPPER_SNAKE_CASE 가 아님                 |
 | `confusable_idents`      | 서로 닮은 식별자 ([1.4](../001-lexical/104-identifiers.md))        |
-| `use_after_handoff`      | 다른 소유자가 가져간 뒤 (`Mutex::new`, `send`, `Handoff::new`) 쓴 값, 또는 `using` 블록이 끝난 뒤의 guard 의 값 ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md)) |
+| `missing_f_prefix`       | 범위 안의 지역 변수 `name` 에 대한 `{name}` 을 담은 보통 문자열 리터럴: `f` 접두어가 빠짐 (warn) |
 
 | 그룹                | 포함                                                                                         |
 |---------------------|----------------------------------------------------------------------------------------------|
-| `unused`            | `unused_variables`, `unused_imports`, `dead_code`, `unreachable_code`, `unused_must_use`     |
+| `unused`            | `unused_variables`, `unused_imports`, `dead_code`, `unreachable_code`, `unused_must_use`, `unused_doc_comments` |
 | `nonstandard_style` | `non_snake_case`, `non_camel_case_types`, `non_upper_case_globals`                           |
 | `all`               | 모든 lint                                                                                    |
+
+`write_to_copy` 의 help 는 `ref self` / `ref p`, 인덱스 루프 (`for i in 0..xs.len() { xs[i].f = .. }`), 또는 원소를 다시 써 넣기를 제안합니다.
 
 `rokc lint --list` 는 lint 와 그룹, 기본 수준을 출력합니다.
 
@@ -246,6 +250,8 @@ fn calculate() -> i32 { ... }
 ```
 
 `#[must_use]` 가 붙은 함수의 반환값이 사용되지 않은 채 버려지면 경고가 발생합니다. 결과를 의도적으로 무시하고자 할 때에는 [매개변수](../004-functions/402-parameters.md) 에서 설명한 `_ = ...` 를 명시하면 됩니다.
+
+`#[must_use]` 는 `struct` 나 `enum` 에도 붙일 수 있습니다. 그러면 그 타입의 값을 가진 식 문장이나, 한 번도 읽지 않는 그 타입의 지역 변수가 속성의 메시지와 함께 `unused_must_use` 경고를 냅니다. `async fn` 호출이나 `async` 블록의 값 (await 하지 않은 future 는 실행되지 않음) 과 `thread::JoinHandle` ([stdlib 3.4.2](../../refs-standard-libraries/300-std/304-thread.md#342-api); join 하지 않은 스레드는 프로그램이 끝나기 전에 끝나지 않을 수 있으며, `detach` 는 그것이 스스로 실행됨을 밝힘) 은 `#[must_use]` 입니다.
 
 ## 6.2.12. `#[track_caller]` 호출 위치 전달
 

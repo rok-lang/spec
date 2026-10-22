@@ -43,7 +43,7 @@ rokc rokhir-text path/to/foo.rokhir      # 또는 libfoo.a — 옆의 foo.rokhir
 위 명령은 미리 빌드한 라이브러리의 [ROKHIR](904-rokhir-bytecode.md) 을 사람이 읽을 수 있는 형식으로 출력합니다. 버전, producer, meta 다음에 interface 파일마다 `--- <경로>` 와 그 텍스트 (구체 함수 본문이 `;` 로 잘린 소스) 가 이어집니다.
 
 ```
-rokhir 4
+rokhir 6
 producer: rokc 0.1.0 (1f2a40-17f3a9c2e1b0c4d8)
 package: geom (hash: 3f8a1c2b)
 source: /home/me/geom
@@ -148,6 +148,7 @@ span 은 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_p
 | `E102` | `module`      | 모듈 / 파일                  |
 | `E200` | `type`        | 타입                         |
 | `E201` | `pattern`     | 패턴 / 완전성                |
+| `E202` | `handoff`     | 넘긴 뒤의 사용 ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--스레드-경계-marker)) |
 | `E300` | `meta`        | 메타 블록 / 속성 / 키워드 매직 |
 | `E400` | `lowering`    | HIR / MIR lowering           |
 | `E401` | `codegen`     | 코드 생성                    |
@@ -292,7 +293,7 @@ rokc build --release -C profile-use=app.profdata  #    profile 로 다시 빌드
 |----------------------|----------------------------------------------------------------------|
 | `:type <식>`         | 식의 타입을 출력 (실행하지 않음)                                     |
 | `:reset`             | 세션을 처음 상태로 (라이브러리 경로의 `use` 는 다시 넣음)               |
-| `:add <dep> ..`      | 현재 환경에 의존성을 추가하고 세션에 붙임 (`rok` 경유, [9.10.5](910-rok-frontend.md#9105-환경)) |
+| `:add <dep> ..`      | 의존성을 추가하고 (현재 환경으로 `rok install`, 패키지의 세션에서는 `rok add`) 세션에 붙임 ([9.10.5](910-rok-frontend.md#9105-환경)) |
 | `:help`, `:quit`     | 도움말, 종료                                                         |
 | `ROK_REPL_TIME=1`    | 셀마다 단계별 시간과, 새로 컴파일한 함수 / 앞 셀에서 재사용한 함수 수 ([9.6.4](906-jit-engine.md#964-라이브러리-코드의-재사용)) |
 

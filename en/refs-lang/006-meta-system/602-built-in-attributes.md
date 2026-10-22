@@ -188,7 +188,7 @@ fn _placeholder() { }
 fn strict_zone() { ... }
 ```
 
-These attributes change the diagnostic level of the linter (`rokc lint`, [9.1.2](../009-tools/901-rokc-cli.md#rokc-lint-linter)) within the scope of the item they are attached to. `allow` ignores the diagnostic, `warn` emits it as a warning, and `deny` emits it as an error. Inner forms such as `#![allow(..)]` apply to the enclosing module (the whole file at the file head). The argument is a lint name or a group name. An item's `#[allow]` also covers its variants, fields and methods.
+These attributes change the level of lint diagnostics within the scope of the item they are attached to. Lints run in every command that compiles the package: `rokc build`, `run`, `test`, `bench`, `emit`, `check`, `lint` ([9.1.2](../009-tools/901-rokc-cli.md#rokc-lint-linter)) and the language server (not `doc`). They check the package being built, not its dependencies. A `warn` lint is printed and does not fail a build; a `deny` lint is an error, and the build fails with exit code 1. `allow` ignores the diagnostic, `warn` emits it as a warning, and `deny` emits it as an error. Inner forms such as `#![allow(..)]` apply to the enclosing module (the whole file at the file head). The argument is a lint name or a group name. An item's `#[allow]` also covers its variants, fields and methods.
 
 The level is determined in the following order, later overriding earlier: each lint's default level < the `lints` field of `rok.rokon` (after its `lints_from` chain) ([9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) < CLI `-A` / `-W` / `-D` < attributes in source (the innermost wins). `lints` is treated as if prepended to the CLI flags, so CLI flags written after it override it. The code of lint diagnostics is `E503`.
 
@@ -200,7 +200,9 @@ The default level of every lint is `warn`.
 | `unused_imports`         | A `use` whose name the module never uses                            |
 | `dead_code`              | Non-`pub` functions nobody calls                                    |
 | `unreachable_code`       | Statements after `return` / `break` / `continue` / `throw` / `panic` |
-| `unused_must_use`        | Discarding the result of a `#[must_use]` function                   |
+| `unused_must_use`        | Discarding the result of a `#[must_use]` function, or a value of a `#[must_use]` type ([6.2.11](#6211-must_use-warning-on-ignored-results)) |
+| `unused_doc_comments`    | A doc comment on what is not documented (a statement, match arm, struct literal or tuple field, expression); use `//` for a plain comment |
+| `write_to_copy`          | A field assigned on a copy that nothing reads afterwards: a by-value parameter or `self`, a `for` binding, or a `let` of an element (`xs[i]`, [2.3.8](../002-types/203-struct.md#238-value-semantics)), when no later read, loop iteration, return or call can see the change. A read that only feeds another write to the same variable does not count; a variable a closure or coroutine block mentions is not checked |
 | `ignored_error`          | A `try? f();` statement silently discarding an error; `let _ = try? f();` marks a deliberate best-effort call and is not reported |
 | `shadowed_loop_var`      | A `let` in a `for` body rebinding the loop variable                 |
 | `nan_comparison`         | Comparison with NaN (always false; `!=` always true)                |
@@ -216,13 +218,15 @@ The default level of every lint is `warn`.
 | `non_camel_case_types`   | Type, trait, or variant names not in UpperCamelCase: no lowercase first letter, no `__`, and `_` only between characters without case (`V1_0`) |
 | `non_upper_case_globals` | `const` / `static` names not in UPPER_SNAKE_CASE                    |
 | `confusable_idents`      | Identifiers that resemble each other ([1.4](../001-lexical/104-identifiers.md)) |
-| `use_after_handoff`      | A value used after another owner took it (`Mutex::new`, `send`, `Handoff::new`), or a guard's value after its `using` block ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md)) |
+| `missing_f_prefix`       | A plain string literal containing `{name}` where `name` is a local in scope: the `f` prefix is missing (warn) |
 
 | Group               | Includes                                                                                     |
 |---------------------|----------------------------------------------------------------------------------------------|
-| `unused`            | `unused_variables`, `unused_imports`, `dead_code`, `unreachable_code`, `unused_must_use`     |
+| `unused`            | `unused_variables`, `unused_imports`, `dead_code`, `unreachable_code`, `unused_must_use`, `unused_doc_comments` |
 | `nonstandard_style` | `non_snake_case`, `non_camel_case_types`, `non_upper_case_globals`                           |
 | `all`               | Every lint                                                                                   |
+
+The help of `write_to_copy` suggests `ref self` / `ref p`, an index loop (`for i in 0..xs.len() { xs[i].f = .. }`), or writing the element back.
 
 `rokc lint --list` prints the lints, groups, and default levels.
 
@@ -246,6 +250,8 @@ fn calculate() -> i32 { ... }
 ```
 
 Discarding the return value of a `#[must_use]` function unused produces a warning. To ignore the result intentionally, write `_ = ...` as described in [parameters](../004-functions/402-parameters.md).
+
+`#[must_use]` may also be attached to a `struct` or `enum`. Then an expression statement whose value has that type, or a local of that type that is never read, produces the `unused_must_use` warning with the attribute's message. The value of an `async fn` call or `async` block (a future never awaited never runs) and `thread::JoinHandle` ([stdlib 3.4.2](../../refs-standard-libraries/300-std/304-thread.md#342-api); a thread never joined may not finish before the program ends; `detach` says it runs on its own) are `#[must_use]`.
 
 ## 6.2.12. `#[track_caller]` passing the call site
 

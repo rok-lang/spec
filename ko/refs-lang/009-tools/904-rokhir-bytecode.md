@@ -19,7 +19,7 @@ ROKHIR file (little-endian):
 +-----------------------------------+
 |  Header                           |  (16 bytes fixed)
 |    magic       "ROKH"    (4 bytes)  |
-|    version     u32  (= 4)         |
+|    version     u32  (= 6)         |
 |    flags       u32                |
 |    body_offset u32                |
 +-----------------------------------+
@@ -37,6 +37,10 @@ ROKHIR file (little-endian):
 |    file count           varint    |
 |    file × n: path str, text str   |
 +-----------------------------------+
+|  Summaries                        |
+|    count                varint    |
+|    n × (function str, summary str) |
++-----------------------------------+
 ```
 
 `str` 은 PrefixVarInt 길이 (9.4.5) 뒤의 UTF-8 바이트입니다. string / type / item section 은 두지 않습니다.
@@ -46,7 +50,7 @@ ROKHIR file (little-endian):
 | 필드          | 크기 | 의미                                                         |
 |---------------|------|--------------------------------------------------------------|
 | `magic`       | 4    | `"ROKH"`                                                       |
-| `version`     | u32  | 포맷 버전 (`4`). 레이아웃이나 body 의 내용이 바뀌면 올림: 2 는 `features` meta, 3 은 body 의 `.wit` 파일을 더함, 4 는 `include_str!` / `include_bytes!` 데이터를 inline 함 |
+| `version`     | u32  | 포맷 버전 (`6`). 레이아웃이나 body 의 내용이 바뀌면 올림: 2 는 `features` meta, 3 은 body 의 `.wit` 파일을 더함, 4 는 `include_str!` / `include_bytes!` 데이터를 inline 함, 5 는 hand-off summary 를 더함, 6 은 summary 의 exit 종류를 더함 |
 | `flags`       | u32  | 예약 (0)                                                     |
 | `body_offset` | u32  | body 의 시작 offset                                          |
 
@@ -84,6 +88,16 @@ body 는 패키지의 **모든 소스 파일** 을 (경로, 텍스트) 쌍으로
 
 소스 파일 뒤에는 패키지의 `ffi::wit` 항목이 읽는 `.wit` 파일이 ([stdlib 1.8](../../refs-standard-libraries/100-bare/108-wit.md)) 그 `deps/` 와 함께 통째로 옵니다. 경로는 source dir 기준이며 `..` 로 그 밖으로 나갈 수 있습니다. 다운스트림은 WIT 를 디스크가 아니라 body 에서 읽습니다.
 
+body 뒤에는 패키지 함수들의 hand-off summary ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--스레드-경계-marker)) 가 옵니다. summary 는 tab 으로 구분한 필드의 줄들입니다:
+
+- `g <root> <mutex|rwlock|channel> <line> <function> <file>`: `<root>` 를 넘김;
+- `s <root> <root>`: 하나의 객체;
+- `i <root> <root>`: 첫째가 사라지면 둘째를 함께 가져감;
+- `t <guard parameter> <root>`: 그 guard 에 묶임.
+- `x <tag|*> [<root>]`: 반환한 값이 그 tag 를 가지는 exit 들에서 (`*`: 알 수 없음; `bool` 의 0 / 1, 합이나 enum 변형, carrier 의 경우 에러는 1, 값은 0, 2 + 값의 tag), `<root>` 가 넘긴 것들 가운데 있음. `x` 줄이 없으면 모든 exit 가 모든 `g` root 를 넘김.
+
+root 는 매개변수 index 나 `r` (반환값) 이며, 그 뒤에 `.` 으로 구분한 필드 경로가 옵니다 (tuple index 는 bit 31 이 켜짐). `#fn` (`#fne`: 클로저, 환경 먼저) 이라는 이름 뒤에 U+001F 로 구분한 매개변수 타입 key 가 붙은 항목은 그 매개변수 타입으로 값으로 쓰인 함수들의 summary 를 합칩니다.
+
 ## 9.4.8. 분리 컴파일을 위한 규칙
 
 라이브러리를 미리 빌드하면 프로그램 전체를 한 번에 보지 못하므로, 다음 규칙으로 패키지 사이를 맞춥니다.
@@ -107,7 +121,7 @@ body 는 패키지의 **모든 소스 파일** 을 (경로, 텍스트) 쌍으로
 
 ## 9.4.10. ROKHIR 검사
 
-`rokc rokhir-text <file>` 은 ROKHIR 의 버전, producer, meta (`features:` 포함) 와 interface 파일들의 경로와 텍스트를 출력합니다 ([9.9.2](909-debug-tools.md#992-rokhir-검사)). `rokc inspect` ([9.9.14](909-debug-tools.md#9914-패키지-검사)) 는 archive 와 함께 요약을 보여 줍니다.
+`rokc rokhir-text <file>` 은 ROKHIR 의 버전, producer, meta (`features:` 포함) 와 interface 파일들의 경로와 텍스트, 그리고 summary 를 출력합니다 ([9.9.2](909-debug-tools.md#992-rokhir-검사)). `rokc inspect` ([9.9.14](909-debug-tools.md#9914-패키지-검사)) 는 archive 와 함께 요약을 보여 줍니다.
 
 ## 9.4.11. 안정성
 

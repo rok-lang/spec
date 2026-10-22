@@ -38,6 +38,8 @@ T::Output                 // associated type of a trait parameter
 
 Associated item access has several forms. A static method is called as `Type::method(args)`. An associated `const` is referenced as `Type::CONSTANT`, and an associated type of a trait parameter as `T::AssocType`.
 
+A path through a type alias names the aliased type's item. With `type B = S<i32>;`, `B::mk(x)` is `S::<i32>::mk(x)`; with `type Al<T> = S<T>;`, `Al::mk(x)` is `S::mk(x)` with the arguments inferred, and `Al::<i32>::mk(x)` is `S::<i32>::mk(x)`. A generic alias named without arguments leaves them to inference only when the aliased type's arguments are distinct parameters of the alias; otherwise the arguments are written (`Names::<i32>::new()` for `type Names<V> = Dict<str, V>;`).
+
 ## 2.13.4. Fully qualified path
 
 When the same method name exists in several traits and an inherent `impl` and is ambiguous, or when it must be stated which trait an associated type is referenced through, use the fully qualified form.

@@ -19,7 +19,7 @@ ROKHIR file (little-endian):
 +-----------------------------------+
 |  Header                           |  (16 bytes fixed)
 |    magic       "ROKH"    (4 bytes)  |
-|    version     u32  (= 4)         |
+|    version     u32  (= 6)         |
 |    flags       u32                |
 |    body_offset u32                |
 +-----------------------------------+
@@ -37,6 +37,10 @@ ROKHIR file (little-endian):
 |    file count           varint    |
 |    file × n: path str, text str   |
 +-----------------------------------+
+|  Summaries                        |
+|    count                varint    |
+|    n × (function str, summary str) |
++-----------------------------------+
 ```
 
 `str` is UTF-8 bytes preceded by a PrefixVarInt length (9.4.5). There are no string / type / item sections.
@@ -46,7 +50,7 @@ ROKHIR file (little-endian):
 | Field         | Size | Meaning                                                      |
 |---------------|------|--------------------------------------------------------------|
 | `magic`       | 4    | `"ROKH"`                                                       |
-| `version`     | u32  | Format version (`4`). Bumped when the layout or body content changes: 2 added the `features` meta, 3 the `.wit` files of the body, 4 inlines `include_str!` / `include_bytes!` data |
+| `version`     | u32  | Format version (`6`). Bumped when the layout or body content changes: 2 added the `features` meta, 3 the `.wit` files of the body, 4 inlines `include_str!` / `include_bytes!` data, 5 adds the hand-off summaries, 6 adds the summaries' exit kinds |
 | `flags`       | u32  | Reserved (0)                                                 |
 | `body_offset` | u32  | Start offset of the body                                     |
 
@@ -84,6 +88,16 @@ The body holds **every source file** of the package as (path, text) pairs. Each 
 
 After the source files come the `.wit` files the package's `ffi::wit` items read ([stdlib 1.8](../../refs-standard-libraries/100-bare/108-wit.md)), with their `deps/`, whole. Their paths are relative to the source dir and may leave it through `..`. Downstream reads WIT from the body, not the disk.
 
+After the body come the hand-off summaries ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--thread-boundary-markers)) of the package's functions. A summary is lines of tab-separated fields:
+
+- `g <root> <mutex|rwlock|channel> <line> <function> <file>`: hands `<root>` over;
+- `s <root> <root>`: one object;
+- `i <root> <root>`: the first going away takes the second along;
+- `t <guard parameter> <root>`: tied to that guard.
+- `x <tag|*> [<root>]`: on the exits whose returned value has that tag (`*`: not known; a `bool`'s 0 / 1, a sum or enum variant, a carrier's 1 for an error, 0 for a value, 2 + the value's tag), `<root>` is among those handed over; with no `x` lines every exit hands over all `g` roots.
+
+A root is a parameter index or `r` (the return value), then a `.`-separated field path (a tuple index has bit 31 set). An entry named `#fn` (`#fne`: a closure, environment first) followed by U+001F-separated parameter type keys joins the summaries of the functions used as values with those parameter types.
+
 ## 9.4.8. Rules for separate compilation
 
 A prebuilt library cannot see the whole program at once, so packages are reconciled by the following rules.
@@ -107,7 +121,7 @@ If any of the following differs, the ROKHIR is rejected with a "rebuild" error.
 
 ## 9.4.10. ROKHIR inspection
 
-`rokc rokhir-text <file>` prints the ROKHIR's version, producer, meta (including `features:`), and the paths and text of the interface files ([9.9.2](909-debug-tools.md#992-rokhir-inspection)). `rokc inspect` ([9.9.14](909-debug-tools.md#9914-package-inspection)) shows a summary together with the archive.
+`rokc rokhir-text <file>` prints the ROKHIR's version, producer, meta (including `features:`), the paths and text of the interface files, and the summaries ([9.9.2](909-debug-tools.md#992-rokhir-inspection)). `rokc inspect` ([9.9.14](909-debug-tools.md#9914-package-inspection)) shows a summary together with the archive.
 
 ## 9.4.11. Stability
 

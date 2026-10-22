@@ -30,11 +30,10 @@
 
 찾았다면 그 디렉토리가 패키지 루트가 되고, 그 `src/` 가 패키지의 소스가 됩니다 ([소스 단위](../000-meta/003-source-units.md) 참고). 그 밖의 경우는 다음과 같습니다.
 
-- 한 디렉토리에 `src/main.rok` 와 `src/lib.rok` 가 함께 있으면 에러입니다.
-- path 가 찾은 패키지의 `src/` 밖의 파일 (패키지 소스 옆의 스크립트나 도구) 이거나 위로 올라가도 패키지가 없으면, 그 파일 하나로 된 익명 실행 패키지입니다 ([4.16.8](../004-functions/416-entry-point.md#4168-단일-파일-실행)). 파일 서브모듈 (`mod foo;`) 은 에러입니다.
+- path 가 찾은 패키지의 `src/` 밖의 파일 (패키지 소스 옆의 스크립트나 도구) 이거나 위로 올라가도 패키지가 없으면, 그 파일 하나로 된 익명 실행 패키지입니다 ([4.16.8](../004-functions/416-entry-point.md#4168-단일-파일-실행)). 그 파일 서브모듈은 그 옆에 있습니다.
 - path 가 디렉토리이고 패키지가 없으면 에러입니다.
 
-패키지 이름은 패키지 디렉토리의 이름 (익명 패키지는 파일 이름에서 `.rok` 를 뗀 것) 이며, 산출물 이름이 됩니다 (9.2.15).
+패키지 이름은 패키지 디렉토리의 이름 (익명 패키지는 파일 이름에서 `.rok` 를 뗀 것) 이며, 산출물 이름이 됩니다 (9.2.15). 루트 파일이 둘 다 있는 패키지는 두 target 으로 빌드합니다: 먼저 라이브러리, 그다음 그 라이브러리를 의존 패키지 `<name>` 으로 mount 하는 실행 파일 ([0.3.1](../000-meta/003-source-units.md#한-패키지의-라이브러리와-실행-파일)).
 
 ## 9.2.3. 의존성 해소
 
@@ -58,7 +57,7 @@ rokc build --extern util=../util --extern parser=target/debug/deps/libparser.a
 - 의존 패키지는 별개의 패키지입니다. `pub` 항목만 바깥에서 쓸 수 있고, `pub(pkg)` / `pub(sub)` / 비공개 항목은 쓸 수 없습니다 ([5.7.14](../005-modules/507-paths.md#5714-패키지-사이-경로)).
 - 사용자 패키지의 모듈이 의존 패키지와 같은 이름이면 에러입니다.
 
-라이브러리 패키지를 `rokc build` 하면 `lib<name>.a` 와 `<name>.rokhir` 를 함께 만듭니다. `--name <n>` 은 패키지 이름 (산출물 이름과 mount 이름) 을 정하며, 기본은 디렉토리 이름입니다.
+`src/lib.rok` 가 있는 패키지를 `rokc build` 하면 `lib<name>.a` 와 `<name>.rokhir` 를, `src/main.rok` 가 있으면 실행 파일 `<name>` 을 만듭니다. 둘 다 있는 패키지는 셋 모두를 만들며, 실행 파일은 그 라이브러리에 링크합니다. `--name <n>` 은 패키지 이름 (산출물 이름과 mount 이름) 을 정하며, 기본은 디렉토리 이름입니다.
 
 ### 미리 빌드한 의존 패키지
 
@@ -194,9 +193,9 @@ Mach-O 실행 파일은 macOS SDK (Xcode Command Line Tools) 에 대해 링크�
 ```
 target/
 ├── debug/                      # profile (기본)
-│   ├── foo                     # executable (for main)
-│   ├── libfoo.a                # package archive (for lib)
-│   ├── foo.rokhir                # interface (for lib, 9.4)
+│   ├── foo                     # executable (src/main.rok)
+│   ├── libfoo.a                # library archive (src/lib.rok)
+│   ├── foo.rokhir              # library interface (9.4)
 │   ├── build/                  # intermediates and --emit output (foo.mlir, ...)
 │   └── deps/                   # prebuilt dependencies (lib<dep>.a, <dep>.rokhir, <dep>.fp)
 ├── release/                    # --release
@@ -215,7 +214,9 @@ target/
 | 의존 패키지     | `target/<profile>/deps/` (`lib<dep>.a`, `<dep>.rokhir`, `<dep>.fp`, 9.2.3) |
 | 교차 빌드       | `target/<triple>/<profile>/...` (위와 같은 구조)                  |
 | 문서            | `target/doc/`                                                     |
-| 증분            | `target/<profile>/incremental/<name>/` (codegen unit) 과 `target/<profile>/incremental/<name>-<hash>/` (front end), 9.2.16 |
+| 증분            | `target/<profile>/incremental/<name>/` (실행 파일의 codegen unit), `…/lib<name>/` (라이브러리의 것), target 루트마다의 `…/<name>-<hash>/` (front end), 9.2.16 |
+
+루트 파일이 둘 다 있는 패키지는 두 산출물 `target/<profile>/<name>` 과 `target/<profile>/lib<name>.a` (+ `<name>.rokhir`) 를 가지며, `-o` 는 실행 파일의 이름을 정합니다.
 
 이름 `foo` 는 패키지 이름입니다 (9.2.2). `-o` 는 산출물 하나의 경로를, `--target-dir=<dir>` 와 환경 변수 `ROKC_TARGET_DIR` 은 `target/` 자체의 위치를 바꿉니다. `rokc clean` / `rok clean` 은 `target/` 전체를 지웁니다. 라이브러리의 ROKHIR 은 archive 옆의 `foo.rokhir` 입니다 ([9.4](904-rokhir-bytecode.md)).
 
@@ -226,16 +227,17 @@ target/
 - 컴파일러의 정체 (ROKHIR producer 와 같은 값), 빌드 옵션, 진단 형식 (`--message-format`, 색), 입력 / 출력 경로, 설정되어 있으면 `ROK_CC`
 - 패키지와 의존성의 `src/` 아래 파일, 그 `rok.rokon`, 그리고 빌드가 읽은 그 밖의 모든 파일 (`src/` 밖의 `#[path]` / `include_str!`)
 - `include_str!` / `include_bytes!` ([6.11](../006-meta-system/611-include.md)) 가 읽는 파일과 그 내용
-- 미리 빌드한 의존성의 `.a`, MLIR plugin 파일, `-C profile-use` 파일과 profile 런타임
-- 산출물의 크기와 수정 시각
+- lint 수준 (`-A` / `-W` / `-D`, 그리고 그것을 거친 매니페스트의 `lints`)
+- toolchain 이 그 target 용으로 배포하는 런타임 라이브러리, C 런타임 객체, C 라이브러리, 링커 ([9.2.19](#9219-설치-레이아웃)), 미리 빌드한 의존성의 `.a`, MLIR plugin 파일, `-C profile-use` 파일과 profile 런타임. 각각을 크기, 수정 시각, 파일 정체 (inode 와 status change 시각; Windows 에서는 생성 시각) 로 보므로, 수정 시각을 유지한 복사도 변경입니다
+- 산출물의 크기, 수정 시각, 파일 정체
 
-빌드가 낸 경고는 back end 의 것까지 기록해 두며, `Fresh` 인 빌드는 그 경고를 다시 출력합니다.
+빌드가 낸 경고는 lint 경고와 back end 의 것까지 기록해 두며, `Fresh` 인 빌드는 그 경고를 다시 출력합니다.
 
 `--cfg`, `--target`, MLIR plugin, profile 옵션, `-O3` 가 없는 native 빌드는 `lib/rok-cache/` (9.2.19) 의 미리 빌드한 표준 라이브러리를 링크합니다. 폴더는 toolchain, 옵션, 소스의 hash 마다 하나이며, 처음 쓸 때 lock 아래에서 빌드합니다. `-O3` 에서는 표준 라이브러리를 프로그램과 함께 컴파일합니다 (whole-program 최적화). REPL 은 표준 라이브러리를 소스에서 컴파일합니다.
 
 ### Front end
 
-패키지의 빌드 (`check`, `build`, `run`, `test`, `bench`, `doc`, `lint`) 는 front end 가 계산한 것을 `target/<profile>/incremental/<name>-<hash>/` 에 둡니다. `<hash>` 는 패키지 루트를 가리키며, 빌드 종류 (target, cfg, test 여부, 어떤 라이브러리가 미리 빌드되었는지) 마다 하위 디렉토리가 하나씩 있습니다. 같은 종류의 다음 빌드는 여기서 다음을 가져옵니다.
+패키지의 빌드 (`check`, `build`, `run`, `test`, `bench`, `doc`, `lint`) 는 front end 가 계산한 것을 `target/<profile>/incremental/<name>-<hash>/` 에 둡니다. `<hash>` 는 패키지 루트를 가리키며 (루트 파일이 둘 다 있는 패키지는 target 마다 자기 것을 가지며, `<hash>` 가 그 루트를 가리킴), 빌드 종류 (target, cfg, test 여부, 어떤 라이브러리가 미리 빌드되었는지) 마다 하위 디렉토리가 하나씩 있습니다. 같은 종류의 다음 빌드는 여기서 다음을 가져옵니다.
 
 - 텍스트와 파싱 입력 (빌드의 확장 연산자, 패키지의 키워드, 메타 블록과 `#[literal]` 패턴, cfg) 이 바뀌지 않은 각 파일의 파싱.
 - 각 plain 함수 본체의 lowering (이름 해소, 타입 검사, 제네릭 인스턴스화). plain 함수는 제네릭도 `const` 도 아닌 함수, 또는 제네릭이 아닌 `impl` 의 메서드입니다. 그 자신의 텍스트와 위치가 같고, 프로그램의 인터페이스가 같고, lowering 이 읽은 모든 시그니처, 인스턴스, 그 밖의 사실이 지금도 같고, 그 결과가 본체 밖에서 가리키는 모든 위치 앞의 텍스트가 같으면 재사용합니다.
@@ -248,7 +250,7 @@ target/
 
 패키지 안에서 `Fresh` 가 아닌 빌드는 컴파일한 코드를 codegen unit 단위로 재사용합니다. rokc 는 패키지의 코드 (실행 파일이든 라이브러리든) 를 unit 으로 나눕니다: 패키지의 모듈마다 하나, 그 인스턴스를 컴파일하는 라이브러리의 모듈마다 하나 (인스턴스는 타입 인자에 따라 여러 unit 에 나뉠 수 있음), 그리고 프로그램에 한 번만 있는 것 (static, C `main`, GC 타입 등록) 을 위한 unit 하나입니다.
 
-- unit 은 같은 target 디렉토리로의 지난 빌드 이후 그 키가 바뀌었을 때만 컴파일합니다. 아니면 `target/<profile>/incremental/<name>/` 에 둔 결과를 재사용하고, 그 뒤 모두 링크합니다.
+- unit 은 같은 target 디렉토리로의 지난 빌드 이후 그 키가 바뀌었을 때만 컴파일합니다. 아니면 `target/<profile>/incremental/<name>/` (라이브러리의 것은 `lib<name>/`) 에 둔 결과를 재사용하고, 그 뒤 모두 링크합니다.
 - 익명 파일의 unit 은 패키지 없이 쓰는 target 디렉토리 (`--target-dir`, `ROKC_TARGET_DIR`, 없으면 `<시스템 임시 디렉토리>/rokc-target/`) 의 `[<triple>/]<profile>/incremental/<stem>-<경로의 hash>/` 에 둡니다.
 - unit 의 키는 그 함수들의 코드, 다른 unit 에서 쓰는 것의 시그니처와 코드 생성 정보 (함수의 시그니처가 바뀌면 호출자의 unit 을 다시 컴파일), 쓰는 static 과 GC 타입, target, 최적화 수준, 코드 생성 옵션, 컴파일러의 정체, 그리고 `-g` 이면 그 debug info 가 가리키는 소스 파일의 경로를 담습니다 (파일을 더하면 그것을 가리키는 unit 만 다시 컴파일).
 - 심볼과 GC type id 는 다른 unit 의 내용에 의존하지 않으므로 (unit 은 GC type id 를 패키지의 공유 unit 이 정의한 심볼에서 읽음; [9.5.7](905-symbol-mangling.md#957-충돌-회피-typehash-의-안정성)), 산출물은 깨끗한 빌드가 만드는 것과 같습니다.
@@ -286,7 +288,8 @@ $ROK_HOME/
 ├── bin/                         # proxy: 활성 toolchain 의 같은 이름 실행 파일을 실행
 │   ├── rok
 │   ├── rokc
-│   └── rokls
+│   ├── rokls
+│   └── <name>                   # rok install 이 설치한 실행 파일 (9.10.5a)
 ├── toolchains/
 │   └── <version>-<triple>/      # 자기 완결 toolchain
 │       ├── bin/{rok, rokc, rokls}
@@ -298,8 +301,9 @@ $ROK_HOME/
 │           ├── rok/targets/<triple>/   # --target 이 링크하는 것: 런타임 (librokr.a / rokr.lib), Linux C 라이브러리,
 │           │                           #   libclang_rt.profile.a (Windows clang_rt.profile.lib), host 의 것 포함
 │           └── rok/{core, std, bare}/src/   # 표준 라이브러리 소스: tier 마다 패키지처럼 놓이며 루트는 src/lib.rok (5.4)
-├── cache/                       # git, registry, 스크립트 lock (9.10.4)
-├── envs/<name>/, envs/CURRENT   # 이름 있는 환경 (9.10.5)
+├── cache/                       # git, registry, native, 스크립트 (9.10.4)
+├── envs/<name>/, envs/CURRENT   # 이름 있는 환경: rok.rokon, rok.lock, target/ (9.10.5)
+├── installs.rokon               # rok install 이 bin/ 에 둔 것과 그 출처
 └── config.rokon                 # Config { registry, toolchain }
 ```
 

@@ -151,6 +151,14 @@ par::for_each(xs, [ref buf] |x| { buf.push(x) });
 
 Instead, use a reduce (`par::reduce(xs, 0, |a, b| a + b)`), share through `Mutex` / `RwLock` / `Atomic` / channels, or return the value from the thread (`join()`).
 
+A value shared this way belongs to its new owner: after `Mutex::new(buf)` or `tx.send(buf)`, using `buf` is a compile error ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--thread-boundary-markers)). Use it through the lock, or hand over `buf.clone()`.
+
+```rok
+let m = Mutex::new(buf);
+buf.push(1);
+// ERROR: `buf` was moved into the `Mutex`; use it through the lock: using g = m.lock() { g.get().push(1) }
+```
+
 The detailed parallelism and concurrency rules are defined by the standard library specification; this chapter covers only the language-level capture mechanism.
 
 ## 4.6.10. Lifetime of captured variables

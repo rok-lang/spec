@@ -2,9 +2,9 @@
 
 rok's compilation unit is the **package**. A package is recognized on the file system by a fixed convention (`src/main.rok` / `src/lib.rok`). The manifest `rok.rokon` is present only when declaring dependencies and the like; a package without dependencies does not need one (0.3.4).
 
-## 0.3.1. Two kinds of packages
+## 0.3.1. Executables and libraries
 
-By role, packages are either executable packages or library packages. The two kinds are distinguished solely by which root file exists in the package's source directory `src/`.
+A package has an executable, a library, or both. Which it has is decided solely by the root files in its source directory `src/`: `src/main.rok` is the executable's root, `src/lib.rok` the library's.
 
 A package directory holds the package's source in `src/` and everything else beside it: the manifest `rok.rokon` and lockfile `rok.lock` (0.3.4), `target/` (build output, [9.2.15](../009-tools/902-aot-pipeline.md#9215-output)), and files such as `README`, `LICENSE` or test data. Only the files under `src/` are the package's source; a `.rok` file outside `src/` is not part of the package (it is not compiled with it, is not in its identifier (0.3.3), and run on its own it is an anonymous package, [4.16.8](../004-functions/416-entry-point.md#4168-single-file-execution)).
 
@@ -35,7 +35,11 @@ my_lib/
     └── ...
 ```
 
-A library package has no entry point; it serves as a set of definitions used from outside. Every module file other than `main.rok`, including `lib.rok`, may contain only items and must not contain top-level statements, so importing a module never executes any code ([4.16.6](../004-functions/416-entry-point.md#4166-modules-are-definition-only)). `src/main.rok` and `src/lib.rok` must not both exist in one package.
+A library package has no entry point; it serves as a set of definitions used from outside. Every module file other than `main.rok`, including `lib.rok`, may contain only items and must not contain top-level statements, so importing a module never executes any code ([4.16.6](../004-functions/416-entry-point.md#4166-modules-are-definition-only)).
+
+### Library and executable in one package
+
+A package may have both `src/main.rok` and `src/lib.rok`. They are two targets built from one `src/`: the library, and an executable that uses it. The executable sees the library as a dependency named after the package (`use my_app::parse;`; the code name of [9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock), `-` replaced by `_`). The library is a separate package from the executable: only its `pub` items are visible there, not `pub(pkg)`, `pub(sub)` or private ones ([5.7.14](../005-modules/507-paths.md#5714-paths-between-packages)), and none of its items is in scope until the executable `use`s it. `pkg::` in either target is that target's own root. Each target has its own module tree, so both may declare `mod util;` for the same `src/util.rok`, and each gets its own copy. A package that depends on this one gets the library only.
 
 ## 0.3.2. Files and modules
 
@@ -68,7 +72,7 @@ The hash is used in artifact symbol names and cache keys; the specific uses are 
 
 ## 0.3.4. The manifest (`rok.rokon`) is optional
 
-What constitutes a package is determined solely by the presence of files. If `src/main.rok` or `src/lib.rok` exists in a directory, that directory is a package, and which one exists determines its kind. The manifest does not change this convention.
+What constitutes a package is determined solely by the presence of files. If `src/main.rok` or `src/lib.rok` exists in a directory, that directory is a package, and which of them exist determines whether it has an executable, a library, or both. The manifest does not change this convention.
 
 Only when information such as dependencies, dev dependencies or a toolchain pin is needed is a manifest `rok.rokon` ([9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) placed at the package root, beside `src/`; the results resolved by the tool are recorded in the lockfile `rok.lock`. The two file names are spelled exactly this way (all lowercase). A name differing in case (`Rok.rokon`, etc.) is a warning. Both files use the [ROKON](../../refs-standard-libraries/300-std/309-rokon.md) format; the manifest is only read as a single `Package { .. }` value and is never compiled or executed.
 

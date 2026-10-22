@@ -124,6 +124,8 @@ where
 
 The `where` keyword goes between the parameter declarations and the body, followed by comma-separated bounds. Constraints on associated types can also be written here (e.g. `T::Output: Foo`).
 
+A type alias's `where` clause ([2.6.9](206-sum-types.md#269-combining-with-type-aliases)) holds at each use of the alias; a type parameter meets it through the bounds in scope at that use.
+
 ## 2.10.5. Defaults
 
 Type parameters can have default values.

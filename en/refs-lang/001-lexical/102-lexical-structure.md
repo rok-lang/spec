@@ -17,6 +17,7 @@ whitespace      ::= space_char+
 space_char      ::= U+0009 | U+000A | U+000B | U+000C | U+000D | U+0020
 line_comment    ::= "//" <any char except line_terminator>* line_terminator
 block_comment   ::= "/*" <any char>* "*/"          // recursive
+shebang_line    ::= "#!" <any char except line_terminator>*   // first line only, see 1.2.3
 line_terminator ::= U+000A | U+000D U+000A? | U+000D
 ```
 
@@ -57,7 +58,11 @@ Indentation is not significant. Python-style significant indentation is not adop
 
 ## 1.2.3. Comments
 
-rok supports three kinds of comments.
+rok supports three kinds of comments: line, block and doc comments. A shebang line on a file's first line is ignored like a comment.
+
+### Shebang line
+
+If a file's first line (after a BOM) starts with `#!`, that line is a shebang line and is ignored like a comment, so a script with `#!/usr/bin/env rok` runs as `./script.rok` ([9.10.1](../009-tools/910-rok-frontend.md#9101-subcommands-and-global-options)). The exception is when the first token after `#!`, past whitespace and comments other than doc comments, is `[`: then `#!` begins an inner attribute (`#![allow(unused)]`). `#!` on any later line is not a shebang line.
 
 ### Line comments
 
@@ -84,20 +89,20 @@ The text between `/*` and `*/` is a comment, and nesting is allowed. The outer c
 
 ### Doc comments
 
-There are two forms of doc comments.
+There are four forms of doc comments, as in Rust.
 
 ```rok
-/// This item ...      (outer doc comment — attached to the following item)
-//! This item ...      (inner doc comment — attached to the enclosing item / module)
+/// outer doc comment (the following item)
+//! inner doc comment (the enclosing file, module or function)
+/** outer block doc comment */
+/*! inner block doc comment */
 ```
 
-- The extent is from the starting token to the line terminator of that line.
-- `/// text` is the attribute `#[doc = "text"]`, and `//! text` is `#![doc = "text"]` ([6.2.8](../006-meta-system/602-built-in-attributes.md#628-doc---doc-comment-form)).
-- A line starting with `////` is an ordinary comment.
-- A doc comment in a position where an attribute cannot appear (inside an expression, between statements, etc.) is ignored.
+- A line doc comment extends to the line terminator; `/// text` is `#[doc = "text"]` (one space after the marker is dropped) and `//! text` is `#![doc = "text"]` ([6.2.8](../006-meta-system/602-built-in-attributes.md#628-doc---doc-comment-form)). A line starting with `////` is an ordinary comment.
+- A block doc comment extends to its matching `*/` and nests like a block comment. `/**/`, `/***/` and a comment starting with `/***` are ordinary comments. Its text is one `#[doc]` / `#![doc]` attribute. A blank first line and a blank last line are dropped. When the comment spans lines and every line after the first starts with optional whitespace and `*`, that prefix is removed. Then the indentation common to the non-blank lines and the whitespace before `*/` are removed. Line breaks are LF.
+- An inner doc comment appears only at the start of a file, a module body or a function body. Anywhere else it is an error.
+- An outer doc comment documents the item that follows. One that documents nothing (before `}`, `)`, `]` or the end of the file) is an error, and so is one on a function parameter. One on a statement, match arm, struct literal field, tuple field or expression is kept by no tool and triggers the `unused_doc_comments` lint ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)).
 - The ROKHIR interface text of a prebuilt package ([9.4](../009-tools/904-rokhir-bytecode.md)) preserves doc comments.
-
-Block-form doc comments (`/** ... */`, `/*! ... */`) are not adopted; the single-line form is used uniformly for tool friendliness and consistency.
 
 ## 1.2.4. Compiler output
 

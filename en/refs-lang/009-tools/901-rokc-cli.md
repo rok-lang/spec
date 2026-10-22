@@ -50,7 +50,7 @@ The `[path]` of `build` / `run` / `test` / `check` / `clean` is one of the follo
 | File in a package's `src/`   | That package: the first directory containing `src/main.rok` / `src/lib.rok`, walking upward from the file |
 | Any other file               | An anonymous executable package consisting of that single file ([4.16.8](../004-functions/416-entry-point.md#4168-single-file-execution)), including a `.rok` file in a package directory outside its `src/` |
 
-It is an error for one directory to contain both `src/main.rok` and `src/lib.rok` ([0.3](../000-meta/003-source-units.md)). It is an error if a directory is given and no package is found walking upward. An anonymous package cannot have file submodules (`mod foo;`).
+It is an error if a directory is given and no package is found walking upward. An anonymous package's file submodules (`mod foo;`) are beside its file ([4.16.8](../004-functions/416-entry-point.md#4168-single-file-execution)).
 
 The package name (the output name) is the name of the package directory; for an anonymous package it is the file name without `.rok`.
 
@@ -64,7 +64,7 @@ The package name (the output name) is the name of the package directory; for an 
 rokc build [path]
 ```
 
-`[path]` follows the package selection rules above. Output is placed in the per-profile `target/` of [9.2.15](902-aot-pipeline.md#9215-output). An executable package produces `target/<profile>/<name>`; a library package produces `target/<profile>/lib<name>.a` plus the interface `target/<profile>/<name>.rokhir` ([9.4](904-rokhir-bytecode.md)). The profile is `release` for `-O2` / `-O3` / `-Os` (including `--release`) and `debug` otherwise; with `--target=<target>` the directory is `target/<name>/<profile>/`. If `--target-dir=<dir>` or `ROKC_TARGET_DIR` is set, that directory is used instead of `target/`.
+`[path]` follows the package selection rules above. Output is placed in the per-profile `target/` of [9.2.15](902-aot-pipeline.md#9215-output). `src/main.rok` produces `target/<profile>/<name>`; `src/lib.rok` produces `target/<profile>/lib<name>.a` plus the interface `target/<profile>/<name>.rokhir` ([9.4](904-rokhir-bytecode.md)); a package with both produces both. The profile is `release` for `-O2` / `-O3` / `-Os` (including `--release`) and `debug` otherwise; with `--target=<target>` the directory is `target/<name>/<profile>/`. If `--target-dir=<dir>` or `ROKC_TARGET_DIR` is set, that directory is used instead of `target/`.
 
 Options:
 
@@ -92,7 +92,7 @@ Options:
 - `-C profile-use=<file>` optimizes with an indexed profile from `rokc profdata merge`. A missing file is an error. Functions whose control flow changed since the profile was recorded are optimized without it, and one warning gives their count.
 - Both select the MLIR → LLVM backend at every level, and with them `-C backend=native` is an error. The standard library is compiled with the program (not taken from the cache), so it is profiled and optimized too. The REPL rejects both.
 
-If nothing has changed since the previous build, `rokc build` / `rokc run` print `Fresh` and skip the build ([9.2.16](902-aot-pipeline.md#9216-incremental-build)).
+`rokc build` reports the package's lint diagnostics as `rokc check` does ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)): warnings are printed and the build goes on; a `deny` lint fails it. If nothing has changed since the previous build, `rokc build` / `rokc run` print `Fresh`, print that build's warnings again, and skip the build ([9.2.16](902-aot-pipeline.md#9216-incremental-build)).
 
 ### `rokc profdata merge`: profile merge
 
@@ -180,6 +180,8 @@ test result: FAILED. 2 passed; 1 failed; 0 filtered out; finished in 0.12s
 
 If any test fails, the exit code is `1`.
 
+In a package with both root files, the library's tests run first, then the executable's (built against the library without its tests); a failing library run ends the command. `run` and `bench` work the same way.
+
 ### `rokc bench`: benchmarks
 
 ```
@@ -213,7 +215,7 @@ This mode runs as a terminal interactive shell. Cell semantics follow the rules 
 - Without a path the session starts empty. A program path (a lone `.rok` file or a package with `src/main.rok`) is loaded and run, top-level statements as cells and `fn main` as the entry, and the session continues ([9.7.10](907-jit-cells.md#9710-loading-a-program-repl-path)). A library package path (`src/lib.rok`) is added as a dependency and `use <name>::*;` is the first cell, again after `:reset`.
 - More than one path is a usage error. `-` is not accepted; standard input is the cell input.
 
-`rok` and `rok repl` ([9.10](910-rok-frontend.md)) run the same REPL with dependencies attached.
+A package with both root files is a program path; its library is a dependency of the session. `rok` and `rok repl` ([9.10](910-rok-frontend.md)) run the same REPL with dependencies attached.
 
 REPL commands (`:type`, `:reset`, `:add`, `:help`, `:quit`) and debugging aids are in [9.9.9](909-debug-tools.md#999-repl--jupyter-debugging).
 
@@ -252,7 +254,7 @@ A file with lexical errors is left untouched and the error is reported, with exi
 rokc check [path] [--check-library]
 ```
 
-Runs the front end through type checking and MIR building, plus lints, and reports diagnostics. No code generation (no MLIR) is performed. Options are the same as `rokc build`. `--check-library` lowers and checks every body of a library regardless of reachability, and checks every generic body against its bounds ([2.10.9](../002-types/210-generics.md#2109-body-checking)).
+Runs the front end through type checking and MIR building, plus lints, and reports diagnostics. No code generation (no MLIR) is performed. Options are the same as `rokc build`. `--check-library` lowers and checks every body of a library regardless of reachability, and checks every generic body against its bounds ([2.10.9](../002-types/210-generics.md#2109-body-checking)). A package with both root files checks its library, then, if the library has no error, its executable with the library compiled in; each warning is reported once.
 
 ### `rokc lint`: linter
 
@@ -260,7 +262,7 @@ Runs the front end through type checking and MIR building, plus lints, and repor
 rokc lint [path] [--list]
 ```
 
-`rokc check` without code generation. The diagnostic format is 9.1.8; lint diagnostics have code `E503`. The list of lints and groups is in [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control). `--list` prints the lints, groups and default levels.
+`rokc check` without code generation. Every compiling command reports the same lints ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)); `lint` runs only them and the front end. The diagnostic format is 9.1.8; lint diagnostics have code `E503`. The list of lints and groups is in [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control). `--list` prints the lints, groups and default levels.
 
 Lint levels are set by the global options `-A` / `-W` / `-D` (9.1.5) and by attributes in code. If any `deny`-level lint fires, the exit code is `1`.
 
@@ -270,7 +272,7 @@ Lint levels are set by the global options `-A` / `-W` / `-D` (9.1.5) and by attr
 rokc doc [path] [--std]
 ```
 
-Generates HTML API documentation in `target/doc/` from the public items and docs (`///`, `//!`, `#[doc]`, [6.2.8](../006-meta-system/602-built-in-attributes.md#628-doc---doc-comment-form)) of the package (and `--extern` dependency packages).
+Generates HTML API documentation in `target/doc/` from the public items and docs (`///`, `//!`, `#[doc]`, [6.2.8](../006-meta-system/602-built-in-attributes.md#628-doc---doc-comment-form)) of the package's library (its executable when it has none) (and `--extern` dependency packages).
 
 ```
 target/doc/
@@ -291,7 +293,7 @@ Doc text is interpreted as a subset of markdown (headings, fenced code blocks, i
 rokc lsp
 ```
 
-This mode is designed to be invoked from LSP clients such as VS Code, Vim and Emacs. The standalone editor binary `rokls` is equivalent to `rok lsp` (that is, `rokc lsp`). `.rokon` buffers are checked for syntax only. The features are listed in [9.9.13](909-debug-tools.md#9913-lsp-server).
+This mode is designed to be invoked from LSP clients such as VS Code, Vim and Emacs. The standalone editor binary `rokls` is equivalent to `rok lsp` (that is, `rokc lsp`). `.rokon` buffers are checked for syntax only. In a package with both root files, a file the library's module tree reaches is checked as part of the library, any other as part of the executable, which sees the library's open buffers. The features are listed in [9.9.13](909-debug-tools.md#9913-lsp-server).
 
 ## 9.1.3. Debug / diagnostic subcommands
 
@@ -408,7 +410,7 @@ The global options are listed below. They may appear before or after the subcomm
 | `--cwd=<path>`                   | Change working directory before running                     |
 | `--print cfg\|target-list\|target-spec\|lldbinit` | Print the active cfg, the built-in target names, a target's specification, or the lldb command loading rok's formatters (9.1.4) |
 | `--message-format=human\|json`   | Diagnostic format. `json` writes one line per diagnostic to stdout (9.1.8) |
-| `-A` / `-W` / `-D <lint \| group>` | Lint level (`--allow` / `--warn` / `--deny`). Applies to `check` / `lint` / `lsp`. May be repeated; the later one wins |
+| `-A` / `-W` / `-D <lint \| group>` | Lint level (`--allow` / `--warn` / `--deny`). Applies to every command that compiles the package (`build`, `run`, `test`, `bench`, `emit`, `check`, `lint`, `lsp`). May be repeated; the later one wins |
 
 The lint level is determined in the order: the lint's default level < `-A` / `-W` / `-D` < `#[allow(..)]` / `#[warn(..)]` / `#[deny(..)]` in code (innermost wins). `rok` prepends the manifest's `lints` as these flags ([9.10.1](910-rok-frontend.md#9101-subcommands-and-global-options)).
 

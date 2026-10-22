@@ -13,6 +13,7 @@ A package without dependencies builds by file conventions alone, without a manif
 | `search`, `publish`, `yank`, `login`, `logout`                    | Stones (9.10.4a)                        |
 | `env`                                                             | Environments (9.10.5)                   |
 | `toolchain`                                                       | Toolchain (9.10.6)                      |
+| `install`, `uninstall`                                            | Libraries for the REPL / Jupyter, and executables (9.10.5a) |
 | `build`, `check`, `run`, `test`, `bench`, `emit`                  | Delegated to `rokc` with dependencies attached |
 | `doc`, `lint`, `repl [path]`, `lsp`                               | Delegated to `rokc` with dependencies attached |
 | `fmt`, `clean`, `demangle`, `profdata`                            | Delegated to `rokc` without dependencies |
@@ -38,11 +39,15 @@ rok                 # = rok repl
 rok --env sci       # = rok repl --env sci
 ```
 
+`rok [options] <file> [args..]` runs a script: it is `rok run -q <file> -- args..`. Every argument after the file is passed to the program unchanged, and the exit code is the program's. The word is a file when it contains `/` (also `\` on Windows) or has the extension `.rok`; no subcommand does, so a subcommand is never taken for a file. Together with a shebang line ([1.2.3](../001-lexical/102-lexical-structure.md#shebang-line)), `./script.rok args` runs the script.
+
+The path of a delegated command is its first argument that is neither an option nor an option's value, so options may come before it (`rok run --release t.rok`).
+
 The global options of `rok` are:
 
 | Option           | Meaning                                                           |
 |------------------|-------------------------------------------------------------------|
-| `--env <name>`   | Use that named environment instead of the project's environment (9.10.5) |
+| `--env <name>`   | Work in that named environment (the REPL, Jupyter, `rok install`); an error on a command that works on a package ([9.10.5](#9105-environments)) |
 | `--offline`      | Do not use the network. git dependencies must be in the cache     |
 | `--locked`       | If `rok.lock` would need to change, do not change it and fail (for CI) |
 | `--cwd <dir>`    | Change directory before running                                   |
@@ -53,13 +58,16 @@ Environment variables are `ROK_HOME` (default `~/.rok`), `ROK_ENV` (9.10.5), `RO
 ## 9.10.2. `rok new` / `rok init`: package creation
 
 ```
-rok new [--lib | --bin] <name>
-rok init [--lib | --bin] [dir]
+rok new [--lib] [--bin] <name>
+rok init [--lib] [--bin] [dir]
+rok init --script <file.rok>
 ```
 
-`rok new` creates the directory `<name>` and fills in default files. `--bin` (the default) creates `src/main.rok`, which prints a greeting; `--lib` creates `src/lib.rok` with an example function and one `#[test]`. It is an error if `<name>` already exists.
+`rok new` creates the directory `<name>` and fills in default files. `--bin` (the default) creates `src/main.rok`, which prints a greeting; `--lib` creates `src/lib.rok` with an example function and one `#[test]`; both together create both, `src/main.rok` then calling the library's function through `use <name>::add;` ([0.3.1](../000-meta/003-source-units.md#031-executables-and-libraries)). It is an error if `<name>` already exists.
 
 `rok init` turns an existing directory (the current directory if omitted) into a package. It is an error if that directory already contains `src/main.rok` or `src/lib.rok`.
+
+`rok init --script <file.rok>` turns a script ([9.10.7](#9107-inline-manifest-for-single-file-scripts)) into a package in the script's directory, named after the file (without `.rok`). `rok.rokon` gets the merged `deps` (and `native`) of the script's blocks, paths rewritten relative to it; the script becomes `src/main.rok` and every file its `mod`s load moves under `src/` at the same relative path, each without its block. It is an error if the script is inside a package, a moved file or `rok.rokon` already exists, or a submodule file is outside the script's directory.
 
 Both commands also write `rok.rokon` in canonical form ([ROKON 3.9.4](../../refs-standard-libraries/300-std/309-rokon.md#394-canonical-form)) and a `.gitignore` containing `target/`, and run `git init` if not inside a git repository. `init` uses the directory name, adjusted to the naming rules (9.10.3), as the package name.
 
@@ -108,9 +116,9 @@ Package {
 - Package names (keys of `deps`, `name`) are lowercase ASCII `[a-z0-9_-]+` beginning with a letter (beginning with a digit, `-` or `_` is an error). Keys are strings (`"rok-syntax": Dep::version("^0.1")`).
 - In code, the name with `-` replaced by `_` is the top-level path referring to that package (`rok-syntax` → `use rok_syntax::..`, `--extern rok_syntax=..`).
 - In the registry and within one dependency graph, names are compared treating `-` and `_` as equal and ignoring case. So `rok-syntax` and `rok_syntax` cannot coexist.
-- A dependency package must be a library package with a `src/lib.rok`. Transitive dependencies are the `deps` of the dependency package (`dev_deps` are not transitive).
+- A dependency must have a `src/lib.rok`; that library is what its dependents get, whether or not the package also has `src/main.rok`. A dependency with only `src/main.rok` is an error that says it is a program, for `rok install`. Transitive dependencies are the `deps` of the dependency package (`dev_deps` are not transitive).
 - `native` maps native package names (their own namespace: a package and a native package may share a name) to `Dep::native("req"[, registry: "url"])`, a requirement string, or `Dep::native(url: "<url or path relative to the manifest>", sha256: "<64 hex digits>")` (9.10.4b). `Dep::native` in `deps` / `dev_deps` is an error. Native dependencies of every package in the graph are linked into executables (those reached only through `dev_deps`, only for test / bench).
-- `lints` sets lint levels (lint or group name → `"allow"` | `"warn"` | `"deny"`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)). They are treated as if prepended to the CLI flags of `rokc lint`, so CLI `-A/-W/-D` and attributes in code override them.
+- `lints` sets lint levels (lint or group name → `"allow"` | `"warn"` | `"deny"`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)). They are treated as if prepended to the CLI flags of every `rokc` command `rok` runs, so CLI `-A/-W/-D` and attributes in code override them.
 - `lints_from` names a directory (relative to this manifest's directory, or absolute) whose `rok.rokon` supplies starting lint levels. That manifest's `lints`, after its own `lints_from` chain, are applied first, and this manifest's `lints` follow, so an entry here overrides the same lint or group from the chain (all entries are passed as `-A`/`-W`/`-D` in this order; later flags win). It applies only to the package being built or checked (and to an environment's manifest); dependencies' manifests are never consulted for lints. It is an error if the directory does not exist, contains no `rok.rokon`, or if the chain returns to a manifest already in it (a cycle). `rok env import` rewrites a relative `lints_from` as an absolute path. A script's `//! ```rokon` block may not use it.
 - Errors: unknown fields / `Dep` kinds / named arguments, duplicates, `features` that break the rules of 9.10.4c, package names violating the rules, syntax that is not ROKON, anything other than a single `Package { .. }`, trailing tokens. Diagnostics show the location with `file:line:col` and a caret.
 
@@ -170,16 +178,18 @@ Lock {
 ## 9.10.4. Dependencies: `rok add` / `remove` / `update` / `deps`
 
 ```
-rok add <name> --path <dir> [--dev] [--env <env>]
-rok add <name> --git <url> [--rev <rev> | --tag <tag> | --branch <branch>] [--dev] [--env <env>]
-rok add <name>[@<req>] [--registry <url>] [--dev] [--env <env>]      # stone
+rok add <name> --path <dir> [--dev]
+rok add <name> --git <url> [--rev <rev> | --tag <tag> | --branch <branch>] [--dev]
+rok add <name>[@<req>] [--registry <url>] [--dev]      # stone
 rok add <name> .. [--features <f,..>] [--no-default-features] [--optional]   # with any of the above
 rok remove <name>
+rok add .. <file.rok>                    # into a script's //! rokon block
+rok remove [--native] <name> <file.rok>
 rok update [name...]
 rok deps [--dev] [--features <f,..>] [--all-features] [--no-default-features]
 ```
 
-- `add` / `remove` edit `rok.rokon`, preserving comments and layout. `--dev` adds to `dev_deps`, and `--env` edits the `rok.rokon` of that named environment. Adding a stone without a requirement writes `^<newest version>`. `--features`, `--no-default-features` and `--optional` are written into the `Dep::..`; `--optional` also adds the feature `"<name>": ["dep:<name>"]` unless the package has a feature of that name.
+- `add` / `remove` edit `rok.rokon`, preserving comments and layout. `--dev` adds to `dev_deps`. `add` / `remove` edit the package's `rok.rokon`. Given a script file as the last argument, `add` / `remove` edit that file's `//! rokon` block instead (9.10.7): a missing block is created after the shebang line and the leading `//!` lines (written in canonical form; an existing block keeps its layout and comments), a block left empty is removed, a path is written relative to the script, and `--dev` / `--optional` are errors. A script inside a package is an error (it uses the package's `rok.rokon`). Outside a package without a script, or with `--env`, they are an error naming `rok add <name> <file.rok>` and `rok install` / `rok uninstall` ([9.10.5a](#9105a-rok-install--rok-uninstall)). Adding a stone without a requirement writes `^<newest version>`. `--features`, `--no-default-features` and `--optional` are written into the `Dep::..`; `--optional` also adds the feature `"<name>": ["dep:<name>"]` unless the package has a feature of that name.
 - Builds use the commits and versions in `rok.lock`. Newly declared dependencies are added to the lock and removed ones are cleaned up, but only `update` moves something already pinned. Given names, `update` re-resolves only those packages; otherwise it re-resolves all git dependencies and stones.
 - `deps` prints the resolved dependency packages as lines `<code name>=<path of its src/lib.rok>` (the code name has `-` replaced by `_`), dependencies first (`--dev` includes dev dependencies). Each such line is followed by its `--extern-feature=<code name>=<f>` lines; `deps` takes the feature options and `--dev`. For each native package (dependents first, for the host) it also prints `# native <name> <vers>` followed by its `rokc` arguments, one per line.
 - `rok.lock` is committed to version control.
@@ -194,7 +204,7 @@ Fetched git sources are kept in `$ROK_HOME/cache/` and shared by all projects.
 | `cache/git/db/<repo>-<hash>/`              | Bare clone of the repository (one per url)              |
 | `cache/registry/db/<repo>-<hash>/`         | Bare clone of the stone index (one per index)           |
 | `cache/git/checkouts/<commit>/`            | Checkout of a commit. Verified by tree hash before use, and re-extracted if different |
-| `cache/scripts/<hash>/rok.lock`            | Lockfile of a single-file script (9.10.7)               |
+| `cache/scripts/<hash>/`                    | `rok.lock` and `target/` of a script; `<hash>` covers the script's path and the path and block of every file it reaches ([9.10.7](#9107-inline-manifest-for-single-file-scripts)) |
 | `cache/native/<sha256>/`                   | A native archive, unpacked after its SHA-256 matched; never fetched again (9.10.4b) |
 | `cache/native/meta/<sha256>.rokon`         | A `Dep::native(url:)` file                              |
 
@@ -263,7 +273,7 @@ rok yank [--native] --vers <version> [--undo] [--index <checkout>] [name]   # na
 ```
 
 - `search` searches the index by name and prints one line per match: `<name> <newest version> — <description>` (the description part omitted when the entry has none). Index lookups accept either spelling, `-` or `_`.
-- `publish` is a dry run by default. It requires a clean work tree, the package at the repository root, and a `src/lib.rok`. Normal path / git dependencies are rejected, and path / git dev dependencies are dropped. It checks for conflicts with the same version and with names equal under `-` / `_` and case folding. A name already owned under a different spelling is rejected. A dry run without `--index` only prints the entry; with `--index` it is also checked against that checkout.
+- `publish` is a dry run by default. It requires a clean work tree, the package at the repository root, and a `src/lib.rok`, a `src/main.rok` or both. A stone with only `src/main.rok` is a program: `rok install` builds it, and it cannot be a dependency. Normal path / git dependencies are rejected, and path / git dev dependencies are dropped. It checks for conflicts with the same version and with names equal under `-` / `_` and case folding. A name already owned under a different spelling is rejected. A dry run without `--index` only prints the entry; with `--index` it is also checked against that checkout.
 - With `--commit`, `publish` adds the entry: with `--index`, as a commit "Publish <name> <vers>" in that checkout (not pushed); without it, through the registry API of the configured index ("Which index"), which adds it to the index. The client never writes to the index repository itself.
 - `yank` sets (or with `--undo` clears) `yanked` for that version: with `--index`, as a commit in that checkout; otherwise through the registry API.
 - The registry API is at `api` of the index's `config.rokon`. Requests carry `Authorization: Bearer <token>`, and bodies are single-line ROKON (`application/rokon; charset=utf-8`):
@@ -339,11 +349,19 @@ A package declares features in `features`, a dict from feature name to the list 
 
 ## 9.10.5. Environments
 
-Environments follow uv / conda. There is no activation step.
+Environments replace conda / venv. There is no activation step.
 
-- Every directory with a `rok.rokon` (a project) is its own environment. `rok` commands inside it use its dependencies.
-- A named environment keeps `rok.rokon` / `rok.lock` in `$ROK_HOME/envs/<name>/`. Path dependencies in it are written as absolute paths.
-- The environment used outside a project is chosen in the order `--env <name>` > environment variable `ROK_ENV` > the one set by `rok env use` (`$ROK_HOME/envs/CURRENT`) > `default`.
+- A package (a directory with `src/main.rok`, `src/lib.rok` or `rok.rokon`) uses the dependencies of its own `rok.rokon` and nothing else; it never sees libraries installed into an environment. Neither does a script. A command that works on a package is an error with `--env`.
+- A named environment keeps `rok.rokon`, `rok.lock` and `target/` in `$ROK_HOME/envs/<name>/`. Its `deps` are the libraries installed with `rok install` ([9.10.5a](#9105a-rok-install--rok-uninstall)), for the REPL and Jupyter; only `rok install` / `rok uninstall` and `rok env import` change them. Path dependencies in it are absolute. Installed libraries are prebuilt into its `target/`.
+- The environment used outside a package (the REPL, Jupyter, the language server, `rok install`) is chosen in the order `--env <name>` > `ROK_ENV` > `rok env use` (`$ROK_HOME/envs/CURRENT`) > `default`; `default` is created by the first `rok install` into it. Inside a package, `rok repl` / `jupyter` / `lsp` without a path use the package, or with `--env` that environment.
+
+### Where dependencies come from
+
+| Compiled as | Dependencies | Lock | Prebuilt into |
+|---|---|---|---|
+| A package | its `rok.rokon` `deps` (`dev_deps` for test / bench) | `<package>/rok.lock` | `<package>/target/<profile>/deps/` |
+| A script | the merged `deps` of the `//! rokon` blocks of it and of the files its `mod`s load | `cache/scripts/<hash>/rok.lock` | `cache/scripts/<hash>/target/` |
+| The REPL / Jupyter outside a package | the active environment's installed libraries | the environment's | the environment's `target/` |
 
 ```
 rok env create <name>
@@ -356,7 +374,28 @@ rok env shell [name]              # $SHELL with ROK_ENV=<name>
 rok repl --env <name>
 ```
 
-`:add <dep> ..` in the REPL adds dependencies to the current environment (same arguments as `rok add`). After adding, it re-reads the dependencies and attaches them to the session.
+`:add <dep> ..` in the REPL runs `rok install <dep> ..` into the current environment, or `rok add` in a package's session; it then re-reads the dependencies and attaches them to the session.
+
+## 9.10.5a. `rok install` / `rok uninstall`
+
+```
+rok install <name>[@<req>] [--registry <url>]
+rok install [<name>] --path <dir | file.rok>
+rok install [<name>] --git <url> [--rev <rev> | --tag <tag> | --branch <branch>]
+rok install .. [--features <f,..>] [--no-default-features] [--lib]
+rok install --native <name>[@<req>] [--registry <url>]
+rok install --list
+rok uninstall [--native] <name>..
+```
+
+- The package at the source is fetched into the cache first ([9.10.4](#9104-dependencies-rok-add--remove--update--deps)). A package with `src/main.rok`, or a script file, is an executable: it is built with `--release` and its executable placed in `$ROK_HOME/bin/<name>`, as with `cargo install`. A git or stone package is built from a scratch copy of its checkout; a path package in place; a script file in place. `$ROK_HOME/installs.rokon` (`Package { deps: { "<name>": <source> } }`) records each executable and its source. When the package also has `src/lib.rok`, `rok install` says so and that `--lib` installs the library instead.
+- A package with only `src/lib.rok`, or any package with `src/lib.rok` given `--lib`, is a library and goes into the active environment, as with `pip install`, for `rok repl`, `rok jupyter` and `:add` ([9.10.5](#9105-environments)): it is written into the environment's `rok.rokon` (a stone without a requirement as `^<newest version>`, a path as an absolute path), resolved into its `rok.lock`, and prebuilt into its `target/`. Scripts do not see it: a script gets a library with `rok add <name> <file.rok>`; the output line names this. If it does not build, nothing is installed. `--lib` on a package without `src/lib.rok`, or on a script, is an error.
+- `<name>` is the library's top-level name, or the executable's file name. If omitted, it is the package's `name`, else the directory name (path), the repository name without `.git` (git), or the file stem (script). It follows the naming rules of [9.10.3](#9103-rokrokon--roklock).
+- `--features` / `--no-default-features` go into the library's `Dep`, or to the executable's build; `--dev` / `--optional` are errors. `--native` adds a native package to the environment's `native` ([9.10.4b](#9104b-native-packages)).
+- The proxies `rok`, `rokc`, `rokls` ([9.10.6](#9106-toolchain)) are never replaced, and neither is a file in `$ROK_HOME/bin` that `rok install` did not put there (an error). Installing an executable again replaces it.
+- `--list` prints ``libraries (environment `<env>`):`` and `executables (<bin dir>):`, each followed by `  <name> <source>` lines in install order.
+- `rok uninstall <name>..` removes each from the active environment's libraries (re-resolving its lock), or else removes the executable `rok install` put in `$ROK_HOME/bin`; `--native` removes a native package from the environment. A name that is neither is an error.
+- Apart from `rok install`, only `rok toolchain` (toolchains, proxies, `config.rokon`), `rok login` (`credentials.rokon`), `rok env` (environments) and the caches write under `$ROK_HOME`.
 
 ## 9.10.6. toolchain
 
@@ -391,7 +430,7 @@ rok toolchain update [<version>]
 
 ## 9.10.7. Inline manifest for single-file scripts
 
-An anonymous package ([4.16.8](../004-functions/416-entry-point.md#4168-single-file-execution)) declares dependencies with a ```` ```rokon ```` block holding `Package { deps: { .. } }` inside the `//!` lines at the very start of the file (like uv's inline script metadata). The block may contain only `deps` (no `features`, so no optional dependencies). Code blocks of other languages are ignored. Paths are relative to the script directory. The script's lockfile is kept in the cache (`cache/scripts/`).
+An anonymous package ([4.16.8](../004-functions/416-entry-point.md#4168-single-file-execution)) gets its dependencies only from ```` ```rokon ```` blocks holding `Package { deps: { .. } }` (and `native`) inside the `//!` lines at the very start (after a shebang line) of its file and of each file its `mod`s load (like uv's inline script metadata). Libraries installed into an environment are never used. A block may contain only `deps` and `native` (no `features`, so no optional dependencies). Code blocks of other languages are ignored. Paths in a block are relative to the file that holds it. The blocks are merged; one library given different entries in two files is an error naming both files and both entries. Running a submodule file directly uses only the blocks of the files that run reaches. `rok add <name> .. <file.rok>` / `rok remove <name> <file.rok>` write a block ([9.10.4](#9104-dependencies-rok-add--remove--update--deps)), and `rok init --script` turns a script into a package ([9.10.2](#9102-rok-new--rok-init-package-creation)). A script keeps its lockfile and builds in `cache/scripts/<hash>/`, keyed by its path and the path and block of every file it reaches. A script's executable is cached by everything it is built from, every file it includes and its libraries included. A `use x::..` of a package a script lacks is an error whose help is the command to run, ``run `rok add x <file>` ``, with a note when the active environment has `x`; in a package it suggests `rok add x`. `import x` (and `include` / `require`) is an error whose help is `mod x;` when `x.rok` is beside the file, `use` when `x` is a path root or a module the file declares, and otherwise `rok add x <file>`.
 
 ````rok
 //! ```rokon
@@ -403,3 +442,5 @@ An anonymous package ([4.16.8](../004-functions/416-entry-point.md#4168-single-f
 use util::greet;
 greet();
 ````
+
+Running a single-file script reuses its executable. `rokc run` of an anonymous package keeps the executable in `<target>/<profile>/scripts/<key>/`, where `<target>` is the script's `target/` (under `cache/scripts/<hash>/`, beside its `rok.lock`). `<key>` is a hash of everything the build is made from: the toolchain, the build options, lint levels and target, the source and every file it includes, the runtime and the C library the toolchain ships for the target, and the dependencies passed to it with their prebuilt libraries. When the key matches, nothing is compiled and the warnings of the build that made the executable are printed again. A new executable is written under a scratch name and renamed into place, so concurrent runs of one script are safe. An entry unused for a day is removed when another is built.

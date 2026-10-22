@@ -43,7 +43,7 @@ rokc rokhir-text path/to/foo.rokhir      # or libfoo.a — reads the sibling foo
 This command prints the [ROKHIR](904-rokhir-bytecode.md) of a prebuilt library in human-readable form. After the version, producer and meta, each interface file follows as `--- <path>` and its text (source with concrete function bodies cut down to `;`).
 
 ```
-rokhir 4
+rokhir 6
 producer: rokc 0.1.0 (1f2a40-17f3a9c2e1b0c4d8)
 package: geom (hash: 3f8a1c2b)
 source: /home/me/geom
@@ -148,6 +148,7 @@ There is one code per error kind. Diagnostics of the same kind have the same cod
 | `E102` | `module`      | Module / file                |
 | `E200` | `type`        | Type                         |
 | `E201` | `pattern`     | Pattern / exhaustiveness     |
+| `E202` | `handoff`     | Use after hand-off ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--thread-boundary-markers)) |
 | `E300` | `meta`        | Meta block / attribute / keyword magic |
 | `E400` | `lowering`    | HIR / MIR lowering           |
 | `E401` | `codegen`     | Code generation              |
@@ -292,7 +293,7 @@ An unset or empty variable has its default. A value outside those listed prints 
 |----------------------|----------------------------------------------------------------------|
 | `:type <expr>`       | Prints the type of the expression (without running it)               |
 | `:reset`             | Resets the session to its initial state (the `use` of a library path is inserted again) |
-| `:add <dep> ..`      | Adds dependencies to the current environment and attaches them to the session (via `rok`, [9.10.5](910-rok-frontend.md#9105-environments)) |
+| `:add <dep> ..`      | Adds dependencies (`rok install` into the current environment, or `rok add` in a package's session) and attaches them to the session ([9.10.5](910-rok-frontend.md#9105-environments)) |
 | `:help`, `:quit`     | Help, quit                                                           |
 | `ROK_REPL_TIME=1`    | Per cell, per-stage timing and the number of newly compiled functions / functions reused from earlier cells ([9.6.4](906-jit-engine.md#964-reuse-of-library-code)) |
 

@@ -50,7 +50,7 @@ option          ::= "--" identifier ("=" value)?
 | 패키지 `src/` 안의 파일   | 그 패키지: 파일에서 위로 올라가며 처음 `src/main.rok` / `src/lib.rok` 가 있는 디렉토리                    |
 | 그 밖의 파일              | 그 파일 하나로 된 익명 실행 패키지 ([4.16.8](../004-functions/416-entry-point.md#4168-단일-파일-실행)). 패키지 디렉토리 안이지만 `src/` 밖에 있는 `.rok` 파일도 포함 |
 
-한 디렉토리에 `src/main.rok` 와 `src/lib.rok` 가 함께 있으면 에러입니다 ([0.3](../000-meta/003-source-units.md)). 디렉토리를 주었는데 위로 올라가도 패키지가 없으면 에러입니다. 익명 패키지는 파일 서브모듈 (`mod foo;`) 을 가질 수 없습니다.
+디렉토리를 주었는데 위로 올라가도 패키지가 없으면 에러입니다. 익명 패키지의 파일 서브모듈 (`mod foo;`) 은 그 파일 옆에 있습니다 ([4.16.8](../004-functions/416-entry-point.md#4168-단일-파일-실행)).
 
 패키지 이름 (산출물 이름) 은 패키지 디렉토리의 이름이며, 익명 패키지는 파일 이름에서 `.rok` 를 뗀 것입니다.
 
@@ -64,7 +64,7 @@ option          ::= "--" identifier ("=" value)?
 rokc build [path]
 ```
 
-`[path]` 는 위의 패키지 지정 규칙을 따릅니다. 산출물은 [9.2.15](902-aot-pipeline.md#9215-산출물) 의 profile 별 `target/` 에 놓입니다. 실행 패키지는 `target/<profile>/<name>`, 라이브러리 패키지는 `target/<profile>/lib<name>.a` 와 인터페이스 `target/<profile>/<name>.rokhir` ([9.4](904-rokhir-bytecode.md)) 입니다. profile 은 `-O2` / `-O3` / `-Os` (`--release` 포함) 이면 `release`, 그 밖에는 `debug` 이며, `--target=<target>` 이면 `target/<name>/<profile>/` 입니다. `--target-dir=<dir>` 나 `ROKC_TARGET_DIR` 이 있으면 `target/` 대신 그 디렉토리를 씁니다.
+`[path]` 는 위의 패키지 지정 규칙을 따릅니다. 산출물은 [9.2.15](902-aot-pipeline.md#9215-산출물) 의 profile 별 `target/` 에 놓입니다. `src/main.rok` 는 `target/<profile>/<name>` 을, `src/lib.rok` 는 `target/<profile>/lib<name>.a` 와 인터페이스 `target/<profile>/<name>.rokhir` ([9.4](904-rokhir-bytecode.md)) 를 만들며, 둘 다 있는 패키지는 둘 다 만듭니다. profile 은 `-O2` / `-O3` / `-Os` (`--release` 포함) 이면 `release`, 그 밖에는 `debug` 이며, `--target=<target>` 이면 `target/<name>/<profile>/` 입니다. `--target-dir=<dir>` 나 `ROKC_TARGET_DIR` 이 있으면 `target/` 대신 그 디렉토리를 씁니다.
 
 옵션은 다음과 같습니다.
 
@@ -92,7 +92,7 @@ rokc build [path]
 - `-C profile-use=<file>` 은 `rokc profdata merge` 로 만든 indexed profile 로 최적화합니다. 파일이 없으면 에러입니다. profile 을 기록한 뒤 제어 흐름이 바뀐 함수는 그것 없이 최적화하며, 그 수를 경고 하나로 알립니다.
 - 둘 다 어느 수준에서나 MLIR → LLVM backend 를 고르며, 함께 쓰는 `-C backend=native` 는 에러입니다. 표준 라이브러리는 cache 에서 가져오지 않고 프로그램과 함께 컴파일되므로 함께 profile 되고 최적화됩니다. REPL 은 둘 다 거부합니다.
 
-이전 빌드 뒤로 바뀐 것이 없으면 `rokc build` / `rokc run` 은 `Fresh` 를 출력하고 빌드를 건너뜁니다 ([9.2.16](902-aot-pipeline.md#9216-증분-빌드)).
+`rokc build` 는 패키지의 lint 진단을 `rokc check` 처럼 보고합니다 ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)): 경고는 출력하고 빌드를 이어 가며, `deny` lint 는 빌드를 실패시킵니다. 이전 빌드 뒤로 바뀐 것이 없으면 `rokc build` / `rokc run` 은 `Fresh` 를 출력하고, 그 빌드의 경고를 다시 출력하며, 빌드를 건너뜁니다 ([9.2.16](902-aot-pipeline.md#9216-증분-빌드)).
 
 ### `rokc profdata merge`: profile 병합
 
@@ -180,6 +180,8 @@ test result: FAILED. 2 passed; 1 failed; 0 filtered out; finished in 0.12s
 
 실패한 테스트가 하나라도 있으면 종료 코드는 `1` 입니다.
 
+루트 파일이 둘 다 있는 패키지에서는 라이브러리의 테스트를 먼저, 그다음 실행 파일의 테스트를 (테스트 없는 라이브러리에 대해 빌드해) 실행합니다. 라이브러리 실행이 실패하면 명령이 끝납니다. `run` 과 `bench` 도 같은 방식입니다.
+
 ### `rokc bench`: 벤치마크
 
 ```
@@ -213,7 +215,7 @@ rokc repl [path]
 - 경로가 없으면 빈 세션으로 시작합니다. 프로그램 경로 (단독 `.rok` 파일이나 `src/main.rok` 가 있는 패키지) 는 로드해 실행하며 (top-level 문은 셀로, `fn main` 은 진입점으로), 세션이 이어집니다 ([9.7.10](907-jit-cells.md#9710-프로그램-로드-repl-path)). 라이브러리 패키지 경로 (`src/lib.rok`) 는 의존성으로 붙이고 `use <name>::*;` 를 첫 셀로 넣으며, `:reset` 뒤에도 다시 넣습니다.
 - 경로가 둘 이상이면 사용법 에러입니다. `-` 는 받지 않으며, 표준 입력은 셀 입력입니다.
 
-`rok` 와 `rok repl` ([9.10](910-rok-frontend.md)) 은 의존성을 붙여 같은 REPL 을 실행합니다.
+루트 파일이 둘 다 있는 패키지는 프로그램 경로이며, 그 라이브러리는 세션의 의존 패키지입니다. `rok` 와 `rok repl` ([9.10](910-rok-frontend.md)) 은 의존성을 붙여 같은 REPL 을 실행합니다.
 
 REPL 명령 (`:type`, `:reset`, `:add`, `:help`, `:quit`) 과 디버그 수단은 [9.9.9](909-debug-tools.md#999-repl--jupyter-디버그) 에 있습니다.
 
@@ -252,7 +254,7 @@ rokc fmt [path]
 rokc check [path] [--check-library]
 ```
 
-front end 를 타입 검사와 MIR 생성까지 돌리고 lint 와 함께 진단을 냅니다. 코드 생성 (MLIR 포함) 은 하지 않습니다. 옵션은 `rokc build` 와 같습니다. `--check-library` 는 도달 여부와 무관하게 라이브러리의 모든 본문을 낮추고 검사하며, 모든 제네릭 본체를 그 바운드에 맞춰 검사합니다 ([2.10.9](../002-types/210-generics.md#2109-본체-검사)).
+front end 를 타입 검사와 MIR 생성까지 돌리고 lint 와 함께 진단을 냅니다. 코드 생성 (MLIR 포함) 은 하지 않습니다. 옵션은 `rokc build` 와 같습니다. `--check-library` 는 도달 여부와 무관하게 라이브러리의 모든 본문을 낮추고 검사하며, 모든 제네릭 본체를 그 바운드에 맞춰 검사합니다 ([2.10.9](../002-types/210-generics.md#2109-본체-검사)). 루트 파일이 둘 다 있는 패키지는 라이브러리를 검사하고, 라이브러리에 에러가 없으면 라이브러리를 함께 컴파일한 실행 파일을 검사합니다. 각 경고는 한 번만 보고합니다.
 
 ### `rokc lint`: 린터
 
@@ -260,7 +262,7 @@ front end 를 타입 검사와 MIR 생성까지 돌리고 lint 와 함께 진단
 rokc lint [path] [--list]
 ```
 
-`rokc check` 에서 코드 생성을 뺀 것입니다. 진단 형식은 9.1.8, lint 진단의 코드는 `E503` 입니다. lint 목록과 그룹은 [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어) 에 있습니다. `--list` 는 lint 와 그룹, 기본 수준을 출력합니다.
+`rokc check` 에서 코드 생성을 뺀 것입니다. 컴파일하는 모든 명령이 같은 lint 를 보고하며 ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)), `lint` 는 그것과 front end 만 돌립니다. 진단 형식은 9.1.8, lint 진단의 코드는 `E503` 입니다. lint 목록과 그룹은 [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어) 에 있습니다. `--list` 는 lint 와 그룹, 기본 수준을 출력합니다.
 
 lint 수준은 전역 옵션 `-A` / `-W` / `-D` (9.1.5) 와 코드의 속성이 정합니다. `deny` 수준의 lint 가 하나라도 걸리면 종료 코드는 `1` 입니다.
 
@@ -270,7 +272,7 @@ lint 수준은 전역 옵션 `-A` / `-W` / `-D` (9.1.5) 와 코드의 속성이 
 rokc doc [path] [--std]
 ```
 
-패키지 (와 `--extern` 의존 패키지) 의 공개 항목과 문서 (`///`, `//!`, `#[doc]`, [6.2.8](../006-meta-system/602-built-in-attributes.md#628-doc---문서-주석-형태)) 로 HTML API 문서를 `target/doc/` 에 만듭니다.
+패키지의 라이브러리 (없으면 실행 파일) (와 `--extern` 의존 패키지) 의 공개 항목과 문서 (`///`, `//!`, `#[doc]`, [6.2.8](../006-meta-system/602-built-in-attributes.md#628-doc---문서-주석-형태)) 로 HTML API 문서를 `target/doc/` 에 만듭니다.
 
 ```
 target/doc/
@@ -291,7 +293,7 @@ target/doc/
 rokc lsp
 ```
 
-이 모드는 VS Code, Vim, Emacs 등 LSP 클라이언트에서 호출하도록 설계됩니다. 편집기용 독립 바이너리 `rokls` 는 `rok lsp` (곧 `rokc lsp`) 와 같습니다. `.rokon` 버퍼는 구문만 검사합니다. 기능 목록은 [9.9.13](909-debug-tools.md#9913-lsp-서버) 에 있습니다.
+이 모드는 VS Code, Vim, Emacs 등 LSP 클라이언트에서 호출하도록 설계됩니다. 편집기용 독립 바이너리 `rokls` 는 `rok lsp` (곧 `rokc lsp`) 와 같습니다. `.rokon` 버퍼는 구문만 검사합니다. 루트 파일이 둘 다 있는 패키지에서는 라이브러리의 모듈 트리가 닿는 파일을 라이브러리의 일부로, 그 밖의 파일을 실행 파일의 일부로 검사하며, 실행 파일은 라이브러리의 열린 버퍼를 봅니다. 기능 목록은 [9.9.13](909-debug-tools.md#9913-lsp-서버) 에 있습니다.
 
 ## 9.1.3. 디버그 / 진단 서브명령
 
@@ -408,7 +410,7 @@ rokc <subcommand> --help
 | `--cwd=<path>`                   | 작업 디렉토리를 바꾼 뒤 실행                                |
 | `--print cfg\|target-list\|target-spec\|lldbinit` | 활성 cfg, 내장 타깃 이름, 타깃 명세, 또는 rok 의 formatter 를 로드하는 lldb 명령을 출력 (9.1.4) |
 | `--message-format=human\|json`   | 진단 형식. `json` 은 stdout 에 한 줄씩 (9.1.8)              |
-| `-A` / `-W` / `-D <lint \| group>` | lint 수준 (`--allow` / `--warn` / `--deny`). `check` / `lint` / `lsp` 에 적용. 여러 번 쓸 수 있고 뒤의 것이 이김 |
+| `-A` / `-W` / `-D <lint \| group>` | lint 수준 (`--allow` / `--warn` / `--deny`). 패키지를 컴파일하는 모든 명령 (`build`, `run`, `test`, `bench`, `emit`, `check`, `lint`, `lsp`) 에 적용. 여러 번 쓸 수 있고 뒤의 것이 이김 |
 
 lint 수준은 lint 의 기본 수준 < `-A` / `-W` / `-D` < 코드의 `#[allow(..)]` / `#[warn(..)]` / `#[deny(..)]` (가장 안쪽이 이김) 순으로 정합니다. `rok` 는 매니페스트의 `lints` 를 이 플래그로 앞에 붙여 넘깁니다 ([9.10.1](910-rok-frontend.md#9101-서브명령과-전역-옵션)).
 

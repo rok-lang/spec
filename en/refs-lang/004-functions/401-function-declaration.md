@@ -167,6 +167,8 @@ fn add(x: f64, y: f64) -> f64 { x + y }   // ERROR — duplicate
 
 To vary behavior by type, combine traits and generics ([`trait`](../002-types/208-trait.md)).
 
+Functions, `const`s and `static`s of a module share one value namespace: a `const`, `static` or function with the name of another of them in the same module is also a compile error. Different arities, `async`, or type parameters do not make two functions distinct. To accept different argument counts, give one function default values for its trailing parameters ([4.2.3](402-parameters.md#423-default-values)).
+
 ## 4.1.11. Order and combination of fn modifiers
 
 Function modifiers (`unsafe`, `async`, `yield`) **must be written in this order**:

@@ -59,7 +59,7 @@ impl Add for Point {
 
 This form is `impl Trait for Type { ... }`. The body contains the bodies of the methods required by the [`trait`](208-trait.md) and the concrete definitions of associated types. Items for which the trait provides a default method may be omitted from the body, in which case the default body is used.
 
-The `throws` of an impl method must be the same as the `throws` of the trait method. An impl cannot add `throws` or widen the error type ([4.14.11](../004-functions/414-throws.md#41411-throws-on-methods)).
+An impl method must have the trait declaration's parameter count, the same `ref` on each parameter other than the receiver, and return a value exactly when the declaration does; otherwise it is an error at the impl, and the error shows the declaration. The `throws` of an impl method must be the same as the `throws` of the trait method. An impl cannot add `throws` or widen the error type ([4.14.11](../004-functions/414-throws.md#41411-throws-on-methods)).
 
 `Send` / `Sync` are automatic marker traits with two manual declarations ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--thread-boundary-markers)).
 
@@ -79,6 +79,8 @@ let r = Circle::UNIT;
 ```
 
 An `impl` target or trait argument may be a projection (`<T as Tr>::X`) or name an item declared later; it is resolved after all items are registered.
+
+An `impl` target may name a type alias, generic or not. The alias is expanded, and the `impl` is the one written with the aliased type: with `type Al<T> = S<T>;`, `impl<T> Al<T> { .. }` is `impl<T> S<T> { .. }` and `impl<T> Tr for Al<T>` is `impl<T> Tr for S<T>`. An alias that fixes some arguments (`type Names<V> = Dict<str, V>;`) gives an `impl` that covers only those instances.
 
 ## 2.9.2. The `self` convention for methods
 
@@ -133,6 +135,8 @@ impl<T> Add for Pair<T> where T: Add<T> {
 ```
 
 Type parameters are declared with `<...>` after `impl`, and may appear in the target type, the trait arguments, and associated types. Additional constraints can be added with a `where` clause, in the same way as for trait declarations.
+
+A generic `impl` covers the instances of its target that its parameters can produce: `impl<V> P<str, V>` gives methods to `P<str, i32>` but not to `P<i32, i32>`.
 
 ## 2.9.5. Orphan rule
 
@@ -194,4 +198,4 @@ If the same method name exists in both an inherent `impl` and a trait `impl`, th
 
 ## 2.9.8. No defining the same method twice
 
-Defining two methods with the same name in the same `impl` block is a compile error (there is no overloading).
+Defining two methods with the same name for the same type is a compile error, whether in one `impl` block or in several inherent `impl` blocks ([2.9.3](#293-multiple-impl-blocks-for-one-type)), and within one trait `impl` (there is no overloading). Methods of the same name from different traits are allowed ([2.9.7](#297-method-conflicts-between-inherent-and-trait-impls)).

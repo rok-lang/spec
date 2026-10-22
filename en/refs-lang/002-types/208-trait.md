@@ -202,4 +202,4 @@ The visibility of a trait itself and of its methods can be controlled separately
 
 ## 2.8.9. No duplicate definitions in the same module
 
-Declaring two traits with the same name in the same module is a compile error.
+Declaring two traits with the same name in the same module is a compile error. Declaring two methods with the same name in one trait is a compile error (there is no overloading).

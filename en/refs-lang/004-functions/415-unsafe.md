@@ -88,6 +88,7 @@ Inside an `unsafe { ... }` block, the following operations are additionally allo
 - Directly calling dangerous functions of the [`rok::bare::*`](../../refs-standard-libraries/100-bare/README.md) modules
 - Directly calling MLIR ops via [`rok::bare::mlir::__mlir_op`](../../refs-standard-libraries/100-bare/109-mlir.md)
 - Reading `union` fields (bit reinterpretation, [union](../002-types/205-union.md)). Writing fields is allowed without `unsafe`.
+- Using a value after it was handed to another owner ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--thread-boundary-markers)): the block's author guarantees no other thread uses it at the same time.
 
 All other ordinary safe operations work the same inside an unsafe block — `unsafe` *adds capabilities*; it does not *change existing meaning*.
 

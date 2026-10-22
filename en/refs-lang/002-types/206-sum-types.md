@@ -255,7 +255,7 @@ The exact narrowing syntax is defined in the pattern and expression specificatio
 
 ## 2.6.9. Combining with type aliases
 
-A long sum type can be given an alias with `type` (`type Num = i32 | f64;`). A cyclic type alias (even through generic arguments) is an error. The `where` of a type alias goes after the aliased type (`type A<T> = B<T> where T: X;`). An alias's `where` is checked at every use of the alias. `type` is a contextual keyword, a keyword only at the start of an item when followed by an identifier and `=` or `<` ([1.5.4](../001-lexical/105-keywords.md#154-contextual-keywords)). The exact alias syntax is defined in the type alias specification.
+A long sum type can be given an alias with `type` (`type Num = i32 | f64;`). A cyclic type alias (even through generic arguments) is an error. The `where` of a type alias goes after the aliased type (`type A<T> = B<T> where T: X;`). An alias's `where` is checked at every use of the alias. When a use's arguments name type parameters, the bounds in scope at the use decide it, as in a generic body ([2.10.9](210-generics.md#2109-body-checking)): the enclosing function's, `impl`'s or trait's parameter bounds and `where` clauses, a trait's supertraits and associated-type bounds. With `type W<T> = S<T> where T: Num;`, `fn get<T: Num>(x: W<T>)` and `impl<T: Num> W<T> { .. }` are valid; `fn get<T>(x: W<T>)` is an error even if never called. `type` is a contextual keyword, a keyword only at the start of an item when followed by an identifier and `=` or `<` ([1.5.4](../001-lexical/105-keywords.md#154-contextual-keywords)). The exact alias syntax is defined in the type alias specification.
 
 ```rok
 type Number = i32 | i64 | f32 | f64;

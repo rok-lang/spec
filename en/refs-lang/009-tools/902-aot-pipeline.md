@@ -30,11 +30,10 @@ Starting from the path of `rokc build [path]` and searching upward, a directory 
 
 If found, that directory is the package root and its `src/` the package's source (see [Source units](../000-meta/003-source-units.md)). The other cases:
 
-- It is an error for one directory to contain both `src/main.rok` and `src/lib.rok`.
-- If path is a file outside the found package's `src/` (a script or tool beside the package's source), or no package is found walking upward, it is an anonymous executable package consisting of that single file ([4.16.8](../004-functions/416-entry-point.md#4168-single-file-execution)). File submodules (`mod foo;`) are an error.
+- If path is a file outside the found package's `src/` (a script or tool beside the package's source), or no package is found walking upward, it is an anonymous executable package consisting of that single file ([4.16.8](../004-functions/416-entry-point.md#4168-single-file-execution)). Its file submodules are beside it.
 - If path is a directory and there is no package, it is an error.
 
-The package name is the name of the package directory (for an anonymous package, the file name without `.rok`) and becomes the output name (9.2.15).
+The package name is the name of the package directory (for an anonymous package, the file name without `.rok`) and becomes the output name (9.2.15). A package with both root files is built as two targets: its library first, then its executable, which mounts the library as dependency `<name>` ([0.3.1](../000-meta/003-source-units.md#library-and-executable-in-one-package)).
 
 ## 9.2.3. Dependency resolution
 
@@ -58,7 +57,7 @@ rokc build --extern util=../util --extern parser=target/debug/deps/libparser.a
 - A dependency package is a separate package. Only `pub` items are usable from outside; `pub(pkg)` / `pub(sub)` / private items are not ([5.7.14](../005-modules/507-paths.md#5714-paths-between-packages)).
 - It is an error for a module of the user package to have the same name as a dependency package.
 
-`rokc build` on a library package produces both `lib<name>.a` and `<name>.rokhir`. `--name <n>` sets the package name (the output name and mount name); the default is the directory name.
+`rokc build` on a package with `src/lib.rok` produces `lib<name>.a` and `<name>.rokhir`, and with `src/main.rok` the executable `<name>`; a package with both produces all three, the executable linked against that library. `--name <n>` sets the package name (the output name and mount name); the default is the directory name.
 
 ### Prebuilt dependency packages
 
@@ -194,9 +193,9 @@ Debug information belongs to the executable or archive a build makes (`build`, `
 ```
 target/
 ├── debug/                      # profile (default)
-│   ├── foo                     # executable (for main)
-│   ├── libfoo.a                # package archive (for lib)
-│   ├── foo.rokhir                # interface (for lib, 9.4)
+│   ├── foo                     # executable (src/main.rok)
+│   ├── libfoo.a                # library archive (src/lib.rok)
+│   ├── foo.rokhir              # library interface (9.4)
 │   ├── build/                  # intermediates and --emit output (foo.mlir, ...)
 │   └── deps/                   # prebuilt dependencies (lib<dep>.a, <dep>.rokhir, <dep>.fp)
 ├── release/                    # --release
@@ -215,7 +214,9 @@ target/
 | Dependencies    | `target/<profile>/deps/` (`lib<dep>.a`, `<dep>.rokhir`, `<dep>.fp`, 9.2.3) |
 | Cross build     | `target/<triple>/<profile>/...` (same structure as above)         |
 | Documentation   | `target/doc/`                                                     |
-| Incremental     | `target/<profile>/incremental/<name>/` (codegen units) and `target/<profile>/incremental/<name>-<hash>/` (the front end), 9.2.16 |
+| Incremental     | `target/<profile>/incremental/<name>/` (an executable's codegen units), `…/lib<name>/` (a library's), and `…/<name>-<hash>/` per target root (the front end), 9.2.16 |
+
+A package with both root files has both outputs, `target/<profile>/<name>` and `target/<profile>/lib<name>.a` (+ `<name>.rokhir`); `-o` names the executable.
 
 The name `foo` is the package name (9.2.2). `-o` changes the path of a single output; `--target-dir=<dir>` and the environment variable `ROKC_TARGET_DIR` change the location of `target/` itself. `rokc clean` / `rok clean` delete the whole `target/`. A library's ROKHIR is `foo.rokhir` next to the archive ([9.4](904-rokhir-bytecode.md)).
 
@@ -226,16 +227,17 @@ Incremental builds work at three levels: a package whose inputs did not change i
 - The compiler's identity (the same value as the ROKHIR producer), build options, diagnostic format (`--message-format`, color), input / output paths, `ROK_CC` if set
 - The files under `src/` of the package and its dependencies, their `rok.rokon`, and every other file the build read (`#[path]` / `include_str!` outside `src/`)
 - Files read by `include_str!` / `include_bytes!` ([6.11](../006-meta-system/611-include.md)), with their contents
-- The `.a` of prebuilt dependencies, MLIR plugin files, a `-C profile-use` file and the profile runtime
-- The size and modification time of the outputs
+- The lint levels (`-A` / `-W` / `-D`, and the manifest's `lints` through them)
+- The runtime library, the C runtime objects, C library and linker the toolchain ships for the target ([9.2.19](#9219-installation-layout)), the `.a` of prebuilt dependencies, MLIR plugin files, a `-C profile-use` file and the profile runtime, each by its size, modification time and file identity (inode and status change time; on Windows its creation time), so a copy that keeps the modification time is a change
+- The size, modification time and file identity of the outputs
 
-Warnings emitted by a build, the back end's included, are recorded, and a `Fresh` build prints them again.
+Warnings emitted by a build, lint warnings and the back end's included, are recorded, and a `Fresh` build prints them again.
 
 A native build without `--cfg`, `--target`, MLIR plugins, profile options or `-O3` links the prebuilt standard library from `lib/rok-cache/` (9.2.19), one folder per hash of toolchain, options and sources, built on first use under a lock. At `-O3` the standard library is compiled with the program (whole-program optimization). The REPL compiles the standard library from source.
 
 ### Front end
 
-A build of a package (`check`, `build`, `run`, `test`, `bench`, `doc`, `lint`) keeps what its front end computed under `target/<profile>/incremental/<name>-<hash>/`, where `<hash>` names the package root, with one subdirectory per kind of build (target, cfg, test or not, which libraries are prebuilt). The next build of the same kind takes from it:
+A build of a package (`check`, `build`, `run`, `test`, `bench`, `doc`, `lint`) keeps what its front end computed under `target/<profile>/incremental/<name>-<hash>/`, where `<hash>` names the package root (each target of a package with both root files has its own, `<hash>` naming its root), with one subdirectory per kind of build (target, cfg, test or not, which libraries are prebuilt). The next build of the same kind takes from it:
 
 - The parse of each file whose text and parse inputs (the build's extension operators, the package's keywords, meta blocks and `#[literal]` patterns, and cfg) are unchanged.
 - The lowering (name resolution, type checking, generic instantiation) of each plain function body: a non-generic, non-`const` function, or a method of a non-generic `impl`. It is reused when its own text and position are unchanged, the program's interface is unchanged, every signature, instance and other fact the lowering read is the same now, and the text before every position its result names outside the body is unchanged.
@@ -248,7 +250,7 @@ Signatures, `impl` registration, coherence and the whole-program checks run in e
 
 Within a package, a build that is not `Fresh` reuses compiled code by codegen units. rokc divides a package's code (an executable's or a library's) into units: each module of the package is one, and so is each module of a library whose instances it compiles (instances may be spread over several units by their type arguments), plus one unit for what the program has once (statics, the C `main`, GC type registration).
 
-- A unit is compiled only when its key changed since the last build into the same target directory. Otherwise its result, kept under `target/<profile>/incremental/<name>/`, is reused; then everything is linked.
+- A unit is compiled only when its key changed since the last build into the same target directory. Otherwise its result, kept under `target/<profile>/incremental/<name>/` (a library's: `lib<name>/`), is reused; then everything is linked.
 - An anonymous file's units are kept in the target directory used without a package (`--target-dir`, `ROKC_TARGET_DIR`, else `<system temporary directory>/rokc-target/`), under `[<triple>/]<profile>/incremental/<stem>-<hash of its path>/`.
 - A unit's key covers its functions' code, the signatures and code-generation facts of what it uses from other units (a function's signature change recompiles its callers' units), the statics and GC types it uses, the target, the optimization level, the code generation options, the compiler's identity and, under `-g`, the paths of the source files its debug info names (adding a file recompiles only the units that refer to it).
 - Symbols and GC type ids do not depend on what other units contain (a unit reads GC type ids from symbols the package's shared unit defines; [9.5.7](905-symbol-mangling.md#957-collision-avoidance-typehash-stability)), so the output is the one a clean build makes.
@@ -286,7 +288,8 @@ $ROK_HOME/
 ├── bin/                         # proxy: runs the same-named executable of the active toolchain
 │   ├── rok
 │   ├── rokc
-│   └── rokls
+│   ├── rokls
+│   └── <name>                   # an executable installed by rok install (9.10.5a)
 ├── toolchains/
 │   └── <version>-<triple>/      # self-contained toolchain
 │       ├── bin/{rok, rokc, rokls}
@@ -298,8 +301,9 @@ $ROK_HOME/
 │           ├── rok/targets/<triple>/   # what --target links: the runtime (librokr.a / rokr.lib), Linux C library,
 │           │                           #   libclang_rt.profile.a (Windows clang_rt.profile.lib); the host's included
 │           └── rok/{core, std, bare}/src/   # standard library sources: each tier is laid out as a package, root src/lib.rok (5.4)
-├── cache/                       # git, registry, script locks (9.10.4)
-├── envs/<name>/, envs/CURRENT   # named environments (9.10.5)
+├── cache/                       # git, registry, native, scripts (9.10.4)
+├── envs/<name>/, envs/CURRENT   # named environments: rok.rokon, rok.lock, target/ (9.10.5)
+├── installs.rokon               # what rok install put in bin/, and where from
 └── config.rokon                 # Config { registry, toolchain }
 ```
 

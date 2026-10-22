@@ -51,7 +51,7 @@ count
 name
 ```
 
-It always matches, whatever the value, and binds the value to the identifier. It must not collide with a reserved word of [keywords](../001-lexical/105-keywords.md). If a bare name resolves to an `enum` variant imported with `use`, it is not a binding but an `enum` pattern for that variant ([5.5.7](../005-modules/505-use.md#importing-enum-variants)).
+It always matches, whatever the value, and binds the value to the identifier. It must not collide with a reserved word of [keywords](../001-lexical/105-keywords.md). If a bare name resolves to an `enum` variant imported with `use`, it is not a binding but an `enum` pattern for that variant ([5.5.7](../005-modules/505-use.md#importing-enum-variants)). A bare name that is a variant of the scrutinee's `enum` type, but is not imported, is a compile error: as a binding it would match every value. Write the variant path `E::V`.
 
 ### Wildcard pattern: `_`
 
