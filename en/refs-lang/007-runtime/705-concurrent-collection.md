@@ -10,6 +10,8 @@ A full collection may run its mark phase concurrently with mutators. Minor colle
 | `always`            | Always concurrent mark                             |
 | `off`               | Always STW                                         |
 
+An unset or empty variable has its default. A value outside those listed prints one warning line on stderr naming the variable, the value and the accepted values, and the variable has its default.
+
 ## 7.5.2. Phases
 
 1. **Initial pause (STW).** Run one minor collection and take a snapshot of the roots at a safepoint. Set the global `MARKING` flag.

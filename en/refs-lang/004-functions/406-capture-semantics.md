@@ -141,15 +141,15 @@ This distinction is the same as the `self` and `ref self` model of [`impl`](../0
 
 ## 4.6.9. Additional constraints in parallel and concurrent contexts
 
-Every capture of a `fn() + Send` closure (one passed to `task::spawn`, `par::for_each`, `thread::spawn`, etc.) must be `Send + Sync` ([4.4](404-function-type.md#send--sync-bounds)). A `[ref x]` cell is `Sync` only if the type of `x` is, so the same rule covers ref captures. Collections are `!Sync` ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--thread-boundary-markers)) and cannot be captured this way.
+Every capture of a `fn() + Send` closure (one passed to `task::spawn`, `par::for_each`, `thread::spawn`, etc.) must be `Send + Sync` ([4.4](404-function-type.md#send--sync-bounds)). A `[ref x]` cell is written by both the closure and the code that created it, so it is never `Send` or `Sync`, whatever the type of `x`: a closure with a `[ref]` capture — or one that captures such a closure, or a future made by an `async [ref x] ||` closure — fits no `+ Send` / `+ Sync` slot. Same-thread uses (`spawn_local`, ordinary calls) are unaffected. Collections are `!Sync` ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--thread-boundary-markers)) and cannot be value-captured this way either.
 
 ```rok
 let buf: List<i32> = [];
 par::for_each(xs, [ref buf] |x| { buf.push(x) });
-// ERROR: List<i32> is not Sync
+// ERROR: a [ref buf] cell cannot cross threads
 ```
 
-Instead, use a reduce (`par::reduce(xs, 0, |a, b| a + b)`), or share through `Mutex` / `RwLock` / `Atomic` / channels.
+Instead, use a reduce (`par::reduce(xs, 0, |a, b| a + b)`), share through `Mutex` / `RwLock` / `Atomic` / channels, or return the value from the thread (`join()`).
 
 The detailed parallelism and concurrency rules are defined by the standard library specification; this chapter covers only the language-level capture mechanism.
 

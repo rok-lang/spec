@@ -176,11 +176,20 @@ target/debug/foo.rokhir
 foo.o + <deps>/lib*.a + <sysroot>/lib/librokr.a + target libc  →  target/debug/foo
 ```
 
-Mach-O 실행 파일은 macOS SDK (Xcode Command Line Tools) 에 대해 링크합니다. Windows 실행 파일은 `rokc` 가 함께 가진 module definition (mingw-w64 에서 유래) 으로 만든 import library 와, UCRT 위의 rok 자신의 startup 에 대해 링크합니다. MSVC 도구나 Windows SDK 는 필요 없습니다. rok 의 Windows startup 은 `main` 전에 `.CRT$XCA`..`.CRT$XCZ` 의 C initializer 를 실행합니다. x86 Windows 의 import 이름은 mingw-w64 의 `lib32` 정의에서 오며 stdcall `@N` 장식을 쓰고, image 는 `/SAFESEH:NO` 로 링크합니다. Linux 대상은 native 든 cross 든 언제나 `<sysroot>/lib/rok/targets/<triple>/` 에 제공된 C 라이브러리에 대해 링크합니다: musl 은 정적으로, glibc 는 link stub 을 통해 (실행 파일은 glibc 2.34 이상이 필요). 다른 라이브러리는 `-L` 과 `LIBRARY_PATH` 로 찾습니다. 32-bit glibc 타깃의 dynamic loader 는 `/lib/ld-linux.so.2` (i686) 와 `/lib/ld-linux-armhf.so.3` (armv7hf) 입니다. `ROK_CC` 가 설정되어 있으면 그 C 컴파일러 드라이버가 최종 링크를 대신합니다 (`$ROK_CC <objects> <archives> -o <out>`). 이것은 선택적인 대체입니다. `--native-runtime` 으로 준 공유 라이브러리는 실행 파일 옆에 복사되며, 실행 파일은 rpath `@loader_path` (Mach-O) / `$ORIGIN` (ELF) 을 가집니다. Windows 는 실행 파일의 디렉토리에서 DLL 을 읽습니다. 실행 파일은 dead-strip 됩니다: 참조되지 않는 함수와 데이터는 제거합니다. Apple 대상에서 `-g` 이면 내장 `dsymutil` (`rokc` 에 링크된 LLVM 의 것) 이 실행 파일 옆에 `.dSYM` bundle 을 씁니다.
+Mach-O 실행 파일은 macOS SDK (Xcode Command Line Tools) 에 대해 링크합니다. Windows 실행 파일은 `rokc` 가 함께 가진 module definition (mingw-w64 에서 유래) 으로 만든 import library 와, UCRT 위의 rok 자신의 startup 에 대해 링크합니다. MSVC 도구나 Windows SDK 는 필요 없습니다. rok 의 Windows startup 은 `main` 전에 `.CRT$XCA`..`.CRT$XCZ` 의 C initializer 를 실행합니다. x86 Windows 의 import 이름은 mingw-w64 의 `lib32` 정의에서 오며 stdcall `@N` 장식을 쓰고, image 는 `/SAFESEH:NO` 로 링크합니다. Linux 대상은 native 든 cross 든 언제나 `<sysroot>/lib/rok/targets/<triple>/` 에 제공된 C 라이브러리에 대해 링크합니다: musl 은 정적으로, glibc 는 link stub 을 통해 (실행 파일은 glibc 2.34 이상이 필요). 다른 라이브러리는 `-L` 과 `LIBRARY_PATH` 로 찾습니다. 32-bit glibc 타깃의 dynamic loader 는 `/lib/ld-linux.so.2` (i686) 와 `/lib/ld-linux-armhf.so.3` (armv7hf) 입니다. `ROK_CC` 가 설정되어 있으면 그 C 컴파일러 드라이버가 최종 링크를 대신합니다 (`$ROK_CC <objects> <archives> -o <out>`). 이것은 선택적인 대체입니다. `--native-runtime` 으로 준 공유 라이브러리는 실행 파일 옆에 복사되며, 실행 파일은 rpath `@loader_path` (Mach-O) / `$ORIGIN` (ELF) 을 가집니다. Windows 는 실행 파일의 디렉토리에서 DLL 을 읽습니다. 실행 파일은 dead-strip 됩니다: 참조되지 않는 함수와 데이터는 제거하며, `release` 빌드는 같은 함수도 하나로 합칩니다 ([9.2.15](#9215-산출물)). Apple 대상에서 실행 파일에 디버그 정보가 있으면 내장 `dsymutil` (`rokc` 에 링크된 LLVM 의 것) 이 실행 파일 옆에 `.dSYM` bundle 을 씁니다.
 
 ## 9.2.15. 산출물
 
 산출물은 cargo 와 같이 **profile 별** 디렉토리에 놓입니다. profile 은 `debug` (기본값) 와 `release` 이며, 최적화 단계가 `-O2` / `-O3` / `-Os` (`--release` 포함) 이면 `release` 입니다.
+
+두 profile 은 cargo 처럼 다릅니다.
+
+| Profile | 최적화 | 디버그 정보 | 링크 |
+|---|---|---|---|
+| `debug` | `-O0`, `-O1` | 있음 | 참조되지 않는 코드와 데이터 제거 |
+| `release` | `-O2`, `-O3`, `-Os` | `-g` 일 때만 | 같은 함수도 하나로 합침 (객체가 주소를 취했다고 표시한 함수는 제외); `-g` 가 없으면 loader 가 필요로 하는 것 밖의 심볼 없음 |
+
+디버그 정보는 빌드가 만드는 실행 파일이나 archive (`build`, `run`, `test`) 의 것이며, `--emit` 출력이나 REPL, Jupyter 셀의 것이 아닙니다. panic 은 어느 profile 에서든 소스 위치를 알립니다. 빌드의 객체는 출력 옆의 한 곳에서 링크되므로, 같은 입력은 같은 실행 파일을 만듭니다. profile 에는 `rok.rokon` 의 설정이 없습니다.
 
 ```
 target/
@@ -229,8 +238,8 @@ target/
 패키지의 빌드 (`check`, `build`, `run`, `test`, `bench`, `doc`, `lint`) 는 front end 가 계산한 것을 `target/<profile>/incremental/<name>-<hash>/` 에 둡니다. `<hash>` 는 패키지 루트를 가리키며, 빌드 종류 (target, cfg, test 여부, 어떤 라이브러리가 미리 빌드되었는지) 마다 하위 디렉토리가 하나씩 있습니다. 같은 종류의 다음 빌드는 여기서 다음을 가져옵니다.
 
 - 텍스트와 파싱 입력 (빌드의 확장 연산자, 패키지의 키워드, 메타 블록과 `#[literal]` 패턴, cfg) 이 바뀌지 않은 각 파일의 파싱.
-- 각 plain 함수 본체의 lowering (이름 해소, 타입 검사, 제네릭 인스턴스화). plain 함수는 반환 타입을 적었거나 `()` 인, 제네릭도 `const` 도 아닌 함수, 또는 제네릭이 아닌 `impl` 의 메서드입니다. 그 자신의 텍스트와 위치가 같고, 프로그램의 인터페이스가 같고, lowering 이 읽은 모든 시그니처, 인스턴스, 그 밖의 사실이 지금도 같고, 그 결과가 본체 밖에서 가리키는 모든 위치 앞의 텍스트가 같으면 재사용합니다.
-- 인터페이스는 plain 본체와 plain 함수의 매개변수, 반환 타입을 뺀 모든 항목입니다. 본체를 고치면 그 본체를 다시 lowering 하고, plain 함수의 시그니처를 고치면 그것과 그 시그니처를 읽은 본체들을 다시 lowering 하며, 항목의 그 밖의 변경 (타입, 트레잇, `impl` 머리, 제네릭 함수, `use`) 은 모든 본체를 다시 lowering 합니다.
+- 각 plain 함수 본체의 lowering (이름 해소, 타입 검사, 제네릭 인스턴스화). plain 함수는 제네릭도 `const` 도 아닌 함수, 또는 제네릭이 아닌 `impl` 의 메서드입니다. 그 자신의 텍스트와 위치가 같고, 프로그램의 인터페이스가 같고, lowering 이 읽은 모든 시그니처, 인스턴스, 그 밖의 사실이 지금도 같고, 그 결과가 본체 밖에서 가리키는 모든 위치 앞의 텍스트가 같으면 재사용합니다.
+- 인터페이스는 반환 타입을 적었거나 `()` 인 plain 본체와 plain 함수의 매개변수, 반환 타입을 뺀 모든 항목이며, 반환 타입을 추론하는 본체는 그 일부입니다 (호출자가 그 타입을 읽음). 본체를 고치면 그 본체를 다시 lowering 하고, 반환 타입을 추론하는 본체를 고치면 그 타입을 읽은 본체들도 다시 lowering 하며, plain 함수의 시그니처를 고치면 그것과 그 시그니처를 읽은 본체들을 다시 lowering 하며, 항목의 그 밖의 변경 (타입, 트레잇, `impl` 머리, 제네릭 함수, `use`) 은 모든 본체를 다시 lowering 합니다.
 - 재사용한 lowering 이 만든 함수, 타입, 인스턴스는 깨끗한 빌드와 같이 번호가 매겨지며, 진단, 프로그램, 그 심볼은 깨끗한 빌드의 것과 같습니다.
 
 시그니처, `impl` 등록, coherence, 프로그램 전체 검사는 모든 빌드에서 실행합니다. 라이브러리의 항목을 모으며 만든 것 (표준 라이브러리와 의존 패키지의 것) 과 라이브러리 파일의 pre-pass 파싱은 모든 빌드에서, 단독 파일의 빌드에서도 toolchain 의 cache (`lib/rok-cache/library/`, toolchain, 빌드 플래그, 라이브러리 소스의 해시마다 파일 하나) 에 보관합니다. `ROKC_INCREMENTAL` 은 이것을 옮기지도 끄지도 않습니다. 보관한 것이 꼭 있어야 하지는 않습니다: 없거나 망가졌거나 오래된 항목은 다시 계산합니다. 패키지 밖의 단독 파일은 `ROKC_INCREMENTAL` 이 디렉토리를 가리키지 않으면 자기 파싱과 본체를 보관하지 않습니다. `ROKC_INCREMENTAL=<dir>` 은 결과를 `<dir>/<name>-<hash>/` 에 두고, `ROKC_INCREMENTAL=0` 은 끕니다. `ROKC_INCR_VERIFY=1` 은 모든 본체를 따로 다시 lowering 해, 재사용한 lowering 이 다르면 빌드를 실패시킵니다. `-v` 는 파싱과 본체를 재사용한 파일 수를 보고합니다.

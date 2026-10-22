@@ -10,6 +10,8 @@ full 수집은 mark 를 mutator 와 동시에 할 수 있습니다. minor 수집
 | `always`            | 언제나 동시 mark                              |
 | `off`               | 언제나 STW                                    |
 
+설정하지 않았거나 비어 있는 변수는 기본값을 가집니다. 나열된 것 밖의 값은 변수, 값, 받는 값을 알리는 경고 한 줄을 stderr 에 출력하며, 그 변수는 기본값을 가집니다.
+
 ## 7.5.2. 단계
 
 1. **시작 pause (STW).** minor 수집을 한 번 하고, safepoint 에서 루트의 snapshot 을 뜹니다. 전역 `MARKING` 플래그를 켭니다.

@@ -199,7 +199,7 @@ In addition to `-v`, prints a `Reading <file>` line for each file processed and 
 
 ### DWARF debug information
 
-`rokc build -g` or `--debug` (synonyms, unrelated to the profile name `debug`) emits DWARF debug information with the following properties. For Windows targets it emits CodeView in a PDB instead, carrying the same information.
+A `debug` profile build, and a `release` build with `-g` ([9.2.15](902-aot-pipeline.md#9215-output)), emits DWARF debug information with the following properties. For Windows targets it emits CodeView in a PDB instead, carrying the same information.
 
 - A function's `DW_AT_name` is its rok path (`geom::distance`); no linkage name (mangled symbol) is emitted, because debuggers do not understand `_Y` mangling.
 - Line numbers refer to lines of the original .rok file.
@@ -283,6 +283,8 @@ The runtime reads the following environment variables.
 | `ROK_WORKERS=<n>`         | Number of executor workers N (default: the online CPUs) ([7.6.8](../007-runtime/706-scheduler.md#768-thread-per-core-option)) |
 | `ROK_THREAD_PER_CORE=1`   | Thread-per-core: tasks pinned to their worker, no stealing (7.6.8) |
 | `ROK_DYNAMIC_WORKERS=1`   | Idle workers park and are taken back when every active worker is busy ([7.7.8](../007-runtime/707-io-and-timer.md#778-dynamic-adjustment-of-worker-count)) |
+
+An unset or empty variable has its default. A value outside those listed prints one warning line on stderr naming the variable, the value and the accepted values, and the variable has its default.
 
 ## 9.9.9. REPL / Jupyter debugging
 

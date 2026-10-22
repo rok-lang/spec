@@ -241,3 +241,5 @@ main(argc, argv):                // 컴파일러 생성, C ABI
 ```
 
 GC 객체 할당의 slow path 는 `rok_gc_alloc_slow(size, align, type_id)` 이며 ([7.2.3](../007-runtime/702-allocation.md#723-slow-path-rok_gc_alloc_slow)), 컴파일러가 부여하는 type id 는 `0x10000` 부터 시작합니다 ([8.1.2](801-object-header-abi.md#812-type_id-offset-0-u32-little-endian)).
+
+표의 바이트는 프로그램에 한 번만 있습니다: 각 패키지의 `rok.register_types` 는 표의 내용으로 이름 붙인 숨은 정의를 가리키며, 여러 패키지가 같은 레이아웃을 각자의 id 로 등록해도 링크는 그 정의를 한 번만 남깁니다.

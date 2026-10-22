@@ -18,6 +18,34 @@ block_like_expr ::= block | if_expr | match_expr | loop_expr
 tail_expr   ::= expr            // no trailing ";"
 ```
 
+A block may declare `fn` ([4.10](../004-functions/410-nested-functions.md)), `const` ([5.2.2](../005-modules/502-const.md#522-permitted-positions)), `use`, `struct`, `enum`, `union`, `trait`, `impl`, `type` and `static` items. `mod` and `extern` items are declared only at module level ([5.4.10](../005-modules/504-modules.md#5410-where-module-declarations-may-appear), [5.9.8](../005-modules/509-extern-block.md#598-position-of-the-extern-block-itself)); declaring one in a block is a compile error.
+
+Items declared in a block follow these rules:
+
+- **Scope.** An item's name is visible in the whole block, before and after its declaration, and inside the items declared in that block. Within the block it hides an item of the same name and namespace declared outside it; a `use` in an inner block hides it in turn. Outside the block it cannot be named. Two items of the same name and namespace in one block, or an item and a `use` of its name, are a compile error.
+- **What it sees.** An item in a block sees the items of its module and the items and `use` declarations of its block and the blocks around it. It cannot use a local variable or parameter (`let`, a function or closure parameter, a pattern binding) or a generic parameter of the code around it; doing so is a compile error. Values reach it through fields and parameters; types through its own generic parameters.
+- **One item.** An item in a block is one item however often its block runs: one in a generic function is not generic over the function's parameters; a `static` in a block is one slot, initialized once; a `const` in a block has one value.
+- **Coherence.** An `impl` in a block takes part in coherence and the orphan rule ([2.9.5](../002-types/209-impl.md#295-orphan-rule)) like a module-level `impl` of the same module; its methods and trait implementation hold everywhere. It may implement an outer trait for an outer type.
+- **Visibility.** An item in a block has no visibility of its own: `pub` on one is a compile error. Fields and methods of a type declared in a block follow the usual rules within its module.
+- **Names.** `type_name`, `Debug` and debug information name an item in a block as written (`S`); diagnostics do too, and add the functions it is declared in (`f::S`) when another item has that name.
+
+```rok
+struct S { a: i32; }
+
+fn f() -> i32 {
+    use rok::core::fmt::Debug;
+    const SCALE: i32 = 2;
+    #[derive(Debug)]
+    struct S { x: i32; }               // hides the module's `S` in this block
+    impl S { fn scaled(self) -> i32 { self.x * SCALE } }   // OK — `SCALE` is an item
+    S { x: 1 }.scaled()
+}
+
+fn g(n: i32) {
+    struct P { v: i32 = n; }           // ERROR — `n` is a local of `g`
+}
+```
+
 Schematically:
 
 ```rok

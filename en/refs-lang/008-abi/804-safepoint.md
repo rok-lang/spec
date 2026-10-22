@@ -141,7 +141,7 @@ A thread inside C or a blocking runtime call cannot reach a safepoint, so it cou
 
 - The compiler brackets every `extern "C"` call: `PARKED` for the duration of the call, `RUNNING` after it, then a yield-flag check. The caller's argument roots stay in its shadow-stack frame. The fast path is inline; `rok_enter_native` / `rok_leave_native` are the slow paths ([8.5.2](805-extern-symbols.md#852-runtime-area)).
 - Every `extern "C" fn` definition starts with `rok_native_reenter` and ends with `rok_native_resume`, so a C callback runs as a mutator.
-- The runtime brackets its own blocking calls (I/O wait, `rok_sync_wait`, join, sleep) the same way.
+- The runtime brackets its own blocking calls (I/O wait, `rok_sync_wait`, join, sleep) the same way, and its long computations that touch no GC object but buffers the caller's frame keeps alive (the `int` multiplication, division and gcd kernels). Their `extern "rok"` declarations are not `#[no_safepoint]` ([5.9.2](../005-modules/509-extern-block.md#592-abi-specifiers)), so a call to them is a safepoint and the buffers are rooted.
 - A call through an `extern "C"` declaration of a `rok_*` symbol ([8.5](805-extern-symbols.md), the runtime's reserved prefix) is not bracketed: the runtime function runs as a mutator.
 
 ```

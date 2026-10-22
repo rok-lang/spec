@@ -179,7 +179,7 @@ mod geom {
 }
 ```
 
-A module may contain only items; executable statements (top-level `let`, expression statements) are allowed only in the entry module `main.rok` ([4.16.6](../004-functions/416-entry-point.md#4166-modules-are-definition-only)). All such items are part of that module, and referencing them from outside requires both a [visibility](506-visibility.md) keyword and a [path](507-paths.md).
+A module may contain only items; executable statements (top-level `let`, expression statements) are allowed only in the entry module `main.rok` ([4.16.6](../004-functions/416-entry-point.md#4166-modules-are-definition-only)). All such items are part of that module, and referencing them from outside requires both a [visibility](506-visibility.md) keyword and a [path](507-paths.md). An item declared in a function body ([3.9.1](../003-expressions/309-block-expressions.md#391-form)) belongs to the module for coherence but is named only inside its block.
 
 ## 5.4.8. Module visibility
 
@@ -205,7 +205,7 @@ child_mod::item                // within the same module (an identifier suffices
 
 ## 5.4.10. Where module declarations may appear
 
-A `mod` declaration may appear only at module level, that is, in the body of another `mod` or at the package root. Declaring a `mod` inside a function body is an ERROR.
+A `mod` declaration may appear only at module level, that is, in the body of another `mod` or at the package root. Declaring a `mod` inside a function body is an ERROR ([3.9.1](../003-expressions/309-block-expressions.md#391-form) lists the items a block may declare).
 
 ```rok
 fn f() {

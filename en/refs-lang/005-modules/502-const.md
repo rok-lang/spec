@@ -44,6 +44,8 @@ trait Numbers {
 }
 ```
 
+A `const` in a function body is an item of its block ([3.9.1](../003-expressions/309-block-expressions.md#391-form)): visible in the whole block and the items declared in it, it reads no local variable, parameter or generic parameter of the code around it.
+
 ## 5.2.3. Meaning of `const`: inlined at each use
 
 A `const` is a value, not an address. Its value is inlined at every place it is used.
@@ -131,7 +133,7 @@ The three mechanisms are orthogonal. Their domains do not overlap, so they may b
 
 ## 5.2.7. When `const` is evaluated
 
-Module-level and `impl`-level `const`s are evaluated once at package build. A `const` inside a function body and a `const` that depends on generic parameters are evaluated per monomorphization. Results that do not use the heap are embedded in the binary and have no runtime cost.
+Module-level, function-body and `impl`-level `const`s are evaluated once at package build. A `const` that depends on generic parameters (an associated `const` of a generic `impl`) is evaluated per monomorphization. Results that do not use the heap are embedded in the binary and have no runtime cost.
 
 ## 5.2.8. Relation to `struct` field defaults
 

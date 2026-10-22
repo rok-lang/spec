@@ -201,7 +201,7 @@ fn strict_zone() { ... }
 | `dead_code`              | 아무도 부르지 않는 비 `pub` 함수                                   |
 | `unreachable_code`       | `return` / `break` / `continue` / `throw` / `panic` 뒤의 문장      |
 | `unused_must_use`        | `#[must_use]` 함수의 결과를 버림                                   |
-| `ignored_error`          | `try? f();` 문장이 에러를 조용히 버림                              |
+| `ignored_error`          | `try? f();` 문장이 에러를 조용히 버림. `let _ = try? f();` 는 의도한 best-effort 호출의 표시이며 보고하지 않음 |
 | `shadowed_loop_var`      | `for` 본체의 `let` 이 루프 변수를 다시 묶음                        |
 | `nan_comparison`         | NaN 과의 비교 (늘 거짓, `!=` 는 늘 참)                             |
 | `none_comparison`        | `x is none` 대신 `x == none`                                       |

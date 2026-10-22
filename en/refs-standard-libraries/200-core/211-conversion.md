@@ -340,6 +340,8 @@ impl TryFrom<str> for i32 {
 let n: i32 = try "42".try_into();
 ```
 
+Every fixed-width integer type implements `TryFrom<str>` this way, on top of its `FromStr`: empty text, an invalid digit or an out-of-range value throws `OverflowError { op: "try_from", ty }`. Floating-point types, `bool` and `char` provide only `FromStr`.
+
 ## 2.11.10. Automatic conversion of arithmetic results — none
 
 Auto-From for arithmetic results ([refs-lang 2.14](../../refs-lang/002-types/214-cast-and-conversion.md)) applies only in **literal context**. The result of arithmetic on values is not converted automatically.

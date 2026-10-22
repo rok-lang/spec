@@ -145,7 +145,7 @@ impl<T> MutexGuard<T> {
 
 ### Example
 
-A guard bound with `using` is `drop`ped on leaving the block, releasing the lock. A guard received without `using` is not released automatically, so it must always be bound with `using`. Binding a guard with a plain `let` (or `if let`) that is never released by `using`, or discarding a guard returned by `lock`, is a compile error.
+A guard bound with `using` is `drop`ped on leaving the block, releasing the lock. A guard received without `using` is not released automatically, so it must always be bound with `using`. A guard is received from a call, a method call or `await`. A received guard may only initialize a binding (`let`, a pattern, `using`), be assigned to a variable, or be handed to the caller (`return`, the function's value). Passing it to a function, calling a method on it, storing it in a field or a collection, or discarding it is a compile error. A guard bound with `using` may be passed to functions; a guard bound without `using` is not released by passing it on. Binding a guard with a plain `let` (or `if let`) that is never released by `using`, or discarding a guard returned by `lock`, is a compile error.
 
 ```rok
 static STATE: Mutex<List<i32>> = Mutex::new([]);
@@ -221,6 +221,8 @@ using w = CONFIG.write() {       // briefly blocks all readers
 }
 ```
 
+`RwLock<T>` is `Sync` only when `T` is `Send + Sync` ([2.16.5](#send--sync-markers)), so `Config` here must be `Sync`.
+
 The same rule holds for `RwLock` guards: binding the guard of `read` / `write` with a plain `let` (or `if let`) that `using` never releases, or discarding it, is a compile error.
 
 ## 2.16.4a. `Once` / `Condvar`
@@ -285,7 +287,8 @@ task::spawn(async { c.set(100) });       // ERROR — Cell is not cross-task saf
 `Send` / `Sync` are the automatic marker traits of [2.13.9](213-marker.md#2139-send--sync--thread-boundary-markers). The types in this chapter follow this policy:
 
 - `Atomic<T>`: Send + Sync
-- `Mutex<T>` / `RwLock<T>`: Send + Sync (when T: Send)
+- `Mutex<T>`: Send + Sync when `T: Send`
+- `RwLock<T>`: Send when `T: Send`; Sync when `T: Send + Sync` — its readers share the value at once, so an `RwLock` of a collection (`!Sync`) cannot be shared between threads; use `Mutex<T>`.
 - `Cell<T>`: neither (single-task only) — the `task::spawn` above is an error because the `async` block captures the `Cell` and is therefore not `Send`
 
 ## 2.16.6. Module mapping

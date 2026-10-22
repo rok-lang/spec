@@ -55,7 +55,7 @@ A binary operation `a op b` selects from the impls of that operator's trait for 
 - If a type has several impls of the same operator trait (`Mul<i64>`, `Mul<f64>`, etc.), the impl whose `Rhs` matches the right operand's type is selected.
 - If the left side is a primitive type and the right side is a struct, the impl declared for the primitive type is used (`2.0 * d` is `impl Mul<Duration> for f64`).
 
-The same rule is not limited to operators. It applies wherever an impl is selected by the type of the value filling a trait's type parameter: an operator's `Rhs`, the argument of `T::from(x)` / `T::try_from(x)` / `Tr::f(x)`, and the receiver of `.into()` / `.try_into()` in a position with a known type. If that value is an unsuffixed literal, selection proceeds in this order:
+The same rule is not limited to operators. It applies wherever an impl is selected by the type of the value filling a trait's type parameter: an operator's `Rhs`, the argument of `T::from(x)` / `T::try_from(x)` / `Tr::f(x)`, the receiver of `.into()` / `.try_into()` in a position with a known type, and the argument of a method call `x.m(v)` or path call `T::m(x, v)` when the impls differ in that parameter. If that value is an unsuffixed literal, selection proceeds in this order:
 
 1. The impl for the literal's default type (`i32` / `f64`), if it exists and the value fits that type.
 2. Otherwise, the unique impl whose parameter type can hold the value (for integers, an in-range integer type or `int`; for reals, `f32` / `f64` where the value is finitely representable, or `float`). `d * 2` is `Duration`'s `Mul<i64>`.

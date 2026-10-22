@@ -340,6 +340,8 @@ impl TryFrom<str> for i32 {
 let n: i32 = try "42".try_into();
 ```
 
+모든 고정 폭 정수 타입은 자기 `FromStr` 위에 이런 식으로 `TryFrom<str>` 을 구현합니다: 빈 텍스트, 잘못된 숫자, 범위 밖의 값은 `OverflowError { op: "try_from", ty }` 를 던집니다. 부동소수 타입, `bool`, `char` 는 `FromStr` 만 제공합니다.
+
 ## 2.11.10. 산술 결과의 자동 변환 — 없음
 
 arithmetic 결과의 auto-From ([refs-lang 2.14](../../refs-lang/002-types/214-cast-and-conversion.md)) 은 **literal context** 에서만 적용됩니다. value 산술 결과는 자동으로 변환되지 않습니다.

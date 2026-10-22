@@ -199,7 +199,7 @@ span 은 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_p
 
 ### DWARF 디버그 정보
 
-`rokc build -g` 또는 `--debug` (같은 뜻이며, profile 이름 `debug` 와는 별개) 를 사용하면 DWARF 디버그 정보를 emit 합니다. Windows 대상에서는 그 대신 같은 정보를 담은 CodeView 와 PDB 를 냅니다. 이때 다음과 같은 특성을 갖습니다.
+`debug` profile 빌드와, `-g` 를 준 `release` 빌드 ([9.2.15](902-aot-pipeline.md#9215-산출물)) 는 DWARF 디버그 정보를 emit 합니다. Windows 대상에서는 그 대신 같은 정보를 담은 CodeView 와 PDB 를 냅니다. 이때 다음과 같은 특성을 갖습니다.
 
 - 함수의 `DW_AT_name` 은 rok 경로 (`geom::distance`) 이며, linkage name (맹글링된 심볼) 은 두지 않습니다. 디버거가 `_Y` 맹글링을 모르기 때문입니다.
 - 줄 번호는 원본 .rok 파일의 줄을 가리킵니다.
@@ -283,6 +283,8 @@ rokc build --release -C profile-use=app.profdata  #    profile 로 다시 빌드
 | `ROK_WORKERS=<n>`         | executor worker 수 N (기본값: 온라인 CPU 수) ([7.6.8](../007-runtime/706-scheduler.md#768-thread-per-core-옵션)) |
 | `ROK_THREAD_PER_CORE=1`   | thread-per-core: task 를 자기 worker 에 고정하고 stealing 하지 않음 (7.6.8) |
 | `ROK_DYNAMIC_WORKERS=1`   | idle worker 는 park 하고, 모든 활성 worker 가 바쁘면 다시 씀 ([7.7.8](../007-runtime/707-io-and-timer.md#778-worker-수의-동적-조절)) |
+
+설정하지 않았거나 비어 있는 변수는 기본값을 가집니다. 나열된 것 밖의 값은 변수, 값, 받는 값을 알리는 경고 한 줄을 stderr 에 출력하며, 그 변수는 기본값을 가집니다.
 
 ## 9.9.9. REPL / Jupyter 디버그
 

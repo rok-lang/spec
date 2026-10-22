@@ -58,6 +58,8 @@ This yields the following separation:
 - A nested function cannot see outer variables; apart from its limited scope, it is the same as a module-level function.
 - A closure can capture (see [Capture Semantics](406-capture-semantics.md)).
 
+A nested function sees the items and `use` declarations of its block and the blocks around it, `const`s included ([3.9.1](../003-expressions/309-block-expressions.md#391-form)); only their locals, parameters and generic parameters are out of reach.
+
 ## 4.10.4. Behavior on call
 
 Calling a nested function follows the same rules as calling a module-level function. It is called directly through the function address, so there is no capture and no overhead.
@@ -103,7 +105,7 @@ fn outer() {
 }
 ```
 
-Visibility applies only to module-level items.
+Visibility applies only to module-level items. The same holds for every item declared in a block ([3.9.1](../003-expressions/309-block-expressions.md#391-form)).
 
 ## 4.10.8. Nested function and outer variable with the same name
 
@@ -130,7 +132,7 @@ fn outer() {
 }
 ```
 
-A nested function is visible in its whole block (hoisted). It sees the nested functions of its own block and of every enclosing block, but no locals of any of them.
+A nested function is visible in its whole block (hoisted). It sees the nested functions, other items and `use` declarations of its own block and of every enclosing block, but no locals of any of them. A `use` in a block hides an outer nested function of the same name.
 
 ## 4.10.10. Where nested functions are useful
 

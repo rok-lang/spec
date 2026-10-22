@@ -175,7 +175,7 @@ The intent must be stated explicitly, as in `s.chars().next()` or `s.byte(0)`.
 
 ### Substrings are not copied
 
-The results of `s[a:b]`, `lines`, `split*`, `split_whitespace`, `split_once`, `trim*` and `strip_*` are `str` values sharing the original bytes, in O(1) ([refs-lang 8.8.1](../../refs-lang/008-abi/808-lowering-types.md#881-primitive-integers--floating-point)). A small piece therefore keeps a large original alive. There is no API to detach it. `as_bytes()` is likewise a read-only `Slice<u8>` view without copying.
+For a `str` `s`, the results of `s[a:b]`, `lines`, `split*`, `split_whitespace`, `split_once`, `trim*` and `strip_*` are `str` values sharing the original bytes, in O(1) ([refs-lang 8.8.1](../../refs-lang/008-abi/808-lowering-types.md#881-primitive-integers--floating-point)). A small piece therefore keeps a large original alive. There is no API to detach it. `as_bytes()` is likewise a read-only `Slice<u8>` view without copying. A slice of a `StrBuf` is a new `str` holding a copy of the range, O(b − a): `str` is immutable, so it cannot share a buffer that may still change.
 
 ## 2.15.4. `char` — Unicode scalar value
 

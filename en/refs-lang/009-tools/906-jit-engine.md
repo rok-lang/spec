@@ -38,6 +38,7 @@ Code of the standard library and dependency packages is compiled only once per s
 - `rokc` remembers the functions the host has already loaded and their MIR. If a cell's function is identical to an already loaded one, only a reference is passed instead of the code.
 - Names across cells are fixed so that identical MIR means identical meaning. String literal globals are named by a hash of their content, and GC type ids are fixed for the session keyed by [ScanTable](../008-abi/802-scan-table.md) content.
 - Functions that directly or indirectly call something this cell newly defines (a changed function, a `static`, a binding slot) are recompiled.
+- A cell's object holds only what the cell adds: the functions it defines anew and, for statics of earlier cells its code reads, their initialization guard. It names only the symbols its code refers to.
 
 ## 9.6.5. Execution flow (one REPL line / one Jupyter cell)
 

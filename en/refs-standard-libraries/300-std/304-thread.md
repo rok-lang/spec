@@ -25,8 +25,9 @@ struct Thread { /* OS handle — not generic */ }
 struct JoinHandle<T> { /* join result T */ }
 struct ThreadId { /* opaque */ }
 
-struct JoinError { code: i32; }          // OS join error number (errno), or JOIN_LOST
+struct JoinError { code: i32; }          // OS join error number (errno), JOIN_LOST or JOIN_TAKEN
 const JOIN_LOST: i32 = -1;               // the thread ended with a failed REPL cell
+const JOIN_TAKEN: i32 = -2;              // already joined or detached
 // implements Display, Debug and Error
 
 fn spawn<T: Send>(f: fn() -> T + Send) -> JoinHandle<T>;
@@ -77,6 +78,8 @@ impl<T> ThreadLocal<T> {
 ### Panics and `JoinError`
 
 A panic in any thread terminates the whole process with exit code 101. `join` therefore never receives another thread's panic, and `JoinError` represents OS-level join failures, or `JOIN_LOST` for a thread that ended with a failed REPL cell ([refs-lang 9.7.0](../../refs-lang/009-tools/907-jit-cells.md#970-rules-of-the-cell-session)), displayed as "thread join failed: the thread ended with a failed REPL cell".
+
+`JOIN_TAKEN` (-2): the handle, or a copy of it, was already joined or detached. A second `join` throws it; a second `detach` does nothing.
 
 ## 3.4.3. Examples
 

@@ -68,7 +68,7 @@ rokc build [path]
 
 Options:
 
-- `--release` performs an optimized build (equivalent to `-O2`) in the `release` profile; the default is a debug build (`-O0`) in the `debug` profile.
+- `--release` performs an optimized build (equivalent to `-O2`) in the `release` profile; the default is a debug build (`-O0`) in the `debug` profile. The profiles differ as [9.2.15](902-aot-pipeline.md#9215-output) describes.
 - `--target-dir=<dir>` relocates `target/` (equivalent to `ROKC_TARGET_DIR`).
 - `--extern <name>=<dir | src/lib.rok | <name>.rokhir | lib<name>.a>` mounts one dependency package at the top-level path `name` ([9.2.3](902-aot-pipeline.md#923-dependency-resolution)). Source (`dir` / `src/lib.rok`) is compiled together in the same build; a prebuilt package (`.rokhir` / `.a`; given one, its sibling is located) has its ROKHIR read and its archive linked. May be given multiple times and is normally filled in by `rok`. `name` is an identifier: the package name with `-` replaced by `_` ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)).
 - `--extern-feature <name>=<f>` builds the source dependency `name` with `cfg(feature = "<f>")`. Repeatable, one per feature. A dependency sees only these: the `feature` keys of `--cfg` belong to the package being compiled. Normally filled in by `rok`.
@@ -82,7 +82,7 @@ Options:
 - `--cfg <flag>` / `--cfg <key>=<value>` sets a cfg flag for [conditional compilation](../006-meta-system/603-cfg.md). May be repeated.
 - `--emit=<kind>[,<kind>..]` writes intermediate output (`ast`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expanded`) to `target/<profile>/build/<name>.<ext>` ([9.9.1](909-debug-tools.md#991-intermediate-output---emit)). Several kinds may be given at once separated by commas; in that case `-o` cannot be used. With `--emit`, no executable or archive is produced.
 - `--load-mlir-plugin <path|name>` loads an MLIR dialect plugin, `--load-mlir-pass-plugin <path|name>` loads a pass plugin (both into `rokc`'s MLIR; built against the same pinned LLVM, on Windows linked against `rokc.exe`'s import library), and `--mlir-pass <pass>` runs that pass before conversion to the LLVM dialect ([rok::bare::mlir::plugin](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-loading)). All may be repeated, and `rok` passes them through unchanged.
-- `-g` / `--debug` emits DWARF debug information ([9.9](909-debug-tools.md#dwarf-debug-information)).
+- `-g` adds debug information to a `release` profile build: DWARF, or CodeView in a PDB for Windows targets ([9.9.6](909-debug-tools.md#996-debugger-integration-gdb--lldb)). A `debug` profile build always has it.
 - `-C overflow-checks[=yes|no]` turns overflow checks (panic) for fixed-width integer arithmetic on or off. The default is on only at `-O0`. An omitted value means `yes`. Operations on constant operands that cannot overflow skip the check.
 - `-C backend=native|llvm` overrides the backend the optimization level selects ([9.2.10](902-aot-pipeline.md#9210-backend-selection)).
 - `-C target-cpu=<cpu>|native` targets that CPU instead of the triple's baseline ([0.6.4](../000-meta/006-platform-targets.md#064-simd)); `native` is the CPU of the build machine. `-C target-feature=+f1,-f2,..` turns individual features (`+avx2`, ...) on or off. The resulting binary may not run on CPUs without them. With the native backend (`-O0`) the options are noted (a warning) and code is built for the baseline. `native` is accepted only when the target is the host platform.
@@ -435,6 +435,8 @@ Exit codes are defined as follows.
 
 `rokc` does not read `ROK_HOME` (the sysroot is relative to the executable). If rokc itself panics (internal compiler error), it prints a message and exits with `101`. `rokc lsp`, `rokc repl` and `rokc jupyter` survive it: the language server reports it as an error diagnostic of the analysed buffer, the REPL / kernel fails that cell ([9.7.5](907-jit-cells.md#975-error-modes)); both keep serving. `rokc run` exits with the exit code of the program it ran (9.1.2).
 
+If standard output or standard error is a pipe whose reader has gone, `rokc` stops without a message: on Unix it is terminated by `SIGPIPE` (a shell reports `141`); on Windows it exits with `1`. This is not an internal error.
+
 ## 9.1.7. Environment variables
 
 The environment variables that affect `rokc` are:
@@ -451,6 +453,8 @@ The environment variables that affect `rokc` are:
 | `ROKC_INCR_VERIFY` | `1`: lower every body again and fail on a difference ([9.2.16](902-aot-pipeline.md#9216-incremental-build)) |
 | `ROKC_NUM_JOBS`   | Default for `rokc test --threads` (CPU core count if unset)                              |
 | `NO_COLOR`        | If set, `--color=auto` does not use color                                                |
+
+An unset or empty variable has its default. A value outside those listed prints one warning line on stderr naming the variable, the value and the accepted values, and the variable has its default.
 
 ## 9.1.8. Output format
 

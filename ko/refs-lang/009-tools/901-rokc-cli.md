@@ -68,7 +68,7 @@ rokc build [path]
 
 옵션은 다음과 같습니다.
 
-- `--release` 는 최적화 빌드 (`-O2` 와 같음) 를 `release` profile 로 수행하며, 기본값은 `debug` profile 의 디버그 빌드 (`-O0`) 입니다.
+- `--release` 는 최적화 빌드 (`-O2` 와 같음) 를 `release` profile 로 수행하며, 기본값은 `debug` profile 의 디버그 빌드 (`-O0`) 입니다. 두 profile 의 차이는 [9.2.15](902-aot-pipeline.md#9215-산출물) 가 설명합니다.
 - `--target-dir=<dir>` 는 `target/` 의 위치를 바꿉니다 (`ROKC_TARGET_DIR` 과 같음).
 - `--extern <name>=<dir | src/lib.rok | <name>.rokhir | lib<name>.a>` 는 의존 패키지 하나를 최상위 경로 `name` 에 mount 합니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 소스 (`dir` / `src/lib.rok`) 는 같은 빌드에서 함께 컴파일하고, 미리 빌드한 패키지 (`.rokhir` / `.a`, 하나를 주면 옆의 짝을 찾음) 는 ROKHIR 을 읽고 archive 를 링크합니다. 여러 번 쓸 수 있고, 보통 `rok` 가 채웁니다. `name` 은 식별자이며, 패키지 이름의 `-` 를 `_` 로 바꾼 것입니다 ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)).
 - `--extern-feature <name>=<f>` 는 소스 의존 패키지 `name` 을 `cfg(feature = "<f>")` 로 빌드합니다. feature 마다 하나씩, 여러 번 줄 수 있습니다. 의존 패키지가 보는 것은 이것뿐입니다: `--cfg` 의 `feature` 키는 컴파일 중인 패키지의 것입니다. 보통 `rok` 이 채웁니다.
@@ -82,7 +82,7 @@ rokc build [path]
 - `--cfg <flag>` / `--cfg <key>=<value>` 는 [조건부 컴파일](../006-meta-system/603-cfg.md) 의 cfg flag 를 설정합니다. 여러 번 쓸 수 있습니다.
 - `--emit=<kind>[,<kind>..]` 는 중간 산출물 (`ast`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expanded`) 을 `target/<profile>/build/<name>.<ext>` 에 씁니다 ([9.9.1](909-debug-tools.md#991-중간-산출물-출력---emit)). 쉼표로 여러 종류를 한 번에 지정하며, 이때는 `-o` 를 함께 쓸 수 없습니다. `--emit` 이 있으면 실행 파일이나 archive 는 만들지 않습니다.
 - `--load-mlir-plugin <path|name>` 은 MLIR 다이얼렉트 plugin 을, `--load-mlir-pass-plugin <path|name>` 은 패스 plugin 을 (둘 다 `rokc` 의 MLIR 에, 같은 고정 LLVM 으로 빌드하고 Windows 에서는 `rokc.exe` 의 import library 에 링크한 것을) 로드하고, `--mlir-pass <pass>` 는 LLVM 다이얼렉트로 변환하기 전에 그 패스를 실행합니다 ([rok::bare::mlir::plugin](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-로드)). 모두 여러 번 쓸 수 있으며, `rok` 도 그대로 넘깁니다.
-- `-g` / `--debug` 는 DWARF 디버그 정보를 냅니다 ([9.9](909-debug-tools.md#dwarf-디버그-정보)).
+- `-g` 는 `release` profile 빌드에 디버그 정보를 더합니다: DWARF, Windows 대상에서는 PDB 의 CodeView ([9.9.6](909-debug-tools.md#996-디버거-통합-gdb--lldb)). `debug` profile 빌드에는 항상 있습니다.
 - `-C overflow-checks[=yes|no]` 는 고정 폭 정수 산술의 overflow 검사 (panic) 를 켜거나 끕니다. 기본값은 `-O0` 에서만 켬입니다. 값을 생략하면 `yes` 입니다. overflow 가 일어날 수 없는 상수 피연산자 연산은 검사를 생략합니다.
 - `-C backend=native|llvm` 은 최적화 수준이 고른 backend 를 바꿉니다 ([9.2.10](902-aot-pipeline.md#9210-backend-선택)).
 - `-C target-cpu=<cpu>|native` 는 triple 의 baseline 대신 그 CPU 를 대상으로 합니다 ([0.6.4](../000-meta/006-platform-targets.md#064-simd)). `native` 는 빌드하는 기계의 CPU 입니다. `-C target-feature=+f1,-f2,..` 는 개별 기능 (`+avx2` 등) 을 켜거나 끕니다. 그렇게 만든 바이너리는 그 기능이 없는 CPU 에서 돌지 않을 수 있습니다. native backend (`-O0`) 에서는 이 옵션을 경고로 알리고 baseline 용으로 빌드합니다. `native` 는 target 이 host 플랫폼일 때만 받습니다.
@@ -435,6 +435,8 @@ rokc --cwd=examples/hello run
 
 `rokc` 는 `ROK_HOME` 을 읽지 않습니다 (sysroot 는 실행 파일 기준). rokc 자신이 panic 하면 (internal compiler error) 메시지를 출력하고 `101` 로 끝납니다. `rokc lsp`, `rokc repl`, `rokc jupyter` 는 이것을 견딥니다: language server 는 분석한 버퍼의 에러 진단으로 보고하고, REPL / kernel 은 그 셀을 실패시킵니다 ([9.7.5](907-jit-cells.md#975-에러-모드)). 둘 다 계속 서비스합니다. `rokc run` 은 실행한 프로그램의 종료 코드로 끝납니다 (9.1.2).
 
+표준 출력이나 표준 에러가 읽는 쪽이 사라진 pipe 이면 `rokc` 는 메시지 없이 멈춥니다: Unix 에서는 `SIGPIPE` 로 종료되고 (shell 은 `141` 을 보고), Windows 에서는 `1` 로 끝납니다. 이것은 내부 에러가 아닙니다.
+
 ## 9.1.7. 환경 변수
 
 `rokc` 의 동작에 영향을 주는 환경 변수는 다음 표와 같습니다.
@@ -451,6 +453,8 @@ rokc --cwd=examples/hello run
 | `ROKC_INCR_VERIFY` | `1`: 모든 본체를 다시 lowering 하고 다르면 실패 ([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |
 | `ROKC_NUM_JOBS`   | `rokc test --threads` 의 기본값 (없으면 CPU 코어 수)                                     |
 | `NO_COLOR`        | 있으면 `--color=auto` 가 색을 쓰지 않음                                                  |
+
+설정하지 않았거나 비어 있는 변수는 기본값을 가집니다. 나열된 것 밖의 값은 변수, 값, 받는 값을 알리는 경고 한 줄을 stderr 에 출력하며, 그 변수는 기본값을 가집니다.
 
 ## 9.1.8. 출력 형식
 

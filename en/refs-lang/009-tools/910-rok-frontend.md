@@ -29,7 +29,7 @@ A delegated subcommand runs the `rokc` subcommand of the same name. `rok` consum
 
 `rok repl <path>` resolves dependencies and lints from the project of that path, as `run` does, and passes the manifest name (`--name`).
 
-Options, output and exit codes follow those of `rokc` ([9.1](901-rokc-cli.md)). `rokls` is a standalone executable equivalent to `rok lsp`.
+Options, output and exit codes follow those of `rokc` ([9.1](901-rokc-cli.md)). `rok` treats a closed standard output or standard error the same way as `rokc` ([9.1.6](901-rokc-cli.md#916-exit-codes)). `rokls` is a standalone executable equivalent to `rok lsp`.
 
 Running just `rok [options]` with no subcommand starts the REPL, like `rok repl`.
 

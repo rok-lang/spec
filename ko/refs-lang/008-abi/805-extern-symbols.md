@@ -2,7 +2,7 @@
 
 `librokr.a` 가 노출하는 [심볼](../000-meta/007-glossary.md#extern-c-심볼) 의 시그니처를 정의합니다. 컴파일러가 생성한 코드와 표준 라이브러리가 이 심볼을 부릅니다.
 
-rok 쪽 선언은 런타임 ABI `extern "rok"` ([5.9.2](../005-modules/509-extern-block.md#592-abi-명시)) 이며, toolchain 이 `rok::core::rt` 에 `pub(pkg)` 로 둡니다. 아래 블록의 `fn` 값은 `RokFn` (8.5.0a), 그 밖의 값은 C ABI 와 같습니다. `str` 은 `struct { const uint8_t *ptr; size_t len; }` 이며, `str` 을 받거나 돌려주는 런타임 함수는 `RokFn` 처럼 16 바이트 구조체에 대한 플랫폼 C ABI 를 따릅니다 ([8.6.3](806-calling-convention.md#863-struct-인자--반환-small-struct-rule)): ABI 가 허용하면 레지스터로 값 전달하고, 레지스터와 스택에 나뉘지 않으며, Windows x64 에서는 참조로 넘깁니다.
+rok 쪽 선언은 런타임 ABI `extern "rok"` ([5.9.2](../005-modules/509-extern-block.md#592-abi-명시)) 이며, toolchain 이 `rok::core::rt` 에 `pub(pkg)` 로 둡니다. 아래 블록의 `fn` 값은 `RokFn` (8.5.0a), 그 밖의 값은 C ABI 와 같습니다. `str` 은 `struct { const uint8_t *ptr; size_t len; }` 이며, `str` 을 받거나 돌려주는 런타임 함수는 `RokFn` 처럼 16 바이트 구조체에 대한 플랫폼 C ABI 를 따릅니다 ([8.6.3](806-calling-convention.md#863-struct-인자--반환-small-struct-rule)): ABI 가 허용하면 레지스터로 값 전달하고, 레지스터와 스택에 나뉘지 않으며, Windows x64 에서는 참조로 넘깁니다. 프로그램은 런타임 심볼을 직접 선언할 수 있습니다 (`extern "rok"` / `extern "C"`). 그 선언은 여기서 정한 시그니처를 가져야 하며, 다르면 에러입니다.
 
 > [!IMPORTANT]
 > 모든 심볼은 `rok_` 접두사로 시작합니다. 이는 외부 라이브러리나 사용자 코드와의 심볼 충돌을 회피하기 위함입니다.

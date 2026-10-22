@@ -175,7 +175,7 @@ let c = s[0];                  // ERROR — `Index<usize>` 정의 안 함
 
 ### 부분 문자열은 복사하지 않음
 
-`s[a:b]`, `lines`, `split*`, `split_whitespace`, `split_once`, `trim*`, `strip_*` 의 결과는 원래 바이트를 공유하는 `str` 이며 O(1) 입니다 ([refs-lang 8.8.1](../../refs-lang/008-abi/808-lowering-types.md#881-원시-정수--부동소수)). 그래서 작은 조각이 큰 원본을 살려 둡니다. 떼어 내는 API 는 없습니다. `as_bytes()` 도 복사 없는 읽기 전용 `Slice<u8>` view 입니다.
+`str` `s` 에 대한 `s[a:b]`, `lines`, `split*`, `split_whitespace`, `split_once`, `trim*`, `strip_*` 의 결과는 원래 바이트를 공유하는 `str` 이며 O(1) 입니다 ([refs-lang 8.8.1](../../refs-lang/008-abi/808-lowering-types.md#881-원시-정수--부동소수)). 그래서 작은 조각이 큰 원본을 살려 둡니다. 떼어 내는 API 는 없습니다. `as_bytes()` 도 복사 없는 읽기 전용 `Slice<u8>` view 입니다. `StrBuf` 의 slice 는 그 범위의 사본을 담은 새 `str` 이며 O(b − a) 입니다: `str` 은 불변이므로 아직 바뀔 수 있는 buffer 를 공유할 수 없습니다.
 
 ## 2.15.4. `char` — Unicode scalar value
 

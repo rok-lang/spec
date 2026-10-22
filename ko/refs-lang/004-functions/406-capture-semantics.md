@@ -141,15 +141,15 @@ let g = [ref xs] || {
 
 ## 4.6.9. 병렬과 동시성 문맥의 추가 제약
 
-`fn() + Send` 클로저 (`task::spawn`, `par::for_each`, `thread::spawn` 등에 넘기는 것) 의 캡처는 모두 `Send + Sync` 여야 합니다 ([4.4](404-function-type.md#send--sync-bound)). `[ref x]` 셀은 `x` 의 타입이 `Sync` 일 때만 `Sync` 이므로 ref 캡처도 같은 규칙입니다. 컬렉션은 `!Sync` 이므로 ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--스레드-경계-marker)) 이렇게 캡처할 수 없습니다.
+`fn() + Send` 클로저 (`task::spawn`, `par::for_each`, `thread::spawn` 등에 넘기는 것) 의 캡처는 모두 `Send + Sync` 여야 합니다 ([4.4](404-function-type.md#send--sync-bound)). `[ref x]` 셀은 클로저와 그것을 만든 코드가 함께 쓰므로, `x` 의 타입과 무관하게 결코 `Send` 도 `Sync` 도 아닙니다: `[ref]` 캡처가 있는 클로저 — 또는 그런 클로저를 캡처하는 클로저, `async [ref x] ||` 클로저가 만든 future — 는 어떤 `+ Send` / `+ Sync` 자리에도 들어가지 않습니다. 같은 스레드 안의 사용 (`spawn_local`, 일반 호출) 은 영향이 없습니다. 컬렉션은 `!Sync` 이므로 ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--스레드-경계-marker)) 값 캡처로도 이렇게 넘길 수 없습니다.
 
 ```rok
 let buf: List<i32> = [];
 par::for_each(xs, [ref buf] |x| { buf.push(x) });
-// ERROR: List<i32> is not Sync
+// ERROR: a [ref buf] cell cannot cross threads
 ```
 
-대신 reduce 를 쓰거나 (`par::reduce(xs, 0, |a, b| a + b)`), `Mutex` / `RwLock` / `Atomic` / 채널로 공유합니다.
+대신 reduce 를 쓰거나 (`par::reduce(xs, 0, |a, b| a + b)`), `Mutex` / `RwLock` / `Atomic` / 채널로 공유하거나, 스레드에서 값을 돌려받습니다 (`join()`).
 
 자세한 병렬·동시성 규칙은 표준 라이브러리 사양이 정의하며, 본 장은 언어 수준의 캡처 메커니즘까지만 다룹니다.
 

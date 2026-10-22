@@ -201,7 +201,7 @@ The default level of every lint is `warn`.
 | `dead_code`              | Non-`pub` functions nobody calls                                    |
 | `unreachable_code`       | Statements after `return` / `break` / `continue` / `throw` / `panic` |
 | `unused_must_use`        | Discarding the result of a `#[must_use]` function                   |
-| `ignored_error`          | A `try? f();` statement silently discarding an error                |
+| `ignored_error`          | A `try? f();` statement silently discarding an error; `let _ = try? f();` marks a deliberate best-effort call and is not reported |
 | `shadowed_loop_var`      | A `let` in a `for` body rebinding the loop variable                 |
 | `nan_comparison`         | Comparison with NaN (always false; `!=` always true)                |
 | `none_comparison`        | `x == none` instead of `x is none`                                  |

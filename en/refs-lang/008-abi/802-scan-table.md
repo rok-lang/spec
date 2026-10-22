@@ -241,3 +241,5 @@ main(argc, argv):                // compiler-generated, C ABI
 ```
 
 The slow path of GC object allocation is `rok_gc_alloc_slow(size, align, type_id)` ([7.2.3](../007-runtime/702-allocation.md#723-slow-path-rok_gc_alloc_slow)), and type ids assigned by the compiler start at `0x10000` ([8.1.2](801-object-header-abi.md#812-type_id-offset-0-u32-little-endian)).
+
+A table's bytes are in a program once: each package's `rok.register_types` refers to a hidden definition named by the table's contents, which the link keeps once, even when several packages register the same layout under their own ids.
