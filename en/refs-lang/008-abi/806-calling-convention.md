@@ -76,6 +76,8 @@ The ABI return type of this function is a `struct` of two fields:
 
 The payload is a union with the size and alignment of the larger of `T` and `E`. If `T` is unit, the payload holds only `E`. The error channel is distinguished by the signature, so `T` and `E` may be the same type. For untyped `throws` (`throws (any Error)`), `E` is an `any Error` value in the same tag + payload representation as [`any`](../002-types/202-any-slot.md) ([8.8](808-lowering-types.md)).
 
+Field 0 may be stored wider than `i1` (an `i32` when the payload holds GC references, so the collector reads it as a sum tag); only bit 0 is significant, and when the payload is at least 4-aligned the offsets, size and registers are those of `{i1, payload}`. Values of `ref` parameters ([4.7](../004-functions/407-ref-keyword.md)) of a throwing function travel beside the carrier as an implementation-defined part of the return value.
+
 This `struct` is passed through the platform C ABI like any other return value: in registers within the limits of 8.6.3, via sret beyond them. A `try` at the call site checks field 0 and branches; the detailed lowering is defined in [8.9.6](809-lowering-control.md#896-try--catch--finally-value-based-branching).
 
 This scheme was chosen for the following reasons.
@@ -86,7 +88,7 @@ This scheme was chosen for the following reasons.
 
 ## 8.6.6. rok-to-rok calling convention
 
-Calls between rok functions pass scalars in the registers of 8.6.2. An aggregate (struct, tuple, array, `str`) over 64 bytes is passed by address and returned through a leading result pointer. The callee copies a by-address argument on entry, so the caller's value is not modified. This holds for every rok-to-rok call, including calls into prebuilt code, exported functions and function values. Smaller aggregates are passed and returned as first-class aggregates, lowered the way LLVM's SelectionDAG lowers them on the target. Both backends produce exactly this lowering, so code from either calls the other. It differs from the C ABI classification of 8.6.3. The rules below apply to aggregates of 64 bytes or less.
+Calls between rok functions pass scalars in the registers of 8.6.2. An aggregate (struct, tuple, array, `str`) over 64 bytes is passed by address and returned through a leading result pointer. The callee copies a by-address argument on entry, so the caller's value is not modified. This holds for every rok-to-rok call, including calls into prebuilt code, exported functions and function values. Smaller aggregates are passed and returned as first-class aggregates, lowered the way LLVM's SelectionDAG lowers them on the target, with one exception: on 32-bit Arm, an array whose elements are 1 or 2 bytes is passed and returned by address, like an aggregate over 64 bytes, because LLVM's own lowering of such stack arguments differs between caller and callee. Both backends produce exactly this lowering, so code from either calls the other. It differs from the C ABI classification of 8.6.3. The rules below apply to aggregates of 64 bytes or less.
 
 > [!NOTE]
 > A value passed by address is moved in memory (`memcpy`), never as a first-class aggregate.

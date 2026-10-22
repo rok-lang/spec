@@ -233,7 +233,7 @@ A build of a package (`check`, `build`, `run`, `test`, `bench`, `doc`, `lint`) k
 - The interface is every item except the plain bodies and the plain functions' parameters and return types. A body edit lowers that body again; a plain function's signature edit lowers it and the bodies that read its signature; any other change to an item (a type, a trait, an `impl` header, a generic function, a `use`) lowers every body again.
 - Functions, types and instances a reused lowering made are numbered as in a clean build; diagnostics, the program and its symbols are those of a clean build.
 
-Signatures, `impl` registration, coherence and the whole-program checks run in every build. Nothing kept is required: a missing, damaged or stale entry is computed again. A lone file outside any package keeps nothing unless `ROKC_INCREMENTAL` names a directory. `ROKC_INCREMENTAL=<dir>` keeps the results under `<dir>/<name>-<hash>/`; `ROKC_INCREMENTAL=0` turns them off. `ROKC_INCR_VERIFY=1` also lowers every body again and fails the build if a reused lowering differs. `-v` reports how many files' parses and bodies were reused.
+Signatures, `impl` registration, coherence and the whole-program checks run in every build. What collecting the library's items made (the standard library's and the dependencies'), and the library files' pre-pass parses, are kept in the toolchain's cache (`lib/rok-cache/library/`, one file per hash of toolchain, build flags and library sources) for every build, a lone file's too; `ROKC_INCREMENTAL` neither moves nor disables them. Nothing kept is required: a missing, damaged or stale entry is computed again. A lone file outside any package keeps no parses or bodies of its own unless `ROKC_INCREMENTAL` names a directory. `ROKC_INCREMENTAL=<dir>` keeps the results under `<dir>/<name>-<hash>/`; `ROKC_INCREMENTAL=0` turns them off. `ROKC_INCR_VERIFY=1` also lowers every body again and fails the build if a reused lowering differs. `-v` reports how many files' parses and bodies were reused.
 
 ### Codegen units
 
@@ -283,6 +283,9 @@ $ROK_HOME/
 │       ├── bin/{rok, rokc, rokls}
 │       └── lib/
 │           ├── librokr.a        # runtime
+│           ├── libclang.{so,dylib,dll}  # libclang, loaded only by rokc bindgen (std 1.7.6)
+│           ├── clang/<major>/include/   # clang's built-in headers (its resource directory)
+│           ├── rok/lldb/rok_lldb.py      # lldb formatters for -g programs (9.9.6)
 │           ├── rok/targets/<triple>/   # what --target links: the runtime (librokr.a / rokr.lib), Linux C library,
 │           │                           #   libclang_rt.profile.a (Windows clang_rt.profile.lib); the host's included
 │           └── rok/{core, std, bare}/src/   # standard library sources: each tier is laid out as a package, root src/lib.rok (5.4)

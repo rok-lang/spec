@@ -66,8 +66,10 @@ The following bits are used from the implementation-reserved range ([7.4.2](../0
 | 6    | `UNLOGGED` | Set together with `STICKY` on objects that survive a collection. Cleared when the write barrier first records the object in the remembered set |
 | 7    | `CARDED`   | Set instead of `UNLOGGED` on old objects of 8 KiB or more. The barrier marks a 512 B card dirty. The card table pointer is the word immediately before the header |
 | 8    | `NOMOVE`   | An object whose address is used as a number. Never moved, regardless of lifetime. Set by `rok_task_key` ([8.5](805-extern-symbols.md)) |
+| 9    | `NOEVAC`   | Collector-internal, for one full collection: an ambiguous word (a root, or a word of a runtime word buffer, type id `2`) refers to the object, so that collection's evacuation leaves it in place ([7.3.1](../007-runtime/703-gc-algorithm.md#opportunistic-evacuation)). Set before evacuation on such objects in candidate blocks, cleared when evacuation visits them |
 | 10   | `SATB`     | Set while the barrier records this object's references during concurrent mark. Competing stores wait until it is cleared ([7.5.3](../007-runtime/705-concurrent-collection.md#753-satb-barrier)) |
 | 11   | `SCANNED`  | This object has been scanned in concurrent mark |
+| 12   | `WIPE`     | A secret buffer (`rok_gc_secret_new`, [8.5.1](805-extern-symbols.md#rok_gc_secret_new--rok_gc_secret_wipe)). The sweep that frees it zeroes its payload first. Never cleared |
 
 ### Atomicity requirements
 

@@ -182,6 +182,7 @@ The REPL's automatic printing of the last expression combines this chapter's `Re
 
 ```
 > let x = 42i32;
+> x
 i32: 42
 
 > [1, 2, 3]

@@ -149,10 +149,11 @@ i32: 3
 List<i32>: [1, 2, 3]
 ```
 
-The value and type of the last expression are printed automatically as `type: value`, with the value formatted by `Debug`. For a type that does not implement `Debug`, only the type is printed. A `let` cell prints the bound value in the same `type: value` form (only the type if the value cannot be printed; nothing for the unit type).
+The value and type of the last expression are printed automatically as `type: value`, with the value formatted by `Debug`. For a type that does not implement `Debug`, only the type is printed.
 
 ```
 > let xs = [1, 2, 3];
+> xs
 List<i32>: [1, 2, 3]
 ```
 

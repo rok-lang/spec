@@ -24,7 +24,7 @@ rokc <subcommand> [options] [args]
 cli_invocation  ::= "rokc" subcommand option* arg*
 subcommand      ::= "build" | "emit" | "run" | "test" | "bench" | "check"
                   | "fmt" | "lint" | "doc" | "repl" | "jupyter" | "lsp"
-                  | "clean" | "profdata" | "demangle" | "rokhir-text" | "inspect" | "version" | "help"
+                  | "clean" | "profdata" | "bindgen" | "demangle" | "rokhir-text" | "inspect" | "version" | "help"
 option          ::= "--" identifier ("=" value)?
                   | "-" letter
 ```
@@ -35,7 +35,7 @@ option          ::= "--" identifier ("=" value)?
 |-----------------|-------------------------------------------------------|
 | 빌드 / 실행     | `build`, `emit`, `run`, `test`, `bench`, `check`      |
 | 패키지          | `clean`                                               |
-| 도구            | `fmt`, `lint`, `doc`, `lsp`, `profdata`                           |
+| 도구            | `fmt`, `lint`, `doc`, `lsp`, `profdata`, `bindgen`                |
 | 인터랙티브      | `repl`, `jupyter`                                     |
 | 디버그 / 진단   | `demangle`, `rokhir-text`, `inspect`                    |
 | 그 밖           | `version`, `help`                                     |
@@ -295,6 +295,14 @@ rokc lsp
 
 ## 9.1.3. 디버그 / 진단 서브명령
 
+### `rokc bindgen`: C 헤더 binding
+
+```
+rokc bindgen <header> [--target <t>] [-o <file>] [-- <clang args>]
+```
+
+`<header>` 에 대한 [std 1.7.6](../../refs-standard-libraries/100-bare/107-ffi.md#176-자동-binding-생성) 의 선언을 표준 출력 (또는 `-o <file>`) 에 씁니다. toolchain 의 libclang ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)) 이 없으면 찾아본 곳을 알리는 에러 (exit 1) 입니다.
+
 ### `rokc demangle`: 심볼 demangle
 
 `rokc demangle` 은 mangled 심볼을 사람이 읽을 수 있는 형식으로 풀어 출력합니다.
@@ -373,6 +381,10 @@ rokc --print target-spec [--target=<target>]
 
 `target-list` 는 내장 타깃 이름을 한 줄에 하나씩 출력합니다. `target-spec` 은 타깃의 명세를 ROKON 으로 출력하며 ([0.6.5](../000-meta/006-platform-targets.md#065-타깃-명세)), `--target` 이 없으면 host 의 것입니다.
 
+### `rokc --print lldbinit`: lldb formatter
+
+이 toolchain 의 lldb formatter ([9.9.6](909-debug-tools.md#996-디버거-통합-gdb--lldb)) 를 로드하는 한 줄 `command script import '<path>'` 을 출력합니다: `<sysroot>/lib/rok/lldb/rok_lldb.py`.
+
 ### `rokc help`: 도움말
 
 ```
@@ -394,7 +406,7 @@ rokc <subcommand> --help
 | `--color=auto\|always\|never`    | 진단의 색상 출력                                            |
 | `--no-color`                     | `--color=never` 와 같음                                     |
 | `--cwd=<path>`                   | 작업 디렉토리를 바꾼 뒤 실행                                |
-| `--print cfg\|target-list\|target-spec` | 활성 cfg, 내장 타깃 이름, 타깃 명세를 출력 (9.1.4) |
+| `--print cfg\|target-list\|target-spec\|lldbinit` | 활성 cfg, 내장 타깃 이름, 타깃 명세, 또는 rok 의 formatter 를 로드하는 lldb 명령을 출력 (9.1.4) |
 | `--message-format=human\|json`   | 진단 형식. `json` 은 stdout 에 한 줄씩 (9.1.8)              |
 | `-A` / `-W` / `-D <lint \| group>` | lint 수준 (`--allow` / `--warn` / `--deny`). `check` / `lint` / `lsp` 에 적용. 여러 번 쓸 수 있고 뒤의 것이 이김 |
 
@@ -435,7 +447,7 @@ rokc --cwd=examples/hello run
 | `ROK_TIME_PASSES` | `1` 이면 패스별 실제 시간을 stderr 에 출력 ([9.9.5](909-debug-tools.md#rok_time_passes)) |
 | `LLVM_PROFILE_FILE` | 계측된 프로그램 (`-C profile-generate`) 이 읽음: raw profile 경로 |
 | `ROKC_TARGET_DIR` | `target/` 의 위치 (기본은 패키지 안)                                                     |
-| `ROKC_INCREMENTAL` | front end 가 파싱과 lowering 한 본체를 두는 곳 (기본 `target/<profile>/incremental/`, `0`: 두지 않음), [9.2.16](902-aot-pipeline.md#9216-증분-빌드) |
+| `ROKC_INCREMENTAL` | front end 가 패키지의 파싱과 lowering 한 본체를 두는 곳 (기본 `target/<profile>/incremental/`, `0`: 두지 않음). 라이브러리의 모은 항목은 `lib/rok-cache/library/` 에 둠 ([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |
 | `ROKC_INCR_VERIFY` | `1`: 모든 본체를 다시 lowering 하고 다르면 실패 ([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |
 | `ROKC_NUM_JOBS`   | `rokc test --threads` 의 기본값 (없으면 CPU 코어 수)                                     |
 | `NO_COLOR`        | 있으면 `--color=auto` 가 색을 쓰지 않음                                                  |

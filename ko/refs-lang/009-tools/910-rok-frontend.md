@@ -48,7 +48,7 @@ rok --env sci       # = rok repl --env sci
 | `--cwd <dir>`    | 디렉토리를 바꾼 뒤 실행                                           |
 | `-q`, `--quiet`  | 출력을 줄임                                                       |
 
-환경 변수는 `ROK_HOME` (기본 `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6), `ROK_REGISTRY` (index) 와 `ROK_REGISTRY_TOKEN` (registry API 토큰) (9.10.4a) 입니다.
+환경 변수는 `ROK_HOME` (기본 `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6), `ROK_REGISTRY` (index) 와 `ROK_REGISTRY_TOKEN` (registry API 토큰) (9.10.4a), 그리고 `ROK_DIST` (릴리스 서버, 9.10.6) 입니다.
 
 ## 9.10.2. `rok new` / `rok init`: 패키지 생성
 
@@ -183,6 +183,7 @@ rok deps [--dev] [--features <f,..>] [--all-features] [--no-default-features]
 - 빌드는 `rok.lock` 의 커밋과 버전을 씁니다. 새로 선언된 의존은 lock 에 더하고 지운 의존은 정리하지만, 이미 고정된 것을 옮기는 것은 `update` 뿐입니다. `update` 는 이름을 주면 그 패키지만, 없으면 모든 git 의존과 stone 을 다시 해소합니다.
 - `deps` 는 해소한 의존 패키지를 `<코드 이름>=<그 src/lib.rok 경로>` 줄로 (코드 이름은 `-` 를 `_` 로 바꾼 것), 의존되는 쪽이 먼저 오는 순서로 출력합니다 (`--dev` 는 dev 의존 포함). 각 줄 뒤에는 그 `--extern-feature=<코드 이름>=<f>` 줄들이 옵니다. `deps` 는 feature 옵션과 `--dev` 를 받습니다. native 패키지마다 (의존하는 쪽이 먼저, host 용) `# native <name> <vers>` 와 그 `rokc` 인자를 한 줄에 하나씩 출력합니다.
 - `rok.lock` 은 버전 관리에 함께 넣습니다.
+- `rok update` 는 `rok.lock` 을 다시 해소하고, `rok toolchain update` 는 toolchain 을 교체합니다 (9.10.6).
 
 ### 캐시
 
@@ -238,7 +239,7 @@ Stone { name: "json", vers: "1.4.2", deps: [{ name: "util", req: "^0.3", kind: "
 ```
 
 - `deps` 의 `kind` 는 `"normal"`, `"dev"`, `"native"` 중 하나이며, `registry` 는 선택입니다.
-- feature 가 있는 stone 은 `deps` 뒤에 `features: { "<name>": ["<entry>", ..] }` 를 가지며, 9.10.4c 처럼 검사합니다. `normal` 의존은 `optional: true`, `features: [..]`, `default_features: false` 를 가질 수 있습니다 (기본값이 아닐 때만 적음). `dev` / `native` 의존은 optional 일 수 없고, native 의존에는 feature 가 없습니다. `rok publish` 가 `rok.rokon` 에서 이것들을 적고, 해소는 항목에서 읽습니다.
+- feature 가 있는 stone 은 `deps` 뒤에 `features: { "<name>": ["<entry>", ..] }` 를 가지며, 9.10.4c 처럼 검사합니다. `normal` 의존은 `optional: true`, `features: [..]`, `default_features: false` 를 가질 수 있습니다 (기본값이 아닐 때만 적음). `dev` / `native` 의존은 optional 일 수 없고, native 의존에는 feature 가 없습니다. `rok publish` 가 `rok.rokon` 에서 이것들을 적고, 해소는 항목에서 읽습니다. checkout 한 뒤 항목의 `features` 는 그 commit 의 stone 의 `rok.rokon` 의 것과 같아야 하며 (순서 무관), 그렇지 않으면 에러입니다.
 - `native/<shard path>` 는 native 패키지를 한 줄에 `Native { .. }` 하나씩 담습니다 ([9.10.4b](#9104b-native-패키지)).
 - 매니페스트의 `description`, `license`, `repository` 는 선택인 뒤쪽 필드로 들어갑니다.
 - 패키지는 `source` 저장소의 루트에 있습니다. `cksum` 은 그 커밋의 git tree hash 이며, checkout 뒤에 검증합니다.
@@ -373,17 +374,20 @@ rok toolchain list
 rok toolchain install <version> --from <dir | archive | url>
 rok toolchain default [<version>]          # 인자 없으면 지금의 기본을 출력
 rok toolchain remove <version>
+rok toolchain update [<version>]
 ```
 
 - 설치본은 `$ROK_HOME/toolchains/<version>-<triple>/` 이며 자기 완결입니다 ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)). `install` 은 `--from` 이 필수입니다.
 - `install` 은 `bin/rokc --version --verbose` 로 검증하며, 버전과 host 가 맞아야 합니다.
 - 처음 설치한 toolchain 이 기본이 되고, 이때 `bin/` proxy 를 만듭니다.
+- `rok toolchain update` 는 `$ROK_HOME` 아래의 기본 toolchain 을 교체합니다. 인자가 없으면 최신 릴리스를, 버전을 주면 그 버전을 설치합니다. 설치한 toolchain 이 기본값이 되고 `bin/` proxy 를 다시 씁니다. Windows 에서는 실행 중인 proxy 의 이름을 바꾼 뒤 그 사본으로 교체합니다. 릴리스 archive 를 받아 SHA-256 을 검증하고 (아래 배포), 따로 풀어 제자리로 옮긴 뒤 proxy 가 그것을 실행하는지 확인합니다. 실패하면 이전 기본값과 proxy 를 되돌리고 새 toolchain 을 지웁니다. 이전 toolchain 들은 설치된 채로 남습니다. 이미 설치된 버전은 다운로드 없이 기본값이 됩니다. `rok update` 는 `rok.lock` 을 다시 해소하고, `rok toolchain update` 는 toolchain 을 교체합니다 (9.10.4).
 
 ### 배포
 
 - 릴리스 archive 는 `rok-<version>-<triple>.tar.gz` (Windows 는 `.zip`) 이며, 안은 toolchain 레이아웃입니다. 옆에 `<archive>.sha256` 이 있습니다: archive 의 SHA-256 을 hex 로 적고, 그 뒤에 파일 이름이 올 수 있습니다 (sha256sum 형식).
 - `install.sh`, `install.ps1`, `rok toolchain install --from <url>` 은 같은 곳에서 `<url>.sha256` 을 받아, SHA-256 이 다른 archive 를 거부합니다. `.sha256` 이 없으면 에러입니다. 경로로 준 archive 는 `<path>.sha256` 이 있을 때 그것과 대조합니다. 서명은 정의하지 않으며, 출처는 HTTPS 가 보증합니다.
 - `install.sh` (<https://rok-lang.org/install.sh>) 는 archive 나 `rok-lang` 조직의 GitHub release 에서 `$ROK_HOME` 에 설치합니다.
+- 릴리스는 `$ROK_DIST` (기본값 `https://github.com/rok-lang/rok/releases`) 에서 제공됩니다: `<dist>/download/v<version>/<archive>` 와 그 `.sha256`, 그리고 최신 릴리스의 버전을 담은 `<dist>/latest/download/rok-version`.
 
 ## 9.10.7. 단일 파일 스크립트의 inline 매니페스트
 

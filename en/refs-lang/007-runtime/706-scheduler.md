@@ -92,6 +92,9 @@ By default there are N workers and tasks move freely between threads. With the t
 
 It is toggled with the environment variable `ROK_THREAD_PER_CORE=1`; `ROK_WORKERS=<n>` sets N (default: the online CPUs).
 
+> [!NOTE]
+> A task is pinned to a worker; a worker whose task blocks may continue on another OS thread ([7.6.7](#767-automatic-detection-of-blocking-syscalls)), so thread identity is not stable for a pinned task.
+
 ## 7.6.9. Priority / fairness
 
 The default is priority-less FIFO + work-stealing. Both the owning worker and thieves process the oldest task in the deque first (7.6.2).

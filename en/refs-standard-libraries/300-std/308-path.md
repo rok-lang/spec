@@ -145,7 +145,7 @@ impl RawPath {
 }
 ```
 
-On Windows, `NonUtf8Error.valid_up_to` counts UTF-16 units.
+On Windows, `NonUtf8Error.valid_up_to` counts UTF-16 units. `to_path_lossy` replaces each maximal ill-formed subsequence (Unix) / each lone surrogate (Windows) with one U+FFFD.
 
 Most code never encounters this type. It appears only where code exchanges syscalls directly with the OS.
 

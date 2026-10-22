@@ -24,7 +24,7 @@ As grammar rules:
 cli_invocation  ::= "rokc" subcommand option* arg*
 subcommand      ::= "build" | "emit" | "run" | "test" | "bench" | "check"
                   | "fmt" | "lint" | "doc" | "repl" | "jupyter" | "lsp"
-                  | "clean" | "profdata" | "demangle" | "rokhir-text" | "inspect" | "version" | "help"
+                  | "clean" | "profdata" | "bindgen" | "demangle" | "rokhir-text" | "inspect" | "version" | "help"
 option          ::= "--" identifier ("=" value)?
                   | "-" letter
 ```
@@ -35,7 +35,7 @@ option          ::= "--" identifier ("=" value)?
 |---------------------|-------------------------------------------------------|
 | Build / run         | `build`, `emit`, `run`, `test`, `bench`, `check`      |
 | Package             | `clean`                                               |
-| Tools               | `fmt`, `lint`, `doc`, `lsp`, `profdata`                           |
+| Tools               | `fmt`, `lint`, `doc`, `lsp`, `profdata`, `bindgen`                |
 | Interactive         | `repl`, `jupyter`                                     |
 | Debug / diagnostic  | `demangle`, `rokhir-text`, `inspect`                    |
 | Other               | `version`, `help`                                     |
@@ -295,6 +295,14 @@ This mode is designed to be invoked from LSP clients such as VS Code, Vim and Em
 
 ## 9.1.3. Debug / diagnostic subcommands
 
+### `rokc bindgen`: C header bindings
+
+```
+rokc bindgen <header> [--target <t>] [-o <file>] [-- <clang args>]
+```
+
+Writes the declarations of [std 1.7.6](../../refs-standard-libraries/100-bare/107-ffi.md#176-automatic-binding-generation) for `<header>` to standard output (or to `-o <file>`). Without the toolchain's libclang ([9.2.19](902-aot-pipeline.md#9219-installation-layout)) it is an error (exit 1) naming where it looked.
+
 ### `rokc demangle`: symbol demangle
 
 `rokc demangle` decodes mangled symbols into a human-readable form.
@@ -373,6 +381,10 @@ rokc --print target-spec [--target=<target>]
 
 `target-list` prints the built-in target names, one per line. `target-spec` prints the target's specification as ROKON ([0.6.5](../000-meta/006-platform-targets.md#065-target-specifications)); without `--target`, the host's.
 
+### `rokc --print lldbinit`: lldb formatters
+
+Prints one line, `command script import '<path>'`, that loads the lldb formatters of this toolchain ([9.9.6](909-debug-tools.md#996-debugger-integration-gdb--lldb)): `<sysroot>/lib/rok/lldb/rok_lldb.py`.
+
 ### `rokc help`: help
 
 ```
@@ -394,7 +406,7 @@ The global options are listed below. They may appear before or after the subcomm
 | `--color=auto\|always\|never`    | Colored diagnostic output                                   |
 | `--no-color`                     | Equivalent to `--color=never`                               |
 | `--cwd=<path>`                   | Change working directory before running                     |
-| `--print cfg\|target-list\|target-spec` | Print the active cfg, the built-in target names, or a target's specification (9.1.4) |
+| `--print cfg\|target-list\|target-spec\|lldbinit` | Print the active cfg, the built-in target names, a target's specification, or the lldb command loading rok's formatters (9.1.4) |
 | `--message-format=human\|json`   | Diagnostic format. `json` writes one line per diagnostic to stdout (9.1.8) |
 | `-A` / `-W` / `-D <lint \| group>` | Lint level (`--allow` / `--warn` / `--deny`). Applies to `check` / `lint` / `lsp`. May be repeated; the later one wins |
 
@@ -435,7 +447,7 @@ The environment variables that affect `rokc` are:
 | `ROK_TIME_PASSES` | Per-pass wall time on stderr when `1` ([9.9.5](909-debug-tools.md#rok_time_passes)) |
 | `LLVM_PROFILE_FILE` | Read by instrumented programs (`-C profile-generate`): the raw profile path |
 | `ROKC_TARGET_DIR` | Location of `target/` (default: inside the package)                                      |
-| `ROKC_INCREMENTAL` | Where the front end keeps parses and lowered bodies (default `target/<profile>/incremental/`; `0`: nowhere), [9.2.16](902-aot-pipeline.md#9216-incremental-build) |
+| `ROKC_INCREMENTAL` | Where the front end keeps the package's parses and lowered bodies (default `target/<profile>/incremental/`; `0`: nowhere); the library's collected items are kept in `lib/rok-cache/library/` ([9.2.16](902-aot-pipeline.md#9216-incremental-build)) |
 | `ROKC_INCR_VERIFY` | `1`: lower every body again and fail on a difference ([9.2.16](902-aot-pipeline.md#9216-incremental-build)) |
 | `ROKC_NUM_JOBS`   | Default for `rokc test --threads` (CPU core count if unset)                              |
 | `NO_COLOR`        | If set, `--color=auto` does not use color                                                |

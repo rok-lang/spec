@@ -182,6 +182,7 @@ REPL 의 마지막 식 자동 출력은 이 장의 `Reflect::type_name_of` 와 [
 
 ```
 > let x = 42i32;
+> x
 i32: 42
 
 > [1, 2, 3]

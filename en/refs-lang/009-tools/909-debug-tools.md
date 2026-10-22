@@ -43,7 +43,7 @@ rokc rokhir-text path/to/foo.rokhir      # or libfoo.a — reads the sibling foo
 This command prints the [ROKHIR](904-rokhir-bytecode.md) of a prebuilt library in human-readable form. After the version, producer and meta, each interface file follows as `--- <path>` and its text (source with concrete function bodies cut down to `;`).
 
 ```
-rokhir 3
+rokhir 4
 producer: rokc 0.1.0 (1f2a40-17f3a9c2e1b0c4d8)
 package: geom (hash: 3f8a1c2b)
 source: /home/me/geom
@@ -203,7 +203,7 @@ In addition to `-v`, prints a `Reading <file>` line for each file processed and 
 
 - A function's `DW_AT_name` is its rok path (`geom::distance`); no linkage name (mangled symbol) is emitted, because debuggers do not understand `_Y` mangling.
 - Line numbers refer to lines of the original .rok file.
-- Local variables appear with their original names and types. Besides primitive types (integers, floating-point, `bool`, `char`), DWARF types are emitted for structs (field names), tuples, `str`, `any`, sum types and arrays. A sum type or enum is a DWARF variant part: an artificial discriminant member, and one `DW_TAG_variant` per variant (dataless variants included) with `DW_AT_discr_value`, each holding a struct named `<Sum>::<Variant>`. Both back ends write the same form, and compile units use `DW_LANG_Rust` so debuggers read variant parts (there is no DWARF language code for rok). A `GcBuf<T>` reference is described as a pointer to its object (header, then the `T` elements). An `any` value is a variant part over the types stored into it, with the stored tag as the discriminant. A variable captured by reference shows as its value. Functions the compiler makes (the C `main`, static initializer guards) have subprograms too. Compiler-generated locals (names beginning `#` or `__`) are omitted.
+- Local variables appear with their original names and types. Besides primitive types (integers, floating-point, `bool`, `char`), DWARF types are emitted for structs (field names), tuples, `str`, `any`, sum types and arrays. A sum type or enum is a DWARF variant part: an artificial discriminant member, and one `DW_TAG_variant` per variant (dataless variants included) with `DW_AT_discr_value`, each holding a struct named `<Sum>::<Variant>`. Both back ends write the same form, and compile units use `DW_LANG_Rust` so debuggers read variant parts (there is no DWARF language code for rok). A `GcBuf<T>` reference is described as a pointer to its object (header, then the `T` elements). An `any` value is a variant part over the types stored into it, with the stored tag as the discriminant. The discriminant is an artificial `i32` (the stored tag; a `throws` carrier's `bool` tag is a byte). A function value (a `fn` type or a closure) is a structure named for its type (`fn(i32) -> i32`) with members `code`, a pointer to a `DW_TAG_subroutine_type` (the environment, then the parameters), and `env`, its environment (a pointer to the environment object when the closure's type is known), so a debugger shows the target function. A variable captured by reference shows as its value. Functions the compiler makes (the C `main`, static initializer guards) have subprograms too. Compiler-generated locals (names beginning `#` or `__`) are omitted.
 - A lexical block scope is emitted for each block, so shadowed names are visible only inside their block.
 - Locals with stack slots are placed in a single `llvm.alloca` in both debug and release, so `-g` attaches debug info to the same slot regardless of optimization level.
 
@@ -220,6 +220,15 @@ $1 = (i32) 42          # primitive-type variables only
 (gdb) bt
 #0  main at src/main.rok:5
 ...
+```
+
+### Formatters
+
+gdb shows only the active variant of a sum, an enum or an `any` from the DWARF alone. lldb has no plugin for the unit's language and lists every variant; the toolchain ships lldb formatters, `lib/rok/lldb/rok_lldb.py`, that show the active variant only (its name as the summary, its fields as the children; a boxed `any` payload through its box). `rokc --print lldbinit` ([9.1.4](901-rokc-cli.md#rokc---print-lldbinit-lldb-formatters)) prints the lldb command that loads them:
+
+```
+lldb -O "$(rokc --print lldbinit)" ./target/debug/my_binary
+rokc --print lldbinit >> ~/.lldbinit
 ```
 
 ### macOS / Windows debuggers

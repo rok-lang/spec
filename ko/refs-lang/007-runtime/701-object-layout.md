@@ -69,7 +69,7 @@ GC 는 객체를 다음 네 공간 중 하나에 배치합니다.
 
 ### 3. Large Object Space (LOS)
 
-8 KiB 이상이거나 8 바이트보다 큰 정렬을 요구하는 객체는 LOS 에 하나씩 따로 할당하며, `gc_flags` 의 `LARGE` 비트를 켭니다. LOS 는 mark-sweep 으로 수집하고 객체를 옮기지 않습니다. old LOS 객체는 card table 을 가집니다 ([7.4.2](704-barriers-and-roots.md#742-write-barrier-incremental-update)).
+8 KiB 이상이거나 8 바이트보다 큰 정렬을 요구하는 객체와 비밀 buffer (`rok_gc_secret_new`, [8.5.1](../008-abi/805-extern-symbols.md#rok_gc_secret_new--rok_gc_secret_wipe)) 는 LOS 에 하나씩 따로 할당하며, `gc_flags` 의 `LARGE` 비트를 켭니다. LOS 는 mark-sweep 으로 수집하고 객체를 옮기지 않습니다. old LOS 객체는 card table 을 가집니다 ([7.4.2](704-barriers-and-roots.md#742-write-barrier-incremental-update)). 비밀 buffer 는 `WIPE` 비트 ([8.1.3](../008-abi/801-object-header-abi.md#813-gc_flags-offset-4-u32)) 를 가집니다: 그것을 해제하는 sweep 은 먼저 payload 를 0 으로 덮어씁니다.
 
 ### 4. 고정된 객체 (FFI pinned)
 

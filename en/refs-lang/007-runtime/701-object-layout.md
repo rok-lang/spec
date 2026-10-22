@@ -69,7 +69,7 @@ It is divided into 32 KiB [blocks](../000-meta/007-glossary.md#block) and 128 B 
 
 ### 3. Large Object Space (LOS)
 
-Objects of 8 KiB or more, or requiring alignment greater than 8 bytes, are allocated individually in the LOS, with the `LARGE` bit of `gc_flags` set. The LOS is collected by mark-sweep and does not move objects. Old LOS objects have a card table ([7.4.2](704-barriers-and-roots.md#742-write-barrier-incremental-update)).
+Objects of 8 KiB or more, or requiring alignment greater than 8 bytes, and secret buffers (`rok_gc_secret_new`, [8.5.1](../008-abi/805-extern-symbols.md#rok_gc_secret_new--rok_gc_secret_wipe)), are allocated individually in the LOS, with the `LARGE` bit of `gc_flags` set. The LOS is collected by mark-sweep and does not move objects. Old LOS objects have a card table ([7.4.2](704-barriers-and-roots.md#742-write-barrier-incremental-update)). A secret buffer has the `WIPE` bit ([8.1.3](../008-abi/801-object-header-abi.md#813-gc_flags-offset-4-u32)): the sweep that frees it overwrites its payload with zeros first.
 
 ### 4. Pinned objects (FFI pinned)
 

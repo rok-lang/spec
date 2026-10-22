@@ -20,7 +20,7 @@ block (32 KiB) = line (128 B) × 256
 | recyclable | Only some lines live          | Free lines reused for allocation |
 | full       | Nearly all lines live         | Left as is                       |
 
-Sweep does not zero dead objects. The allocator zeroes lines when it fills a TLAB.
+Sweep does not zero dead objects, except secret buffers (`WIPE`, [7.1.2](701-object-layout.md#712-memory-spaces)). The allocator zeroes lines when it fills a TLAB.
 
 ### Opportunistic evacuation
 

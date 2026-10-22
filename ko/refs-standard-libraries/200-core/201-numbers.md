@@ -57,9 +57,20 @@ impl Int {
     fn to_i32(self) -> i32 | none;  // 범위 안이면 값, 밖이면 none
     fn to_i64(self) -> i64 | none;
     fn to_f64(self) -> f64;        // 항상 가능 (정밀도 손실 가능)
+
+    fn pow(self, exp: u32) -> int;              // exp: 고정 폭 정수처럼 u32
+    fn isqrt(self) -> int;                      // floor(sqrt(self)); self < 0 이면 panic
+    fn checked_isqrt(self) -> int | none;       // self < 0 이면 none
+    fn div_euclid(self, rhs: int) -> int;       // rem_euclid >= 0 이 되는 몫; rhs == 0 이면 panic
+    fn rem_euclid(self, rhs: int) -> int;       // 0..rhs.abs() 안; rhs == 0 이면 panic
+    fn modpow(self, exp: int, m: int) -> int;   // self^exp %% m; m == 0 이거나 exp < 0 이면 panic
+    fn gcd(self, other: int) -> int;            // 음수가 아님; gcd(0, 0) == 0
+    fn lcm(self, other: int) -> int;            // 음수가 아님; 피연산자 중 하나가 0 이면 0
     ...
 }
 ```
+
+이것들은 고정 폭 정수의 이름과 panic 을 따릅니다. `pow` 는 `u32` 지수를 받습니다: 그보다 큰 지수는 0 과 ±1 을 뺀 모든 밑에서 적어도 2^32 bit 를 냅니다. `modpow` 는 결과가 `|m|` 보다 작게 머무르므로 `int` 지수를 받으며, 결과는 [`%%`](203-ops.md#modulo--floored-modulo-) 처럼 `m` 의 부호를 가집니다. 음수 지수는 에러입니다 (modular inverse 없음).
 
 `Int` 는 `rok::core::num::bigint::Int` 에 정의됩니다 (`Float` 는
 `rok::core::num::bigfloat::Float`). `#[keyword("int")]` 가 식별자 `int` 를 타입 키워드로

@@ -144,6 +144,8 @@ llvm.store i32 0, %tag_addr  ; Ok = 0
 llvm.store %42_i32, %payload_addr
 ```
 
+A union value built from a shorter variant's payload holds zero in the bytes past that payload, so a root word copied from it is null or a reference, never stale stack ([8.9.12](809-lowering-control.md#8912-shadow-stack-frame)).
+
 ### Variant matching
 
 Matching variants:

@@ -137,4 +137,4 @@ Where each type and function is implemented:
 | `Receiver<T>`  | `rok::core::channel::receiver` | queue + parking          |
 | `channel<T>()` | `rok::core::channel`           | Arc-like internal state  |
 
-For the internal queue, bounded channels use a ring buffer similar to Tokio mpsc, and unbounded channels use a segmented linked list.
+For the internal queue, bounded channels use a ring buffer similar to Tokio mpsc, and unbounded channels use a segmented linked list. A bounded channel's queue is lock-free; an unbounded one's segment list may use a lock.

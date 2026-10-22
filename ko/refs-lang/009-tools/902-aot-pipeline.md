@@ -233,7 +233,7 @@ target/
 - 인터페이스는 plain 본체와 plain 함수의 매개변수, 반환 타입을 뺀 모든 항목입니다. 본체를 고치면 그 본체를 다시 lowering 하고, plain 함수의 시그니처를 고치면 그것과 그 시그니처를 읽은 본체들을 다시 lowering 하며, 항목의 그 밖의 변경 (타입, 트레잇, `impl` 머리, 제네릭 함수, `use`) 은 모든 본체를 다시 lowering 합니다.
 - 재사용한 lowering 이 만든 함수, 타입, 인스턴스는 깨끗한 빌드와 같이 번호가 매겨지며, 진단, 프로그램, 그 심볼은 깨끗한 빌드의 것과 같습니다.
 
-시그니처, `impl` 등록, coherence, 프로그램 전체 검사는 모든 빌드에서 실행합니다. 보관한 것이 꼭 있어야 하지는 않습니다: 없거나 망가졌거나 오래된 항목은 다시 계산합니다. 패키지 밖의 단독 파일은 `ROKC_INCREMENTAL` 이 디렉토리를 가리키지 않으면 아무것도 보관하지 않습니다. `ROKC_INCREMENTAL=<dir>` 은 결과를 `<dir>/<name>-<hash>/` 에 두고, `ROKC_INCREMENTAL=0` 은 끕니다. `ROKC_INCR_VERIFY=1` 은 모든 본체를 따로 다시 lowering 해, 재사용한 lowering 이 다르면 빌드를 실패시킵니다. `-v` 는 파싱과 본체를 재사용한 파일 수를 보고합니다.
+시그니처, `impl` 등록, coherence, 프로그램 전체 검사는 모든 빌드에서 실행합니다. 라이브러리의 항목을 모으며 만든 것 (표준 라이브러리와 의존 패키지의 것) 과 라이브러리 파일의 pre-pass 파싱은 모든 빌드에서, 단독 파일의 빌드에서도 toolchain 의 cache (`lib/rok-cache/library/`, toolchain, 빌드 플래그, 라이브러리 소스의 해시마다 파일 하나) 에 보관합니다. `ROKC_INCREMENTAL` 은 이것을 옮기지도 끄지도 않습니다. 보관한 것이 꼭 있어야 하지는 않습니다: 없거나 망가졌거나 오래된 항목은 다시 계산합니다. 패키지 밖의 단독 파일은 `ROKC_INCREMENTAL` 이 디렉토리를 가리키지 않으면 자기 파싱과 본체를 보관하지 않습니다. `ROKC_INCREMENTAL=<dir>` 은 결과를 `<dir>/<name>-<hash>/` 에 두고, `ROKC_INCREMENTAL=0` 은 끕니다. `ROKC_INCR_VERIFY=1` 은 모든 본체를 따로 다시 lowering 해, 재사용한 lowering 이 다르면 빌드를 실패시킵니다. `-v` 는 파싱과 본체를 재사용한 파일 수를 보고합니다.
 
 ### Codegen unit
 
@@ -283,6 +283,9 @@ $ROK_HOME/
 │       ├── bin/{rok, rokc, rokls}
 │       └── lib/
 │           ├── librokr.a        # 런타임
+│           ├── libclang.{so,dylib,dll}  # libclang, rokc bindgen 만 로드 (std 1.7.6)
+│           ├── clang/<major>/include/   # clang 의 내장 헤더 (그 resource 디렉토리)
+│           ├── rok/lldb/rok_lldb.py      # -g 프로그램용 lldb formatter (9.9.6)
 │           ├── rok/targets/<triple>/   # --target 이 링크하는 것: 런타임 (librokr.a / rokr.lib), Linux C 라이브러리,
 │           │                           #   libclang_rt.profile.a (Windows clang_rt.profile.lib), host 의 것 포함
 │           └── rok/{core, std, bare}/src/   # 표준 라이브러리 소스: tier 마다 패키지처럼 놓이며 루트는 src/lib.rok (5.4)

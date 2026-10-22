@@ -20,7 +20,7 @@ block (32 KiB) = line (128 B) × 256
 | recyclable | 일부 line 만 살아 있음     | 빈 line 을 할당에 다시 씀    |
 | full       | 거의 모든 line 이 살아 있음 | 그대로 둠                    |
 
-sweep 은 죽은 객체를 0 으로 지우지 않습니다. 할당기가 TLAB 을 채울 때 line 을 0 으로 지웁니다.
+sweep 은 비밀 buffer (`WIPE`, [7.1.2](701-object-layout.md#712-메모리-공간)) 를 빼고는 죽은 객체를 0 으로 지우지 않습니다. 할당기가 TLAB 을 채울 때 line 을 0 으로 지웁니다.
 
 ### opportunistic evacuation
 

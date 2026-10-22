@@ -110,7 +110,7 @@ impl Stream {
 fn first_item<T: Iterator>(ref it: T) -> T::Item | none { it.next() }
 ```
 
-bound 가 제네릭 트레잇 `T: Tr<A>` 이면 `T::X` 는 `Tr<A>` impl 의 `X` 입니다. 한 타입이 `Tr<A>` 와 `Tr<B>` 를 서로 다른 `X` 로 구현할 수 있기 때문입니다 (`<T as Tr<A>>::X` 도 같음, [2.13.4](213-type-paths.md#2134-완전-자격-형태-fully-qualified-path)).
+bound 가 제네릭 트레잇 `T: Tr<A>` 이면 `T::X` 는 `Tr<A>` impl 의 `X` 입니다. 한 타입이 `Tr<A>` 와 `Tr<B>` 를 서로 다른 `X` 로 구현할 수 있기 때문입니다 (`<T as Tr<A>>::X` 도 같음, [2.13.4](213-type-paths.md#2134-완전-자격-형태-fully-qualified-path)). bound 가 `T: Tr<A> + Tr<B>` 이거나 bound 의 두 트레잇이 모두 `X` 를 선언하면, 맨 `T::X` 는 모호하므로 에러입니다. `<T as Tr<A>>::X` 로 적습니다. 연관 상수도 마찬가지입니다 (2.8.3a).
 
 이 표기는 [구두점과 연산자 토큰](../001-lexical/110-punctuation-and-operator-tokens.md) 의 `::` 경로 구분자를 쓴 연관 항목 접근입니다. 한편 경로의 일반 규칙 (모듈 경로·turbofish·완전 자격 형태) 은 [타입 경로](213-type-paths.md) 에서 정의합니다.
 

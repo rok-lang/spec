@@ -145,7 +145,7 @@ impl RawPath {
 }
 ```
 
-Windows 에서 `NonUtf8Error.valid_up_to` 는 UTF-16 단위를 셉니다.
+Windows 에서 `NonUtf8Error.valid_up_to` 는 UTF-16 단위를 셉니다. `to_path_lossy` 는 잘못된 maximal subsequence (Unix) / 짝 없는 surrogate (Windows) 하나하나를 U+FFFD 하나로 바꿉니다.
 
 대부분의 코드는 이 타입을 마주칠 일이 없습니다. OS 와 직접 syscall 을 주고받는 자리에서만 등장한다고 보면 됩니다.
 

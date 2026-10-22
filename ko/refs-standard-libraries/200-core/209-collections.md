@@ -114,7 +114,7 @@ impl List<str> {
 }
 
 impl List<u8> {
-    fn find(self, needle: Slice<u8> | List<u8>) -> usize | none;   // self[:].find(needle)
+    fn find<B: AsBytes>(self, needle: B) -> usize | none;   // self[:].find(needle)
 }
 ```
 
@@ -441,7 +441,7 @@ impl<T> Slice<T> {
 }
 
 impl Slice<u8> {
-    fn find(self, needle: Slice<u8> | List<u8>) -> usize | none;   // 처음 나타나는 offset; 빈 needle 은 0
+    fn find<B: AsBytes>(self, needle: B) -> usize | none;   // 처음 나타나는 offset; 빈 needle 은 0
 }
 
 impl<T> Index<usize> for Slice<T> { ... }               // s[i] — 범위 밖이면 panic

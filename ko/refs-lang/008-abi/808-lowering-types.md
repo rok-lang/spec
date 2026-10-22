@@ -144,6 +144,8 @@ llvm.store i32 0, %tag_addr  ; Ok = 0
 llvm.store %42_i32, %payload_addr
 ```
 
+더 짧은 변형의 payload 로 만든 union 값은 그 payload 뒤의 바이트에 0 을 담습니다. 그래서 거기서 복사한 root word 는 null 이나 참조이며, 결코 오래된 스택 값이 아닙니다 ([8.9.12](809-lowering-control.md#8912-shadow-stack-frame)).
+
 ### 변형 매칭
 
 변형을 매칭하는 식을 살펴봅니다.

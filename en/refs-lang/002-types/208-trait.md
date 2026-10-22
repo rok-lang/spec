@@ -110,7 +110,7 @@ To refer to the associated type of a trait-bounded parameter from outside, use t
 fn first_item<T: Iterator>(ref it: T) -> T::Item | none { it.next() }
 ```
 
-If the bound is a generic trait `T: Tr<A>`, `T::X` is the `X` of the `Tr<A>` impl, because one type can implement `Tr<A>` and `Tr<B>` with different `X` (`<T as Tr<A>>::X` is the same, [2.13.4](213-type-paths.md#2134-fully-qualified-path)).
+If the bound is a generic trait `T: Tr<A>`, `T::X` is the `X` of the `Tr<A>` impl, because one type can implement `Tr<A>` and `Tr<B>` with different `X` (`<T as Tr<A>>::X` is the same, [2.13.4](213-type-paths.md#2134-fully-qualified-path)). Under bounds `T: Tr<A> + Tr<B>`, or two bound traits that both declare `X`, a bare `T::X` is ambiguous and is an error; write `<T as Tr<A>>::X`. The same holds for associated constants (2.8.3a).
 
 This notation is associated item access using the `::` path separator of [Punctuation and operator tokens](../001-lexical/110-punctuation-and-operator-tokens.md). The general rules of paths (module paths, turbofish, fully qualified form) are defined in [Type paths](213-type-paths.md).
 

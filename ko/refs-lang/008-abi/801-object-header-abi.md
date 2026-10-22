@@ -66,8 +66,10 @@ bit  6 ~ 31 : 예약 / GC 구현 결정
 | 6    | `UNLOGGED` | 수집에서 살아남은 객체에 `STICKY` 와 함께 켬. write barrier 가 remembered set 에 처음 기록할 때 지움 |
 | 7    | `CARDED`   | 8 KiB 이상의 old 객체에 `UNLOGGED` 대신 켬. barrier 가 512 B card 를 dirty 로 표시. card table 포인터는 헤더 바로 앞 word |
 | 8    | `NOMOVE`   | 주소를 수로 쓴 객체. 수명과 무관하게 영구히 옮기지 않음. `rok_task_key` ([8.5](805-extern-symbols.md)) 가 켬 |
+| 9    | `NOEVAC`   | 수집기 내부, full 수집 한 번 동안: 모호한 word (root, 또는 런타임 word buffer (type id `2`) 의 word) 가 객체를 가리키므로 그 수집의 evacuation 이 객체를 제자리에 둠 ([7.3.1](../007-runtime/703-gc-algorithm.md#opportunistic-evacuation)). evacuation 전에 후보 block 의 그런 객체에 켜고, evacuation 이 그 객체를 지날 때 끔 |
 | 10   | `SATB`     | 동시 mark 중 barrier 가 이 객체의 참조를 기록하는 동안 켬. 경쟁하는 store 는 꺼질 때까지 기다림 ([7.5.3](../007-runtime/705-concurrent-collection.md#753-satb-barrier)) |
 | 11   | `SCANNED`  | 동시 mark 에서 이 객체를 훑었음 |
+| 12   | `WIPE`     | 비밀 buffer (`rok_gc_secret_new`, [8.5.1](805-extern-symbols.md#rok_gc_secret_new--rok_gc_secret_wipe)). 그것을 해제하는 sweep 은 먼저 payload 를 0 으로 지움. 결코 지우지 않음 |
 
 ### atomic 요구
 

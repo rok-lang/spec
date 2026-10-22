@@ -48,7 +48,7 @@ The global options of `rok` are:
 | `--cwd <dir>`    | Change directory before running                                   |
 | `-q`, `--quiet`  | Reduce output                                                     |
 
-Environment variables are `ROK_HOME` (default `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6), `ROK_REGISTRY` (the index) and `ROK_REGISTRY_TOKEN` (the registry API token) (9.10.4a).
+Environment variables are `ROK_HOME` (default `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6), `ROK_REGISTRY` (the index) and `ROK_REGISTRY_TOKEN` (the registry API token) (9.10.4a), and `ROK_DIST` (the release server, 9.10.6).
 
 ## 9.10.2. `rok new` / `rok init`: package creation
 
@@ -183,6 +183,7 @@ rok deps [--dev] [--features <f,..>] [--all-features] [--no-default-features]
 - Builds use the commits and versions in `rok.lock`. Newly declared dependencies are added to the lock and removed ones are cleaned up, but only `update` moves something already pinned. Given names, `update` re-resolves only those packages; otherwise it re-resolves all git dependencies and stones.
 - `deps` prints the resolved dependency packages as lines `<code name>=<path of its src/lib.rok>` (the code name has `-` replaced by `_`), dependencies first (`--dev` includes dev dependencies). Each such line is followed by its `--extern-feature=<code name>=<f>` lines; `deps` takes the feature options and `--dev`. For each native package (dependents first, for the host) it also prints `# native <name> <vers>` followed by its `rokc` arguments, one per line.
 - `rok.lock` is committed to version control.
+- `rok update` re-resolves `rok.lock`; `rok toolchain update` replaces the toolchain (9.10.6).
 
 ### Cache
 
@@ -238,7 +239,7 @@ Stone { name: "json", vers: "1.4.2", deps: [{ name: "util", req: "^0.3", kind: "
 ```
 
 - The `kind` in `deps` is `"normal"`, `"dev"` or `"native"`; `registry` is optional.
-- A stone with features has `features: { "<name>": ["<entry>", ..] }` after `deps`, checked as in 9.10.4c. A `normal` dependency may have `optional: true`, `features: [..]` and `default_features: false` (written only when not the default); `dev` / `native` ones may not be optional, and native ones have no features. `rok publish` writes them from `rok.rokon`; resolution reads them from the entry.
+- A stone with features has `features: { "<name>": ["<entry>", ..] }` after `deps`, checked as in 9.10.4c. A `normal` dependency may have `optional: true`, `features: [..]` and `default_features: false` (written only when not the default); `dev` / `native` ones may not be optional, and native ones have no features. `rok publish` writes them from `rok.rokon`; resolution reads them from the entry. After checkout the entry's `features` must equal those of the stone's `rok.rokon` at that commit (in any order); otherwise it is an error.
 - `native/<shard path>` holds native packages, one `Native { .. }` per line ([9.10.4b](#9104b-native-packages)).
 - `description`, `license` and `repository` from the manifest appear as optional trailing fields.
 - The package is at the root of the `source` repository. `cksum` is the git tree hash of that commit, verified after checkout.
@@ -373,17 +374,20 @@ rok toolchain list
 rok toolchain install <version> --from <dir | archive | url>
 rok toolchain default [<version>]          # without an argument, prints the current default
 rok toolchain remove <version>
+rok toolchain update [<version>]
 ```
 
 - An installation is `$ROK_HOME/toolchains/<version>-<triple>/` and is self-contained ([9.2.19](902-aot-pipeline.md#9219-installation-layout)). `install` requires `--from`.
 - `install` verifies with `bin/rokc --version --verbose`; the version and host must match.
 - The first installed toolchain becomes the default, and the `bin/` proxies are created at that point.
+- `rok toolchain update` replaces the default toolchain under `$ROK_HOME`. Without an argument it installs the latest release; with a version it installs that version. The installed toolchain becomes the default and the `bin/` proxies are rewritten; on Windows a running proxy is renamed before its copy replaces it. It downloads the release archive and verifies its SHA-256 (Distribution, below), unpacks it apart and moves it into place, then checks that the proxies run it; on failure the previous default and proxies are restored and the new toolchain is removed. Earlier toolchains stay installed. A version already installed is made the default without a download. `rok update` re-resolves `rok.lock`; `rok toolchain update` replaces the toolchain (9.10.4).
 
 ### Distribution
 
 - A release archive is `rok-<version>-<triple>.tar.gz` (Windows `.zip`), containing the toolchain layout, with `<archive>.sha256` beside it: the archive's SHA-256 in hex, optionally followed by the file name (sha256sum format).
 - `install.sh`, `install.ps1` and `rok toolchain install --from <url>` download `<url>.sha256` from the same place and refuse an archive whose SHA-256 differs; a missing `.sha256` is an error. An archive given by path is checked against `<path>.sha256` when that file exists. Signatures are not defined; HTTPS vouches for the origin.
 - `install.sh` (<https://rok-lang.org/install.sh>) installs into `$ROK_HOME` from an archive or from GitHub releases of the `rok-lang` organization.
+- Releases are served from `$ROK_DIST` (default `https://github.com/rok-lang/rok/releases`): `<dist>/download/v<version>/<archive>` with its `.sha256`, and `<dist>/latest/download/rok-version` holding the latest release's version.
 
 ## 9.10.7. Inline manifest for single-file scripts
 

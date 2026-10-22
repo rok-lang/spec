@@ -61,7 +61,7 @@ The same rule is not limited to operators. It applies wherever an impl is select
 2. Otherwise, the unique impl whose parameter type can hold the value (for integers, an in-range integer type or `int`; for reals, `f32` / `f64` where the value is finitely representable, or `float`). `d * 2` is `Duration`'s `Mul<i64>`.
 3. If several such impls exist, a compile error requiring a suffix.
 
-This rule applies only to bare literals and signed literals (`-1`), not to expressions such as `1 + 1`. The `Self` of a static trait method called as `Tr::f(..)` is determined from the expected type.
+This rule applies only to bare literals and signed literals (`-1`), not to expressions such as `1 + 1`. The `Self` of a static trait method called as `Tr::f(..)` is determined from the expected type. When no argument fills the trait's parameter, the call's expected type selects the impl (or bound) whose return type it is; otherwise the call is ambiguous ([4.9.6](../004-functions/409-method.md#496-call-forms-of-free-functions-and-methods)).
 
 ## 3.1.4. Operations without a mapping
 

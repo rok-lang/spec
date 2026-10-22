@@ -92,6 +92,9 @@ work-stealing 모델은 task 가 blocking syscall 을 호출하면 그 worker �
 
 환경 변수 `ROK_THREAD_PER_CORE=1` 로 켜며, `ROK_WORKERS=<n>` 이 N 을 정합니다 (기본값: 온라인 CPU 수).
 
+> [!NOTE]
+> task 는 worker 에 고정됩니다. task 가 block 된 worker 는 다른 OS 스레드에서 이어질 수 있으므로 ([7.6.7](#767-blocking-syscall-자동-검출)), 고정된 task 에서도 스레드 정체성은 안정적이지 않습니다.
+
 ## 7.6.9. 우선순위 / 공정성
 
 기본은 우선순위 없는 FIFO + work-stealing 입니다. 소유 worker 와 thief 모두 deque 에서 가장 오래된 task 부터 처리합니다 (7.6.2).

@@ -57,9 +57,20 @@ impl Int {
     fn to_i32(self) -> i32 | none;  // the value if in range, none otherwise
     fn to_i64(self) -> i64 | none;
     fn to_f64(self) -> f64;        // always succeeds (may lose precision)
+
+    fn pow(self, exp: u32) -> int;              // exp: u32 as for fixed-width integers
+    fn isqrt(self) -> int;                      // floor(sqrt(self)); panics if self < 0
+    fn checked_isqrt(self) -> int | none;       // none if self < 0
+    fn div_euclid(self, rhs: int) -> int;       // the quotient for which rem_euclid >= 0; panics if rhs == 0
+    fn rem_euclid(self, rhs: int) -> int;       // in 0..rhs.abs(); panics if rhs == 0
+    fn modpow(self, exp: int, m: int) -> int;   // self^exp %% m; panics if m == 0 or exp < 0
+    fn gcd(self, other: int) -> int;            // never negative; gcd(0, 0) == 0
+    fn lcm(self, other: int) -> int;            // never negative; 0 if either operand is 0
     ...
 }
 ```
+
+These follow the fixed-width integers' names and panics. `pow` takes a `u32` exponent: a larger one gives at least 2^32 bits for any base but 0 and ±1. `modpow` takes an `int` exponent, since its result stays below `|m|`; the result has the sign of `m`, like [`%%`](203-ops.md#modulo--floored-modulo-). A negative exponent is an error (no modular inverse).
 
 `Int` is defined in `rok::core::num::bigint::Int` (`Float` in
 `rok::core::num::bigfloat::Float`). `#[keyword("int")]` registers the identifier `int` as a type keyword,

@@ -137,4 +137,4 @@ for await v in rx {
 | `Receiver<T>`  | `rok::core::channel::receiver` | queue + parking          |
 | `channel<T>()` | `rok::core::channel`           | Arc-like internal state  |
 
-내부 큐 구조는 bounded 채널의 경우 Tokio mpsc 와 유사한 ring buffer 를 사용하고, unbounded 채널의 경우 segmented linked-list 를 사용합니다.
+내부 큐 구조는 bounded 채널의 경우 Tokio mpsc 와 유사한 ring buffer 를 사용하고, unbounded 채널의 경우 segmented linked-list 를 사용합니다. bounded 채널의 큐는 lock-free 이며, unbounded 채널의 segment 리스트는 lock 을 쓸 수 있습니다.

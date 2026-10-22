@@ -118,6 +118,19 @@ extern "rok" {
 
 full 수집을 하고, 수집이 끝난 뒤 돌아옵니다.
 
+### `rok_gc_secret_new` / `rok_gc_secret_wipe`
+
+`rok::core::crypto::Secret` ([stdlib 2.21.5](../../refs-standard-libraries/200-core/221-crypto.md#2215-보안-고려-사항)) 의 비밀 저장소입니다. **Thread-safety: `thread-safe`**.
+
+```
+extern "rok" {
+    fn rok_gc_secret_new(len: usize) -> GcBuf<u8>;
+    fn rok_gc_secret_wipe(obj: GcBuf<u8>);
+}
+```
+
+`rok_gc_secret_new` 는 `WIPE` ([8.1.3](801-object-header-abi.md#813-gc_flags-offset-4-u32)) 를 켠 type id 1 (참조 없음) 의 LOS 객체를 할당합니다. 0 으로 채운 payload 는 `len` 을 8 의 배수로 올린 바이트를 담습니다. 먼저 수집할 수 있으며, `isize::MAX` 를 넘는 요청은 fatal error "allocation too large" 입니다. `rok_gc_secret_wipe` 는 payload 전체를 volatile store 로 덮어쓰고 compiler fence 를 둡니다. 할당하지도 block 하지도 않으므로 safepoint 가 아닙니다 ([8.4](804-safepoint.md)). 수집기는 객체를 해제하기 전에 같은 방식으로 payload 를 덮어씁니다.
+
 ## 8.5.2. Runtime 영역
 
 ### `rok_runtime_init`

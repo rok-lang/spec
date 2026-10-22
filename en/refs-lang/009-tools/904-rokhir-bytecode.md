@@ -19,7 +19,7 @@ ROKHIR file (little-endian):
 +-----------------------------------+
 |  Header                           |  (16 bytes fixed)
 |    magic       "ROKH"    (4 bytes)  |
-|    version     u32  (= 3)         |
+|    version     u32  (= 4)         |
 |    flags       u32                |
 |    body_offset u32                |
 +-----------------------------------+
@@ -46,7 +46,7 @@ ROKHIR file (little-endian):
 | Field         | Size | Meaning                                                      |
 |---------------|------|--------------------------------------------------------------|
 | `magic`       | 4    | `"ROKH"`                                                       |
-| `version`     | u32  | Format version (`3`). Bumped when the layout or body content changes: 2 added the `features` meta, 3 the `.wit` files of the body |
+| `version`     | u32  | Format version (`4`). Bumped when the layout or body content changes: 2 added the `features` meta, 3 the `.wit` files of the body, 4 inlines `include_str!` / `include_bytes!` data |
 | `flags`       | u32  | Reserved (0)                                                 |
 | `body_offset` | u32  | Start offset of the body                                     |
 
@@ -80,6 +80,7 @@ The body holds **every source file** of the package as (path, text) pairs. Each 
 - The bodies of concrete functions are cut down to `;`. Newlines are kept, so diagnostic line numbers match the original. These functions are linked as archive symbols.
 - Bodies that downstream must monomorphize or inline are kept: generic functions, `async` / `yield` functions, `#[inline]` functions, `extern "C"` definitions, default methods of traits, and methods of generic `impl`s.
 - Declarations such as signatures, types, traits, `impl`s and `use`s are left as is.
+- `include_str!` / `include_bytes!` in the kept text are replaced by the literal they read (line breaks kept), so downstream reads no included file and a moved library still works.
 
 After the source files come the `.wit` files the package's `ffi::wit` items read ([stdlib 1.8](../../refs-standard-libraries/100-bare/108-wit.md)), with their `deps/`, whole. Their paths are relative to the source dir and may leave it through `..`. Downstream reads WIT from the body, not the disk.
 

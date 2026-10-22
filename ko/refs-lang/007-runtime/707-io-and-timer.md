@@ -58,7 +58,7 @@ trait IODriver {
 
 ## 7.7.4. 타이머 구조
 
-`task::sleep(d)` / `task::timeout(d, ..)` 의 대기는 마감 시각 순의 binary heap 에 둡니다. 마감 시각이 지나면 깨웁니다. 취소된 task 의 timer 는 heap 에 남았다가 만료나 정리 때 버립니다.
+`task::sleep(d)` / `task::timeout(d, ..)` 의 대기는 마감 시각 순의 binary heap 에 둡니다. 마감 시각이 지나면 깨웁니다. 취소된 task 의 timer 는 heap 에 남았다가 만료나 정리 때 버립니다. timer 를 처리할 때 이미 마감 시각이 지난 sleep 들은, 여러 스레드가 동시에 timer 를 처리하더라도 마감 시각 순으로 깨어납니다. 첫 poll 때 이미 마감 시각이 지난 sleep 은 그 자리에서 끝납니다.
 
 insert 와 만료는 `O(log n)` 입니다.
 

@@ -58,7 +58,7 @@ This interface is conceptual; the exact signatures are decided by the runtime im
 
 ## 7.7.4. Timer structure
 
-Waits of `task::sleep(d)` / `task::timeout(d, ..)` are kept in a binary heap ordered by deadline. When the deadline passes, the task is woken. Timers of cancelled tasks remain in the heap and are discarded on expiry or cleanup.
+Waits of `task::sleep(d)` / `task::timeout(d, ..)` are kept in a binary heap ordered by deadline. When the deadline passes, the task is woken. Timers of cancelled tasks remain in the heap and are discarded on expiry or cleanup. Sleeps whose deadlines have passed by the time timers are processed wake in deadline order, even when several threads process timers at once; a sleep whose deadline has passed at its first poll completes then.
 
 Insertion and expiry are `O(log n)`.
 

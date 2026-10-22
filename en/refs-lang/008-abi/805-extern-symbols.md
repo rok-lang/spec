@@ -118,6 +118,19 @@ extern "rok" {
 
 Performs a full collection and returns after it finishes.
 
+### `rok_gc_secret_new` / `rok_gc_secret_wipe`
+
+Secret storage for `rok::core::crypto::Secret` ([stdlib 2.21.5](../../refs-standard-libraries/200-core/221-crypto.md#2215-security-considerations)). **Thread-safety: `thread-safe`**.
+
+```
+extern "rok" {
+    fn rok_gc_secret_new(len: usize) -> GcBuf<u8>;
+    fn rok_gc_secret_wipe(obj: GcBuf<u8>);
+}
+```
+
+`rok_gc_secret_new` allocates a LOS object of type id 1 (no references) with `WIPE` set ([8.1.3](801-object-header-abi.md#813-gc_flags-offset-4-u32)). Its zeroed payload holds `len` bytes rounded up to a multiple of 8. It may collect first, and a request above `isize::MAX` is the fatal error "allocation too large". `rok_gc_secret_wipe` overwrites the whole payload with volatile stores followed by a compiler fence; it neither allocates nor blocks, so it is no safepoint ([8.4](804-safepoint.md)). The collector overwrites the payload the same way before it frees the object.
+
 ## 8.5.2. Runtime area
 
 ### `rok_runtime_init`
