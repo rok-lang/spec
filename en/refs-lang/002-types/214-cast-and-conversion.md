@@ -1,6 +1,6 @@
 # 2.14. Conversions
 
-This section defines the syntax that moves a value from one type to another. The semantics — which conversions are allowed and how their results are determined — are the responsibility of the standard library's conversion matrix; this document covers only the language syntax.
+This section defines the syntax that moves a value from one type to another. The semantics - which conversions are allowed and how their results are determined - are the responsibility of the standard library's conversion matrix; this document covers only the language syntax.
 
 ```
 cast_expr   ::= expr "as" type_expr
@@ -73,7 +73,7 @@ Finally, the `.try_into()` call.
 expr.try_into::<Type>()
 ```
 
-This desugars to `Target::try_from(expr)` (`Target: TryFrom<typeof(expr)>`). `try_into` is a [`throws`](../004-functions/414-throws.md) method: on success it returns a value of the target type, and on failure it throws an error (the target's `TryFrom::Error`; for numeric conversions `OverflowError`, [stdlib 2.11.4](../../refs-standard-libraries/200-core/211-conversion.md#2114-tryfromu-trait--fallible-conversion)). The call must therefore be marked with `try`. It is used when the conversion can fail, such as moving a large integer to a smaller integer or a floating-point value to an integer.
+This desugars to `Target::try_from(expr)` (`Target: TryFrom<typeof(expr)>`). `try_into` is a [`throws`](../004-functions/414-throws.md) method: on success it returns a value of the target type, and on failure it throws an error (the target's `TryFrom::Error`; for numeric conversions `OverflowError`, [stdlib 2.11.4](../../refs-standard-libraries/200-core/211-conversion.md#2114-tryfromu-trait---fallible-conversion)). The call must therefore be marked with `try`. It is used when the conversion can fail, such as moving a large integer to a smaller integer or a floating-point value to an integer.
 
 ```rok
 let big: i64 = 10_000_000_000i64;
@@ -103,9 +103,9 @@ Automatic conversion of runtime variables, by contrast, is not allowed. One of t
 
 ```rok
 let a: i64 = 100i64;
-let b: i32 = a;                 // ERROR — explicit conversion required
+let b: i32 = a;                 // ERROR - explicit conversion required
 let b: i32 = a as i32;          // OK
-let b: i32 = try! a.try_into::<i32>();     // OK — panics on failure
+let b: i32 = try! a.try_into::<i32>();     // OK - panics on failure
 ```
 
 This explicitness prevents silent loss of precision.

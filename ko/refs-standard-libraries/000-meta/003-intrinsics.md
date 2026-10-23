@@ -1,8 +1,8 @@
-# 0.3. intrinsic 메커니즘 — 컴파일러 ↔ 표준 라이브러리 경계
+# 0.3. intrinsic 메커니즘 - 컴파일러 ↔ 표준 라이브러리 경계
 
 표준 라이브러리 트레잇 메서드, 가령 `i32::add` 의 본문은 결국 LLVM 의 `add` 명령어로 lowering 되어야 합니다. 이 장에서는 표준 라이브러리 메서드 본문이 어떤 경로를 통해 컴파일러 백엔드 (PrimOp / MIR / MLIR) 와 연결되는지 정의합니다.
 
-## 0.3.1. 문제 — 부트스트랩 순환
+## 0.3.1. 문제 - 부트스트랩 순환
 
 문제의 핵심은 표준 라이브러리와 컴파일러 사이에서 발생하는 부트스트랩 순환입니다. 다음 흐름을 보면 어디에서 막히는지 분명해집니다.
 
@@ -22,7 +22,7 @@ LLVM:        add i32 %a, %b
 
 따라서 표준 라이브러리 본문이 자기 자신을 호출하지 않으면서도 컴파일러 백엔드의 `add` 명령으로 곧장 이어지는 경로가 필요합니다.
 
-## 0.3.2. 해결 — `#[intrinsic("rok.OP.TYPE")]` 속성
+## 0.3.2. 해결 - `#[intrinsic("rok.OP.TYPE")]` 속성
 
 해결책은 표준 라이브러리 메서드 본문에 컴파일러가 인식하는 속성을 부착해 두는 것입니다. 그러면 컴파일러는 해당 호출을 만났을 때 본문을 lowering 하지 않고 곧바로 PrimOp / MIR 로 변환합니다.
 
@@ -32,7 +32,7 @@ impl Add for i32 {
 
     #[intrinsic("rok.add.i32")]
     fn add(self, rhs: i32) -> i32 {
-        // 본문이 비어 있어도 OK — 컴파일러가 intrinsic 경로 사용
+        // 본문이 비어 있어도 OK - 컴파일러가 intrinsic 경로 사용
         // 본문이 있어도 컴파일러가 우선
     }
 }
@@ -79,7 +79,7 @@ intrinsic 이 부착된 메서드라 하더라도 본문을 함께 가질 수 �
 impl Add for BigInt {
     type Output = BigInt;
 
-    // BigInt 는 fixed-width 가 아니라 intrinsic 없음 — 본문이 권위
+    // BigInt 는 fixed-width 가 아니라 intrinsic 없음 - 본문이 권위
     fn add(self, rhs: BigInt) -> BigInt {
         // 실제 BigInt 덧셈 구현
         ...
@@ -91,7 +91,7 @@ impl Add for i32 {
 
     #[intrinsic("rok.add.i32")]
     fn add(self, rhs: i32) -> i32 {
-        // 본문 — fn 값으로 꺼내 부르거나 intrinsic 을 모르는 환경에서 실행
+        // 본문 - fn 값으로 꺼내 부르거나 intrinsic 을 모르는 환경에서 실행
         self + rhs                    // primitive 연산자는 기계 연산으로 직접 lower
     }
 }
@@ -106,7 +106,7 @@ impl Add for i32 {
 `#[intrinsic(...)]` 은 표준 라이브러리가 컴파일러와 결합되는 경계에서만 동작하는 메커니즘이므로, 사용자 코드는 이 속성을 직접 부착할 수 없습니다. 함수, 제네릭 함수, 메서드 모두 같습니다.
 
 ```rok
-// 사용자 코드 — 거부.
+// 사용자 코드 - 거부.
 #[intrinsic("rok.add.i32")]
 fn my_add(a: i32, b: i32) -> i32 { ... }
 // 컴파일 에러: "intrinsic 속성은 표준 라이브러리 한정"

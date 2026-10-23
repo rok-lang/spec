@@ -4,16 +4,16 @@ The `rok::core::convert` module defines the family of traits that move a value f
 
 The syntax of [refs-lang 2.14 Conversions](../../refs-lang/002-types/214-cast-and-conversion.md) dispatches to these traits.
 
-## 2.11.1. Conversion policy — four kinds
+## 2.11.1. Conversion policy - four kinds
 
 rok separates conversions into four kinds by **intent**. The user must state which kind applies each time.
 
 | Kind         | Method                              | Meaning                                    | On failure                  |
 |--------------|-------------------------------------|--------------------------------------------|-----------------------------|
-| **lossless** | `.into::<T>()`                      | zero information loss — always succeeds    | compile / runtime error     |
-| **fallible** | `.try_into::<T>()`                  | may lose information — caller handles it   | throws the target's `TryFrom::Error` |
+| **lossless** | `.into::<T>()`                      | zero information loss - always succeeds    | compile / runtime error     |
+| **fallible** | `.try_into::<T>()`                  | may lose information - caller handles it   | throws the target's `TryFrom::Error` |
 | **saturate** | `.saturating_into::<T>()`           | out of range clamps to i32::MAX / MIN      | explicit saturate (user's choice) |
-| **bit**      | `.wrapping_into::<T>()` or `as T`   | bit reinterpretation — modular arithmetic / bit pattern | explicit wrap (user's choice) |
+| **bit**      | `.wrapping_into::<T>()` or `as T`   | bit reinterpretation - modular arithmetic / bit pattern | explicit wrap (user's choice) |
 
 Each kind's method name states the intent by itself. Writing `.into()` means **lossless** intent; writing `.saturating_into()` means **saturate** intent. The compiler does not guess the meaning.
 
@@ -21,7 +21,7 @@ Each kind's method name states the intent by itself. Writing `.into()` means **l
 
 A silent saturate or silent wrap alters a value without the user knowing, producing bugs that are hard to debug. rok adopts both the lesson JS learned in introducing Number → BigInt and the lesson NumPy learned in moving from wrap to OverflowError.
 
-## 2.11.2. `From<U>` trait — lossless conversion
+## 2.11.2. `From<U>` trait - lossless conversion
 
 ```rok
 trait From<U> {
@@ -44,7 +44,7 @@ let x: int = int::from(42i32);   // i32 → int (lossless)
 
 `From` is available automatically through the [implicit `use rok::core::**;`](../000-meta/002-import.md), so no separate `use` declaration is needed.
 
-## 2.11.3. `Into` trait — mirror of `From`
+## 2.11.3. `Into` trait - mirror of `From`
 
 ```rok
 trait Into {
@@ -61,19 +61,19 @@ impl<S> Into for S {
 A convertibility bound is written on the `From` side. There is no bound `T: Into<U>`.
 
 ```rok
-fn widen<T, U: From<T>>(x: T) -> U { x.into() }      // OK — U: From<T>
-fn widen2<T: Into<U>, U>(x: T) -> U { x.into() }     // ERROR — Into takes no type argument
+fn widen<T, U: From<T>>(x: T) -> U { x.into() }      // OK - U: From<T>
+fn widen2<T: Into<U>, U>(x: T) -> U { x.into() }     // ERROR - Into takes no type argument
 ```
 
 ### Example
 
 ```rok
 let n: i32 = 42;
-let big: i64 = n.into();         // i32::into::<i64>() automatically — uses From<i32> for i64
+let big: i64 = n.into();         // i32::into::<i64>() automatically - uses From<i32> for i64
 let big_typed: i64 = (42i32).into();
 ```
 
-### Prefer `From` — design pattern
+### Prefer `From` - design pattern
 
 An explicit conversion can be written in either of two forms.
 
@@ -93,7 +93,7 @@ Attempting a combination for which `From<U> for T` is not implemented is a compi
 
 ```rok
 let big: i64 = 1000;
-let small: i32 = big.into();   // compile error — no From<i64> for i32
+let small: i32 = big.into();   // compile error - no From<i64> for i32
                                 //   (not lossless)
 ```
 
@@ -105,7 +105,7 @@ let small: i32 = big.saturating_into();    // explicit saturate
 let small: i32 = big as i32;               // explicit wrap
 ```
 
-## 2.11.4. `TryFrom<U>` trait — fallible conversion
+## 2.11.4. `TryFrom<U>` trait - fallible conversion
 
 ```rok
 trait TryFrom<U> {
@@ -140,7 +140,7 @@ In the `OverflowError { op, ty }` ([2.14](214-error.md)) thrown by a numeric `tr
 let small: i32 = try big.try_into();     // = try i32::try_from(big)
 ```
 
-## 2.11.5. `saturating_into` / `wrapping_into` — explicit policy
+## 2.11.5. `saturating_into` / `wrapping_into` - explicit policy
 
 For a conversion that may lose information, the user states the value-altering policy explicitly. Two methods are provided for this.
 
@@ -162,7 +162,7 @@ trait WrappingInto {
 
 The shape matches `From` / `Into`. The conversion itself is the `SaturatingFrom` / `WrappingFrom` impl; `saturating_into` / `wrapping_into` are generic methods supplied by a blanket impl.
 
-### `saturating_into` — clamp to the range ends
+### `saturating_into` - clamp to the range ends
 
 ```rok
 let big: i64 = 9999999999;
@@ -174,7 +174,7 @@ let small_neg: i32 = big_neg.saturating_into();  //→ i32::MIN
 
 This policy is useful in DSP, signal processing, UI clamping and similar domains.
 
-### `wrapping_into` — modular arithmetic
+### `wrapping_into` - modular arithmetic
 
 ```rok
 let big: i64 = 0x100000001;
@@ -183,7 +183,7 @@ let small: i32 = big.wrapping_into();      //→ 1 (low 32 bits)
 
 It means the same as `as i32`, but expresses the intent as an explicit method call. This policy suits hashing and bit-masking domains.
 
-## 2.11.6. `as T` — bit reinterpretation / numeric cast
+## 2.11.6. `as T` - bit reinterpretation / numeric cast
 
 The `as` keyword ([refs-lang 2.14](../../refs-lang/002-types/214-cast-and-conversion.md)) is the means of making a numeric / bit conversion **explicit**.
 
@@ -202,7 +202,7 @@ let f2: f32 = 3.14f64 as f32;     // 3.14 → f32 (IEEE 754 narrowing)
 
 | Conversion                                         | Meaning                                            |
 |----------------------------------------------------|----------------------------------------------------|
-| integer → integer of the same width (signed/unsigned) | same bit pattern — only the sign interpretation changes |
+| integer → integer of the same width (signed/unsigned) | same bit pattern - only the sign interpretation changes |
 | narrow integer → wide integer                      | sign-extend (signed) or zero-extend (unsigned)     |
 | wide integer → narrow integer                      | truncation (low bits only)                         |
 | integer → floating-point                           | to IEEE 754 representation (may lose precision)    |
@@ -220,25 +220,25 @@ let f2: f32 = 3.14f64 as f32;     // 3.14 → f32 (IEEE 754 narrowing)
 ```rok
 struct Vec3 { x: f64; y: f64; z: f64; }
 let v = Vec3 { x: 1.0, y: 2.0, z: 3.0 };
-let s: str = v as str;     // compile error — `as` rejects user structs
+let s: str = v as str;     // compile error - `as` rejects user structs
 ```
 
 Conversion between user types must be stated with the `From` / `Into` traits.
 
-## 2.11.7. Literal-context auto-From — compile-time range check
+## 2.11.7. Literal-context auto-From - compile-time range check
 
 For an annotated literal, a compile-time range check and a lossless conversion apply together.
 
 ```rok
-let x: i32 = 42;             // OK — 42 is in i32 range
-let y: i32 = 9999999999;     // compile error — literal outside i32 range
-let z: f32 = 3.14;           // OK — round to nearest f32
-let w: u8 = 256;             // compile error — 256 ∉ u8 0..=255
+let x: i32 = 42;             // OK - 42 is in i32 range
+let y: i32 = 9999999999;     // compile error - literal outside i32 range
+let z: f32 = 3.14;           // OK - round to nearest f32
+let w: u8 = 256;             // compile error - 256 ∉ u8 0..=255
 ```
 
 The rule for selecting an impl from a literal, as in `T::from(1)` / `1.into()`, follows [refs-lang 3.1.3](../../refs-lang/003-expressions/301-operator-dispatch.md#selecting-an-impl). This mechanism works because the literal is a value known at compile time. Converting a runtime value requires one of `from`, `into`, `try_into` or `as` to be written explicitly.
 
-## 2.11.8. `From` impl matrix — between primitives
+## 2.11.8. `From` impl matrix - between primitives
 
 The `From<U> for T` impls provided by the standard library are tabulated below (lossless only).
 
@@ -306,7 +306,7 @@ f64 → f32 is a narrowing conversion, so one of `try_into`, `saturating_into` o
 
 Conversely, `fixed → int` is always lossless (`From<i32> for int` and the rest are all implemented).
 
-## 2.11.9. `From` impls — user types
+## 2.11.9. `From` impls - user types
 
 Conversion between user types is defined by writing `impl From<U> for T` directly.
 
@@ -342,33 +342,33 @@ let n: i32 = try "42".try_into();
 
 Every fixed-width integer type implements `TryFrom<str>` this way, on top of its `FromStr`: empty text, an invalid digit or an out-of-range value throws `OverflowError { op: "try_from", ty }`. Floating-point types, `bool` and `char` provide only `FromStr`.
 
-## 2.11.10. Automatic conversion of arithmetic results — none
+## 2.11.10. Automatic conversion of arithmetic results - none
 
 Auto-From for arithmetic results ([refs-lang 2.14](../../refs-lang/002-types/214-cast-and-conversion.md)) applies only in **literal context**. The result of arithmetic on values is not converted automatically.
 
 ```rok
 let a: i32 = 5;
 let b: i32 = 3;
-let c: i32 = a + b;          // OK — i32 + i32 = i32
+let c: i32 = a + b;          // OK - i32 + i32 = i32
 
 let big: i32 = a + b * 1000000;
 // → OK if a + b * 1000000 is within i32 range; otherwise (debug=panic / release=wrap)
 // no silent saturate / silent promote
 
-let auto: i64 = a + b;       // compile error — no silent promotion of an i32 result to i64
+let auto: i64 = a + b;       // compile error - no silent promotion of an i32 result to i64
 let auto: i64 = (a + b) as i64;  // explicit conversion OK
 let auto: i64 = (a + b).into();  // explicit From<i32> for i64 (lossless)
 ```
 
-## 2.11.11. Comparison with other languages — design rationale
+## 2.11.11. Comparison with other languages - design rationale
 
 | Language | Conversion model                                         | Difference from rok                                                               |
 |----------|----------------------------------------------------------|-----------------------------------------------------------------------------------|
-| Rust     | `From`/`Into` lossless, `as` wrap, `try_into` Result     | closest to rok — rok adds explicit `saturating_into`/`wrapping_into` methods      |
-| Swift    | all integer conversions trap by default, `.init(clamping:)` opt-in | rok rejects trapping — debug=panic + release=wrap (fixed-width arithmetic), conversions are explicit |
+| Rust     | `From`/`Into` lossless, `as` wrap, `try_into` Result     | closest to rok - rok adds explicit `saturating_into`/`wrapping_into` methods      |
+| Swift    | all integer conversions trap by default, `.init(clamping:)` opt-in | rok rejects trapping - debug=panic + release=wrap (fixed-width arithmetic), conversions are explicit |
 | Julia    | `Int32(big)` traps, `convert` function family            | rok unifies on trait methods (`from`/`into`)                                      |
-| Python   | `int(x)`/`float(x)` functions — always arbitrary precision | rok's `int` / `float` share the spirit; fixed primitives are a separate world   |
-| C        | implicit conversion (`int` → `long` automatically)       | rok explicitly rejects it — blocks silent type mixing                             |
+| Python   | `int(x)`/`float(x)` functions - always arbitrary precision | rok's `int` / `float` share the spirit; fixed primitives are a separate world   |
+| C        | implicit conversion (`int` → `long` automatically)       | rok explicitly rejects it - blocks silent type mixing                             |
 
 From this comparison, rok's key design decisions are: reject silent information loss (influenced by Rust); force expression of intent by making the four kinds (`into`, `try_into`, `saturating_into`, `as`) explicit; allow auto-From only in literal context and require explicit conversion for runtime values; and separate the auto-promotion of `int` / `float` from fixed primitives, a decision influenced by Python and Smalltalk.
 
@@ -376,7 +376,7 @@ From this comparison, rok's key design decisions are: reject silent information 
 
 | Trait               | lang slot              | Standard library location |
 |---------------------|------------------------|---------------------------|
-| `From<U>`           | (none — derivable)     | standard library          |
+| `From<U>`           | (none - derivable)     | standard library          |
 | `Into`              | (blanket impl)         | standard library          |
 | `TryFrom<U>`        | (none)                 | standard library          |
 | `TryInto`           | (blanket impl)         | standard library          |

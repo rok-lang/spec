@@ -26,7 +26,7 @@ fn outer() {
     helper();                     // OK
 }
 
-helper();                          // ERROR — not visible outside outer
+helper();                          // ERROR - not visible outside outer
 ```
 
 Once outside that block, the nested function's name is no longer visible.
@@ -38,7 +38,7 @@ Nested functions do not capture variables of the outer function.
 ```rok
 fn outer(n: i32) {
     fn inner() {
-        let x = n;                // ERROR — n is not visible
+        let x = n;                // ERROR - n is not visible
     }
     inner();
 }
@@ -48,7 +48,7 @@ This makes clear that a nested function is a clean function unit. When a statefu
 
 ```rok
 fn outer(n: i32) {
-    let inner = |x| x + n;        // OK — closures can capture
+    let inner = |x| x + n;        // OK - closures can capture
     inner(5);
 }
 ```
@@ -101,7 +101,7 @@ A nested function is visible only inside the outer function's body, so visibilit
 
 ```rok
 fn outer() {
-    pub fn helper() { ... }       // ERROR — pub is meaningless on a nested function
+    pub fn helper() { ... }       // ERROR - pub is meaningless on a nested function
 }
 ```
 
@@ -112,7 +112,7 @@ Visibility applies only to module-level items. The same holds for every item dec
 ```rok
 fn outer() {
     let helper = 42;
-    fn helper() { ... }            // ERROR — variable and function with the same name
+    fn helper() { ... }            // ERROR - variable and function with the same name
 }
 ```
 

@@ -12,7 +12,7 @@ spec 본체는 `spec/ko/refs-standard-libraries/300-std/` 아래 둡니다.
 
 ## 사용자 import 정책
 
-묵시 `use rok::;` 는 std 항목을 포함하지 않습니다 — `rok::std::*` 는 별도 명시 import 를 강제합니다. target 별 가용성 차이가 있기 때문에, 사용자가 **명시적으로** 플랫폼 의존성을 표현하도록 설계했습니다.
+묵시 `use rok::;` 는 std 항목을 포함하지 않습니다 - `rok::std::*` 는 별도 명시 import 를 강제합니다. target 별 가용성 차이가 있기 때문에, 사용자가 **명시적으로** 플랫폼 의존성을 표현하도록 설계했습니다.
 
 ```rok
 use rok::std::fs;
@@ -24,32 +24,32 @@ use rok::std::thread::Builder;
 
 본 tier 는 다음 열 모듈로 구성합니다.
 
-- [3.1. `fs::` — 파일 시스템 (atomic ops, Dir 캡슐, reflink copy)](301-fs.md)
-- [3.2. `net::` — TCP / UDP / Unix + TLS 1.3](302-net.md)
-- [3.3. `time::` — `Instant` / `SystemTime` / `Duration` / `BootTime`](303-time.md)
-- [3.4. `thread::` — OS 스레드 (1:1, `task::` 와 별개)](304-thread.md)
-- [3.5. `io::` — `Reader` / `Writer` / stdin/out/err / `BufReader`](305-io.md)
-- [3.6. `env::` — 환경 변수 / args / current_dir / home_dir](306-env.md)
-- [3.7. `process::` — `Command` / `Child` / pidfd / kill_on_drop](307-process.md)
-- [3.8. `path::` — UTF-8 `Path` (Python 식) + `RawPath` 이스케이프](308-path.md)
-- [3.9. `rokon::` — ROKON 데이터 형식 (`.rokon`)](309-rokon.md)
-- [3.10. `crypto::` — OS 난수 원천](310-crypto.md)
+- [3.1. `fs::` - 파일 시스템 (atomic ops, Dir 캡슐, reflink copy)](301-fs.md)
+- [3.2. `net::` - TCP / UDP / Unix + TLS 1.3](302-net.md)
+- [3.3. `time::` - `Instant` / `SystemTime` / `Duration` / `BootTime`](303-time.md)
+- [3.4. `thread::` - OS 스레드 (1:1, `task::` 와 별개)](304-thread.md)
+- [3.5. `io::` - `Reader` / `Writer` / stdin/out/err / `BufReader`](305-io.md)
+- [3.6. `env::` - 환경 변수 / args / current_dir / home_dir](306-env.md)
+- [3.7. `process::` - `Command` / `Child` / pidfd / kill_on_drop](307-process.md)
+- [3.8. `path::` - UTF-8 `Path` (Python 식) + `RawPath` 이스케이프](308-path.md)
+- [3.9. `rokon::` - ROKON 데이터 형식 (`.rokon`)](309-rokon.md)
+- [3.10. `crypto::` - OS 난수 원천](310-crypto.md)
 
 ## 핵심 디자인 원칙
 
-### 1. blocking API + `*_async` — async 트레잇 없음
+### 1. blocking API + `*_async` - async 트레잇 없음
 
 std 의 I/O 함수는 sync 이며 호출한 OS 스레드를 막습니다. task 안에서 기다리는 동안 worker 를 내주려면 같은 연산의 `*_async` 메서드를 `await` 합니다 ([3.2.0](302-net.md#320-공통-규칙)). stackless 코루틴에서는 보통 함수가 task 를 중단시킬 수 없으므로, sync 호출이 저절로 async 가 되지는 않습니다.
 
 ```rok
-// blocking — OS 스레드 (thread::spawn) 나 task 밖에서
+// blocking - OS 스레드 (thread::spawn) 나 task 밖에서
 fn fetch(addr: str) throws (IoError) -> List<u8> {
     using conn = try net::tcp_connect(addr) {
         try conn.read_to_end()
     }
 }
 
-// async — task 만 중단
+// async - task 만 중단
 async fn fetch_async(addr: str) throws (IoError) -> List<u8> {
     using conn = try await net::tcp_connect_async(addr) {
         try await conn.read_to_end_async()
@@ -59,7 +59,7 @@ async fn fetch_async(addr: str) throws (IoError) -> List<u8> {
 
 `AsyncRead` / `AsyncWrite` 트레잇은 **두지 않습니다**. async 판은 타입의 고유 메서드와 함수입니다. 소켓은 I/O 드라이버의 readiness 를 기다리고 ([3.2.0](302-net.md#320-공통-규칙)), 일반 파일은 blocking 호출을 다른 OS 스레드에서 돌립니다 ([3.1.4a](301-fs.md#314a-비동기-파일-io-_async)).
 
-### 2. I/O backend — runtime detail
+### 2. I/O backend - runtime detail
 
 준비 대기 (readiness) 는 **runtime 의 책임** 입니다 ([refs-lang 7.7](../../refs-lang/007-runtime/707-io-and-timer.md)). 사용자 코드는 어떤 backend 가 돌아가는지 알 필요가 없습니다.
 
@@ -70,7 +70,7 @@ async fn fetch_async(addr: str) throws (IoError) -> List<u8> {
 | Windows         | IOCP                        |
 | WASI            | `wasi:io/poll` (`wasm32-wasi`), `poll_oneoff` (`wasm32-wasi-threads`) |
 
-### 3. TLS 1.3 in std — HTTP out
+### 3. TLS 1.3 in std - HTTP out
 
 TLS 1.3 는 **보안 critical** 영역입니다. 모든 앱이 TLS 를 새로 구현하면 보안 취약점이 폭발하므로 std 에 통합하는 쪽을 택했습니다.
 
@@ -84,25 +84,25 @@ try tls_conn.write_all(req);
 let resp = try tls_conn.read_to_end();
 ```
 
-스택은 `rok::core::crypto` ([2.21](../200-core/221-crypto.md)) 위에 rok 로 작성한 자체 구현이며, OS 나 서드파티 TLS 라이브러리는 쓰지 않습니다 ([3.2.5](302-net.md#325-tls-13--nettls)).
+스택은 `rok::core::crypto` ([2.21](../200-core/221-crypto.md)) 위에 rok 로 작성한 자체 구현이며, OS 나 서드파티 TLS 라이브러리는 쓰지 않습니다 ([3.2.5](302-net.md#325-tls-13---nettls)).
 
-반면 HTTP/1, HTTP/2, HTTP/3 (QUIC) 은 **std 외부** 에 둡니다 — 별도 `rok/http` 패키지로 분리합니다. Go `net/http` 의 **1.0 frozen** 사례에서 얻은 학습입니다.
+반면 HTTP/1, HTTP/2, HTTP/3 (QUIC) 은 **std 외부** 에 둡니다 - 별도 `rok/http` 패키지로 분리합니다. Go `net/http` 의 **1.0 frozen** 사례에서 얻은 학습입니다.
 
-### 4. Capability-based fs — Dir 핸들
+### 4. Capability-based fs - Dir 핸들
 
 WASI Preview 2 의 pre-opened directory handle 모델을 따릅니다. 모든 fs op 가 **Dir 을 통해** 일어납니다.
 
 ```rok
 use rok::std::fs::{Dir, File};
 
-let root: Dir = Dir::root();                  // capability — process 시작 시
+let root: Dir = Dir::root();                  // capability - process 시작 시
 let data_dir: Dir = try root.open_dir("data"); // sub-cap
 
 let f: File = try data_dir.open("config.toml");
 let bytes = try f.read_to_end();
 ```
 
-이 모델의 장점은 세 가집니다. 첫째, TOCTOU 를 회피합니다 — `open_dir` 후 `open` 이 race-free 다. 둘째, 샌드박스가 자연스럽습니다 — 자식 task 에 **좁은 Dir** 만 전달하면 됩니다. 셋째, WASI 와 호환됩니다 — 같은 코드가 native 와 WASI 양쪽에서 동작합니다.
+이 모델의 장점은 세 가집니다. 첫째, TOCTOU 를 회피합니다 - `open_dir` 후 `open` 이 race-free 다. 둘째, 샌드박스가 자연스럽습니다 - 자식 task 에 **좁은 Dir** 만 전달하면 됩니다. 셋째, WASI 와 호환됩니다 - 같은 코드가 native 와 WASI 양쪽에서 동작합니다.
 
 편의 차원에서 `fs::open(absolute_path)` 도 가능하게 합니다. 내부적으로는 `Dir::root().open(...)` 으로 풀린다.
 

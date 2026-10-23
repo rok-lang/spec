@@ -10,9 +10,9 @@
 먼저 정적 슬롯과 `any` 슬롯이 어떻게 구분되는지 살펴보겠습니다.
 
 ```rok
-let x: i32 = 42i32;     // x 는 i32 — 다른 타입의 값을 담을 수 없다
-let y: any = 42i32;     // y 는 any 슬롯 — 어떤 타입이든 가능
-let z = 42i32;          // z 는 i32 — 초기값에서 추론한 정적 슬롯
+let x: i32 = 42i32;     // x 는 i32 - 다른 타입의 값을 담을 수 없다
+let y: any = 42i32;     // y 는 any 슬롯 - 어떤 타입이든 가능
+let z = 42i32;          // z 는 i32 - 초기값에서 추론한 정적 슬롯
 ```
 
 위 세 줄에서 `x` 와 `z` 는 같은 의미를 가지며, `any` 슬롯은 `y` 하나뿐입니다. 타입 명시를 생략하면 컴파일러가 초기값의 타입을 슬롯 타입으로 정하기 때문입니다. 이러한 결정 덕분에 REPL 과 노트북에서는 타입을 적지 않고 빠르게 입력하면서도 정적 디스패치를 얻을 수 있고, 동적 디스패치 비용이 생기는 곳은 선언 문법에서 바로 드러납니다.
@@ -53,9 +53,9 @@ let w = v + 1i32;           // 런타임에 v 의 태그를 보고 i32::add 호�
 
 ```rok
 let v: any = 42i32;
-let w = v + 1i32;           // w: any — i32 + i32
+let w = v + 1i32;           // w: any - i32 + i32
 let b = v == 1i32;          // b: bool
-let p = v + Point {};       // ERROR — Point 는 원시 타입이 아님
+let p = v + Point {};       // ERROR - Point 는 원시 타입이 아님
 ```
 
 ## 2.2.4. 재할당. 타입이 바뀌어도 OK
@@ -64,7 +64,7 @@ let p = v + Point {};       // ERROR — Point 는 원시 타입이 아님
 
 ```rok
 let s: any = 42i32;
-s = "hello";        // OK — 슬롯이 any 라서
+s = "hello";        // OK - 슬롯이 any 라서
 s = 3.14f64;        // OK
 ```
 
@@ -99,7 +99,7 @@ if shape is Shape::Circle { count += 1; }        // Circle(_) 인지만 검사
 ```rok
 let v: any = ...;
 if v is i32 {
-    let w = v + 1i32;       // 이 분기 안에서 v 는 i32 — 정적 디스패치
+    let w = v + 1i32;       // 이 분기 안에서 v 는 i32 - 정적 디스패치
 }
 ```
 
@@ -158,7 +158,7 @@ fn compute(x: any, y: any) { ... }    // 동적 슬롯
 
 ```rok
 struct Point { x: f64; y: f64; }      // OK
-struct Mixed { name; value; }          // ERROR — 필드 타입 누락
+struct Mixed { name; value; }          // ERROR - 필드 타입 누락
 ```
 
 필드를 동적으로 만들려면 마찬가지로 명시적 `any` 를 사용합니다.
@@ -175,7 +175,7 @@ struct Cell { tag: i32; payload: any; }   // OK
 
 ```rok
 let x = 1;              // 정적 슬롯 (초기값에서 추론)
-let x: any = 5i32;      // ERROR — 같은 스코프에 x 가 이미 있음
+let x: any = 5i32;      // ERROR - 같은 스코프에 x 가 이미 있음
 ```
 
 물론 새 스코프에서는 별개 바인딩으로 동작하며, 이에 대한 자세한 내용은 [변수 선언](../005-modules/501-variable-declaration.md) 에서 정의합니다.
@@ -203,13 +203,13 @@ let item: any (Display + Hash) = 42i32;
 `any Tr` 슬롯에 값을 넣을 때, 컴파일러는 그 값의 정적 타입이 `Tr` 을 구현하는지 컴파일 타임에 검사합니다. `any (A + B)` 는 `A` 와 `B` 를 모두 구현해야 합니다.
 
 ```rok
-let a: any Display = 42i32;          // OK — i32: Display
-let b: any Display = Opaque {};      // ERROR — Opaque 는 Display 를 구현하지 않음
+let a: any Display = 42i32;          // OK - i32: Display
+let b: any Display = Opaque {};      // ERROR - Opaque 는 Display 를 구현하지 않음
 
 let v: any = 42i32;
-let c: any Display = v;              // ERROR — any → any Display 암묵 변환 없음
+let c: any Display = v;              // ERROR - any → any Display 암묵 변환 없음
 if v is i32 {
-    let d: any Display = v;          // OK — 좁힌 뒤에는 정적 타입 i32
+    let d: any Display = v;          // OK - 좁힌 뒤에는 정적 타입 i32
 }
 ```
 
@@ -221,9 +221,9 @@ if v is i32 {
 
 ```rok
 let e: any Error = ...;
-let d: any Display = e;              // OK — Display 는 Error 의 슈퍼트레잇
+let d: any Display = e;              // OK - Display 는 Error 의 슈퍼트레잇
 let x: any = e;                      // OK
-let e2: any Error = x;               // ERROR — 좁히는 변환
+let e2: any Error = x;               // ERROR - 좁히는 변환
 ```
 
 ### 사용
@@ -238,7 +238,7 @@ bound 는 인자와 바인딩을 생략할 수 있으며, 생략한 것은 제�
 
 ```rok
 fn describe(e: any Error) -> str {
-    let msg = f"{e}";                       // Display — Error 의 슈퍼트레잇
+    let msg = f"{e}";                       // Display - Error 의 슈퍼트레잇
     match e {
         p: ParseError => f"{msg} at {p.pos}",   // 구체 타입으로 좁힘
         _ => msg,

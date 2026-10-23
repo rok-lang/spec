@@ -9,7 +9,7 @@ Unsafe tier 는 저수준이거나 위험한 영역에 속하는 표준 라이�
 ## 사용자 import 정책
 
 ```rok
-use rok::bare::ptr::Ptr;                              // 명시 import 필수 — 위험 시그널
+use rok::bare::ptr::Ptr;                              // 명시 import 필수 - 위험 시그널
 use rok::bare::alloc::{alloc, Layout};
 
 let layout = try! Layout::array::<u8>(1024);
@@ -22,45 +22,45 @@ let p: Ptr<u8> = unsafe { alloc(layout) };
 
 ### Pointer 계열 (5 종)
 
-- [1.1. `Ptr<T>` / `ConstPtr<T>` / `ManyPtr<T>` / `CPtr<T>` — Zig 식 arity-encoded](101-ptr.md)
-- [1.2. cast 연산 — `ptr_cast`, `align_cast`, `const_cast`, `reinterpret`](102-cast.md)
+- [1.1. `Ptr<T>` / `ConstPtr<T>` / `ManyPtr<T>` / `CPtr<T>` - Zig 식 arity-encoded](101-ptr.md)
+- [1.2. cast 연산 - `ptr_cast`, `align_cast`, `const_cast`, `reinterpret`](102-cast.md)
 
 ### 메모리 / 변환
 
-- [1.3. `MaybeUninit<T>` / `transmute_unchecked` — bit-level 변환](103-mem.md)
+- [1.3. `MaybeUninit<T>` / `transmute_unchecked` - bit-level 변환](103-mem.md)
 - [1.4. raw allocation (`alloc`, `dealloc`, `realloc`)](104-alloc.md)
-- [1.5. volatile 메모리 접근 — `volatile::read` / `volatile::write`](105-volatile.md)
+- [1.5. volatile 메모리 접근 - `volatile::read` / `volatile::write`](105-volatile.md)
 
 ### GC 통합
 
-- [1.6. `Pinned<T>` / `gc::pin` — GC 가 객체를 이동 못 하게](106-gc-pin.md)
+- [1.6. `Pinned<T>` / `gc::pin` - GC 가 객체를 이동 못 하게](106-gc-pin.md)
 
 ### FFI
 
-- [1.7. extern "C" / `CStr` / `CString` / `CPtr` — C ABI 호환](107-ffi.md)
+- [1.7. extern "C" / `CStr` / `CString` / `CPtr` - C ABI 호환](107-ffi.md)
 - [1.8. WASM Component Model 인터페이스 (`ffi.wit`)](108-wit.md)
 
 ### MLIR backend
 
-- [1.9. `rok::bare::mlir` — MLIR 다이얼렉트 직접 접근](109-mlir.md)
-- [1.10. `rok::bare::mlir::plugin` — 사용자 정의 다이얼렉트 등록](110-mlir-plugin.md)
+- [1.9. `rok::bare::mlir` - MLIR 다이얼렉트 직접 접근](109-mlir.md)
+- [1.10. `rok::bare::mlir::plugin` - 사용자 정의 다이얼렉트 등록](110-mlir-plugin.md)
 
 ## 핵심 디자인 원칙
 
-### 1. Strict provenance — Rust 2024 모델 채택
+### 1. Strict provenance - Rust 2024 모델 채택
 
 `Ptr<T>` 는 (address, provenance) 의 pair 이며 단순한 정수와 다릅니다. 그래서 `usize ↔ Ptr<T>` round-trip 은 provenance 를 잃어버리는 동작이 되고, 명시적인 escape hatch 를 거치는 경로에서만 허용됩니다.
 
 ```rok
 let p: Ptr<i32> = ...;
-let addr: usize = p.addr();              // 안전 — 주소만
-let q: Ptr<i32> = p.with_addr(addr + 4); // 안전 — provenance 보존, address 만 변경
-let r: Ptr<i32> = rok::bare::ptr::from_exposed_provenance(addr);  // unsafe — provenance 새로
+let addr: usize = p.addr();              // 안전 - 주소만
+let q: Ptr<i32> = p.with_addr(addr + 4); // 안전 - provenance 보존, address 만 변경
+let r: Ptr<i32> = rok::bare::ptr::from_exposed_provenance(addr);  // unsafe - provenance 새로
 ```
 
 `as` cast 는 pointer 에 절대 사용할 수 없습니다. 이 방향성은 [Ralf Jung "Pointers Are Complicated"](https://www.ralfj.de/blog/2022/04/11/provenance-exposed.html) 가 권위로서 자리잡고 있고, Rust 1.84 (Dec 2024) 가 안정화한 모델과 동형입니다.
 
-### 2. Arity 가 type encoded — Zig 모델
+### 2. Arity 가 type encoded - Zig 모델
 
 | 타입          | 의미                               | C 대응          |
 |---------------|------------------------------------|-----------------|
@@ -72,7 +72,7 @@ let r: Ptr<i32> = rok::bare::ptr::from_exposed_provenance(addr);  // unsafe — 
 
 `Slice<T>` 는 [2.9 collections](../200-core/209-collections.md) 에 정의된 안전한 view 이므로 unsafe tier 에 속하지 않습니다. 따라서 본 장에서는 `Slice` 의 underlying ptr 을 raw 로 노출하는 경로만을 다룹니다.
 
-### 3. GC + raw pointer — 두 type level 분리
+### 3. GC + raw pointer - 두 type level 분리
 
 | type       | 의미                                | GC 이동 시    |
 |------------|-------------------------------------|---------------|
@@ -86,7 +86,7 @@ let obj: List<i32> = [1, 2, 3];                // GcPtr (자동)
 using pin = rok::bare::gc::pin(obj) {           // pin 시작
     let raw: Ptr<i32> = rok::bare::ptr::list_data(obj);
     ffi_function(raw, obj.len());
-}                                              // pin 해제 — raw 무효
+}                                              // pin 해제 - raw 무효
 ```
 
 ### 4. Cast 는 명시 named operation 만
@@ -100,7 +100,7 @@ C 와 Rust 에서 `as` cast 가 pointer 위에서 일으키는 함정은 가장 
 | `*const → *mut`   | `rok::bare::const_cast(p)`                | const 제거                     |
 | `transmute<A,B>`  | `rok::bare::reinterpret<A:Pod, B:Pod>(a)` | bit reinterpret (Pod 강제)     |
 
-### 5. RAII via `using` block — finalizer 에 의존하지 않습니다
+### 5. RAII via `using` block - finalizer 에 의존하지 않습니다
 
 GC 환경에서 finalizer 의 신뢰성이 부족하다는 사실은 모든 GC 언어가 학습한 경험입니다. 따라서 file, socket, mutex 같은 외부 자원은 명시적인 `using` 블록으로 해제합니다. GC 는 `drop` 을 부르지 않으며 finalizer 는 없습니다. 해제하지 않은 자원은 `unclosed_resource` lint 가 알립니다 ([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)).
 
@@ -109,7 +109,7 @@ using f = rok::bare::ffi::open(path) {
     f.read(...);
 }     // ← scope 끝에서 _보장된_ close (RAII via Drop)
 
-// 일반 GC 객체는 using 불필요 — GC 가 자동 회수
+// 일반 GC 객체는 using 불필요 - GC 가 자동 회수
 let xs: List<i32> = [1, 2, 3];     // GC 자동
 ```
 

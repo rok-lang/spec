@@ -18,7 +18,7 @@ TLS 슬롯은 런타임이 정의하고 export 하는 하나의 `thread_local` �
 | 5p       | `rok_tls_satb_cursor`       | ptr  | SATB buffer 의 위치 (동시 mark 중)      |
 | 6p       | `rok_tls_satb_limit`        | ptr  | SATB buffer 의 끝                       |
 | 7p       | `rok_tls_task_worker`       | ptr  | 이 스레드의 executor worker (GC 객체, 없으면 0) |
-| 8p       | `rok_tls_stack_guard`       | [usize; 2] | `[lo, hi)` — 이 범위의 fault 는 이 스레드의 스택 오버플로 (`[0, 0)` 이면 모름, [8.5.7](805-extern-symbols.md#스택-오버플로)) |
+| 8p       | `rok_tls_stack_guard`       | [usize; 2] | `[lo, hi)` - 이 범위의 fault 는 이 스레드의 스택 오버플로 (`[0, 0)` 이면 모름, [8.5.7](805-extern-symbols.md#스택-오버플로)) |
 | 10p      | `rok_tls_worker_id`         | u64  | worker id                               |
 | 10p+8    | `rok_tls_yield_flag`        | u8   | safepoint 에서 `yield` 해야 하는지      |
 | 10p+9    | `rok_tls_mutator_state`     | u8   | mutator 상태                            |
@@ -157,7 +157,7 @@ rok_thread_shutdown():
 블록은 런타임이 정의하고 export 하는 `thread_local` global 입니다. 컴파일러는 이를 외부 선언으로 참조하고, 블록 주소에서 슬롯을 offset 으로 load 합니다. rok 함수는 그 주소를 호출자에게서 숨은 마지막 인자로 받으므로 (8.6.6) rok 함수 사이의 호출은 TLS 를 읽지 않습니다. rok 바깥에서 들어오는 코드는 주소를 직접 한 번 얻어 (`llvm.threadlocal.address`) 넘겨 줍니다: C `main`, `extern "C"` 정의의 C 진입점, `#[export_name]` rok 함수, `any` dispatcher, lazy `static` 의 초기화 함수, 그리고 함수 값이 거치는 thunk (8.6.11) 입니다.
 
 ```mlir
-; LLVM IR — 정의는 런타임, 컴파일러 산출물은 external 선언
+; LLVM IR - 정의는 런타임, 컴파일러 산출물은 external 선언
 @rok_tls = external thread_local global [N x i8]
 
 %t = call ptr @llvm.threadlocal.address(ptr @rok_tls)   ; rok 로 들어오는 곳에서 한 번

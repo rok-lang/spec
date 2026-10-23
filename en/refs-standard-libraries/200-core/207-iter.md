@@ -1,10 +1,10 @@
-# 2.7. iter — iteration traits
+# 2.7. iter - iteration traits
 
 The `rok::core::iter` module is the **desugaring authority** for `for x in xs`. Every `for` loop dispatches to the traits of this chapter.
 
 The `for` syntax of [refs-lang 3.13 Loop expressions](../../refs-lang/003-expressions/313-loop-expressions.md) desugars to a combination of `IntoIterator::into_iter` and `Iterator::next` calls.
 
-## 2.7.1. `Iterator` — stepping
+## 2.7.1. `Iterator` - stepping
 
 The first trait is `Iterator`, with the following signature.
 
@@ -50,7 +50,7 @@ for x in xs {
 //   }
 ```
 
-### Methods — rich default impls
+### Methods - rich default impls
 
 The only method a user must implement for `Iterator` is `next(ref self)`. All other methods are provided as default impls on top of `next`.
 
@@ -61,7 +61,7 @@ The only method a user must implement for `Iterator` is `next(ref self)`. All ot
 impl Iterator {
     fn next(ref self) -> Item | none;       // user-defined
 
-    // transforming adapters — lazy
+    // transforming adapters - lazy
     fn map<U>(self, f: fn(Item) -> U) -> Map<Self, U>;
     fn filter(self, pred: fn(Item) -> bool) -> Filter<Self>;
     fn enumerate(self) -> Enumerate<Self>;        // (index, item) pairs
@@ -75,7 +75,7 @@ impl Iterator {
     fn flat_map<U: IntoIterator>(self, f: fn(Item) -> U) -> FlatMap<Self, U>;
     fn peekable(self) -> Peekable<Self>;          // peek at the next element
 
-    // terminal methods — eager
+    // terminal methods - eager
     fn count(self) -> usize;
     fn sum(self) -> Item where Item: Add<Output = Item> + Zero;     // 0 if empty
     fn product(self) -> Item where Item: Mul<Output = Item> + One;  // 1 if empty
@@ -107,9 +107,9 @@ These methods fall into two groups. Transforming adapters such as `map`, `filter
 ```rok
 let xs = [1, 2, 3, 4, 5];
 let r = xs.into_iter()
-    .map(|x| x * 2)            // lazy — nothing computed yet
+    .map(|x| x * 2)            // lazy - nothing computed yet
     .filter(|x| x > 4)         // lazy
-    .sum();                    // eager — stepping happens here
+    .sum();                    // eager - stepping happens here
 //→ 6 + 8 + 10 = 24
 ```
 
@@ -140,7 +140,7 @@ for x in c {
 }
 ```
 
-## 2.7.2. `IntoIterator` — where `for` starts
+## 2.7.2. `IntoIterator` - where `for` starts
 
 Next is the `IntoIterator` trait, the starting point of a `for` loop.
 
@@ -207,7 +207,7 @@ loop {
 
 See [refs-lang 3.13](../../refs-lang/003-expressions/313-loop-expressions.md) for the detailed desugaring rules.
 
-## 2.7.3. `Step` — the one-step abstraction
+## 2.7.3. `Step` - the one-step abstraction
 
 Iteration over `Range<T>` rests on the simple operation "move to the next value". This differs in meaning from general arithmetic (`Add`): for example, the next value of a `char` is codepoint + 1, but `char + char` itself is undefined. rok therefore puts stepping in a separate trait.
 
@@ -221,9 +221,9 @@ trait Step: PartialOrd + Clone {
 
 The methods mean:
 
-- `forward_checked(self, n)` — returns the value `n` steps forward from `self`, or `none` if it exceeds the type's range.
-- `backward_checked(self, n)` — the value moved backward; likewise `none` if out of range.
-- `steps_between(start, end)` — computes how many steps lie from `start` to `end`, returning `none` when that is not representable (e.g. negative, overflow).
+- `forward_checked(self, n)` - returns the value `n` steps forward from `self`, or `none` if it exceeds the type's range.
+- `backward_checked(self, n)` - the value moved backward; likewise `none` if out of range.
+- `steps_between(start, end)` - computes how many steps lie from `start` to `end`, returning `none` when that is not representable (e.g. negative, overflow).
 
 ### Why it is separate from the arithmetic traits
 
@@ -244,7 +244,7 @@ The standard library implements `Step` only for integer primitives and `char`.
 | `int`                | **no**   | no standard library impl                             |
 | `char`               | **yes**  | steps by codepoint, skipping surrogates (`0xD800..=0xDFFF`) |
 | `bool`               | **no**   | no standard library impl                             |
-| `f32`, `f64`         | **no**   | `Range<f64>` rejected — ambiguous meaning            |
+| `f32`, `f64`         | **no**   | `Range<f64>` rejected - ambiguous meaning            |
 | `float`              | **no**   | (same as above)                                      |
 
 User-defined types may add `impl Step for MyType` freely, which immediately enables `Range<MyType>`.
@@ -267,7 +267,7 @@ for d in Weekday::Mon..=Weekday::Fri {
 
 The `a..b` syntax of [refs-lang 3.7 Range expressions](../../refs-lang/003-expressions/307-range-expressions.md) desugars to these standard library types.
 
-### `Range<T>` — `a..b` (exclusive)
+### `Range<T>` - `a..b` (exclusive)
 
 ```rok
 #[literal( expr ".." expr )]
@@ -302,7 +302,7 @@ for i in 0..5 {
 let v: List<i32> = (0..10).collect();   //→ [0, 1, ..., 9]
 ```
 
-### `RangeInclusive<T>` — `a..=b`
+### `RangeInclusive<T>` - `a..=b`
 
 ```rok
 #[literal( expr "..=" expr )]
@@ -322,7 +322,7 @@ for i in 0..=5 {
 }
 ```
 
-### `RangeFrom<T>` — `a..` (infinite)
+### `RangeFrom<T>` - `a..` (infinite)
 
 ```rok
 #[literal( expr ".." )]
@@ -361,10 +361,10 @@ struct RangeFull;
 
 ```rok
 let xs = [1, 2, 3, 4, 5];
-let s = xs[..3];          //→ [1, 2, 3]  (Slice — the Slice trait of 2.3 ops)
+let s = xs[..3];          //→ [1, 2, 3]  (Slice - the Slice trait of 2.3 ops)
 ```
 
-## 2.7.5. `FromIterator<T>` — dispatch of `collect`
+## 2.7.5. `FromIterator<T>` - dispatch of `collect`
 
 The trait that handles dispatch of `collect` is `FromIterator<T>`.
 
@@ -381,7 +381,7 @@ let v: List<i32> = (0..5).collect();
 // = List::from_iter((0..5).into_iter())
 ```
 
-Every collection — `List`, `Dict`, `Set`, `str`, etc. — implements `FromIterator`.
+Every collection - `List`, `Dict`, `Set`, `str`, etc. - implements `FromIterator`.
 
 ## 2.7.6. IntoIterator impls per collection
 
@@ -394,7 +394,7 @@ How each collection implements `IntoIterator`:
 | `OrderedDict<K, V>` | `(K, V)`    | Insertion order                           |
 | `Set<T>`            | `T`         | Iteration order **not guaranteed**        |
 | `OrderedSet<T>`     | `T`         | Insertion order                           |
-| `Tuple<A, B, C>`    | (special)   | **Creates no iterator** — use pattern matching |
+| `Tuple<A, B, C>`    | (special)   | **Creates no iterator** - use pattern matching |
 | `Range<T>`          | `T`         | From start to end-1                       |
 | `Slice<T>`          | `T`         | From the start of the view to its end     |
 
@@ -409,7 +409,7 @@ When order must be guaranteed, use `OrderedDict<K, V>` or `OrderedSet<T>`, which
 An infinite iterator, such as `RangeFrom` or a user-defined one, combined directly with an eager method loops forever.
 
 ```rok
-(0..).count();         // infinite loop — count runs to the end
+(0..).count();         // infinite loop - count runs to the end
 (0..).sum();           // infinite loop
 ```
 
@@ -422,7 +422,7 @@ Make it finite with `take(n)`.
 
 `Iterator` does not detect infinity. The user must deliberately combine lazy adapters.
 
-## 2.7.8. Function broadcast — desugaring `f.(x)`
+## 2.7.8. Function broadcast - desugaring `f.(x)`
 
 Function broadcast in [refs-lang](../../refs-lang/003-expressions/303-broadcast-operators.md) (`sin.(xs)`, `f.(a, b)`) desugars to `Iterator::map` with no trait of its own.
 
@@ -431,7 +431,7 @@ sin.(xs)   ≡   xs.into_iter().map(sin).collect()
 g.(a, b)   ≡   a.into_iter().zip(b.into_iter()).map(|(x, y)| g(x, y)).collect()
 ```
 
-## 2.7.9. `DoubleEndedIterator` — bidirectional stepping
+## 2.7.9. `DoubleEndedIterator` - bidirectional stepping
 
 Iterators that can step in both directions are modeled by the `DoubleEndedIterator` trait.
 
@@ -447,7 +447,7 @@ The iterators of `List<T>` and `Slice<T>`, and the following types, must impleme
 
 - `Range<T>`, `RangeInclusive<T>`
 - `Rev<I>` (when `I` is bidirectional), `Map<I, U>`, `Filter<I>`, `Chain<A, B>` (when the component iterators are bidirectional)
-- `Enumerate<I>`, `Zip<A, B>`, `Take<I>`, `Skip<I>`, `StepBy<I>` — when the component iterators are `DoubleEndedIterator + ExactSizeIterator`, because counting from the back needs the length.
+- `Enumerate<I>`, `Zip<A, B>`, `Take<I>`, `Skip<I>`, `StepBy<I>` - when the component iterators are `DoubleEndedIterator + ExactSizeIterator`, because counting from the back needs the length.
 
 `Dict<K, V>` and `Set<T>`, being unordered, do not implement it.
 
@@ -455,7 +455,7 @@ The iterators of `List<T>` and `Slice<T>`, and the following types, must impleme
 let r: List<i32> = (0..5).rev().collect();    //→ [4, 3, 2, 1, 0]
 ```
 
-## 2.7.10. `ExactSizeIterator` — iterators with known length
+## 2.7.10. `ExactSizeIterator` - iterators with known length
 
 An iterator whose element count is known before stepping is represented by `ExactSizeIterator`.
 
@@ -467,7 +467,7 @@ trait ExactSizeIterator: Iterator {
 
 `len()` is the number of remaining elements. Standard-library `ExactSizeIterator` types answer `count()` from `len()`, so `Map`'s function is not called by `count()`. The iterators of `List`, `Slice` and `Range`, and `Enumerate`, `Zip`, `Take`, `Skip`, `StepBy`, `Rev`, `Map` when their component iterators are all `ExactSizeIterator`, implement this trait.
 
-## 2.7.10a. `GenIter<T>` / `TryGenIter<T, E>` — the value of a generator
+## 2.7.10a. `GenIter<T>` / `TryGenIter<T, E>` - the value of a generator
 
 These are the values of a `yield fn` call and of a `yield { .. }` block ([refs-lang 4.1.11](../../refs-lang/004-functions/401-function-declaration.md#result-types-of-coroutine-functions)).
 
@@ -502,6 +502,6 @@ The mapping of each trait to its lang slot and standard library location:
 
 Primitives themselves have no `Iterator` impl (i32 is not a `for` target). Only collections and Ranges are.
 
-## 2.7.12. async — the `Stream` trait
+## 2.7.12. async - the `Stream` trait
 
 Asynchronous iterators are covered in [2.8 stream](208-stream.md). The `for await x in stream` syntax ([refs-lang 3.13](../../refs-lang/003-expressions/313-loop-expressions.md)) dispatches to `Stream::poll_next`.

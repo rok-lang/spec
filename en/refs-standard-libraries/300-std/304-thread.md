@@ -1,4 +1,4 @@
-# 3.4. `thread::` — OS threads (1:1 model)
+# 3.4. `thread::` - OS threads (1:1 model)
 
 The `rok::std::thread` module is the entry point for OS-level threads. As set out in [2.18 task](../200-core/218-task.md), it is a separate abstraction from tasks, which run on the M:N cooperative scheduler; this module provides the path for spawning native threads directly.
 
@@ -21,7 +21,7 @@ In short, tasks come first wherever they are light and expressive enough, and dr
 The basic types and function signatures are as follows.
 
 ```rok
-struct Thread { /* OS handle — not generic */ }
+struct Thread { /* OS handle - not generic */ }
 struct JoinHandle<T> { /* join result T */ }
 struct ThreadId { /* opaque */ }
 
@@ -46,7 +46,7 @@ impl Builder {
 
 impl<T> JoinHandle<T> {
     fn join(self) throws (JoinError) -> T;
-    fn detach(self);                     // does not join — the thread runs to completion
+    fn detach(self);                     // does not join - the thread runs to completion
     fn thread(self) -> Thread;
 }
 

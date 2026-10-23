@@ -118,7 +118,7 @@ A call to a divergent function is compatible with any type, like a divergent blo
 let x: i32 = if cond {
     42i32
 } else {
-    fail_always()                 // divergent — OK in an i32 position
+    fail_always()                 // divergent - OK in an i32 position
 };
 ```
 

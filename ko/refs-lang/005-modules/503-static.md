@@ -17,7 +17,7 @@ static APP_NAME: str = "rok";
 
 기본 형태는 `static` 뒤에 이름을 적고, `:` 으로 타입을 붙이고, `=` 으로 초기값을 이어 붙이는 모양입니다. 타입은 반드시 적어야 하며, 초기값은 [`const`](502-const.md) 의 `const` 표현식이어야 하므로 컴파일 타임에 평가할 수 있어야 합니다.
 
-`static` 은 모든 스레드에서 닿을 수 있으므로 그 타입은 `Sync` 여야 합니다 ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--스레드-경계-marker)). 지연 초기화되는 static 도 마찬가지입니다. `static XS: List<i32> = [];` 은 컴파일 에러이며 (컬렉션, `StrBuf`, `Cell<T>` 는 `!Sync`), `static XS: Mutex<List<i32>> = Mutex::new([]);` 로 적습니다. 스레드마다의 상태는 `thread::local` ([stdlib 3.4.4](../../refs-standard-libraries/300-std/304-thread.md#344-thread-local-storage)) 을 쓰며, 그 `ThreadLocal<T>` 는 `Sync` 입니다. `extern` 블록의 static ([5.3.10](#5310-extern-static-ffi)) 은 예외입니다.
+`static` 은 모든 스레드에서 닿을 수 있으므로 그 타입은 `Sync` 여야 합니다 ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---스레드-경계-marker)). 지연 초기화되는 static 도 마찬가지입니다. `static XS: List<i32> = [];` 은 컴파일 에러이며 (컬렉션, `StrBuf`, `Cell<T>` 는 `!Sync`), `static XS: Mutex<List<i32>> = Mutex::new([]);` 로 적습니다. 스레드마다의 상태는 `thread::local` ([stdlib 3.4.4](../../refs-standard-libraries/300-std/304-thread.md#344-thread-local-storage)) 을 쓰며, 그 `ThreadLocal<T>` 는 `Sync` 입니다. `extern` 블록의 static ([5.3.10](#5310-extern-static-ffi)) 은 예외입니다.
 
 ## 5.3.2. `const` 와의 차이
 
@@ -38,10 +38,10 @@ static X: i32 = 42i32;             // 안정 메모리 주소 (program 수명)
 `static` 은 모듈 수준이나 블록 ([3.9.1](../003-expressions/309-block-expressions.md#391-형태)) 에 선언할 수 있으며, 트레잇이나 `impl` 에는 둘 수 없습니다 ([5.3.8](#538-메서드--트레잇과의-결합)).
 
 ```rok
-static APP_NAME: str = "rok";                          // 모듈 수준 — OK
+static APP_NAME: str = "rok";                          // 모듈 수준 - OK
 
 fn f() -> i32 {
-    static CALLS: Atomic<i32> = Atomic::new(0i32);     // OK — slot 하나, 이 블록에서 보임
+    static CALLS: Atomic<i32> = Atomic::new(0i32);     // OK - slot 하나, 이 블록에서 보임
     CALLS.fetch_add(1i32)
 }
 ```
@@ -59,7 +59,7 @@ static CACHE: Mutex<Dict<str, Data>> = Mutex::new(Dict::new());
 
 - `Atomic<T>`: lock-free 원자 연산 (정수, `bool`, 포인터) 에 쓰입니다.
 - `Mutex<T>`: 잠금 기반 보호를 제공합니다.
-- `RwLock<T>`: 읽기-쓰기 잠금을 제공하며, `T` 자체가 `Sync` 일 때 씁니다 ([stdlib 2.16.4](../../refs-standard-libraries/200-core/216-sync.md#2164-rwlockt--read-write-분리)).
+- `RwLock<T>`: 읽기-쓰기 잠금을 제공하며, `T` 자체가 `Sync` 일 때 씁니다 ([stdlib 2.16.4](../../refs-standard-libraries/200-core/216-sync.md#2164-rwlockt---read-write-분리)).
 
 `Cell<T>` 는 단일 스레드용이고 `!Sync` 이므로 `static` 이 될 수 없습니다. 스레드마다의 mutable 전역은 `thread::local(..)` 입니다.
 
@@ -110,8 +110,8 @@ static _local: bool = false;
 
 ```rok
 impl Counter {
-    static GLOBAL: i32 = 0i32;     // ERROR — impl 안에 static 없음
-    const ZERO: i32 = 0i32;        // OK — 연관 const
+    static GLOBAL: i32 = 0i32;     // ERROR - impl 안에 static 없음
+    const ZERO: i32 = 0i32;        // OK - 연관 const
 }
 ```
 
@@ -120,7 +120,7 @@ impl Counter {
 초기값이 상수 식 ([5.2.4](502-const.md#524-상수-식과-평가기)) 이면 컴파일 타임에 초기화합니다. 그 밖의 초기값은 처음 쓸 때 한 번 초기화합니다 (지연 초기화). 지연 초기화는 스레드 안전하며, 동시에 접근한 스레드는 초기화가 끝날 때까지 기다립니다. 초기값의 함수가 `const fn` 일 필요는 없습니다 (`Mutex::new` 등).
 
 ```rok
-static PI: f64 = 3.14159f64;             // const — 컴파일 타임
+static PI: f64 = 3.14159f64;             // const - 컴파일 타임
 static START: Instant = Instant::now();   // 첫 접근 때 한 번 초기화
 static CACHE: Mutex<Dict<str, Data>> = Mutex::new(Dict::new());
 ```
@@ -131,7 +131,7 @@ static CACHE: Mutex<Dict<str, Data>> = Mutex::new(Dict::new());
 
 ```rok
 extern "C" {
-    static errno: i32;             // 외부 정의 — rok 에서 읽기만
+    static errno: i32;             // 외부 정의 - rok 에서 읽기만
 }
 ```
 

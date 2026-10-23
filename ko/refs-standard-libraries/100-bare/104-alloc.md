@@ -1,4 +1,4 @@
-# 1.4. raw allocation — `alloc` / `dealloc` / `realloc`
+# 1.4. raw allocation - `alloc` / `dealloc` / `realloc`
 
 `rok::bare::alloc` 모듈은 GC 가 관여하지 않는 외부 영역에서 메모리를 직접 할당하고 해제하기 위한 API 를 제공합니다. rok 의 일반 코드는 GC 가 알아서 관리해 주지만, FFI 경계에서 C 측에 메모리를 넘겨야 하거나 large buffer, mmap 처럼 GC 가 다루기에 적절치 않은 자리에서는 이 모듈을 사용합니다.
 
@@ -21,7 +21,7 @@ unsafe fn alloc_zeroed(layout: Layout) -> CPtr<u8>;
 unsafe fn dealloc(ptr: Ptr<u8>, layout: Layout);
 unsafe fn realloc(ptr: Ptr<u8>, old_layout: Layout, new_size: usize) -> CPtr<u8>;
 
-// 편의 함수 — typed
+// 편의 함수 - typed
 unsafe fn alloc_one<T>() -> CPtr<T>;
 unsafe fn alloc_array<T>(n: usize) -> CPtr<T>;
 unsafe fn dealloc_one<T>(ptr: Ptr<T>);
@@ -66,9 +66,9 @@ using buf = try rok::bare::alloc::Allocation::<u32>::new(1000) {
 | 일반 객체 (`List<i32>`)  | GC TLAB bump                | ✓                  |
 | `rok::bare::alloc::alloc` | system malloc               | ✗ (수동)           |
 | FFI `malloc`             | C `malloc`                  | ✗                  |
-| Large object (≥8KB)      | LOS — non-moving mark-sweep | ✓ (단, non-moving) |
+| Large object (≥8KB)      | LOS - non-moving mark-sweep | ✓ (단, non-moving) |
 
-GC 가 관리하는 raw buffer 가 필요하면 이 모듈 대신 `rok::core::collections::raw::GcBuf<T>` ([2.9.12](../200-core/209-collections.md#2912-gcbuft--raw-gc-buffer)) 를 씁니다.
+GC 가 관리하는 raw buffer 가 필요하면 이 모듈 대신 `rok::core::collections::raw::GcBuf<T>` ([2.9.12](../200-core/209-collections.md#2912-gcbuft---raw-gc-buffer)) 를 씁니다.
 
 GC 외부 영역은 GC 의 추적 대상이 아니므로 정리 책임이 사용자에게 있습니다. 다만 객체가 이동하지 않는 영역인 만큼, `Ptr<T>` 는 별도의 pin guard 없이도 그대로 유효합니다.
 

@@ -5,8 +5,8 @@
 ## 목차
 
 - [0.1. 3-tier 모델 (bare / core / std)](001-tier-model.md)
-- [0.2. import 정책 (`use rok::core::**;` — 자동 prelude 없음)](002-import.md)
-- [0.3. intrinsic 메커니즘 — 컴파일러 ↔ 표준 라이브러리 경계](003-intrinsics.md)
+- [0.2. import 정책 (`use rok::core::**;` - 자동 prelude 없음)](002-import.md)
+- [0.3. intrinsic 메커니즘 - 컴파일러 ↔ 표준 라이브러리 경계](003-intrinsics.md)
 - [0.4. `#[lang]` 슬롯 매핑 표](004-lang-slot-table.md)
 - [0.5. 표기법](005-notation.md)
 

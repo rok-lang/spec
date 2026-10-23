@@ -1,4 +1,4 @@
-# 3.4. `thread::` — OS 스레드 (1:1 모델)
+# 3.4. `thread::` - OS 스레드 (1:1 모델)
 
 `rok::std::thread` 모듈은 OS-level 스레드를 다루기 위한 진입점입니다. M:N 협력적 스케줄러 위에서 동작하는 task 와는 [2.18 task](../200-core/218-task.md) 에서 정리한 대로 별도의 추상이며, 이 모듈은 native thread 를 직접 spawn 하는 경로를 제공합니다.
 
@@ -21,7 +21,7 @@
 기본 타입과 함수 시그니처는 아래와 같습니다.
 
 ```rok
-struct Thread { /* OS handle — 제네릭 아님 */ }
+struct Thread { /* OS handle - 제네릭 아님 */ }
 struct JoinHandle<T> { /* join 결과 T */ }
 struct ThreadId { /* opaque */ }
 
@@ -46,7 +46,7 @@ impl Builder {
 
 impl<T> JoinHandle<T> {
     fn join(self) throws (JoinError) -> T;
-    fn detach(self);                     // join 하지 않음 — 스레드는 끝까지 실행
+    fn detach(self);                     // join 하지 않음 - 스레드는 끝까지 실행
     fn thread(self) -> Thread;
 }
 

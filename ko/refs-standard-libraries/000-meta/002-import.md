@@ -1,4 +1,4 @@
-# 0.2. import 정책 — `use rok::core::**;` 묵시 적용
+# 0.2. import 정책 - `use rok::core::**;` 묵시 적용
 
 > 본 문서는 표준 라이브러리 묵시 import 정책을 정의합니다. rok 가상 네임스페이스 아래 `rok::core` 영역만 자동 가시화되며, `rok::bare` 와 `rok::std` 는 명시 import 가 필요합니다.
 
@@ -38,7 +38,7 @@ use foo::**;             // recursive glob (foo + 하위 모듈 모두)
 
 `**` syntax 의 본문 정의는 [refs-lang 5.5 use](../../refs-lang/005-modules/505-use.md) 가 담당합니다.
 
-## 0.2.3. 묵시 적용 — `use rok::core::**;`
+## 0.2.3. 묵시 적용 - `use rok::core::**;`
 
 ```rok
 // 사용자 코드
@@ -61,7 +61,7 @@ fn main() {
 `**` 도 끌어오는 이름의 사용자 정의 항목은 그 모듈에서 그것을 가립니다: 이름 찾기는 묵시 `use rok::core::**` 보다 모듈 자신의 항목과 그 `use` 를 먼저 봅니다 ([refs-lang 5.7.1](../../refs-lang/005-modules/507-paths.md#571-경로의-시작-식별자)). core 항목은 경로나 별칭으로 계속 닿을 수 있습니다.
 
 ```rok
-struct List<T> { ... }                  // OK — 여기서 rok::core::collections::List 를 가림
+struct List<T> { ... }                  // OK - 여기서 rok::core::collections::List 를 가림
 let xs: rok::core::collections::List<i32> = [1, 2];   // 경로로 가리킨 core 의 List
 ```
 
@@ -70,11 +70,11 @@ let xs: rok::core::collections::List<i32> = [1, 2];   // 경로로 가리킨 cor
 묵시 처리되는 것은 `use rok::core::**;` 뿐입니다. unsafe 와 std 는 **명시 강제** 입니다.
 
 ```rok
-// unsafe — 위험 시그널
+// unsafe - 위험 시그널
 use rok::bare::{Ptr, ConstPtr};
 use rok::bare::ffi::{CStr, CString};
 
-// std — target-dep 시그널
+// std - target-dep 시그널
 use rok::std::fs;
 use rok::std::time::Instant;
 ```
@@ -84,12 +84,12 @@ use rok::std::time::Instant;
 | tier           | 묵시 import | 이유                    |
 |----------------|-------------|-------------------------|
 | `rok::core::**` | ✓           | 모든 target / 안전      |
-| `rok::bare::**` | ✗           | 위험 시그널 — 명시 강제 |
-| `rok::std::**` | ✗           | target-dep — 명시 강제  |
+| `rok::bare::**` | ✗           | 위험 시그널 - 명시 강제 |
+| `rok::std::**` | ✗           | target-dep - 명시 강제  |
 
 이렇게 해 두면 사용자가 어떤 영역으로 진입하고 있는지 파일 상단만 봐도 즉시 드러납니다.
 
-## 0.2.5. 묵시 무시 — `#![no_implicit_rok]`
+## 0.2.5. 묵시 무시 - `#![no_implicit_rok]`
 
 특수한 상황에서는 묵시 `use rok::core::**;` 자체를 꺼 버릴 수도 있습니다.
 
@@ -100,7 +100,7 @@ use rok::std::time::Instant;
 use rok::core::ops::Add;
 let r = a + b;   // OK (Add 명시)
 
-let m = Mutex::new(0);   // ERROR — Mutex 미 import
+let m = Mutex::new(0);   // ERROR - Mutex 미 import
 ```
 
 리터럴은 컴파일러가 정의하므로 계속 쓸 수 있습니다. 잃는 것은 이름 (과 import 하지 않은 트레잇의 연산자, [refs-lang 6.7.8](../../refs-lang/006-meta-system/607-operator-magic.md#678-매핑의-가시성)) 뿐입니다.
@@ -120,18 +120,18 @@ mod sync {                          // rok::core::sync
     fn helper() { ... }                  // private
 }
 
-// 사용자 코드 — 묵시 use rok::core::**; 후
+// 사용자 코드 - 묵시 use rok::core::**; 후
 let m: Mutex<i32> = Mutex::new(0);       // OK
-rok::core::sync::Internal::new();              // ERROR — pub(pkg)
-rok::core::sync::helper();                     // ERROR — private
+rok::core::sync::Internal::new();              // ERROR - pub(pkg)
+rok::core::sync::helper();                     // ERROR - private
 ```
 
 또한 이름을 평탄화하지 않고 모듈 경로를 그대로 보존합니다.
 
 ```rok
 // 묵시 use rok::core::**; 후
-let m = Mutex::new(0);              // OK — Mutex 직접 노출 (pub at rok::core::sync 라 reachable)
-let s = task::spawn(async { /* */ });      // OK — task 모듈 자체도 reachable, spawn 은 task::spawn
+let m = Mutex::new(0);              // OK - Mutex 직접 노출 (pub at rok::core::sync 라 reachable)
+let s = task::spawn(async { /* */ });      // OK - task 모듈 자체도 reachable, spawn 은 task::spawn
 
 // 둘 다 같은 의미.
 rok::core::sync::Mutex::new(0);
@@ -146,7 +146,7 @@ Mutex::new(0);
 | Rust    | `std::prelude::v1::*` re-export 모듈 + 자동 | 1 (prelude module)                 |
 | Haskell | `Prelude` re-export 모듈 + 자동             | 1                                  |
 | Python  | built-ins (언어 magic)                      | 0 (langauge-level)                 |
-| **rok** | `use rok::core::**;` 묵시                    | **0** (직접 — `**` 가 곧 메커니즘) |
+| **rok** | `use rok::core::**;` 묵시                    | **0** (직접 - `**` 가 곧 메커니즘) |
 
 rok 이 다른 언어와 갈라지는 가장 큰 지점은 prelude 모듈 indirection 이 없다는 사실입니다. `**` 가 **언어 차원** 에서 recursive glob 을 제공하기에 사용자도 표준 라이브러리도 같은 메커니즘을 공유합니다.
 

@@ -1,4 +1,4 @@
-# 3.9. `rokon::` — the ROKON data format
+# 3.9. `rokon::` - the ROKON data format
 
 ROKON (Rok Object Notation) is a data format that writes values in rok's literal syntax. The file extension is `.rokon`. It fills the same role as Rust's RON and Zig's ZON; the package manifest `rok.rokon` and the lockfile `rok.lock` ([refs-lang 9.10.3](../../refs-lang/009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) use this format.
 

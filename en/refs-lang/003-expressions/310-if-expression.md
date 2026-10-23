@@ -35,7 +35,7 @@ Per the branch result rules of the [expressions overview](README.md), if all bra
 ```rok
 // no type on the slot → inferred from the expression's result type
 let x = if cond { 1i32 } else { 2i32 };          // expression result i32, slot x: i32
-let y = if cond { 1i32 } else { 2.0f64 };        // ERROR: branch type mismatch — type annotation required
+let y = if cond { 1i32 } else { 2.0f64 };        // ERROR: branch type mismatch - type annotation required
 
 // sum type on the slot → member check
 let w: i32 | f64 = if cond { 1i32 } else { 2.0f64 };   // OK
@@ -44,7 +44,7 @@ let w: i32 | f64 = if cond { 1i32 } else { 2.0f64 };   // OK
 let z: i32 = if cond { 1i32 } else { 2.0f64 };   // ERROR: f64 branch does not fit i32
 ```
 
-Every branch of an `else if` chain — every `else if` and the final `else` — is subject to this check.
+Every branch of an `else if` chain - every `else if` and the final `else` - is subject to this check.
 
 ## 3.10.3. Position of the condition expression
 
@@ -78,9 +78,9 @@ In the following positions, a struct literal cannot appear at the top level of t
 Inside delimiters (`( )`, `[ ]`, call / method arguments, arrays, tuples, indices, dict literals, blocks `{ }`) it is allowed. To use one at the top level, wrap it in parentheses.
 
 ```rok
-if S { a: 1 }.ok() { .. }       // ERROR — the `{` after `S` is the body
+if S { a: 1 }.ok() { .. }       // ERROR - the `{` after `S` is the body
 if (S { a: 1 }).ok() { .. }     // OK
-if check(S { a: 1 }) { .. }     // OK — inside an argument
+if check(S { a: 1 }) { .. }     // OK - inside an argument
 ```
 
 ## 3.10.4. Divergent branches

@@ -17,7 +17,7 @@ static APP_NAME: str = "rok";
 
 The basic form is `static`, a name, `:` with a type, and `=` with an initializer. The type must be written, and the initializer must be a `const` expression in the sense of [`const`](502-const.md), so it must be evaluable at compile time.
 
-A `static` is reachable from every thread, so its type must be `Sync` ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--thread-boundary-markers)); this holds for lazily initialized statics too. `static XS: List<i32> = [];` is a compile error (collections, `StrBuf` and `Cell<T>` are `!Sync`); write `static XS: Mutex<List<i32>> = Mutex::new([]);`. Per-thread state uses `thread::local` ([stdlib 3.4.4](../../refs-standard-libraries/300-std/304-thread.md#344-thread-local-storage)), whose `ThreadLocal<T>` is `Sync`. Statics of an `extern` block ([5.3.10](#5310-extern-static-ffi)) are exempt.
+A `static` is reachable from every thread, so its type must be `Sync` ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers)); this holds for lazily initialized statics too. `static XS: List<i32> = [];` is a compile error (collections, `StrBuf` and `Cell<T>` are `!Sync`); write `static XS: Mutex<List<i32>> = Mutex::new([]);`. Per-thread state uses `thread::local` ([stdlib 3.4.4](../../refs-standard-libraries/300-std/304-thread.md#344-thread-local-storage)), whose `ThreadLocal<T>` is `Sync`. Statics of an `extern` block ([5.3.10](#5310-extern-static-ffi)) are exempt.
 
 ## 5.3.2. Difference from `const`
 
@@ -38,10 +38,10 @@ static X: i32 = 42i32;             // stable memory address (program lifetime)
 `static` may be declared at module level or in a block ([3.9.1](../003-expressions/309-block-expressions.md#391-form)), not in a trait or an `impl` ([5.3.8](#538-combination-with-methods--traits)).
 
 ```rok
-static APP_NAME: str = "rok";                          // module level — OK
+static APP_NAME: str = "rok";                          // module level - OK
 
 fn f() -> i32 {
-    static CALLS: Atomic<i32> = Atomic::new(0i32);     // OK — one slot, visible in this block
+    static CALLS: Atomic<i32> = Atomic::new(0i32);     // OK - one slot, visible in this block
     CALLS.fetch_add(1i32)
 }
 ```
@@ -59,7 +59,7 @@ A global that needs interior mutability is declared wrapped in a concurrency-saf
 
 - `Atomic<T>`: lock-free atomic operations (integers, `bool`, pointers).
 - `Mutex<T>`: lock-based protection.
-- `RwLock<T>`: read-write lock, for a `T` that is itself `Sync` ([stdlib 2.16.4](../../refs-standard-libraries/200-core/216-sync.md#2164-rwlockt--read-write-split)).
+- `RwLock<T>`: read-write lock, for a `T` that is itself `Sync` ([stdlib 2.16.4](../../refs-standard-libraries/200-core/216-sync.md#2164-rwlockt---read-write-split)).
 
 `Cell<T>` is single-threaded and `!Sync`, so it cannot be a `static`; a per-thread mutable global is `thread::local(..)`.
 
@@ -110,8 +110,8 @@ A `static` is a slot holding a value, not an item definer. It therefore does not
 
 ```rok
 impl Counter {
-    static GLOBAL: i32 = 0i32;     // ERROR — no static inside impl
-    const ZERO: i32 = 0i32;        // OK — associated const
+    static GLOBAL: i32 = 0i32;     // ERROR - no static inside impl
+    const ZERO: i32 = 0i32;        // OK - associated const
 }
 ```
 
@@ -120,7 +120,7 @@ impl Counter {
 If the initializer is a constant expression ([5.2.4](502-const.md#524-constant-expressions-and-the-evaluator)), it is initialized at compile time. Any other initializer is initialized once on first use (lazy initialization). Lazy initialization is thread-safe, and threads accessing concurrently wait until initialization finishes. Functions in the initializer need not be `const fn` (`Mutex::new`, etc.).
 
 ```rok
-static PI: f64 = 3.14159f64;             // const — compile time
+static PI: f64 = 3.14159f64;             // const - compile time
 static START: Instant = Instant::now();   // initialized once at first access
 static CACHE: Mutex<Dict<str, Data>> = Mutex::new(Dict::new());
 ```
@@ -131,7 +131,7 @@ A `static` in an `extern "C"` block, as shown above, references from rok a globa
 
 ```rok
 extern "C" {
-    static errno: i32;             // externally defined — read-only from rok
+    static errno: i32;             // externally defined - read-only from rok
 }
 ```
 

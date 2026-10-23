@@ -8,7 +8,7 @@ The `*Assign` trait family of `rok::core::ops` dispatches compound assignment op
 > In-place update of a heap object (List, Dict, etc.) is determined not by a `let mut` declarator but by
 > **whether the object exposes mutating methods**. The `*Assign` traits are where those mutating methods live.
 
-## 2.4.1. The key difference — `+=` vs `=` then `+`
+## 2.4.1. The key difference - `+=` vs `=` then `+`
 
 ```rok
 a += b;
@@ -31,7 +31,7 @@ This policy enables in-place optimization of collections. For example, when `xs:
 
 ## 2.4.2. Arithmetic *Assign traits
 
-### `AddAssign` — `+=`
+### `AddAssign` - `+=`
 
 ```rok
 trait AddAssign<Rhs = Self> {
@@ -46,10 +46,10 @@ counter += 5;       //→ 5 (counter is updated in place)
 counter += 3;       //→ 8
 
 let xs: List<i32> = [1, 2];
-xs += [3, 4];       //→ [1, 2, 3, 4]  (List's add_assign — efficient push)
+xs += [3, 4];       //→ [1, 2, 3, 4]  (List's add_assign - efficient push)
 ```
 
-### `SubAssign` — `-=`
+### `SubAssign` - `-=`
 
 ```rok
 trait SubAssign<Rhs = Self> {
@@ -58,7 +58,7 @@ trait SubAssign<Rhs = Self> {
 }
 ```
 
-### `MulAssign` — `*=`
+### `MulAssign` - `*=`
 
 ```rok
 trait MulAssign<Rhs = Self> {
@@ -67,7 +67,7 @@ trait MulAssign<Rhs = Self> {
 }
 ```
 
-### `DivAssign` — `/=`
+### `DivAssign` - `/=`
 
 ```rok
 trait DivAssign<Rhs = Self> {
@@ -76,7 +76,7 @@ trait DivAssign<Rhs = Self> {
 }
 ```
 
-### `RemAssign` — `%=`
+### `RemAssign` - `%=`
 
 ```rok
 trait RemAssign<Rhs = Self> {
@@ -85,7 +85,7 @@ trait RemAssign<Rhs = Self> {
 }
 ```
 
-### `ModuloAssign` — `%%=`
+### `ModuloAssign` - `%%=`
 
 ```rok
 trait ModuloAssign<Rhs = Self> {
@@ -94,11 +94,11 @@ trait ModuloAssign<Rhs = Self> {
 }
 ```
 
-`%%=` is the compound assignment form of [`Modulo`](203-ops.md#modulo--floored-modulo-) (floored modulo, sign of result = sign of divisor). It is a separate trait from `RemAssign`, and updates in place so that, for a positive divisor, the result always lies in `[0, rhs)`.
+`%%=` is the compound assignment form of [`Modulo`](203-ops.md#modulo---floored-modulo-) (floored modulo, sign of result = sign of divisor). It is a separate trait from `RemAssign`, and updates in place so that, for a positive divisor, the result always lies in `[0, rhs)`.
 
 ## 2.4.3. Bitwise *Assign traits
 
-### `BitAndAssign` — `&=`
+### `BitAndAssign` - `&=`
 
 ```rok
 trait BitAndAssign<Rhs = Self> {
@@ -112,7 +112,7 @@ let flags: u32 = 0xFF;
 flags &= 0x0F;     //→ 0x0F
 ```
 
-### `BitOrAssign` — `|=`
+### `BitOrAssign` - `|=`
 
 ```rok
 trait BitOrAssign<Rhs = Self> {
@@ -121,7 +121,7 @@ trait BitOrAssign<Rhs = Self> {
 }
 ```
 
-### `BitXorAssign` — `^=`
+### `BitXorAssign` - `^=`
 
 ```rok
 trait BitXorAssign<Rhs = Self> {
@@ -130,7 +130,7 @@ trait BitXorAssign<Rhs = Self> {
 }
 ```
 
-### `ShlAssign` — `<<=`
+### `ShlAssign` - `<<=`
 
 ```rok
 trait ShlAssign<Rhs = Self> {
@@ -144,7 +144,7 @@ let n: i32 = 1;
 n <<= 4;       //→ 16
 ```
 
-### `ShrAssign` — `>>=`
+### `ShrAssign` - `>>=`
 
 ```rok
 trait ShrAssign<Rhs = Self> {
@@ -153,7 +153,7 @@ trait ShrAssign<Rhs = Self> {
 }
 ```
 
-## 2.4.4. Signature pattern — `ref self`
+## 2.4.4. Signature pattern - `ref self`
 
 Every `*Assign` method takes `ref self` ([refs-lang 4.7 ref keyword](../../refs-lang/004-functions/407-ref-keyword.md)). It refers to the caller's variable binding itself, so the modification happens in place.
 
@@ -165,7 +165,7 @@ fn add_assign(ref self, rhs: Rhs);
 
 This signature is the core of in-place behavior. If it took only `self` (by value), it would modify a copy, and the caller would not see the change.
 
-## 2.4.5. Precedence / associativity — prec=-1, right
+## 2.4.5. Precedence / associativity - prec=-1, right
 
 Every `*Assign` token is fixed at the same level in the [refs-lang 3.2](../../refs-lang/003-expressions/302-precedence-and-associativity.md) table. Its precedence is `prec = -1`, lower than ordinary arithmetic (+=7, *=8) and lower than `..` (=0). It is the lowest level. Chained assignment is not allowed ([refs-lang 3.4.4](../../refs-lang/003-expressions/304-assignment.md)).
 
@@ -178,15 +178,15 @@ Every `*Assign` impl for primitive types carries `#[intrinsic("rok.OP_assign.TYP
 | `i*`, `u*`   | 6 arithmetic + 5 bitwise (11 traits)        | `rok.add_assign.i32`, `rok.shl_assign.u32`, ... |
 | `f32`, `f64` | 6 arithmetic only                           | `rok.add_assign.f64`, ...                       |
 | `bool`       | `BitAndAssign`/`BitOrAssign`/`BitXorAssign` | `rok.and_assign.bool`, ...                      |
-| `int`        | Arithmetic + bitwise                        | auto-promote logic — replaced by a new value (immutable) |
-| `float`      | Arithmetic                                  | (same as above — auto-promote)                  |
+| `int`        | Arithmetic + bitwise                        | auto-promote logic - replaced by a new value (immutable) |
+| `float`      | Arithmetic                                  | (same as above - auto-promote)                  |
 | `List<T>`    | `AddAssign<List<T>>`, `AddAssign<T>`        | push                                            |
-| `str`        | `AddAssign<str>`, `AddAssign<char>`         | `s = s + t` — replaced by a new str (str is immutable) |
-| `Dict<K,V>`  | `AddAssign<Dict<K,V>>`                      | merge — overwrites existing keys                |
+| `str`        | `AddAssign<str>`, `AddAssign<char>`         | `s = s + t` - replaced by a new str (str is immutable) |
+| `Dict<K,V>`  | `AddAssign<Dict<K,V>>`                      | merge - overwrites existing keys                |
 
 `a op= b` calls `XxxAssign::xxx_assign` (`AddAssign::add_assign`, …) when the left type implements it; otherwise it is `a = a op b`.
 
-## 2.4.7. *Assign on collections — the main use
+## 2.4.7. *Assign on collections - the main use
 
 For mutable containers such as `List<T>` / `Dict<K,V>`, `*Assign` performs a **true in-place** operation.
 
@@ -233,13 +233,13 @@ impl AddAssign for Vec3 {
 }
 ```
 
-## 2.4.9. Supertrait relationship of *Assign — none
+## 2.4.9. Supertrait relationship of *Assign - none
 
 rok does **not** make `Add` a supertrait of `AddAssign`. The two traits are independent.
 
 The reason is that some types, such as collections, have no meaningful `Add` (`xs + ys` is expensive because it creates a new collection) but do have a meaningful `AddAssign`. A supertrait relationship would make it impossible for such types to implement only `AddAssign`.
 
-## 2.4.10. Related — broadcast `*Assign`?
+## 2.4.10. Related - broadcast `*Assign`?
 
 No compound assignment variants are defined for the 19 tokens of [2.6 broadcast](206-broadcast.md) (`.+`, `.*`, `.%%`, `.&&`, ...). That is, a token such as `a .+= b` does not exist. The background is that broadcast results usually create a new container, which makes in-place meaning ambiguous.
 
@@ -253,7 +253,7 @@ xs.dot_add_assign(ys);    // method call (broadcast in place)
 impl<T> List<T> {
     fn dot_add_assign(self, rhs: List<T>) where T: Add<Output = T>;
     // likewise dot_OP_assign for OP in add, sub, mul, div, rem, modulo,
-    // bitand, bitor, bitxor, shl, shr — each requiring T: OP<Output = T>
+    // bitand, bitor, bitxor, shl, shr - each requiring T: OP<Output = T>
 }
 ```
 

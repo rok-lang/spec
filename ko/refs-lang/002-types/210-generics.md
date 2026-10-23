@@ -52,8 +52,8 @@ fn first<T>(pair: (T, T)) -> T { pair.0 }
 ```rok
 fn empty<T>() -> List<T> { [] }
 
-let xs: List<i32> = empty();        // T = i32 — let 의 타입 주석에서
-takes_strs(empty());                // T = str — 매개변수 타입 List<str> 에서
+let xs: List<i32> = empty();        // T = i32 - let 의 타입 주석에서
+takes_strs(empty());                // T = str - 매개변수 타입 List<str> 에서
 ```
 
 기대 타입이 없는 `let` 은 나중의 쓰임에서 추론합니다. 주석 없는 `let x = f();` 에서 `f` 의 제네릭 반환 타입이 호출만으로 정해지지 않으면, 이후의 쓰임이 그 타입을 정합니다. 시그니처는 항상 명시합니다.
@@ -74,16 +74,16 @@ takes_strs(empty());                // T = str — 매개변수 타입 List<str>
 
 ```rok
 let xs = empty();                   // 아직 List<?>
-takes_ints(xs);                     // 여기서 T = i32 — 매개변수 List<i32>
+takes_ints(xs);                     // 여기서 T = i32 - 매개변수 List<i32>
 let zs = List::new();
-zs.push(1);                         // zs: List<i32> — 이후 메서드 인자에서
-let ys = empty();                   // ERROR — type annotations needed (구체 쓰임 없음)
+zs.push(1);                         // zs: List<i32> - 이후 메서드 인자에서
+let ys = empty();                   // ERROR - type annotations needed (구체 쓰임 없음)
 ```
 
 인자가 없는 정적 트레잇 메서드도 같은 방식으로 `Self` 를 정합니다. 타입 매개변수 위의 호출 `T::zero()` 와 트레잇 경로 호출 `Tr::m()` 은 기대 타입에서 `Self` 를 가져옵니다.
 
 ```rok
-let z: i32 = Zero::zero();          // Self = i32 — rok::core::num::Zero
+let z: i32 = Zero::zero();          // Self = i32 - rok::core::num::Zero
 fn sum<T: Zero + Add<Output = T>>(xs: List<T>) -> T {
     let acc: T = T::zero();          // Self = T
     ...
@@ -94,7 +94,7 @@ fn sum<T: Zero + Add<Output = T>>(xs: List<T>) -> T {
 
 ```rok
 enum Pair<A, B> { One(A), Two(A, B) }
-let p = Pair::Two(1, "a");          // Pair<i32, str> — 인자에서
+let p = Pair::Two(1, "a");          // Pair<i32, str> - 인자에서
 ```
 
 ## 2.10.3. 트레잇 바운드
@@ -150,10 +150,10 @@ trait Add<Rhs = Self> {
 struct P<T, U> { a: T; b: U; }
 struct D<T, U = i32> { a: T; b: U; }
 
-let p: P<i64> = P { a: 1, b: 2 };          // ERROR — `P` takes 2 generic arguments but 1 was given
+let p: P<i64> = P { a: 1, b: 2 };          // ERROR - `P` takes 2 generic arguments but 1 was given
                                            //   help: `P` is declared `P<T, U>`; add one for `U`
-let d: D<i32, i32, i32> = D { a: 1, b: 2 }; // ERROR — `D` takes 1 to 2 generic arguments but 3 were given
-let e: D<i32> = D { a: 1, b: 2 };          // OK — `U` 는 `i32`
+let d: D<i32, i32, i32> = D { a: 1, b: 2 }; // ERROR - `D` takes 1 to 2 generic arguments but 3 were given
+let e: D<i32> = D { a: 1, b: 2 };          // OK - `U` 는 `i32`
 ```
 
 함수나 메서드에는 매개변수보다 적은 명시 인자를 줄 수 있으며 (`f::<i32>(..)`), 나머지는 추론합니다. 더 많이 주면 같은 에러이며, 트레잇 bound 에 트레잇이 가진 것보다 많은 인자를 줘도 그렇습니다 (`` `Tr` takes at most 1 generic argument but 2 were given ``). enum 의 경로에 적은 인자는 그 인스턴스를 가리킵니다: `E::<i64>::A(1)` 은 `E<i64>` 입니다.
@@ -167,8 +167,8 @@ let e: D<i32> = D { a: 1, b: 2 };          // OK — `U` 는 `i32`
 ```rok
 fn id<T>(x: T) -> T { x }
 
-let a = id(42i32);          // id<i32> 가 만들어짐 — i32 → i32 함수
-let b = id(3.14f64);        // id<f64> 가 만들어짐 — f64 → f64 함수
+let a = id(42i32);          // id<i32> 가 만들어짐 - i32 → i32 함수
+let b = id(3.14f64);        // id<f64> 가 만들어짐 - f64 → f64 함수
 let c = id("hello");         // id<str> 가 만들어짐
 ```
 
@@ -197,8 +197,8 @@ fn compute(x, y) { ... }
 ```rok
 fn pair<T>(a: T, b: T) -> (T, T) { (a, b) }
 
-let p = pair(1i32, 2i32);     // OK — 두 인자 모두 T = i32
-let q = pair(1i32, 3.14f64);  // ERROR — T 가 i32 인지 f64 인지 모호
+let p = pair(1i32, 2i32);     // OK - 두 인자 모두 T = i32
+let q = pair(1i32, 3.14f64);  // ERROR - T 가 i32 인지 f64 인지 모호
 ```
 
 다중 매개변수 (`pair<A, B>`) 는 각각 독립적으로 추론됩니다.
@@ -209,7 +209,7 @@ let q = pair(1i32, 3.14f64);  // ERROR — T 가 i32 인지 f64 인지 모호
 
 ```rok
 fn double<T>(x: T) -> T {
-    x + x       // ERROR — T 에 Add 바운드가 없다
+    x + x       // ERROR - T 에 Add 바운드가 없다
 }
 
 fn double<T: Add<T, Output = T>>(x: T) -> T {
@@ -220,7 +220,7 @@ fn double<T: Add<T, Output = T>>(x: T) -> T {
 이러한 규칙 덕분에 제네릭 본체의 검사는 호출 지점과 독립적으로 이루어집니다. 그래서 호출에서 어떤 구체 타입을 넘기든 본체는 항상 컴파일이 보장됩니다. 이 규칙은 다음과 같이 확장됩니다.
 
 - 트레잇의 기본 메서드 본체도 제네릭 본체입니다: `Self` 는 불투명하고 그 트레잇을 바운드로 가지며, 트레잇의 매개변수는 불투명합니다.
-- 바운드가 있든 없든 모든 타입은 이동, `Reflect` ([6.10.1](../006-meta-system/610-reflection.md#6101-reflect--자동-구현-트레잇)), `any` 로의 저장, `none` 과의 합, `is` 를 지원합니다.
+- 바운드가 있든 없든 모든 타입은 이동, `Reflect` ([6.10.1](../006-meta-system/610-reflection.md#6101-reflect---자동-구현-트레잇)), `any` 로의 저장, `none` 과의 합, `is` 를 지원합니다.
 - 묵시 매개변수 ([4.2.2](../004-functions/402-parameters.md#422-타입-생략)) 가 하나라도 있는 함수는 통째로 예외입니다.
 - const 매개변수는 값을 모르는 채로 검사하며, 두 타입은 그 const 표현식이 값으로 같을 때 같습니다 ([2.11.5](211-const-generics.md#2115-const-표현식의-산술)).
 - 매개변수가 아닌 타입에 대한 `where` 절은 본체에서 성립한다고 가정합니다.

@@ -12,7 +12,7 @@ Upward, it depends on `rok` and `unsafe`. Downward, user code stands in the depe
 
 ## User import policy
 
-The implicit `use rok::;` does not include std items — `rok::std::*` requires a separate explicit import. Because availability differs by target, the design makes users express platform dependencies **explicitly**.
+The implicit `use rok::;` does not include std items - `rok::std::*` requires a separate explicit import. Because availability differs by target, the design makes users express platform dependencies **explicitly**.
 
 ```rok
 use rok::std::fs;
@@ -24,32 +24,32 @@ use rok::std::thread::Builder;
 
 This tier consists of the following ten modules.
 
-- [3.1. `fs::` — file system (atomic ops, Dir capsules, reflink copy)](301-fs.md)
-- [3.2. `net::` — TCP / UDP / Unix + TLS 1.3](302-net.md)
-- [3.3. `time::` — `Instant` / `SystemTime` / `Duration` / `BootTime`](303-time.md)
-- [3.4. `thread::` — OS threads (1:1, separate from `task::`)](304-thread.md)
-- [3.5. `io::` — `Reader` / `Writer` / stdin/out/err / `BufReader`](305-io.md)
-- [3.6. `env::` — environment variables / args / current_dir / home_dir](306-env.md)
-- [3.7. `process::` — `Command` / `Child` / pidfd / kill_on_drop](307-process.md)
-- [3.8. `path::` — UTF-8 `Path` (Python-style) + `RawPath` escape hatch](308-path.md)
-- [3.9. `rokon::` — the ROKON data format (`.rokon`)](309-rokon.md)
-- [3.10. `crypto::` — the OS random source](310-crypto.md)
+- [3.1. `fs::` - file system (atomic ops, Dir capsules, reflink copy)](301-fs.md)
+- [3.2. `net::` - TCP / UDP / Unix + TLS 1.3](302-net.md)
+- [3.3. `time::` - `Instant` / `SystemTime` / `Duration` / `BootTime`](303-time.md)
+- [3.4. `thread::` - OS threads (1:1, separate from `task::`)](304-thread.md)
+- [3.5. `io::` - `Reader` / `Writer` / stdin/out/err / `BufReader`](305-io.md)
+- [3.6. `env::` - environment variables / args / current_dir / home_dir](306-env.md)
+- [3.7. `process::` - `Command` / `Child` / pidfd / kill_on_drop](307-process.md)
+- [3.8. `path::` - UTF-8 `Path` (Python-style) + `RawPath` escape hatch](308-path.md)
+- [3.9. `rokon::` - the ROKON data format (`.rokon`)](309-rokon.md)
+- [3.10. `crypto::` - the OS random source](310-crypto.md)
 
 ## Core design principles
 
-### 1. Blocking API + `*_async` — no async traits
+### 1. Blocking API + `*_async` - no async traits
 
 std I/O functions are sync and block the calling OS thread. To give up the worker while waiting inside a task, `await` the `*_async` method of the same operation ([3.2.0](302-net.md#320-common-rules)). With stackless coroutines an ordinary function cannot suspend a task, so a sync call never becomes async on its own.
 
 ```rok
-// blocking — on an OS thread (thread::spawn) or outside a task
+// blocking - on an OS thread (thread::spawn) or outside a task
 fn fetch(addr: str) throws (IoError) -> List<u8> {
     using conn = try net::tcp_connect(addr) {
         try conn.read_to_end()
     }
 }
 
-// async — suspends only the task
+// async - suspends only the task
 async fn fetch_async(addr: str) throws (IoError) -> List<u8> {
     using conn = try await net::tcp_connect_async(addr) {
         try await conn.read_to_end_async()
@@ -59,7 +59,7 @@ async fn fetch_async(addr: str) throws (IoError) -> List<u8> {
 
 There are **no** `AsyncRead` / `AsyncWrite` traits. The async versions are inherent methods and functions of the types. Sockets wait for I/O driver readiness ([3.2.0](302-net.md#320-common-rules)); regular files run the blocking call on another OS thread ([3.1.4a](301-fs.md#314a-asynchronous-file-io-_async)).
 
-### 2. I/O backend — runtime detail
+### 2. I/O backend - runtime detail
 
 Waiting for readiness is **the runtime's responsibility** ([refs-lang 7.7](../../refs-lang/007-runtime/707-io-and-timer.md)). User code does not need to know which backend is running.
 
@@ -70,7 +70,7 @@ Waiting for readiness is **the runtime's responsibility** ([refs-lang 7.7](../..
 | Windows         | IOCP                        |
 | WASI            | `wasi:io/poll` (`wasm32-wasi`), `poll_oneoff` (`wasm32-wasi-threads`) |
 
-### 3. TLS 1.3 in std — HTTP out
+### 3. TLS 1.3 in std - HTTP out
 
 TLS 1.3 is **security-critical**. If every application implemented TLS itself, security vulnerabilities would multiply, so it is integrated into std.
 
@@ -84,25 +84,25 @@ try tls_conn.write_all(req);
 let resp = try tls_conn.read_to_end();
 ```
 
-The stack is rok's own, written on `rok::core::crypto` ([2.21](../200-core/221-crypto.md)); no OS or third-party TLS library is used ([3.2.5](302-net.md#325-tls-13--nettls)).
+The stack is rok's own, written on `rok::core::crypto` ([2.21](../200-core/221-crypto.md)); no OS or third-party TLS library is used ([3.2.5](302-net.md#325-tls-13---nettls)).
 
 HTTP/1, HTTP/2 and HTTP/3 (QUIC), on the other hand, live **outside std**, split into a separate `rok/http` package. This is the lesson from Go's `net/http` being **frozen at 1.0**.
 
-### 4. Capability-based fs — Dir handles
+### 4. Capability-based fs - Dir handles
 
 Follows the pre-opened directory handle model of WASI Preview 2. Every fs op goes **through a Dir**.
 
 ```rok
 use rok::std::fs::{Dir, File};
 
-let root: Dir = Dir::root();                  // capability — at process start
+let root: Dir = Dir::root();                  // capability - at process start
 let data_dir: Dir = try root.open_dir("data"); // sub-cap
 
 let f: File = try data_dir.open("config.toml");
 let bytes = try f.read_to_end();
 ```
 
-The model has three advantages. First, it avoids TOCTOU — `open` after `open_dir` is race-free. Second, sandboxing comes naturally — pass only a **narrow Dir** to a child task. Third, it is WASI-compatible — the same code works on native and WASI.
+The model has three advantages. First, it avoids TOCTOU - `open` after `open_dir` is race-free. Second, sandboxing comes naturally - pass only a **narrow Dir** to a child task. Third, it is WASI-compatible - the same code works on native and WASI.
 
 For convenience, `fs::open(absolute_path)` is also allowed. Internally it expands to `Dir::root().open(...)`.
 

@@ -6,8 +6,8 @@ Designed and maintained by [Han Damin](https://github.com/miniex) (`@miniex`).
 
 ## Editions
 
-- [English](en/README.md) — default
-- [한국어](ko/README.md) — Korean
+- [English](en/README.md) - default
+- [한국어](ko/README.md) - Korean
 
 Both editions have the same files and the same section numbers. If they disagree, the English text is the reference.
 

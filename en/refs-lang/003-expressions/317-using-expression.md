@@ -1,8 +1,8 @@
-# 3.17. `using` expression — deterministic release of resources
+# 3.17. `using` expression - deterministic release of resources
 
 The `using` keyword ([keywords](../001-lexical/105-keywords.md)) is an expression form that ties a resource to the lifetime of a block. However the block ends (normal completion, early `return`, `none` return by `?`, error propagation), `Drop::drop` of the bound resource is always called.
 
-The GC reclaims memory automatically, but external resources (files, sockets, mutexes, FFI handles, GC pins, etc.) must be released deterministically. `using` guarantees this determinism syntactically and is the only path by which `Drop::drop` is called. An ordinary binding is not `drop`ped when it leaves scope ([stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop--cleanup-on-using-release)).
+The GC reclaims memory automatically, but external resources (files, sockets, mutexes, FFI handles, GC pins, etc.) must be released deterministically. `using` guarantees this determinism syntactically and is the only path by which `Drop::drop` is called. An ordinary binding is not `drop`ped when it leaves scope ([stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop---cleanup-on-using-release)).
 
 ## 3.17.1. Form
 
@@ -48,7 +48,7 @@ let f = try fs::open(path);
 try {
     f.read_line()
 } finally {
-    f.drop();          // a call inserted by the compiler — writing it directly is an error
+    f.drop();          // a call inserted by the compiler - writing it directly is an error
 }
 ```
 
@@ -99,10 +99,10 @@ Panics and fatal errors terminate the process immediately, so `drop` is not call
 
 ## 3.17.7. Types that can be bound
 
-The type of the right-hand expression of `using` must implement [`Drop`](../../refs-standard-libraries/200-core/213-marker.md) or contain fields that have `Drop` (drop glue, [stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop--cleanup-on-using-release)). Otherwise it is a compile error.
+The type of the right-hand expression of `using` must implement [`Drop`](../../refs-standard-libraries/200-core/213-marker.md) or contain fields that have `Drop` (drop glue, [stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop---cleanup-on-using-release)). Otherwise it is a compile error.
 
 ```rok
-using x = 42 { ... }   // ERROR: using requires a type implementing Drop — i32 does not implement Drop
+using x = 42 { ... }   // ERROR: using requires a type implementing Drop - i32 does not implement Drop
 ```
 
 This restriction ensures only meaningful resources are bound with `using`, ruling out `using` on plain values at the specification level.
@@ -118,6 +118,6 @@ This restriction ensures only meaningful resources are bound with `using`, rulin
 | Swift    | `defer { x.close() }`         | function     | must be written explicitly              |
 | Go       | `defer x.Close()`             | **function** | not block-scoped                        |
 | Zig      | `defer x.close();`            | block        | `errdefer` variant                      |
-| Rust     | (automatic RAII, no keyword)  | block        | no GC — drop point determined automatically |
+| Rust     | (automatic RAII, no keyword)  | block        | no GC - drop point determined automatically |
 
 rok's `using` combines the explicit block pattern of GC languages (C#, Java, Python) with composability as an expression, `try` integration, and reverse-order release of multiple resources.

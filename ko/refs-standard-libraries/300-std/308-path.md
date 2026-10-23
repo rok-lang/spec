@@ -1,8 +1,8 @@
-# 3.8. `path::` — UTF-8 Path (Python 식)
+# 3.8. `path::` - UTF-8 Path (Python 식)
 
 `rok::std::path` 모듈은 경로 표현을 정의합니다. 여기서 핵심은 UTF-8 newtype 을 우선시한다는 점인데, 이는 Rust 의 `Path` 와 `OsStr` 분리가 가져오는 ergonomic 부담을 회피하면서, 동시에 Python `pathlib.Path` 의 직관성을 채택하기 위함입니다.
 
-## 3.8.1. 두 타입 — `Path` / `RawPath`
+## 3.8.1. 두 타입 - `Path` / `RawPath`
 
 rok 의 경로 표현은 두 개의 타입으로 나뉩니다.
 
@@ -13,7 +13,7 @@ rok 의 경로 표현은 두 개의 타입으로 나뉩니다.
 
 대부분의 코드는 `Path` 만 사용하면 충분합니다. `RawPath` 가 필요해지는 경우는 legacy bytes 가 정말로 요구되는 자리, 예컨대 오래된 unix 시스템과 마주칠 때에 한정됩니다.
 
-## 3.8.2. `Path` — UTF-8
+## 3.8.2. `Path` - UTF-8
 
 `Path` 는 불변 값입니다. `join`, `/`, `with_*` 는 모두 새 `Path` 를 돌려주며, 경로를 제자리에서 바꾸는 `PathBuf` / `push` 는 없습니다. `p /= q` 는 일반 복합 대입 규칙대로 `p = p / q` 입니다.
 
@@ -48,7 +48,7 @@ impl Path {
     fn ends_with(self, suffix: Path) -> bool;
     fn normalize(self) -> Path;             // resolve "." / ".." (lexical)
 
-    // OS 상호작용 (편의 — 내부적으로 fs::*)
+    // OS 상호작용 (편의 - 내부적으로 fs::*)
     fn exists(self) -> bool;
     fn is_file(self) -> bool;
     fn is_dir(self) -> bool;
@@ -69,7 +69,7 @@ enum Component {
 }
 ```
 
-## 3.8.3. `/` 연산자 — Python pathlib 식
+## 3.8.3. `/` 연산자 - Python pathlib 식
 
 경로 결합의 가독성을 한층 끌어올리기 위해 `/` 연산자를 도입합니다.
 
@@ -96,7 +96,7 @@ let home = env::home_dir()? / ".config" / "myapp" / "settings.toml";
 
 이는 Python 의 `Path("/etc") / "nginx" / "nginx.conf"` 와 **동일한 ergonomics** 를 제공합니다. 그 결과 Rust `PathBuf::join` 과 `push` 의 verbose 한 표현을 자연스럽게 회피합니다.
 
-## 3.8.3a. `AsPath` — 경로 인자
+## 3.8.3a. `AsPath` - 경로 인자
 
 ```rok
 trait AsPath {
@@ -124,9 +124,9 @@ let p: Path = try Path::try_from(raw);    // UTF-8 이 아니면 NonUtf8Error �
 let q: Path = try raw.try_into();          // 같음
 ```
 
-이 변환은 `impl TryFrom<RawPath> for Path { type Error = NonUtf8Error; ... }` 입니다 ([2.11.4](../200-core/211-conversion.md#2114-tryfromu-트레잇--fallible-변환)).
+이 변환은 `impl TryFrom<RawPath> for Path { type Error = NonUtf8Error; ... }` 입니다 ([2.11.4](../200-core/211-conversion.md#2114-tryfromu-트레잇---fallible-변환)).
 
-## 3.8.5. `RawPath` — bytes / WTF-16
+## 3.8.5. `RawPath` - bytes / WTF-16
 
 OS 의 native 표현이 그대로 필요한 자리를 위해 `RawPath` 가 마련됩니다.
 
@@ -172,7 +172,7 @@ try Path::from("/a/b/../c").canonicalize();       //→ symlink 해석된 절대
 ```rok
 let dir: Dir = try Dir::root().open_dir("data");
 let f = try dir.open(Path::from("config.toml"));
-                                          // Path 가 dir 에 상대적 — escape 거부
+                                          // Path 가 dir 에 상대적 - escape 거부
 ```
 
 자세한 capability 모델은 [3.1 fs](301-fs.md) 에서 다룹니다.

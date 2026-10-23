@@ -22,10 +22,10 @@
 
 ```
 attribute
-  ├── plain attribute — hints / metadata for compiler / tools
-  └── magic — channel where the library binds to language meaning
+  ├── plain attribute - hints / metadata for compiler / tools
+  └── magic - channel where the library binds to language meaning
 
-meta block — user-defined derive / attribute definitions
+meta block - user-defined derive / attribute definitions
   └── template token (@Self, @field, ...)
 ```
 

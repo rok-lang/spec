@@ -62,7 +62,7 @@ let x = match v {
 let y = match v {
     1 => 1i32,
     _ => "other",
-};                      // ERROR: arm type mismatch — type annotation required
+};                      // ERROR: arm type mismatch - type annotation required
 
 // sum type on the slot → member check
 let w: i32 | str = match v {

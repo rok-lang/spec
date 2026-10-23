@@ -60,7 +60,7 @@ The following words are keywords only in designated positions and are ordinary i
 let type = 1;                       // identifier
 type Pair = (i32, i32);             // type alias (item start + identifier + =)
 let in = 3;  for x in xs { }        // identifier / the in of for
-fn catch(e: str) { }                // identifier — not after an expression
+fn catch(e: str) { }                // identifier - not after an expression
 ```
 
 Declaring a type named `any` is a compile error (`struct any { }`), because it could not be distinguished from `any` in type position.
@@ -78,9 +78,9 @@ trait Sub { fn sub(self, rhs: Self) -> Self; }  // in ordinary position: identif
 
 These three words are always path roots when they are the first token of a path and are immediately followed by `::` ([5.7 Paths](../005-modules/507-paths.md)). Elsewhere they are ordinary identifiers.
 
-- `pkg::xxx` — from the current package root
-- `sup::xxx` — from the parent module
-- `rok::xxx` — the standard library virtual namespace (`rok::core`, `rok::bare`, `rok::std`, [0.5 Standard library tiers](../000-meta/005-standard-libraries-tiers.md))
+- `pkg::xxx` - from the current package root
+- `sup::xxx` - from the parent module
+- `rok::xxx` - the standard library virtual namespace (`rok::core`, `rok::bare`, `rok::std`, [0.5 Standard library tiers](../000-meta/005-standard-libraries-tiers.md))
 
 Because `pkg::name` is always interpreted as a root, using any of the three words as the name of a module or type (`struct`, `enum`, `union`, `trait`, type alias, `mod`) is a compile error. They may be used as names of variables, functions, fields and methods.
 
@@ -88,8 +88,8 @@ Because `pkg::name` is always interpreted as a root, using any of the three word
 let rok = 42;                   // variable name OK
 fn sup() { }                    // function name OK
 self.rok                        // field / member name OK
-mod rok { ... }                 // ERROR — cannot be a module name
-struct pkg { }                  // ERROR — cannot be a type name
+mod rok { ... }                 // ERROR - cannot be a module name
+struct pkg { }                  // ERROR - cannot be a type name
 rok::core::iter::Iterator       // path root
 ```
 
@@ -105,8 +105,8 @@ In the following positions, all keywords, including reserved keywords, are used 
 `self` is an exception and cannot be an identifier even in these positions. Raw identifiers (Rust's `r#fn`) are still not provided ([1.4.4](104-identifiers.md#144-collision-with-keywords)).
 
 ```rok
-struct Token { type: Kind; for: str; }   // field name — OK
-let k = tok.type;                         // after . — OK
-make(type: Kind::Ident);                  // named argument (contextual keyword) — OK
-struct S { self: i32; }                   // ERROR — self is the exception
+struct Token { type: Kind; for: str; }   // field name - OK
+let k = tok.type;                         // after . - OK
+make(type: Kind::Ident);                  // named argument (contextual keyword) - OK
+struct S { self: i32; }                   // ERROR - self is the exception
 ```

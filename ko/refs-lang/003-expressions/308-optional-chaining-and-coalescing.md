@@ -32,7 +32,7 @@ x?.method(args)     →   match x { v: T => v.method(args), none => none }
 
 ```rok
 let p: Point = ...;
-p?.x;          // ERROR — p 는 옵셔널이 아니므로 . 를 쓰세요
+p?.x;          // ERROR - p 는 옵셔널이 아니므로 . 를 쓰세요
 ```
 
 ## 3.8.2. 체이닝
@@ -77,7 +77,7 @@ x ?? y          →   match x { v: T => v, none => y }
 
 ```rok
 let a = foo() ?? 0;                           // i32 (foo(): i32 | none)
-let r = foo() ?? "default";                   // ERROR — i32 와 str, 받는 쪽 타입 없음
+let r = foo() ?? "default";                   // ERROR - i32 와 str, 받는 쪽 타입 없음
 let r2: i32 | str = foo() ?? "default";       // OK
 ```
 

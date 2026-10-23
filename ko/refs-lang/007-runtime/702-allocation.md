@@ -58,7 +58,7 @@ slow path 는 다음을 합니다.
 ```
 *(ptr + 0) = type_id
 *(ptr + 4) = 0u32          // gc_flags 초깃값
-*(ptr + 8) = size          // gc_word — 객체 총 크기 (8.1.4)
+*(ptr + 8) = size          // gc_word - 객체 총 크기 (8.1.4)
 ```
 
 payload 는 이미 0 이며, 사용자 코드가 필드 값으로 채웁니다. 수집기는 헤더 앞이나 side table 에 자체 bookkeeping 을 둘 수 있습니다.

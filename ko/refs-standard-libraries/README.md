@@ -23,9 +23,9 @@
 ```
 rok::bare   (base, runtime extern "C" 만 의존)
   ↓
-rok::core   (foundation, 안전, 모든 target — uses rok::bare internally)
+rok::core   (foundation, 안전, 모든 target - uses rok::bare internally)
   ↓
-rok::std   (target-dep — uses rok::core + rok::bare)
+rok::std   (target-dep - uses rok::core + rok::bare)
 ```
 
 즉 `rok::bare` 는 가장 아래에서 원시 능력만을 노출하고, `rok::core` 는 그 위에서 안전한 foundation 을 모든 target 에 동일하게 제공합니다. 한편 `rok::std` 는 `rok::core` 위에 호스트 의존 기능을 얹어 일반적인 응용 프로그램이 기대하는 표면을 완성합니다. 일상적인 코드는 `rok::core` 만으로 충분하고, OS 자원이 필요해지는 순간 `rok::std` 로 손을 뻗으며, 추상의 경계를 직접 넘어야 할 때만 `rok::bare` 를 명시적으로 import 합니다. 자세한 의존성 규칙은 [0.1 tier 모델](000-meta/001-tier-model.md) 에서 다룹니다.
@@ -40,32 +40,32 @@ rok::std   (target-dep — uses rok::core + rok::bare)
 
 ## 장 목차
 
-### 0. 메타 — [000-meta/](000-meta/README.md)
+### 0. 메타 - [000-meta/](000-meta/README.md)
 
 라이브러리 전체에 걸친 정책과 표.
 
 - [0.1. 3-tier 모델](000-meta/001-tier-model.md)
 - [0.2. import 정책 (`use rok::core::**;` 묵시 적용)](000-meta/002-import.md)
-- [0.3. intrinsic 메커니즘 — 컴파일러 ↔ 표준 라이브러리 경계](000-meta/003-intrinsics.md)
+- [0.3. intrinsic 메커니즘 - 컴파일러 ↔ 표준 라이브러리 경계](000-meta/003-intrinsics.md)
 - [0.4. `#[lang]` 슬롯 매핑 표](000-meta/004-lang-slot-table.md)
 - [0.5. 표기법](000-meta/005-notation.md)
 
-### 1. Unsafe — [100-bare/](100-bare/README.md)
+### 1. Unsafe - [100-bare/](100-bare/README.md)
 
 저수준 / 위험 영역. 명시 import 필수.
 
-- 1.1. [Pointer 계열 (`Ptr`/`ConstPtr`/`ManyPtr`/`CPtr` — Zig arity-encoded + Rust strict provenance)](100-bare/101-ptr.md)
+- 1.1. [Pointer 계열 (`Ptr`/`ConstPtr`/`ManyPtr`/`CPtr` - Zig arity-encoded + Rust strict provenance)](100-bare/101-ptr.md)
 - 1.2. [cast 연산 (`ptr_cast`/`align_cast`/`const_cast`/`reinterpret`)](100-bare/102-cast.md)
 - 1.3. [`MaybeUninit<T>` + `Pod` + raw mem ops](100-bare/103-mem.md)
 - 1.4. [raw allocation](100-bare/104-alloc.md)
 - 1.5. [volatile 메모리 접근](100-bare/105-volatile.md)
-- 1.6. [`Pinned<T>` — GC pin (Go 1.21 Pinner 모델)](100-bare/106-gc-pin.md)
-- 1.7. [FFI — `extern "C"` / `CStr` / `CString`](100-bare/107-ffi.md)
+- 1.6. [`Pinned<T>` - GC pin (Go 1.21 Pinner 모델)](100-bare/106-gc-pin.md)
+- 1.7. [FFI - `extern "C"` / `CStr` / `CString`](100-bare/107-ffi.md)
 - 1.8. [WASM Component Model (`ffi.wit`)](100-bare/108-wit.md)
-- 1.9. [`rok::bare::mlir` — MLIR 다이얼렉트 직접 접근](100-bare/109-mlir.md)
-- 1.10. [`rok::bare::mlir::plugin` — 사용자 정의 다이얼렉트 등록](100-bare/110-mlir-plugin.md)
+- 1.9. [`rok::bare::mlir` - MLIR 다이얼렉트 직접 접근](100-bare/109-mlir.md)
+- 1.10. [`rok::bare::mlir::plugin` - 사용자 정의 다이얼렉트 등록](100-bare/110-mlir-plugin.md)
 
-### 2. Rok — [200-core/](200-core/README.md)
+### 2. Rok - [200-core/](200-core/README.md)
 
 안전 영역. 모든 target. `use rok::core::**;` 묵시 적용 (별도 prelude 모듈 없음).
 
@@ -89,25 +89,25 @@ rok::std   (target-dep — uses rok::core + rok::bare)
 - 2.18. [`task::` API](200-core/218-task.md)
 - 2.19. [`par::` API](200-core/219-par.md)
 - 2.20. [`Future` / `await` 통합](200-core/220-future.md)
-- 2.21. [`crypto::` — 해시, MAC, AEAD, 키 교환, 서명](200-core/221-crypto.md)
+- 2.21. [`crypto::` - 해시, MAC, AEAD, 키 교환, 서명](200-core/221-crypto.md)
 
 > [!NOTE]
 > 텐서 / 자동 미분 / SIMD / GPU 등 과학 컴퓨팅 / AI 영역은 표준 라이브러리에 포함되지 않고 외부 라이브러리로 분리됩니다. 외부 라이브러리는 [`rok::bare::mlir`](100-bare/109-mlir.md) 모듈을 통해 MLIR 다이얼렉트에 직접 접근할 수 있습니다.
 
-### 3. Std — [300-std/](300-std/README.md)
+### 3. Std - [300-std/](300-std/README.md)
 
 target-dep 영역. 명시 import.
 
-- 3.1. [`fs::` — 파일 시스템 (atomic ops, Dir capability, reflink)](300-std/301-fs.md)
-- 3.2. [`net::` — TCP/UDP/Unix + TLS 1.3 (HTTP 외부)](300-std/302-net.md)
-- 3.3. [`time::` — `Instant` / `SystemTime` / `Duration` / `BootTime`](300-std/303-time.md)
-- 3.4. [`thread::` — OS 스레드 (1:1, task 와 별개)](300-std/304-thread.md)
-- 3.5. [`io::` — `Reader` / `Writer` / stdin/out/err (sync 만 — async 트레잇 없음)](300-std/305-io.md)
-- 3.6. [`env::` — 환경 변수 / args / 디렉토리](300-std/306-env.md)
-- 3.7. [`process::` — `Command` / pidfd / kill_on_drop](300-std/307-process.md)
-- 3.8. [`path::` — UTF-8 `Path` + `/` 연산자 (Python pathlib 식)](300-std/308-path.md)
-- 3.9. [`rokon::` — ROKON 데이터 형식 (`.rokon`)](300-std/309-rokon.md)
-- 3.10. [`crypto::` — OS 난수 원천](300-std/310-crypto.md)
+- 3.1. [`fs::` - 파일 시스템 (atomic ops, Dir capability, reflink)](300-std/301-fs.md)
+- 3.2. [`net::` - TCP/UDP/Unix + TLS 1.3 (HTTP 외부)](300-std/302-net.md)
+- 3.3. [`time::` - `Instant` / `SystemTime` / `Duration` / `BootTime`](300-std/303-time.md)
+- 3.4. [`thread::` - OS 스레드 (1:1, task 와 별개)](300-std/304-thread.md)
+- 3.5. [`io::` - `Reader` / `Writer` / stdin/out/err (sync 만 - async 트레잇 없음)](300-std/305-io.md)
+- 3.6. [`env::` - 환경 변수 / args / 디렉토리](300-std/306-env.md)
+- 3.7. [`process::` - `Command` / pidfd / kill_on_drop](300-std/307-process.md)
+- 3.8. [`path::` - UTF-8 `Path` + `/` 연산자 (Python pathlib 식)](300-std/308-path.md)
+- 3.9. [`rokon::` - ROKON 데이터 형식 (`.rokon`)](300-std/309-rokon.md)
+- 3.10. [`crypto::` - OS 난수 원천](300-std/310-crypto.md)
 
 ---
 
@@ -144,8 +144,8 @@ rg "fn into" spec/ko/refs-standard-libraries/
 
 | 사양                    | prefix           | 이유                                                   |
 |-------------------------|------------------|--------------------------------------------------------|
-| refs-lang               | 한 자리 (`002-`) | 10 장 (0~9) 이 모두 같은 권위 — flat 모양              |
-| refs-standard-libraries | 세 자리 (`200-`) | 3 tier × N 모듈 — tier 가 cross-reference 의 핵심 정보 |
+| refs-lang               | 한 자리 (`002-`) | 10 장 (0~9) 이 모두 같은 권위 - flat 모양              |
+| refs-standard-libraries | 세 자리 (`200-`) | 3 tier × N 모듈 - tier 가 cross-reference 의 핵심 정보 |
 
 구체적인 파일 이름 규칙은 다음과 같습니다. tier 디렉토리는 100 단위의 prefix 를 갖고, 그 안의 모듈 파일은 tier 한 자리와 모듈 두 자리를 합친 세 자리 prefix 로 시작합니다.
 

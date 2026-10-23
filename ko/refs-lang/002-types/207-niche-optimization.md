@@ -71,7 +71,7 @@ struct Real { value: f64; }
 
 | 이름          | 제외하는 값                           | 정의                          |
 |---------------|---------------------------------------|-------------------------------|
-| `NonZero<T>`  | 0 (정수 T 만)                         | [stdlib 2.2.2](../../refs-standard-libraries/200-core/202-non-zero.md#222-nonzerot--0-금지) |
-| `NonNan<F>`   | NaN                                   | [stdlib 2.2.3](../../refs-standard-libraries/200-core/202-non-zero.md#223-nonnanf--nan-금지) |
-| `Finite<F>`   | NaN, ±∞                               | [stdlib 2.2.4](../../refs-standard-libraries/200-core/202-non-zero.md#224-finitef--nan--금지) |
-| `Positive<T>` | 음수 (0 은 포함). unsigned `T` 는 niche 없음 (`Positive<u32> \| none` 은 8 바이트) | [stdlib 2.2.5](../../refs-standard-libraries/200-core/202-non-zero.md#225-positivet--음수-금지) |
+| `NonZero<T>`  | 0 (정수 T 만)                         | [stdlib 2.2.2](../../refs-standard-libraries/200-core/202-non-zero.md#222-nonzerot---0-금지) |
+| `NonNan<F>`   | NaN                                   | [stdlib 2.2.3](../../refs-standard-libraries/200-core/202-non-zero.md#223-nonnanf---nan-금지) |
+| `Finite<F>`   | NaN, ±∞                               | [stdlib 2.2.4](../../refs-standard-libraries/200-core/202-non-zero.md#224-finitef---nan--금지) |
+| `Positive<T>` | 음수 (0 은 포함). unsigned `T` 는 niche 없음 (`Positive<u32> \| none` 은 8 바이트) | [stdlib 2.2.5](../../refs-standard-libraries/200-core/202-non-zero.md#225-positivet---음수-금지) |

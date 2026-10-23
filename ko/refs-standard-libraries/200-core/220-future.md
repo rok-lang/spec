@@ -1,8 +1,8 @@
-# 2.20. future — `Future` / `await` 통합
+# 2.20. future - `Future` / `await` 통합
 
 `rok::core::future` 모듈은 async 메커니즘의 권위 트레잇을 제공합니다. `await expr` 의 desugar 는 이 장에서 정의하는 `Future` 트레잇 dispatch 로 lower 됩니다. 이 장은 48 개의 lang slot 가운데 `future_trait` 를 정의하는 자리이기도 합니다.
 
-## 2.20.1. `Future` — async 결과
+## 2.20.1. `Future` - async 결과
 
 `Future` 는 비동기 계산의 결과를 표현하는 핵심 트레잇이며, 결과 타입은 associated type `Output` 입니다.
 
@@ -90,7 +90,7 @@ await g();
 
 이 **3 형태** 의 권위는 [refs-lang 4.12 async](../../refs-lang/004-functions/412-async.md) 에 있습니다.
 
-## 2.20.5. `IntoFuture` — await 가능한 값
+## 2.20.5. `IntoFuture` - await 가능한 값
 
 `IntoFuture` 는 await 의 통일된 진입점입니다. `Future` 뿐 아니라 `Thread` 처럼 스스로는 `Future` 가 아닌 핸들도 이 트레잇을 통해 `await` 할 수 있습니다.
 
@@ -129,9 +129,9 @@ rok 의 정책은 다음과 같습니다.
 이렇게 색깔을 분리하는 이유는 **scheduler 협력** 을 보장하기 위함입니다. "이 자리는 suspend 가 가능하다" 는 정보가 명시되어야 컴파일러가 coroutine state machine 을 만들 수 있기 때문입니다.
 
 ```rok
-// sync fn 안에서 await 호출 — 컴파일 에러
+// sync fn 안에서 await 호출 - 컴파일 에러
 fn sync_caller() {
-    let v = await some_future;       // ERROR — async 함수 안에서만 await 가능
+    let v = await some_future;       // ERROR - async 함수 안에서만 await 가능
 }
 
 async fn async_caller() {
@@ -149,7 +149,7 @@ let v = task::block_on(some_future);    // 현재 thread 가 executor 에 붙어
 
 `block_on` 은 최상위 (main 또는 sync caller) 에서만 사용해야 합니다. nested async 안에서 `block_on` 을 사용하면 deadlock 의 위험이 있습니다.
 
-## 2.20.7. `for await` — Stream 소비
+## 2.20.7. `for await` - Stream 소비
 
 Stream 을 소비할 때는 `for await` 형태를 사용합니다.
 
@@ -165,7 +165,7 @@ for x in iterator {                    // Iterator<Item = T> 소비 (sync)
 
 `for await` 의 권위는 [2.8 stream](208-stream.md) 의 `Stream` 트레잇에 있습니다.
 
-## 2.20.8. `async yield` — Stream 생성
+## 2.20.8. `async yield` - Stream 생성
 
 반대로 Stream 을 생성할 때는 `async yield` 를 사용합니다.
 
@@ -184,7 +184,7 @@ for await t in ticks(Duration::ms(100)) {
 
 `async yield` 는 async 와 yield 의 결합이며, Stream 을 생성합니다. syntax 권위는 [refs-lang 4.13 stream](../../refs-lang/004-functions/413-stream.md) 에 있습니다.
 
-## 2.20.8a. `AsyncFuture<T>` / `TryAsyncFuture<T, E>` — 비동기 함수의 값
+## 2.20.8a. `AsyncFuture<T>` / `TryAsyncFuture<T, E>` - 비동기 함수의 값
 
 `async fn` 호출과 `async { .. }` 블록의 값입니다 ([refs-lang 4.1.11](../../refs-lang/004-functions/401-function-declaration.md#코루틴-함수의-결과-타입)).
 

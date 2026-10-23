@@ -65,7 +65,7 @@ If the body produces no value (the last expression ends with a terminator), the 
 
 ```rok
 fn print_msg(s: str) {
-    print(s);                     // terminator at the end — returns unit
+    print(s);                     // terminator at the end - returns unit
 }
 ```
 
@@ -73,7 +73,7 @@ If the return type is written but the function body does not match it, it is a c
 
 ```rok
 fn bad() -> i32 {
-    "hello"                       // ERROR — str is not i32
+    "hello"                       // ERROR - str is not i32
 }
 ```
 
@@ -111,7 +111,7 @@ A function body follows the rules of [block expressions](../003-expressions/309-
 A function with an empty body returns unit.
 
 ```rok
-fn nothing() { }                  // empty body — returns unit
+fn nothing() { }                  // empty body - returns unit
 ```
 
 ## 4.1.7. Return type and the last expression of the body
@@ -128,7 +128,7 @@ In the example above, `42i32` has no terminator, so it becomes the function's re
 
 ```rok
 fn f() -> i32 {
-    42i32;                        // ERROR — terminator discards the value
+    42i32;                        // ERROR - terminator discards the value
                                   // (does not match return type i32)
 }
 ```
@@ -162,7 +162,7 @@ Declaring two functions with the same name in the same module is a compile error
 
 ```rok
 fn add(x: i32, y: i32) -> i32 { x + y }
-fn add(x: f64, y: f64) -> f64 { x + y }   // ERROR — duplicate
+fn add(x: f64, y: f64) -> f64 { x + y }   // ERROR - duplicate
 ```
 
 To vary behavior by type, combine traits and generics ([`trait`](../002-types/208-trait.md)).
@@ -180,10 +180,10 @@ unsafe → async → yield
 Violating this order is a syntax error. Writing the same modifier twice is also impossible at the grammar level (the `?` in `unsafe?` allows only zero or one).
 
 ```rok
-unsafe async yield fn ok() -> i32 { ... }   // OK — prescribed order
-async unsafe fn bad1() { ... }           // ERROR — async before unsafe
-yield async fn bad2() { ... }            // ERROR — yield before async
-unsafe unsafe fn bad3() { ... }          // ERROR — duplicate unsafe
+unsafe async yield fn ok() -> i32 { ... }   // OK - prescribed order
+async unsafe fn bad1() { ... }           // ERROR - async before unsafe
+yield async fn bad2() { ... }            // ERROR - yield before async
+unsafe unsafe fn bad3() { ... }          // ERROR - duplicate unsafe
 ```
 
 This rule guarantees that functions with the same meaning are always written the same way, which simplifies formatters, linters and readability.

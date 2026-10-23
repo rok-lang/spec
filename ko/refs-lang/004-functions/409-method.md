@@ -134,7 +134,7 @@ c.increment();                                 // 'ref' 명시 없음
 3. 그래도 후보가 둘 이상이면 모호성 에러이며, 진단은 `Trait::method(x)` 형태로 적으라고 안내합니다.
 
 ```rok
-use pkg::geom::Union;              // 사용자 트레잇 — union 메서드
+use pkg::geom::Union;              // 사용자 트레잇 - union 메서드
 a.union(b);                        // pkg::geom::Union 이 core 의 Union 보다 우선
 rok::core::ops::Union::union(a, b) // core 쪽을 쓰려면 명시
 ```
@@ -183,7 +183,7 @@ impl<T> List<T> {
 
 | 첫 매개변수 | 의미                    | 호출 시                          | 본체에서 `self` 재할당 가능? |
 |-------------|-------------------------|----------------------------------|------------------------------|
-| (없음)      | 정적 메서드             | `Type::method()`                 | —                            |
+| (없음)      | 정적 메서드             | `Type::method()`                 | -                            |
 | `self`      | 인스턴스 메서드 (값)    | `instance.method()`              | 안 됨 (로컬만)               |
 | `ref self`  | 인스턴스 메서드 (`ref`) | `instance.method()` (`ref` 자동) | 됨 (호출자에 반영)           |
 

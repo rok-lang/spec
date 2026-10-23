@@ -88,7 +88,7 @@ The body holds **every source file** of the package as (path, text) pairs. Each 
 
 After the source files come the `.wit` files the package's `ffi::wit` items read ([stdlib 1.8](../../refs-standard-libraries/100-bare/108-wit.md)), with their `deps/`, whole. Their paths are relative to the source dir and may leave it through `..`. Downstream reads WIT from the body, not the disk.
 
-After the body come the hand-off summaries ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--thread-boundary-markers)) of the package's functions. A summary is lines of tab-separated fields:
+After the body come the hand-off summaries ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers)) of the package's functions. A summary is lines of tab-separated fields:
 
 - `g <root> <mutex|rwlock|channel> <line> <function> <file>`: hands `<root>` over;
 - `s <root> <root>`: one object;

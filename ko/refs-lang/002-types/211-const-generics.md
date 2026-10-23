@@ -86,7 +86,7 @@ let arr2 = replicate::<i32, 8>(0i32);    // 명시
 
 ```rok
 fn zeros<const N: usize>() -> [f64; N] { [0.0; N] }
-let z: [f64; 4] = zeros();              // N = 4 — 기대 타입에서
+let z: [f64; 4] = zeros();              // N = 4 - 기대 타입에서
 let w = [1u8; 16];                       // [u8; 16]
 ```
 
@@ -95,7 +95,7 @@ let w = [1u8; 16];                       // [u8; 16]
 `const` 제네릭은 [제네릭](210-generics.md) 의 단형화와 같은 방식으로 동작합니다. 따라서 각 `const` 인자 조합마다 별개의 컴파일 결과가 만들어집니다.
 
 ```rok
-let a = replicate(0i32);    // N = ? — 추론 시점에 결정
+let a = replicate(0i32);    // N = ? - 추론 시점에 결정
 ```
 
 같은 `const` 인자 조합의 호출은 결과를 공유합니다.

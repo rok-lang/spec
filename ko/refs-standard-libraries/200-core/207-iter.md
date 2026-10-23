@@ -1,10 +1,10 @@
-# 2.7. iter — 반복 트레잇
+# 2.7. iter - 반복 트레잇
 
 `rok::core::iter` 모듈은 `for x in xs` 의 **desugar 권위** 를 제공합니다. 모든 `for` 루프는 본 장의 트레잇으로 dispatch 되어 동작합니다.
 
 이때 [refs-lang 3.13 루프 표현식](../../refs-lang/003-expressions/313-loop-expressions.md) 의 `for` syntax 가 `IntoIterator::into_iter` 와 `Iterator::next` 호출의 조합으로 desugar 됩니다.
 
-## 2.7.1. `Iterator` — 단계 진행
+## 2.7.1. `Iterator` - 단계 진행
 
 가장 먼저 살펴볼 트레잇은 `Iterator` 이며, 시그니처는 다음과 같습니다.
 
@@ -50,7 +50,7 @@ for x in xs {
 //   }
 ```
 
-### 메서드 — default impl 풍부
+### 메서드 - default impl 풍부
 
 `Iterator` 에서 사용자가 직접 구현해야 하는 메서드는 `next(ref self)` 하나뿐입니다. 나머지 메서드들은 모두 `next` 위에 default impl 형태로 제공됩니다.
 
@@ -61,7 +61,7 @@ for x in xs {
 impl Iterator {
     fn next(ref self) -> Item | none;       // 사용자 정의
 
-    // 변환 어댑터 — lazy
+    // 변환 어댑터 - lazy
     fn map<U>(self, f: fn(Item) -> U) -> Map<Self, U>;
     fn filter(self, pred: fn(Item) -> bool) -> Filter<Self>;
     fn enumerate(self) -> Enumerate<Self>;        // (index, item) 쌍
@@ -75,7 +75,7 @@ impl Iterator {
     fn flat_map<U: IntoIterator>(self, f: fn(Item) -> U) -> FlatMap<Self, U>;
     fn peekable(self) -> Peekable<Self>;          // 다음 원소 미리 보기
 
-    // 종결 메서드 — eager
+    // 종결 메서드 - eager
     fn count(self) -> usize;
     fn sum(self) -> Item where Item: Add<Output = Item> + Zero;     // 비면 0
     fn product(self) -> Item where Item: Mul<Output = Item> + One;  // 비면 1
@@ -107,9 +107,9 @@ impl Iterator {
 ```rok
 let xs = [1, 2, 3, 4, 5];
 let r = xs.into_iter()
-    .map(|x| x * 2)            // lazy — 아직 계산 안 함
+    .map(|x| x * 2)            // lazy - 아직 계산 안 함
     .filter(|x| x > 4)         // lazy
-    .sum();                    // eager — 여기서 단계 진행
+    .sum();                    // eager - 여기서 단계 진행
 //→ 6 + 8 + 10 = 24
 ```
 
@@ -140,7 +140,7 @@ for x in c {
 }
 ```
 
-## 2.7.2. `IntoIterator` — `for` 의 시작
+## 2.7.2. `IntoIterator` - `for` 의 시작
 
 다음으로는 `for` 루프의 출발점이 되는 `IntoIterator` 트레잇을 살펴보겠습니다.
 
@@ -207,7 +207,7 @@ loop {
 
 자세한 desugar 규칙은 [refs-lang 3.13](../../refs-lang/003-expressions/313-loop-expressions.md) 을 참고합니다.
 
-## 2.7.3. `Step` — 한 칸 진행 추상화
+## 2.7.3. `Step` - 한 칸 진행 추상화
 
 `Range<T>` 의 iteration 은 "다음 값으로 한 칸 이동" 이라는 단순 동작에 기반합니다. 그런데 이 동작은 일반적인 산술 (`Add`) 과는 의미가 다른데, 예를 들어 `char` 의 다음 값은 codepoint + 1 이지만 `char + char` 자체는 정의되지 않습니다. 따라서 rok 은 step 진행을 별도의 트레잇으로 분리해 두고 있습니다.
 
@@ -221,9 +221,9 @@ trait Step: PartialOrd + Clone {
 
 각 메서드의 의미는 다음과 같습니다.
 
-- `forward_checked(self, n)` — `self` 에서 `n` 만큼 앞으로 이동한 값을 반환하며, 타입 범위를 넘으면 `none` 을 돌려줍니다.
-- `backward_checked(self, n)` — 뒤로 이동한 값. 마찬가지로 범위를 넘으면 `none`.
-- `steps_between(start, end)` — `start` 에서 `end` 까지 몇 칸인지 계산하며, 표현 불가일 때 `none` 을 돌려줍니다 (예: 음수, overflow).
+- `forward_checked(self, n)` - `self` 에서 `n` 만큼 앞으로 이동한 값을 반환하며, 타입 범위를 넘으면 `none` 을 돌려줍니다.
+- `backward_checked(self, n)` - 뒤로 이동한 값. 마찬가지로 범위를 넘으면 `none`.
+- `steps_between(start, end)` - `start` 에서 `end` 까지 몇 칸인지 계산하며, 표현 불가일 때 `none` 을 돌려줍니다 (예: 음수, overflow).
 
 ### 산술 트레잇과 분리한 이유
 
@@ -244,7 +244,7 @@ trait Step: PartialOrd + Clone {
 | `int`                | **없음** | 표준 라이브러리 impl 없음                            |
 | `char`               | **있음** | codepoint 진행, surrogate (`0xD800..=0xDFFF`) 건너뜀 |
 | `bool`               | **없음** | 표준 라이브러리 impl 없음                            |
-| `f32`, `f64`         | **없음** | `Range<f64>` 거부 — 의미 모호                        |
+| `f32`, `f64`         | **없음** | `Range<f64>` 거부 - 의미 모호                        |
 | `float`              | **없음** | (위와 동일)                                          |
 
 사용자 정의 타입은 `impl Step for MyType` 로 자유롭게 추가할 수 있으며, `Range<MyType>` 이 즉시 가능해집니다.
@@ -267,7 +267,7 @@ for d in Weekday::Mon..=Weekday::Fri {
 
 [refs-lang 3.7 범위 표현식](../../refs-lang/003-expressions/307-range-expressions.md) 의 `a..b` syntax 는 본 표준 라이브러리 타입으로 desugar 됩니다.
 
-### `Range<T>` — `a..b` (exclusive)
+### `Range<T>` - `a..b` (exclusive)
 
 ```rok
 #[literal( expr ".." expr )]
@@ -302,7 +302,7 @@ for i in 0..5 {
 let v: List<i32> = (0..10).collect();   //→ [0, 1, ..., 9]
 ```
 
-### `RangeInclusive<T>` — `a..=b`
+### `RangeInclusive<T>` - `a..=b`
 
 ```rok
 #[literal( expr "..=" expr )]
@@ -322,7 +322,7 @@ for i in 0..=5 {
 }
 ```
 
-### `RangeFrom<T>` — `a..` (무한)
+### `RangeFrom<T>` - `a..` (무한)
 
 ```rok
 #[literal( expr ".." )]
@@ -361,10 +361,10 @@ struct RangeFull;
 
 ```rok
 let xs = [1, 2, 3, 4, 5];
-let s = xs[..3];          //→ [1, 2, 3]  (Slice — 2.3 ops 의 Slice 트레잇)
+let s = xs[..3];          //→ [1, 2, 3]  (Slice - 2.3 ops 의 Slice 트레잇)
 ```
 
-## 2.7.5. `FromIterator<T>` — `collect` 의 dispatch
+## 2.7.5. `FromIterator<T>` - `collect` 의 dispatch
 
 `collect` 의 dispatch 를 담당하는 트레잇은 `FromIterator<T>` 입니다.
 
@@ -394,7 +394,7 @@ let v: List<i32> = (0..5).collect();
 | `OrderedDict<K, V>` | `(K, V)`    | 삽입 순서                                 |
 | `Set<T>`            | `T`         | 순회 순서 **보장 안 됨**                  |
 | `OrderedSet<T>`     | `T`         | 삽입 순서                                 |
-| `Tuple<A, B, C>`    | (특수)      | iterator **만들지 않음** — 패턴 매칭 사용 |
+| `Tuple<A, B, C>`    | (특수)      | iterator **만들지 않음** - 패턴 매칭 사용 |
 | `Range<T>`          | `T`         | start 부터 end-1 까지                     |
 | `Slice<T>`          | `T`         | view 의 시작부터 끝까지                   |
 
@@ -409,7 +409,7 @@ let v: List<i32> = (0..5).collect();
 `RangeFrom` 이나 사용자 정의로 만든 무한 iterator 는 eager 메서드와 직접 결합할 경우 무한 루프에 빠지게 됩니다.
 
 ```rok
-(0..).count();         // 무한 루프 — count 가 끝까지 진행
+(0..).count();         // 무한 루프 - count 가 끝까지 진행
 (0..).sum();           // 무한 루프
 ```
 
@@ -422,7 +422,7 @@ let v: List<i32> = (0..5).collect();
 
 `Iterator` 는 무한 여부를 검출하지 않습니다. 사용자가 의도적으로 lazy 어댑터를 결합하여 처리해야 합니다.
 
-## 2.7.8. 함수 broadcast — `f.(x)` 의 desugar
+## 2.7.8. 함수 broadcast - `f.(x)` 의 desugar
 
 [refs-lang](../../refs-lang/003-expressions/303-broadcast-operators.md) 의 함수 broadcast (`sin.(xs)`, `f.(a, b)`) 는 별도의 트레잇 없이 `Iterator::map` 으로 desugar 됩니다.
 
@@ -431,7 +431,7 @@ sin.(xs)   ≡   xs.into_iter().map(sin).collect()
 g.(a, b)   ≡   a.into_iter().zip(b.into_iter()).map(|(x, y)| g(x, y)).collect()
 ```
 
-## 2.7.9. `DoubleEndedIterator` — 양방향 진행
+## 2.7.9. `DoubleEndedIterator` - 양방향 진행
 
 양방향 진행이 가능한 iterator 는 `DoubleEndedIterator` 트레잇으로 모델링됩니다.
 
@@ -447,7 +447,7 @@ trait DoubleEndedIterator: Iterator {
 
 - `Range<T>`, `RangeInclusive<T>`
 - `Rev<I>` (`I` 가 양방향일 때), `Map<I, U>`, `Filter<I>`, `Chain<A, B>` (구성 iterator 가 양방향일 때)
-- `Enumerate<I>`, `Zip<A, B>`, `Take<I>`, `Skip<I>`, `StepBy<I>` — 구성 iterator 가 `DoubleEndedIterator + ExactSizeIterator` 일 때. 뒤에서 세려면 길이가 필요하기 때문입니다.
+- `Enumerate<I>`, `Zip<A, B>`, `Take<I>`, `Skip<I>`, `StepBy<I>` - 구성 iterator 가 `DoubleEndedIterator + ExactSizeIterator` 일 때. 뒤에서 세려면 길이가 필요하기 때문입니다.
 
 반면 `Dict<K, V>` 와 `Set<T>` 는 순서가 없으므로 impl 하지 않습니다.
 
@@ -455,7 +455,7 @@ trait DoubleEndedIterator: Iterator {
 let r: List<i32> = (0..5).rev().collect();    //→ [4, 3, 2, 1, 0]
 ```
 
-## 2.7.10. `ExactSizeIterator` — 길이 미리 알려진 iterator
+## 2.7.10. `ExactSizeIterator` - 길이 미리 알려진 iterator
 
 원소 개수를 진행 전부터 알 수 있는 iterator 는 `ExactSizeIterator` 로 표현됩니다.
 
@@ -467,7 +467,7 @@ trait ExactSizeIterator: Iterator {
 
 `len()` 은 남은 원소 수입니다. 표준 라이브러리의 `ExactSizeIterator` 타입은 `count()` 를 `len()` 으로 답하므로, `count()` 는 `Map` 의 함수를 부르지 않습니다. `List`, `Slice`, `Range` 의 iterator 와 구성 iterator 가 모두 `ExactSizeIterator` 인 `Enumerate`, `Zip`, `Take`, `Skip`, `StepBy`, `Rev`, `Map` 이 이 트레잇을 impl 합니다.
 
-## 2.7.10a. `GenIter<T>` / `TryGenIter<T, E>` — 제너레이터의 값
+## 2.7.10a. `GenIter<T>` / `TryGenIter<T, E>` - 제너레이터의 값
 
 `yield fn` 호출과 `yield { .. }` 블록의 값입니다 ([refs-lang 4.1.11](../../refs-lang/004-functions/401-function-declaration.md#코루틴-함수의-결과-타입)).
 
@@ -502,6 +502,6 @@ impl<T, E> TryGenIter<T, E> {
 
 primitive 자체에는 `Iterator` impl 이 없습니다 (i32 는 `for` 의 대상이 아닙니다). 컬렉션과 Range 만 해당됩니다.
 
-## 2.7.12. async — `Stream` 트레잇
+## 2.7.12. async - `Stream` 트레잇
 
 비동기 iterator 는 [2.8 stream](208-stream.md) 에서 다룹니다. `for await x in stream` syntax ([refs-lang 3.13](../../refs-lang/003-expressions/313-loop-expressions.md)) 가 `Stream::poll_next` 로 dispatch 됩니다.

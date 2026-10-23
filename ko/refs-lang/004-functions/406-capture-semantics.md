@@ -14,7 +14,7 @@ count = 10;
 f();                               // 1 (f 는 0 을 가짐)
 ```
 
-이 결정에는 세 가지 동기가 있습니다. 먼저 명시성으로, 캡처가 어떤 모드인지 코드 표면에 분명히 드러납니다. 다음으로 부작용 차단으로, 클로저가 외부 변수를 조용히 변경해 버리는 함정을 막습니다. 마지막으로 과학·수치 코드 친화성으로, Julia 가 가진 100배 박싱 함정 — 참조 캡처가 동적 슬롯에 박싱되어 성능이 저하되는 문제 — 을 회피합니다.
+이 결정에는 세 가지 동기가 있습니다. 먼저 명시성으로, 캡처가 어떤 모드인지 코드 표면에 분명히 드러납니다. 다음으로 부작용 차단으로, 클로저가 외부 변수를 조용히 변경해 버리는 함정을 막습니다. 마지막으로 과학·수치 코드 친화성으로, Julia 가 가진 100배 박싱 함정 - 참조 캡처가 동적 슬롯에 박싱되어 성능이 저하되는 문제 - 을 회피합니다.
 
 ```
 capture_list    ::= "[" capture_item ("," capture_item)* ","? "]"
@@ -43,8 +43,8 @@ let counter = 0;
 let config = load_config();
 
 let handler = [ref counter] || {
-    counter = counter + 1;        // ref — 외부 변수에 반영
-    print(config.version);         // 값 — 캡처 시점의 config 스냅샷
+    counter = counter + 1;        // ref - 외부 변수에 반영
+    print(config.version);         // 값 - 캡처 시점의 config 스냅샷
 };
 ```
 
@@ -59,7 +59,7 @@ let handler = [ref counter] || {
 ```rok
 let xs = [1, 2, 3];               // List 리터럴
 let f = [ref count] || { ... };   // 캡처 리스트 + 클로저
-arr[ref count]                     // ERROR — 인덱싱에 ref 못 씀
+arr[ref count]                     // ERROR - 인덱싱에 ref 못 씀
 ```
 
 ## 4.6.4. 본체에서 외부 변수 재할당 시도 → `ref` 강제
@@ -106,12 +106,12 @@ Go 1.22 의 per-iteration scope 같은 별도의 규칙을 둘 필요가 없으�
 
 ```rok
 let xs = [1, 2, 3];
-let f = || { xs.push(4) };        // 핸들 복사 — 같은 List
+let f = || { xs.push(4) };        // 핸들 복사 - 같은 List
 f();
 // xs == [1, 2, 3, 4]
 
 let p = Point { x: 0.0, y: 0.0 };
-let g = [ref p] || { p.x = 1.0 }; // ref 캡처 — 바깥 p 에 씀
+let g = [ref p] || { p.x = 1.0 }; // ref 캡처 - 바깥 p 에 씀
 g();
 // p.x == 1.0
 ```
@@ -123,15 +123,15 @@ g();
 ```rok
 let xs = [1, 2, 3];
 
-// 값 캡처 — 객체 변경은 OK, 바인딩 재할당은 안 됨
+// 값 캡처 - 객체 변경은 OK, 바인딩 재할당은 안 됨
 let f = || {
-    xs.push(4);                   // OK — 객체 변경
-    // xs = [];                    // ERROR — 바인딩 재할당
+    xs.push(4);                   // OK - 객체 변경
+    // xs = [];                    // ERROR - 바인딩 재할당
 };
 
-// ref 캡처 — 바인딩 재할당까지 가능
+// ref 캡처 - 바인딩 재할당까지 가능
 let g = [ref xs] || {
-    xs = [];                      // OK — 외부 xs 가 [] 가 됨
+    xs = [];                      // OK - 외부 xs 가 [] 가 됨
 };
 ```
 
@@ -141,7 +141,7 @@ let g = [ref xs] || {
 
 ## 4.6.9. 병렬과 동시성 문맥의 추가 제약
 
-`fn() + Send` 클로저 (`task::spawn`, `par::for_each`, `thread::spawn` 등에 넘기는 것) 의 캡처는 모두 `Send + Sync` 여야 합니다 ([4.4](404-function-type.md#send--sync-bound)). `[ref x]` 셀은 클로저와 그것을 만든 코드가 함께 쓰므로, `x` 의 타입과 무관하게 결코 `Send` 도 `Sync` 도 아닙니다: `[ref]` 캡처가 있는 클로저 — 또는 그런 클로저를 캡처하는 클로저, `async [ref x] ||` 클로저가 만든 future — 는 어떤 `+ Send` / `+ Sync` 자리에도 들어가지 않습니다. 같은 스레드 안의 사용 (`spawn_local`, 일반 호출) 은 영향이 없습니다. 컬렉션은 `!Sync` 이므로 ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--스레드-경계-marker)) 값 캡처로도 이렇게 넘길 수 없습니다.
+`fn() + Send` 클로저 (`task::spawn`, `par::for_each`, `thread::spawn` 등에 넘기는 것) 의 캡처는 모두 `Send + Sync` 여야 합니다 ([4.4](404-function-type.md#send--sync-bound)). `[ref x]` 셀은 클로저와 그것을 만든 코드가 함께 쓰므로, `x` 의 타입과 무관하게 결코 `Send` 도 `Sync` 도 아닙니다: `[ref]` 캡처가 있는 클로저 - 또는 그런 클로저를 캡처하는 클로저, `async [ref x] ||` 클로저가 만든 future - 는 어떤 `+ Send` / `+ Sync` 자리에도 들어가지 않습니다. 같은 스레드 안의 사용 (`spawn_local`, 일반 호출) 은 영향이 없습니다. 컬렉션은 `!Sync` 이므로 ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---스레드-경계-marker)) 값 캡처로도 이렇게 넘길 수 없습니다.
 
 ```rok
 let buf: List<i32> = [];
@@ -151,7 +151,7 @@ par::for_each(xs, [ref buf] |x| { buf.push(x) });
 
 대신 reduce 를 쓰거나 (`par::reduce(xs, 0, |a, b| a + b)`), `Mutex` / `RwLock` / `Atomic` / 채널로 공유하거나, 스레드에서 값을 돌려받습니다 (`join()`).
 
-이렇게 공유한 값은 새 소유자의 것입니다: `Mutex::new(buf)` 나 `tx.send(buf)` 뒤에 `buf` 를 쓰면 컴파일 에러입니다 ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--스레드-경계-marker)). lock 을 통해 쓰거나 `buf.clone()` 을 넘깁니다.
+이렇게 공유한 값은 새 소유자의 것입니다: `Mutex::new(buf)` 나 `tx.send(buf)` 뒤에 `buf` 를 쓰면 컴파일 에러입니다 ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---스레드-경계-marker)). lock 을 통해 쓰거나 `buf.clone()` 을 넘깁니다.
 
 ```rok
 let m = Mutex::new(buf);
@@ -169,7 +169,7 @@ buf.push(1);
 fn make_counter() -> fn() -> i32 {
     let count = 0;
     [ref count] || { count = count + 1; count }
-    // count 는 ref 로 캡처됨 — 클로저가 사라질 때까지 유지
+    // count 는 ref 로 캡처됨 - 클로저가 사라질 때까지 유지
 }
 
 let c = make_counter();

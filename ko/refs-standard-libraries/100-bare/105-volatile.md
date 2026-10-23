@@ -39,7 +39,7 @@ unsafe fn write<T>(dst: Ptr<T>, value: T);
 ```
 
 같은 동작을 `Ptr<T>::read_volatile` / `write_volatile` 메서드 형태로도 쓸 수 있고,
-이쪽이 더 자연스러운 자리도 많습니다 ([1.1.2](101-ptr.md#112-ptrt--strict-provenance-api)).
+이쪽이 더 자연스러운 자리도 많습니다 ([1.1.2](101-ptr.md#112-ptrt---strict-provenance-api)).
 
 ## 1.5.3. 사용처
 
@@ -49,10 +49,10 @@ unsafe fn write<T>(dst: Ptr<T>, value: T);
 |------------------------|---------------------------------------|
 | MMIO register          | hardware 가 read 만으로도 side effect |
 | Memory-mapped 디바이스 | DMA 등                                |
-| signal handler 변수    | signal 안에서 변경 — 외부에서 봐야 함 |
+| signal handler 변수    | signal 안에서 변경 - 외부에서 봐야 함 |
 | spinlock retry loop    | 다른 thread 가 변경한 값 반복 read    |
 
-## 1.5.4. 주의 — atomic 과 다름
+## 1.5.4. 주의 - atomic 과 다름
 
 흔한 오해 하나를 짚고 갑니다. `volatile` 은 어디까지나 컴파일러 최적화를 차단할 뿐,
 atomic 보장을 주지는 않습니다.
@@ -61,7 +61,7 @@ atomic 보장을 주지는 않습니다.
 - memory ordering 도 강제하지 않습니다
 
 따라서 multi-thread 사이에서 공유하는 변수에는
-[`Atomic<T>`](../200-core/216-sync.md#2162-atomict--lock-free-원자) 를 써야 하고,
+[`Atomic<T>`](../200-core/216-sync.md#2162-atomict---lock-free-원자) 를 써야 하고,
 `volatile` 은 **hardware MMIO** 에 한정해서 쓰는 도구로 남겨 두어야 합니다.
 
 ## 1.5.5. lowering

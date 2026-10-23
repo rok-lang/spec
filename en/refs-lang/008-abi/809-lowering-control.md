@@ -232,7 +232,7 @@ throw err;
 ; when a catch exists in the same function
 cf.br ^catch_dispatch(%err)
 
-; otherwise — error return from the function
+; otherwise - error return from the function
 %r0 = llvm.mlir.undef : !Throws_T_E
 %r1 = llvm.insertvalue %true, %r0[0] : !Throws_T_E
 %r2 = ; store %err in the payload
@@ -295,7 +295,7 @@ cf.cond_br %overflow, ^slow, ^fast
   cf.br ^cont(%p_slow)
 
 ^cont(%p: !llvm.ptr):
-  ; %p is the start of the object header — fill header, then fields
+  ; %p is the start of the object header - fill header, then fields
   ; ...
 ```
 
@@ -337,7 +337,7 @@ The object-remembering barrier from [Barriers and root tracking](../007-runtime/
 This is lowered to the following MLIR.
 
 ```
-; 1. write barrier — checks only the header of the destination p (may precede the store)
+; 1. write barrier - checks only the header of the destination p (may precede the store)
 %hdr_flags = llvm.load %p[1] : i32
 %unlogged = llvm.and %hdr_flags, %UNLOGGED_BIT : i32
 %need_log = arith.cmpi "ne", %unlogged, %0 : i32
@@ -406,7 +406,7 @@ llvm.store %x, %s0 : !llvm.ptr, !llvm.ptr          ; the address, not the value
 llvm.store %y, %s1 : !llvm.ptr, !llvm.ptr
 llvm.store %frame, %head_ptr : !llvm.ptr, !llvm.ptr
 
-; variable assignment — no frame update
+; variable assignment - no frame update
 llvm.store %obj, %x : !llvm.ptr, !llvm.ptr
 
 ; immediately before every return (including error returns): unlink

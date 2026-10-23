@@ -37,7 +37,7 @@ impl Circle {
     fn unit() -> Circle { Circle { r: 1.0f64 } }
 }
 
-// inside a trait — associated const
+// inside a trait - associated const
 trait Numbers {
     const ZERO: Self;
     const ONE: Self;
@@ -62,7 +62,7 @@ fn f() {
 The result of a `const` does not reside at any memory location, so its address cannot be taken.
 
 ```rok
-let p = &X;                       // ERROR — a const has no address (conceptually)
+let p = &X;                       // ERROR - a const has no address (conceptually)
 ```
 
 Whether rok actually has a direct address operator such as `&` is defined by the pointer types in [type expressions](../002-types/201-type-expressions.md) and by the [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) specification.

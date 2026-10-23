@@ -4,10 +4,10 @@ The `#[literal(...)]` attribute registers a user-written syntax pattern as a lit
 
 ## 6.5.1. Motivation
 
-Beyond the lexical literals from [numeric literals](../001-lexical/106-numeric-literals.md) through [boolean and sentinel literals](../001-lexical/109-other-literals.md) — numbers, strings, characters, booleans — rok registers compound literals such as collections, ranges, and slices in the standard library.
+Beyond the lexical literals from [numeric literals](../001-lexical/106-numeric-literals.md) through [boolean and sentinel literals](../001-lexical/109-other-literals.md) - numbers, strings, characters, booleans - rok registers compound literals such as collections, ranges, and slices in the standard library.
 
 ```
-[1, 2, 3]                 → List<T> instance (fixed array if the expected type is [T; N] — compiler)
+[1, 2, 3]                 → List<T> instance (fixed array if the expected type is [T; N] - compiler)
 {"a": 1, "b": 2}          → Dict<K, V>
 {1, 2, 3}                 → Set<T>
 (1, "hi", true)            → Tuple (compiler)
@@ -147,7 +147,7 @@ Registering the same pattern twice with the same `priority` and the same return 
 ```
 { "a": 1 }              // Dict (matches the `:` pattern)
 { 1, 2 }                 // Set (values only)
-{ 1, }                   // Set (single element — trailing comma)
+{ 1, }                   // Set (single element - trailing comma)
 { 1 }                    // always a block
 { stmt; stmt; expr }    // block ([block expression](../003-expressions/309-block-expressions.md))
 ```

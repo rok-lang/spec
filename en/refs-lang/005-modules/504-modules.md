@@ -102,7 +102,7 @@ This pattern applies recursively to any depth, and each module independently cho
 
 ```rok
 // foo.rok (single-file module, no foo/)
-mod bar;            // ERROR — there is no foo/, so nowhere to map
+mod bar;            // ERROR - there is no foo/, so nowhere to map
 ```
 
 If file-mapped submodules become necessary, create a folder of the same name (`foo/`) and put the submodule files in it. Promoting a single-file module to a folder module costs only creating the folder and moving submodule files.
@@ -188,7 +188,7 @@ A module itself may be given a visibility.
 ```rok
 pub mod public_api;            // usable from external packages
 pub(pkg) mod internal;          // within the same package only
-mod _private;                   // module-private — only from the same parent module
+mod _private;                   // module-private - only from the same parent module
 ```
 
 The detailed meaning is defined in [visibility](506-visibility.md).
@@ -209,7 +209,7 @@ A `mod` declaration may appear only at module level, that is, in the body of ano
 
 ```rok
 fn f() {
-    mod inner { ... }          // ERROR — no module declarations inside a function
+    mod inner { ... }          // ERROR - no module declarations inside a function
 }
 ```
 
@@ -243,5 +243,5 @@ Declaring a module of the same name twice in the same parent module is an ERROR.
 
 ```rok
 mod foo;
-mod foo;                        // ERROR — duplicate
+mod foo;                        // ERROR - duplicate
 ```

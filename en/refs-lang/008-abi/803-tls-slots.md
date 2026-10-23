@@ -18,7 +18,7 @@ The TLS slots are one `thread_local` block, `rok_tls`, defined and exported by t
 | 5p       | `rok_tls_satb_cursor`       | ptr  | Position in the SATB buffer (during concurrent mark) |
 | 6p       | `rok_tls_satb_limit`        | ptr  | End of the SATB buffer                  |
 | 7p       | `rok_tls_task_worker`       | ptr  | This thread's executor worker (GC object, 0 if none) |
-| 8p       | `rok_tls_stack_guard`       | [usize; 2] | `[lo, hi)` — a fault in this range is a stack overflow of this thread (`[0, 0)` means unknown, [8.5.7](805-extern-symbols.md#stack-overflow)) |
+| 8p       | `rok_tls_stack_guard`       | [usize; 2] | `[lo, hi)` - a fault in this range is a stack overflow of this thread (`[0, 0)` means unknown, [8.5.7](805-extern-symbols.md#stack-overflow)) |
 | 10p      | `rok_tls_worker_id`         | u64  | Worker id                               |
 | 10p+8    | `rok_tls_yield_flag`        | u8   | Whether to `yield` at a safepoint       |
 | 10p+9    | `rok_tls_mutator_state`     | u8   | Mutator state                           |
@@ -157,7 +157,7 @@ rok_thread_shutdown():
 The block is a `thread_local` global defined and exported by the runtime. The compiler references it as an external declaration and loads slots at their offsets from the block's address. A rok function takes that address from its caller as a hidden last argument (8.6.6), so a call between rok functions reads no TLS. Code entered from outside rok takes the address itself, once (`llvm.threadlocal.address`) and passes it on: the C `main`, the C entry of an `extern "C"` definition, an `#[export_name]` rok function, the `any` dispatcher, a lazy `static`'s initializer, and the thunk a function value goes through (8.6.11).
 
 ```mlir
-; LLVM IR — defined by the runtime; compiler output has an external declaration
+; LLVM IR - defined by the runtime; compiler output has an external declaration
 @rok_tls = external thread_local global [N x i8]
 
 %t = call ptr @llvm.threadlocal.address(ptr @rok_tls)   ; once, where code enters rok

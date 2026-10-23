@@ -6,7 +6,7 @@
 ## 2.12.1. 금지 항목
 
 ```rok
-let a: Number = 32i32;                          // ERROR — Number 는 트레잇
+let a: Number = 32i32;                          // ERROR - Number 는 트레잇
 fn process(x: Display) -> str { ... }            // ERROR
 struct Holder { item: Iterator; }                // ERROR
 ```

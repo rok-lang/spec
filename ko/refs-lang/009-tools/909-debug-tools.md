@@ -37,7 +37,7 @@ target/debug/build/foo.expanded.rok
 ## 9.9.2. ROKHIR 검사
 
 ```
-rokc rokhir-text path/to/foo.rokhir      # 또는 libfoo.a — 옆의 foo.rokhir 를 읽음
+rokc rokhir-text path/to/foo.rokhir      # 또는 libfoo.a - 옆의 foo.rokhir 를 읽음
 ```
 
 위 명령은 미리 빌드한 라이브러리의 [ROKHIR](904-rokhir-bytecode.md) 을 사람이 읽을 수 있는 형식으로 출력합니다. 버전, producer, meta 다음에 interface 파일마다 `--- <경로>` 와 그 텍스트 (구체 함수 본문이 `;` 로 잘린 소스) 가 이어집니다.
@@ -148,7 +148,7 @@ span 은 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_p
 | `E102` | `module`      | 모듈 / 파일                  |
 | `E200` | `type`        | 타입                         |
 | `E201` | `pattern`     | 패턴 / 완전성                |
-| `E202` | `handoff`     | 넘긴 뒤의 사용 ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--스레드-경계-marker)) |
+| `E202` | `handoff`     | 넘긴 뒤의 사용 ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---스레드-경계-marker)) |
 | `E300` | `meta`        | 메타 블록 / 속성 / 키워드 매직 |
 | `E400` | `lowering`    | HIR / MIR lowering           |
 | `E401` | `codegen`     | 코드 생성                    |
@@ -258,7 +258,7 @@ Profile-guided optimization ([9.1.2](901-rokc-cli.md#rokc-build-aot-빌드)) 은
 
 ```
 rokc build --release -C profile-generate=prof    # 1. 계측 빌드
-./target/release/my_binary <대표 입력>            # 2. 실행 — prof/default_*.profraw 를 씀
+./target/release/my_binary <대표 입력>            # 2. 실행 - prof/default_*.profraw 를 씀
 rokc profdata merge -o app.profdata prof          # 3. 병합한 뒤
 rokc build --release -C profile-use=app.profdata  #    profile 로 다시 빌드
 ```
@@ -371,7 +371,7 @@ rokls
 미리 빌드한 라이브러리 패키지의 정보를 한 번에 확인할 수 있습니다.
 
 ```
-rokc inspect path/to/libfoo.a        # 또는 foo.rokhir — 짝 파일을 함께 읽음
+rokc inspect path/to/libfoo.a        # 또는 foo.rokhir - 짝 파일을 함께 읽음
 ```
 
 이 명령은 ROKHIR ([9.4](904-rokhir-bytecode.md)) 과 [archive](../000-meta/007-glossary.md#archive) 의 정보를 다음과 같이 표시합니다.

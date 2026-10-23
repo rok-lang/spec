@@ -60,7 +60,7 @@ let d = p.distance(other);
 
 ```rok
 p.distance(other);          // self
-p.replace_with(other);      // ref self — 호출자가 'ref' 명시하지 않음
+p.replace_with(other);      // ref self - 호출자가 'ref' 명시하지 않음
 ```
 
 이는 일반 함수 호출의 `ref` 명시 규칙과는 다른, 메서드 receiver 에 적용되는 특수 규칙입니다. 자세한 내용은 함수 사양에서 정의됩니다.
@@ -97,8 +97,8 @@ let m = arr.collect::<List<f64>>();
 `Type::item` ([타입 경로](../002-types/213-type-paths.md)) 은 타입에 부속된 항목의 접근을 의미합니다.
 
 ```
-Type::item       // 정적 메서드 / 연관 const / 연관 타입 — 인스턴스 없이
-obj.item         // 인스턴스에 부속된 멤버 / 메서드 — 인스턴스 필요
+Type::item       // 정적 메서드 / 연관 const / 연관 타입 - 인스턴스 없이
+obj.item         // 인스턴스에 부속된 멤버 / 메서드 - 인스턴스 필요
 ```
 
 이 두 형태는 완전히 다른 종류의 호출입니다. 토큰도 `::` 와 `.` 로 다르고, 의미 또한 서로 다릅니다.

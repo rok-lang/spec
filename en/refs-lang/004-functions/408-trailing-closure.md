@@ -61,7 +61,7 @@ Attaching a closure without call parentheses, as in `xs.map |x| { .. }`, is a tr
 
 ```rok
 let ys = xs.map |x| -> i64 { x as i64 * 2 };   // explicit return type
-let z = a | b;                                  // bitwise OR — not followed by the `|params| {` shape
+let z = a | b;                                  // bitwise OR - not followed by the `|params| {` shape
 if ok || retry { .. }                           // logical OR
 ```
 
@@ -70,8 +70,8 @@ if ok || retry { .. }                           // logical OR
 Trailing closures are permitted, not required.
 
 ```rok
-xs.map(|x| x * 2);                // explicit parentheses — OK
-xs.map |x| { x * 2 };              // trailing — OK
+xs.map(|x| x * 2);                // explicit parentheses - OK
+xs.map |x| { x * 2 };              // trailing - OK
 ```
 
 Teams and users may choose freely according to their style.
@@ -84,7 +84,7 @@ A trailing closure can fill only the last argument position. If the closure is a
 fn process(input: str, transform: fn(str) -> str, output: str) -> str { ... }
 
 process("in", |s| { s.to_upper() }, "out");           // explicit parentheses (middle argument)
-process("in", "out") |s| { s.to_upper() };            // ERROR — trailing only in the last position
+process("in", "out") |s| { s.to_upper() };            // ERROR - trailing only in the last position
 ```
 
 ## 4.8.4. Calls with zero arguments
@@ -120,7 +120,7 @@ Trailing closures introduce an ambiguity where some code could be read as either
 | `{ ... }` after a control keyword (`if`, `else`, `for`, `while`, `loop`, `match`) | control body                                                         |
 | `{ ... }` directly after a function call                                          | trailing closure (0-arg)                                             |
 | `\|params\| { ... }` directly after a function call                               | trailing closure (1+ arg)                                            |
-| `{ ... }` in an ordinary expression position such as `x = { ... };`               | block expression (evaluated immediately) — a 0-arg closure needs explicit `\|\| { ... }` |
+| `{ ... }` in an ordinary expression position such as `x = { ... };`               | block expression (evaluated immediately) - a 0-arg closure needs explicit `\|\| { ... }` |
 | `\|...\| { ... }` inside an expression                                            | ordinary closure expression                                          |
 
 In short: a `{ ... }` or `|...| { ... }` directly after a function call (`(args)`), with or without whitespace, is a trailing closure.

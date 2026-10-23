@@ -232,7 +232,7 @@ throw err;
 ; 같은 함수 안에 catch 가 있는 경우
 cf.br ^catch_dispatch(%err)
 
-; 없는 경우 — 함수의 에러 반환
+; 없는 경우 - 함수의 에러 반환
 %r0 = llvm.mlir.undef : !Throws_T_E
 %r1 = llvm.insertvalue %true, %r0[0] : !Throws_T_E
 %r2 = ; payload 에 %err 저장
@@ -295,7 +295,7 @@ cf.cond_br %overflow, ^slow, ^fast
   cf.br ^cont(%p_slow)
 
 ^cont(%p: !llvm.ptr):
-  ; %p 가 객체 헤더의 시작 — 헤더 채우고 필드 채우기
+  ; %p 가 객체 헤더의 시작 - 헤더 채우고 필드 채우기
   ; ...
 ```
 
@@ -337,7 +337,7 @@ llvm.store %2.0, %y_addr : f64
 이는 다음과 같은 MLIR 로 lower 됩니다.
 
 ```
-; 1. write barrier — 목적지 p 의 헤더만 검사 (store 앞이어도 됨)
+; 1. write barrier - 목적지 p 의 헤더만 검사 (store 앞이어도 됨)
 %hdr_flags = llvm.load %p[1] : i32
 %unlogged = llvm.and %hdr_flags, %UNLOGGED_BIT : i32
 %need_log = arith.cmpi "ne", %unlogged, %0 : i32
@@ -406,7 +406,7 @@ llvm.store %x, %s0 : !llvm.ptr, !llvm.ptr          ; 값이 아니라 주소
 llvm.store %y, %s1 : !llvm.ptr, !llvm.ptr
 llvm.store %frame, %head_ptr : !llvm.ptr, !llvm.ptr
 
-; 변수 대입 — frame 갱신 없음
+; 변수 대입 - frame 갱신 없음
 llvm.store %obj, %x : !llvm.ptr, !llvm.ptr
 
 ; 모든 return 직전 (에러 반환 포함): unlink

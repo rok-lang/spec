@@ -1,10 +1,10 @@
-# 1.9. `rok::bare::mlir` — direct access to MLIR dialects
+# 1.9. `rok::bare::mlir` - direct access to MLIR dialects
 
 The `rok::bare::mlir` module provides an escape hatch for calling dialect ops of the MLIR backend used by the rok compiler directly. It is the place for external library authors to express, within rok, kernels for acceleration domains such as tensors / automatic differentiation / SIMD / GPU / quantization.
 
 Ordinary rok code does not see this module. The traits and collections of [200-core/](../200-core/) are sufficient for rok's everyday abstractions; MLIR exposure is confined to library authors.
 
-## 1.9.1. Motivation — why MLIR is needed on the user surface
+## 1.9.1. Motivation - why MLIR is needed on the user surface
 
 Ordinary rok users need not know MLIR, since the standard library abstracts arithmetic, comparison, collections and concurrency sufficiently. The situation differs for library authors such as:
 
@@ -16,7 +16,7 @@ Ordinary rok users need not know MLIR, since the standard library abstracts arit
 
 These libraries cannot be built from the rok standard library alone because MLIR's multi-level abstraction is itself the source of performance. A single `linalg.generic` automatically unfolds into fusion of adjacent operations / elimination of temporary allocations / SIMD / GPU lowering; bypassing it leaves the performance gap with PyTorch / JAX / Mojo open.
 
-## 1.9.2. Surface — `__mlir_op` calls
+## 1.9.2. Surface - `__mlir_op` calls
 
 The basic form of an MLIR op call is:
 
@@ -78,7 +78,7 @@ Ops with region bodies, such as `scf.if`, `scf.for` and `linalg.generic`, receiv
 
 ```rok
 unsafe {
-    // scf.if — two regions, then / else
+    // scf.if - two regions, then / else
     let r: i32 = __mlir_op::<"scf.if", i32>(
         cond,
         regions = [
@@ -87,7 +87,7 @@ unsafe {
         ],
     );
 
-    // scf.for — lb / ub / step are index values
+    // scf.for - lb / ub / step are index values
     let lb = __mlir_op::<"arith.index_cast", __mlir_type<"index">>(0i64);
     let ub = __mlir_op::<"arith.index_cast", __mlir_type<"index">>(n);
     let step = __mlir_op::<"arith.index_cast", __mlir_type<"index">>(1i64);
@@ -161,11 +161,11 @@ Libraries for which these responsibilities are too burdensome should be written 
 ## 1.9.5. Relationship with ordinary user code
 
 ```rok
-// ordinary user — does not see MLIR
+// ordinary user - does not see MLIR
 let xs: List<f32> = [1.0, 2.0, 3.0];
 let sum = xs.iter().sum();
 
-// inside a library — uses rok::bare::mlir
+// inside a library - uses rok::bare::mlir
 mod tensor::ops {
     pub fn matmul<...>(a: Tensor<f32, (M, K)>, b: Tensor<f32, (K, N)>) -> Tensor<f32, (M, N)> {
         unsafe {
@@ -187,7 +187,7 @@ This is isomorphic to the pattern of encapsulating [1.7 FFI](107-ffi.md)'s `exte
 | Swift   | `Builtin.X` (inside the stdlib)    | Stdlib authors only                                  |
 | Julia   | `llvmcall` (available to users)    | Discouraged, external libraries only                 |
 | Rust    | LLVM intrinsics (not available to users) | nightly + intrinsics crate                     |
-| **rok** | **`rok::bare::mlir` (explicit unsafe)** | **Library authors only — ordinary users do not see it** |
+| **rok** | **`rok::bare::mlir` (explicit unsafe)** | **Library authors only - ordinary users do not see it** |
 
 rok's model is close to Swift and Julia. Unlike Mojo, it does not expose MLIR to ordinary users, and it enforces an explicit `unsafe` entry so that the code shows which territory the user is stepping into.
 

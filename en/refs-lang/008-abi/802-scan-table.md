@@ -183,7 +183,7 @@ A weak reference does not keep an object alive.
 - The mark phase does not follow a weak `ref`.
 - After sweep, if the object a weak `ref` pointed to was collected, the weak `ref` slot is cleared to 0.
 
-This mechanism is useful for caches, observer patterns and the like; its library interface is `Weak<T>` ([stdlib 1.6.9](../../refs-standard-libraries/100-bare/106-gc-pin.md#169-weakt--weak-references)).
+This mechanism is useful for caches, observer patterns and the like; its library interface is `Weak<T>` ([stdlib 1.6.9](../../refs-standard-libraries/100-bare/106-gc-pin.md#169-weakt---weak-references)).
 
 ## 8.2.9. INTERIOR_REF
 
@@ -217,7 +217,7 @@ The following three type ids are defined directly by the runtime; the compiler d
 | `2`     | word-traced buffer | every word of the payload is scanned as an ambiguous word (`AMBIGUOUS_WORD`) |
 | `3`     | weak cell (`Weak<T>`) | one `WEAK_REF` word (8.2.8); made by `rok_gc_weak_new` |
 
-Ids `1` and `2` are allocated with `rok_gc_alloc_slow` with type id `1` or `2` ([8.5.1](805-extern-symbols.md#851-gc-area)). The standard library's [`GcBuf<T>`](../../refs-standard-libraries/200-core/209-collections.md#2912-gcbuft--raw-gc-buffer) sits on top of this.
+Ids `1` and `2` are allocated with `rok_gc_alloc_slow` with type id `1` or `2` ([8.5.1](805-extern-symbols.md#851-gc-area)). The standard library's [`GcBuf<T>`](../../refs-standard-libraries/200-core/209-collections.md#2912-gcbuft---raw-gc-buffer) sits on top of this.
 
 ## 8.2.13. Registration time
 

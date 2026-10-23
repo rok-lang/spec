@@ -1,4 +1,4 @@
-# 9.10. `rok` — 패키지 / 빌드 front-end
+# 9.10. `rok` - 패키지 / 빌드 front-end
 
 `rok` 는 cargo 식 front-end 입니다. 매니페스트 `rok.rokon` 과 lockfile `rok.lock`, 의존성, 환경, toolchain 고정, 스크립트 의존성을 맡고, 컴파일은 컴파일러 `rokc` ([9.1](901-rokc-cli.md)) 를 불러 처리합니다. 런타임은 `rokr` (`librokr.a`) 입니다.
 
@@ -19,7 +19,7 @@
 | `fmt`, `clean`, `demangle`, `profdata`                            | 의존성 없이 `rokc` 에 위임              |
 | `jupyter`                                                         | 커널 실행 (`--connection-file`) 은 위임, `jupyter install [--env <name>]` 은 kernelspec 설치 ([9.8.3](908-jupyter-integration.md#983-kernelspec-설치)) |
 | `version`, `help`                                                 |                                         |
-| (없음)                                                            | `rok repl` 과 같음 — REPL 시작          |
+| (없음)                                                            | `rok repl` 과 같음 - REPL 시작          |
 
 위임하는 서브명령은 같은 이름의 `rokc` 서브명령을 실행합니다. `rok` 는 자기 전역 옵션 (`--env` / `--offline` / `--locked` / `--cwd`, `--` 앞 어디든) 만 소비하고, 나머지 인자는 그대로 넘기며 다음을 더합니다.
 
@@ -89,7 +89,7 @@ hello/
 Package {
     name: "geom",                    // 문자열, 선택
     version: "0.3.1",                // 문자열, 선택
-    toolchain: "0.4",                // 문자열, 선택 — toolchain 고정 (9.10.6)
+    toolchain: "0.4",                // 문자열, 선택 - toolchain 고정 (9.10.6)
     description: "2D geometry",      // 문자열, 선택
     license: "MIT OR Apache-2.0",    // 문자열, 선택 (SPDX 식)
     repository: "https://example.com/geom.git",   // 문자열, 선택
@@ -105,7 +105,7 @@ Package {
     },
     features: { "default": ["json"], "json": ["dep:json"], "tls": ["http/tls"], "full": ["json", "tls"] },
     native: { "zlib": "^1.3", "png": Dep::native(url: "vendor/png.rokon", sha256: "<64 hex>") },
-    lints_from: "..",                // 문자열, 선택 — ../rok.rokon 의 lints 에서 시작
+    lints_from: "..",                // 문자열, 선택 - ../rok.rokon 의 lints 에서 시작
     lints: { "dead_code": "allow", "nonstandard_style": "deny" },
 }
 ```
@@ -113,7 +113,7 @@ Package {
 - 값은 ROKON 의 리터럴 (문자열, `{ "k": v }` dict, 빈 dict `{}`) 과 `Dep::path("..")` / `Dep::git("url", rev | tag | branch: "..")` / `Dep::version("req", registry: "url")` 입니다. `Dep::git` 의 `rev` / `tag` / `branch` 는 많아야 하나이고, `Dep::version` 의 `registry` 는 선택입니다. 의존성 값이 문자열 하나면 `Dep::version` 의 줄임입니다.
 - `Dep::path` / `Dep::git` / `Dep::version` 은 `optional: true`, `features: ["<f>", ..]`, `default_features: false` 도 받습니다 (9.10.4c). optional 인 dev 의존은 에러입니다.
 - `Dep::registry` 는 `rok.lock` 전용이며 `rok.rokon` 에 쓰면 에러입니다.
-- 패키지 이름 (`deps` 의 키, `name`) 은 `[a-z0-9_-]+` 의 소문자 ASCII 이며 글자로 시작합니다 (숫자, `-`, `_` 로 시작하면 에러). 이름 `rok` 은 표준 라이브러리용으로 예약되어 있습니다: 패키지, 의존 패키지, native 패키지, registry 이름이 `rok` 이면 에러이며 (`` `rok` is reserved for the standard library; name the package something else, e.g. `rok_util` ``), 그것으로 `rok new` / `rok init` / `rok add` 해도 마찬가지입니다. 키는 문자열입니다 (`"rok-syntax": Dep::version("^0.1")`).
+- 패키지 이름 (`deps` 의 키, `name`) 은 `[a-z0-9_-]+` 의 소문자 ASCII 이며 글자로 시작합니다 (숫자, `-`, `_` 로 시작하면 에러). 이름 `rok` 은 표준 라이브러리용으로 예약되어 있습니다: 패키지, 의존 패키지, native 패키지, registry 이름이 `rok` 이면 에러이며 (`` `rok` is reserved for the standard library; name the package something else, e.g. `rok_util` ``), 그것으로 `rok new` / `rok init` / `rok add` 해도 마찬가지입니다. 코드가 패키지를 이름으로 부를 수 있어야 하므로, 코드 이름 (아래) 은 키워드 (1.5: `fn`, `match`, `self`, ..) 나 경로 시작점 (5.5.7: `pkg`, `sup`) 일 수 없습니다. 실행 파일의 `use pkg::add;` 는 언제나 자기 루트를 가리킵니다 (`` `pkg` already names a package's own root (`pkg::`), so code can't name a package called that; name the package something else, e.g. `pkg_util` ``). 키는 문자열입니다 (`"rok-syntax": Dep::version("^0.1")`).
 - 코드에서는 `-` 를 `_` 로 바꾼 이름이 그 패키지를 가리키는 최상위 경로입니다 (`rok-syntax` → `use rok_syntax::..`, `--extern rok_syntax=..`).
 - 레지스트리와 한 의존 그래프 안에서 이름은 `-` 와 `_` 를 같게, 대소문자를 구분하지 않고 비교합니다. 그래서 `rok-syntax` 와 `rok_syntax` 는 함께 있을 수 없습니다.
 - 의존 패키지는 `src/lib.rok` 를 가져야 하며, 그 패키지에 `src/main.rok` 도 있든 없든 그 라이브러리가 의존하는 쪽이 얻는 것입니다. `src/main.rok` 만 있는 의존 패키지는 그것이 `rok install` 용 프로그램이라고 알리는 에러입니다. 전이 의존은 의존 패키지의 `deps` 입니다 (`dev_deps` 는 전이되지 않음).
@@ -272,8 +272,8 @@ rok publish [--index <checkout>] [--commit]
 rok yank [--native] --vers <version> [--undo] [--index <checkout>] [name]   # --native 면 name 필수
 ```
 
-- `search` 는 index 에서 이름으로 찾아, 찾은 것마다 한 줄 `<name> <newest version> — <description>` 을 출력합니다 (항목에 description 이 없으면 그 부분은 생략). index 조회는 `-` / `_` 어느 쪽 철자든 받습니다.
-- `publish` 는 기본이 dry run 입니다. 깨끗한 work tree, 저장소 루트의 패키지, 그리고 `src/lib.rok`, `src/main.rok`, 또는 둘 다를 요구합니다. `src/main.rok` 만 있는 stone 은 프로그램입니다: `rok install` 이 그것을 빌드하며, 의존 패키지가 될 수 없습니다. path / git 의 normal 의존은 거부하고, path / git 의 dev 의존은 뺍니다. 같은 버전과, `-` / `_` 와 대소문자를 같게 본 이름의 충돌을 검사합니다. 다른 철자가 이미 가진 이름은 거부합니다. `--index` 없는 dry run 은 항목만 출력하고, `--index` 가 있으면 그 checkout 에 대해서도 검사합니다.
+- `search` 는 index 에서 이름으로 찾아, 찾은 것마다 한 줄 `<name> <newest version> - <description>` 을 출력합니다 (항목에 description 이 없으면 그 부분은 생략). index 조회는 `-` / `_` 어느 쪽 철자든 받습니다.
+- `publish` 는 기본이 dry run 입니다. 깨끗한 work tree, 저장소 루트의 패키지, 그리고 `src/lib.rok`, `src/main.rok`, 또는 둘 다를 요구합니다. `src/main.rok` 만 있는 stone 은 프로그램입니다: `rok install` 이 그것을 빌드하며, 의존 패키지가 될 수 없습니다. path / git 의 normal 의존은 거부하고, path / git 의 dev 의존은 뺍니다. 같은 버전과, `-` / `_` 와 대소문자를 같게 본 이름의 충돌을 검사합니다. 다른 철자가 이미 가진 이름은 거부합니다. `--index` 없는 dry run 은 항목만 출력하고, `--index` 가 있으면 그 checkout 에 대해서도 검사합니다. 항목의 source 는 설정된 그대로의 (`insteadOf` 재작성 전) git remote `origin` url 이며, `https://` 여야 합니다. `http://127.0.0.1` 과 `http://localhost` 만 예외입니다.
 - `--commit` 이면 `publish` 는 항목을 더합니다: `--index` 가 있으면 그 checkout 에 "Publish <name> <vers>" 커밋으로 (push 하지 않음), 없으면 설정된 index ("Which index") 의 registry API 로 더하며, API 가 그것을 index 에 넣습니다. 클라이언트는 index 저장소에 직접 쓰지 않습니다.
 - `yank` 는 그 버전의 `yanked` 를 켭니다 (`--undo` 면 끕니다): `--index` 가 있으면 그 checkout 의 커밋으로, 없으면 registry API 로.
 - registry API 는 index 의 `config.rokon` 의 `api` 에 있습니다. 요청은 `Authorization: Bearer <token>` 을 실으며, body 는 한 줄 ROKON (`application/rokon; charset=utf-8`) 입니다:

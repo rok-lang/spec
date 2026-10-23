@@ -40,7 +40,7 @@ The following escape sequences are recognized.
 | `\r`       | Carriage return (`U+000D`)                                           |
 | `\t`       | Tab (`U+0009`)                                                       |
 | `\0`       | NULL (`U+0000`)                                                      |
-| `\xHH`     | One byte (two hex digits, only `U+0000`-`U+007F` allowed — ASCII range) |
+| `\xHH`     | One byte (two hex digits, only `U+0000`-`U+007F` allowed - ASCII range) |
 | `\u{H...}` | Any Unicode code point (1–6 hex digits, at most `U+10FFFF`)          |
 
 Hex digits inside `\u{...}` may be separated with `_` (e.g. `\u{1_F600}`). Any backslash sequence other than those listed above is a lexical error; an unknown escape is never silently left as its original characters.
@@ -103,8 +103,8 @@ The inside of a hole `{ .. }` consists of ordinary tokens read by the ordinary l
 
 ```rok
 f"name = {user.name ?? "anon"}"     // OK
-f"name = {user.name ?? \"anon\"}"   // ERROR — \ inside a hole
-f"{\"ab\".replace("a", "b")}"  // ERROR — write f"{"ab".replace("a", "b")}"
+f"name = {user.name ?? \"anon\"}"   // ERROR - \ inside a hole
+f"{\"ab\".replace("a", "b")}"  // ERROR - write f"{"ab".replace("a", "b")}"
 ```
 
 ### Format specifiers
@@ -169,7 +169,7 @@ The lexer splits a format string into the following tokens.
 FStrStart                     f" or f"""
   FStrText    "x = "          ({{ / }} folded into braces)
   HoleStart
-    (ordinary tokens — expression)
+    (ordinary tokens - expression)
     HoleSpec                  (optional) :
       SpecText / nested hole
   HoleEnd

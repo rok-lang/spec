@@ -26,7 +26,7 @@ An I/O wait proceeds as follows:
 
 ```
 1. The task tries read on a non-blocking socket → WouldBlock.
-2. The task does await task::readable(fd) — (re)registers fd with the reactor and parks.
+2. The task does await task::readable(fd) - (re)registers fd with the reactor and parks.
 3. The worker runs another task.
 4. When the reactor receives a readiness edge for fd, it unparks the task parked on that fd.
 5. Some worker takes that task and retries the read.
@@ -35,7 +35,7 @@ An I/O wait proceeds as follows:
 This flow combines with `await` in `async` `fn` (see [Async](../004-functions/412-async.md)). Registration is edge-triggered, so it is re-armed for every wait. The `task::readable(fd)` / `task::writable(fd)` futures check the fd once more after parking so as not to miss an edge that passed in the meantime. A woken task may find the fd not yet ready, so the caller retries the operation.
 
 ```rok
-fn readable(fd: i32) -> IoReady;     // rok::core::task — Future<Output = ()>
+fn readable(fd: i32) -> IoReady;     // rok::core::task - Future<Output = ()>
 fn writable(fd: i32) -> IoReady;
 ```
 
@@ -91,7 +91,7 @@ The reactor thread's `loop` is:
 
 ```rok
 loop {
-    let events = io_driver.poll();                     // blocks — a native section for the GC
+    let events = io_driver.poll();                     // blocks - a native section for the GC
     for event in events {
         task::unpark(parking_key(event.fd, event.direction));
     }
@@ -115,7 +115,7 @@ When enabled (`ROK_DYNAMIC_WORKERS=1`), an excessively idle worker parks and pus
 
 ## 7.7.9. Cancellation
 
-`Task::cancel` **requests** cancellation ([stdlib 2.18.4](../../refs-standard-libraries/200-core/218-task.md#2184-cooperative-cancellation--taskcancel)). The runtime sets a flag and wakes the task.
+`Task::cancel` **requests** cancellation ([stdlib 2.18.4](../../refs-standard-libraries/200-core/218-task.md#2184-cooperative-cancellation---taskcancel)). The runtime sets a flag and wakes the task.
 
 - Every `await` is a cancellation point. `await` checks the flag on entry and just before suspending.
 - The check after the awaited future returns `Ready` is not "is the flag set" but "**did the awaited coroutine leave because of cancellation**". So a value the future handed over (a received message, an acquired lock guard) is preserved, and the task leaves at the next `await`.
@@ -126,7 +126,7 @@ When enabled (`ROK_DYNAMIC_WORKERS=1`), an excessively idle worker parks and pus
 - A task waiting in socket I/O, `readable` / `writable`, `sleep` / `timeout`, `lock_async`, or `recv_async` / `send_async` is woken when cancelled and leaves at the next `await`.
 - When a task finishes, all its wake registrations (I/O readiness waits, timers, wakers in the parking table) are released. The number of registrations in the running pool can be inspected with the diagnostic `task::registrations()`; the exact meaning of that value is implementation-defined.
 
-After `task::timeout` expires or `task::race` decides a winner, the losing tasks keep running. To stop them, call `cancel`. `task::select` does not spawn, so it cancels the losing futures itself ([stdlib 2.18.1](../../refs-standard-libraries/200-core/218-task.md#select--the-first-future-to-finish)).
+After `task::timeout` expires or `task::race` decides a winner, the losing tasks keep running. To stop them, call `cancel`. `task::select` does not spawn, so it cancels the losing futures itself ([stdlib 2.18.1](../../refs-standard-libraries/200-core/218-task.md#select---the-first-future-to-finish)).
 
 ## 7.7.10. Comparison with the reactor pattern
 

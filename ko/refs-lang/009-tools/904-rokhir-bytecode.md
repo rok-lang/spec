@@ -88,7 +88,7 @@ body 는 패키지의 **모든 소스 파일** 을 (경로, 텍스트) 쌍으로
 
 소스 파일 뒤에는 패키지의 `ffi::wit` 항목이 읽는 `.wit` 파일이 ([stdlib 1.8](../../refs-standard-libraries/100-bare/108-wit.md)) 그 `deps/` 와 함께 통째로 옵니다. 경로는 source dir 기준이며 `..` 로 그 밖으로 나갈 수 있습니다. 다운스트림은 WIT 를 디스크가 아니라 body 에서 읽습니다.
 
-body 뒤에는 패키지 함수들의 hand-off summary ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--스레드-경계-marker)) 가 옵니다. summary 는 tab 으로 구분한 필드의 줄들입니다:
+body 뒤에는 패키지 함수들의 hand-off summary ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---스레드-경계-marker)) 가 옵니다. summary 는 tab 으로 구분한 필드의 줄들입니다:
 
 - `g <root> <mutex|rwlock|channel> <line> <function> <file>`: `<root>` 를 넘김;
 - `s <root> <root>`: 하나의 객체;

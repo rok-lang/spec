@@ -12,7 +12,7 @@ The rok specification consists of ten chapters, numbered 0 through 9. The chapte
 
 | # | Chapter                                                       | Scope                                                                       |
 |---|---------------------------------------------------------------|-----------------------------------------------------------------------------|
-| 0 | [Meta — language / build model](000-meta/README.md)           | Execution modes, pipeline, standard library tiers, platforms, notation, glossary |
+| 0 | [Meta - language / build model](000-meta/README.md)           | Execution modes, pipeline, standard library tiers, platforms, notation, glossary |
 | 1 | [Lexical structure](001-lexical/README.md)                    | Identifiers, keywords, tokens, literals, strings, punctuation               |
 | 2 | [Type system](002-types/README.md)                            | Primitives, sum / composite, generics, niche, conversion, paths             |
 | 3 | [Expressions](003-expressions/README.md)                      | Operators, pattern matching, control flow, optional chaining, throw         |

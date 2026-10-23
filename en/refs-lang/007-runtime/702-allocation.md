@@ -58,7 +58,7 @@ The object header is initialized in the slow path; on the fast path too, the com
 ```
 *(ptr + 0) = type_id
 *(ptr + 4) = 0u32          // initial gc_flags
-*(ptr + 8) = size          // gc_word — total object size (8.1.4)
+*(ptr + 8) = size          // gc_word - total object size (8.1.4)
 ```
 
 The payload is already zero, and user code fills it with field values. The collector may keep its own bookkeeping before the header or in a side table.

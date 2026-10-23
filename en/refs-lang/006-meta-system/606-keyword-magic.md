@@ -24,7 +24,7 @@ fn with_handler(...) { ... }
 
 The basic form is `#[keyword("name")]`, taking the keyword name (a string literal in identifier shape) as its argument. The handler is a **free function**; it cannot be attached to methods or trait items.
 
-`#[keyword("name")]` on a `struct` registers a **type keyword**: that name designates the struct in type position (`int` → `rok::core::num::bigint::Int`, `float` → `rok::core::num::bigfloat::Float`, [stdlib 2.1.2](../../refs-standard-libraries/200-core/201-numbers.md#212-int--arbitrary-precision-integer)). Only the standard library may register type keywords. Attaching it to an item that is neither a function nor a struct is an error.
+`#[keyword("name")]` on a `struct` registers a **type keyword**: that name designates the struct in type position (`int` → `rok::core::num::bigint::Int`, `float` → `rok::core::num::bigfloat::Float`, [stdlib 2.1.2](../../refs-standard-libraries/200-core/201-numbers.md#212-int---arbitrary-precision-integer)). Only the standard library may register type keywords. Attaching it to an item that is neither a function nor a struct is an error.
 
 ## 6.6.3. Effect of registration
 
@@ -38,7 +38,7 @@ When `#[keyword("name")]` is registered somewhere, the following takes effect.
 fn with_handler(m: Mutex<i32>, body: fn()) { ... }
 
 with(m) { critical(); }
-// ⇒ pkg::with_handler(m) { critical(); }     — handler + trailing closure
+// ⇒ pkg::with_handler(m) { critical(); }     - handler + trailing closure
 ```
 
 Before registration `name` could be used as an ordinary identifier; after registration it is a keyword token. Using `name` as the name of a declaration or member is therefore a compile error. Those positions are `let name`, `fn name`, `struct name`, `enum name`, `trait name`, `mod name`, `for name in`, `.name`, `::name`, `name:` (field / argument name), and `name::`. The same rule applies inside `{..}` of f-strings.
@@ -46,7 +46,7 @@ Before registration `name` could be used as an ordinary identifier; after regist
 ## 6.6.4. Conflict checking
 
 ```rok
-#[keyword("if")]                  // ERROR — 'if' is a reserved keyword
+#[keyword("if")]                  // ERROR - 'if' is a reserved keyword
 fn ... { ... }
 ```
 
@@ -69,7 +69,7 @@ This locality reduces conflicts between libraries and lets users decide consciou
 
 `#[keyword]` is used rarely, mainly in these cases:
 
-- Domain-specific languages (DSLs): when it is natural for domain words — tabular data, grids, circuits, etc. — to behave like keywords in identifier positions.
+- Domain-specific languages (DSLs): when it is natural for domain words - tabular data, grids, circuits, etc. - to behave like keywords in identifier positions.
 - New syntax in block or body form that is hard to express with operator magic.
 
 In most cases, a combination of a function and a trailing closure suffices to build a keyword-like pattern ([trailing closures](../004-functions/408-trailing-closure.md)). Where that form is possible, prefer it.
@@ -105,7 +105,7 @@ The visibility ([visibility](../005-modules/506-visibility.md)) of the item carr
 pub(pkg) fn keyword_handler(...) { ... }
 
 #[keyword("with")]
-fn another_handler(...) { ... }     // keyword registration — applies to the whole package
+fn another_handler(...) { ... }     // keyword registration - applies to the whole package
 ```
 
 Whether the handler can be called from outside is determined by visibility, but the keyword registration itself affects the whole compilation unit.

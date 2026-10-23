@@ -7,7 +7,7 @@ A new variable is declared with the `let` keyword ([keywords](../001-lexical/105
 ```
 let_stmt    ::= "let" let_lhs (":" type_expr)? "=" expr ";"
 let_lhs     ::= identifier
-              | irrefutable_pattern    // tuple / struct destructure — see 5.1.11
+              | irrefutable_pattern    // tuple / struct destructure - see 5.1.11
 ```
 
 The most common form is a single identifier (`let x = ...`). An irrefutable pattern (5.1.11) on the left-hand side makes it a [destructuring assignment](../003-expressions/315-destructuring.md). The `let-else` form ([let-else](../003-expressions/316-let-else.md)) is a separate syntax.
@@ -15,8 +15,8 @@ The most common form is a single identifier (`let x = ...`). An irrefutable patt
 ```rok
 let x = 42i32;
 let y: i32 = 10i32;
-let z;                            // ERROR — no initializer
-let z: i32;                        // ERROR — no initializer
+let z;                            // ERROR - no initializer
+let z: i32;                        // ERROR - no initializer
 ```
 
 The basic form is `let`, a name, an optional `: type`, then `=` and an initializer. The initializer is mandatory; uninitialized variables do not exist. With a type annotation the variable is a static slot of that type; without one it is a static slot of the type inferred from the initializer (5.1.7). An [`any` slot](../002-types/202-any-slot.md) arises only when `: any` is written explicitly.
@@ -34,8 +34,8 @@ To assign a new value to an already declared variable, omit `let`.
 
 ```rok
 let counter: i32 = 0i32;
-counter = counter + 1i32;         // OK — reassignment
-counter = counter + 1i32;         // OK — reassignment again
+counter = counter + 1i32;         // OK - reassignment
+counter = counter + 1i32;         // OK - reassignment again
 ```
 
 Assigning without `let` to a name that has never been declared is a compile error.
@@ -63,7 +63,7 @@ Declaring the same name again in the same scope is a compile error.
 
 ```rok
 let x = 1;
-let x: i32 = 5i32;                  // ERROR — x already exists in this scope
+let x: i32 = 5i32;                  // ERROR - x already exists in this scope
 ```
 
 A variable's slot type is fixed at declaration and does not change within the same scope.
@@ -92,7 +92,7 @@ When a variable of the same name is declared anew in an inner block, it is a sep
 ```rok
 let a = 1;
 {
-    let a: i32 = 42i32;            // block-local a — a different slot from the outer a
+    let a: i32 = 42i32;            // block-local a - a different slot from the outer a
     a = 10i32;                     // reassigns the inner a (outer a unaffected)
 }
 // here a = 1 (outer a unchanged)
@@ -122,25 +122,25 @@ With a type annotation the variable is a static slot of that type; without one i
 ```rok
 let n = 1i32;
 n = 2i32;                          // OK
-n = "hi";                          // ERROR — n is i32
+n = "hi";                          // ERROR - n is i32
 ```
 
 If the initializer does not fully determine the type, inference continues from later uses within the variable's scope (uses that pass the value to a position whose type is determined) ([2.10.2](../002-types/210-generics.md#type-argument-inference)). If the type still cannot be determined, it is a compile error, and the type must be annotated.
 
 ```rok
-let x = none;                      // ERROR — type cannot be determined
+let x = none;                      // ERROR - type cannot be determined
 let x: Data | none = none;         // OK
 
-let xs = [];                       // ERROR if there are no later uses — element type cannot be determined
+let xs = [];                       // ERROR if there are no later uses - element type cannot be determined
 let xs: List<i32> = [];            // OK
 
-let y = return;                    // ERROR — initializer only diverges
+let y = return;                    // ERROR - initializer only diverges
 ```
 
 No type is inferred from an `if` / `match` expression whose branches have different types. If a sum type is needed, annotate the slot.
 
 ```rok
-let e = if cond { 1i32 } else { "hi" };          // ERROR — branch type mismatch
+let e = if cond { 1i32 } else { "hi" };          // ERROR - branch type mismatch
 let e: i32 | str = if cond { 1i32 } else { "hi" };   // OK
 ```
 
@@ -155,8 +155,8 @@ let a = 1, b = 2;                  // not adopted
 The C-style form that declares several variables at once with commas is not provided. Write one per line, or use tuple destructuring from [destructuring assignment](../003-expressions/315-destructuring.md).
 
 ```rok
-let (a, b) = (1, 2);               // destructuring assignment — OK
-let a = 1; let b = 2;              // two statements — OK
+let (a, b) = (1, 2);               // destructuring assignment - OK
+let a = 1; let b = 2;              // two statements - OK
 ```
 
 ## 5.1.9. Where `let` may appear

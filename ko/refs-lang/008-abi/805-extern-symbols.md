@@ -14,7 +14,7 @@ rok 쪽 선언은 런타임 ABI `extern "rok"` ([5.9.2](../005-modules/509-exter
 | 분류                  | 의미                                                                         |
 |-----------------------|------------------------------------------------------------------------------|
 | `thread-safe`         | 다중 thread 가 동시에 호출해도 안전 (런타임이 내부 동기화)                   |
-| `caller-thread-only`  | 호출자 thread 의 컨텍스트에 묶임 — 다른 thread 가 그 호출자를 대신할 수 없음 |
+| `caller-thread-only`  | 호출자 thread 의 컨텍스트에 묶임 - 다른 thread 가 그 호출자를 대신할 수 없음 |
 | `process-init`        | 프로세스 시작 시점, mt 진입 전 단 한 번                                      |
 | `process-shutdown`    | 프로세스 종료 시점, mt 종료 후 단 한 번                                      |
 | `per-thread-init`     | 각 worker thread 의 시작 시점에 그 thread 가 자기 자신에 대해 한 번          |
@@ -22,7 +22,7 @@ rok 쪽 선언은 런타임 ABI `extern "rok"` ([5.9.2](../005-modules/509-exter
 
 `caller-thread-only` 는 함수의 효과가 호출자의 TLS 슬롯이나 stack frame 에 결합되어 있어 다른 thread 에서 그 호출자를 대신할 수 없다는 뜻입니다. 함수 자체가 reentrant 하지 않다는 의미는 아니며, 다중 thread 가 각자 자기 호출자에 대해 동시에 호출하는 것은 허용됩니다.
 
-## 8.5.0a. `RokFn` — 함수 값의 C ABI 형태
+## 8.5.0a. `RokFn` - 함수 값의 C ABI 형태
 
 rok 함수 값 `{code, env}` ([4.4](../004-functions/404-function-type.md#함수-값의-표현)) 를 런타임 심볼에 넘길 때의 C 표현입니다.
 
@@ -357,7 +357,7 @@ extern "rok" {
 ```
 extern "rok" {
     fn rok_thread_detach(handle: usize) -> i32;   // 끝나면 OS 자원 반환, 더 이상 join 불가. 0 이면 성공
-    fn rok_cpu_count() -> usize;                  // 온라인 CPU 수 (최소 1) — par 풀의 크기
+    fn rok_cpu_count() -> usize;                  // 온라인 CPU 수 (최소 1) - par 풀의 크기
 }
 ```
 
@@ -384,7 +384,7 @@ extern "rok" {
 
 컴파일러가 만든 시작 코드가 GC 참조를 담는 모든 `static` 에 대해 호출합니다.
 
-### `rok_os_*` — OS helper (내부, 변경 가능)
+### `rok_os_*` - OS helper (내부, 변경 가능)
 
 표준 라이브러리 `rok::std` (fs, io, env, process) 를 뒷받침하는 내부 심볼입니다. ABI 안정 대상이 아니며 바뀔 수 있으므로 사용자 코드는 직접 부르지 않습니다.
 
@@ -400,7 +400,7 @@ rok_os_spawn     rok_os_waitpid   rok_os_kill      rok_os_getpid    rok_os_getpp
 rok_os_abort
 ```
 
-### `rok_deque_*` — work-stealing deque
+### `rok_deque_*` - work-stealing deque
 
 task 스케줄러 ([7.6.2](../007-runtime/706-scheduler.md#762-work-stealing-구조)) 의 lock-free Chase-Lev deque 입니다. deque 와 그 ring 은 GC 객체이며 GC 가 추적합니다. 그래서 deque 안에만 있는 원소도 살아 있습니다. **Thread-safety:** `push` / `pop` 은 소유 thread 만, `steal` 과 `len` 은 어느 thread 든.
 
@@ -436,7 +436,7 @@ extern "rok" {
 - `waker`: 원소 하나인 `GcBuf<Waker>` 입니다. 등록은 edge-triggered 이고 **한 번만** 깨웁니다 (가짜 깨움 가능). 이미 준비되어 있거나 감시할 수 없는 fd 면 곧바로 깨웁니다.
 - `deadline`: `rok_time_now_ns` 시계 기준의 절대 시각 (ns) 입니다. 그 시각에 닿으면 waker 를 한 번 깨웁니다.
 
-### `rok_io_*` — reactor (내부, 변경 가능)
+### `rok_io_*` - reactor (내부, 변경 가능)
 
 [I/O 드라이버](../007-runtime/707-io-and-timer.md) 의 reactor 를 이루는 내부 심볼입니다. ABI 안정 대상이 아니며 바뀔 수 있습니다. **Thread-safety: `thread-safe`**.
 
@@ -450,7 +450,7 @@ extern "rok" {
 
 `rok_io_poll` 은 사건을 `GcBuf<i64>` 인 `out` 에 `fd * 2 + 방향` (읽기 0, 쓰기 1) 으로 최대 `max` 개 씁니다.
 
-### `rok_net_*` — 소켓 helper (내부, 변경 가능)
+### `rok_net_*` - 소켓 helper (내부, 변경 가능)
 
 표준 라이브러리 `rok::std::net` ([stdlib 3.2](../../refs-standard-libraries/300-std/302-net.md)) 을 뒷받침하는 내부 심볼입니다. ABI 안정 대상이 아니며 바뀔 수 있으므로 사용자 코드는 직접 부르지 않습니다. 소켓은 늘 non-blocking 으로 만들어지며, 실패는 `-errno` 로 돌려줍니다.
 

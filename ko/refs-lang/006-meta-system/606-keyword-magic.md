@@ -24,7 +24,7 @@ fn with_handler(...) { ... }
 
 기본 형태는 `#[keyword("name")]` 이며, 인자로 키워드 이름 (문자열 리터럴, 식별자 모양) 을 받습니다. 핸들러는 **자유 함수** 입니다. 메서드나 트레잇 항목에는 부착할 수 없습니다.
 
-`struct` 에 붙인 `#[keyword("name")]` 는 **타입 키워드** 를 등록합니다. 그 이름이 타입 자리에서 그 struct 를 가리킵니다 (`int` → `rok::core::num::bigint::Int`, `float` → `rok::core::num::bigfloat::Float`, [stdlib 2.1.2](../../refs-standard-libraries/200-core/201-numbers.md#212-int--무한-정밀도-정수)). 타입 키워드는 표준 라이브러리만 등록할 수 있습니다. 함수와 struct 가 아닌 항목에 부착하면 에러입니다.
+`struct` 에 붙인 `#[keyword("name")]` 는 **타입 키워드** 를 등록합니다. 그 이름이 타입 자리에서 그 struct 를 가리킵니다 (`int` → `rok::core::num::bigint::Int`, `float` → `rok::core::num::bigfloat::Float`, [stdlib 2.1.2](../../refs-standard-libraries/200-core/201-numbers.md#212-int---무한-정밀도-정수)). 타입 키워드는 표준 라이브러리만 등록할 수 있습니다. 함수와 struct 가 아닌 항목에 부착하면 에러입니다.
 
 ## 6.6.3. 등록의 효과
 
@@ -38,7 +38,7 @@ fn with_handler(...) { ... }
 fn with_handler(m: Mutex<i32>, body: fn()) { ... }
 
 with(m) { critical(); }
-// ⇒ pkg::with_handler(m) { critical(); }     — 핸들러 + 트레일링 클로저
+// ⇒ pkg::with_handler(m) { critical(); }     - 핸들러 + 트레일링 클로저
 ```
 
 이전에는 `name` 을 일반 식별자로 쓸 수 있었지만, 등록 후에는 키워드 토큰이 되어 버립니다. 따라서 `name` 을 선언이나 멤버의 이름으로 쓰면 컴파일 에러입니다. `let name`, `fn name`, `struct name`, `enum name`, `trait name`, `mod name`, `for name in`, `.name`, `::name`, `name:` (필드 / 인자 이름), `name::` 이 그 자리입니다. f-string 의 `{..}` 안에서도 같은 규칙으로 바뀝니다.
@@ -46,7 +46,7 @@ with(m) { critical(); }
 ## 6.6.4. 충돌 검사
 
 ```rok
-#[keyword("if")]                  // ERROR — 'if' 는 예약 키워드
+#[keyword("if")]                  // ERROR - 'if' 는 예약 키워드
 fn ... { ... }
 ```
 
@@ -105,7 +105,7 @@ package_b 도 #[keyword("with")] 등록    → 두 패키지를 한 빌드에 �
 pub(pkg) fn keyword_handler(...) { ... }
 
 #[keyword("with")]
-fn another_handler(...) { ... }     // 키워드 등록 — 패키지 전체에 적용
+fn another_handler(...) { ... }     // 키워드 등록 - 패키지 전체에 적용
 ```
 
 핸들러를 외부에서 호출할 수 있는지는 가시성으로 결정되지만, 키워드 등록 자체는 컴파일 단위 전체에 영향을 미칩니다.

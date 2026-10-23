@@ -1,23 +1,23 @@
-# 2.6. broadcast — element-wise 연산자
+# 2.6. broadcast - element-wise 연산자
 
 `rok::core::ops::broadcast` 모듈은 Julia 식 dot 연산자에 대한 트레잇 권위를 제공합니다. dot 연산자(`.+` / `.*` / `.==` / `f.(x)`) 는 element-wise 의미를 문법 자체에 시각적으로 분리하여 드러내므로, 사용자 정의 `*`(예: matrix multiply 등) 과 혼동될 여지를 미리 차단합니다.
 
 이 장에서는 19 개의 broadcast 트레잇과 함수 broadcast desugar 규칙을 함께 정의합니다.
 
-## 2.6.1. 동기 — 왜 별도 dot 연산자인가요
+## 2.6.1. 동기 - 왜 별도 dot 연산자인가요
 
 NumPy 나 MATLAB 에서 `*` 가 배열에서는 element-wise 로, 행렬에서는 곱셈으로 의미가 바뀌는 **silent ambiguity** 는 흔히 버그의 원인이 되어 왔습니다(PEP 465 의 `@` 도입 동기 역시 같은 맥락입니다).
 
 이에 비해 rok 의 정책은 다음과 같이 명확합니다.
 
 ```rok
-m * n       // 사용자 정의 Mul — matrix multiplication, dot product, etc.
-m .* n      // element-wise (Hadamard product) — 항상 broadcast
+m * n       // 사용자 정의 Mul - matrix multiplication, dot product, etc.
+m .* n      // element-wise (Hadamard product) - 항상 broadcast
 ```
 
 dot 접두사(`.`) 가 시각적인 신호 역할을 하여 element-wise 의도를 명시하며, 컴파일러가 이를 강제합니다. 즉 List/Vec/Matrix 등 어떤 컨테이너에서든 `.+` 는 일관되게 `DotAdd::dot_add` 로 dispatch 됩니다.
 
-## 2.6.2. 19 트레잇 — operator 매핑
+## 2.6.2. 19 트레잇 - operator 매핑
 
 전체 트레잇은 산술(6) + 비교(6) + 논리(2) + 비트(3) + shift(2) = **19**개로 구성됩니다.
 
@@ -74,7 +74,7 @@ dot 접두사(`.`) 가 시각적인 신호 역할을 하여 element-wise 의도�
 
 precedence 와 associativity 는 일반 트레잇([2.3 ops](203-ops.md), [2.5 cmp](205-cmp.md)) 과 동형으로 맞추어 두었습니다.
 
-## 2.6.3. 트레잇 시그니처 — 통일 형태
+## 2.6.3. 트레잇 시그니처 - 통일 형태
 
 모든 dot 트레잇은 다음과 같이 통일된 형태를 따릅니다.
 
@@ -112,7 +112,7 @@ trait DotLogicalAnd<Rhs = Self> {
 
 산술 dot 트레잇은 `Add`/`Sub`/`Mul`/`Div`/`Rem`/`Modulo` 와 완전히 대칭을 이루며, `Output` associated type 에 infix 어트리뷰트를 부착하는 형태입니다. 여섯 비교 dot 트레잇 (`DotEq`, `DotNe`, `DotLt`, `DotGt`, `DotLe`, `DotGe`) 도 같은 형태이며, 각자 `Output` 을 가지고 그것은 보통 `Container<bool>` 입니다. 논리 dot 트레잇 (`DotLogicalAnd` / `DotLogicalOr`) 은 `Container<bool>` 양쪽을 받아 `Container<bool>` 을 돌려주는 형태가 일반적이며, short-circuit 이 없으므로 양쪽 컨테이너가 모두 끝까지 평가됩니다.
 
-### 함수 broadcast — 트레잇 X
+### 함수 broadcast - 트레잇 X
 
 함수 broadcast 는 다음과 같은 형태로 사용됩니다.
 
@@ -130,9 +130,9 @@ g.(a, b)     →  a.into_iter().zip(b.into_iter()).map(|(x, y)| g(x, y)).collect
 
 [2.7 iter](207-iter.md) 의 `map`/`zip` 으로 직접 dispatch 되며, broadcast 모듈이 별도의 트레잇을 두지 않습니다. 이는 함수 자체가 dispatch 대상이 아니라 callable 이라는 차이에서 비롯됩니다.
 
-## 2.6.4. 의미 정의 — element-wise
+## 2.6.4. 의미 정의 - element-wise
 
-### 산술 dot — 같은 모양 두 컨테이너
+### 산술 dot - 같은 모양 두 컨테이너
 
 같은 모양을 가진 두 컨테이너에 대한 산술 dot 연산은 다음과 같이 동작합니다.
 
@@ -151,11 +151,11 @@ let f = b ./ a;          //→ [10, 10, 10]
 ```rok
 let x: [i32; 3] = [1, 2, 3];
 let y: [i32; 4] = [1, 2, 3, 4];
-let z = x .+ y;          // ERROR (컴파일 — 고정 size 다름)
+let z = x .+ y;          // ERROR (컴파일 - 고정 size 다름)
 
 let p: List<i32> = [1, 2, 3];
 let q: List<i32> = [1, 2];
-let r = p .+ q;          // panic at runtime — length mismatch
+let r = p .+ q;          // panic at runtime - length mismatch
 ```
 
 ### scalar broadcast
@@ -171,7 +171,7 @@ let t = a ./ 2;          //→ [0, 1, 1]    (i32 truncate)
 
 이 경우 별도의 impl (`DotAdd<T> for List<T>`, 그리고 scalar 가 왼쪽인 형태의 `DotAdd<List<T>> for T`) 이 scalar 쪽을 처리합니다. 고정 배열 `[T; N]` 에는 scalar 가 왼쪽인 impl 이 없습니다.
 
-### 비교 dot — `Container<bool>` 반환
+### 비교 dot - `Container<bool>` 반환
 
 비교 dot 연산자는 결과로 `Container<bool>` 을 반환합니다.
 
@@ -186,7 +186,7 @@ a .>= b;                 //→ [false, true, true]
 a .< 4;                  //→ [true, false, true]   (scalar broadcast)
 ```
 
-### 나머지 dot — `.%` 와 `.%%`
+### 나머지 dot - `.%` 와 `.%%`
 
 나머지 계열 dot 연산자는 일반 `%` / `%%` 와 동일한 의미를 element-wise 로 적용합니다.
 
@@ -194,11 +194,11 @@ a .< 4;                  //→ [true, false, true]   (scalar broadcast)
 let a: List<i32> = [-7, 5, -3, 8];
 let b: List<i32> = [3, 3, 3, 3];
 
-a .% b;                  //→ [-1, 2, 0, 2]   (Rem — 부호는 좌측 따름)
-a .%% b;                 //→ [2, 2, 0, 2]    (Modulo — 항상 [0, 3))
+a .% b;                  //→ [-1, 2, 0, 2]   (Rem - 부호는 좌측 따름)
+a .%% b;                 //→ [2, 2, 0, 2]    (Modulo - 항상 [0, 3))
 ```
 
-### 논리 dot — `.&&` 와 `.||`
+### 논리 dot - `.&&` 와 `.||`
 
 논리 dot 연산자는 두 `Container<bool>` 의 element-wise 논리 결합을 산출합니다. 점 없는 형태와 달리 short-circuit 이 없으므로, 양쪽 컨테이너가 항상 끝까지 평가됩니다.
 
@@ -209,7 +209,7 @@ let q: List<bool> = [true, true, false, false];
 p .&& q;                 //→ [true, false, false, false]
 p .|| q;                 //→ [true, true, true, false]
 
-// 비교 결과를 결합하는 패턴 — 가장 흔한 사용
+// 비교 결과를 결합하는 패턴 - 가장 흔한 사용
 let xs: List<i32> = [1, 5, 3, 8];
 (xs .>= 2) .&& (xs .< 6);  //→ [false, true, true, false]
 ```
@@ -230,7 +230,7 @@ let ns: List<u32> = [1, 2, 4];
 ns .<< 2;                //→ [4, 8, 16]
 ```
 
-## 2.6.5. 함수 broadcast — `f.(x)`
+## 2.6.5. 함수 broadcast - `f.(x)`
 
 함수 broadcast 는 일반 함수 호출 자리에 dot 을 붙여 사용할 수 있습니다.
 
@@ -276,8 +276,8 @@ let result = elementwise(a, b, |x, y| sin(x) + cos(y) * 2.0);
 | 컨테이너         | DotAdd   | DotMul   | DotEq       | 비고                                    |
 |------------------|----------|----------|-------------|-----------------------------------------|
 | `List<T>`        | T:Add    | T:Mul    | T:PartialEq | element-wise, 길이 일치                 |
-| `[T; N]` (고정)  | T:Add    | T:Mul    | T:PartialEq | 고정 N — 컴파일 타임                    |
-| `Slice<T>`       | T:Add    | T:Mul    | T:PartialEq | view — element-wise                     |
+| `[T; N]` (고정)  | T:Add    | T:Mul    | T:PartialEq | 고정 N - 컴파일 타임                    |
+| `Slice<T>`       | T:Add    | T:Mul    | T:PartialEq | view - element-wise                     |
 | `i32`/`f64`/etc. | **없음** | **없음** | **없음**    | 스칼라끼리는 일반 `+`/`*`/`==` 사용     |
 | `T \| none`       | (연산자) | (연산자) | (연산자)    | option propagation (`none .+ x = none`) |
 

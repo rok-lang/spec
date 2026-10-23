@@ -72,7 +72,7 @@ list.map(|x| x * 2);                  // inferred from map's signature
 
 ```rok
 |x| x * 2                          // inferred
-|x: i32| -> i32 { x * 2 }          // explicit — only with a block body
+|x: i32| -> i32 { x * 2 }          // explicit - only with a block body
 ```
 
 An explicit return type (`-> type`) is used only with a block body. A single-expression body always relies on inference.
@@ -141,8 +141,8 @@ This is uncommon, but it is one way to express a local scope with immediate eval
 ## 4.5.9. Readability: single expression vs block
 
 ```rok
-list.map(|x| x * 2)               // single expression — short and clear
-list.map(|x| { let y = x * 2; y + 1 })   // block — multi-step processing
+list.map(|x| x * 2)               // single expression - short and clear
+list.map(|x| { let y = x * 2; y + 1 })   // block - multi-step processing
 ```
 
 Choose the form that suits the body's length. The specification fully supports both forms.

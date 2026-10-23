@@ -37,7 +37,7 @@ impl Circle {
     fn unit() -> Circle { Circle { r: 1.0f64 } }
 }
 
-// 트레잇 안 — 연관 const
+// 트레잇 안 - 연관 const
 trait Numbers {
     const ZERO: Self;
     const ONE: Self;
@@ -62,7 +62,7 @@ fn f() {
 `const` 의 결과는 어떤 메모리 자리에도 머무르지 않으므로 주소를 가져올 수 없습니다.
 
 ```rok
-let p = &X;                       // ERROR — const 는 주소 없음 (개념적으로)
+let p = &X;                       // ERROR - const 는 주소 없음 (개념적으로)
 ```
 
 실제 rok 에서 `&` 같은 직접 주소 연산자가 존재하는지에 대해서는 [타입 표현식](../002-types/201-type-expressions.md) 의 포인터 타입과 [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) 사양에서 정의합니다.

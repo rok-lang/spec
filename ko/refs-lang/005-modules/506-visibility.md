@@ -33,7 +33,7 @@ mod m {
 }
 
 let r = m::api();                   // OK
-let h = m::helper();                // ERROR — 모듈 비공개
+let h = m::helper();                // ERROR - 모듈 비공개
 ```
 
 비공개 `mod` 는 그것을 선언한 부모 모듈과, 그 부모의 하위 모듈에서 보입니다.
@@ -118,8 +118,8 @@ pub struct Counter {                // struct 자체는 외부 가시
         count: i32 = 0i32;          // 필드는 모듈 비공개 (기본)
 }
 
-let c = Counter { count: 0i32 };    // ERROR — 필드 비공개라 외부에서 직접 만들 수 없음
-let c = Counter::new();             // OK — 팩토리 메서드 (있다면)
+let c = Counter { count: 0i32 };    // ERROR - 필드 비공개라 외부에서 직접 만들 수 없음
+let c = Counter::new();             // OK - 팩토리 메서드 (있다면)
 ```
 
 이는 타입은 외부에 노출하되 직접 인스턴스화는 막는 표준 패턴입니다 (newtype, opaque type).
@@ -143,12 +143,12 @@ pub struct S(pub i32, i32);         // 0 번은 pub, 1 번은 비공개
 
 ```rok
 pub enum Shape {
-    Circle(f64),                    // pub — Shape 를 따름
+    Circle(f64),                    // pub - Shape 를 따름
     Square(f64),
 }
 
 pub enum Bad {
-    pub A,                          // ERROR — 변형에는 가시성을 적지 않음
+    pub A,                          // ERROR - 변형에는 가시성을 적지 않음
 }
 ```
 
@@ -173,7 +173,7 @@ impl Account {
 
 ```rok
 use foo::bar;                       // 모듈 비공개 (기본)
-pub use foo::bar;                   // 재내보내기 — 외부에서도 보임
+pub use foo::bar;                   // 재내보내기 - 외부에서도 보임
 pub(pkg) use foo::bar;              // 패키지 내부만
 ```
 
@@ -209,6 +209,6 @@ pub trait T { ... }
 
 ```
 ERROR: 'foo::secret' is not visible from this module.
-       It is declared as private — only visible within 'foo'.
+       It is declared as private - only visible within 'foo'.
        To use it externally, add 'pub' or other visibility keyword.
 ```

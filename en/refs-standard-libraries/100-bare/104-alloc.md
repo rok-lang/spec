@@ -1,4 +1,4 @@
-# 1.4. raw allocation — `alloc` / `dealloc` / `realloc`
+# 1.4. raw allocation - `alloc` / `dealloc` / `realloc`
 
 The `rok::bare::alloc` module provides an API for allocating and freeing memory directly in a region outside the GC's control. Ordinary rok code is managed by the GC, but this module is used where the GC is not a good fit: handing memory to the C side across an FFI boundary, large buffers, mmap and the like.
 
@@ -21,7 +21,7 @@ unsafe fn alloc_zeroed(layout: Layout) -> CPtr<u8>;
 unsafe fn dealloc(ptr: Ptr<u8>, layout: Layout);
 unsafe fn realloc(ptr: Ptr<u8>, old_layout: Layout, new_size: usize) -> CPtr<u8>;
 
-// convenience functions — typed
+// convenience functions - typed
 unsafe fn alloc_one<T>() -> CPtr<T>;
 unsafe fn alloc_array<T>(n: usize) -> CPtr<T>;
 unsafe fn dealloc_one<T>(ptr: Ptr<T>);
@@ -66,9 +66,9 @@ Here `Allocation<T>` is the RAII wrapper included in this module.
 | Ordinary objects (`List<i32>`) | GC TLAB bump          | ✓                  |
 | `rok::bare::alloc::alloc` | system malloc               | ✗ (manual)         |
 | FFI `malloc`             | C `malloc`                  | ✗                  |
-| Large object (≥8KB)      | LOS — non-moving mark-sweep | ✓ (but non-moving) |
+| Large object (≥8KB)      | LOS - non-moving mark-sweep | ✓ (but non-moving) |
 
-If a GC-managed raw buffer is needed, use `rok::core::collections::raw::GcBuf<T>` ([2.9.12](../200-core/209-collections.md#2912-gcbuft--raw-gc-buffer)) instead of this module.
+If a GC-managed raw buffer is needed, use `rok::core::collections::raw::GcBuf<T>` ([2.9.12](../200-core/209-collections.md#2912-gcbuft---raw-gc-buffer)) instead of this module.
 
 Regions outside the GC are not traced by it, so cleanup is the user's responsibility. Since objects there do not move, however, a `Ptr<T>` stays valid without a separate pin guard.
 

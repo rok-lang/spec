@@ -1,4 +1,4 @@
-# 1.6. `Pinned<T>` — GC pinning
+# 1.6. `Pinned<T>` - GC pinning
 
 `rok::bare::gc` 모듈은 GC heap 위에 놓인 객체를 일시적으로 이동 불가능한 상태로
 고정하는 메커니즘을 정의합니다. raw `Ptr<T>` 가 GC 객체를 가리키고 있을 때 객체가
@@ -7,7 +7,7 @@
 이 장은 rok unsafe tier 의 가장 중요한 장으로, pointer 와 GC 의 충돌을 어떻게
 조정하는지를 정면에서 설명합니다.
 
-## 1.6.1. 동기 — pinning 이 필요한 이유
+## 1.6.1. 동기 - pinning 이 필요한 이유
 
 [refs-lang 7.3 GC 알고리듬](../../refs-lang/007-runtime/703-gc-algorithm.md) 의 Immix mark-region GC 는 **evacuation** (객체
 복사 이동) 을 수행합니다. 이로 인해 객체의 주소는 GC cycle 사이에 얼마든지 바뀔
@@ -28,7 +28,7 @@ let xs: List<i32> = [1, 2, 3];                 // GcPtr (자동 갱신)
 let raw: Ptr<i32> = rok::bare::ptr::list_data(xs); // raw ptr
                                                 // ↓ GC cycle 발생 가능
 gc::collect();
-unsafe { raw.read() };                          // UB — raw 가 stale
+unsafe { raw.read() };                          // UB - raw 가 stale
 ```
 
 해법은 **pinning** 입니다. GC 에게 "이 객체는 이동시키지 말라"는 신호를 명시적으로
@@ -64,7 +64,7 @@ impl<T> Drop for Pinned<T> {
 동안 GC 는 해당 객체를 이동시키지 않으며, 블록을 빠져나갈 때 `Pinned::drop` 이 불려 unpin
 됩니다. `using` 없이 받은 `Pinned<T>` 는 자동으로 풀리지 않습니다. pin 은 셉니다: 객체는 그만큼 unpin 된 뒤에야 다시 움직입니다.
 
-### 사용 예 — FFI 호출
+### 사용 예 - FFI 호출
 
 ```rok
 let buf: List<u8> = read_input();
@@ -80,11 +80,11 @@ using pin = rok::bare::gc::pin(buf) {
 여기서의 `using` 블록은 [refs-lang 3.17 using 표현식](../../refs-lang/003-expressions/317-using-expression.md) 이 정의하는 RAII 형태를
 그대로 따릅니다.
 
-## 1.6.3. `GcPtr<T>` vs `Ptr<T>` — type level 분리
+## 1.6.3. `GcPtr<T>` vs `Ptr<T>` - type level 분리
 
 ```rok
-struct GcPtr<T> { /* compiler-managed — root 자동 추적 */ }
-struct Ptr<T>   { /* raw — root 추적 X */ }
+struct GcPtr<T> { /* compiler-managed - root 자동 추적 */ }
+struct Ptr<T>   { /* raw - root 추적 X */ }
 ```
 
 | 측면       | `GcPtr<T>`                    | `Ptr<T>`                                         |
@@ -112,11 +112,11 @@ impl<T> !Sync for GcPtr<T> {}
 impl<T> Pinnable for GcPtr<T> {}
 ```
 
-### 내부 구현 — GcPtr 의 형태
+### 내부 구현 - GcPtr 의 형태
 
 ```rok
 struct GcPtr<T> {
-    // 내부: 보통 단순 `*T` — GC 가 외부에서 root set 으로 추적
+    // 내부: 보통 단순 `*T` - GC 가 외부에서 root set 으로 추적
     // 지역 변수면 컴파일러가 emit 하는 shadow stack frame 슬롯에 둠
 }
 ```
@@ -154,13 +154,13 @@ drop(Pinned):
 대부분의 경우 hot path 에 들어가지 않습니다. FFI 호출 자체가 그렇게 빈번한
 연산이 아니기 때문입니다.
 
-## 1.6.5. 한계 — pin 안 해도 될 자리
+## 1.6.5. 한계 - pin 안 해도 될 자리
 
 다음과 같은 상황에서는 pin 이 **불필요**합니다.
 
 | 자리             | 이유                                    |
 |------------------|-----------------------------------------|
-| 일반 method 호출 | GcPtr 자동 갱신 — raw ptr 안 만듬       |
+| 일반 method 호출 | GcPtr 자동 갱신 - raw ptr 안 만듬       |
 | GcPtr 끼리 연산  | 모두 GC 가 추적                         |
 | 짧은 FFI (no GC) | FFI 안에서 GC 안 도는 보장 시           |
 | Immortal const   | 이미 이동하지 않음 (string literal 등)  |
@@ -182,11 +182,11 @@ impl<T> Pinned<GcPtr<T>> {
 
 impl Pinned<str> {
     fn as_bytes_ptr(self) -> ConstPtr<u8>;   // UTF-8 bytes
-    fn as_c_str(self) -> ConstPtr<c_char>;   // null-terminated 보장 안 함 — 별도 변환
+    fn as_c_str(self) -> ConstPtr<c_char>;   // null-terminated 보장 안 함 - 별도 변환
 }
 ```
 
-이 container 메서드들이 추출 API 이며, `Pinned` 를 들고 있는 동안 유효합니다. (`str::as_ptr` 와 `CStr::as_ptr` 는 pin 없이 주소를 주며, 더 좁은 [2.15.2](../200-core/215-string.md#2152-str--불변-utf-8-문자열) 의 규칙을 따릅니다.) 제네릭 `as_ptr` 은 없으며, `as_value_ptr` 는 `List` 의 `as_data_ptr` 와 구별되는 이름입니다. container 별로 전용 추출 메서드가 마련됩니다. buffer 시작이나
+이 container 메서드들이 추출 API 이며, `Pinned` 를 들고 있는 동안 유효합니다. (`str::as_ptr` 와 `CStr::as_ptr` 는 pin 없이 주소를 주며, 더 좁은 [2.15.2](../200-core/215-string.md#2152-str---불변-utf-8-문자열) 의 규칙을 따릅니다.) 제네릭 `as_ptr` 은 없으며, `as_value_ptr` 는 `List` 의 `as_data_ptr` 와 구별되는 이름입니다. container 별로 전용 추출 메서드가 마련됩니다. buffer 시작이나
 null-terminated 형태처럼, 각 컨테이너의 layout 에 맞춘 형태로 꺼내 쓸 수 있도록
 한 것입니다.
 
@@ -223,7 +223,7 @@ rok 이 다른 언어와 갈라지는 가장 큰 지점은 두 가지입니다.
 > 이 정책은 rok pointer 모델의 backbone 입니다. unsafe 와 GC, 두 영역이 안전하게
 > 만나는 접점입니다.
 
-## 1.6.9. `Weak<T>` — 약한 참조
+## 1.6.9. `Weak<T>` - 약한 참조
 
 ```rok
 // rok::bare::gc
@@ -234,6 +234,7 @@ impl<T> Weak<T> {
     fn get(self) -> GcPtr<T> | none;        // 대상이 해제되면 none
 }
 impl<T> !Sync for Weak<T> {}
+impl<T> !Send for Weak<T> {}    // 넘김이 그것이 가리키는 것을 복사할 수 없음 (2.13.9)
 ```
 
 약한 참조는 객체를 살려 두지 않습니다. 수집이 객체를 해제하면 그 객체를 가리키는 모든 `Weak` 은 `none` 을 읽으며, 객체를 옮기는 수집은 `Weak` 을 갱신합니다. 이것이 `WEAK_REF` scan 종류 ([refs-lang 8.2.8](../../refs-lang/008-abi/802-scan-table.md#828-weak_ref)) 의 라이브러리 인터페이스입니다.

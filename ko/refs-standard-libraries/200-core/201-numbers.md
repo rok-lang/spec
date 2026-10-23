@@ -10,9 +10,9 @@ fixed primitive (i8..i64, u8..u64, isize, usize, f32, f64; 하드웨어 친화�
 
 이 두 세계는 서로 **공존** 합니다. 접미사 없는 리터럴은 기대 타입을 따르며, 기대 타입이 없으면 `i32` / `f64` 가 됩니다 ([refs-lang 1.6.3](../../refs-lang/001-lexical/106-numeric-literals.md#163-접미사-없는-리터럴)). `int` / `float` 는 타입을 적은 자리에서만 쓰입니다.
 
-## 2.1.1. 두 세계의 숫자 — 분리하는 이유
+## 2.1.1. 두 세계의 숫자 - 분리하는 이유
 
-### `int` / `float` — auto-promote 세계
+### `int` / `float` - auto-promote 세계
 
 이 세계는 무한 정밀도를 지향합니다. overflow 자체가 발생하지 않으며, 메모리
 한계에 도달했을 때만 OOM 으로 끝납니다. 작은 값은 hardware fixed-width 로
@@ -20,7 +20,7 @@ fixed primitive (i8..i64, u8..u64, isize, usize, f32, f64; 하드웨어 친화�
 promote 됩니다. `int` / `float` 값은 불변이며, heap 의 BigInt 도 제자리에서 바뀌지 않고 공유만 됩니다 (그래서 `Copy` 입니다). 그 결과 사용자는 산술 정확성을 보장받게 되어, `I32_MAX + 1` 가
 silent wrap 되어 황당한 결과를 내는 일이 없습니다.
 
-### fixed primitive — 하드웨어 친화 세계
+### fixed primitive - 하드웨어 친화 세계
 
 반면 fixed primitive 는 하드웨어에 가까운 세계입니다. `i32` / `f64` 등 15
 종으로 구성되며, syntax 는 [refs-lang 2.1 타입 표현식](../../refs-lang/002-types/201-type-expressions.md) 이
@@ -33,15 +33,15 @@ silent wrap 되어 황당한 결과를 내는 일이 없습니다.
 접미사 없는 리터럴 (`42`, `3.14`) 은 기대 타입이 없으면 **`i32` / `f64`** 가 됩니다. auto-promote 세계는 `int` / `float` 를 적은 자리에서만 쓰입니다.
 
 ```rok
-let total: int = 0;               // int (auto-promote) — 명시
+let total: int = 0;               // int (auto-promote) - 명시
 for x in xs { total = total + x; }
-// total 이 i32 범위 넘어가도 자동 promote — silent overflow 없음
+// total 이 i32 범위 넘어가도 자동 promote - silent overflow 없음
 
 let n = 0;                        // i32 (기대 타입 없음)
-let perf_critical: i64 = 0;       // i64 — 기대 타입을 따름
+let perf_critical: i64 = 0;       // i64 - 기대 타입을 따름
 ```
 
-## 2.1.2. `int` — 무한 정밀도 정수
+## 2.1.2. `int` - 무한 정밀도 정수
 
 ```rok
 #[keyword("int")]
@@ -70,7 +70,7 @@ impl Int {
 }
 ```
 
-이것들은 고정 폭 정수의 이름과 panic 을 따릅니다. `pow` 는 `u32` 지수를 받습니다: 그보다 큰 지수는 0 과 ±1 을 뺀 모든 밑에서 적어도 2^32 bit 를 냅니다. `modpow` 는 결과가 `|m|` 보다 작게 머무르므로 `int` 지수를 받으며, 결과는 [`%%`](203-ops.md#modulo--floored-modulo-) 처럼 `m` 의 부호를 가집니다. 음수 지수는 에러입니다 (modular inverse 없음).
+이것들은 고정 폭 정수의 이름과 panic 을 따릅니다. `pow` 는 `u32` 지수를 받습니다: 그보다 큰 지수는 0 과 ±1 을 뺀 모든 밑에서 적어도 2^32 bit 를 냅니다. `modpow` 는 결과가 `|m|` 보다 작게 머무르므로 `int` 지수를 받으며, 결과는 [`%%`](203-ops.md#modulo---floored-modulo-) 처럼 `m` 의 부호를 가집니다. 음수 지수는 에러입니다 (modular inverse 없음).
 
 `Int` 는 `rok::core::num::bigint::Int` 에 정의됩니다 (`Float` 는
 `rok::core::num::bigfloat::Float`). `#[keyword("int")]` 가 식별자 `int` 를 타입 키워드로
@@ -97,11 +97,11 @@ big = big * 1000;
 big = big * 1000;
 big = big * 1000;
 big = big * 1000;
-// big = 10^18 — i64 범위 거의 끝
+// big = 10^18 - i64 범위 거의 끝
 big = big * 1000;
-// big = 10^21 — i64 범위 밖, BigInt promote
+// big = 10^21 - i64 범위 밖, BigInt promote
 big = big * big;
-// big = 10^42 — 더 큰 BigInt, 정확
+// big = 10^42 - 더 큰 BigInt, 정확
 ```
 
 산술 트레잇 ([2.3 ops](203-ops.md)) 의 `Add`, `Sub`, `Mul`, `Div`, `Rem` 이
@@ -126,7 +126,7 @@ promote 이후에는 느려질 수밖에 없습니다. 그리고 FFI 의 경우 
 함수가 fixed primitive 만 받기 때문에, `int` 는 `i64` 등으로 명시 변환한 뒤
 전달해야 합니다.
 
-## 2.1.3. `float` — 지수 무제한 부동소수
+## 2.1.3. `float` - 지수 무제한 부동소수
 
 ```rok
 #[keyword("float")]
@@ -202,13 +202,13 @@ impl Float {
 | `char`   | Unicode scalar value (4 바이트), 컴파일러 primitive. 메서드는 [2.15](215-string.md) |
 | `c_char` | C ABI 호환 char (1-byte signed); FFI 전용                                             |
 
-### 두 부류 — 언어 기본값 vs 표준 라이브러리 추가
+### 두 부류 - 언어 기본값 vs 표준 라이브러리 추가
 
 이 장의 수치 / 부울 / 문자 타입은 **두 부류** 로 나뉘어 있습니다.
 
 | 부류                       | 구성원                                                                                                | 등록 방식                              |
 |----------------------------|-------------------------------------------------------------------------------------------------------|----------------------------------------|
-| **16 언어 기본값**         | `i8`/`i16`/`i32`/`i64`, `u8`/`u16`/`u32`/`u64`, `isize`/`usize`, `f32`/`f64`, `bool`, `char`, `c_char`, `str` | 언어가 직접 인식 — `#[keyword]` 불필요 |
+| **16 언어 기본값**         | `i8`/`i16`/`i32`/`i64`, `u8`/`u16`/`u32`/`u64`, `isize`/`usize`, `f32`/`f64`, `bool`, `char`, `c_char`, `str` | 언어가 직접 인식 - `#[keyword]` 불필요 |
 | **2 표준 라이브러리 추가** | `int`, `float`                                                                                | `#[keyword(...)]` 등록                 |
 
 언어 기본값은 컴파일러 (lexer/parser) 가 직접 인식하는 토큰이라서, 표준 라이브러리가
@@ -352,7 +352,7 @@ impl f64 {
 | `3.14f64` | `f64`                                             |
 | `'A'`     | `char`                                            |
 | `c'A'`    | `c_char` (primitive)                              |
-| `0xFF`    | 10 진과 같음 — 기대 타입, 없으면 `i32`             |
+| `0xFF`    | 10 진과 같음 - 기대 타입, 없으면 `i32`             |
 | `0xFFi32` | `i32`                                             |
 
 ### 기대 타입과 범위 검사
@@ -363,9 +363,9 @@ impl f64 {
 let x: i32 = 42;            // i32
 let y: i32 = 9999999999;    // 컴파일 에러 (i32 범위 밖)
 let z: f32 = 3.14;          // f32
-let f: f64 = 1;             // f64 — 정수 리터럴은 실수 슬롯에 들어감
+let f: f64 = 1;             // f64 - 정수 리터럴은 실수 슬롯에 들어감
 let w: u8 = 256;            // 컴파일 에러 (256 ∉ u8 range 0..=255)
-let i: i32 = 1.5;           // 컴파일 에러 — 실수 리터럴은 정수 슬롯 불가
+let i: i32 = 1.5;           // 컴파일 에러 - 실수 리터럴은 정수 슬롯 불가
 let big: int = 9999999999;  // int
 ```
 
@@ -378,7 +378,7 @@ trait Zero { fn zero() -> Self; }       // 덧셈 항등원
 trait One  { fn one() -> Self; }        // 곱셈 항등원
 ```
 
-모든 숫자 primitive 와 `int` / `float` 가 두 트레잇을 구현합니다. `Iterator::sum` / `product` 가 이를 씁니다 ([2.7.1](207-iter.md#271-iterator--단계-진행)).
+모든 숫자 primitive 와 `int` / `float` 가 두 트레잇을 구현합니다. `Iterator::sum` / `product` 가 이를 씁니다 ([2.7.1](207-iter.md#271-iterator---단계-진행)).
 
 ## 2.1.6. 산술 결과 타입
 
@@ -406,12 +406,12 @@ let c: i32 = a + b;   // i32
 let wider: i64 = (a as i64) + (b as i64);   // i64
 ```
 
-### `int + i32` (혼합 — 거부)
+### `int + i32` (혼합 - 거부)
 
 ```rok
 let a: int = 5;       // int
 let b: i32 = 3;       // i32
-let c = a + b;        // 컴파일 에러 — type mismatch
+let c = a + b;        // 컴파일 에러 - type mismatch
 ```
 
 이 경우 명시 변환이 강제됩니다.
@@ -484,7 +484,7 @@ opt-in niche 가 필요한 경우에는 [2.2 non-zero](202-non-zero.md) 의
 
 참고로 `Range<T>` (`a..b`) 는 [2.7 iter](207-iter.md) 가 정의합니다.
 
-## 2.1.10. 다른 언어와의 비교 — 디자인 결정 근거
+## 2.1.10. 다른 언어와의 비교 - 디자인 결정 근거
 
 rok 의 두-세계 모델 (`int` auto-promote 와 fixed primitive) 은 여러 언어에서
 영향을 받았습니다. Smalltalk 의 SmallInteger ↔ LargeInteger 는 auto-promote

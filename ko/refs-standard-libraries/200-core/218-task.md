@@ -1,4 +1,4 @@
-# 2.18. task — M:N 스케줄러 task API
+# 2.18. task - M:N 스케줄러 task API
 
 `rok::core::task` 모듈은 M:N 스케줄러 위에서 동작하는 협력적 task API 를 제공합니다. 이 모듈은 Rust Tokio 와 Go goroutine 으로부터 영감을 받았으며, work-stealing 스케줄러 위에서 task 가 **stackless coroutine** 으로 구현됩니다.
 
@@ -9,23 +9,23 @@
 핵심 API 의 시그니처는 다음과 같습니다.
 
 ```rok
-fn block_on<F: Future>(f: F) -> F::Output;              // sync 진입점 — executor 에 붙어 f 를 끝까지 실행
+fn block_on<F: Future>(f: F) -> F::Output;              // sync 진입점 - executor 에 붙어 f 를 끝까지 실행
 fn spawn<F: Future + Send>(f: F) -> Task<F::Output> where F::Output: Send;
-fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future — 현재 worker 에 고정
+fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future - 현재 worker 에 고정
 fn spawn_blocking<T: Send>(f: fn() -> T + Send) -> Blocking<T>;   // blocking 작업을 executor 밖 OS 스레드에서
 fn workers() -> usize;                                  // executor 안에서는 pool 크기, 밖에서는 1
-fn cpu_count() -> usize;                                // 온라인 CPU 수 — pool 크기
+fn cpu_count() -> usize;                                // 온라인 CPU 수 - pool 크기
 async fn race<T>(tasks: List<Task<T>>) -> T;            // 첫 완료 task 결과
-fn select<F: Future>(futs: List<F>) -> SelectFuture<F>; // await — (index, 결과), spawn 하지 않음
-fn id() -> TaskId;                                      // 현재 task 의 id — task 밖이면 panic
+fn select<F: Future>(futs: List<F>) -> SelectFuture<F>; // await - (index, 결과), spawn 하지 않음
+fn id() -> TaskId;                                      // 현재 task 의 id - task 밖이면 panic
 fn try_id() -> TaskId | none;
 async fn join<T>(tasks: List<Task<T>>) -> List<T>;      // 모두 완료 후
 async fn timeout<T>(dur: Duration, task: Task<T>) throws (TimeoutError) -> T;   // try await 에서 던짐
 async fn sleep(dur: Duration);
 async fn sleep_until(when: Instant);
-async fn yield_now();                                   // await — 다른 ready task 에 한 번 양보
-fn registrations() -> usize;                            // 진단용 — 실행 중 pool 의 park 한 waker + 대기 timer 수 (구현이 정함)
-fn readable(fd: i32) -> IoReady;                       // await — fd 가 읽기 가능해질 때까지 (refs-lang 7.7.2)
+async fn yield_now();                                   // await - 다른 ready task 에 한 번 양보
+fn registrations() -> usize;                            // 진단용 - 실행 중 pool 의 park 한 waker + 대기 timer 수 (구현이 정함)
+fn readable(fd: i32) -> IoReady;                       // await - fd 가 읽기 가능해질 때까지 (refs-lang 7.7.2)
 fn writable(fd: i32) -> IoReady;
 fn wake_io(fd: i32);                                   // fd 의 readable / writable 대기자를 깨움 (close / shutdown 뒤에 씀; 저수준)
 ```
@@ -59,7 +59,7 @@ await task::yield_now();
 
 `spawn` 은 클로저가 아니라 future 를 받으므로 `task::spawn(async { ... })` 처럼 `async` 블록이나 `async fn` 호출 결과를 넘깁니다. `Send` 가 아닌 future 는 `spawn_local` 로 현재 스레드에서 실행합니다. `join` / `race` / `timeout` 은 `await` 해서 결과를 받습니다.
 
-### `spawn_blocking` — blocking 작업
+### `spawn_blocking` - blocking 작업
 
 ```rok
 struct Blocking<T> { /* 결과 슬롯 */ }
@@ -78,7 +78,7 @@ let n = await task::spawn_blocking(|| heavy_checksum(path));
 
 ### `spawn` 의 `Send` 검사
 
-`task::spawn` 은 결과 타입도 `Send` 여야 하며 (`where F::Output: Send`), **frame** 이 `Send` 가 아닌 future 를 거부합니다 ([2.13.9](213-marker.md#2139-send--sync--스레드-경계-marker)). future 가 어디서 왔든 같습니다: `async` 블록이나 `async fn` 호출뿐 아니라 매개변수, struct / 튜플 / 합의 필드, helper 함수의 결과, 리스트의 원소, 클로저가 들고 있는 future, 다른 코루틴 frame 안의 future 도 검사합니다. future 의 frame 은 다음입니다.
+`task::spawn` 은 결과 타입도 `Send` 여야 하며 (`where F::Output: Send`), **frame** 이 `Send` 가 아닌 future 를 거부합니다 ([2.13.9](213-marker.md#2139-send--sync---스레드-경계-marker)). future 가 어디서 왔든 같습니다: `async` 블록이나 `async fn` 호출뿐 아니라 매개변수, struct / 튜플 / 합의 필드, helper 함수의 결과, 리스트의 원소, 클로저가 들고 있는 future, 다른 코루틴 frame 안의 future 도 검사합니다. future 의 frame 은 다음입니다.
 
 - 캡처한 값.
 - `await` 를 넘어 살아 있는 지역 변수와 임시값.
@@ -86,11 +86,11 @@ let n = await task::spawn_blocking(|| heavy_checksum(path));
 
 ```rok
 let c = Cell::new(0);                      // Cell: !Send
-task::spawn(async { c.set(1); });          // ERROR — !Send 캡처
-task::spawn_local(async { c.set(1); });    // OK — 현재 worker 에 고정
+task::spawn(async { c.set(1); });          // ERROR - !Send 캡처
+task::spawn_local(async { c.set(1); });    // OK - 현재 worker 에 고정
 
 fn make() -> AsyncFuture<()> { let c = Cell::new(0); async { c.set(1); } }
-task::spawn(make());                       // ERROR — helper 가 만든 future 의 frame 도 검사
+task::spawn(make());                       // ERROR - helper 가 만든 future 의 frame 도 검사
 ```
 
 같은 검사가 다른 스레드로 클로저를 보내는 자리에도 적용됩니다: `thread::spawn`, `thread::Builder::spawn`, `par` 의 `Scope::spawn`, `task::spawn_blocking`. 클로저가 `Send` 가 아닌 frame 의 future 를 들고 있으면 ``` `X` would move a future to another thread: … ``` 에러입니다.
@@ -100,9 +100,9 @@ task::spawn(make());                       // ERROR — helper 가 만든 future
 - 타입이 함수 값을 담을 수 없는 값 (future 의 frame 을 숨길 수 없음).
 - `unsafe impl Send` 를 명시한 타입의 값 (예: `Task<T>`). 그 타입이 안전성을 책임집니다.
 
-`async fn` 의 결과 타입 `AsyncFuture<T>` 는 `T: Send` 일 때, throwing 판 `TryAsyncFuture<T, E>` 는 `T` 와 `E` 가 모두 `Send` 일 때 `Send` 입니다. 캡처와 frame 은 위 검사가 따로 봅니다.
+`async fn` 의 결과 타입 `AsyncFuture<T>` 는 `T: Send` 일 때, throwing 판 `TryAsyncFuture<T, E>` 는 `T` 와 `E` 가 모두 `Send` 일 때 `Send` 입니다. 캡처와 frame 은 위 검사가 따로 봅니다. 캡처가 `Send` 이지만 `Sync` 가 아닌 frame (`async fn` 이 받는 리스트, `async` 블록이 캡처하는 리스트나 future) 은 받아들입니다: `task::spawn` 은 채널 send 처럼 future 를 넘깁니다 ([2.13.9](213-marker.md#2139-send--sync---스레드-경계-marker)). task 는 future 가 캡처한 것의 복사본을 담은 자기 frame 을 받는데, 넘김 한 번으로 만들므로 캡처들이 공유하던 것 (한 리스트 두 번, 리스트와 그 위의 future) 은 그대로 공유합니다. spawn 뒤에 그 future 나 그것이 캡처한 것을 쓰면 send 뒤와 같이 컴파일 에러 (`E202`) 입니다. 아무것도 poll 하지 않은 future 만 넘길 수 있습니다: 시작한 것 (`select`, 사용자의 `Future`, 직접 poll 한 것) 이나 끝난 것, 또는 frame 이나 캡처한 future 의 frame 에 `[ref x]` 캡처가 있는 것을 넘기면 panic 하며, 아무것도 공유하지 않습니다. 채널로 보내거나 `Mutex` 나 `Frozen` 에 넣는 코루틴 future 도 같이 넘겨지고, 그때마다 자기 frame 을 받습니다. `Task` 가 넘겨진 task (`Frozen::get`, 채널, 잠금, `par` 항목) 를 `await` 할 때마다 결과의 자기 복사본을 받으며, 한 스레드 안의 `Task` 복사본들은 그것을 공유합니다.
 
-### `select` — 먼저 끝나는 future
+### `select` - 먼저 끝나는 future
 
 ```rok
 fn select<F: Future>(futs: List<F>) -> SelectFuture<F>;   // Output = (usize, F::Output)
@@ -144,10 +144,10 @@ struct Task<T> {
 }
 
 impl<T> Task<T> {
-    fn cancel(self);                      // 취소 요청 — 다음 await 에서 끝남 (2.18.4)
+    fn cancel(self);                      // 취소 요청 - 다음 await 에서 끝남 (2.18.4)
     fn is_cancelled(self) -> bool;
     fn is_finished(self) -> bool;
-    fn join(self) -> Join<T>;             // try await t.join() — 결과 없이 취소됐으면 CancellationError
+    fn join(self) -> Join<T>;             // try await t.join() - 결과 없이 취소됐으면 CancellationError
     fn id(self) -> TaskId;
 }
 
@@ -159,7 +159,7 @@ impl TaskId {
 
 struct CancellationError {}
 
-impl<T> Future for Task<T> {              // `await t` — 완료까지 suspend
+impl<T> Future for Task<T> {              // `await t` - 완료까지 suspend
     type Output = T;
     ...
 }
@@ -169,11 +169,11 @@ impl<T> Future for Task<T> {              // `await t` — 완료까지 suspend
 
 `Task<T>` 는 `Future<Output = T>` 를 구현하므로 `await t` 로 기다릴 수 있고, [2.20 future](220-future.md) 의 `IntoFuture` blanket impl 에도 포함되어 `Thread` 와 동일한 방식으로 await 될 수 있습니다. `IntoFuture` 트레잇과 lang slot `future_trait` 의 권위 있는 정의는 [2.20 future](220-future.md) 에 있으며, 본 절은 그 정의를 그대로 따릅니다.
 
-## 2.18.3. 스케줄러 모델 — work-stealing
+## 2.18.3. 스케줄러 모델 - work-stealing
 
 프로세스에는 executor 가 하나 있습니다. 처음 쓸 때 시작하며, CPU 수 (`cpu_count()`) 만큼의 worker thread, blocking lane, I/O driver 로 이루어집니다. `block_on` 은 부른 스레드를 guest worker 로 이 executor 에 붙여 `f` 를 끝까지 실행합니다. `block_on` 이 돌아올 때 실행 중인 task 는 계속 실행됩니다. 다만 `block_on` 은 그 스레드에 고정된 `spawn_local` task 들도 끝난 뒤에야 돌아옵니다. 그 task 들은 다른 스레드로 옮겨 갈 수 없기 때문입니다. `par::*` 와 `spawn_blocking` 도 같은 executor 를 씁니다.
 
-`spawn` 한 task 는 어느 worker 에서든 실행될 수 있으므로 `Future + Send` 이고 결과도 `Send` 여야 합니다. `spawn_local` 의 task 는 그것을 만든 worker 에 고정됩니다.
+`spawn` 한 task 는 어느 worker 에서든 실행될 수 있으므로 `Future + Send` 이고 결과도 `Send` 여야 합니다. `spawn_local` 의 task 는 그것을 만든 worker 에 고정됩니다. 다만 `block_on` 스레드가 기다리는 동안 맡아 poll 한, 자기 것이 아닌 task (`spawn` 한 task) 에서 부른 `spawn_local` 은 pool worker 에 고정됩니다. 그래서 `block_on` 은 자기 task 들의 local task 만 기다립니다. 이런 poll 한 번에서 만든 local task 들은 모두 같은 pool worker 로 가고, 그 poll 이 끝난 뒤에야 시작합니다. 원래 그 task 를 실행했을 worker 에서와 같습니다.
 
 스케줄러 골격은 다음과 같이 구성됩니다.
 
@@ -192,14 +192,14 @@ Worker 0 ─┐      Worker 1 ─┐    ...    Worker N-1 ─┐
 
 표준 라이브러리 측의 권위는 API 시그니처에 한정되며, 알고리듬 본문은 spec 외부의 runtime 및 표준 라이브러리 body 영역에 속한다는 점에 유의해야 합니다.
 
-## 2.18.4. 협력적 취소 — `Task::cancel`
+## 2.18.4. 협력적 취소 - `Task::cancel`
 
 협력적 취소는 다음과 같이 사용합니다.
 
 ```rok
 let t = task::spawn(async { long_running() });
 // ... 다른 일 ...
-t.cancel();              // 협력적 신호 — task 가 cancellation point 에서 종료
+t.cancel();              // 협력적 신호 - task 가 cancellation point 에서 종료
 ```
 
 `cancel()` 은 취소를 **요청** 합니다. 규칙은 다음과 같습니다 ([refs-lang 7.7.9](../../refs-lang/007-runtime/707-io-and-timer.md#779-cancellation)).
@@ -229,7 +229,7 @@ t.cancel();
 let r = try await t.join() catch _: CancellationError { fallback() };
 ```
 
-## 2.18.5. `thread::*` — 1:1 OS thread
+## 2.18.5. `thread::*` - 1:1 OS thread
 
 별도 모듈인 `thread` 는 M:N 모델이 아니라 **OS thread** 를 직접 spawn 합니다.
 

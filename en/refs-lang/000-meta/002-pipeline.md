@@ -10,13 +10,13 @@ The overall flow is as follows.
   source code
         │
         ▼
-   rok-hir         (High-level IR — pre type inference, user code structure preserved)
+   rok-hir         (High-level IR - pre type inference, user code structure preserved)
         │
         ▼
-   rok-mir         (Mid-level IR — monomorphized / operators desugared, all types fixed)
+   rok-mir         (Mid-level IR - monomorphized / operators desugared, all types fixed)
         │
         ▼
-   standard MLIR   (upstream MLIR dialects — `func`, `arith`, `scf`, ...)    -O1 and above
+   standard MLIR   (upstream MLIR dialects - `func`, `arith`, `scf`, ...)    -O1 and above
         │
         ▼
    LLVM IR → native object → lld

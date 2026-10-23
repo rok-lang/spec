@@ -1,19 +1,19 @@
-# 2.15. Strings — `str` / `char` / `c_char`
+# 2.15. Strings - `str` / `char` / `c_char`
 
 The `rok::core::str` module provides the authoritative definitions of the string and character types. rok follows a **UTF-8 first** policy: every in-process string is handled as UTF-8, and `c_char` is used only at FFI boundaries.
 
 This chapter defines three of the 48 lang slots. First, `str_type` is bound to `rok::core::str::str`, a lowercase struct that is a language built-in. Second, `char_type` is the built-in `char`, whose methods this chapter defines. Third, `cchar_type` is bound to `rok::core::str::c_char`, likewise a language built-in.
 
-## 2.15.1. String model — immutable `str` and mutable `StrBuf`
+## 2.15.1. String model - immutable `str` and mutable `StrBuf`
 
 `str` is an immutable UTF-8 string value; the mutable buffer for building strings is the separate type `StrBuf`.
 
 | Type     | Meaning                                            | Memory representation        | Mutability          |
 |----------|----------------------------------------------------|------------------------------|---------------------|
-| `str`    | UTF-8 string value                                 | `(ptr, len)` value — bytes are an immortal constant or a GC object | **immutable** |
+| `str`    | UTF-8 string value                                 | `(ptr, len)` value - bytes are an immortal constant or a GC object | **immutable** |
 | `StrBuf` | growable UTF-8 buffer                              | GC heap object               | mutable             |
-| `char`   | Unicode scalar value (PascalCase struct + keyword) | 4B (u32)                     | (value — cannot change) |
-| `c_char` | C ABI 1-byte char (FFI primitive)                  | 1B (i8 or u8 — target-dependent) | (value)         |
+| `char`   | Unicode scalar value (PascalCase struct + keyword) | 4B (u32)                     | (value - cannot change) |
+| `c_char` | C ABI 1-byte char (FFI primitive)                  | 1B (i8 or u8 - target-dependent) | (value)         |
 
 ### Rust / Python / rok model comparison
 
@@ -27,7 +27,7 @@ How the three languages handle strings:
 
 rok's `str` is close to Python's immutable `str` in needing no lifetime tracking, and is represented like Rust's `&str` as a `(ptr, len)` pair. The bytes of strings created at runtime live in a GC object (type id `1`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-runtime-reserved-type-ids)).
 
-## 2.15.2. `str` — immutable UTF-8 string
+## 2.15.2. `str` - immutable UTF-8 string
 
 ```rok
 #[lang("str_type")]
@@ -77,13 +77,13 @@ impl str {
     fn trim_start(self) -> str;
     fn trim_end(self) -> str;
 
-    fn to_lowercase(self) -> str;           // new str (full Unicode mapping — 1:N, including context rules)
+    fn to_lowercase(self) -> str;           // new str (full Unicode mapping - 1:N, including context rules)
     fn to_uppercase(self) -> str;
     fn replace(self, from: str, to: str) -> str;   // empty from matches at every char boundary: "ab".replace("", "-") == "-a-b-"
 
     fn parse<T: FromStr>(self) throws (T::Err) -> T;
 
-    // UTF-8-safe slicing — validates byte boundaries
+    // UTF-8-safe slicing - validates byte boundaries
     // (the s[a:b] desugaring dispatches to this method)
     fn slice(self, range: Range<usize>) -> str;        // same as s[a:b], shares bytes
 }
@@ -91,12 +91,12 @@ impl str {
 
 `as_ptr` returns a pointer to the string's bytes in place. The GC does not move the string, and the pointer stays valid, while a variable holding the `str` is in scope in a function where a pointer value can appear: a variable's or an expression's type names a `rok::bare::ptr` type, also as a type argument (`List<ConstPtr<u8>>`) or in a function type. In a generator or `async` body this holds across `yield` / `await`. Elsewhere a variable holds the string only up to its last use, and a string reachable only through another object may be moved by the GC: it is not pinned ([stdlib 1.6](../100-bare/106-gc-pin.md)). To keep the bytes in place longer, pin the string ([1.6.6](../100-bare/106-gc-pin.md#166-extraction-methods)).
 
-### `StrBuf` — mutable buffer
+### `StrBuf` - mutable buffer
 
 Use `StrBuf` to build a string piece by piece.
 
 ```rok
-struct StrBuf { /* GC heap — ptr / len / capacity */ }
+struct StrBuf { /* GC heap - ptr / len / capacity */ }
 
 impl StrBuf {
     fn new() -> StrBuf;
@@ -118,7 +118,7 @@ for x in xs {
 let s: str = buf.to_str();
 ```
 
-### String literals — `"hello"`
+### String literals - `"hello"`
 
 ```rok
 let s: str = "hello";        // a str pointing to immortal constant bytes
@@ -139,8 +139,8 @@ A `"hello"` literal lowers to a `str` value pointing to constant bytes in the im
 | `PartialOrd`                | ✓                              | lexicographic by byte                      |
 | `Ord`                       | ✓                              |                                            |
 | `Hash`                      | ✓                              |                                            |
-| `IntoIterator`              | **none**                       | explicit `.chars()` — avoids byte vs char ambiguity |
-| `Add<str>` (`s + t`)        | ✓ → str (concat — new str)     |                                            |
+| `IntoIterator`              | **none**                       | explicit `.chars()` - avoids byte vs char ambiguity |
+| `Add<str>` (`s + t`)        | ✓ → str (concat - new str)     |                                            |
 | `AddAssign<str>` (`s += t`) | ✓ → `s = s + t` (replaced by a new str) |                                   |
 | `FromIterator<char>`        | ✓                              | `(chars).collect::<str>()`                 |
 | `FromIterator<str>`         | ✓                              | `(strs).collect::<str>()`                  |
@@ -148,15 +148,15 @@ A `"hello"` literal lowers to a `str` value pointing to constant bytes in the im
 > [!NOTE]
 > `str` is an immutable value, so `let t = s;` only copies `(ptr, len)`, and neither side can change the contents.
 
-## 2.15.3. `s[a:b]` slicing — UTF-8 safe
+## 2.15.3. `s[a:b]` slicing - UTF-8 safe
 
 ```rok
 let s: str = "hello, 세계!";
-s.len();                       //→ 14  (byte length — "hello, " 7 + Korean 3 bytes × 2 + "!" 1)
+s.len();                       //→ 14  (byte length - "hello, " 7 + Korean 3 bytes × 2 + "!" 1)
 s.chars().count();             //→ 10  (char count)
 
 let s2 = s[7:13];              //→ "세계"  (byte boundary OK)
-let s3 = s[8:9];               // panic — byte in the middle of a UTF-8 sequence
+let s3 = s[8:9];               // panic - byte in the middle of a UTF-8 sequence
 let s4 = s[7:100];             //→ "세계!" (end clamped to the length)
 let s5 = s[-1:];               //→ "!"
 ```
@@ -167,7 +167,7 @@ The bounds of `str` / `StrBuf` are byte offsets. Bounds are first clamped as in 
 
 ```rok
 let s: str = "hello";
-let c = s[0];                  // ERROR — `Index<usize>` is not defined
+let c = s[0];                  // ERROR - `Index<usize>` is not defined
                                //         reason: byte vs char ambiguity + UTF-8 safety
 ```
 
@@ -177,7 +177,7 @@ The intent must be stated explicitly, as in `s.chars().next()` or `s.byte(0)`.
 
 For a `str` `s`, the results of `s[a:b]`, `lines`, `split*`, `split_whitespace`, `split_once`, `trim*` and `strip_*` are `str` values sharing the original bytes, in O(1) ([refs-lang 8.8.1](../../refs-lang/008-abi/808-lowering-types.md#881-primitive-integers--floating-point)). A small piece therefore keeps a large original alive. There is no API to detach it. `as_bytes()` is likewise a read-only `Slice<u8>` view without copying. A slice of a `StrBuf` is a new `str` holding a copy of the range, O(b − a): `str` is immutable, so it cannot share a buffer that may still change.
 
-## 2.15.4. `char` — Unicode scalar value
+## 2.15.4. `char` - Unicode scalar value
 
 `char` is a language built-in type ([2.1](201-numbers.md)): a 4-byte Unicode scalar value, not a struct. This module defines its methods.
 
@@ -201,7 +201,7 @@ e.len_utf8();                        //→ 4
 ```rok
 impl char {
     fn from_u32(n: u32) -> char | none;                  // none for a surrogate / out of range
-    unsafe fn from_u32_unchecked(n: u32) -> char;        // no check — the caller guarantees a scalar value
+    unsafe fn from_u32_unchecked(n: u32) -> char;        // no check - the caller guarantees a scalar value
     fn from_digit(d: u32, radix: u32) -> char;           // panics if d >= radix or radix is outside 2..=36
     fn to_digit(self, radix: u32) throws (ValueError) -> u32;
     fn is_digit(self, radix: u32) -> bool;
@@ -238,21 +238,21 @@ The Unicode property and case tables are UCD 18.0.0.
 ### Conversion
 
 ```rok
-char::from_u32(0x41);                //→ 'A' (char | none — none for a surrogate)
+char::from_u32(0x41);                //→ 'A' (char | none - none for a surrogate)
 char::from_digit(5, 10);             //→ '5'
 
 let n: u32 = c as u32;               //→ 65 (lossless)
-let c2: char = n as char;            //→ ERROR — only u8 can `as char`
+let c2: char = n as char;            //→ ERROR - only u8 can `as char`
 let b: u8 = 0x41;
 let c4: char = b as char;            //→ 'A' (a u8 is always a scalar value)
-let c3 = try char::try_from(n);      //→ char (TryFrom<u32> — via from_u32, OverflowError if none)
+let c3 = try char::try_from(n);      //→ char (TryFrom<u32> - via from_u32, OverflowError if none)
 ```
 
 ### Trait implementations
 
 `char` implements every cmp / fmt trait as well as `Copy`, `Clone` and `Hash`. The niche applies automatically, so `char | none` is 4B.
 
-## 2.15.5. `c_char` — C ABI 1-byte (language built-in)
+## 2.15.5. `c_char` - C ABI 1-byte (language built-in)
 
 ```rok
 #[lang("cchar_type")]
@@ -275,7 +275,7 @@ extern "C" {
 ### Literals
 
 ```rok
-let c: c_char = c'A';        //→ 65 (i8/u8 — target-dependent)
+let c: c_char = c'A';        //→ 65 (i8/u8 - target-dependent)
 let n: c_char = c'\n';       //→ 10
 ```
 
@@ -297,7 +297,7 @@ Comparing the two types makes the difference clear.
 
 Standard library functions therefore use **`char` first** as a rule, and `c_char` only at explicit FFI boundaries.
 
-## 2.15.6. UTF-8 invariant — every in-process string
+## 2.15.6. UTF-8 invariant - every in-process string
 
 A `str` is always guaranteed to be valid UTF-8, for these reasons. Constructors validate: `str::from_utf8(bytes)` throws `Utf8Error` on an invalid byte sequence (`throws (Utf8Error)`). Slicing validates byte boundaries and rejects positions in the middle of a multibyte sequence. In-place modifications such as `push` or `insert` also preserve UTF-8 integrity. Only `rok::bare::str_from_bytes_unchecked` can bypass validation, and it belongs to the unsafe tier.
 
@@ -321,7 +321,7 @@ let s: str = try str::from_utf8(invalid);
 
 `str::from_utf8_lossy(bytes)` never throws: each maximal subpart of an ill-formed sequence (Unicode §3.9, U+FFFD Substitution of Maximal Subparts; the WHATWG UTF-8 decoder's behavior) becomes one U+FFFD.
 
-## 2.15.7. `FromStr` trait — parsing
+## 2.15.7. `FromStr` trait - parsing
 
 ```rok
 trait FromStr {

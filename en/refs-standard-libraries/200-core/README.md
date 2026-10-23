@@ -25,7 +25,7 @@ use rok::core::ops::{Add, Sub};
 
 > [!NOTE]
 > rok has **no separate `rok::core::prelude` module**. The `**` recursive glob itself serves
-> as the prelude — no extra indirection.
+> as the prelude - no extra indirection.
 
 The full policy is covered in [0.2 Import policy](../000-meta/002-import.md).
 
@@ -72,14 +72,14 @@ The modules provided by the rok tier, grouped by area:
 ### Concurrency / async
 
 - [2.16. Sync primitives (`Atomic`, `Mutex`, `RwLock`, `Cell`)](216-sync.md)
-- [2.17. `Channel` — message passing](217-channel.md)
-- [2.18. `task::` — M:N scheduler task API](218-task.md)
-- [2.19. `par::` — parallel processing API](219-par.md)
+- [2.17. `Channel` - message passing](217-channel.md)
+- [2.18. `task::` - M:N scheduler task API](218-task.md)
+- [2.19. `par::` - parallel processing API](219-par.md)
 - [2.20. `Future` / `await` integration](220-future.md)
 
 ### Cryptography
 
-- [2.21. `crypto::` — hashes, MACs, AEADs, key exchange, signatures](221-crypto.md)
+- [2.21. `crypto::` - hashes, MACs, AEADs, key exchange, signatures](221-crypto.md)
 
 > [!NOTE]
 > Scientific computing areas such as tensors, automatic differentiation, SIMD and GPU are not part of the rok tier; they are split out into **external libraries**. External libraries can access MLIR dialects directly through the [`rok::bare::mlir`](../100-bare/) module.
@@ -90,7 +90,7 @@ The design of the rok tier follows four axes.
 
 First, traits come first. Every semantic decision is made by trait method dispatch: `+` resolves to `Add::add`, and `[i]` indexing resolves to `Index::index`.
 
-Second, conversions are explicit. A conversion that may lose information, such as `i64 → i32`, is rejected with a compile or runtime error, and policies such as saturate or wrap must be stated per operation (refs-standard-libraries 0.x — conversion policy).
+Second, conversions are explicit. A conversion that may lose information, such as `i64 → i32`, is rejected with a compile or runtime error, and policies such as saturate or wrap must be stated per operation (refs-standard-libraries 0.x - conversion policy).
 
 Third, the tier aims to be **GC-friendly**. Collections and concurrency objects are managed by the GC, and `drop` of external resources is called only in `using` blocks.
 

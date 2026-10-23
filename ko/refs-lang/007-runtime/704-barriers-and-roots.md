@@ -51,6 +51,7 @@ safepoint 를 넘어 살아 있는 지역 변수만 root 가 필요합니다.
 1. 진입 시 GC 참조 word 들을 0 으로 채웁니다.
 2. 기계 스택에 `ShadowFrame` 을 잡습니다. 함수를 지나는 각 경로의 첫 safepoint 앞에서 `slots` 에 그 word 들의 주소를 기록하고, `prev` 에 현재 `rok_tls_shadow_stack_top` 을 저장한 뒤 머리를 이 frame 으로 바꿉니다 (link). link 는 더 일찍, 함수 진입까지 당겨도 됩니다. 경로가 합쳐지는 곳에서는 모든 경로가 link 했거나 어느 경로도 하지 않았어야 합니다. safepoint 에 닿지 않는 경로는 link 하지 않아도 됩니다.
 3. frame 을 link 한 경로의 모든 `return` 직전에 머리를 `prev` 로 되돌립니다 (unlink). 에러 반환도 일반 `return` 이므로 같은 경로를 지납니다. panic 은 프로세스를 끝내므로 unlink 가 필요 없습니다.
+4. back-edge poll ([8.4.8](../008-abi/804-safepoint.md#848-loop-back-edge-poll)) 만 넘어 살아 있고 다른 safepoint 는 넘지 않는 지역 변수는 poll 의 slow path 에서만 등록해도 됩니다. 이때는 두 번째 frame 을 쓰며, slow path 가 런타임을 호출하기 직전에 그 frame 의 word 들을 쓰고 (죽은 변수는 null) frame 을 link 한 뒤, 호출 직후 unlink 합니다. 이런 word 는 다른 곳에서 쓰지 않습니다. 그 경로에서 아직 link 되지 않은 규칙 2 의 frame 도 함께 link 하고 unlink 합니다. 이는 한 가지 규칙에 기댑니다. 스레드는 컴파일러가 세는 safepoint (호출, 할당, 진입 poll) 나 back-edge poll 에서만 수집을 위해 멈춥니다. 그래서 safepoint 가 아닌 런타임 함수 ([8.5.2](../008-abi/805-extern-symbols.md#safepoint-가-아닌-함수)) 는 멈춤을 기다려서는 안 됩니다. 할당하지도, block 하지도, poll 하지도 않습니다.
 
 변수가 더 이상 쓰이지 않게 되면 (liveness 기준), 그 root 슬롯이 가리키는 word 를 null 로 지워도 됩니다. 그 word 를 다시 읽지 않는 한 의미는 바뀌지 않으며, frame 이 죽은 객체를 붙잡아 두지 않게 됩니다.
 

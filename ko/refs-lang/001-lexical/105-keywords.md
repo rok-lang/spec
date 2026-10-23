@@ -60,7 +60,7 @@ true      false     none      self      Self
 let type = 1;                       // 식별자
 type Pair = (i32, i32);             // 타입 별칭 (항목 시작 + 식별자 + =)
 let in = 3;  for x in xs { }        // 식별자 / for 의 in
-fn catch(e: str) { }                // 식별자 — 식 뒤가 아님
+fn catch(e: str) { }                // 식별자 - 식 뒤가 아님
 ```
 
 사용자가 `any` 라는 이름의 타입을 선언하면 컴파일 에러입니다 (`struct any { }`). 타입 자리의 `any` 와 구분할 수 없기 때문입니다.
@@ -78,9 +78,9 @@ trait Sub { fn sub(self, rhs: Self) -> Self; }  // 일반 위치에서: 식별�
 
 세 단어는 경로의 첫 토큰이고 바로 뒤에 `::` 가 오면 항상 경로 루트입니다 ([5.7 경로](../005-modules/507-paths.md)). 그 밖의 위치에서는 일반 식별자입니다.
 
-- `pkg::xxx` — 현재 패키지 루트부터
-- `sup::xxx` — 부모 모듈부터
-- `rok::xxx` — 표준 라이브러리 가상 네임스페이스 (`rok::core`, `rok::bare`, `rok::std`, [0.5 표준 라이브러리 계층](../000-meta/005-standard-libraries-tiers.md))
+- `pkg::xxx` - 현재 패키지 루트부터
+- `sup::xxx` - 부모 모듈부터
+- `rok::xxx` - 표준 라이브러리 가상 네임스페이스 (`rok::core`, `rok::bare`, `rok::std`, [0.5 표준 라이브러리 계층](../000-meta/005-standard-libraries-tiers.md))
 
 `pkg::name` 이 언제나 루트로 해석되므로, 세 단어를 모듈이나 타입 (`struct`, `enum`, `union`, `trait`, 타입 별칭, `mod`) 의 이름으로 쓰면 컴파일 에러입니다. 변수, 함수, 필드, 메서드 이름으로는 쓸 수 있습니다.
 
@@ -88,8 +88,8 @@ trait Sub { fn sub(self, rhs: Self) -> Self; }  // 일반 위치에서: 식별�
 let rok = 42;                   // 변수 이름 OK
 fn sup() { }                    // 함수 이름 OK
 self.rok                        // 필드 / 멤버 이름 OK
-mod rok { ... }                 // ERROR — 모듈 이름으로 쓸 수 없음
-struct pkg { }                  // ERROR — 타입 이름으로 쓸 수 없음
+mod rok { ... }                 // ERROR - 모듈 이름으로 쓸 수 없음
+struct pkg { }                  // ERROR - 타입 이름으로 쓸 수 없음
 rok::core::iter::Iterator       // 경로 루트
 ```
 
@@ -105,8 +105,8 @@ rok::core::iter::Iterator       // 경로 루트
 `self` 는 예외로, 이 자리에서도 식별자가 될 수 없습니다. raw 식별자 (Rust 의 `r#fn`) 는 여전히 두지 않습니다 ([1.4.4](104-identifiers.md#144-키워드와의-충돌)).
 
 ```rok
-struct Token { type: Kind; for: str; }   // 필드 이름 — OK
-let k = tok.type;                         // . 뒤 — OK
-make(type: Kind::Ident);                  // 이름 있는 인자 (문맥 키워드) — OK
-struct S { self: i32; }                   // ERROR — self 는 예외
+struct Token { type: Kind; for: str; }   // 필드 이름 - OK
+let k = tok.type;                         // . 뒤 - OK
+make(type: Kind::Ident);                  // 이름 있는 인자 (문맥 키워드) - OK
+struct S { self: i32; }                   // ERROR - self 는 예외
 ```

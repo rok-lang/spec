@@ -2,7 +2,7 @@
 
 **English** · [한국어](../ko/README.md)
 
-> **Status** — active draft. The specification is published in two editions: English (`en/`, the default) and Korean ([`ko/`](../ko/README.md)). Both cover the same content with the same section numbers.
+> **Status** - active draft. The specification is published in two editions: English (`en/`, the default) and Korean ([`ko/`](../ko/README.md)). Both cover the same content with the same section numbers.
 
 rok is a programming language, and this repository is its formal specification. Starting from lexical structure and the type system, it defines every layer of the language in one place: expressions, the runtime model, the ABI, and the tools that accompany the specification. The compiler and the standard library implementation live in a separate repository; this one holds only the normative answer to the question "what is rok".
 
@@ -13,6 +13,7 @@ Designed and maintained by [Han Damin](https://github.com/miniex) (`@miniex`).
 | GitHub organization  | [rok-lang](https://github.com/rok-lang)                 |
 | Spec repository      | <https://github.com/rok-lang/spec>                      |
 | Website              | <https://rok-lang.org>                                  |
+| Docs                 | <https://docs.rok-lang.org>                             |
 | stone registry       | <https://rokstones.io>                                  |
 | Registry index       | <https://github.com/rok-lang/rokstones.io-index>        |
 
@@ -27,14 +28,14 @@ A language born of a personal motive needs principles it can fall back on at eve
 > [!IMPORTANT]
 > **"A small language, a rich library."**
 
-The first principle is a promise about the size of the specification. The rok specification defines as little as possible. Almost everything that shapes how the language *feels* — numeric semantics, conversions, collections, I/O, concurrency — lives in the standard library. A small core is easier to evolve, verify and teach; the weight of each domain is carried by a rich library instead.
+The first principle is a promise about the size of the specification. The rok specification defines as little as possible. Almost everything that shapes how the language *feels* - numeric semantics, conversions, collections, I/O, concurrency - lives in the standard library. A small core is easier to evolve, verify and teach; the weight of each domain is carried by a rich library instead.
 
 > [!IMPORTANT]
 > **"Freedom within control."**
 
-The second principle concerns the relation between freedom and constraint. rok does not avoid constraints. Static types, closed sum types, the trait-as-type ban, no implicit promotion, AOT-only compilation — each of these decisions deliberately narrows the paths a user can take. Within that narrower space, code becomes predictable and can be controlled in depth.
+The second principle concerns the relation between freedom and constraint. rok does not avoid constraints. Static types, closed sum types, the trait-as-type ban, no implicit promotion, AOT-only compilation - each of these decisions deliberately narrows the paths a user can take. Within that narrower space, code becomes predictable and can be controlled in depth.
 
-The line between control and freedom is clear. What can be decided once and need not be decided again on every line — types, dispatch, the memory model, evaluation order — the language decides, all at once. What necessarily differs from person to person — library design, domain modeling, algorithms, code structure — is left to the user, and the meta-system lets the language extend itself so that libraries can decide meaning.
+The line between control and freedom is clear. What can be decided once and need not be decided again on every line - types, dispatch, the memory model, evaluation order - the language decides, all at once. What necessarily differs from person to person - library design, domain modeling, algorithms, code structure - is left to the user, and the meta-system lets the language extend itself so that libraries can decide meaning.
 
 Freedom and control are therefore not opposites. rok's position is that a free area survives safely only on top of a well-controlled core. The full discussion of both slogans continues in [`refs-lang/000-meta/`](refs-lang/000-meta/).
 
@@ -42,8 +43,8 @@ Freedom and control are therefore not opposites. rok's position is that a free a
 
 The repository has a fixed shape. Top-level directories are per language edition, and each edition holds two references:
 
-- [`refs-lang/`](refs-lang/) — the language reference: lexical structure, types, expressions, the runtime model, the ABI, tools.
-- [`refs-standard-libraries/`](refs-standard-libraries/) — the standard library reference.
+- [`refs-lang/`](refs-lang/) - the language reference: lexical structure, types, expressions, the runtime model, the ABI, tools.
+- [`refs-standard-libraries/`](refs-standard-libraries/) - the standard library reference.
 
 Every edition follows this structure: `en/refs-lang/`, `ko/refs-lang/`, and so on, with the same files and the same section numbers.
 
@@ -51,8 +52,8 @@ Every edition follows this structure: `en/refs-lang/`, `ko/refs-lang/`, and so o
 
 The specification exists in two language editions:
 
-- **English** (`en/`) — the default edition.
-- **한국어** ([`ko/`](../ko/README.md)) — Korean.
+- **English** (`en/`) - the default edition.
+- **한국어** ([`ko/`](../ko/README.md)) - Korean.
 
 Both editions use the same file layout and section numbering (`3.11.4`), so a section number names the same rule in either. If the two editions disagree, the English text is the reference, and the discrepancy is a bug to be fixed in both.
 

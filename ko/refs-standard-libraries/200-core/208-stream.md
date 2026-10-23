@@ -1,10 +1,10 @@
-# 2.8. stream — async iterator
+# 2.8. stream - async iterator
 
 `rok::core::stream` 모듈은 async 단계 진행 트레잇 `Stream` (원소 타입은 associated type `Item`) 을 정의합니다. [2.7 iter](207-iter.md) 의 `Iterator` 가 **sync** 인 반면, `Stream` 은 **async** 이며, 각 `next()` 호출이 **await 가능** 하다는 점에서 차이가 납니다.
 
 또한 이 모듈은 `for await x in stream` 의 desugar 권위를 가지며, 해당 구문은 이 장에서 정의하는 트레잇으로 dispatch 됩니다.
 
-## 2.8.1. `Stream` — async 단계 진행
+## 2.8.1. `Stream` - async 단계 진행
 
 먼저 트레잇 정의는 다음과 같습니다.
 
@@ -41,7 +41,7 @@ loop {
 
 이 구조는 [2.7.2 for desugar](207-iter.md) 의 sync 버전과 동형이며, 단지 `await` 만 추가된 형태입니다.
 
-## 2.8.3. `IntoStream` — async iterable
+## 2.8.3. `IntoStream` - async iterable
 
 이어서 async iterable 을 표현하는 트레잇을 살펴봅니다.
 
@@ -74,7 +74,7 @@ for await event in event_source { ... }
 //   }
 ```
 
-## 2.8.4. `async yield` — Stream 생성
+## 2.8.4. `async yield` - Stream 생성
 
 Stream 을 직접 생성하는 가장 자연스러운 방법은 `async yield` 함수를 작성하는 것입니다.
 
@@ -123,7 +123,7 @@ trait Stream {
 
 이 가운데 `buffer_unordered(n)` 와 `buffered(n)` 는 N개의 future 를 동시에 처리하는 concurrency control 수단으로 동작합니다.
 
-## 2.8.6. `FromStream<T>` — `collect` 의 dispatch
+## 2.8.6. `FromStream<T>` - `collect` 의 dispatch
 
 `collect` 의 dispatch 를 담당하는 트레잇은 `FromStream<T>` 입니다. [2.7 iter](207-iter.md) 의 `FromIterator<T>` 에 대응하는 async 버전이며, 트레잇 시그니처도 같은 형태를 따르되 `from_stream` 이 await 가능한 형태로 동작합니다.
 
@@ -178,7 +178,7 @@ fn select<S1: Stream, S2: Stream>(a: S1, b: S2) -> Select<S1, S2>;  // Stream<It
 > [!NOTE]
 > `select` 는 `task::select` 와 이름이 같습니다. 묵시 `use rok::core::**;` 아래에서 맨 이름은 모호하므로 ([refs-lang 5.5.6](../../refs-lang/005-modules/505-use.md#556-glob--재귀-glob-의-충돌)), `stream::select` 로 적거나 import 합니다.
 
-## 2.8.8a. `AsyncStream<T>` / `TryAsyncStream<T, E>` — 비동기 스트림의 값
+## 2.8.8a. `AsyncStream<T>` / `TryAsyncStream<T, E>` - 비동기 스트림의 값
 
 `async yield fn` 호출과 `async yield { .. }` 블록의 값입니다 ([refs-lang 4.1.11](../../refs-lang/004-functions/401-function-declaration.md#코루틴-함수의-결과-타입)).
 

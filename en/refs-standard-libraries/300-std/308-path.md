@@ -1,8 +1,8 @@
-# 3.8. `path::` — UTF-8 Path (Python-style)
+# 3.8. `path::` - UTF-8 Path (Python-style)
 
 The `rok::std::path` module defines path representation. The key point is that it puts a UTF-8 newtype first, to avoid the ergonomic burden of Rust's split between `Path` and `OsStr` while adopting the intuitiveness of Python's `pathlib.Path`.
 
-## 3.8.1. Two types — `Path` / `RawPath`
+## 3.8.1. Two types - `Path` / `RawPath`
 
 rok's path representation is split into two types.
 
@@ -13,7 +13,7 @@ rok's path representation is split into two types.
 
 Most code needs only `Path`. `RawPath` is needed only where legacy bytes are truly required, such as when dealing with old unix systems.
 
-## 3.8.2. `Path` — UTF-8
+## 3.8.2. `Path` - UTF-8
 
 `Path` is an immutable value. `join`, `/` and `with_*` all return a new `Path`; there is no `PathBuf` / `push` that modifies a path in place. `p /= q` is `p = p / q` under the ordinary compound assignment rule.
 
@@ -48,7 +48,7 @@ impl Path {
     fn ends_with(self, suffix: Path) -> bool;
     fn normalize(self) -> Path;             // resolve "." / ".." (lexical)
 
-    // OS interaction (convenience — fs::* internally)
+    // OS interaction (convenience - fs::* internally)
     fn exists(self) -> bool;
     fn is_file(self) -> bool;
     fn is_dir(self) -> bool;
@@ -69,7 +69,7 @@ enum Component {
 }
 ```
 
-## 3.8.3. The `/` operator — Python pathlib style
+## 3.8.3. The `/` operator - Python pathlib style
 
 The `/` operator is introduced to make path joining more readable.
 
@@ -96,7 +96,7 @@ let home = env::home_dir()? / ".config" / "myapp" / "settings.toml";
 
 This provides **the same ergonomics** as Python's `Path("/etc") / "nginx" / "nginx.conf"`, and avoids the verbosity of Rust's `PathBuf::join` and `push`.
 
-## 3.8.3a. `AsPath` — path arguments
+## 3.8.3a. `AsPath` - path arguments
 
 ```rok
 trait AsPath {
@@ -124,9 +124,9 @@ let p: Path = try Path::try_from(raw);    // throws NonUtf8Error if not UTF-8
 let q: Path = try raw.try_into();          // same
 ```
 
-This conversion is `impl TryFrom<RawPath> for Path { type Error = NonUtf8Error; ... }` ([2.11.4](../200-core/211-conversion.md#2114-tryfromu-trait--fallible-conversion)).
+This conversion is `impl TryFrom<RawPath> for Path { type Error = NonUtf8Error; ... }` ([2.11.4](../200-core/211-conversion.md#2114-tryfromu-trait---fallible-conversion)).
 
-## 3.8.5. `RawPath` — bytes / WTF-16
+## 3.8.5. `RawPath` - bytes / WTF-16
 
 `RawPath` exists for places that need the OS's native representation as is.
 
@@ -172,7 +172,7 @@ try Path::from("/a/b/../c").canonicalize();       //→ absolute path with symli
 ```rok
 let dir: Dir = try Dir::root().open_dir("data");
 let f = try dir.open(Path::from("config.toml"));
-                                          // Path is relative to dir — escape rejected
+                                          // Path is relative to dir - escape rejected
 ```
 
 The capability model is covered in detail in [3.1 fs](301-fs.md).

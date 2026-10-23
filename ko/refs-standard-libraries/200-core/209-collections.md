@@ -1,4 +1,4 @@
-# 2.9. 컬렉션 — `List` / `Dict` / `Set` / `Tuple` / `Slice`
+# 2.9. 컬렉션 - `List` / `Dict` / `Set` / `Tuple` / `Slice`
 
 `rok::core::collections` 모듈은 범용 컨테이너를 제공합니다. 모든 컬렉션은 GC heap 에 할당되며, `#[literal(...)]` 로 바인딩된 리터럴 문법을 통해 직접 생성할 수 있습니다.
 
@@ -14,7 +14,7 @@
 | `Tuple<...>`        | `(1, "a", true)`           | 고정 크기 heterogeneous       |
 | `Slice<T>`          | `xs[1:3]`                  | 컨테이너의 zero-copy view     |
 
-## 2.9.1. 리터럴 문법 — `#[literal(query)]` 바인딩
+## 2.9.1. 리터럴 문법 - `#[literal(query)]` 바인딩
 
 리터럴 문법은 [refs-lang 6.5 `#[literal]`](../../refs-lang/006-meta-system/605-literal-magic.md) 의 **query DSL** 로 다음과 같이 정의됩니다.
 
@@ -37,11 +37,11 @@ struct Tuple { /* ... */ }
 ### Dict / Set 모호성 해결
 
 ```rok
-{"a": 1}      // Dict — `:` 패턴
-{1, 2}        // Set — 값만
-{1,}          // Set (단일 원소 — 후행 콤마)
-{1}           // 항상 block — 슬롯이 Set 이어도 마찬가지
-{ x = 1 }     // block expression — `{` 다음 토큰이 statement-like
+{"a": 1}      // Dict - `:` 패턴
+{1, 2}        // Set - 값만
+{1,}          // Set (단일 원소 - 후행 콤마)
+{1}           // 항상 block - 슬롯이 Set 이어도 마찬가지
+{ x = 1 }     // block expression - `{` 다음 토큰이 statement-like
 ```
 
 parser 가 내용만 보고 결정합니다. `expr ":"` 형태이면 Dict, 콤마가 있으면 Set, 그 밖에는 block 입니다. 받는 슬롯의 타입은 판정에 쓰지 않습니다.
@@ -63,7 +63,7 @@ a < [1, 2, 4];           //→ true (사전식)
 
 `List`, `Dict`, `Set` 값은 GC heap 객체를 가리키는 참조 핸들입니다. `let ys = xs;` 나 인자 전달은 핸들을 복사하므로 같은 컬렉션을 공유합니다. 그래서 컬렉션을 바꾸는 메서드도 `ref self` 가 아니라 `self` 를 받습니다. 독립된 사본이 필요하면 `clone()` 을 부릅니다. 구조체 원소는 값입니다: `xs[i]` 와 `d[k]` 는 사본을 돌려주고, 변경은 `xs[i] = v` 로 저장합니다 ([refs-lang 2.3.8](../../refs-lang/002-types/203-struct.md#238-값-의미)). `keys` / `values` / `entries` 는 컬렉션을 복사하지 않는 lazy iterator 를 돌려줍니다.
 
-## 2.9.2. `List<T>` — 동적 배열
+## 2.9.2. `List<T>` - 동적 배열
 
 ```rok
 struct List<T> {
@@ -92,7 +92,7 @@ impl<T> List<T> {
     fn truncate(self, len: usize);              // 앞의 len 개만 남김; 더 적으면 그대로
     fn drain(self, r: Range<usize>) -> List<T>; // r 의 원소를 순서대로 빼서 돌려줌; r 이 거꾸로이거나 len() 을 넘어 끝나면 panic
 
-    fn get(self, idx: usize) -> T | none;       // safe — out-of-bounds → none
+    fn get(self, idx: usize) -> T | none;       // safe - out-of-bounds → none
     fn first(self) -> T | none;
     fn last(self) -> T | none;
 
@@ -153,19 +153,19 @@ let total: i32 = ys.into_iter().sum();   //→ 60
 | `PartialEq`           | `T: PartialEq`      | element-wise                    |
 | `Eq`/`Ord`/`Hash`     | T 의 같은 트레잇 시 | lexicographic                   |
 
-### 비교 / 해시 / Debug — 공통 규칙
+### 비교 / 해시 / Debug - 공통 규칙
 
 - `List<T>` 는 `PartialEq` / `Eq` / `Hash` 를 순서대로 원소별로 구현합니다.
 - `Dict<K, V>` 와 `Set<T>` 는 순서와 무관하게 비교하고 해시합니다. 같은 원소 (키와 값) 를 가지면 같습니다.
 - 세 컬렉션 모두 원소가 그 트레잇을 구현하면 `Debug` 를 구현하며, 순회 순서대로 출력합니다.
 - 따라서 원소가 `Eq + Hash` 인 컬렉션은 `Set` 원소나 `Dict` 키가 될 수 있습니다 (`Set<List<i32>>`).
 
-### 용량과 제거 — 공통 규칙
+### 용량과 제거 - 공통 규칙
 
 - `reserve`, `with_capacity`, `repeat`, 확장에서 크기가 overflow 하면 최적화 수준과 무관하게 "capacity overflow" 로 panic 합니다.
 - 원소를 빼면 (`pop`, `remove`, `clear`, `truncate`, `drain` 등) 참조도 놓습니다. GC 는 그 컬렉션을 통해 더 이상 그 원소를 보지 않습니다.
 
-## 2.9.3. `Dict<K, V>` — hash map
+## 2.9.3. `Dict<K, V>` - hash map
 
 ```rok
 struct Dict<K: Hash + Eq, V> {
@@ -223,7 +223,7 @@ for w in words {
 ```rok
 let d: Dict<str, i32> = {"a": 1, "b": 2};
 d["a"];                   //→ 1
-d["c"];                   //→ panic (IndexError — 키 없음)
+d["c"];                   //→ panic (IndexError - 키 없음)
 d.get("c");               //→ none
 
 d.insert("c", 3);
@@ -251,7 +251,7 @@ impl<K: Hash + Eq, V> Index<K> for Dict<K, V> {
 
 `keys` / `values` / `entries` 는 사본이 아니라 현재 table 을 그대로 보는 lazy view 입니다. 순회 도중 dict 를 바꾸면 결과는 정해지지 않지만 (원소를 빠뜨리거나 두 번 볼 수 있음), 메모리 안전성은 지켜집니다.
 
-## 2.9.4. `Set<T>` — hash set
+## 2.9.4. `Set<T>` - hash set
 
 ```rok
 struct Set<T: Hash + Eq> {
@@ -293,7 +293,7 @@ let u = a.union(b);       //→ {1, 2, 3, 4}
 let i = a.intersection(b);//→ {2, 3}
 ```
 
-## 2.9.5. `OrderedDict<K, V>` / `OrderedSet<T>` — insertion-order
+## 2.9.5. `OrderedDict<K, V>` / `OrderedSet<T>` - insertion-order
 
 이들은 `Dict` / `Set` 와 동일한 API 를 제공하면서도 **insertion-order 를 보존**한다는 점이 특징이며, Python 3.7+ 의 `dict` 나 Java 의 LinkedHashMap 과 동등한 의미를 가집니다.
 
@@ -317,7 +317,7 @@ let d = OrderedDict::from([("a", 1), ("b", 2)]);
 let s = OrderedSet::from([1, 2, 3]);
 ```
 
-## 2.9.5a. `Deque<T>` — 양끝 큐
+## 2.9.5a. `Deque<T>` - 양끝 큐
 
 ring buffer 위의 양끝 큐입니다.
 
@@ -341,7 +341,7 @@ impl<T> Deque<T> {
 
 `d[i]` / `d[i] = v` (범위 밖이면 panic), `IntoIterator`, `Default`, `Debug` 를 구현합니다.
 
-## 2.9.5b. `BinaryHeap<T>` — 우선순위 큐
+## 2.9.5b. `BinaryHeap<T>` - 우선순위 큐
 
 ```rok
 impl<T: Ord> BinaryHeap<T> {
@@ -360,7 +360,7 @@ impl<T> BinaryHeap<T> {
 }
 ```
 
-## 2.9.6. `Tuple<...>` — 고정 heterogeneous
+## 2.9.6. `Tuple<...>` - 고정 heterogeneous
 
 ```rok
 #[literal( "(" expr "," {expr} % "," * ")" )]
@@ -410,7 +410,7 @@ fn divmod(a: i32, b: i32) -> (i32, i32) {
 let (q, r) = divmod(17, 5);     //→ q = 3, r = 2
 ```
 
-## 2.9.7. `Slice<T>` — view
+## 2.9.7. `Slice<T>` - view
 
 ```rok
 struct Slice<T> {
@@ -444,8 +444,8 @@ impl Slice<u8> {
     fn find<B: AsBytes>(self, needle: B) -> usize | none;   // 처음 나타나는 offset; 빈 needle 은 0
 }
 
-impl<T> Index<usize> for Slice<T> { ... }               // s[i] — 범위 밖이면 panic
-impl<T> Sliceable<Range<usize>> for Slice<T> { ... }    // s[a:b] — view 의 view, 범위는 길이에 맞춰 잘라 맞춤
+impl<T> Index<usize> for Slice<T> { ... }               // s[i] - 범위 밖이면 panic
+impl<T> Sliceable<Range<usize>> for Slice<T> { ... }    // s[a:b] - view 의 view, 범위는 길이에 맞춰 잘라 맞춤
 impl<T> IntoIterator for Slice<T> { ... }
 impl<T: PartialEq> PartialEq for Slice<T> { ... }
 impl<T: Debug> Debug for Slice<T> { ... }
@@ -466,7 +466,7 @@ let s3: Slice<i32> = xs[..];            //→ view of all
 s1.len();                               //→ 3
 s1.iter().sum::<i32>();                 //→ 9
 xs[2] = 30;
-s1[1];                                  //→ 30 — 리스트의 원소 쓰기가 보임
+s1[1];                                  //→ 30 - 리스트의 원소 쓰기가 보임
 
 let owned: List<i32> = s1.to_list();    //→ [2, 30, 4] (새 List)
 ```
@@ -515,7 +515,7 @@ sum(..[4, 5]);               //→ 9 (리스트 spread)
 | `Set<T>`            | `T`               | **비결정**                        |
 | `OrderedDict<K, V>` | `(K, V)`          | insertion order                   |
 | `OrderedSet<T>`     | `T`               | insertion order                   |
-| `Tuple<T...>`       | **구현하지 않음** | (heterogeneous — Iterator 의미 X) |
+| `Tuple<T...>`       | **구현하지 않음** | (heterogeneous - Iterator 의미 X) |
 | `Slice<T>`          | `T`               | view 순서 (stride 적용)           |
 
 또한 `FromIterator<T>` 는 `collect::<C>()` 가 어떤 컨테이너를 만들지 결정합니다.
@@ -554,7 +554,7 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 
 rok 의 가장 큰 차이점은 다음과 같습니다. 첫째로 6 가지 컬렉션이 모두 1급 리터럴 문법을 가지므로 `vec![]` 같은 매크로를 사용하지 않습니다. 둘째로 `Dict` / `Set` 의 insertion order 는 보장되지 않으며, 이는 Python 3.7+ 와 다른 점이므로 순서가 필요한 경우에는 `OrderedDict` 를 명시적으로 사용해야 합니다. 셋째로 `Slice<T>` 가 stride 를 가지는 view 이기 때문에 `xs[::2]` 같은 표현조차 zero-copy 로 처리됩니다.
 
-## 2.9.12. `GcBuf<T>` — raw GC buffer
+## 2.9.12. `GcBuf<T>` - raw GC buffer
 
 `rok::core::collections::raw` 의 `GcBuf<T>` 는 `List` / `Dict` 같은 컬렉션 구현이 쓰는 고정 길이 GC buffer 이며, 컴파일러가 아는 타입입니다. `GcBuf` 는 `rok::bare` (`rok::bare::mem`) 가 정의하며 여기서 다시 내보냅니다. 런타임의 word-traced buffer (type id `2`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-런타임-예약-type-id)) 위에 놓입니다.
 

@@ -8,7 +8,7 @@
 > heap 객체 (List, Dict 등) 의 in-place 갱신은 변수 선언자 `let mut` 가 아니라
 > **객체가 가변 메서드를 노출하는지** 로 결정됩니다. `*Assign` 트레잇이 그 가변 메서드의 자리입니다.
 
-## 2.4.1. 핵심 차이 — `+=` vs `=` then `+`
+## 2.4.1. 핵심 차이 - `+=` vs `=` then `+`
 
 ```rok
 a += b;
@@ -31,7 +31,7 @@ rok 은 이 두 모드를 자동으로 선택합니다.
 
 ## 2.4.2. 산술 *Assign 트레잇
 
-### `AddAssign` — `+=`
+### `AddAssign` - `+=`
 
 ```rok
 trait AddAssign<Rhs = Self> {
@@ -46,10 +46,10 @@ counter += 5;       //→ 5 (counter 가 in-place 갱신)
 counter += 3;       //→ 8
 
 let xs: List<i32> = [1, 2];
-xs += [3, 4];       //→ [1, 2, 3, 4]  (List 의 add_assign — push 효율)
+xs += [3, 4];       //→ [1, 2, 3, 4]  (List 의 add_assign - push 효율)
 ```
 
-### `SubAssign` — `-=`
+### `SubAssign` - `-=`
 
 ```rok
 trait SubAssign<Rhs = Self> {
@@ -58,7 +58,7 @@ trait SubAssign<Rhs = Self> {
 }
 ```
 
-### `MulAssign` — `*=`
+### `MulAssign` - `*=`
 
 ```rok
 trait MulAssign<Rhs = Self> {
@@ -67,7 +67,7 @@ trait MulAssign<Rhs = Self> {
 }
 ```
 
-### `DivAssign` — `/=`
+### `DivAssign` - `/=`
 
 ```rok
 trait DivAssign<Rhs = Self> {
@@ -76,7 +76,7 @@ trait DivAssign<Rhs = Self> {
 }
 ```
 
-### `RemAssign` — `%=`
+### `RemAssign` - `%=`
 
 ```rok
 trait RemAssign<Rhs = Self> {
@@ -85,7 +85,7 @@ trait RemAssign<Rhs = Self> {
 }
 ```
 
-### `ModuloAssign` — `%%=`
+### `ModuloAssign` - `%%=`
 
 ```rok
 trait ModuloAssign<Rhs = Self> {
@@ -94,11 +94,11 @@ trait ModuloAssign<Rhs = Self> {
 }
 ```
 
-`%%=` 는 [`Modulo`](203-ops.md#modulo--floored-modulo-) (floored modulo, 결과 부호 = 제수 부호) 의 복합 대입 형태입니다. `RemAssign` 과 다른 트레잇으로 분리되어 있으며, 양수 제수에 대해 결과가 항상 `[0, rhs)` 범위에 있도록 in-place 갱신합니다.
+`%%=` 는 [`Modulo`](203-ops.md#modulo---floored-modulo-) (floored modulo, 결과 부호 = 제수 부호) 의 복합 대입 형태입니다. `RemAssign` 과 다른 트레잇으로 분리되어 있으며, 양수 제수에 대해 결과가 항상 `[0, rhs)` 범위에 있도록 in-place 갱신합니다.
 
 ## 2.4.3. 비트 *Assign 트레잇
 
-### `BitAndAssign` — `&=`
+### `BitAndAssign` - `&=`
 
 ```rok
 trait BitAndAssign<Rhs = Self> {
@@ -112,7 +112,7 @@ let flags: u32 = 0xFF;
 flags &= 0x0F;     //→ 0x0F
 ```
 
-### `BitOrAssign` — `|=`
+### `BitOrAssign` - `|=`
 
 ```rok
 trait BitOrAssign<Rhs = Self> {
@@ -121,7 +121,7 @@ trait BitOrAssign<Rhs = Self> {
 }
 ```
 
-### `BitXorAssign` — `^=`
+### `BitXorAssign` - `^=`
 
 ```rok
 trait BitXorAssign<Rhs = Self> {
@@ -130,7 +130,7 @@ trait BitXorAssign<Rhs = Self> {
 }
 ```
 
-### `ShlAssign` — `<<=`
+### `ShlAssign` - `<<=`
 
 ```rok
 trait ShlAssign<Rhs = Self> {
@@ -144,7 +144,7 @@ let n: i32 = 1;
 n <<= 4;       //→ 16
 ```
 
-### `ShrAssign` — `>>=`
+### `ShrAssign` - `>>=`
 
 ```rok
 trait ShrAssign<Rhs = Self> {
@@ -153,7 +153,7 @@ trait ShrAssign<Rhs = Self> {
 }
 ```
 
-## 2.4.4. 시그니처 패턴 — `ref self`
+## 2.4.4. 시그니처 패턴 - `ref self`
 
 모든 `*Assign` 메서드는 `ref self` 를 받습니다 ([refs-lang 4.7 ref keyword](../../refs-lang/004-functions/407-ref-keyword.md)). 이렇게 함으로써 caller 의 변수 binding 자체를 참조해 in-place 수정이 이루어집니다.
 
@@ -165,7 +165,7 @@ fn add_assign(ref self, rhs: Rhs);
 
 이 시그니처가 in-place 의 핵심에 해당합니다. 만일 `self` (값) 만 받게 된다면 복사본을 수정하는 데 그쳐서 caller 측에서는 변경 결과를 볼 수 없게 됩니다.
 
-## 2.4.5. 우선순위 / 결합성 — prec=-1, right
+## 2.4.5. 우선순위 / 결합성 - prec=-1, right
 
 모든 `*Assign` 토큰은 [refs-lang 3.2](../../refs-lang/003-expressions/302-precedence-and-associativity.md) 표에서 동일한 등급으로 고정됩니다. 우선순위 측면에서 `prec = -1` 을 가지므로 일반 산술 (+=7, *=8) 보다 낮고, `..` (=0) 보다도 낮은 위치에 자리합니다. 가장 낮은 등급입니다. 연쇄 대입은 허용하지 않습니다 ([refs-lang 3.4.4](../../refs-lang/003-expressions/304-assignment.md)).
 
@@ -178,15 +178,15 @@ primitive 타입의 `*Assign` impl 에는 모두 `#[intrinsic("rok.OP_assign.TYP
 | `i*`, `u*`   | 산술 6 개 + 비트 5 개 (11 트레잇)           | `rok.add_assign.i32`, `rok.shl_assign.u32`, ... |
 | `f32`, `f64` | 산술 6 개만                                 | `rok.add_assign.f64`, ...                       |
 | `bool`       | `BitAndAssign`/`BitOrAssign`/`BitXorAssign` | `rok.and_assign.bool`, ...                      |
-| `int`        | 산술 + 비트                                 | auto-promote 로직 — 새 값으로 교체 (불변)       |
-| `float`      | 산술                                        | (위와 동일 — auto-promote)                      |
+| `int`        | 산술 + 비트                                 | auto-promote 로직 - 새 값으로 교체 (불변)       |
+| `float`      | 산술                                        | (위와 동일 - auto-promote)                      |
 | `List<T>`    | `AddAssign<List<T>>`, `AddAssign<T>`        | push                                            |
-| `str`        | `AddAssign<str>`, `AddAssign<char>`         | `s = s + t` — 새 str 로 교체 (str 은 불변)      |
-| `Dict<K,V>`  | `AddAssign<Dict<K,V>>`                      | merge — 기존 키 덮어씀                          |
+| `str`        | `AddAssign<str>`, `AddAssign<char>`         | `s = s + t` - 새 str 로 교체 (str 은 불변)      |
+| `Dict<K,V>`  | `AddAssign<Dict<K,V>>`                      | merge - 기존 키 덮어씀                          |
 
 `a op= b` 는 왼쪽 타입이 `XxxAssign` 을 구현하면 `XxxAssign::xxx_assign` (`AddAssign::add_assign` 등) 을 부르고, 아니면 `a = a op b` 입니다.
 
-## 2.4.7. 컬렉션의 *Assign — 핵심 사용처
+## 2.4.7. 컬렉션의 *Assign - 핵심 사용처
 
 `List<T>` / `Dict<K,V>` 같은 가변 컨테이너에서는 `*Assign` 가 **진짜 in-place** 동작을 수행합니다.
 
@@ -233,13 +233,13 @@ impl AddAssign for Vec3 {
 }
 ```
 
-## 2.4.9. *Assign 의 supertrait 관계 — 없음
+## 2.4.9. *Assign 의 supertrait 관계 - 없음
 
 rok 은 `AddAssign` 을 `Add` 의 supertrait 로 묶지 **않습니다**. 따라서 두 트레잇은 서로 독립적으로 다루어집니다.
 
 그 이유는 컬렉션처럼 `Add` 가 의미가 없고 (`xs + ys` 가 새 컬렉션을 만드는 비용이 큼) `AddAssign` 만 의미가 있는 경우가 존재하기 때문입니다. 만약 supertrait 로 묶는다면 그러한 타입이 `AddAssign` 만 구현하는 일이 불가능해집니다.
 
-## 2.4.10. 관련 — broadcast `*Assign`?
+## 2.4.10. 관련 - broadcast `*Assign`?
 
 [2.6 broadcast](206-broadcast.md) 의 19 개 토큰 (`.+`, `.*`, `.%%`, `.&&`, ...) 에 대응하는 복합 대입 변형은 정의되지 않습니다. 즉 `a .+= b` 같은 토큰은 존재하지 않습니다. broadcast 의 결과는 보통 새 컨테이너를 생성하기 때문에 in-place 의미가 모호해진다는 점이 그 배경입니다.
 
@@ -252,7 +252,7 @@ xs.dot_add_assign(ys);    // 메서드 호출 (broadcast in-place)
 ```rok
 impl<T> List<T> {
     fn dot_add_assign(self, rhs: List<T>) where T: Add<Output = T>;
-    // dot_OP_assign 도 같음 — OP 는 add, sub, mul, div, rem, modulo,
+    // dot_OP_assign 도 같음 - OP 는 add, sub, mul, div, rem, modulo,
     // bitand, bitor, bitxor, shl, shr 이며 각각 T: OP<Output = T> 필요
 }
 ```

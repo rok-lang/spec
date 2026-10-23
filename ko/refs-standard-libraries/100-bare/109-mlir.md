@@ -1,10 +1,10 @@
-# 1.9. `rok::bare::mlir` — MLIR 다이얼렉트 직접 접근
+# 1.9. `rok::bare::mlir` - MLIR 다이얼렉트 직접 접근
 
 `rok::bare::mlir` 모듈은 rok 컴파일러가 사용하는 MLIR 백엔드의 다이얼렉트 op 을 직접 호출할 수 있는 escape hatch 를 제공합니다. 외부 라이브러리 작성자가 텐서 / 자동 미분 / SIMD / GPU / 양자화 같은 가속 영역의 커널을 rok 안에서 표현하기 위한 자리입니다.
 
 일반 rok 코드는 이 모듈을 보지 않습니다. rok 의 일상적인 추상은 [200-core/](../200-core/) 의 트레잇과 컬렉션으로 충분하며, MLIR 노출은 어디까지나 라이브러리 작성자의 영역에 한정됩니다.
 
-## 1.9.1. 동기 — 왜 사용자 표면에 MLIR 이 필요한가
+## 1.9.1. 동기 - 왜 사용자 표면에 MLIR 이 필요한가
 
 rok 의 일반 사용자는 MLIR 을 알 필요가 없습니다. 산술과 비교, 컬렉션, 동시성은 표준 라이브러리가 충분히 추상화해 두었기 때문입니다. 하지만 다음과 같은 라이브러리 작성자에게는 사정이 다릅니다.
 
@@ -16,7 +16,7 @@ rok 의 일반 사용자는 MLIR 을 알 필요가 없습니다. 산술과 비�
 
 이런 라이브러리들이 rok 표준 라이브러리만으로 만들어질 수 없는 이유는, MLIR 의 multi-level 추상화가 곧 성능의 원천이기 때문입니다. `linalg.generic` 한 줄이 인접 연산 융합 / 임시 할당 제거 / SIMD / GPU lowering 까지 자동으로 풀어 주는데, 이것을 우회하면 PyTorch / JAX / Mojo 와의 성능 격차가 좁혀지지 않습니다.
 
-## 1.9.2. 표면 — `__mlir_op` 호출
+## 1.9.2. 표면 - `__mlir_op` 호출
 
 MLIR op 호출의 기본 형태는 다음과 같습니다.
 
@@ -78,7 +78,7 @@ unsafe {
 
 ```rok
 unsafe {
-    // scf.if — then / else 두 region
+    // scf.if - then / else 두 region
     let r: i32 = __mlir_op::<"scf.if", i32>(
         cond,
         regions = [
@@ -87,7 +87,7 @@ unsafe {
         ],
     );
 
-    // scf.for — lb / ub / step 은 index 값
+    // scf.for - lb / ub / step 은 index 값
     let lb = __mlir_op::<"arith.index_cast", __mlir_type<"index">>(0i64);
     let ub = __mlir_op::<"arith.index_cast", __mlir_type<"index">>(n);
     let step = __mlir_op::<"arith.index_cast", __mlir_type<"index">>(1i64);
@@ -161,11 +161,11 @@ unsafe {
 ## 1.9.5. 일반 사용자 코드와의 관계
 
 ```rok
-// 일반 사용자 — MLIR 보지 않음
+// 일반 사용자 - MLIR 보지 않음
 let xs: List<f32> = [1.0, 2.0, 3.0];
 let sum = xs.iter().sum();
 
-// 라이브러리 내부 — rok::bare::mlir 사용
+// 라이브러리 내부 - rok::bare::mlir 사용
 mod tensor::ops {
     pub fn matmul<...>(a: Tensor<f32, (M, K)>, b: Tensor<f32, (K, N)>) -> Tensor<f32, (M, N)> {
         unsafe {
@@ -187,7 +187,7 @@ mod tensor::ops {
 | Swift   | `Builtin.X` (stdlib 내부)          | stdlib 작성자 한정                                   |
 | Julia   | `llvmcall` (사용자 가능)           | 권장 안 함, 외부 라이브러리 한정                     |
 | Rust    | LLVM intrinsic (사용자 불가)       | nightly + intrinsics crate                           |
-| **rok** | **`rok::bare::mlir` (명시 unsafe)** | **라이브러리 작성자 한정 — 일반 사용자는 보지 않음** |
+| **rok** | **`rok::bare::mlir` (명시 unsafe)** | **라이브러리 작성자 한정 - 일반 사용자는 보지 않음** |
 
 rok 의 모델은 Swift 와 Julia 에 가깝습니다. Mojo 처럼 일반 사용자에게도 MLIR 을 노출하지 않으며, `unsafe` 라는 명시적 진입을 강제해 사용자가 어떤 영역에 발을 들이는지 코드 위에 드러냅니다.
 

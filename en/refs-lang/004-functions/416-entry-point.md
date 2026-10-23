@@ -18,13 +18,13 @@ top_stmt    ::= let_stmt | let_else_stmt | expr ";" | block_like_expr ";"?   // 
 module_file ::= item*                          // lib.rok and every module file other than main.rok
 ```
 
-`item` is an [item in a module](../005-modules/504-modules.md#547-items-within-a-module) (`fn`, `struct`, `enum`, `trait`, `impl`, `const`, `static`, `mod`, `use`, etc.), and `let_stmt` / `let_else_stmt` / `expr ";"` are the same as the statements of [block expressions](../003-expressions/309-block-expressions.md). Control flow (`if`, `match`, `for`, `while`, `loop`, `try`) consists of expressions and is thus included in `expr ";"`. Unlike a function body, there is no final expression without a terminator (`tail_expr`) — the implicit `main` returns no value. A `main.rok` with only items and no statements (and no `fn main`) gets an empty implicit `main`, except in a package that exports WIT: that package is a reactor with no entry point ([stdlib 1.8.2](../../refs-standard-libraries/100-bare/108-wit.md#exports)).
+`item` is an [item in a module](../005-modules/504-modules.md#547-items-within-a-module) (`fn`, `struct`, `enum`, `trait`, `impl`, `const`, `static`, `mod`, `use`, etc.), and `let_stmt` / `let_else_stmt` / `expr ";"` are the same as the statements of [block expressions](../003-expressions/309-block-expressions.md). Control flow (`if`, `match`, `for`, `while`, `loop`, `try`) consists of expressions and is thus included in `expr ";"`. Unlike a function body, there is no final expression without a terminator (`tail_expr`) - the implicit `main` returns no value. A `main.rok` with only items and no statements (and no `fn main`) gets an empty implicit `main`, except in a package that exports WIT: that package is a reactor with no entry point ([stdlib 1.8.2](../../refs-standard-libraries/100-bare/108-wit.md#exports)).
 
 > [!IMPORTANT]
 > If a single `main.rok` contains **both** top-level statements and a `fn main` declaration, it is a **compile error**. This rules out any situation where the reader must guess which of two entry points runs.
 
 ```rok
-// main.rok — ERROR
+// main.rok - ERROR
 fn main() { run(); }
 run();                      // ERROR: top-level statement in a file with fn main
 ```
@@ -37,7 +37,7 @@ The top-level statements of a `main.rok` without `fn main` are gathered **in sou
 // main.rok
 let names = ["ada", "grace"];
 for n in names {
-    greet(n);               // greet is declared below — visible regardless of order
+    greet(n);               // greet is declared below - visible regardless of order
 }
 
 fn greet(name: str) {
@@ -55,7 +55,7 @@ fn greet(name: str) {
     println(f"hello, {name}");
 }
 
-fn main() throws {          // form of the implicit main — see 4.16.4
+fn main() throws {          // form of the implicit main - see 4.16.4
     let names = ["ada", "grace"];
     for n in names {
         greet(n);
@@ -69,7 +69,7 @@ The following rules follow from this equivalence.
 
 - **Items are visible regardless of order.** Items in `main.rok` belong to module scope like ordinary module items, so a top-level statement may refer to a `fn` / `struct` etc. declared after it.
 - **A top-level `let` is a local variable of the implicit `main`.** It is not a global variable and is visible only in top-level statements after its declaration (the block scope rules of [variable declarations](../005-modules/501-variable-declaration.md) apply as-is).
-- **A top-level `let` is not visible inside item bodies.** In the example above, if the body of `greet` referred to `names` or `total`, it would be a name resolution error. Capturing the local variable in a closure is possible (`let shout = |s| println(f"{s}! ({total})");`) — the closure is a statement and is created inside the implicit `main` body.
+- **A top-level `let` is not visible inside item bodies.** In the example above, if the body of `greet` referred to `names` or `total`, it would be a name resolution error. Capturing the local variable in a closure is possible (`let shout = |s| println(f"{s}! ({total})");`) - the closure is a statement and is created inside the implicit `main` body.
 
 > [!NOTE]
 > **Why top-level `let` is not visible to items.** Items exist regardless of order, but a `let` gets its value only at run time. If `fn greet` could see a top-level `let`, the meaning would have to be defined for the case where `greet` is called **before** that `let` (e.g., calling `greet()` on the first line), which amounts to bringing "global initialization order" semantics into the language. rok's principle is to have no global initialization order (4.16.6), so top-level `let` is restricted to local variables of the implicit `main`. State that must be shared between items is passed as parameters or declared `static`.
@@ -114,7 +114,7 @@ On `wasm32-wasi` (a preview 2 component), `wasi:cli/exit` carries only success o
 The implicit `main` becomes `async fn main() throws` when `await` appears directly in a top-level statement (not inside another `async` block or closure); otherwise it is a synchronous `fn main() throws`.
 
 ```rok
-// main.rok — implicit async main
+// main.rok - implicit async main
 let body = await http::get("https://example.com");
 println(body.len());
 ```

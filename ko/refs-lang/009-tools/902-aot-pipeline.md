@@ -309,4 +309,6 @@ $ROK_HOME/
 
 `rokc` 는 표준 라이브러리와 런타임을 자기 실행 파일 기준 (sysroot = 실행 파일의 `..`) 에서 찾으며, `ROK_HOME` 을 보지 않습니다. 표준 라이브러리의 각 tier 는 라이브러리 패키지처럼 놓입니다: 루트 모듈은 `lib/rok/<tier>/src/lib.rok` 이고 모듈들은 `lib/rok/<tier>/src/` 아래에 있습니다. 구현 저장소에서 빌드한 `rokc` 는 같은 레이아웃을 저장소의 `library/<tier>/src/` 에서 읽습니다. 자신의 cache 는 toolchain 의 `lib/rok-cache/` 입니다 (저장소 빌드는 `target/<profile>/rok-cache/`). 여기에 미리 빌드한 표준 라이브러리를 toolchain, 빌드 옵션, 소스를 키로 두고 (9.2.16), `.facts/` 에 캐시한 대상 data layout 과 도구 정보를 둡니다. 활성 toolchain 의 선택은 [9.10.6](910-rok-frontend.md#9106-toolchain) 이 정합니다.
 
+Linux (glibc) toolchain 은 자신이 만드는 실행 파일과 같이 glibc 2.34 이상이 필요합니다 (9.2.14).
+
 릴리스에는 MLIR plugin 개발 archive (`rok-mlir-dev-<version>-<triple>`: 고정 LLVM / MLIR 헤더와, Windows 에서는 `rokc.lib`) 가 함께 올 수 있습니다 ([stdlib 1.10.2](../../refs-standard-libraries/100-bare/110-mlir-plugin.md)).

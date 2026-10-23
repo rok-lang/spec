@@ -1,4 +1,4 @@
-# 2.18. task — M:N scheduler task API
+# 2.18. task - M:N scheduler task API
 
 The `rok::core::task` module provides a cooperative task API running on the M:N scheduler. Inspired by Rust Tokio and Go goroutines, tasks are implemented as **stackless coroutines** on a work-stealing scheduler.
 
@@ -9,23 +9,23 @@ Because `use rok::core::**;` applies implicitly, `task::spawn`, `task::race`, `T
 The signatures of the core API:
 
 ```rok
-fn block_on<F: Future>(f: F) -> F::Output;              // sync entry point — attaches to the executor and runs f to completion
+fn block_on<F: Future>(f: F) -> F::Output;              // sync entry point - attaches to the executor and runs f to completion
 fn spawn<F: Future + Send>(f: F) -> Task<F::Output> where F::Output: Send;
-fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future — pinned to the current worker
+fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future - pinned to the current worker
 fn spawn_blocking<T: Send>(f: fn() -> T + Send) -> Blocking<T>;   // blocking work on an OS thread outside the executor
 fn workers() -> usize;                                  // pool size inside the executor, 1 outside
-fn cpu_count() -> usize;                                // number of online CPUs — the pool size
+fn cpu_count() -> usize;                                // number of online CPUs - the pool size
 async fn race<T>(tasks: List<Task<T>>) -> T;            // result of the first task to complete
-fn select<F: Future>(futs: List<F>) -> SelectFuture<F>; // await — (index, result), does not spawn
-fn id() -> TaskId;                                      // id of the current task — panics outside a task
+fn select<F: Future>(futs: List<F>) -> SelectFuture<F>; // await - (index, result), does not spawn
+fn id() -> TaskId;                                      // id of the current task - panics outside a task
 fn try_id() -> TaskId | none;
 async fn join<T>(tasks: List<Task<T>>) -> List<T>;      // after all complete
 async fn timeout<T>(dur: Duration, task: Task<T>) throws (TimeoutError) -> T;   // throws in try await
 async fn sleep(dur: Duration);
 async fn sleep_until(when: Instant);
-async fn yield_now();                                   // await — yields once to other ready tasks
-fn registrations() -> usize;                            // diagnostic — parked wakers + pending timers of the running pool (implementation-defined)
-fn readable(fd: i32) -> IoReady;                       // await — until fd becomes readable (refs-lang 7.7.2)
+async fn yield_now();                                   // await - yields once to other ready tasks
+fn registrations() -> usize;                            // diagnostic - parked wakers + pending timers of the running pool (implementation-defined)
+fn readable(fd: i32) -> IoReady;                       // await - until fd becomes readable (refs-lang 7.7.2)
 fn writable(fd: i32) -> IoReady;
 fn wake_io(fd: i32);                                   // wakes the readable / writable waiters of fd (used after close / shutdown; low-level)
 ```
@@ -57,7 +57,7 @@ await task::yield_now();
 
 `spawn` takes a future, not a closure, so it is passed an `async` block or the result of an `async fn` call, as in `task::spawn(async { ... })`. A future that is not `Send` runs on the current thread through `spawn_local`. `join` / `race` / `timeout` are `await`ed to obtain their results.
 
-### `spawn_blocking` — blocking work
+### `spawn_blocking` - blocking work
 
 ```rok
 struct Blocking<T> { /* result slot */ }
@@ -76,7 +76,7 @@ let n = await task::spawn_blocking(|| heavy_checksum(path));
 
 ### `Send` check for `spawn`
 
-`task::spawn` requires the result type to be `Send` as well (`where F::Output: Send`), and rejects a future whose **frame** is not `Send` ([2.13.9](213-marker.md#2139-send--sync--thread-boundary-markers)). This holds wherever the future came from: not only `async` blocks and `async fn` calls but also parameters, fields of structs / tuples / sums, results of helper functions, list elements, futures held by closures, and futures inside other coroutine frames are checked. A future's frame consists of:
+`task::spawn` requires the result type to be `Send` as well (`where F::Output: Send`), and rejects a future whose **frame** is not `Send` ([2.13.9](213-marker.md#2139-send--sync---thread-boundary-markers)). This holds wherever the future came from: not only `async` blocks and `async fn` calls but also parameters, fields of structs / tuples / sums, results of helper functions, list elements, futures held by closures, and futures inside other coroutine frames are checked. A future's frame consists of:
 
 - captured values;
 - local variables and temporaries live across an `await`;
@@ -84,11 +84,11 @@ let n = await task::spawn_blocking(|| heavy_checksum(path));
 
 ```rok
 let c = Cell::new(0);                      // Cell: !Send
-task::spawn(async { c.set(1); });          // ERROR — !Send capture
-task::spawn_local(async { c.set(1); });    // OK — pinned to the current worker
+task::spawn(async { c.set(1); });          // ERROR - !Send capture
+task::spawn_local(async { c.set(1); });    // OK - pinned to the current worker
 
 fn make() -> AsyncFuture<()> { let c = Cell::new(0); async { c.set(1); } }
-task::spawn(make());                       // ERROR — the frame of a future made by a helper is checked too
+task::spawn(make());                       // ERROR - the frame of a future made by a helper is checked too
 ```
 
 The same check applies wherever a closure is sent to another thread: `thread::spawn`, `thread::Builder::spawn`, `par`'s `Scope::spawn`, and `task::spawn_blocking`. If the closure holds a future whose frame is not `Send`, it is the error ``` `X` would move a future to another thread: … ```.
@@ -98,9 +98,9 @@ The check may approximate conservatively. An implementation may reject a future 
 - values whose type cannot hold a function value (they cannot hide a future's frame);
 - values of types with an explicit `unsafe impl Send` (e.g. `Task<T>`); that type is responsible for safety.
 
-`AsyncFuture<T>`, the result type of an `async fn`, is `Send` when `T: Send`; its throwing counterpart `TryAsyncFuture<T, E>` is `Send` when both `T` and `E` are `Send`. Captures and frames are examined separately by the check above.
+`AsyncFuture<T>`, the result type of an `async fn`, is `Send` when `T: Send`; its throwing counterpart `TryAsyncFuture<T, E>` is `Send` when both `T` and `E` are `Send`. Captures and frames are examined separately by the check above. A frame whose captures are `Send` but not `Sync` (a list an `async fn` takes, a list or a future an `async` block captures) is accepted: `task::spawn` hands the future over like a channel send ([2.13.9](213-marker.md#2139-send--sync---thread-boundary-markers)). The task gets a frame of its own holding copies of what the future captured, made in one hand-off, so what the captures shared (one list twice, a list and a future over it) they still share; using the future or what it captured after the spawn is a compile error (`E202`), as after a send. Only a future nothing has polled can be handed over: handing over one that has started (polled once by `select`, a user's `Future`, or by hand) or finished, or whose frame or a captured future's frame has a `[ref x]` capture, panics, and nothing is shared. A coroutine future sent through a channel, put in a `Mutex` or a `Frozen` is handed over the same way, a frame of its own each time. Each `await` of a task whose `Task` was handed on (`Frozen::get`, a channel, a lock, a `par` item) gets its own copy of the result; copies of a `Task` on one thread share it.
 
-### `select` — the first future to finish
+### `select` - the first future to finish
 
 ```rok
 fn select<F: Future>(futs: List<F>) -> SelectFuture<F>;   // Output = (usize, F::Output)
@@ -142,10 +142,10 @@ struct Task<T> {
 }
 
 impl<T> Task<T> {
-    fn cancel(self);                      // requests cancellation — ends at the next await (2.18.4)
+    fn cancel(self);                      // requests cancellation - ends at the next await (2.18.4)
     fn is_cancelled(self) -> bool;
     fn is_finished(self) -> bool;
-    fn join(self) -> Join<T>;             // try await t.join() — CancellationError if cancelled without a result
+    fn join(self) -> Join<T>;             // try await t.join() - CancellationError if cancelled without a result
     fn id(self) -> TaskId;
 }
 
@@ -157,7 +157,7 @@ impl TaskId {
 
 struct CancellationError {}
 
-impl<T> Future for Task<T> {              // `await t` — suspend until completion
+impl<T> Future for Task<T> {              // `await t` - suspend until completion
     type Output = T;
     ...
 }
@@ -167,11 +167,11 @@ impl<T> Future for Task<T> {              // `await t` — suspend until complet
 
 `Task<T>` implements `Future<Output = T>`, so it can be awaited with `await t`, and it is covered by the `IntoFuture` blanket impl of [2.20 future](220-future.md), so it is awaited the same way as `Thread`. The authoritative definitions of the `IntoFuture` trait and the lang slot `future_trait` are in [2.20 future](220-future.md); this section follows them as is.
 
-## 2.18.3. Scheduler model — work-stealing
+## 2.18.3. Scheduler model - work-stealing
 
 A process has one executor. It starts on first use and consists of as many worker threads as there are CPUs (`cpu_count()`), a blocking lane, and an I/O driver. `block_on` attaches the calling thread to this executor as a guest worker and runs `f` to completion. Tasks still running when `block_on` returns keep running. `block_on` returns only after the `spawn_local` tasks pinned to its thread are done too; they cannot move to another thread. `par::*` and `spawn_blocking` use the same executor.
 
-A task created with `spawn` can run on any worker, so it must be `Future + Send` and its result must be `Send` too. A task from `spawn_local` is pinned to the worker that created it.
+A task created with `spawn` can run on any worker, so it must be `Future + Send` and its result must be `Send` too. A task from `spawn_local` is pinned to the worker that created it. A `spawn_local` from a task that a `block_on` thread polls but does not own (a `spawn` task it picked up while waiting) is pinned to a pool worker instead, so `block_on` waits only for the locals of its own tasks. All the locals one such poll spawns go to the same pool worker, and they start only once that poll has ended, as on the worker that would have run them.
 
 The scheduler skeleton is as follows.
 
@@ -190,14 +190,14 @@ Key properties of this structure: the local queue is a lock-free Chase-Lev deque
 
 Note that the standard library's authority is limited to the API signatures; the algorithm bodies belong to the runtime and standard library body, outside the spec.
 
-## 2.18.4. Cooperative cancellation — `Task::cancel`
+## 2.18.4. Cooperative cancellation - `Task::cancel`
 
 Cooperative cancellation is used as follows.
 
 ```rok
 let t = task::spawn(async { long_running() });
 // ... other work ...
-t.cancel();              // cooperative signal — the task ends at a cancellation point
+t.cancel();              // cooperative signal - the task ends at a cancellation point
 ```
 
 `cancel()` **requests** cancellation. The rules ([refs-lang 7.7.9](../../refs-lang/007-runtime/707-io-and-timer.md#779-cancellation)):
@@ -227,7 +227,7 @@ t.cancel();
 let r = try await t.join() catch _: CancellationError { fallback() };
 ```
 
-## 2.18.5. `thread::*` — 1:1 OS threads
+## 2.18.5. `thread::*` - 1:1 OS threads
 
 The separate `thread` module spawns **OS threads** directly rather than using the M:N model.
 

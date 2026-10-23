@@ -83,7 +83,7 @@ The layering rule applies when a generic term is replaced by an actual type. If 
 
 | Generic sum          | `T` substitution     | Result                                              |
 |----------------------|----------------------|-----------------------------------------------------|
-| `T \| none`          | `i32 \| str`         | `i32 \| str \| none` (no overlap — flattened)        |
+| `T \| none`          | `i32 \| str`         | `i32 \| str \| none` (no overlap - flattened)        |
 | `T \| none`          | `i32 \| none`        | `(i32 \| none)?` (two layers)                        |
 | `T \| ParseErr`      | `i32 \| ParseErr`    | `(i32 \| ParseErr) \| ParseErr`                      |
 | `T \| str \| none`   | `i32 \| str`         | `(i32 \| str) \| str \| none` (`str` overlaps)       |
@@ -101,7 +101,7 @@ The layering rule applies when a generic term is replaced by an actual type. If 
 type Maybe<T> = T | none;
 let r: (i32 | none)? = xs.get(0);       // two layers
 let q: Maybe<i32 | none> = xs.get(0);   // same type
-let p: i32? = 1;                         // i32 | none — no overlap
+let p: i32? = 1;                         // i32 | none - no overlap
 let f: (i32 | str)? = none;              // i32 | str | none
 ```
 
@@ -110,7 +110,7 @@ let f: (i32 | str)? = none;              // i32 | str | none
 **Conversion.** A nested type is not implicitly converted to a flat type; it is a type error.
 
 ```rok
-let v: i32 | none = xs.get(0);    // ERROR — xs: List<i32 | none>
+let v: i32 | none = xs.get(0);    // ERROR - xs: List<i32 | none>
 // mismatched types: `let v` expects `i32 | none`, found `(i32 | none)?`
 ```
 
@@ -123,16 +123,16 @@ struct ParseErr { msg: str; }
 
 fn check<T>(x: T) -> T | ParseErr {
     if bad(x) { return ParseErr { msg: "bad" }; }   // ParseErr of the outer layer
-    x                                                // a value of T — inner layer
+    x                                                // a value of T - inner layer
 }
 
-let a = check(1i32);                  // T = i32 — no overlap: i32 | ParseErr
+let a = check(1i32);                  // T = i32 - no overlap: i32 | ParseErr
 let v: i32 | ParseErr = ParseErr { msg: "earlier" };
-let r = check(v);                     // T = i32 | ParseErr — overlap: (i32 | ParseErr) | ParseErr
+let r = check(v);                     // T = i32 | ParseErr - overlap: (i32 | ParseErr) | ParseErr
 match r {
-    e: ParseErr => print(f"check failed: {e.msg}"),        // outer layer — error made by check
+    e: ParseErr => print(f"check failed: {e.msg}"),        // outer layer - error made by check
     inner => match inner {                                // inner: i32 | ParseErr
-        e: ParseErr => print(f"original value was an error: {e.msg}"), // inner layer — error that was in v
+        e: ParseErr => print(f"original value was an error: {e.msg}"), // inner layer - error that was in v
         n: i32 => print(n),
     },
 }
@@ -197,19 +197,19 @@ So `List<i32 | none>` iterates over stored `none`s as elements, and `get` / `pop
 ```rok
 let xs: List<i32 | none> = [1, none, 3];
 
-for x in xs { print(x); }        // 1, none, 3 — stored none is also an element
+for x in xs { print(x); }        // 1, none, 3 - stored none is also an element
 
-match xs.get(1) {                // get: (i32 | none) | none — two layers
+match xs.get(1) {                // get: (i32 | none) | none - two layers
     none => print("out of range"),     // outer none: no element
-    v => match v {               // v: i32 | none — stored value
+    v => match v {               // v: i32 | none - stored value
         none => print("stored none"),
         n: i32 => print(n),
     },
 }
 
 let d: Dict<str, i32 | none> = {"a": none};
-d.get("a") ?? 0i32;              // none — key present, value is none (?? strips only the outer layer)
-d.get("b") ?? 0i32;              // 0 — key absent
+d.get("a") ?? 0i32;              // none - key present, value is none (?? strips only the outer layer)
+d.get("b") ?? 0i32;              // 0 - key absent
 ```
 
 ## 2.6.6. Difference from `any`
@@ -234,7 +234,7 @@ A sum type uses existing types directly as variants, so there are no separate va
 
 ```rok
 enum Result { Ok(i32), Err(str) }       // variant names Ok / Err are defined inside the enum
-type Either = i32 | str;                  // no variant names — just i32 or str
+type Either = i32 | str;                  // no variant names - just i32 or str
 ```
 
 Choose an `enum` when the variants carry distinct meanings and need names. Choose a sum type when combining existing types as they are is the natural fit.

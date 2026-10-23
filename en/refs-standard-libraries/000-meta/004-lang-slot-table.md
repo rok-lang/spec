@@ -87,15 +87,15 @@ Next come the operator trait slots. The dispatch target of an operator token is 
 | `ord_trait`         | Total order (`#[derive(Ord)]`)           | `rok::core::cmp::Ord`        | 2.5  |
 | `hash_trait`        | Hash (`#[derive(Hash)]`)                 | `rok::core::cmp::Hash`       | 2.5  |
 | `clone_trait`       | Clone (`#[derive(Clone)]`)               | `rok::core::marker::Clone`   | 2.13 |
-| `send_trait`        | Auto marker — safe to move across threads | `rok::core::marker::Send`   | 2.13 |
-| `sync_trait`        | Auto marker — safe to share across threads | `rok::core::marker::Sync`  | 2.13 |
+| `send_trait`        | Auto marker - safe to move across threads | `rok::core::marker::Send`   | 2.13 |
+| `sync_trait`        | Auto marker - safe to share across threads | `rok::core::marker::Sync`  | 2.13 |
 
 > [!NOTE]
 > Comparison slot names and trait names do not correspond one-to-one. `eq_trait` is attached to `PartialEq`, which defines the equality operators, and `cmp_trait` to `PartialOrd`, which defines the ordering operators. The marker traits `Eq`, `Copy` and `Default` have no slots: sum types get them structurally (`T | none` is `Eq` when `T` is; its `Default` is `none`), so the compiler finds them by their fixed paths in `rok::core`.
 
 ## 0.4.4. Function slots (3)
 
-Function slots are for standard library functions that the compiler calls directly, like intrinsics. They mainly cover abnormal termination paths — `throw`, OOM, unreachable — and are used where a uniform entry point is needed outside normal flow.
+Function slots are for standard library functions that the compiler calls directly, like intrinsics. They mainly cover abnormal termination paths - `throw`, OOM, unreachable - and are used where a uniform entry point is needed outside normal flow.
 
 | Slot name        | Meaning                                  | Standard library function       | Ref  |
 |------------------|------------------------------------------|---------------------------------|------|
@@ -105,7 +105,7 @@ Function slots are for standard library functions that the compiler calls direct
 
 ## 0.4.5. Method slots (1)
 
-Method slots are for methods the compiler calls automatically without the user writing the call. There is only one: disposal when a `using` binding is released. The `?` operator is expanded directly by the compiler for `T | none` ([refs-lang 3.14.10](../../refs-lang/003-expressions/314-error-control-flow.md#31410-the--operator--early-return-of-none)), so it has no method slot. Cloning a value (`Clone::clone`) is never called automatically ([2.13.2](../200-core/213-marker.md#2132-clone--deep-copy)), so it is registered as the trait slot `clone_trait`, not a method slot.
+Method slots are for methods the compiler calls automatically without the user writing the call. There is only one: disposal when a `using` binding is released. The `?` operator is expanded directly by the compiler for `T | none` ([refs-lang 3.14.10](../../refs-lang/003-expressions/314-error-control-flow.md#31410-the--operator---early-return-of-none)), so it has no method slot. Cloning a value (`Clone::clone`) is never called automatically ([2.13.2](../200-core/213-marker.md#2132-clone---deep-copy)), so it is registered as the trait slot `clone_trait`, not a method slot.
 
 | Slot name     | Meaning                              | Standard library method         | Ref  |
 |---------------|--------------------------------------|---------------------------------|------|
@@ -140,9 +140,9 @@ Where the previous sections listed "which slots exist", this section summarizes 
 
 ## 0.4.7. Duplicate / missing detection
 
-If two standard library items are attached to the same slot, the compiler rejects it (the duplicate detection rule of refs-lang 6.4.6). Conversely, if a required slot such as `iterator_trait` is missing, compilation of the features that depend on it — here, `for` loops — is rejected. Both are devices that force the slot contract to have a single source of truth.
+If two standard library items are attached to the same slot, the compiler rejects it (the duplicate detection rule of refs-lang 6.4.6). Conversely, if a required slot such as `iterator_trait` is missing, compilation of the features that depend on it - here, `for` loops - is rejected. Both are devices that force the slot contract to have a single source of truth.
 
-The actual attached items are stated in each chapter of [200-core/](../200-core/). Every slot in this table has its `#[lang(...)]` attachment site in the chapter indicated by the "Ref" column. A slot name not in this table is a compile error per [refs-lang 6.4.8](../../refs-lang/006-meta-system/604-lang-magic.md) — for example, `Stream` has no slot ([2.8.10](../200-core/208-stream.md)).
+The actual attached items are stated in each chapter of [200-core/](../200-core/). Every slot in this table has its `#[lang(...)]` attachment site in the chapter indicated by the "Ref" column. A slot name not in this table is a compile error per [refs-lang 6.4.8](../../refs-lang/006-meta-system/604-lang-magic.md) - for example, `Stream` has no slot ([2.8.10](../200-core/208-stream.md)).
 
 ## 0.4.8. Slot naming policy
 

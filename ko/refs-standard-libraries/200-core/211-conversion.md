@@ -4,16 +4,16 @@
 
 [refs-lang 2.14 형 변환](../../refs-lang/002-types/214-cast-and-conversion.md) 의 syntax 는 본 트레잇으로 dispatch 됩니다.
 
-## 2.11.1. 변환 정책 — 4 갈래
+## 2.11.1. 변환 정책 - 4 갈래
 
 rok 은 변환의 **의도** 에 따라 네 갈래로 분리해 다룹니다. 사용자는 매번 어느 갈래에 해당하는지를 명시해야 합니다.
 
 | 갈래         | 메서드                              | 의미                                  | 실패 시                     |
 |--------------|-------------------------------------|---------------------------------------|-----------------------------|
-| **lossless** | `.into::<T>()`                      | 정보 손실 0 — 항상 성공               | 컴파일 / 런타임 에러        |
-| **fallible** | `.try_into::<T>()`                  | 손실 가능 — 호출자가 처리             | 대상의 `TryFrom::Error` 를 throw |
+| **lossless** | `.into::<T>()`                      | 정보 손실 0 - 항상 성공               | 컴파일 / 런타임 에러        |
+| **fallible** | `.try_into::<T>()`                  | 손실 가능 - 호출자가 처리             | 대상의 `TryFrom::Error` 를 throw |
 | **saturate** | `.saturating_into::<T>()`           | 범위 밖이면 i32::MAX / MIN 으로 clamp | 명시 saturate (사용자 선택) |
-| **bit**      | `.wrapping_into::<T>()` 또는 `as T` | bit 재해석 — 모듈러 산술 / 비트 패턴  | 명시 wrap (사용자 선택)     |
+| **bit**      | `.wrapping_into::<T>()` 또는 `as T` | bit 재해석 - 모듈러 산술 / 비트 패턴  | 명시 wrap (사용자 선택)     |
 
 각 갈래의 메서드 이름이 그 자체로 의도를 명시합니다. 예를 들어 사용자가 `.into()` 를 적으면 **lossless** 의도이고, `.saturating_into()` 를 적으면 **saturate** 의도가 됩니다. 컴파일러는 어떤 의미인지를 추측하지 않습니다.
 
@@ -21,7 +21,7 @@ rok 은 변환의 **의도** 에 따라 네 갈래로 분리해 다룹니다. �
 
 silent saturate 나 silent wrap 은 사용자가 모르는 사이에 값이 변형되어 디버그하기 어려운 버그를 만들어 냅니다. rok 은 JS 가 Number → BigInt 를 도입하면서 얻은 교훈, 그리고 NumPy 가 wrap 에서 OverflowError 로 이동하면서 얻은 교훈을 함께 받아들였습니다.
 
-## 2.11.2. `From<U>` 트레잇 — lossless 변환
+## 2.11.2. `From<U>` 트레잇 - lossless 변환
 
 ```rok
 trait From<U> {
@@ -44,7 +44,7 @@ let x: int = int::from(42i32);   // i32 → int (lossless)
 
 `From` 은 [묵시 `use rok::core::**;`](../000-meta/002-import.md) 에 의해 자동으로 사용 가능하므로, 별도의 `use` 선언이 필요하지 않습니다.
 
-## 2.11.3. `Into` 트레잇 — `From` 의 mirror
+## 2.11.3. `Into` 트레잇 - `From` 의 mirror
 
 ```rok
 trait Into {
@@ -61,19 +61,19 @@ impl<S> Into for S {
 변환 가능성을 바운드로 적을 때는 `From` 쪽으로 씁니다. `T: Into<U>` 라는 바운드는 없습니다.
 
 ```rok
-fn widen<T, U: From<T>>(x: T) -> U { x.into() }      // OK — U: From<T>
-fn widen2<T: Into<U>, U>(x: T) -> U { x.into() }     // ERROR — Into 는 타입 인자를 받지 않음
+fn widen<T, U: From<T>>(x: T) -> U { x.into() }      // OK - U: From<T>
+fn widen2<T: Into<U>, U>(x: T) -> U { x.into() }     // ERROR - Into 는 타입 인자를 받지 않음
 ```
 
 ### 사용 예
 
 ```rok
 let n: i32 = 42;
-let big: i64 = n.into();         // i32::into::<i64>() 자동 — From<i32> for i64 사용
+let big: i64 = n.into();         // i32::into::<i64>() 자동 - From<i32> for i64 사용
 let big_typed: i64 = (42i32).into();
 ```
 
-### `From` 우선 — 디자인 패턴
+### `From` 우선 - 디자인 패턴
 
 스택 명시 변환은 다음 두 형태로 표현할 수 있습니다.
 
@@ -93,7 +93,7 @@ let big: i64 = (42i32).into();
 
 ```rok
 let big: i64 = 1000;
-let small: i32 = big.into();   // 컴파일 에러 — From<i64> for i32 없음
+let small: i32 = big.into();   // 컴파일 에러 - From<i64> for i32 없음
                                 //   (lossless 불가)
 ```
 
@@ -105,7 +105,7 @@ let small: i32 = big.saturating_into();    // saturate 명시
 let small: i32 = big as i32;               // wrap 명시
 ```
 
-## 2.11.4. `TryFrom<U>` 트레잇 — fallible 변환
+## 2.11.4. `TryFrom<U>` 트레잇 - fallible 변환
 
 ```rok
 trait TryFrom<U> {
@@ -140,7 +140,7 @@ impl<S> TryInto for S { ... }            // = try T::try_from(self)
 let small: i32 = try big.try_into();     // = try i32::try_from(big)
 ```
 
-## 2.11.5. `saturating_into` / `wrapping_into` — 명시 정책
+## 2.11.5. `saturating_into` / `wrapping_into` - 명시 정책
 
 손실이 가능한 변환에 대해서는 사용자가 값 변형 정책을 직접 명시합니다. 그 수단으로 다음 두 메서드가 제공됩니다.
 
@@ -162,7 +162,7 @@ trait WrappingInto {
 
 `From` / `Into` 와 같은 모양입니다. 변환 자체는 `SaturatingFrom` / `WrappingFrom` impl 이고, `saturating_into` / `wrapping_into` 는 blanket impl 이 주는 제네릭 메서드입니다.
 
-### `saturating_into` — 범위 끝으로 clamp
+### `saturating_into` - 범위 끝으로 clamp
 
 ```rok
 let big: i64 = 9999999999;
@@ -174,7 +174,7 @@ let small_neg: i32 = big_neg.saturating_into();  //→ i32::MIN
 
 이 정책은 DSP, 신호 처리, UI clamp 등의 영역에서 유용하게 쓰입니다.
 
-### `wrapping_into` — 모듈러 산술
+### `wrapping_into` - 모듈러 산술
 
 ```rok
 let big: i64 = 0x100000001;
@@ -183,7 +183,7 @@ let small: i32 = big.wrapping_into();      //→ 1 (하위 32 비트)
 
 `as i32` 와 같은 의미이지만, 명시적인 메서드 호출 형태로 의도를 표현해 준다는 점이 다릅니다. 이 정책은 hash 계산이나 비트마스킹 도메인에 적합합니다.
 
-## 2.11.6. `as T` — bit 재해석 / numeric cast
+## 2.11.6. `as T` - bit 재해석 / numeric cast
 
 `as` 키워드 ([refs-lang 2.14](../../refs-lang/002-types/214-cast-and-conversion.md)) 는 numeric / bit 변환을 **명시** 하는 수단입니다.
 
@@ -202,7 +202,7 @@ let f2: f32 = 3.14f64 as f32;     // 3.14 → f32 (IEEE 754 narrowing)
 
 | 변환                                       | 의미                                               |
 |--------------------------------------------|----------------------------------------------------|
-| 정수 → 같은 폭 정수 (signed/unsigned 상호) | bit 패턴 그대로 — 부호 해석만 바뀜                 |
+| 정수 → 같은 폭 정수 (signed/unsigned 상호) | bit 패턴 그대로 - 부호 해석만 바뀜                 |
 | 좁은 정수 → 넓은 정수                      | sign-extend (signed) 또는 zero-extend (unsigned)   |
 | 넓은 정수 → 좁은 정수                      | 절삭 (하위 비트만)                                 |
 | 정수 → 부동소수                            | IEEE 754 표현으로 (정밀도 손실 가능)               |
@@ -220,25 +220,25 @@ let f2: f32 = 3.14f64 as f32;     // 3.14 → f32 (IEEE 754 narrowing)
 ```rok
 struct Vec3 { x: f64; y: f64; z: f64; }
 let v = Vec3 { x: 1.0, y: 2.0, z: 3.0 };
-let s: str = v as str;     // 컴파일 에러 — `as` 는 user struct 거부
+let s: str = v as str;     // 컴파일 에러 - `as` 는 user struct 거부
 ```
 
 user 타입 사이의 변환은 `From` / `Into` 트레잇으로 명시해야 합니다.
 
-## 2.11.7. literal context auto-From — 컴파일 타임 range check
+## 2.11.7. literal context auto-From - 컴파일 타임 range check
 
 annotation 이 붙은 literal 의 경우에는 컴파일 타임 range check 와 lossless 변환이 함께 적용됩니다.
 
 ```rok
-let x: i32 = 42;             // OK — 42 가 i32 범위
-let y: i32 = 9999999999;     // 컴파일 에러 — literal 이 i32 범위 밖
-let z: f32 = 3.14;           // OK — round to nearest f32
-let w: u8 = 256;             // 컴파일 에러 — 256 ∉ u8 0..=255
+let x: i32 = 42;             // OK - 42 가 i32 범위
+let y: i32 = 9999999999;     // 컴파일 에러 - literal 이 i32 범위 밖
+let z: f32 = 3.14;           // OK - round to nearest f32
+let w: u8 = 256;             // 컴파일 에러 - 256 ∉ u8 0..=255
 ```
 
 `T::from(1)` / `1.into()` 처럼 리터럴로 impl 을 고르는 규칙은 [refs-lang 3.1.3](../../refs-lang/003-expressions/301-operator-dispatch.md#impl-고르기) 을 따릅니다. 이러한 메커니즘이 가능한 이유는 literal 자체가 컴파일 타임에 알려진 값이기 때문입니다. runtime 값을 변환하는 경우에는 `from`, `into`, `try_into`, `as` 중 하나를 반드시 명시해야 합니다.
 
-## 2.11.8. `From` impl 매트릭스 — primitive 사이
+## 2.11.8. `From` impl 매트릭스 - primitive 사이
 
 표준 라이브러리가 제공하는 `From<U> for T` impl 표는 다음과 같습니다 (lossless 만 표시).
 
@@ -306,7 +306,7 @@ f64 → f32 는 narrowing 변환이므로 `try_into`, `saturating_into`, `as` �
 
 반면 `fixed → int` 는 항상 lossless 입니다 (`From<i32> for int` 등이 모두 impl 되어 있습니다).
 
-## 2.11.9. `From` impl — 사용자 타입
+## 2.11.9. `From` impl - 사용자 타입
 
 사용자 타입 사이의 변환은 `impl From<U> for T` 를 직접 작성해 정의합니다.
 
@@ -342,33 +342,33 @@ let n: i32 = try "42".try_into();
 
 모든 고정 폭 정수 타입은 자기 `FromStr` 위에 이런 식으로 `TryFrom<str>` 을 구현합니다: 빈 텍스트, 잘못된 숫자, 범위 밖의 값은 `OverflowError { op: "try_from", ty }` 를 던집니다. 부동소수 타입, `bool`, `char` 는 `FromStr` 만 제공합니다.
 
-## 2.11.10. 산술 결과의 자동 변환 — 없음
+## 2.11.10. 산술 결과의 자동 변환 - 없음
 
 arithmetic 결과의 auto-From ([refs-lang 2.14](../../refs-lang/002-types/214-cast-and-conversion.md)) 은 **literal context** 에서만 적용됩니다. value 산술 결과는 자동으로 변환되지 않습니다.
 
 ```rok
 let a: i32 = 5;
 let b: i32 = 3;
-let c: i32 = a + b;          // OK — i32 + i32 = i32
+let c: i32 = a + b;          // OK - i32 + i32 = i32
 
 let big: i32 = a + b * 1000000;
 // → a + b * 1000000 의 결과가 i32 범위면 OK, 밖이면 (debug=panic / release=wrap)
 // silent saturate / silent promote 안 함
 
-let auto: i64 = a + b;       // 컴파일 에러 — i32 결과를 i64 에 silent promote 안 함
+let auto: i64 = a + b;       // 컴파일 에러 - i32 결과를 i64 에 silent promote 안 함
 let auto: i64 = (a + b) as i64;  // 명시 변환 OK
 let auto: i64 = (a + b).into();  // From<i32> for i64 (lossless) 명시
 ```
 
-## 2.11.11. 다른 언어와의 비교 — 디자인 결정 근거
+## 2.11.11. 다른 언어와의 비교 - 디자인 결정 근거
 
 | 언어   | 변환 모델                                               | rok 과의 차이                                                                     |
 |--------|---------------------------------------------------------|-----------------------------------------------------------------------------------|
-| Rust   | `From`/`Into` lossless, `as` wrap, `try_into` Result    | rok 과 가장 유사 — `saturating_into`/`wrapping_into` 메서드는 rok 이 명시 추가    |
-| Swift  | 모든 정수 변환 trapping 기본, `.init(clamping:)` opt-in | rok 은 trapping 거부 — debug=panic + release=wrap (fixed-width 산술), 변환은 명시 |
+| Rust   | `From`/`Into` lossless, `as` wrap, `try_into` Result    | rok 과 가장 유사 - `saturating_into`/`wrapping_into` 메서드는 rok 이 명시 추가    |
+| Swift  | 모든 정수 변환 trapping 기본, `.init(clamping:)` opt-in | rok 은 trapping 거부 - debug=panic + release=wrap (fixed-width 산술), 변환은 명시 |
 | Julia  | `Int32(big)` trapping, `convert` 함수 패밀리            | rok 은 trait 메서드로 통일 (`from`/`into`)                                        |
-| Python | `int(x)`/`float(x)` 함수 — 항상 무한 정밀도             | rok 의 `int` / `float` 는 같은 정신, fixed primitive 는 별개 세계                 |
-| C      | implicit conversion (`int` → `long` 자동)               | rok 명시 거부 — silent type mixing 차단                                           |
+| Python | `int(x)`/`float(x)` 함수 - 항상 무한 정밀도             | rok 의 `int` / `float` 는 같은 정신, fixed primitive 는 별개 세계                 |
+| C      | implicit conversion (`int` → `long` 자동)               | rok 명시 거부 - silent type mixing 차단                                           |
 
 이러한 비교를 토대로 rok 이 채택한 핵심 디자인 결정은 다음과 같습니다. 먼저 silent 정보 손실을 거부합니다 (Rust 의 영향을 받았습니다). 다음으로 4 갈래 (`into`, `try_into`, `saturating_into`, `as`) 를 명시함으로써 의도 표현을 강제합니다. 또한 literal context 에서만 auto-From 을 허용하며, runtime value 의 경우에는 명시를 강제합니다. 마지막으로 `int` / `float` 의 auto-promote 와 fixed primitive 를 분리하는데, 이는 Python 과 Smalltalk 의 영향에서 나온 결정입니다.
 
@@ -376,7 +376,7 @@ let auto: i64 = (a + b).into();  // From<i32> for i64 (lossless) 명시
 
 | 트레잇              | lang slot            | 표준 라이브러리 위치 |
 |---------------------|----------------------|----------------------|
-| `From<U>`           | (없음 — derive 가능) | 표준 라이브러리      |
+| `From<U>`           | (없음 - derive 가능) | 표준 라이브러리      |
 | `Into`              | (blanket impl)       | 표준 라이브러리      |
 | `TryFrom<U>`        | (없음)               | 표준 라이브러리      |
 | `TryInto`           | (blanket impl)       | 표준 라이브러리      |

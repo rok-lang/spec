@@ -61,7 +61,7 @@ This form is `impl Trait for Type { ... }`. The body contains the bodies of the 
 
 An impl method must have the trait declaration's parameter count, the same `ref` on each parameter other than the receiver, and return a value exactly when the declaration does; otherwise it is an error at the impl, and the error shows the declaration. The `throws` of an impl method must be the same as the `throws` of the trait method. An impl cannot add `throws` or widen the error type ([4.14.11](../004-functions/414-throws.md#41411-throws-on-methods)).
 
-`Send` / `Sync` are automatic marker traits with two manual declarations ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--thread-boundary-markers)).
+`Send` / `Sync` are automatic marker traits with two manual declarations ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers)).
 
 - Opt-in: `unsafe impl Send for X {}`. `unsafe impl` may only be used for `Send` / `Sync`, and is required for manual implementations of these two traits.
 - Opt-out: `impl !Send for X {}`, `impl<T> !Send for Cell<T> {}`. It prevents the automatic implementation, and the body must be empty. `!` may only be used with `Send` / `Sync`.
@@ -88,9 +88,9 @@ For a function in the body to be an instance method, its first parameter must be
 
 ```rok
 impl Point {
-    fn origin() -> Point { ... }                    // static — called as Type::method()
-    fn distance(self, other: Point) -> f64 { ... }  // instance — called as instance.method()
-    fn replace_with(ref self, other: Point) { ... } // ref self — may reassign the caller's variable
+    fn origin() -> Point { ... }                    // static - called as Type::method()
+    fn distance(self, other: Point) -> f64 { ... }  // instance - called as instance.method()
+    fn replace_with(ref self, other: Point) { ... } // ref self - may reassign the caller's variable
 }
 ```
 
@@ -116,7 +116,7 @@ However, a given trait can be `impl`emented only once for the same type.
 
 ```rok
 impl Display for Point { ... }
-impl Display for Point { ... }   // ERROR — duplicate implementation
+impl Display for Point { ... }   // ERROR - duplicate implementation
 ```
 
 ## 2.9.4. Generic `impl`
@@ -144,7 +144,7 @@ Implementing a trait defined in one package for a type defined in another packag
 
 ```rok
 // trait Display and type i32 are both defined in the standard library (another package)
-impl Display for i32 { ... }     // ERROR — both from external packages
+impl Display for i32 { ... }     // ERROR - both from external packages
 ```
 
 So at least one must hold: the trait is defined in the current package, or the target type is defined in the current package. Built-in types (primitives, tuples, arrays, function types) count as defined in `rok::core`.
@@ -167,14 +167,14 @@ A (trait, type) pair has only one `impl`, and there is no specialization.
 
 ```rok
 impl<T: Display> Describe for List<T> { ... }
-impl<T: Hash> Describe for List<T> { ... }   // ERROR — i32 satisfies both Display and Hash
+impl<T: Hash> Describe for List<T> { ... }   // ERROR - i32 satisfies both Display and Hash
 impl<T: Shape> Area for T { ... }
-impl<T: Color> Area for T { ... }            // ERROR — T and T unify (bounds irrelevant)
+impl<T: Color> Area for T { ... }            // ERROR - T and T unify (bounds irrelevant)
 ```
 
 ```rok
 impl<T: Display> Describe for T { ... }
-impl Describe for i32 { ... }        // ERROR — overlaps the impl above since i32: Display
+impl Describe for i32 { ... }        // ERROR - overlaps the impl above since i32: Display
 ```
 
 ## 2.9.6. Method visibility

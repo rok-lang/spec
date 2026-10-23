@@ -194,7 +194,7 @@ derive 와 attribute 이름은 모듈 경로를 갖지 않는 빌드 전역 이�
 #[impl_attribute(adds_helper)] pub @attribute {
     @item                                       // 원본 항목 그대로
 
-    #[derive(MyHelper)]                          // 새 항목 — 다시 derive 처리됨
+    #[derive(MyHelper)]                          // 새 항목 - 다시 derive 처리됨
     struct Helper { ... }
 }
 ```
@@ -237,7 +237,7 @@ rok 의 선택은 표현력을 제한하는 대신 예측 가능성과 디버깅
     impl MyHash for @Self { ... }
 }
 
-// 다른 모듈 — import 없이 사용
+// 다른 모듈 - import 없이 사용
 #[derive(MyHash)]
 struct Foo { ... }
 ```

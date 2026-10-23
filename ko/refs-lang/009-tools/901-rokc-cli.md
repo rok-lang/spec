@@ -70,7 +70,7 @@ rokc build [path]
 
 - `--release` 는 최적화 빌드 (`-O2` 와 같음) 를 `release` profile 로 수행하며, 기본값은 `debug` profile 의 디버그 빌드 (`-O0`) 입니다. 두 profile 의 차이는 [9.2.15](902-aot-pipeline.md#9215-산출물) 가 설명합니다.
 - `--target-dir=<dir>` 는 `target/` 의 위치를 바꿉니다 (`ROKC_TARGET_DIR` 과 같음).
-- `--extern <name>=<dir | src/lib.rok | <name>.rokhir | lib<name>.a>` 는 의존 패키지 하나를 최상위 경로 `name` 에 mount 합니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 소스 (`dir` / `src/lib.rok`) 는 같은 빌드에서 함께 컴파일하고, 미리 빌드한 패키지 (`.rokhir` / `.a`, 하나를 주면 옆의 짝을 찾음) 는 ROKHIR 을 읽고 archive 를 링크합니다. 여러 번 쓸 수 있고, 보통 `rok` 가 채웁니다. `name` 은 식별자이며, 패키지 이름의 `-` 를 `_` 로 바꾼 것입니다 ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)). `rok` 은 표준 라이브러리용으로 예약되어 있습니다: `--extern rok=..` 은 사용법 에러이며, `rok` 이라는 라이브러리 패키지는 거부합니다.
+- `--extern <name>=<dir | src/lib.rok | <name>.rokhir | lib<name>.a>` 는 의존 패키지 하나를 최상위 경로 `name` 에 mount 합니다 ([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 소스 (`dir` / `src/lib.rok`) 는 같은 빌드에서 함께 컴파일하고, 미리 빌드한 패키지 (`.rokhir` / `.a`, 하나를 주면 옆의 짝을 찾음) 는 ROKHIR 을 읽고 archive 를 링크합니다. 여러 번 쓸 수 있고, 보통 `rok` 가 채웁니다. `name` 은 식별자이며, 패키지 이름의 `-` 를 `_` 로 바꾼 것입니다 ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)). `rok` 은 표준 라이브러리용으로 예약되어 있습니다: `--extern rok=..` 은 사용법 에러이며, `rok` 이라는 라이브러리 패키지는 거부합니다. 키워드와 경로 시작점 (`pkg`, `sup`) 도 `name` 으로, 또 라이브러리나 라이브러리가 있는 패키지의 이름으로 쓸 수 없습니다 ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)).
 - `--extern-feature <name>=<f>` 는 소스 의존 패키지 `name` 을 `cfg(feature = "<f>")` 로 빌드합니다. feature 마다 하나씩, 여러 번 줄 수 있습니다. 의존 패키지가 보는 것은 이것뿐입니다: `--cfg` 의 `feature` 키는 컴파일 중인 패키지의 것입니다. 보통 `rok` 이 채웁니다.
 - `--name <n>` 은 패키지 이름 ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock) 의 이름 규칙) 을 정합니다. 산출물은 `lib<n>.a` / `<n>.rokhir` 이고 mount 이름은 `-` 를 `_` 로 바꾼 것입니다. 기본은 디렉토리 이름입니다. `--extern a-b=..` 도 `a_b` 로 묶습니다.
 - `--bootstrap <file>` 은 미리 읽을 표준 라이브러리 루트 (여러 번 가능), `--rokr <lib>` 는 링크할 런타임입니다. 기본값은 sysroot 의 `lib/rok/{core,std,bare}/src/lib.rok` 와 `lib/librokr.a` 입니다 ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)). bootstrap 루트의 tier 는 그 `src/` 위 디렉토리의 이름이며, `bare` 루트 없이 `core/src/lib.rok` 를 주면 그 옆의 `bare/src/lib.rok` 도 읽습니다. 찾지 못하면 찾아본 경로를 나열하는 에러입니다.
@@ -320,7 +320,7 @@ rokc demangle <symbol>...
 `rokc rokhir-text` 는 미리 빌드한 라이브러리의 ROKHIR 을 텍스트로 출력합니다.
 
 ```
-rokc rokhir-text path/to/foo.rokhir      # 또는 libfoo.a — 옆의 foo.rokhir 를 읽음
+rokc rokhir-text path/to/foo.rokhir      # 또는 libfoo.a - 옆의 foo.rokhir 를 읽음
 ```
 
 header 필드, producer, meta 와 interface 파일들을 출력하며, 포맷은 [ROKHIR 포맷](904-rokhir-bytecode.md) 에 기술됩니다.

@@ -9,7 +9,7 @@ The following table shows the three commonly used forms, their meaning, and exam
 | Notation           | Meaning                                            | Example                    |
 |--------------------|----------------------------------------------------|----------------------------|
 | `` ` `` (backtick) | Keywords, identifiers, tokens, type names, code fragments | `` `let` ``, `` `i32` `` |
-| Fence (` ``` `)    | Multi-line code block — language name given        | ` ```rok ` or ` ```ebnf`   |
+| Fence (` ``` `)    | Multi-line code block - language name given        | ` ```rok ` or ` ```ebnf`   |
 | Inline code        | Short code fragment                                | `` `x + y` ``              |
 
 A keyword referred to in running text is always wrapped in backticks, which sets it apart visually from the surrounding prose.
@@ -20,13 +20,13 @@ Emphasis is not mere visual decoration; each form has a fixed purpose, as listed
 
 | Notation         | Meaning                              | Used for                                         |
 |------------------|--------------------------------------|--------------------------------------------------|
-| `*text*`         | **Italic** — conceptual emphasis     | Introducing new terms, emphasizing meaning       |
-| `**text**`       | **Bold** — warnings, key decisions   | "this is a **compile error**", "**rejected outright**" |
+| `*text*`         | **Italic** - conceptual emphasis     | Introducing new terms, emphasizing meaning       |
+| `**text**`       | **Bold** - warnings, key decisions   | "this is a **compile error**", "**rejected outright**" |
 | `> [!NOTE]`      | GitHub-style info box                | Side notes, informal guidance                    |
 | `> [!WARNING]`   | GitHub-style warning box             | Pitfalls, common misconceptions                  |
 | `> [!IMPORTANT]` | GitHub-style important box           | Core invariants, rules that must be followed     |
 
-## 0.8.3. Grammar definitions — BNF variant
+## 0.8.3. Grammar definitions - BNF variant
 
 Grammar in this specification is written in an EBNF variant. The metacharacters used are as follows.
 
@@ -74,7 +74,7 @@ Code examples follow fixed conventions as well. Below is the most basic form.
 ```rok
 // short one-line comment
 fn example() -> i32 {
-    let x = 42;        // x is an implicit generic — simplified example
+    let x = 42;        // x is an implicit generic - simplified example
     return x;
 }
 ```

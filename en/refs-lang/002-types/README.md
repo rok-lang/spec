@@ -49,7 +49,7 @@ The syntax of type expressions, i.e. how type names are written. The container s
 
 The standard library is responsible for the following about types.
 
-The names and meanings of all primitive types: `i32`, `f64`, `bool`, `str`, and so on. All collection types: `List`, `Dict`, `Set`, `Tuple`, and so on. All conversions between types such as cast, from, and into. The contents of traits — which traits have which methods and which types implement them. Finally, which type a literal evaluates to is also decided by the standard library, through handlers.
+The names and meanings of all primitive types: `i32`, `f64`, `bool`, `str`, and so on. All collection types: `List`, `Dict`, `Set`, `Tuple`, and so on. All conversions between types such as cast, from, and into. The contents of traits - which traits have which methods and which types implement them. Finally, which type a literal evaluates to is also decided by the standard library, through handlers.
 
 > [!IMPORTANT]
 > This chapter defines only the shape. The contents are defined in the library specification.

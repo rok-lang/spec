@@ -5,8 +5,8 @@ This chapter collects in one place the policies and tables that apply across the
 ## Contents
 
 - [0.1. The 3-tier model (bare / core / std)](001-tier-model.md)
-- [0.2. Import policy (`use rok::core::**;` — no automatic prelude)](002-import.md)
-- [0.3. Intrinsic mechanism — the compiler ↔ standard library boundary](003-intrinsics.md)
+- [0.2. Import policy (`use rok::core::**;` - no automatic prelude)](002-import.md)
+- [0.3. Intrinsic mechanism - the compiler ↔ standard library boundary](003-intrinsics.md)
 - [0.4. `#[lang]` slot mapping table](004-lang-slot-table.md)
 - [0.5. Notation](005-notation.md)
 

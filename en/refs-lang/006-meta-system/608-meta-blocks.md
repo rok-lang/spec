@@ -148,7 +148,7 @@ struct User {
 //   }
 ```
 
-This form takes two arguments — the Trait being derived and the attribute that marks per-field information — and branches inside the derive body by reading the fields' attribute information.
+This form takes two arguments - the Trait being derived and the attribute that marks per-field information - and branches inside the derive body by reading the fields' attribute information.
 
 ## 6.8.5. Body (template block)
 
@@ -194,7 +194,7 @@ If the result of template expansion produces an item carrying another derive or 
 #[impl_attribute(adds_helper)] pub @attribute {
     @item                                       // the original item as is
 
-    #[derive(MyHelper)]                          // new item — derive processed again
+    #[derive(MyHelper)]                          // new item - derive processed again
     struct Helper { ... }
 }
 ```
@@ -237,7 +237,7 @@ A `pub` meta block is visible throughout the build without `use` (6.8.6). Meta b
     impl MyHash for @Self { ... }
 }
 
-// another module — used without import
+// another module - used without import
 #[derive(MyHash)]
 struct Foo { ... }
 ```

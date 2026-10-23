@@ -29,7 +29,7 @@ The kernel reads the ZMQ ports and key from the connection file, then binds and 
 |-------------|------------------------------------------------------------|
 | `shell`     | Requests (execute, kernel_info, complete, is_complete, etc.) |
 | `iopub`     | Output and status broadcast (status, stream, execute_result, etc.) |
-| `stdin`     | Unused — no input requests are sent (stdin is `/dev/null`) |
+| `stdin`     | Unused - no input requests are sent (stdin is `/dev/null`) |
 | `control`   | interrupt, shutdown                                        |
 | `heartbeat` | Sends back whatever it receives (echo)                     |
 

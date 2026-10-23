@@ -1,4 +1,4 @@
-# 1.2. cast 연산 — 명시 named cast
+# 1.2. cast 연산 - 명시 named cast
 
 `rok::bare::cast` 모듈은 pointer 와 type 사이의 변환을 오직 **named function** 형태로만 노출합니다. C 와 Rust 의 `as` cast 가 가장 위험한 까닭은 변환이 조용히(silent) 일어난다는 점이며, rok 은 이 함정을 피하기 위해 모든 cast 를 **명시적인 이름** 으로 강제합니다.
 
@@ -21,7 +21,7 @@
 
 `as` 키워드는 pointer 자리에서 컴파일러가 거부하므로, 사용자는 자연히 named cast 를 쓸 수밖에 없습니다.
 
-## 1.2.2. `ptr_cast<U>` — pointer type 변환
+## 1.2.2. `ptr_cast<U>` - pointer type 변환
 
 ```rok
 fn ptr_cast<U, T>(p: Ptr<T>) -> Ptr<U>;
@@ -34,13 +34,13 @@ fn ptr_cast<U, T>(p: ManyPtr<T>) -> ManyPtr<U>;
 ```rok
 let p: Ptr<u32> = ...;        // 4-byte aligned
 let q: Ptr<u8> = rok::bare::ptr_cast::<u8>(p);    // 안전 (down-align)
-let r: Ptr<u64> = rok::bare::ptr_cast::<u64>(p);  // 위험 — u64 은 8-byte 필요
+let r: Ptr<u64> = rok::bare::ptr_cast::<u64>(p);  // 위험 - u64 은 8-byte 필요
                                                  // r.read() 시 SIGBUS 가능 (ARM)
 ```
 
 debug 빌드에서는 **alignment 검증** 이 들어가 panic 으로 이어지지만, release 빌드에서는 검증이 사라져 그대로 UB 가 됩니다.
 
-### 안전 cast — type-equivalent
+### 안전 cast - type-equivalent
 
 layout 이 동일한 두 struct 사이에서는 안전하게 변환할 수 있습니다.
 
@@ -54,7 +54,7 @@ let pb: Ptr<B> = rok::bare::ptr_cast::<B>(pa);    // layout OK 면 안전
 
 다만 layout 이 정말 같은지는 컴파일러가 검증하지 않으므로, 이 보장은 호출자가 직접 떠안아야 합니다.
 
-## 1.2.3. `align_cast<T>` — alignment 검증
+## 1.2.3. `align_cast<T>` - alignment 검증
 
 ```rok
 fn align_cast<T>(p: Ptr<u8>) -> Ptr<T> | none;
@@ -83,7 +83,7 @@ fn align_cast_unchecked<T>(p: Ptr<u8>) -> Ptr<T>;     // 검증 없이
 
 호출 직전에 이미 정렬을 검증해 둔 자리에서만 사용합니다. 이 변종은 debug 빌드에서도 검증을 수행하지 않습니다.
 
-## 1.2.4. `const_cast<T>` — const 제거
+## 1.2.4. `const_cast<T>` - const 제거
 
 ```rok
 fn const_cast<T>(p: ConstPtr<T>) -> Ptr<T>;
@@ -95,15 +95,15 @@ fn const_cast<T>(p: ConstPtr<T>) -> Ptr<T>;
 let s: str = "hello";              // immortal const
 let p: ConstPtr<u8> = s.as_ptr();
 let m: Ptr<u8> = rok::bare::const_cast(p);
-unsafe { m.write(c'H') };          // SEGFAULT — immortal const 쓰기
+unsafe { m.write(c'H') };          // SEGFAULT - immortal const 쓰기
 ```
 
 C 의 `const_cast<T*>` 와 정확히 동형입니다. 사용처는 read-only API 를 임시로 mutability 가 필요한 자리에 wrapping 하는 정도로 한정되며, 일반 코드에서는 **사용하지 말 것**.
 
-## 1.2.5. `reinterpret<A: Pod, B: Pod>` — bit cast (안전)
+## 1.2.5. `reinterpret<A: Pod, B: Pod>` - bit cast (안전)
 
 ```rok
-trait Pod { /* marker — Plain Old Data */ }
+trait Pod { /* marker - Plain Old Data */ }
 
 fn reinterpret<A: Pod, B: Pod>(a: A) -> B;
 ```
@@ -116,7 +116,7 @@ fn reinterpret<A: Pod, B: Pod>(a: A) -> B;
 
 ```rok
 let f: f32 = 3.14;
-let bits: u32 = rok::bare::reinterpret(f);     // OK — 둘 다 Pod, 4 byte
+let bits: u32 = rok::bare::reinterpret(f);     // OK - 둘 다 Pod, 4 byte
 let f2: f32 = rok::bare::reinterpret(bits);    // round-trip OK
 ```
 
@@ -152,7 +152,7 @@ let v2: Vec3 = rok::bare::reinterpret(bytes);
 
 이 설계는 [Project Safe Transmute (Rust RFC 2835)](https://rust-lang.github.io/rfcs/2835-project-safe-transmute.html) 모델과 [bytemuck crate](https://docs.rs/bytemuck) 패턴을 그대로 따릅니다.
 
-## 1.2.6. `transmute_unchecked<A, B>` — escape hatch
+## 1.2.6. `transmute_unchecked<A, B>` - escape hatch
 
 ```rok
 fn transmute_unchecked<A, B>(a: A) -> B;       // size check 도 안 함
@@ -179,13 +179,13 @@ let bits: u64 = rok::bare::transmute_unchecked(s);   // SomeNewtype 이 size 8 �
 | 표현               | 결과                                                   |
 |--------------------|--------------------------------------------------------|
 | `i32 as i64`       | OK (lossless widening)                                 |
-| `i64 as i32`       | **컴파일 에러** — `try_into` / `saturating_into`       |
+| `i64 as i32`       | **컴파일 에러** - `try_into` / `saturating_into`       |
 | `f32 as f64`       | OK (lossless)                                          |
-| `i32 as f32`       | **컴파일 에러** — `as f32` 정밀도 손실 가능            |
-| `u32 as i32`       | **컴파일 에러** — bit reinterpret (`reinterpret` 사용) |
-| `Ptr<T> as Ptr<U>` | **컴파일 에러** — `rok::bare::ptr_cast::<U>`            |
-| `Ptr<T> as usize`  | **컴파일 에러** — `.addr()` 또는 `expose_provenance`   |
-| `usize as Ptr<T>`  | **컴파일 에러** — `from_exposed_provenance`            |
+| `i32 as f32`       | **컴파일 에러** - `as f32` 정밀도 손실 가능            |
+| `u32 as i32`       | **컴파일 에러** - bit reinterpret (`reinterpret` 사용) |
+| `Ptr<T> as Ptr<U>` | **컴파일 에러** - `rok::bare::ptr_cast::<U>`            |
+| `Ptr<T> as usize`  | **컴파일 에러** - `.addr()` 또는 `expose_provenance`   |
+| `usize as Ptr<T>`  | **컴파일 에러** - `from_exposed_provenance`            |
 
 자세한 변환 매트릭스는 [2.11 conversion](../200-core/211-conversion.md) 을 참고하라.
 

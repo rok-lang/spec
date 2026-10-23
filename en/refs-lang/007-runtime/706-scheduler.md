@@ -4,7 +4,7 @@ rok's scheduler is M:N [work-stealing](../000-meta/007-glossary.md#work-stealing
 
 ## 7.6.1. Unified worker model
 
-A process has one executor, started on first use. Workers are as many OS threads as there are CPUs, plus a blocking lane and an I/O driver. `task::block_on` attaches the calling thread as a guest worker; remaining tasks keep running after it returns. `par::*` and `spawn_blocking` use the same executor ([stdlib 2.18.3](../../refs-standard-libraries/200-core/218-task.md#2183-scheduler-model--work-stealing)). Each worker combines these roles:
+A process has one executor, started on first use. Workers are as many OS threads as there are CPUs, plus a blocking lane and an I/O driver. `task::block_on` attaches the calling thread as a guest worker; remaining tasks keep running after it returns. `par::*` and `spawn_blocking` use the same executor ([stdlib 2.18.3](../../refs-standard-libraries/200-core/218-task.md#2183-scheduler-model---work-stealing)). Each worker combines these roles:
 
 ```
 worker = {
@@ -17,7 +17,7 @@ Workers do not double as the I/O driver; a single reactor thread per process han
 
 ## 7.6.2. Work-stealing structure
 
-Each worker has a local deque (lock-free Chase-Lev deque, [8.5.4 `rok_deque_*`](../008-abi/805-extern-symbols.md#rok_deque_--work-stealing-deque)).
+Each worker has a local deque (lock-free Chase-Lev deque, [8.5.4 `rok_deque_*`](../008-abi/805-extern-symbols.md#rok_deque_---work-stealing-deque)).
 
 ```
 Worker:
@@ -36,7 +36,7 @@ Besides each worker's local queue, there is a separate global injector queue.
 ```
 Global injector:
   - receives tasks spawned from outside (e.g. extern callback).
-  - when a worker's local queue is empty — pull from global.
+  - when a worker's local queue is empty - pull from global.
 ```
 
 This queue is the entry point for tasks arriving from outside the worker pool.
@@ -48,7 +48,7 @@ When a worker's local deque is empty, it proceeds in this order:
 ```
 1. Try to pull from the global injector.
 2. Try to steal from the top of another worker's local deque. Victims start at a per-worker pseudo-random index, then go round-robin.
-3. If all fail — sleep / park (blocking sync).
+3. If all fail - sleep / park (blocking sync).
 ```
 
 Steal tries up to N-1 workers; if all are empty, the worker switches to the parked state.

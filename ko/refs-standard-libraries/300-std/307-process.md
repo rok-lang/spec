@@ -1,6 +1,6 @@
-# 3.7. `process::` — 자식 프로세스
+# 3.7. `process::` - 자식 프로세스
 
-`rok::std::process` 모듈은 자식 프로세스를 spawn 하고 그 신호를 다루는 일을 담당합니다. 기본 골격은 Rust 의 `Command` builder 패턴을 따르되, 그 위에 모던한 안전 장치—`pidfd`, `kill_on_drop`, 그리고 `posix_spawn` fast path—를 얹어 한층 견고하게 만들었다.
+`rok::std::process` 모듈은 자식 프로세스를 spawn 하고 그 신호를 다루는 일을 담당합니다. 기본 골격은 Rust 의 `Command` builder 패턴을 따르되, 그 위에 모던한 안전 장치-`pidfd`, `kill_on_drop`, 그리고 `posix_spawn` fast path-를 얹어 한층 견고하게 만들었다.
 
 ## 3.7.1. `Command` builder
 
@@ -47,7 +47,7 @@ impl Command {
 enum Stdio {
     Inherit,                   // 부모 fd 그대로 (default)
     Null,                      // /dev/null
-    Piped,                     // pipe — Child 에서 읽기/쓰기 가능
+    Piped,                     // pipe - Child 에서 읽기/쓰기 가능
     File(File),                // 명시 fd
 }
 
@@ -77,16 +77,16 @@ impl Child {
     fn wait(self) throws (IoError) -> ExitStatus;
     fn try_wait(self) throws (IoError) -> ExitStatus | none;
 
-    // pidfd (Linux only) — race-free signal
+    // pidfd (Linux only) - race-free signal
     #[cfg(target_os = "linux")]
     fn pidfd(self) throws (IoError) -> RawFd;
 
     fn signal(self, sig: i32) throws (IoError);          // unix
 }
 
-impl ChildStdin { ... }                  // 파일 핸들 — impl Writer
-impl ChildStdout { ... }                 // 파일 핸들 — impl Reader
-impl ChildStderr { ... }                 // 파일 핸들 — impl Reader
+impl ChildStdin { ... }                  // 파일 핸들 - impl Writer
+impl ChildStdout { ... }                 // 파일 핸들 - impl Reader
+impl ChildStderr { ... }                 // 파일 핸들 - impl Reader
 
 struct ExitStatus { /* opaque */ }
 
@@ -127,7 +127,7 @@ try stdin.write_all(input_bytes);
 let result = try stdout.read_to_end();
 try child.wait();
 
-// kill_on_drop — process leak 방지
+// kill_on_drop - process leak 방지
 using child = try Command::new("long_running")
         .kill_on_drop(true)
         .spawn() {
@@ -135,9 +135,9 @@ using child = try Command::new("long_running")
 }    // ← using 해제 시 Drop → kill
 ```
 
-마지막 예시가 보여주듯, `kill_on_drop` 을 켠 `Child` 를 `using` 으로 묶으면 에러 전파나 조기 return 같은 흐름에서도 자식이 함께 정리됩니다. `using` 블록을 빠져나갈 때 `Drop` 이 kill 을 겁니다. `using` 밖의 `Child` 는 자동으로 kill 되지 않습니다 ([2.13.4](../200-core/213-marker.md#2134-drop--using-해제-시-정리)). `ChildStdin` / `ChildStdout` / `ChildStderr` 는 파이프의 파일 핸들이며 `File` 과 같은 방식으로 읽고 씁니다.
+마지막 예시가 보여주듯, `kill_on_drop` 을 켠 `Child` 를 `using` 으로 묶으면 에러 전파나 조기 return 같은 흐름에서도 자식이 함께 정리됩니다. `using` 블록을 빠져나갈 때 `Drop` 이 kill 을 겁니다. `using` 밖의 `Child` 는 자동으로 kill 되지 않습니다 ([2.13.4](../200-core/213-marker.md#2134-drop---using-해제-시-정리)). `ChildStdin` / `ChildStdout` / `ChildStderr` 는 파이프의 파일 핸들이며 `File` 과 같은 방식으로 읽고 씁니다.
 
-## 3.7.4. 모던 추가 — pidfd / posix_spawn / CLOEXEC
+## 3.7.4. 모던 추가 - pidfd / posix_spawn / CLOEXEC
 
 이러한 builder 패턴 위에 표준 라이브러리는 몇 가지 현대적 보강을 더합니다. 각각이 어떤 의미를 갖고 어떤 효과로 이어지는지 다음 표에 정리해 두었다.
 

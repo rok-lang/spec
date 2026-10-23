@@ -38,7 +38,7 @@ trait Add<Rhs = Self> {
 | `i64` | `#[intrinsic("rok.add.i64")]`   |                      |
 | `f32` | `#[intrinsic("rok.add.f32")]`   |                      |
 | `f64` | `#[intrinsic("rok.add.f64")]`   |                      |
-| `int` | (intrinsic 없음 — auto-promote) | 표준 라이브러리 정의 |
+| `int` | (intrinsic 없음 - auto-promote) | 표준 라이브러리 정의 |
 ```
 
 ## 0.5.4. 의미 정의 (semantics)
@@ -52,7 +52,7 @@ trait Add<Rhs = Self> {
 
 - `i32 + i32`: 2's complement wrap (debug=panic, release=wrap)
 - `f64 + f64`: IEEE 754 덧셈
-- `int + Int`: 무한정 정밀도 — 결과가 i128 범위 넘어가면 BigInt 로 promote
+- `int + Int`: 무한정 정밀도 - 결과가 i128 범위 넘어가면 BigInt 로 promote
 
 오버플로 핸들링은 [2.1 숫자 타입](../200-core/201-numbers.md) 의 fixed-width 산술
 규칙을 따릅니다. saturate / checked / wrapping 변형은 별도 메서드 (`saturating_add` 등)

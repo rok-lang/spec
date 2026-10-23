@@ -134,7 +134,7 @@ When `x.method()` has multiple candidates, one is chosen in this order:
 3. If there is still more than one candidate, it is an ambiguity error, and the diagnostic suggests writing it as `Trait::method(x)`.
 
 ```rok
-use pkg::geom::Union;              // user trait — union method
+use pkg::geom::Union;              // user trait - union method
 a.union(b);                        // pkg::geom::Union takes precedence over core's Union
 rok::core::ops::Union::union(a, b) // explicit to use the core one
 ```
@@ -183,7 +183,7 @@ A method's own generics follow the function name (`fn map<U>(...)`). In a trait 
 
 | First parameter | Meaning                   | At the call                          | Can `self` be reassigned in the body? |
 |-----------------|---------------------------|--------------------------------------|---------------------------------------|
-| (none)          | static method             | `Type::method()`                     | —                                     |
+| (none)          | static method             | `Type::method()`                     | -                                     |
 | `self`          | instance method (value)   | `instance.method()`                  | no (local only)                       |
 | `ref self`      | instance method (`ref`)   | `instance.method()` (`ref` automatic) | yes (reflected in the caller)        |
 

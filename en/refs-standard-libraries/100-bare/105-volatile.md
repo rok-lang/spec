@@ -33,7 +33,7 @@ unsafe fn read<T>(src: ConstPtr<T>) -> T;
 unsafe fn write<T>(dst: Ptr<T>, value: T);
 ```
 
-The same operations are available as the methods `Ptr<T>::read_volatile` / `write_volatile`, which often read more naturally ([1.1.2](101-ptr.md#112-ptrt--strict-provenance-api)).
+The same operations are available as the methods `Ptr<T>::read_volatile` / `write_volatile`, which often read more naturally ([1.1.2](101-ptr.md#112-ptrt---strict-provenance-api)).
 
 ## 1.5.3. Uses
 
@@ -43,17 +43,17 @@ The places that need `volatile` generally fall into these patterns.
 |------------------------|---------------------------------------|
 | MMIO register          | Hardware has side effects even on read |
 | Memory-mapped device   | DMA, etc.                             |
-| Signal handler variable | Changed inside a signal — must be visible outside |
+| Signal handler variable | Changed inside a signal - must be visible outside |
 | Spinlock retry loop    | Repeatedly reads a value changed by another thread |
 
-## 1.5.4. Caution — not the same as atomic
+## 1.5.4. Caution - not the same as atomic
 
 A common misconception: `volatile` only blocks compiler optimizations and gives no atomicity guarantee.
 
 - Race conditions still occur across threads
 - No memory ordering is enforced
 
-Variables shared between threads must therefore use [`Atomic<T>`](../200-core/216-sync.md#2162-atomict--lock-free-atomics), and `volatile` should be reserved as a tool for **hardware MMIO**.
+Variables shared between threads must therefore use [`Atomic<T>`](../200-core/216-sync.md#2162-atomict---lock-free-atomics), and `volatile` should be reserved as a tool for **hardware MMIO**.
 
 ## 1.5.5. lowering
 

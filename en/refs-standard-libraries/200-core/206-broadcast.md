@@ -1,23 +1,23 @@
-# 2.6. Broadcast — element-wise operators
+# 2.6. Broadcast - element-wise operators
 
 The `rok::core::ops::broadcast` module is the trait authority for Julia-style dot operators. Dot operators (`.+` / `.*` / `.==` / `f.(x)`) make element-wise meaning visually distinct in the syntax itself, which rules out confusion with a user-defined `*` (e.g. matrix multiply).
 
 This chapter defines the 19 broadcast traits together with the desugaring rules for function broadcast.
 
-## 2.6.1. Motivation — why separate dot operators
+## 2.6.1. Motivation - why separate dot operators
 
 In NumPy and MATLAB, the **silent ambiguity** of `*` meaning element-wise on arrays but multiplication on matrices has long been a source of bugs (the same concern motivated the introduction of `@` in PEP 465).
 
 rok's policy, by contrast, is clear.
 
 ```rok
-m * n       // user-defined Mul — matrix multiplication, dot product, etc.
-m .* n      // element-wise (Hadamard product) — always broadcast
+m * n       // user-defined Mul - matrix multiplication, dot product, etc.
+m .* n      // element-wise (Hadamard product) - always broadcast
 ```
 
-The dot prefix (`.`) acts as a visual signal stating element-wise intent, and the compiler enforces it. In any container — List, Vec, Matrix, etc. — `.+` consistently dispatches to `DotAdd::dot_add`.
+The dot prefix (`.`) acts as a visual signal stating element-wise intent, and the compiler enforces it. In any container - List, Vec, Matrix, etc. - `.+` consistently dispatches to `DotAdd::dot_add`.
 
-## 2.6.2. 19 traits — operator mapping
+## 2.6.2. 19 traits - operator mapping
 
 The full set is arithmetic (6) + comparison (6) + logical (2) + bitwise (3) + shift (2) = **19** traits.
 
@@ -74,7 +74,7 @@ The full set is arithmetic (6) + comparison (6) + logical (2) + bitwise (3) + sh
 
 Precedence and associativity mirror the ordinary traits ([2.3 ops](203-ops.md), [2.5 cmp](205-cmp.md)).
 
-## 2.6.3. Trait signatures — uniform form
+## 2.6.3. Trait signatures - uniform form
 
 Every dot trait follows the same uniform form.
 
@@ -112,7 +112,7 @@ trait DotLogicalAnd<Rhs = Self> {
 
 Arithmetic dot traits are fully symmetric with `Add`/`Sub`/`Mul`/`Div`/`Rem`/`Modulo`: an `Output` associated type plus an infix attribute. The six comparison dot traits (`DotEq`, `DotNe`, `DotLt`, `DotGt`, `DotLe`, `DotGe`) have the same form, each with its own `Output`, usually `Container<bool>`. Logical dot traits (`DotLogicalAnd` / `DotLogicalOr`) typically take `Container<bool>` on both sides and return `Container<bool>`; with no short-circuit, both containers are evaluated to the end.
 
-### Function broadcast — no trait
+### Function broadcast - no trait
 
 Function broadcast is written as follows.
 
@@ -130,9 +130,9 @@ g.(a, b)     →  a.into_iter().zip(b.into_iter()).map(|(x, y)| g(x, y)).collect
 
 It dispatches directly to `map`/`zip` of [2.7 iter](207-iter.md); the broadcast module defines no separate trait. The difference is that the function itself is a callable, not a dispatch target.
 
-## 2.6.4. Semantics — element-wise
+## 2.6.4. Semantics - element-wise
 
-### Arithmetic dot — two containers of the same shape
+### Arithmetic dot - two containers of the same shape
 
 Arithmetic dot operations on two containers of the same shape behave as follows.
 
@@ -151,11 +151,11 @@ A length mismatch panics at runtime. If the sizes are known at compile time, it 
 ```rok
 let x: [i32; 3] = [1, 2, 3];
 let y: [i32; 4] = [1, 2, 3, 4];
-let z = x .+ y;          // ERROR (compile — fixed sizes differ)
+let z = x .+ y;          // ERROR (compile - fixed sizes differ)
 
 let p: List<i32> = [1, 2, 3];
 let q: List<i32> = [1, 2];
-let r = p .+ q;          // panic at runtime — length mismatch
+let r = p .+ q;          // panic at runtime - length mismatch
 ```
 
 ### Scalar broadcast
@@ -171,7 +171,7 @@ let t = a ./ 2;          //→ [0, 1, 1]    (i32 truncate)
 
 Here separate impls (`DotAdd<T> for List<T>`, and `DotAdd<List<T>> for T` for the scalar-left form) treat the scalar side. Fixed arrays `[T; N]` have no scalar-left impls.
 
-### Comparison dot — returns `Container<bool>`
+### Comparison dot - returns `Container<bool>`
 
 Comparison dot operators return a `Container<bool>`.
 
@@ -186,7 +186,7 @@ a .>= b;                 //→ [false, true, true]
 a .< 4;                  //→ [true, false, true]   (scalar broadcast)
 ```
 
-### Remainder dot — `.%` and `.%%`
+### Remainder dot - `.%` and `.%%`
 
 Remainder dot operators apply the meaning of ordinary `%` / `%%` element-wise.
 
@@ -194,11 +194,11 @@ Remainder dot operators apply the meaning of ordinary `%` / `%%` element-wise.
 let a: List<i32> = [-7, 5, -3, 8];
 let b: List<i32> = [3, 3, 3, 3];
 
-a .% b;                  //→ [-1, 2, 0, 2]   (Rem — sign follows the left operand)
-a .%% b;                 //→ [2, 2, 0, 2]    (Modulo — always in [0, 3))
+a .% b;                  //→ [-1, 2, 0, 2]   (Rem - sign follows the left operand)
+a .%% b;                 //→ [2, 2, 0, 2]    (Modulo - always in [0, 3))
 ```
 
-### Logical dot — `.&&` and `.||`
+### Logical dot - `.&&` and `.||`
 
 Logical dot operators produce the element-wise logical combination of two `Container<bool>`s. Unlike the undotted forms there is no short-circuit, so both containers are always evaluated to the end.
 
@@ -209,7 +209,7 @@ let q: List<bool> = [true, true, false, false];
 p .&& q;                 //→ [true, false, false, false]
 p .|| q;                 //→ [true, true, true, false]
 
-// combining comparison results — the most common use
+// combining comparison results - the most common use
 let xs: List<i32> = [1, 5, 3, 8];
 (xs .>= 2) .&& (xs .< 6);  //→ [false, true, true, false]
 ```
@@ -230,7 +230,7 @@ let ns: List<u32> = [1, 2, 4];
 ns .<< 2;                //→ [4, 8, 16]
 ```
 
-## 2.6.5. Function broadcast — `f.(x)`
+## 2.6.5. Function broadcast - `f.(x)`
 
 Function broadcast is written by adding a dot at an ordinary function call.
 
@@ -276,8 +276,8 @@ Dot trait impls map onto container types as follows.
 | Container        | DotAdd   | DotMul   | DotEq       | Notes                                   |
 |------------------|----------|----------|-------------|-----------------------------------------|
 | `List<T>`        | T:Add    | T:Mul    | T:PartialEq | element-wise, lengths must match        |
-| `[T; N]` (fixed) | T:Add    | T:Mul    | T:PartialEq | fixed N — compile time                  |
-| `Slice<T>`       | T:Add    | T:Mul    | T:PartialEq | view — element-wise                     |
+| `[T; N]` (fixed) | T:Add    | T:Mul    | T:PartialEq | fixed N - compile time                  |
+| `Slice<T>`       | T:Add    | T:Mul    | T:PartialEq | view - element-wise                     |
 | `i32`/`f64`/etc. | **none** | **none** | **none**    | scalars use ordinary `+`/`*`/`==`       |
 | `T \| none`       | (operator) | (operator) | (operator) | option propagation (`none .+ x = none`) |
 

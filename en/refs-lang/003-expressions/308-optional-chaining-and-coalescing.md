@@ -32,7 +32,7 @@ If the left-hand type does not include `none`, `?.` is a compile error. Use `.` 
 
 ```rok
 let p: Point = ...;
-p?.x;          // ERROR — p is not optional; use .
+p?.x;          // ERROR - p is not optional; use .
 ```
 
 ## 3.8.2. Chaining
@@ -77,7 +77,7 @@ The result type of `??` follows the branch result rules of the [expressions over
 
 ```rok
 let a = foo() ?? 0;                           // i32 (foo(): i32 | none)
-let r = foo() ?? "default";                   // ERROR — i32 and str, no receiving type
+let r = foo() ?? "default";                   // ERROR - i32 and str, no receiving type
 let r2: i32 | str = foo() ?? "default";       // OK
 ```
 

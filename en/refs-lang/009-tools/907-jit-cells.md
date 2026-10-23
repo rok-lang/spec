@@ -80,7 +80,7 @@ See the shadow stack part of [Barriers and root tracking](../007-runtime/704-bar
 
 ```rok
 [1] let x = 1i32;            // x: i32
-[2] let x = "hi";            // redeclaration at cell top level — new binding (x: str)
+[2] let x = "hi";            // redeclaration at cell top level - new binding (x: str)
 ```
 
 In [Variable declaration](../005-modules/501-variable-declaration.md#514-no-redeclaration-in-the-same-scope), redeclaration within the same scope is an ERROR. However, to support editing and re-running cells, the same name may be declared again with `let` at the top level of REPL and Jupyter cells. A redeclaration creates a new binding, whose type may differ from the previous binding. Later cells see the new binding. This exception applies only at cell top level, not to blocks inside a cell or to ordinary source files.
@@ -119,7 +119,7 @@ This step is fully transactional, so the state just before the error is preserve
 
 ```
 panic / uncaught throw / process exit / segfault during execution.
-  - the cell is not added — bindings and items stay as they were before the cell.
+  - the cell is not added - bindings and items stay as they were before the cell.
   - the error is shown to the user.
   - the next cell can proceed.
 ```

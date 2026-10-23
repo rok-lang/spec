@@ -10,9 +10,9 @@
 First, how static slots and `any` slots differ:
 
 ```rok
-let x: i32 = 42i32;     // x is i32 — cannot hold a value of another type
-let y: any = 42i32;     // y is an any slot — any type allowed
-let z = 42i32;          // z is i32 — static slot inferred from the initializer
+let x: i32 = 42i32;     // x is i32 - cannot hold a value of another type
+let y: any = 42i32;     // y is an any slot - any type allowed
+let z = 42i32;          // z is i32 - static slot inferred from the initializer
 ```
 
 In these three lines, `x` and `z` mean the same thing; `y` is the only `any` slot. When the type annotation is omitted, the compiler takes the initializer's type as the slot type. This lets REPL and notebook users type quickly without annotations while still getting static dispatch, and makes the places that incur dynamic dispatch cost visible in the declaration syntax.
@@ -27,7 +27,7 @@ A value in an `any` slot is represented as a tag paired with a payload.
 +------+----------+
 ```
 
-The tag identifies which type the payload is; the payload is the value itself — small values (primitives etc.) are stored directly, large values as a reference to a heap object.
+The tag identifies which type the payload is; the payload is the value itself - small values (primitives etc.) are stored directly, large values as a reference to a heap object.
 
 The exact bit width, alignment and encoding of tag and payload are defined in [8. Runtime ABI](../008-abi/README.md); this document guarantees only the shape (two parts: tag + payload).
 
@@ -53,9 +53,9 @@ When an operator is applied to an `any` operand, the rules are:
 
 ```rok
 let v: any = 42i32;
-let w = v + 1i32;           // w: any — i32 + i32
+let w = v + 1i32;           // w: any - i32 + i32
 let b = v == 1i32;          // b: bool
-let p = v + Point {};       // ERROR — Point is not a primitive type
+let p = v + Point {};       // ERROR - Point is not a primitive type
 ```
 
 ## 2.2.4. Reassignment: changing type is OK
@@ -64,7 +64,7 @@ An `any` slot can be freely reassigned with a value of a different type.
 
 ```rok
 let s: any = 42i32;
-s = "hello";        // OK — the slot is any
+s = "hello";        // OK - the slot is any
 s = 3.14f64;        // OK
 ```
 
@@ -99,7 +99,7 @@ Inside a branch where an `is` check or pattern match succeeded, the compiler tre
 ```rok
 let v: any = ...;
 if v is i32 {
-    let w = v + 1i32;       // inside this branch v is i32 — static dispatch
+    let w = v + 1i32;       // inside this branch v is i32 - static dispatch
 }
 ```
 
@@ -158,7 +158,7 @@ Struct fields must have their type written.
 
 ```rok
 struct Point { x: f64; y: f64; }      // OK
-struct Mixed { name; value; }          // ERROR — missing field types
+struct Mixed { name; value; }          // ERROR - missing field types
 ```
 
 To make a field dynamic, likewise use an explicit `any`.
@@ -175,7 +175,7 @@ Whether a variable's slot is dynamic or static is visible from the declaration s
 
 ```rok
 let x = 1;              // static slot (inferred from initializer)
-let x: any = 5i32;      // ERROR — x already exists in the same scope
+let x: any = 5i32;      // ERROR - x already exists in the same scope
 ```
 
 In a new scope it acts as a separate binding; details are defined in [Variable declarations](../005-modules/501-variable-declaration.md).
@@ -203,13 +203,13 @@ Writing a bare trait name in type position is still forbidden ([Trait-as-type ba
 When a value is stored into an `any Tr` slot, the compiler checks at compile time that the value's static type implements `Tr`. `any (A + B)` requires implementing both `A` and `B`.
 
 ```rok
-let a: any Display = 42i32;          // OK — i32: Display
-let b: any Display = Opaque {};      // ERROR — Opaque does not implement Display
+let a: any Display = 42i32;          // OK - i32: Display
+let b: any Display = Opaque {};      // ERROR - Opaque does not implement Display
 
 let v: any = 42i32;
-let c: any Display = v;              // ERROR — no implicit any → any Display conversion
+let c: any Display = v;              // ERROR - no implicit any → any Display conversion
 if v is i32 {
-    let d: any Display = v;          // OK — after narrowing, the static type is i32
+    let d: any Display = v;          // OK - after narrowing, the static type is i32
 }
 ```
 
@@ -221,9 +221,9 @@ Conversions between `any` types are allowed only in the widening direction.
 
 ```rok
 let e: any Error = ...;
-let d: any Display = e;              // OK — Display is a supertrait of Error
+let d: any Display = e;              // OK - Display is a supertrait of Error
 let x: any = e;                      // OK
-let e2: any Error = x;               // ERROR — narrowing conversion
+let e2: any Error = x;               // ERROR - narrowing conversion
 ```
 
 ### Use
@@ -238,7 +238,7 @@ A bound may omit arguments and bindings; omitted ones are treated as unconstrain
 
 ```rok
 fn describe(e: any Error) -> str {
-    let msg = f"{e}";                       // Display — supertrait of Error
+    let msg = f"{e}";                       // Display - supertrait of Error
     match e {
         p: ParseError => f"{msg} at {p.pos}",   // narrowed to the concrete type
         _ => msg,

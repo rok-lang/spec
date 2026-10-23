@@ -28,7 +28,7 @@ rok source
 rok-hir
    ↓ (specialize / monomorphize, desugar)
 rok-mir
-   ↓ (lowering — 808 ~ 810 of this block)
+   ↓ (lowering - 808 ~ 810 of this block)
 standard MLIR  (7 dialects for ordinary code; libraries may add more)
    ↓ (standard passes, conversion to the LLVM dialect)
 LLVM IR

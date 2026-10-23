@@ -3,24 +3,24 @@
 The standard library provides two levels of reflection traits: `Reflect` and `Inspect`.
 
 ```
-Reflect    automatic — shallow metadata every type carries for free
-Inspect    opt-in via #[derive(Inspect)] — rich field/method description
+Reflect    automatic - shallow metadata every type carries for free
+Inspect    opt-in via #[derive(Inspect)] - rich field/method description
 ```
 
 The split into two levels controls binary size while still giving every type, for free, what is essential for `any` slots, sum types, and REPL auto-printing.
 
-## 6.10.1. `Reflect` — automatically implemented trait
+## 6.10.1. `Reflect` - automatically implemented trait
 
 `Reflect` is minimal type introspection attached automatically to every type. Without the user writing `#[derive(Reflect)]`, the compiler synthesizes an impl for every type.
 
 ```rok
 trait Reflect {
-    // static — called directly on the type
+    // static - called directly on the type
     fn type_name() -> str;
     fn size() -> usize;
     fn align() -> usize;
 
-    // instance — runtime dispatch on any slots / sum types
+    // instance - runtime dispatch on any slots / sum types
     fn type_name_of(self) -> str;
     fn size_of(self) -> usize;
 }
@@ -35,7 +35,7 @@ let x: any = 42i32;
 x.type_name_of() == "i32"        // runtime type tag check
 
 let v: i32 | f64 = pick();
-v.type_name_of()                  // "i32" or "f64" — sum type variant check
+v.type_name_of()                  // "i32" or "f64" - sum type variant check
 ```
 
 Being automatic, it requires no user code. The compiler already knows the `type_name`, `size`, and `align` of every type and synthesizes them at zero cost.
@@ -47,7 +47,7 @@ Being automatic, it requires no user code. The compiler already knows the `type_
 - Names (`type_name`) carry no module path (`List<i64>`, `Config`). The static name of a sum type is written in canonical order ([2.6.4](../002-types/206-sum-types.md#264-set-semantics)) (`f64 | i32`, with `none` last). Instance forms such as `type_name_of(self)` report the member held at runtime (for a sum) or the contents of an `any`.
 - `rok::core::reflect::cast<T>(value: any) -> T | none` extracts an `any` as `T` by the same rules as `set_field`. `rok::core::reflect::methods_of<T>() -> List<MethodInfo>` is the list of `T`'s inherent methods.
 
-## 6.10.2. `Inspect` — opt-in trait
+## 6.10.2. `Inspect` - opt-in trait
 
 `Inspect` is rich reflection opted into with `#[derive(Inspect)]`. It exposes field names, dynamic field access and modification, and method descriptions.
 
@@ -88,7 +88,7 @@ c.set_field("xxx", 1)              // false (no such field)
 
 `Inspect` is opt-in because its metadata must be stored in the binary. Attaching it to every type automatically would impose too large a binary size cost.
 
-`#[derive(Inspect)]` is implemented by the [meta block](608-meta-blocks.md) `#[impl_derive(Inspect)]` in `rok::core::reflect`, a pattern in which the meta-system itself implements a standard library trait ([stdlib 2.12.3](../../refs-standard-libraries/200-core/212-reflect.md#2123-inspect--opt-in-fields--methods)).
+`#[derive(Inspect)]` is implemented by the [meta block](608-meta-blocks.md) `#[impl_derive(Inspect)]` in `rok::core::reflect`, a pattern in which the meta-system itself implements a standard library trait ([stdlib 2.12.3](../../refs-standard-libraries/200-core/212-reflect.md#2123-inspect---opt-in-fields--methods)).
 
 ## 6.10.3. REPL / Jupyter auto-printing
 
@@ -119,11 +119,11 @@ For a type without `Debug`, only the type name is printed. This behavior is used
 Introspection that other languages expose through keywords such as `typeof` or `sizeof` is provided in rok only as trait methods.
 
 ```rok
-// rok — method calls
+// rok - method calls
 T::size()
 x.type_name_of()
 
-// other languages — keywords
+// other languages - keywords
 sizeof(T)        // C / C++
 typeof(x)        // JS / TS
 ```
@@ -152,7 +152,7 @@ The compiler desugars type-test patterns (`v: T => ...`) into `Reflect` tag chec
 
 ## 6.10.6. Relation between the levels
 
-As the notation `Inspect: Reflect` shows, `Inspect` has `Reflect` as a supertrait. A type implementing `Inspect` therefore always implements `Reflect` too — trivially, since `Reflect` is automatic anyway.
+As the notation `Inspect: Reflect` shows, `Inspect` has `Reflect` as a supertrait. A type implementing `Inspect` therefore always implements `Reflect` too - trivially, since `Reflect` is automatic anyway.
 
 ```
 every type           Reflect          (automatic, zero cost)

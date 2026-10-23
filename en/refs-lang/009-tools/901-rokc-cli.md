@@ -70,7 +70,7 @@ Options:
 
 - `--release` performs an optimized build (equivalent to `-O2`) in the `release` profile; the default is a debug build (`-O0`) in the `debug` profile. The profiles differ as [9.2.15](902-aot-pipeline.md#9215-output) describes.
 - `--target-dir=<dir>` relocates `target/` (equivalent to `ROKC_TARGET_DIR`).
-- `--extern <name>=<dir | src/lib.rok | <name>.rokhir | lib<name>.a>` mounts one dependency package at the top-level path `name` ([9.2.3](902-aot-pipeline.md#923-dependency-resolution)). Source (`dir` / `src/lib.rok`) is compiled together in the same build; a prebuilt package (`.rokhir` / `.a`; given one, its sibling is located) has its ROKHIR read and its archive linked. May be given multiple times and is normally filled in by `rok`. `name` is an identifier: the package name with `-` replaced by `_` ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)). `rok` is reserved for the standard library: `--extern rok=..` is a usage error, and a library package named `rok` is rejected.
+- `--extern <name>=<dir | src/lib.rok | <name>.rokhir | lib<name>.a>` mounts one dependency package at the top-level path `name` ([9.2.3](902-aot-pipeline.md#923-dependency-resolution)). Source (`dir` / `src/lib.rok`) is compiled together in the same build; a prebuilt package (`.rokhir` / `.a`; given one, its sibling is located) has its ROKHIR read and its archive linked. May be given multiple times and is normally filled in by `rok`. `name` is an identifier: the package name with `-` replaced by `_` ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)). `rok` is reserved for the standard library: `--extern rok=..` is a usage error, and a library package named `rok` is rejected. So are a keyword and a path start (`pkg`, `sup`), as `name` and as the name of a library or of a package with one ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)).
 - `--extern-feature <name>=<f>` builds the source dependency `name` with `cfg(feature = "<f>")`. Repeatable, one per feature. A dependency sees only these: the `feature` keys of `--cfg` belong to the package being compiled. Normally filled in by `rok`.
 - `--name <n>` sets the package name (naming rules of [9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)). The outputs are `lib<n>.a` / `<n>.rokhir` and the mount name is the name with `-` replaced by `_`. The default is the directory name. `--extern a-b=..` is likewise bound as `a_b`.
 - `--bootstrap <file>` gives a standard library root to preload (may be repeated); `--rokr <lib>` gives the runtime to link. The defaults are the sysroot's `lib/rok/{core,std,bare}/src/lib.rok` and `lib/librokr.a` ([9.2.19](902-aot-pipeline.md#9219-installation-layout)). A bootstrap root's tier is the name of the directory above its `src/`; given `core/src/lib.rok` without a `bare` root, `bare/src/lib.rok` beside it is loaded too. If not found, it is an error that lists the paths searched.
@@ -320,7 +320,7 @@ For each symbol it prints a block in the [9.5.4](905-symbol-mangling.md) format,
 `rokc rokhir-text` prints the ROKHIR of a prebuilt library as text.
 
 ```
-rokc rokhir-text path/to/foo.rokhir      # or libfoo.a — reads the sibling foo.rokhir
+rokc rokhir-text path/to/foo.rokhir      # or libfoo.a - reads the sibling foo.rokhir
 ```
 
 It prints the header fields, producer, meta and interface files; the format is described in [ROKHIR format](904-rokhir-bytecode.md).

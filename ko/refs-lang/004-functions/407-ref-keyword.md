@@ -28,7 +28,7 @@ fn swap(ref a: i32, ref b: i32) {
 
 매개변수 이름 앞에 `ref` 를 붙이면, 본체에서 그 매개변수에 대한 재할당이 호출자의 변수에 반영됩니다. 매개변수 자체의 타입(위 예의 `i32`) 은 일반과 같습니다.
 
-### 의미 — copy-in / copy-out
+### 의미 - copy-in / copy-out
 
 `ref` 매개변수는 copy-in / copy-out 입니다. 호출 시 호출자 자리 (변수, 필드, 원소) 의 값을 매개변수로 복사해 들이고, callee 는 그 값으로 작업하며, 호출이 끝나면 매개변수의 최종 값을 호출자 자리에 다시 씁니다.
 
@@ -41,10 +41,10 @@ fn bump_then_fail(ref n: i32) throws {
     throw MyError {};
 }
 let a = 1i32;
-try bump_then_fail(ref a) catch _ { };   // a = 2 — throw 때도 되씀
-swap(ref a, ref a);                       // ERROR — 같은 자리를 두 번 ref
-add(ref a, a);                            // ERROR — ref 로 넘긴 자리를 다른 인자로 읽음
-swap(ref p.x, ref p.y);                   // OK — 서로 다른 필드
+try bump_then_fail(ref a) catch _ { };   // a = 2 - throw 때도 되씀
+swap(ref a, ref a);                       // ERROR - 같은 자리를 두 번 ref
+add(ref a, a);                            // ERROR - ref 로 넘긴 자리를 다른 인자로 읽음
+swap(ref p.x, ref p.y);                   // OK - 서로 다른 필드
 ```
 
 > [!IMPORTANT]
@@ -67,8 +67,8 @@ swap(ref x, ref y);
 fn read(x: i32) { ... }
 fn write(ref x: i32) { ... }
 
-read(a);                          // 일반 — a 가 바뀌지 않음이 명확
-write(ref a);                      // ref — a 가 바뀔 수 있음이 명확
+read(a);                          // 일반 - a 가 바뀌지 않음이 명확
+write(ref a);                      // ref - a 가 바뀔 수 있음이 명확
 ```
 
 ## 4.7.4. 클로저 캡처 리스트
@@ -94,7 +94,7 @@ impl Counter {
 
 ```rok
 let c = Counter { count: 0 };
-c.increment();                    // 'ref' 명시 없음 — 메서드 receiver 의 자동 처리
+c.increment();                    // 'ref' 명시 없음 - 메서드 receiver 의 자동 처리
 ```
 
 이는 일반 `ref` 매개변수와 다른 메서드 receiver 만의 특수 규칙입니다. 메서드 호출 문법 자체가 receiver 를 자동 [dispatch](../000-meta/007-glossary.md#dispatch-디스패치)하는 메커니즘이기 때문에, 추가적인 명시는 시각적 잡음이 되어 버립니다.
@@ -105,7 +105,7 @@ external_inc(ref c);              // 일반 함수 호출은 'ref' 명시가 필
 Counter::increment(ref c);        // ref self 메서드를 경로로 부를 때도 ref 필요
 ```
 
-### `ref self` 의 의미 — copy-in / copy-out
+### `ref self` 의 의미 - copy-in / copy-out
 
 `ref self` 는 copy-in / copy-out 으로 동작합니다. 호출 시 receiver 의 값을 `self` 로 복사해 들이고, 호출이 끝나면 `self` 의 최종 값을 receiver 자리에 다시 씁니다.
 
@@ -114,7 +114,7 @@ Counter::increment(ref c);        // ref self 메서드를 경로로 부를 때�
 
 ```rok
 c.increment();                     // c 를 복사해 들이고, 끝나면 c 에 되씀
-c.add_from(|| c.count);            // ERROR — 호출 중 c 를 클로저로 접근
+c.add_from(|| c.count);            // ERROR - 호출 중 c 를 클로저로 접근
 ```
 
 ## 4.7.6. `ref` 의 타입 측면
@@ -122,9 +122,9 @@ c.add_from(|| c.count);            // ERROR — 호출 중 c 를 클로저로 �
 `ref` 는 수식어이지 타입이 아니며, [타입 표현식](../002-types/201-type-expressions.md) 어디에도 등장하지 않습니다.
 
 ```rok
-let x: ref i32 = ...;             // ERROR — ref 는 타입이 아님
-struct S { x: ref i32; }          // ERROR — 같은 이유
-List<ref i32>                      // ERROR — 같은 이유
+let x: ref i32 = ...;             // ERROR - ref 는 타입이 아님
+struct S { x: ref i32; }          // ERROR - 같은 이유
+List<ref i32>                      // ERROR - 같은 이유
 ```
 
 따라서 `ref` 는 다음 위치에만 등장할 수 있습니다.
@@ -138,7 +138,7 @@ List<ref i32>                      // ERROR — 같은 이유
 ## 4.7.7. 참조 자체를 일급 값으로 취급할 수 없습니다
 
 ```rok
-let r = ref x;                    // ERROR — ref 식 자체는 표현식이 아님
+let r = ref x;                    // ERROR - ref 식 자체는 표현식이 아님
 let r: SomePointerType = ref x;   // ERROR
 ```
 
@@ -172,16 +172,16 @@ by_ref(ref a);                    // a = 10
 `struct` 는 값 타입입니다. 값 pass 는 그것을 복사하므로 피호출자의 필드 쓰기는 지역적입니다. 호출자의 구조체를 바꾸려면 `ref` (또는 `ref self`) 로 받거나 새 값을 반환합니다. 참조 핸들 (`List`, `Dict`, …, [stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md#참조-핸들)) 은 핸들로 복사되므로 원소 변경이 호출자에게 보입니다.
 
 ```rok
-fn set_x(p: Point) { p.x = 10.0; }          // 지역 사본 — 호출자의 p 는 그대로
+fn set_x(p: Point) { p.x = 10.0; }          // 지역 사본 - 호출자의 p 는 그대로
 fn set_x_ref(ref p: Point) { p.x = 10.0; }  // 호출자의 p 에 되씀
-fn fill(xs: List<i32>) { xs.push(1); }      // 같은 List — 호출자도 봄
+fn fill(xs: List<i32>) { xs.push(1); }      // 같은 List - 호출자도 봄
 fn reset(ref xs: List<i32>) { xs = []; }    // 호출자의 변수가 새 List 를 가짐
 ```
 
 | 시나리오                           | 필요한 키워드       |
 |------------------------------------|---------------------|
 | 호출자 구조체의 필드 변경          | `ref`               |
-| 컬렉션의 원소 변경                 | 일반 값 pass — 충분 |
+| 컬렉션의 원소 변경                 | 일반 값 pass - 충분 |
 | 호출자의 변수가 다른 값을 가지게   | `ref`               |
 
 ## 4.7.10. 두 바인딩에 대한 `ref` 동시 사용
@@ -203,5 +203,5 @@ swap(ref x, ref y);               // x = 2, y = 1
 호출 지점에서 같은 자리를 두 `ref` 로 넘기면 4.7.2 의 배타성 규칙에 따라 컴파일 에러입니다.
 
 ```rok
-swap(ref x, ref x);               // ERROR — 같은 자리를 두 번 ref
+swap(ref x, ref x);               // ERROR - 같은 자리를 두 번 ref
 ```

@@ -1,4 +1,4 @@
-# 9.10. `rok` — package / build front-end
+# 9.10. `rok` - package / build front-end
 
 `rok` is a cargo-style front-end. It owns the manifest `rok.rokon` and lockfile `rok.lock`, dependencies, environments, the toolchain pin and script dependencies, and delegates compilation to the compiler `rokc` ([9.1](901-rokc-cli.md)). The runtime is `rokr` (`librokr.a`).
 
@@ -19,7 +19,7 @@ A package without dependencies builds by file conventions alone, without a manif
 | `fmt`, `clean`, `demangle`, `profdata`                            | Delegated to `rokc` without dependencies |
 | `jupyter`                                                         | Running the kernel (`--connection-file`) is delegated; `jupyter install [--env <name>]` installs the kernelspec ([9.8.3](908-jupyter-integration.md#983-kernelspec-installation)) |
 | `version`, `help`                                                 |                                         |
-| (none)                                                            | Same as `rok repl` — starts the REPL    |
+| (none)                                                            | Same as `rok repl` - starts the REPL    |
 
 A delegated subcommand runs the `rokc` subcommand of the same name. `rok` consumes only its own global options (`--env` / `--offline` / `--locked` / `--cwd`, anywhere before `--`), passes the remaining arguments through unchanged, and adds the following.
 
@@ -89,7 +89,7 @@ The manifest is a single ROKON value, a `Package { .. }` struct (the root name `
 Package {
     name: "geom",                    // string, optional
     version: "0.3.1",                // string, optional
-    toolchain: "0.4",                // string, optional — toolchain pin (9.10.6)
+    toolchain: "0.4",                // string, optional - toolchain pin (9.10.6)
     description: "2D geometry",      // string, optional
     license: "MIT OR Apache-2.0",    // string, optional (SPDX expression)
     repository: "https://example.com/geom.git",   // string, optional
@@ -105,7 +105,7 @@ Package {
     },
     features: { "default": ["json"], "json": ["dep:json"], "tls": ["http/tls"], "full": ["json", "tls"] },
     native: { "zlib": "^1.3", "png": Dep::native(url: "vendor/png.rokon", sha256: "<64 hex>") },
-    lints_from: "..",                // string, optional — start from ../rok.rokon's lints
+    lints_from: "..",                // string, optional - start from ../rok.rokon's lints
     lints: { "dead_code": "allow", "nonstandard_style": "deny" },
 }
 ```
@@ -113,7 +113,7 @@ Package {
 - Values are ROKON literals (strings, `{ "k": v }` dicts, the empty dict `{}`) and `Dep::path("..")` / `Dep::git("url", rev | tag | branch: "..")` / `Dep::version("req", registry: "url")`. `Dep::git` takes at most one of `rev` / `tag` / `branch`, and `registry` of `Dep::version` is optional. A dependency value that is a single string is shorthand for `Dep::version`.
 - `Dep::path` / `Dep::git` / `Dep::version` also take `optional: true`, `features: ["<f>", ..]` and `default_features: false` (9.10.4c); an optional dev dependency is an error.
 - `Dep::registry` is for `rok.lock` only; using it in `rok.rokon` is an error.
-- Package names (keys of `deps`, `name`) are lowercase ASCII `[a-z0-9_-]+` beginning with a letter (beginning with a digit, `-` or `_` is an error). The name `rok` is reserved for the standard library: a package, dependency, native package or registry name `rok` is an error (`` `rok` is reserved for the standard library; name the package something else, e.g. `rok_util` ``), and so is `rok new` / `rok init` / `rok add` with it. Keys are strings (`"rok-syntax": Dep::version("^0.1")`).
+- Package names (keys of `deps`, `name`) are lowercase ASCII `[a-z0-9_-]+` beginning with a letter (beginning with a digit, `-` or `_` is an error). The name `rok` is reserved for the standard library: a package, dependency, native package or registry name `rok` is an error (`` `rok` is reserved for the standard library; name the package something else, e.g. `rok_util` ``), and so is `rok new` / `rok init` / `rok add` with it. Code must be able to name the package too, so its code name (below) may not be a keyword (1.5: `fn`, `match`, `self`, ..) or a path start (5.5.7: `pkg`, `sup`); `use pkg::add;` in an executable always means its own root (`` `pkg` already names a package's own root (`pkg::`), so code can't name a package called that; name the package something else, e.g. `pkg_util` ``). Keys are strings (`"rok-syntax": Dep::version("^0.1")`).
 - In code, the name with `-` replaced by `_` is the top-level path referring to that package (`rok-syntax` → `use rok_syntax::..`, `--extern rok_syntax=..`).
 - In the registry and within one dependency graph, names are compared treating `-` and `_` as equal and ignoring case. So `rok-syntax` and `rok_syntax` cannot coexist.
 - A dependency must have a `src/lib.rok`; that library is what its dependents get, whether or not the package also has `src/main.rok`. A dependency with only `src/main.rok` is an error that says it is a program, for `rok install`. Transitive dependencies are the `deps` of the dependency package (`dev_deps` are not transitive).
@@ -272,8 +272,8 @@ rok publish [--index <checkout>] [--commit]
 rok yank [--native] --vers <version> [--undo] [--index <checkout>] [name]   # name required with --native
 ```
 
-- `search` searches the index by name and prints one line per match: `<name> <newest version> — <description>` (the description part omitted when the entry has none). Index lookups accept either spelling, `-` or `_`.
-- `publish` is a dry run by default. It requires a clean work tree, the package at the repository root, and a `src/lib.rok`, a `src/main.rok` or both. A stone with only `src/main.rok` is a program: `rok install` builds it, and it cannot be a dependency. Normal path / git dependencies are rejected, and path / git dev dependencies are dropped. It checks for conflicts with the same version and with names equal under `-` / `_` and case folding. A name already owned under a different spelling is rejected. A dry run without `--index` only prints the entry; with `--index` it is also checked against that checkout.
+- `search` searches the index by name and prints one line per match: `<name> <newest version> - <description>` (the description part omitted when the entry has none). Index lookups accept either spelling, `-` or `_`.
+- `publish` is a dry run by default. It requires a clean work tree, the package at the repository root, and a `src/lib.rok`, a `src/main.rok` or both. A stone with only `src/main.rok` is a program: `rok install` builds it, and it cannot be a dependency. Normal path / git dependencies are rejected, and path / git dev dependencies are dropped. It checks for conflicts with the same version and with names equal under `-` / `_` and case folding. A name already owned under a different spelling is rejected. A dry run without `--index` only prints the entry; with `--index` it is also checked against that checkout. The entry's source is the url of git remote `origin` as configured (before `insteadOf` rewrites); it must be `https://`, except `http://127.0.0.1` and `http://localhost`.
 - With `--commit`, `publish` adds the entry: with `--index`, as a commit "Publish <name> <vers>" in that checkout (not pushed); without it, through the registry API of the configured index ("Which index"), which adds it to the index. The client never writes to the index repository itself.
 - `yank` sets (or with `--undo` clears) `yanked` for that version: with `--index`, as a commit in that checkout; otherwise through the registry API.
 - The registry API is at `api` of the index's `config.rokon`. Requests carry `Authorization: Bearer <token>`, and bodies are single-line ROKON (`application/rokon; charset=utf-8`):

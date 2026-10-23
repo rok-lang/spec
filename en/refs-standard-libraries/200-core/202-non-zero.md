@@ -1,4 +1,4 @@
-# 2.2. Niche wrappers — `NonZero` / `NonNan` / `Finite` / `Positive`
+# 2.2. Niche wrappers - `NonZero` / `NonNan` / `Finite` / `Positive`
 
 `rok::core::num::niche` provides wrappers that restrict a value to a subset. Each wrapper is a newtype carrying `#[niche(..)]` ([refs-lang 2.7.4](../../refs-lang/002-types/207-niche-optimization.md#274-opt-in-niches-niche)), and the excluded values become the niche of `T | none`.
 
@@ -18,7 +18,7 @@ A `T | none` with a niche has the size of `T` ([refs-lang 2.7.2](../../refs-lang
 
 When the niche value is 0 (`NonZero`), the payload bits are unchanged, so `NonZero<T> | none` crosses the C ABI as an integer in which 0 is `none`.
 
-## 2.2.2. `NonZero<T>` — zero forbidden
+## 2.2.2. `NonZero<T>` - zero forbidden
 
 ```rok
 trait NicheInt { .. }            // implemented by the 10 integer types
@@ -49,7 +49,7 @@ let nz: NonZero<i32> = try 7.try_into();
 let v: i32 = nz.into();
 ```
 
-## 2.2.3. `NonNan<F>` — NaN forbidden
+## 2.2.3. `NonNan<F>` - NaN forbidden
 
 ```rok
 trait NicheFloat { .. }          // implemented by f32, f64
@@ -68,7 +68,7 @@ impl<F: NicheFloat> NonNan<F> {
 - The result of `+ - * /` is `F` (∞ − ∞ and the like may be NaN).
 - `TryFrom<F>` throws `ConversionError` on NaN.
 
-## 2.2.4. `Finite<F>` — NaN and ±∞ forbidden
+## 2.2.4. `Finite<F>` - NaN and ±∞ forbidden
 
 ```rok
 #[niche(F::NAN, F::INFINITY, F::NEG_INFINITY)]
@@ -85,7 +85,7 @@ impl<F: NicheFloat> Finite<F> {
 - `+ - *` yield `Result<Finite<F>, OverflowError>` (`Err` if the result is ±∞).
 - `TryFrom<F>` throws `ConversionError` on NaN / ±∞.
 
-## 2.2.5. `Positive<T>` — negative values forbidden
+## 2.2.5. `Positive<T>` - negative values forbidden
 
 ```rok
 #[niche(T::MIN..=-1)]

@@ -10,9 +10,9 @@ fixed primitive (i8..i64, u8..u64, isize, usize, f32, f64; hardware-friendly, de
 
 The two worlds **coexist**. An unsuffixed literal follows the expected type; if there is no expected type it is `i32` / `f64` ([refs-lang 1.6.3](../../refs-lang/001-lexical/106-numeric-literals.md#163-unsuffixed-literals)). `int` / `float` are used only where the type is written out.
 
-## 2.1.1. Two worlds of numbers — why they are separate
+## 2.1.1. Two worlds of numbers - why they are separate
 
-### `int` / `float` — the auto-promote world
+### `int` / `float` - the auto-promote world
 
 This world aims at arbitrary precision. Overflow never happens; computation ends with OOM
 only when the memory limit is reached. Small values go through the small-int optimization
@@ -20,7 +20,7 @@ and are stored in hardware fixed-width form; as a value grows it is automaticall
 to a heap BigInt. `int` / `float` values are immutable, and a heap BigInt is never modified in place, only shared (which is why they are `Copy`). The user is thereby guaranteed arithmetic correctness: `I32_MAX + 1` never
 silently wraps into an absurd result.
 
-### Fixed primitives — the hardware-friendly world
+### Fixed primitives - the hardware-friendly world
 
 Fixed primitives, by contrast, are the world close to the hardware. They comprise 15 types
 such as `i32` / `f64`; their syntax is defined by [refs-lang 2.1 Type expressions](../../refs-lang/002-types/201-type-expressions.md).
@@ -33,15 +33,15 @@ arithmetic](203-ops.md)).
 An unsuffixed literal (`42`, `3.14`) is **`i32` / `f64`** when there is no expected type. The auto-promote world is used only where `int` / `float` is written out.
 
 ```rok
-let total: int = 0;               // int (auto-promote) — explicit
+let total: int = 0;               // int (auto-promote) - explicit
 for x in xs { total = total + x; }
-// total is auto-promoted even past the i32 range — no silent overflow
+// total is auto-promoted even past the i32 range - no silent overflow
 
 let n = 0;                        // i32 (no expected type)
-let perf_critical: i64 = 0;       // i64 — follows the expected type
+let perf_critical: i64 = 0;       // i64 - follows the expected type
 ```
 
-## 2.1.2. `int` — arbitrary-precision integer
+## 2.1.2. `int` - arbitrary-precision integer
 
 ```rok
 #[keyword("int")]
@@ -70,7 +70,7 @@ impl Int {
 }
 ```
 
-These follow the fixed-width integers' names and panics. `pow` takes a `u32` exponent: a larger one gives at least 2^32 bits for any base but 0 and ±1. `modpow` takes an `int` exponent, since its result stays below `|m|`; the result has the sign of `m`, like [`%%`](203-ops.md#modulo--floored-modulo-). A negative exponent is an error (no modular inverse).
+These follow the fixed-width integers' names and panics. `pow` takes a `u32` exponent: a larger one gives at least 2^32 bits for any base but 0 and ±1. `modpow` takes an `int` exponent, since its result stays below `|m|`; the result has the sign of `m`, like [`%%`](203-ops.md#modulo---floored-modulo-). A negative exponent is an error (no modular inverse).
 
 `Int` is defined in `rok::core::num::bigint::Int` (`Float` in
 `rok::core::num::bigfloat::Float`). `#[keyword("int")]` registers the identifier `int` as a type keyword,
@@ -97,11 +97,11 @@ big = big * 1000;
 big = big * 1000;
 big = big * 1000;
 big = big * 1000;
-// big = 10^18 — near the end of the i64 range
+// big = 10^18 - near the end of the i64 range
 big = big * 1000;
-// big = 10^21 — outside the i64 range, promoted to BigInt
+// big = 10^21 - outside the i64 range, promoted to BigInt
 big = big * big;
-// big = 10^42 — a larger BigInt, exact
+// big = 10^42 - a larger BigInt, exact
 ```
 
 All of the arithmetic traits ([2.3 ops](203-ops.md)) `Add`, `Sub`, `Mul`, `Div`, `Rem` are
@@ -125,7 +125,7 @@ promotion. For FFI, `extern "C"`
 functions accept only fixed primitives, so an `int` must be explicitly converted to `i64` or similar before
 being passed.
 
-## 2.1.3. `float` — floating-point with unbounded exponent
+## 2.1.3. `float` - floating-point with unbounded exponent
 
 ```rok
 #[keyword("float")]
@@ -200,13 +200,13 @@ This section defines the standard library methods and behavior on top of that.
 | `char`   | Unicode scalar value (4 bytes), compiler primitive. Methods in [2.15](215-string.md)  |
 | `c_char` | C ABI compatible char (1-byte signed); FFI only                                        |
 
-### Two groups — language built-ins vs standard library additions
+### Two groups - language built-ins vs standard library additions
 
 The numeric / boolean / character types of this chapter fall into **two groups**.
 
 | Group                                | Members                                                                                               | Registration                                       |
 |--------------------------------------|-------------------------------------------------------------------------------------------------------|----------------------------------------------------|
-| **16 language built-ins**            | `i8`/`i16`/`i32`/`i64`, `u8`/`u16`/`u32`/`u64`, `isize`/`usize`, `f32`/`f64`, `bool`, `char`, `c_char`, `str` | Recognized by the language — no `#[keyword]` needed |
+| **16 language built-ins**            | `i8`/`i16`/`i32`/`i64`, `u8`/`u16`/`u32`/`u64`, `isize`/`usize`, `f32`/`f64`, `bool`, `char`, `c_char`, `str` | Recognized by the language - no `#[keyword]` needed |
 | **2 standard library additions**     | `int`, `float`                                                                                | Registered with `#[keyword(...)]`                  |
 
 Language built-ins are tokens the compiler (lexer/parser) recognizes directly, so the standard library
@@ -348,7 +348,7 @@ The rules of [refs-lang 1.6 Numeric literals](../../refs-lang/001-lexical/106-nu
 | `3.14f64` | `f64`                                                   |
 | `'A'`     | `char`                                                  |
 | `c'A'`    | `c_char` (primitive)                                    |
-| `0xFF`    | Same as decimal — expected type, else `i32`             |
+| `0xFF`    | Same as decimal - expected type, else `i32`             |
 | `0xFFi32` | `i32`                                                   |
 
 ### Expected type and range checking
@@ -359,9 +359,9 @@ Ranges are checked at compile time.
 let x: i32 = 42;            // i32
 let y: i32 = 9999999999;    // compile error (outside the i32 range)
 let z: f32 = 3.14;          // f32
-let f: f64 = 1;             // f64 — an integer literal fits a floating-point slot
+let f: f64 = 1;             // f64 - an integer literal fits a floating-point slot
 let w: u8 = 256;            // compile error (256 ∉ u8 range 0..=255)
-let i: i32 = 1.5;           // compile error — a floating-point literal cannot fill an integer slot
+let i: i32 = 1.5;           // compile error - a floating-point literal cannot fill an integer slot
 let big: int = 9999999999;  // int
 ```
 
@@ -374,7 +374,7 @@ trait Zero { fn zero() -> Self; }       // additive identity
 trait One  { fn one() -> Self; }        // multiplicative identity
 ```
 
-Every numeric primitive and `int` / `float` implement both traits. `Iterator::sum` / `product` use them ([2.7.1](207-iter.md#271-iterator--stepping)).
+Every numeric primitive and `int` / `float` implement both traits. `Iterator::sum` / `product` use them ([2.7.1](207-iter.md#271-iterator---stepping)).
 
 ## 2.1.6. Arithmetic result types
 
@@ -402,12 +402,12 @@ let c: i32 = a + b;   // i32
 let wider: i64 = (a as i64) + (b as i64);   // i64
 ```
 
-### `int + i32` (mixed — rejected)
+### `int + i32` (mixed - rejected)
 
 ```rok
 let a: int = 5;       // int
 let b: i32 = 3;       // i32
-let c = a + b;        // compile error — type mismatch
+let c = a + b;        // compile error - type mismatch
 ```
 
 An explicit conversion is required here.
@@ -479,7 +479,7 @@ The 3 types added by the standard library are registered as PascalCase structs w
 
 `Range<T>` (`a..b`) is defined by [2.7 iter](207-iter.md).
 
-## 2.1.10. Comparison with other languages — design rationale
+## 2.1.10. Comparison with other languages - design rationale
 
 rok's two-world model (auto-promote `int` and fixed primitives) draws on several
 languages. Smalltalk's SmallInteger ↔ LargeInteger is the prototype of auto-promote,

@@ -1,10 +1,10 @@
-# 3.7. `process::` — child processes
+# 3.7. `process::` - child processes
 
 The `rok::std::process` module spawns child processes and handles signals. Its basic skeleton follows Rust's `Command` builder pattern, hardened with modern safeguards on top: `pidfd`, `kill_on_drop` and a `posix_spawn` fast path.
 
 ## 3.7.1. `Command` builder
 
-The first thing you meet is the `Command` struct, the blueprint of a child process. All settings — the program to run, arguments, environment variables, how standard I/O is connected — are built up step by step before moving on to spawn.
+The first thing you meet is the `Command` struct, the blueprint of a child process. All settings - the program to run, arguments, environment variables, how standard I/O is connected - are built up step by step before moving on to spawn.
 
 ```rok
 struct Command {
@@ -47,7 +47,7 @@ impl Command {
 enum Stdio {
     Inherit,                   // parent's fd as is (default)
     Null,                      // /dev/null
-    Piped,                     // pipe — readable/writable from Child
+    Piped,                     // pipe - readable/writable from Child
     File(File),                // explicit fd
 }
 
@@ -77,16 +77,16 @@ impl Child {
     fn wait(self) throws (IoError) -> ExitStatus;
     fn try_wait(self) throws (IoError) -> ExitStatus | none;
 
-    // pidfd (Linux only) — race-free signal
+    // pidfd (Linux only) - race-free signal
     #[cfg(target_os = "linux")]
     fn pidfd(self) throws (IoError) -> RawFd;
 
     fn signal(self, sig: i32) throws (IoError);          // unix
 }
 
-impl ChildStdin { ... }                  // file handle — impl Writer
-impl ChildStdout { ... }                 // file handle — impl Reader
-impl ChildStderr { ... }                 // file handle — impl Reader
+impl ChildStdin { ... }                  // file handle - impl Writer
+impl ChildStdout { ... }                 // file handle - impl Reader
+impl ChildStderr { ... }                 // file handle - impl Reader
 
 struct ExitStatus { /* opaque */ }
 
@@ -127,7 +127,7 @@ try stdin.write_all(input_bytes);
 let result = try stdout.read_to_end();
 try child.wait();
 
-// kill_on_drop — prevents process leaks
+// kill_on_drop - prevents process leaks
 using child = try Command::new("long_running")
         .kill_on_drop(true)
         .spawn() {
@@ -135,9 +135,9 @@ using child = try Command::new("long_running")
 }    // ← on using release, Drop → kill
 ```
 
-As the last example shows, binding a `Child` with `kill_on_drop` enabled in `using` cleans up the child even on flows such as error propagation or early return. `Drop` issues the kill when leaving the `using` block. A `Child` outside `using` is not killed automatically ([2.13.4](../200-core/213-marker.md#2134-drop--cleanup-on-using-release)). `ChildStdin` / `ChildStdout` / `ChildStderr` are file handles of the pipes and are read and written the same way as `File`.
+As the last example shows, binding a `Child` with `kill_on_drop` enabled in `using` cleans up the child even on flows such as error propagation or early return. `Drop` issues the kill when leaving the `using` block. A `Child` outside `using` is not killed automatically ([2.13.4](../200-core/213-marker.md#2134-drop---cleanup-on-using-release)). `ChildStdin` / `ChildStdout` / `ChildStderr` are file handles of the pipes and are read and written the same way as `File`.
 
-## 3.7.4. Modern additions — pidfd / posix_spawn / CLOEXEC
+## 3.7.4. Modern additions - pidfd / posix_spawn / CLOEXEC
 
 On top of the builder pattern, the standard library adds several modern reinforcements. What each means and what it achieves:
 

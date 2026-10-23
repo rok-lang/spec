@@ -1,4 +1,4 @@
-# 2.12. reflect — `Reflect` / `Inspect`
+# 2.12. reflect - `Reflect` / `Inspect`
 
 `rok::core::reflect` 모듈은 런타임 타입 정보와 **필드 introspection** 의 권위 시그니처를 제공합니다. 자세한 의미는 [refs-lang 6.10 reflection](../../refs-lang/006-meta-system/610-reflection.md) 이 권위를 가지며, 이 장에서는 표준 라이브러리 측 트레잇 형태만 정리합니다.
 
@@ -13,15 +13,15 @@ reflection 은 두 단계 트레잇으로 분리됩니다.
 
 자동과 opt-in 으로 분리한 이유는 바이너리 크기를 통제하기 위함입니다. 모든 struct 가 field reflection 메타데이터를 포함하면 binary 가 커지므로, opt-in 방식을 통해 필요한 타입에만 메타데이터를 생성하도록 하였습니다.
 
-## 2.12.2. `Reflect` — 정적 + 인스턴스 모두
+## 2.12.2. `Reflect` - 정적 + 인스턴스 모두
 
 ```rok
 trait Reflect {
-    fn type_name() -> str;        // 정적 — T::type_name()
+    fn type_name() -> str;        // 정적 - T::type_name()
     fn size() -> usize;
     fn align() -> usize;
 
-    fn type_name_of(self) -> str; // 인스턴스 — x.type_name_of() (any / sum 도 OK)
+    fn type_name_of(self) -> str; // 인스턴스 - x.type_name_of() (any / sum 도 OK)
     fn size_of(self) -> usize;
 }
 ```
@@ -38,18 +38,18 @@ trait Reflect {
 ### 정적 vs 인스턴스 차이
 
 ```rok
-i32::type_name();          //→ "i32"           (정적 — 컴파일 타임 결정)
+i32::type_name();          //→ "i32"           (정적 - 컴파일 타임 결정)
 i32::size();               //→ 4
 i32::align();              //→ 4
 
 let x: i32 = 42;
-x.type_name_of();          //→ "i32"           (인스턴스 — 보통 정적과 같음)
+x.type_name_of();          //→ "i32"           (인스턴스 - 보통 정적과 같음)
 
 let y: i32 | f64 = 42i32;
-y.type_name_of();          //→ "i32"           (런타임 dispatch — sum tag 검사)
+y.type_name_of();          //→ "i32"           (런타임 dispatch - sum tag 검사)
 
 let z: any = "hello";
-z.type_name_of();          //→ "str"           (런타임 — any slot dispatch)
+z.type_name_of();          //→ "str"           (런타임 - any slot dispatch)
 ```
 
 `type_name_of` 는 런타임 dispatch 이므로, sum type 이나 any 의 경우 현재 들어 있는 변형의 이름을 반환합니다.
@@ -57,8 +57,8 @@ z.type_name_of();          //→ "str"           (런타임 — any slot dispatc
 ### 글로벌 함수 없음
 
 ```rok
-typeof(x);                 // ERROR — 글로벌 typeof 없음
-sizeof(T);                 // ERROR — 글로벌 sizeof 없음
+typeof(x);                 // ERROR - 글로벌 typeof 없음
+sizeof(T);                 // ERROR - 글로벌 sizeof 없음
 ```
 
 대신 메서드로 일관되게 통일됩니다.
@@ -72,7 +72,7 @@ T::align()
 
 이는 [refs-lang 3.5 멤버 접근과 메서드 호출](../../refs-lang/003-expressions/305-member-access-and-method-call.md) 의 일부로, 모든 introspection 이 메서드 형태로 통합됩니다.
 
-## 2.12.3. `Inspect` — opt-in 필드 / 메서드
+## 2.12.3. `Inspect` - opt-in 필드 / 메서드
 
 ```rok
 trait Inspect: Reflect {
@@ -198,7 +198,7 @@ User: User { id: 1, name: "Alice" }
 
 | 항목             | 위치                                             | 메커니즘                      |
 |------------------|--------------------------------------------------|-------------------------------|
-| `Reflect` 자동   | 컴파일러 + `rok::core::reflect`                   | type info table — binary 부착 |
+| `Reflect` 자동   | 컴파일러 + `rok::core::reflect`                   | type info table - binary 부착 |
 | `Inspect` derive | `rok::core::reflect` + 메타 블록 `#[impl_derive]` | template token 기반 코드 생성 |
 | `MethodInfo`     | `rok::core::reflect`                              | 단순 struct                   |
 | `any` 타입       | 컴파일러 내장                                     | type tag + payload            |

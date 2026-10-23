@@ -309,4 +309,6 @@ $ROK_HOME/
 
 `rokc` finds the standard library and runtime relative to its own executable (sysroot = the executable's `..`) and does not look at `ROK_HOME`. Each tier of the standard library is laid out like a library package: its root module is `lib/rok/<tier>/src/lib.rok` and its modules are under `lib/rok/<tier>/src/`. A `rokc` built in the implementation repository reads the same layout from the repository's `library/<tier>/src/`. Its own cache is the toolchain's `lib/rok-cache/` (a repository build uses `target/<profile>/rok-cache/`). It holds the prebuilt standard library, keyed by toolchain, build options and sources (9.2.16), and in `.facts/` the cached target data layout and tool facts. Selection of the active toolchain is defined by [9.10.6](910-rok-frontend.md#9106-toolchain).
 
+A Linux (glibc) toolchain needs glibc 2.34 or later, as the executables it builds do (9.2.14).
+
 A release may be accompanied by an MLIR plugin development archive (`rok-mlir-dev-<version>-<triple>`: the pinned LLVM / MLIR headers and, on Windows, `rokc.lib`) ([stdlib 1.10.2](../../refs-standard-libraries/100-bare/110-mlir-plugin.md)).

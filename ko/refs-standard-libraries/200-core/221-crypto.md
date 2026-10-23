@@ -1,4 +1,4 @@
-# 2.21. `crypto::` — 암호 알고리즘
+# 2.21. `crypto::` - 암호 알고리즘
 
 `rok::core::crypto` 는 TLS 스택에 필요한 알고리즘을 순수 계산으로 제공합니다. 모든 target 에서 동일하게 동작하므로 `rok::core` (0.1) 에 둡니다. 난수는 OS 가 필요하므로 `rok::std::crypto::random` (3.10) 에 있으며, 무작위 입력이 필요한 함수 (키, nonce, encapsulation) 는 그 입력을 인자로 받습니다. 비밀 데이터에 대한 연산은 2.21.5 가 정의하는 대로 constant time 으로 수행됩니다.
 
@@ -140,7 +140,7 @@ ECDSA 개인 키는 곡선의 크기 이하인 big-endian 스칼라 `1 <= d < n`
 
 ## 2.21.5. 보안 고려 사항
 
-**Constant time.** 비밀에 대한 연산 — AES (암호화와 key schedule), GHASH, ChaCha20, Poly1305, tag 비교, X25519, Ed25519 서명, ECDSA 서명과 키 유도, RSA 개인 키 연산, ML-KEM 키 생성과 decapsulation, HMAC, HKDF — 에서는 어떤 분기도, 어떤 메모리 인덱스도 비밀 데이터에 의존하지 않습니다. AES 는 bitslice 로 구현하고 (table 조회 없음), GHASH 는 성긴 피연산자의 정수 곱으로 곱하며 (table 없음), 스칼라 곱은 미리 계산한 table 을 모든 항목을 훑어 읽고, 역원은 공개 지수의 거듭제곱 (ECDSA, Ed25519) 이나 고정 길이 binary GCD (RSA blinding) 로 구하며, RSA 거듭제곱은 소수의 전체 폭에 걸쳐 지수 bit 마다 제곱과 곱셈을 하고, ML-KEM 은 나눗셈 대신 곱하고 shift 해서 reduce 하며, 조건부 선택은 컴파일러가 0 이나 모두 1 임을 증명할 수 없는 mask 이므로 다시 분기로 바꿀 수 없습니다. 실행 시간은 공개 값에만 의존합니다: 길이, 알고리즘, 곡선과 키 크기, 그리고 어차피 공개되는 결과 (검증되지 않는 tag 나 서명, 범위 밖의 RFC 6979 후보 nonce). ML-KEM decapsulation 은 ciphertext 가 다시 암호화되든 아니든 같은 경로를 밟으며, implicit-rejection 키는 mask 로 고릅니다.
+**Constant time.** 비밀에 대한 연산 - AES (암호화와 key schedule), GHASH, ChaCha20, Poly1305, tag 비교, X25519, Ed25519 서명, ECDSA 서명과 키 유도, RSA 개인 키 연산, ML-KEM 키 생성과 decapsulation, HMAC, HKDF - 에서는 어떤 분기도, 어떤 메모리 인덱스도 비밀 데이터에 의존하지 않습니다. AES 는 bitslice 로 구현하고 (table 조회 없음), GHASH 는 성긴 피연산자의 정수 곱으로 곱하며 (table 없음), 스칼라 곱은 미리 계산한 table 을 모든 항목을 훑어 읽고, 역원은 공개 지수의 거듭제곱 (ECDSA, Ed25519) 이나 고정 길이 binary GCD (RSA blinding) 로 구하며, RSA 거듭제곱은 소수의 전체 폭에 걸쳐 지수 bit 마다 제곱과 곱셈을 하고, ML-KEM 은 나눗셈 대신 곱하고 shift 해서 reduce 하며, 조건부 선택은 컴파일러가 0 이나 모두 1 임을 증명할 수 없는 mask 이므로 다시 분기로 바꿀 수 없습니다. 실행 시간은 공개 값에만 의존합니다: 길이, 알고리즘, 곡선과 키 크기, 그리고 어차피 공개되는 결과 (검증되지 않는 tag 나 서명, 범위 밖의 RFC 6979 후보 nonce). ML-KEM decapsulation 은 ciphertext 가 다시 암호화되든 아니든 같은 경로를 밟으며, implicit-rejection 키는 mask 로 고릅니다.
 
 이 보장에는 구현이 밝히고 숨기지 않는 한계가 있습니다.
 - target 의 32 × 32 → 64-bit 정수 곱셈과 shift, rotate 가 constant time 으로 돈다고 가정합니다 (현재의 x86-64, AArch64, ARMv7-A, i686 코어에서는 참이며, 일부 마이크로컨트롤러와 옛 임베디드 코어에서는 아님). wasm target 에서는 엔진의 코드 생성만큼만 유효합니다.
@@ -152,7 +152,7 @@ ECDSA 개인 키는 곡선의 크기 이하인 big-endian 스칼라 `1 <= d < n`
 
 - `Secret` 의 바이트는 heap 에서 정확히 한 곳에만 있습니다. `wipe` 가, `using` 바인딩이 `Secret` 을 해제할 때 (직접 또는 drop glue 를 거쳐), 늦어도 그 buffer 를 해제하는 수집이 그것을 0 으로 덮어씁니다. 0 으로 지우는 쓰기는 최적화기가 없앨 수 없는 store 입니다.
 - 알고리즘은 키에 의존하는 상태를 비밀 저장소나 지역 변수에만 두며, 보통의 heap 객체에는 두지 않습니다. 그 상태는 AES round key, GHASH 키, ChaCha20 키 (`Aead`), HMAC 과 HKDF (padding 한 키, chaining 값, 출력 block), X25519 와 ML-KEM 의 공유 키, ML-KEM decapsulation 키와 그 비밀 다항식, seed, 메시지, 그리고 Ed25519 의 확장 키와 nonce 해시입니다. 결과가 키 자료인 함수는 `Secret` 을 돌려줍니다. 비밀 저장소의 임시 값은 함수가 반환하기 전에 지웁니다. 함수가 throw 하면 수집이 지웁니다.
-- `net::tls` ([3.2.5](../300-std/302-net.md#325-tls-13--nettls)) 는 traffic, handshake, resumption secret, record 키, 키 교환 secret, ticket PSK, Ed25519 / EC 개인 키를 비밀 저장소에 두며, KeyUpdate 때, 핸드셰이크가 끝날 때, close 때 지웁니다.
+- `net::tls` ([3.2.5](../300-std/302-net.md#325-tls-13---nettls)) 는 traffic, handshake, resumption secret, record 키, 키 교환 secret, ticket PSK, Ed25519 / EC 개인 키를 비밀 저장소에 두며, KeyUpdate 때, 핸드셰이크가 끝날 때, close 때 지웁니다.
 
 이 보장에는 구현이 밝히고 숨기지 않는 한계가 있습니다.
 

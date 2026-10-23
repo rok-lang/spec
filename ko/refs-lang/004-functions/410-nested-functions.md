@@ -26,7 +26,7 @@ fn outer() {
     helper();                     // OK
 }
 
-helper();                          // ERROR — outer 밖에서는 보이지 않음
+helper();                          // ERROR - outer 밖에서는 보이지 않음
 ```
 
 해당 블록을 벗어나는 순간 중첩 함수의 이름은 더 이상 보이지 않게 됩니다.
@@ -38,7 +38,7 @@ helper();                          // ERROR — outer 밖에서는 보이지 않
 ```rok
 fn outer(n: i32) {
     fn inner() {
-        let x = n;                // ERROR — n 이 보이지 않음
+        let x = n;                // ERROR - n 이 보이지 않음
     }
     inner();
 }
@@ -48,7 +48,7 @@ fn outer(n: i32) {
 
 ```rok
 fn outer(n: i32) {
-    let inner = |x| x + n;        // OK — 클로저는 캡처 가능
+    let inner = |x| x + n;        // OK - 클로저는 캡처 가능
     inner(5);
 }
 ```
@@ -101,7 +101,7 @@ fn outer() {
 
 ```rok
 fn outer() {
-    pub fn helper() { ... }       // ERROR — 중첩 함수에 pub 무의미
+    pub fn helper() { ... }       // ERROR - 중첩 함수에 pub 무의미
 }
 ```
 
@@ -112,7 +112,7 @@ fn outer() {
 ```rok
 fn outer() {
     let helper = 42;
-    fn helper() { ... }            // ERROR — 같은 이름의 변수와 함수
+    fn helper() { ... }            // ERROR - 같은 이름의 변수와 함수
 }
 ```
 

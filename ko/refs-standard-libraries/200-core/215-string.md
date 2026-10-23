@@ -1,19 +1,19 @@
-# 2.15. 문자열 — `str` / `char` / `c_char`
+# 2.15. 문자열 - `str` / `char` / `c_char`
 
 `rok::core::str` 모듈은 문자열과 문자 타입의 권위 정의를 제공합니다. rok 은 **UTF-8 우선** 정책을 채택하고 있어서, 모든 in-process 문자열은 UTF-8 로 다루며, FFI 경계에서만 `c_char` 를 사용합니다.
 
 이 장은 48 개의 lang slot 중 세 개를 정의합니다. 첫째로 `str_type` 은 `rok::core::str::str` 에 연결되며 언어 기본값에 해당하는 lowercase struct 입니다. 둘째로 `char_type` 은 내장 `char` 이며, 이 장이 그 메서드를 정의합니다. 셋째로 `cchar_type` 은 `rok::core::str::c_char` 에 연결되며 마찬가지로 언어 기본값입니다.
 
-## 2.15.1. 문자열 모델 — 불변 `str` 과 가변 `StrBuf`
+## 2.15.1. 문자열 모델 - 불변 `str` 과 가변 `StrBuf`
 
 `str` 은 불변 UTF-8 문자열 값이고, 문자열을 만들어 가는 가변 buffer 는 별도 타입 `StrBuf` 입니다.
 
 | 타입     | 의미                                               | 메모리 표현                  | mutability          |
 |----------|----------------------------------------------------|------------------------------|---------------------|
-| `str`    | UTF-8 문자열 값                                    | `(ptr, len)` 값 — 바이트는 immortal 상수 또는 GC 객체 | **불변**  |
+| `str`    | UTF-8 문자열 값                                    | `(ptr, len)` 값 - 바이트는 immortal 상수 또는 GC 객체 | **불변**  |
 | `StrBuf` | 늘어나는 UTF-8 buffer                              | GC heap 객체                 | 가변                |
-| `char`   | Unicode scalar value (PascalCase struct + keyword) | 4B (u32)                     | (값 — 변경 X)       |
-| `c_char` | C ABI 1-byte char (FFI primitive)                  | 1B (i8 또는 u8 — target dep) | (값)                |
+| `char`   | Unicode scalar value (PascalCase struct + keyword) | 4B (u32)                     | (값 - 변경 X)       |
+| `c_char` | C ABI 1-byte char (FFI primitive)                  | 1B (i8 또는 u8 - target dep) | (값)                |
 
 ### Rust / Python / rok 모델 비교
 
@@ -27,7 +27,7 @@
 
 rok 의 `str` 은 수명 추적이 필요 없다는 점에서 Python 의 불변 `str` 에 가깝고, 표현은 Rust 의 `&str` 처럼 `(ptr, len)` 쌍입니다. 런타임에 만들어지는 문자열의 바이트는 GC 객체 (type id `1`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-런타임-예약-type-id)) 에 있습니다.
 
-## 2.15.2. `str` — 불변 UTF-8 문자열
+## 2.15.2. `str` - 불변 UTF-8 문자열
 
 ```rok
 #[lang("str_type")]
@@ -77,13 +77,13 @@ impl str {
     fn trim_start(self) -> str;
     fn trim_end(self) -> str;
 
-    fn to_lowercase(self) -> str;           // 새 str (Unicode 전체 매핑 — 1:N, 문맥 규칙 포함)
+    fn to_lowercase(self) -> str;           // 새 str (Unicode 전체 매핑 - 1:N, 문맥 규칙 포함)
     fn to_uppercase(self) -> str;
     fn replace(self, from: str, to: str) -> str;   // 빈 from 은 모든 char 경계에서 맞음: "ab".replace("", "-") == "-a-b-"
 
     fn parse<T: FromStr>(self) throws (T::Err) -> T;
 
-    // UTF-8 안전 slicing — byte boundary 검증
+    // UTF-8 안전 slicing - byte boundary 검증
     // (s[a:b] desugar 가 본 메서드 dispatch)
     fn slice(self, range: Range<usize>) -> str;        // s[a:b] 와 같음, 바이트 공유
 }
@@ -91,12 +91,12 @@ impl str {
 
 `as_ptr` 는 문자열 바이트가 있는 자리를 가리키는 포인터를 돌려줍니다. 포인터 값이 나올 수 있는 함수 (변수나 식의 타입이 `rok::bare::ptr` 타입을 이름에 담는 함수: 타입 인자 (`List<ConstPtr<u8>>`) 나 함수 타입 안이어도 됩니다) 에서 그 `str` 을 담은 변수가 scope 안에 있는 동안, GC 는 문자열을 옮기지 않고 포인터는 유효합니다. generator 나 `async` 본문에서는 `yield` / `await` 를 지나서도 그렇습니다. 그 밖에서는 변수가 문자열을 마지막 사용까지만 붙들며, 다른 객체를 통해서만 닿는 문자열은 GC 가 옮길 수 있고 pin 되지 않습니다 ([stdlib 1.6](../100-bare/106-gc-pin.md)). 바이트를 더 오래 그 자리에 두려면 문자열을 pin 합니다 ([1.6.6](../100-bare/106-gc-pin.md#166-추출-메서드)).
 
-### `StrBuf` — 가변 buffer
+### `StrBuf` - 가변 buffer
 
 문자열을 조금씩 만들어 갈 때는 `StrBuf` 를 씁니다.
 
 ```rok
-struct StrBuf { /* GC heap — ptr / len / capacity */ }
+struct StrBuf { /* GC heap - ptr / len / capacity */ }
 
 impl StrBuf {
     fn new() -> StrBuf;
@@ -118,7 +118,7 @@ for x in xs {
 let s: str = buf.to_str();
 ```
 
-### 문자열 리터럴 — `"hello"`
+### 문자열 리터럴 - `"hello"`
 
 ```rok
 let s: str = "hello";        // immortal 상수 바이트를 가리키는 str
@@ -139,8 +139,8 @@ let s: str = "hello";        // immortal 상수 바이트를 가리키는 str
 | `PartialOrd`                | ✓                              | lexicographic byte                         |
 | `Ord`                       | ✓                              |                                            |
 | `Hash`                      | ✓                              |                                            |
-| `IntoIterator`              | **없음**                       | `.chars()` 명시 — byte vs char 모호성 회피 |
-| `Add<str>` (`s + t`)        | ✓ → str (concat — 새 str)      |                                            |
+| `IntoIterator`              | **없음**                       | `.chars()` 명시 - byte vs char 모호성 회피 |
+| `Add<str>` (`s + t`)        | ✓ → str (concat - 새 str)      |                                            |
 | `AddAssign<str>` (`s += t`) | ✓ → `s = s + t` (새 str 로 교체) |                                          |
 | `FromIterator<char>`        | ✓                              | `(chars).collect::<str>()`                 |
 | `FromIterator<str>`         | ✓                              | `(strs).collect::<str>()`                  |
@@ -148,15 +148,15 @@ let s: str = "hello";        // immortal 상수 바이트를 가리키는 str
 > [!NOTE]
 > `str` 는 불변 값이라 `let t = s;` 는 `(ptr, len)` 을 복사할 뿐이며, 어느 쪽도 내용을 바꿀 수 없습니다.
 
-## 2.15.3. `s[a:b]` 슬라이싱 — UTF-8 안전
+## 2.15.3. `s[a:b]` 슬라이싱 - UTF-8 안전
 
 ```rok
 let s: str = "hello, 세계!";
-s.len();                       //→ 14  (byte 길이 — "hello, " 7 + 한국어 3바이트 × 2 + "!" 1)
+s.len();                       //→ 14  (byte 길이 - "hello, " 7 + 한국어 3바이트 × 2 + "!" 1)
 s.chars().count();             //→ 10  (char 개수)
 
 let s2 = s[7:13];              //→ "세계"  (byte boundary OK)
-let s3 = s[8:9];               // panic — UTF-8 sequence 중간 byte
+let s3 = s[8:9];               // panic - UTF-8 sequence 중간 byte
 let s4 = s[7:100];             //→ "세계!" (끝은 길이로 잘라 맞춤)
 let s5 = s[-1:];               //→ "!"
 ```
@@ -167,7 +167,7 @@ let s5 = s[-1:];               //→ "!"
 
 ```rok
 let s: str = "hello";
-let c = s[0];                  // ERROR — `Index<usize>` 정의 안 함
+let c = s[0];                  // ERROR - `Index<usize>` 정의 안 함
                                //         이유: byte vs char 모호 + UTF-8 안전성
 ```
 
@@ -177,7 +177,7 @@ let c = s[0];                  // ERROR — `Index<usize>` 정의 안 함
 
 `str` `s` 에 대한 `s[a:b]`, `lines`, `split*`, `split_whitespace`, `split_once`, `trim*`, `strip_*` 의 결과는 원래 바이트를 공유하는 `str` 이며 O(1) 입니다 ([refs-lang 8.8.1](../../refs-lang/008-abi/808-lowering-types.md#881-원시-정수--부동소수)). 그래서 작은 조각이 큰 원본을 살려 둡니다. 떼어 내는 API 는 없습니다. `as_bytes()` 도 복사 없는 읽기 전용 `Slice<u8>` view 입니다. `StrBuf` 의 slice 는 그 범위의 사본을 담은 새 `str` 이며 O(b − a) 입니다: `str` 은 불변이므로 아직 바뀔 수 있는 buffer 를 공유할 수 없습니다.
 
-## 2.15.4. `char` — Unicode scalar value
+## 2.15.4. `char` - Unicode scalar value
 
 `char` 는 언어 내장 타입입니다 ([2.1](201-numbers.md)): struct 가 아닌 4 바이트 Unicode scalar value 이며, 이 모듈이 그 메서드를 정의합니다.
 
@@ -201,7 +201,7 @@ e.len_utf8();                        //→ 4
 ```rok
 impl char {
     fn from_u32(n: u32) -> char | none;                  // surrogate / 범위 밖이면 none
-    unsafe fn from_u32_unchecked(n: u32) -> char;        // 검사 없음 — 호출자가 scalar value 를 보장
+    unsafe fn from_u32_unchecked(n: u32) -> char;        // 검사 없음 - 호출자가 scalar value 를 보장
     fn from_digit(d: u32, radix: u32) -> char;           // d >= radix 나 radix 가 2..=36 밖이면 panic
     fn to_digit(self, radix: u32) throws (ValueError) -> u32;
     fn is_digit(self, radix: u32) -> bool;
@@ -238,21 +238,21 @@ Unicode 속성과 대소문자 표는 UCD 18.0.0 입니다.
 ### 변환
 
 ```rok
-char::from_u32(0x41);                //→ 'A' (char | none — surrogate 는 none)
+char::from_u32(0x41);                //→ 'A' (char | none - surrogate 는 none)
 char::from_digit(5, 10);             //→ '5'
 
 let n: u32 = c as u32;               //→ 65 (lossless)
-let c2: char = n as char;            //→ ERROR — u8 만 `as char` 가능
+let c2: char = n as char;            //→ ERROR - u8 만 `as char` 가능
 let b: u8 = 0x41;
 let c4: char = b as char;            //→ 'A' (u8 은 늘 scalar value)
-let c3 = try char::try_from(n);      //→ char (TryFrom<u32> — from_u32 를 써서, none 이면 OverflowError)
+let c3 = try char::try_from(n);      //→ char (TryFrom<u32> - from_u32 를 써서, none 이면 OverflowError)
 ```
 
 ### 트레잇 구현
 
 `char` 는 모든 cmp / fmt 트레잇과 함께 `Copy`, `Clone`, `Hash` 를 구현합니다. niche 는 자동으로 적용되어 `char | none` 의 크기가 4B 가 됩니다.
 
-## 2.15.5. `c_char` — C ABI 1-byte (언어 기본값)
+## 2.15.5. `c_char` - C ABI 1-byte (언어 기본값)
 
 ```rok
 #[lang("cchar_type")]
@@ -275,7 +275,7 @@ extern "C" {
 ### 리터럴
 
 ```rok
-let c: c_char = c'A';        //→ 65 (i8/u8 — target dep)
+let c: c_char = c'A';        //→ 65 (i8/u8 - target dep)
 let n: c_char = c'\n';       //→ 10
 ```
 
@@ -297,7 +297,7 @@ prefix `c'...'` 형태를 사용하여 char 와 분리합니다.
 
 따라서 표준 라이브러리 함수에서는 **`char` 우선** 사용을 원칙으로 하며, `c_char` 는 명시적인 FFI 경계에서만 활용합니다.
 
-## 2.15.6. UTF-8 invariant — 모든 in-process 문자열
+## 2.15.6. UTF-8 invariant - 모든 in-process 문자열
 
 `str` 는 항상 UTF-8 valid 임이 보장되며, 그 근거는 다음과 같습니다. 우선 생성자가 검증을 수행하므로 `str::from_utf8(bytes)` 는 잘못된 바이트열에 대해 `Utf8Error` 를 던집니다 (`throws (Utf8Error)`). 다음으로 슬라이싱이 byte boundary 를 검증하여 멀티바이트 시퀀스 중간을 거부합니다. 또한 `push` 나 `insert` 같은 in-place 수정 역시 UTF-8 무결성을 보장합니다. 마지막으로 `rok::bare::str_from_bytes_unchecked` 만이 검증을 우회할 수 있으며 이는 unsafe tier 에 속합니다.
 
@@ -321,7 +321,7 @@ let s: str = try str::from_utf8(invalid);
 
 `str::from_utf8_lossy(bytes)` 는 던지지 않습니다: 잘못된 시퀀스의 maximal subpart 하나하나 (Unicode §3.9, U+FFFD Substitution of Maximal Subparts; WHATWG UTF-8 decoder 의 동작) 가 U+FFFD 하나가 됩니다.
 
-## 2.15.7. `FromStr` 트레잇 — 파싱
+## 2.15.7. `FromStr` 트레잇 - 파싱
 
 ```rok
 trait FromStr {

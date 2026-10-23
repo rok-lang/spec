@@ -1,4 +1,4 @@
-# 2.2. niche wrapper — `NonZero` / `NonNan` / `Finite` / `Positive`
+# 2.2. niche wrapper - `NonZero` / `NonNan` / `Finite` / `Positive`
 
 `rok::core::num::niche` 는 값의 부분집합을 강제하는 wrapper 를 둡니다. 각 wrapper 는 `#[niche(..)]` ([refs-lang 2.7.4](../../refs-lang/002-types/207-niche-optimization.md#274-opt-in-niche-niche)) 를 붙인 newtype 이며, 빠진 값이 `T | none` 의 niche 가 됩니다.
 
@@ -18,7 +18,7 @@ niche 가 있는 `T | none` 은 `T` 의 크기입니다 ([refs-lang 2.7.2](../..
 
 niche 값이 0 인 경우 (`NonZero`) 항의 비트는 그대로이므로 `NonZero<T> | none` 은 C ABI 를 0 이 `none` 인 정수로 건넙니다.
 
-## 2.2.2. `NonZero<T>` — 0 금지
+## 2.2.2. `NonZero<T>` - 0 금지
 
 ```rok
 trait NicheInt { .. }            // 10 개의 정수 타입이 구현
@@ -49,7 +49,7 @@ let nz: NonZero<i32> = try 7.try_into();
 let v: i32 = nz.into();
 ```
 
-## 2.2.3. `NonNan<F>` — NaN 금지
+## 2.2.3. `NonNan<F>` - NaN 금지
 
 ```rok
 trait NicheFloat { .. }          // f32, f64 가 구현
@@ -68,7 +68,7 @@ impl<F: NicheFloat> NonNan<F> {
 - `+ - * /` 의 결과는 `F` 입니다 (∞ − ∞ 등이 NaN 일 수 있음).
 - `TryFrom<F>` 는 NaN 이면 `ConversionError` 를 던집니다.
 
-## 2.2.4. `Finite<F>` — NaN, ±∞ 금지
+## 2.2.4. `Finite<F>` - NaN, ±∞ 금지
 
 ```rok
 #[niche(F::NAN, F::INFINITY, F::NEG_INFINITY)]
@@ -85,7 +85,7 @@ impl<F: NicheFloat> Finite<F> {
 - `+ - *` 는 `Result<Finite<F>, OverflowError>` 입니다 (결과가 ±∞ 이면 `Err`).
 - `TryFrom<F>` 는 NaN / ±∞ 이면 `ConversionError` 를 던집니다.
 
-## 2.2.5. `Positive<T>` — 음수 금지
+## 2.2.5. `Positive<T>` - 음수 금지
 
 ```rok
 #[niche(T::MIN..=-1)]

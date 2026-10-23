@@ -199,6 +199,14 @@ Unlike `throws` errors, the following are not delivered as values and cannot be 
 
 In both cases the runtime prints a message to standard error (stderr) and terminates the process with exit code `101`. The exact list of situations that are panics or fatal errors is defined by the standard library.
 
+A failed `try!` panics at the position of the `try!`. Its message shows the error the way an uncaught error out of `main` does ([4.16.4](../004-functions/416-entry-point.md): its `Display`, else its `Debug`, else its type name), then the position the error was raised at:
+
+```text
+thread 'main' panicked at src/main.rok:12:13:
+try! failed: no such key `port`
+  raised at src/main.rok:12:18
+```
+
 ## 3.14.9. Evaluation order
 
 `catch` expressions and `finally` are evaluated in this order:
@@ -210,7 +218,7 @@ In both cases the runtime prints a message to standard error (stderr) and termin
 
 When a `throw` statement is evaluated, its expression is evaluated first, and then the error is thrown.
 
-## 3.14.10. The `?` operator — early return of `none`
+## 3.14.10. The `?` operator - early return of `none`
 
 `?` is a postfix unary operator that unwraps a `T | none` value and, if it is `none`, immediately returns `none` from the enclosing function.
 
@@ -247,7 +255,7 @@ match expr {
 
 ```rok
 fn load() -> Result<Config, IOError> {
-    let raw = read_result(path)?;     // ERROR — `?` is only for `T | none`.
+    let raw = read_result(path)?;     // ERROR - `?` is only for `T | none`.
                                       //   Use `throws` and `try` for error propagation.
     ...
 }

@@ -45,7 +45,7 @@ On targets where `"system"` and `"C"` coincide (every Tier 1 target but 32-bit x
 | Value                           | Passing under `extern "rok"`             |
 |---------------------------------|------------------------------------------|
 | `str`                           | two words `(ptr, len)`                   |
-| `fn` value                      | `{code, env}` ([8.5.0a](../008-abi/805-extern-symbols.md#850a-rokfn--c-abi-form-of-function-values)) |
+| `fn` value                      | `{code, env}` ([8.5.0a](../008-abi/805-extern-symbols.md#850a-rokfn---c-abi-form-of-function-values)) |
 | `extern "C" fn(..)` parameter   | C function pointer without env           |
 | Anything else                   | The value as is (same as the C ABI)      |
 
@@ -101,7 +101,7 @@ The types of parameters, returns, and `static`s must all be FFI-compatible. The 
 - Function-typed parameters: an `fn(..) -> R` parameter of an `extern "C"` declaration is the same as `extern "C" fn(..) -> R`.
 - `str`: converted by the rule below.
 
-A `str` parameter in an `extern "C"` signature is a single NUL-terminated `char*`. If a NUL follows the bytes, the bytes are passed as is; otherwise (a slice, etc.) a copy pinned for the duration of the call is passed. C must not retain that pointer after the call returns. A `str` return is a `char*` whose length is measured with `strlen`. If it contains an interior NUL, the C side sees only up to the first NUL. If the returned `char*` is null the behavior is undefined, so a C string that may be null is received as `CPtr<c_char>` ([stdlib 1.7.2](../../refs-standard-libraries/100-bare/107-ffi.md#172-cstr--cstring--null-terminated-string)).
+A `str` parameter in an `extern "C"` signature is a single NUL-terminated `char*`. If a NUL follows the bytes, the bytes are passed as is; otherwise (a slice, etc.) a copy pinned for the duration of the call is passed. C must not retain that pointer after the call returns. A `str` return is a `char*` whose length is measured with `strlen`. If it contains an interior NUL, the C side sees only up to the first NUL. If the returned `char*` is null the behavior is undefined, so a C string that may be null is received as `CPtr<c_char>` ([stdlib 1.7.2](../../refs-standard-libraries/100-bare/107-ffi.md#172-cstr--cstring---null-terminated-string)).
 
 A `pub` function of an `extern` block in module `m` is also reachable as `m::f`; its symbol is unprefixed. A `rok_*` name in an `extern "C"` block may not take or return `str` ([8.5](../008-abi/805-extern-symbols.md)).
 
@@ -135,7 +135,7 @@ extern "C" {
     fn qsort(base: Ptr<u8>, n: usize, size: usize, cmp: unsafe extern "C" fn(ConstPtr<u8>, ConstPtr<u8>) -> i32);
 }
 let f: unsafe extern "C" fn(ConstPtr<u8>, ConstPtr<u8>) -> i32 = cmp_i32;   // a C declaration's value is unsafe
-let g: extern "C" fn(ConstPtr<u8>, ConstPtr<u8>) -> i32 = cmp_i32;          // ERROR — safe position
+let g: extern "C" fn(ConstPtr<u8>, ConstPtr<u8>) -> i32 = cmp_i32;          // ERROR - safe position
 ```
 
 ### Name space of extern functions
@@ -197,7 +197,7 @@ An `extern "C" { ... }` block may appear only at module level. It cannot be plac
 
 ```rok
 fn f() {
-    extern "C" { ... }                     // ERROR — not inside a function
+    extern "C" { ... }                     // ERROR - not inside a function
 }
 ```
 
@@ -243,7 +243,7 @@ An `extern "ABI" fn` definition takes `"C"` or `"system"`; any other ABI string 
 ```rok
 #[export_name("on_event")]
 extern "C" fn on_event(code: i32) -> i32 { code }     // visible from C as on_event
-extern "C" fn bad(s: str) { }                          // ERROR — str cannot be used
+extern "C" fn bad(s: str) { }                          // ERROR - str cannot be used
 ```
 
 Calling external functions and exposing functions externally together form the two directions of FFI.

@@ -1,8 +1,8 @@
-# 2.20. future — `Future` / `await` integration
+# 2.20. future - `Future` / `await` integration
 
 The `rok::core::future` module provides the authoritative traits of the async mechanism. The desugaring of `await expr` lowers to dispatch on the `Future` trait defined in this chapter. This chapter also defines `future_trait`, one of the 48 lang slots.
 
-## 2.20.1. `Future` — async result
+## 2.20.1. `Future` - async result
 
 `Future` is the core trait representing the result of an asynchronous computation; the result type is the associated type `Output`.
 
@@ -90,7 +90,7 @@ await g();
 
 The authority for these **three forms** is [refs-lang 4.12 async](../../refs-lang/004-functions/412-async.md).
 
-## 2.20.5. `IntoFuture` — awaitable values
+## 2.20.5. `IntoFuture` - awaitable values
 
 `IntoFuture` is the unified entry point of await. Not only `Future`s but also handles such as `Thread` that are not themselves `Future` can be `await`ed through this trait.
 
@@ -129,9 +129,9 @@ rok's policy:
 The colors are separated to guarantee **scheduler cooperation**. The compiler can build a coroutine state machine only if "this position can suspend" is stated explicitly.
 
 ```rok
-// await inside a sync fn — compile error
+// await inside a sync fn - compile error
 fn sync_caller() {
-    let v = await some_future;       // ERROR — await is allowed only inside an async function
+    let v = await some_future;       // ERROR - await is allowed only inside an async function
 }
 
 async fn async_caller() {
@@ -149,7 +149,7 @@ let v = task::block_on(some_future);    // the current thread attaches to the ex
 
 `block_on` must be used only at the top level (main or a sync caller). Using `block_on` inside nested async code risks deadlock.
 
-## 2.20.7. `for await` — consuming a Stream
+## 2.20.7. `for await` - consuming a Stream
 
 A Stream is consumed with the `for await` form.
 
@@ -165,7 +165,7 @@ for x in iterator {                    // consumes Iterator<Item = T> (sync)
 
 The authority for `for await` is the `Stream` trait in [2.8 stream](208-stream.md).
 
-## 2.20.8. `async yield` — producing a Stream
+## 2.20.8. `async yield` - producing a Stream
 
 Conversely, a Stream is produced with `async yield`.
 
@@ -184,7 +184,7 @@ for await t in ticks(Duration::ms(100)) {
 
 `async yield` combines async and yield and produces a Stream. The syntax authority is [refs-lang 4.13 stream](../../refs-lang/004-functions/413-stream.md).
 
-## 2.20.8a. `AsyncFuture<T>` / `TryAsyncFuture<T, E>` — values of async functions
+## 2.20.8a. `AsyncFuture<T>` / `TryAsyncFuture<T, E>` - values of async functions
 
 These are the values of `async fn` calls and `async { .. }` blocks ([refs-lang 4.1.11](../../refs-lang/004-functions/401-function-declaration.md#result-types-of-coroutine-functions)).
 

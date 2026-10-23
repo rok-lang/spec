@@ -27,7 +27,7 @@ trait Neg {
 }
 
 trait Degrees {
-    #[postfix("°", like = "?")]    // 확장 토큰 — 후위 ? 와 같은 단계
+    #[postfix("°", like = "?")]    // 확장 토큰 - 후위 ? 와 같은 단계
     fn degrees(self) -> f64;
 }
 ```
@@ -57,7 +57,7 @@ trait Degrees {
 ```rok
 #[infix("+")]
 #[prefix("-")]
-#[infix("⊕", like = "+")]      // 새 토큰 — + 와 같은 단계, 같은 결합성
+#[infix("⊕", like = "+")]      // 새 토큰 - + 와 같은 단계, 같은 결합성
 ```
 
 ## 6.7.3. 연결 메커니즘
@@ -188,7 +188,7 @@ let r = a ⊕ b;            // 사용자 토큰
 ```rok
 trait Cmp {
     #[infix("<")]
-    #[infix("⊲", like = "+")]    // ERROR — < 는 4 단계, + 는 7 단계
+    #[infix("⊲", like = "+")]    // ERROR - < 는 4 단계, + 는 7 단계
     fn lt(self, rhs: Self) -> bool;
 }
 ```
@@ -201,7 +201,7 @@ trait Cmp {
 
 ```rok
 fn my_add(a: i32, b: i32) -> i32 { a + b }
-#[infix("+++")]                              // ERROR — 자유 함수에 부착 불가
+#[infix("+++")]                              // ERROR - 자유 함수에 부착 불가
 fn my_concat(a: str, b: str) -> str { ... }
 ```
 

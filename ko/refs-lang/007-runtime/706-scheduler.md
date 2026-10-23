@@ -4,7 +4,7 @@ rok 의 스케줄러는 M:N [work-stealing](../000-meta/007-glossary.md#work-ste
 
 ## 7.6.1. 통합된 worker 모델
 
-프로세스에는 executor 가 하나 있으며 처음 쓸 때 시작합니다. worker 는 CPU 수만큼의 OS thread 이고, 여기에 blocking lane 과 I/O driver 가 붙습니다. `task::block_on` 은 부른 스레드를 guest worker 로 붙이며, 돌아올 때 남은 task 는 계속 실행됩니다. `par::*` 와 `spawn_blocking` 도 같은 executor 를 씁니다 ([stdlib 2.18.3](../../refs-standard-libraries/200-core/218-task.md#2183-스케줄러-모델--work-stealing)). 각 worker 는 다음 역할을 겸합니다.
+프로세스에는 executor 가 하나 있으며 처음 쓸 때 시작합니다. worker 는 CPU 수만큼의 OS thread 이고, 여기에 blocking lane 과 I/O driver 가 붙습니다. `task::block_on` 은 부른 스레드를 guest worker 로 붙이며, 돌아올 때 남은 task 는 계속 실행됩니다. `par::*` 와 `spawn_blocking` 도 같은 executor 를 씁니다 ([stdlib 2.18.3](../../refs-standard-libraries/200-core/218-task.md#2183-스케줄러-모델---work-stealing)). 각 worker 는 다음 역할을 겸합니다.
 
 ```
 worker = {
@@ -17,7 +17,7 @@ I/O driver 는 worker 가 겸하지 않습니다. 프로세스당 reactor thread
 
 ## 7.6.2. Work-Stealing 구조
 
-각 worker 는 로컬 deque 를 갖습니다 (lock-free Chase-Lev deque, [8.5.4 `rok_deque_*`](../008-abi/805-extern-symbols.md#rok_deque_--work-stealing-deque)).
+각 worker 는 로컬 deque 를 갖습니다 (lock-free Chase-Lev deque, [8.5.4 `rok_deque_*`](../008-abi/805-extern-symbols.md#rok_deque_---work-stealing-deque)).
 
 ```
 Worker:
@@ -36,7 +36,7 @@ Worker:
 ```
 Global injector:
   - receives tasks spawned from outside (e.g. extern callback).
-  - when a worker's local queue is empty — pull from global.
+  - when a worker's local queue is empty - pull from global.
 ```
 
 이 큐는 worker 풀 바깥에서 들어오는 task 의 진입점 역할을 맡고 있습니다.
@@ -48,7 +48,7 @@ worker 의 local deque 가 비어 있다면 다음과 같은 순서로 진행됩
 ```
 1. global injector 에서 pull 시도.
 2. 다른 worker 의 local deque 의 top 에서 steal 을 시도합니다. 대상은 worker 마다의 의사 난수 index 에서 시작해 round-robin 으로 돕니다.
-3. 모두 실패하면 — sleep / park (blocking sync).
+3. 모두 실패하면 - sleep / park (blocking sync).
 ```
 
 steal 은 worker 를 최대 N-1 개까지 시도해 보고, 그래도 모두 비어 있으면 park 상태로 전환합니다.

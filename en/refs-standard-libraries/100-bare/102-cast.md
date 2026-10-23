@@ -1,4 +1,4 @@
-# 1.2. cast operations — explicitly named casts
+# 1.2. cast operations - explicitly named casts
 
 The `rok::bare::cast` module exposes conversions between pointers and types only as **named functions**. The reason `as` casts in C and Rust are so dangerous is that the conversion happens silently; to avoid that pitfall, rok requires every cast to carry an **explicit name**.
 
@@ -21,7 +21,7 @@ In addition, there is one escape hatch for when a deeper bypass is needed.
 
 The compiler rejects the `as` keyword on pointers, so users necessarily use named casts.
 
-## 1.2.2. `ptr_cast<U>` — pointer type conversion
+## 1.2.2. `ptr_cast<U>` - pointer type conversion
 
 ```rok
 fn ptr_cast<U, T>(p: Ptr<T>) -> Ptr<U>;
@@ -34,13 +34,13 @@ This function keeps address and provenance intact and changes only the type tag.
 ```rok
 let p: Ptr<u32> = ...;        // 4-byte aligned
 let q: Ptr<u8> = rok::bare::ptr_cast::<u8>(p);    // safe (down-align)
-let r: Ptr<u64> = rok::bare::ptr_cast::<u64>(p);  // dangerous — u64 needs 8-byte
+let r: Ptr<u64> = rok::bare::ptr_cast::<u64>(p);  // dangerous - u64 needs 8-byte
                                                  // r.read() may SIGBUS (ARM)
 ```
 
 In debug builds an **alignment check** is inserted and leads to a panic; in release builds the check is gone and it is UB.
 
-### Safe cast — type-equivalent
+### Safe cast - type-equivalent
 
 Conversion between two structs with identical layout is safe.
 
@@ -54,7 +54,7 @@ let pb: Ptr<B> = rok::bare::ptr_cast::<B>(pa);    // safe if layout matches
 
 The compiler does not verify that the layouts really match, however; the caller must bear that guarantee.
 
-## 1.2.3. `align_cast<T>` — alignment check
+## 1.2.3. `align_cast<T>` - alignment check
 
 ```rok
 fn align_cast<T>(p: Ptr<u8>) -> Ptr<T> | none;
@@ -83,7 +83,7 @@ fn align_cast_unchecked<T>(p: Ptr<u8>) -> Ptr<T>;     // without checking
 
 Use it only where alignment has already been verified just before the call. This variant performs no check even in debug builds.
 
-## 1.2.4. `const_cast<T>` — const removal
+## 1.2.4. `const_cast<T>` - const removal
 
 ```rok
 fn const_cast<T>(p: ConstPtr<T>) -> Ptr<T>;
@@ -95,15 +95,15 @@ This function strips const. The danger is obvious: if the original lives in a re
 let s: str = "hello";              // immortal const
 let p: ConstPtr<u8> = s.as_ptr();
 let m: Ptr<u8> = rok::bare::const_cast(p);
-unsafe { m.write(c'H') };          // SEGFAULT — write to immortal const
+unsafe { m.write(c'H') };          // SEGFAULT - write to immortal const
 ```
 
 It is exactly isomorphic to C's `const_cast<T*>`. Its use is limited to temporarily wrapping a read-only API where mutability is required; ordinary code **must not use it**.
 
-## 1.2.5. `reinterpret<A: Pod, B: Pod>` — bit cast (safe)
+## 1.2.5. `reinterpret<A: Pod, B: Pod>` - bit cast (safe)
 
 ```rok
-trait Pod { /* marker — Plain Old Data */ }
+trait Pod { /* marker - Plain Old Data */ }
 
 fn reinterpret<A: Pod, B: Pod>(a: A) -> B;
 ```
@@ -116,7 +116,7 @@ For types with the `Pod` (Plain Old Data) marker, **safe transmute** is guarante
 
 ```rok
 let f: f32 = 3.14;
-let bits: u32 = rok::bare::reinterpret(f);     // OK — both Pod, 4 bytes
+let bits: u32 = rok::bare::reinterpret(f);     // OK - both Pod, 4 bytes
 let f2: f32 = rok::bare::reinterpret(bits);    // round-trip OK
 ```
 
@@ -152,7 +152,7 @@ let v2: Vec3 = rok::bare::reinterpret(bytes);
 
 This design follows the [Project Safe Transmute (Rust RFC 2835)](https://rust-lang.github.io/rfcs/2835-project-safe-transmute.html) model and the [bytemuck crate](https://docs.rs/bytemuck) pattern.
 
-## 1.2.6. `transmute_unchecked<A, B>` — escape hatch
+## 1.2.6. `transmute_unchecked<A, B>` - escape hatch
 
 ```rok
 fn transmute_unchecked<A, B>(a: A) -> B;       // no size check either
@@ -179,13 +179,13 @@ let bits: u64 = rok::bare::transmute_unchecked(s);   // code where SomeNewtype g
 | Expression         | Result                                                 |
 |--------------------|--------------------------------------------------------|
 | `i32 as i64`       | OK (lossless widening)                                 |
-| `i64 as i32`       | **Compile error** — `try_into` / `saturating_into`     |
+| `i64 as i32`       | **Compile error** - `try_into` / `saturating_into`     |
 | `f32 as f64`       | OK (lossless)                                          |
-| `i32 as f32`       | **Compile error** — `as f32` may lose precision        |
-| `u32 as i32`       | **Compile error** — bit reinterpret (use `reinterpret`) |
-| `Ptr<T> as Ptr<U>` | **Compile error** — `rok::bare::ptr_cast::<U>`          |
-| `Ptr<T> as usize`  | **Compile error** — `.addr()` or `expose_provenance`   |
-| `usize as Ptr<T>`  | **Compile error** — `from_exposed_provenance`          |
+| `i32 as f32`       | **Compile error** - `as f32` may lose precision        |
+| `u32 as i32`       | **Compile error** - bit reinterpret (use `reinterpret`) |
+| `Ptr<T> as Ptr<U>` | **Compile error** - `rok::bare::ptr_cast::<U>`          |
+| `Ptr<T> as usize`  | **Compile error** - `.addr()` or `expose_provenance`   |
+| `usize as Ptr<T>`  | **Compile error** - `from_exposed_provenance`          |
 
 See [2.11 conversion](../200-core/211-conversion.md) for the full conversion matrix.
 

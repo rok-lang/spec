@@ -80,7 +80,7 @@ let r = await f;
 let n = 1;
 let f = async { n * 10 };
 n = 2;
-await f;                       //→ 10 — 만들 때의 n
+await f;                       //→ 10 - 만들 때의 n
 ```
 
 ## 4.12.5. `async` 클로저
@@ -144,7 +144,7 @@ async fn f() -> i32 {
 여러 Future 를 동시에 진행하려면 표준 라이브러리 함수를 사용합니다.
 
 ```rok
-let rs = await task::join([task::spawn(op1()), task::spawn(op2())]);   // 모두 — List<T>
+let rs = await task::join([task::spawn(op1()), task::spawn(op2())]);   // 모두 - List<T>
 let first = await task::race([task::spawn(op1()), task::spawn(op2())]); // 먼저 끝나는 것
 let r = try await task::timeout(d, task::spawn(op1()));                // 시간 초과면 TimeoutError
 ```
@@ -171,7 +171,7 @@ let r = try await task::timeout(d, task::spawn(op1()));                // 시간
 비동기 함수 호출은 즉시 반환되므로 다음과 같은 패턴이 가능합니다.
 
 ```rok
-let f = fetch_data();             // 즉시 반환 — 작업은 시작되었거나 스케줄에 있음
+let f = fetch_data();             // 즉시 반환 - 작업은 시작되었거나 스케줄에 있음
 do_other_work();                   // 다른 작업 병행
 let data = await f;                // 결과 필요 시점에 기다림
 ```

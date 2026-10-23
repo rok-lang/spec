@@ -84,7 +84,7 @@ Attaching the same slot name to several items is a compile error.
 
 ```rok
 #[lang("add_trait")] trait MyAdd { ... }
-#[lang("add_trait")] trait OtherAdd { ... }    // ERROR — duplicate slot
+#[lang("add_trait")] trait OtherAdd { ... }    // ERROR - duplicate slot
 ```
 
 Each slot maps to exactly one item. This uniqueness holds program-wide (across all linked packages). A user package therefore cannot reattach and replace a slot defined by `rok::core` (`panic_fn`, `oom_fn`, `unreachable_fn`, etc.); doing so is a compile error.
@@ -105,7 +105,7 @@ If the signature does not match the form the slot requires, it is a compile erro
 
 ```rok
 #[lang("add_trait")]
-trait BadAdd { fn run() }            // ERROR — does not match the form of the 'add_trait' slot
+trait BadAdd { fn run() }            // ERROR - does not match the form of the 'add_trait' slot
 ```
 
 ## 6.4.8. Unknown slot names
@@ -129,7 +129,7 @@ The set of slot names is itself part of the language specification, so adding, c
 | Effect        | Code generation or compiler hint        | Binds to language meaning       |
 | Slot or key   | Free (identified by attribute name)     | Fixed slot set                  |
 
-`#[lang]` is the most privileged attribute in the meta-system. The other magics — `#[literal]`, `#[keyword]`, and the operator magics — can all be viewed as refined forms of `#[lang]`.
+`#[lang]` is the most privileged attribute in the meta-system. The other magics - `#[literal]`, `#[keyword]`, and the operator magics - can all be viewed as refined forms of `#[lang]`.
 
 ## 6.4.11. Relation between `#[lang]` and other magic
 

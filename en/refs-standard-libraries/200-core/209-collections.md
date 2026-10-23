@@ -1,4 +1,4 @@
-# 2.9. Collections — `List` / `Dict` / `Set` / `Tuple` / `Slice`
+# 2.9. Collections - `List` / `Dict` / `Set` / `Tuple` / `Slice`
 
 The `rok::core::collections` module provides general-purpose containers. Every collection is allocated on the GC heap and can be created directly through literal syntax bound with `#[literal(...)]`.
 
@@ -14,7 +14,7 @@ This chapter defines the authoritative signatures of the following 6 collections
 | `Tuple<...>`        | `(1, "a", true)`           | Fixed-size heterogeneous        |
 | `Slice<T>`          | `xs[1:3]`                  | Zero-copy view of a container   |
 
-## 2.9.1. Literal syntax — `#[literal(query)]` binding
+## 2.9.1. Literal syntax - `#[literal(query)]` binding
 
 Literal syntax is defined with the **query DSL** of [refs-lang 6.5 `#[literal]`](../../refs-lang/006-meta-system/605-literal-magic.md) as follows.
 
@@ -37,11 +37,11 @@ The literal query syntax means: `{...} % sep *` is zero or more repetitions sepa
 ### Resolving the Dict / Set ambiguity
 
 ```rok
-{"a": 1}      // Dict — `:` pattern
-{1, 2}        // Set — values only
-{1,}          // Set (single element — trailing comma)
-{1}           // always a block — even when the slot is a Set
-{ x = 1 }     // block expression — the token after `{` is statement-like
+{"a": 1}      // Dict - `:` pattern
+{1, 2}        // Set - values only
+{1,}          // Set (single element - trailing comma)
+{1}           // always a block - even when the slot is a Set
+{ x = 1 }     // block expression - the token after `{` is statement-like
 ```
 
 The parser decides from the contents alone: the `expr ":"` form is a Dict, a comma makes it a Set, and anything else is a block. The type of the receiving slot is not used in the decision.
@@ -63,7 +63,7 @@ a < [1, 2, 4];           //→ true (lexicographic)
 
 `List`, `Dict` and `Set` values are reference handles to GC heap objects. `let ys = xs;` and argument passing copy the handle, so the same collection is shared. Methods that modify a collection therefore take `self`, not `ref self`. Call `clone()` for an independent copy. A struct element is a value: `xs[i]` and `d[k]` return a copy, and a change is stored with `xs[i] = v` ([refs-lang 2.3.8](../../refs-lang/002-types/203-struct.md#238-value-semantics)). `keys` / `values` / `entries` return lazy iterators that do not copy the collection.
 
-## 2.9.2. `List<T>` — dynamic array
+## 2.9.2. `List<T>` - dynamic array
 
 ```rok
 struct List<T> {
@@ -92,7 +92,7 @@ impl<T> List<T> {
     fn truncate(self, len: usize);              // keeps the first len elements; no change if fewer
     fn drain(self, r: Range<usize>) -> List<T>; // removes and returns r's elements in order; panics if r is reversed or ends past len()
 
-    fn get(self, idx: usize) -> T | none;       // safe — out-of-bounds → none
+    fn get(self, idx: usize) -> T | none;       // safe - out-of-bounds → none
     fn first(self) -> T | none;
     fn last(self) -> T | none;
 
@@ -153,19 +153,19 @@ let total: i32 = ys.into_iter().sum();   //→ 60
 | `PartialEq`           | `T: PartialEq`      | element-wise                    |
 | `Eq`/`Ord`/`Hash`     | When T has the same trait | lexicographic             |
 
-### Comparison / hashing / Debug — common rules
+### Comparison / hashing / Debug - common rules
 
 - `List<T>` implements `PartialEq` / `Eq` / `Hash` element by element, in order.
 - `Dict<K, V>` and `Set<T>` compare and hash independently of order. They are equal if they hold the same elements (keys and values).
 - All three collections implement `Debug` when their elements implement it, printing in iteration order.
 - A collection whose elements are `Eq + Hash` can therefore be a `Set` element or a `Dict` key (`Set<List<i32>>`).
 
-### Capacity and removal — common rules
+### Capacity and removal - common rules
 
 - A size that overflows in `reserve`, `with_capacity`, `repeat` or growth panics with "capacity overflow", at every optimization level.
 - Removing an element (`pop`, `remove`, `clear`, `truncate`, `drain`, ..) releases the reference: the GC no longer sees it through the collection.
 
-## 2.9.3. `Dict<K, V>` — hash map
+## 2.9.3. `Dict<K, V>` - hash map
 
 ```rok
 struct Dict<K: Hash + Eq, V> {
@@ -223,7 +223,7 @@ for w in words {
 ```rok
 let d: Dict<str, i32> = {"a": 1, "b": 2};
 d["a"];                   //→ 1
-d["c"];                   //→ panic (IndexError — key missing)
+d["c"];                   //→ panic (IndexError - key missing)
 d.get("c");               //→ none
 
 d.insert("c", 3);
@@ -251,7 +251,7 @@ The `d[k]` notation assumes the key is present; use `.get(k)` when safe access i
 
 `keys` / `values` / `entries` are lazy views onto the current table, not copies. Modifying the dict during iteration gives unspecified results (elements may be missed or seen twice), but memory safety is preserved.
 
-## 2.9.4. `Set<T>` — hash set
+## 2.9.4. `Set<T>` - hash set
 
 ```rok
 struct Set<T: Hash + Eq> {
@@ -293,7 +293,7 @@ let u = a.union(b);       //→ {1, 2, 3, 4}
 let i = a.intersection(b);//→ {2, 3}
 ```
 
-## 2.9.5. `OrderedDict<K, V>` / `OrderedSet<T>` — insertion order
+## 2.9.5. `OrderedDict<K, V>` / `OrderedSet<T>` - insertion order
 
 These provide the same API as `Dict` / `Set` but **preserve insertion order**, equivalent in meaning to Python 3.7+ `dict` or Java's LinkedHashMap.
 
@@ -317,7 +317,7 @@ let d = OrderedDict::from([("a", 1), ("b", 2)]);
 let s = OrderedSet::from([1, 2, 3]);
 ```
 
-## 2.9.5a. `Deque<T>` — double-ended queue
+## 2.9.5a. `Deque<T>` - double-ended queue
 
 A double-ended queue over a ring buffer.
 
@@ -341,7 +341,7 @@ impl<T> Deque<T> {
 
 It implements `d[i]` / `d[i] = v` (panics when out of range), `IntoIterator`, `Default` and `Debug`.
 
-## 2.9.5b. `BinaryHeap<T>` — priority queue
+## 2.9.5b. `BinaryHeap<T>` - priority queue
 
 ```rok
 impl<T: Ord> BinaryHeap<T> {
@@ -360,7 +360,7 @@ impl<T> BinaryHeap<T> {
 }
 ```
 
-## 2.9.6. `Tuple<...>` — fixed heterogeneous
+## 2.9.6. `Tuple<...>` - fixed heterogeneous
 
 ```rok
 #[literal( "(" expr "," {expr} % "," * ")" )]
@@ -410,7 +410,7 @@ fn divmod(a: i32, b: i32) -> (i32, i32) {
 let (q, r) = divmod(17, 5);     //→ q = 3, r = 2
 ```
 
-## 2.9.7. `Slice<T>` — view
+## 2.9.7. `Slice<T>` - view
 
 ```rok
 struct Slice<T> {
@@ -444,8 +444,8 @@ impl Slice<u8> {
     fn find<B: AsBytes>(self, needle: B) -> usize | none;   // offset of the first occurrence; an empty needle is at 0
 }
 
-impl<T> Index<usize> for Slice<T> { ... }               // s[i] — panics when out of range
-impl<T> Sliceable<Range<usize>> for Slice<T> { ... }    // s[a:b] — a view of a view; the range is clamped to the length
+impl<T> Index<usize> for Slice<T> { ... }               // s[i] - panics when out of range
+impl<T> Sliceable<Range<usize>> for Slice<T> { ... }    // s[a:b] - a view of a view; the range is clamped to the length
 impl<T> IntoIterator for Slice<T> { ... }
 impl<T: PartialEq> PartialEq for Slice<T> { ... }
 impl<T: Debug> Debug for Slice<T> { ... }
@@ -466,7 +466,7 @@ let s3: Slice<i32> = xs[..];            //→ view of all
 s1.len();                               //→ 3
 s1.iter().sum::<i32>();                 //→ 9
 xs[2] = 30;
-s1[1];                                  //→ 30 — the list's element write is visible
+s1[1];                                  //→ 30 - the list's element write is visible
 
 let owned: List<i32> = s1.to_list();    //→ [2, 30, 4] (new List)
 ```
@@ -515,7 +515,7 @@ Every container implements `IntoIterator`.
 | `Set<T>`            | `T`                 | **nondeterministic**              |
 | `OrderedDict<K, V>` | `(K, V)`            | insertion order                   |
 | `OrderedSet<T>`     | `T`                 | insertion order                   |
-| `Tuple<T...>`       | **not implemented** | (heterogeneous — no Iterator meaning) |
+| `Tuple<T...>`       | **not implemented** | (heterogeneous - no Iterator meaning) |
 | `Slice<T>`          | `T`                 | view order (stride applied)       |
 
 `FromIterator<T>` determines which container `collect::<C>()` builds.
@@ -552,9 +552,9 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 | Literals        | `vec![...]` (macro)  | `[...]` `{...}` `(...)`    | `[...]` `{...}` `(...)` (`#[literal]`) |
 | Ordered map     | `BTreeMap` (sorted map) | **default dict**        | separate `OrderedDict`                 |
 
-rok differs most in these ways. First, all 6 collections have first-class literal syntax, so no macro such as `vec![]` is used. Second, insertion order of `Dict` / `Set` is not guaranteed — unlike Python 3.7+ — so `OrderedDict` must be used explicitly when order matters. Third, `Slice<T>` is a view with a stride, so even an expression like `xs[::2]` is zero-copy.
+rok differs most in these ways. First, all 6 collections have first-class literal syntax, so no macro such as `vec![]` is used. Second, insertion order of `Dict` / `Set` is not guaranteed - unlike Python 3.7+ - so `OrderedDict` must be used explicitly when order matters. Third, `Slice<T>` is a view with a stride, so even an expression like `xs[::2]` is zero-copy.
 
-## 2.9.12. `GcBuf<T>` — raw GC buffer
+## 2.9.12. `GcBuf<T>` - raw GC buffer
 
 `GcBuf<T>` in `rok::core::collections::raw` is the fixed-length GC buffer used by collection implementations such as `List` / `Dict`, and is a type known to the compiler. `GcBuf` is defined by `rok::bare` (`rok::bare::mem`) and re-exported here. It sits on top of the runtime's word-traced buffer (type id `2`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-runtime-reserved-type-ids)).
 

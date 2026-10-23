@@ -1,4 +1,4 @@
-# 3.3. `time::` — 시간
+# 3.3. `time::` - 시간
 
 `rok::std::time` 모듈은 세 종류의 시간 타입과 `Duration` 을 함께 제공합니다. 단조 시계, 벽시계, 그리고 부팅 후 경과 시간을 명확히 분리해 두어, 측정 목적에 맞는 시계를 골라 쓸 수 있도록 했습니다.
 
@@ -15,10 +15,10 @@
 
 `Duration` 의 내부 표현은 `i64` ns 입니다. Rust 가 채택한 `u128` 은 다소 과잉이라고 판단했으며, `i64` 로도 약 ±292 년을 표현할 수 있어 실용 범위에서는 부족함이 없습니다.
 
-## 3.3.2. `Instant` — 단조 시계
+## 3.3.2. `Instant` - 단조 시계
 
 ```rok
-struct Instant { /* opaque — CLOCK_MONOTONIC / QueryPerformanceCounter */ }
+struct Instant { /* opaque - CLOCK_MONOTONIC / QueryPerformanceCounter */ }
 
 impl Instant {
     fn now() -> Instant;
@@ -28,12 +28,12 @@ impl Instant {
     fn checked_duration_since(self, earlier: Instant) -> Duration | none;
     fn saturating_duration_since(self, earlier: Instant) -> Duration;
 
-    // 산술 — 실패 시 none 반환 (Rust 의 saturating-on-overflow silent 회피)
+    // 산술 - 실패 시 none 반환 (Rust 의 saturating-on-overflow silent 회피)
     fn checked_add(self, dur: Duration) -> Instant | none;
     fn checked_sub(self, dur: Duration) -> Instant | none;
 }
 
-// 일반 산술 — overflow 시 overflow 검사가 켜져 있으면 panic, 꺼져 있으면 saturate (3.3.5)
+// 일반 산술 - overflow 시 overflow 검사가 켜져 있으면 panic, 꺼져 있으면 saturate (3.3.5)
 impl Add<Duration> for Instant { type Output = Instant; ... }
 impl Sub<Instant> for Instant { type Output = Duration; ... }
 impl Sub<Duration> for Instant { type Output = Instant; ... }
@@ -52,10 +52,10 @@ let elapsed = start.elapsed();          // Duration
 log(f"computation took {elapsed:?}");
 ```
 
-## 3.3.3. `SystemTime` — 벽시계
+## 3.3.3. `SystemTime` - 벽시계
 
 ```rok
-struct SystemTime { /* opaque — CLOCK_REALTIME / GetSystemTimeAsFileTime */ }
+struct SystemTime { /* opaque - CLOCK_REALTIME / GetSystemTimeAsFileTime */ }
 
 impl SystemTime {
     fn now() -> SystemTime;
@@ -75,7 +75,7 @@ const UNIX_EPOCH: SystemTime;     // 1970-01-01 00:00:00 UTC
 impl SystemTime {
     fn from_unix(secs: i64, nanos: u32) -> SystemTime;
     fn unix_seconds(self) throws (SystemTimeError) -> i64;
-    fn unix_nanos(self) throws (SystemTimeError) -> i64;   // rok 에 i128 이 없음 — i64 ns 는 약 ±292 년
+    fn unix_nanos(self) throws (SystemTimeError) -> i64;   // rok 에 i128 이 없음 - i64 ns 는 약 ±292 년
 }
 
 impl Add<Duration> for SystemTime { type Output = SystemTime; ... }
@@ -106,7 +106,7 @@ let age = try SystemTime::now().duration_since(mtime);
 log(f"file age: {age:?}");
 ```
 
-## 3.3.4. `BootTime` — 부팅 후 시간 (suspend 포함)
+## 3.3.4. `BootTime` - 부팅 후 시간 (suspend 포함)
 
 ```rok
 struct BootTime { /* CLOCK_BOOTTIME (Linux) / CLOCK_MONOTONIC = mach_continuous_time (macOS) */ }
@@ -125,7 +125,7 @@ impl BootTime {
 ## 3.3.5. `Duration`
 
 ```rok
-struct Duration { ns: i64; }       // i64 nanosecond — 약 ±292년
+struct Duration { ns: i64; }       // i64 nanosecond - 약 ±292년
 
 impl Duration {
     const ZERO: Duration = Duration { ns: 0 };
@@ -193,7 +193,7 @@ impl Duration {
 }
 ```
 
-## 3.3.6. 정책 — TAI / leap second 미지원
+## 3.3.6. 정책 - TAI / leap second 미지원
 
 `SystemTime` 은 어디까지나 **UTC** 이며, leap second 는 처리하지 않습니다 (Linux kernel 자체가 이 부분에서 모호하다는 점도 고려했습니다). TAI (atomic time) 나 leap second 의 정확한 처리가 필요한 경우는 별도 패키지 (`rok/chrono` 또는 `rok/tai`) 의 영역으로 분리합니다.
 

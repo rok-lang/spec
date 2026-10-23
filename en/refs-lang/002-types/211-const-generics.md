@@ -4,7 +4,7 @@
 
 ## 2.11.1. Motivation
 
-They carry values determined at compile time — array lengths, matrix dimensions, embedded memory pool sizes — as part of the type.
+They carry values determined at compile time - array lengths, matrix dimensions, embedded memory pool sizes - as part of the type.
 
 ```rok
 struct Matrix<T, const M: usize, const N: usize> {
@@ -86,7 +86,7 @@ Inference priority and disambiguation are defined in the expression specificatio
 
 ```rok
 fn zeros<const N: usize>() -> [f64; N] { [0.0; N] }
-let z: [f64; 4] = zeros();              // N = 4 — from the expected type
+let z: [f64; 4] = zeros();              // N = 4 - from the expected type
 let w = [1u8; 16];                       // [u8; 16]
 ```
 
@@ -95,7 +95,7 @@ let w = [1u8; 16];                       // [u8; 16]
 `const` generics work the same way as monomorphization of [generics](210-generics.md). A separate compilation result is produced for each combination of `const` arguments.
 
 ```rok
-let a = replicate(0i32);    // N = ? — determined at inference time
+let a = replicate(0i32);    // N = ? - determined at inference time
 ```
 
 Calls with the same combination of `const` arguments share the result.

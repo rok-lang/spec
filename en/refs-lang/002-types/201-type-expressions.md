@@ -11,7 +11,7 @@ The basic grammar of type expressions is:
 ```
 type_expr   ::= sum_type
 sum_type    ::= unary_type ("|" unary_type)*
-unary_type  ::= base_type "?"*                  // T? — optional (2.1.5a), `??` is two `?`
+unary_type  ::= base_type "?"*                  // T? - optional (2.1.5a), `??` is two `?`
 base_type   ::= path_type
               | fn_type
               | tuple_type
@@ -123,10 +123,10 @@ A postfix `?` makes an optional type. `T?` behaves exactly like `Maybe<T>` (`typ
 
 ```rok
 i32?                // i32 | none
-(i32 | str)?        // i32 | str | none — no overlap, flattened
-(i32 | none)?       // two layers — outer none ≠ inner none
-i32??               // two layers — same as (i32 | none)?
-i32 | none          // written sum — always flat i32 | none
+(i32 | str)?        // i32 | str | none - no overlap, flattened
+(i32 | none)?       // two layers - outer none ≠ inner none
+i32??               // two layers - same as (i32 | none)?
+i32 | none          // written sum - always flat i32 | none
 ```
 
 - Postfix `?` binds tighter than `|` and tighter than `->` of a function type (2.1.10). `i32 | str?` is `i32 | (str?)`.

@@ -3,24 +3,24 @@
 표준 라이브러리는 두 단계의 리플렉션 트레잇을 제공합니다. 바로 `Reflect` 와 `Inspect` 입니다.
 
 ```
-Reflect    자동 구현 — 모든 타입이 공짜로 들고 있는 얕은 메타정보
-Inspect    opt-in via #[derive(Inspect)] — 풍부한 필드/메서드 명세
+Reflect    자동 구현 - 모든 타입이 공짜로 들고 있는 얕은 메타정보
+Inspect    opt-in via #[derive(Inspect)] - 풍부한 필드/메서드 명세
 ```
 
 이렇게 두 단계로 나눈 이유는 binary 크기를 컨트롤하면서도 `any` 슬롯이나 합 타입, REPL 자동 출력처럼 꼭 필요한 기능은 모든 타입에 공짜로 제공하고 싶었기 때문입니다.
 
-## 6.10.1. `Reflect` — 자동 구현 트레잇
+## 6.10.1. `Reflect` - 자동 구현 트레잇
 
 `Reflect` 는 모든 타입에 자동으로 부착되는 minimal 한 type introspection 입니다. 사용자가 `#[derive(Reflect)]` 를 따로 적지 않아도, 컴파일러가 모든 타입에 대해 자동으로 impl 을 합성합니다.
 
 ```rok
 trait Reflect {
-    // 정적 — 타입에 직접 호출
+    // 정적 - 타입에 직접 호출
     fn type_name() -> str;
     fn size() -> usize;
     fn align() -> usize;
 
-    // 인스턴스 — any 슬롯 / 합 타입에서 런타임 dispatch
+    // 인스턴스 - any 슬롯 / 합 타입에서 런타임 dispatch
     fn type_name_of(self) -> str;
     fn size_of(self) -> usize;
 }
@@ -35,7 +35,7 @@ let x: any = 42i32;
 x.type_name_of() == "i32"        // 런타임 type tag 검사
 
 let v: i32 | f64 = pick();
-v.type_name_of()                  // "i32" 또는 "f64" — 합 타입 variant 검사
+v.type_name_of()                  // "i32" 또는 "f64" - 합 타입 variant 검사
 ```
 
 자동 구현이라 사용자 코드를 따로 작성할 필요는 없습니다. 컴파일러가 모든 타입의 `type_name`, `size`, `align` 정보를 이미 알고 있어서, 비용 0 으로 합성합니다.
@@ -47,7 +47,7 @@ v.type_name_of()                  // "i32" 또는 "f64" — 합 타입 variant �
 - 이름 (`type_name`) 에는 모듈 경로가 붙지 않습니다 (`List<i64>`, `Config`). 합 타입의 정적 이름은 정규 순서 ([2.6.4](../002-types/206-sum-types.md#264-집합-의미론)) 로 적습니다 (`f64 | i32`, `none` 은 마지막). `type_name_of(self)` 같은 인스턴스 형태는 런타임에 들어 있는 항 (합) 이나 `any` 의 내용을 보고합니다.
 - `rok::core::reflect::cast<T>(value: any) -> T | none` 은 `set_field` 와 같은 규칙으로 `any` 를 `T` 로 꺼냅니다. `rok::core::reflect::methods_of<T>() -> List<MethodInfo>` 는 `T` 의 고유 메서드 목록입니다.
 
-## 6.10.2. `Inspect` — opt-in 트레잇
+## 6.10.2. `Inspect` - opt-in 트레잇
 
 `Inspect` 는 `#[derive(Inspect)]` 로 opt-in 하는 풍부한 리플렉션입니다. 필드 이름, 동적 필드 접근과 수정, 그리고 메서드 명세까지 노출합니다.
 
@@ -88,7 +88,7 @@ c.set_field("xxx", 1)              // false (없는 필드)
 
 `Inspect` 는 메타데이터를 binary 에 저장해야 하기 때문에 opt-in 으로 두었습니다. 모든 타입에 자동으로 부착하면 binary 크기 부담이 너무 커지기 때문입니다.
 
-`#[derive(Inspect)]` 의 구현은 `rok::core::reflect` 에 있는 [메타 블록](608-meta-blocks.md) `#[impl_derive(Inspect)]` 이며, 메타 시스템 자체로 표준 라이브러리 트레잇을 구현하는 패턴입니다 ([stdlib 2.12.3](../../refs-standard-libraries/200-core/212-reflect.md#2123-inspect--opt-in-필드--메서드)).
+`#[derive(Inspect)]` 의 구현은 `rok::core::reflect` 에 있는 [메타 블록](608-meta-blocks.md) `#[impl_derive(Inspect)]` 이며, 메타 시스템 자체로 표준 라이브러리 트레잇을 구현하는 패턴입니다 ([stdlib 2.12.3](../../refs-standard-libraries/200-core/212-reflect.md#2123-inspect---opt-in-필드--메서드)).
 
 ## 6.10.3. REPL / Jupyter 자동 출력
 
@@ -119,11 +119,11 @@ Config: Config { host: "h", port: 80 }
 다른 언어들이 `typeof` 나 `sizeof` 같은 키워드로 노출하는 introspection 을, rok 에서는 트레잇 메서드로만 제공합니다.
 
 ```rok
-// rok — 메서드 호출
+// rok - 메서드 호출
 T::size()
 x.type_name_of()
 
-// 다른 언어 — 키워드
+// 다른 언어 - 키워드
 sizeof(T)        // C / C++
 typeof(x)        // JS / TS
 ```

@@ -1,10 +1,10 @@
-# 1.6. `Pinned<T>` — GC pinning
+# 1.6. `Pinned<T>` - GC pinning
 
 The `rok::bare::gc` module defines a mechanism for temporarily fixing an object on the GC heap so that it cannot move. When a raw `Ptr<T>` points to a GC object and the object moves, the pointer becomes invalid; this chapter covers how that conflict is resolved.
 
 This is the most important chapter of rok's unsafe tier: it explains head-on how the conflict between pointers and the GC is reconciled.
 
-## 1.6.1. Motivation — why pinning is needed
+## 1.6.1. Motivation - why pinning is needed
 
 The Immix mark-region GC of [refs-lang 7.3 GC algorithm](../../refs-lang/007-runtime/703-gc-algorithm.md) performs **evacuation** (moving objects by copying). An object's address can therefore change freely between GC cycles.
 
@@ -21,7 +21,7 @@ let xs: List<i32> = [1, 2, 3];                 // GcPtr (updated automatically)
 let raw: Ptr<i32> = rok::bare::ptr::list_data(xs); // raw ptr
                                                 // ↓ a GC cycle may occur
 gc::collect();
-unsafe { raw.read() };                          // UB — raw is stale
+unsafe { raw.read() };                          // UB - raw is stale
 ```
 
 The solution is **pinning**: explicitly telling the GC "do not move this object".
@@ -54,7 +54,7 @@ impl<T> Drop for Pinned<T> {
 
 It is a guard bound with `using`. While the `Pinned<T>` returned by `pin()` is inside a `using` block, the GC does not move the object; on leaving the block `Pinned::drop` is called and the object is unpinned. A `Pinned<T>` obtained without `using` is not released automatically. Pins count: an object moves again only after as many unpins.
 
-### Example — FFI call
+### Example - FFI call
 
 ```rok
 let buf: List<u8> = read_input();
@@ -69,11 +69,11 @@ using pin = rok::bare::gc::pin(buf) {
 
 The `using` block here follows the RAII form defined by [refs-lang 3.17 using expression](../../refs-lang/003-expressions/317-using-expression.md).
 
-## 1.6.3. `GcPtr<T>` vs `Ptr<T>` — separation at the type level
+## 1.6.3. `GcPtr<T>` vs `Ptr<T>` - separation at the type level
 
 ```rok
-struct GcPtr<T> { /* compiler-managed — roots traced automatically */ }
-struct Ptr<T>   { /* raw — no root tracking */ }
+struct GcPtr<T> { /* compiler-managed - roots traced automatically */ }
+struct Ptr<T>   { /* raw - no root tracking */ }
 ```
 
 | Aspect     | `GcPtr<T>`                    | `Ptr<T>`                                         |
@@ -99,11 +99,11 @@ impl<T> !Sync for GcPtr<T> {}
 impl<T> Pinnable for GcPtr<T> {}
 ```
 
-### Internal implementation — the form of GcPtr
+### Internal implementation - the form of GcPtr
 
 ```rok
 struct GcPtr<T> {
-    // internal: usually a plain `*T` — the GC traces it externally via the root set
+    // internal: usually a plain `*T` - the GC traces it externally via the root set
     // for a local variable, kept in a shadow stack frame slot emitted by the compiler
 }
 ```
@@ -139,13 +139,13 @@ The costs are:
 
 In most cases this is not on a hot path, because FFI calls themselves are not that frequent.
 
-## 1.6.5. Limits — where pinning is unnecessary
+## 1.6.5. Limits - where pinning is unnecessary
 
 Pinning is **unnecessary** in the following situations.
 
 | Place            | Reason                                  |
 |------------------|-----------------------------------------|
-| Ordinary method calls | GcPtr is updated automatically — no raw ptr is created |
+| Ordinary method calls | GcPtr is updated automatically - no raw ptr is created |
 | Operations between GcPtrs | All traced by the GC           |
 | Short FFI (no GC) | When the GC is guaranteed not to run during the FFI |
 | Immortal const   | Already does not move (string literals, etc.) |
@@ -167,11 +167,11 @@ impl<T> Pinned<GcPtr<T>> {
 
 impl Pinned<str> {
     fn as_bytes_ptr(self) -> ConstPtr<u8>;   // UTF-8 bytes
-    fn as_c_str(self) -> ConstPtr<c_char>;   // null termination not guaranteed — convert separately
+    fn as_c_str(self) -> ConstPtr<c_char>;   // null termination not guaranteed - convert separately
 }
 ```
 
-These container methods are the extraction API, valid for as long as the `Pinned` is held. (`str::as_ptr` and `CStr::as_ptr` give an address without a pin, under the narrower rule of [2.15.2](../200-core/215-string.md#2152-str--immutable-utf-8-string).) There is no generic `as_ptr`; `as_value_ptr` is named apart from `List`'s `as_data_ptr`. Each container gets dedicated extraction methods, so data can be taken out in a form matching each container's layout, such as the buffer start or a null-terminated form.
+These container methods are the extraction API, valid for as long as the `Pinned` is held. (`str::as_ptr` and `CStr::as_ptr` give an address without a pin, under the narrower rule of [2.15.2](../200-core/215-string.md#2152-str---immutable-utf-8-string).) There is no generic `as_ptr`; `as_value_ptr` is named apart from `List`'s `as_data_ptr`. Each container gets dedicated extraction methods, so data can be taken out in a form matching each container's layout, such as the buffer start or a null-terminated form.
 
 ## 1.6.7. GC runtime linkage
 
@@ -202,7 +202,7 @@ rok diverges from other languages at two main points.
 
 > This policy is the backbone of rok's pointer model: the point where the two domains, unsafe and the GC, meet safely.
 
-## 1.6.9. `Weak<T>` — weak references
+## 1.6.9. `Weak<T>` - weak references
 
 ```rok
 // rok::bare::gc
@@ -213,6 +213,7 @@ impl<T> Weak<T> {
     fn get(self) -> GcPtr<T> | none;        // none once the target is freed
 }
 impl<T> !Sync for Weak<T> {}
+impl<T> !Send for Weak<T> {}    // a hand-off cannot copy what it names (2.13.9)
 ```
 
 A weak reference does not keep its object alive. Once a collection frees the object, every `Weak` to it reads `none`; a collection that moves the object updates the `Weak`. This is the library interface of the `WEAK_REF` scan kind ([refs-lang 8.2.8](../../refs-lang/008-abi/802-scan-table.md#828-weak_ref)).

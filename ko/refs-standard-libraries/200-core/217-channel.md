@@ -1,4 +1,4 @@
-# 2.17. channel — 메시지 패싱
+# 2.17. channel - 메시지 패싱
 
 `rok::core::channel` 모듈은 task 와 thread 사이에서 메시지를 주고받기 위한 채널 primitive 를 제공합니다. 설계 측면에서는 Go 의 channel 과 Rust 의 `mpsc::channel` 에서 영감을 받았습니다.
 
@@ -44,7 +44,7 @@ struct Receiver<T> { /* ... */ }
 impl<T> Sender<T> {
     fn send(self, value: T) throws (SendError<T>);
     fn try_send(self, value: T) throws (TrySendError<T>);
-    fn send_async(self, value: T) -> SendFuture<T>;   // try await tx.send_async(v) — task 만 중단, throws (SendError<T>)
+    fn send_async(self, value: T) -> SendFuture<T>;   // try await tx.send_async(v) - task 만 중단, throws (SendError<T>)
     fn clone(self) -> Sender<T>;             // 다중 sender
     fn close(self);                          // 이 sender 를 닫음
 }
@@ -52,16 +52,16 @@ impl<T> Sender<T> {
 impl<T> Receiver<T> {
     fn recv(self) -> T | none;               // none = 모든 sender 가 close
     fn try_recv(self) -> T | none;           // none = 비어있음 또는 closed
-    fn recv_async(self) -> RecvFuture<T>;    // await rx.recv_async() — task 만 중단, Output = T | none
+    fn recv_async(self) -> RecvFuture<T>;    // await rx.recv_async() - task 만 중단, Output = T | none
     fn iter(self) -> ChannelIter<T>;         // for x in rx { ... }
 }
 
-impl<T> Stream for Receiver<T> {         // for await v in rx — task 만 중단
+impl<T> Stream for Receiver<T> {         // for await v in rx - task 만 중단
     type Item = T;
     ...
 }
 
-impl<T> IntoIterator for Receiver<T> {   // for x in rx — 모든 sender 가 close 되면 끝
+impl<T> IntoIterator for Receiver<T> {   // for x in rx - 모든 sender 가 close 되면 끝
     type Item = T;
     type IntoIter = ChannelIter<T>;
 }
@@ -71,13 +71,13 @@ enum TrySendError<T> { Full(T), Closed(T) }
 // 둘 다 Display, Debug, Error 를 구현 (메시지는 값이 아니라 경우를 말함)
 ```
 
-`T: Send` 이면 `Sender<T>` 와 `Receiver<T>` 도 `Send` 이므로 다른 task 나 스레드로 옮길 수 있습니다 ([2.13.9](213-marker.md#2139-send--sync--스레드-경계-marker)).
+`T: Send` 이면 `Sender<T>` 와 `Receiver<T>` 도 `Send` 이므로 다른 task 나 스레드로 옮길 수 있습니다 ([2.13.9](213-marker.md#2139-send--sync---스레드-경계-marker)). `send`, `try_send`, `send_async` 는 값이 닿는 컬렉션의 복사본을 큐에 넣습니다 (2.13.9): 받는 쪽은 보낸 쪽과 컬렉션을 공유하지 않습니다.
 
-`recv` 와 `send` (bounded 가 가득 찬 경우, rendezvous 에서 값이 받아질 때까지) 는 스레드를 block 합니다. async 코드에서 task 만 중단하려면 `await rx.recv_async()`, `for await v in rx`, `try await tx.send_async(v)` 를 씁니다. `send_async` 는 bounded 채널이 가득 찬 동안, rendezvous 채널에서는 receiver 가 값을 가져갈 때까지 task 를 중단합니다. `send` 와 같이, 이 sender 가 이미 `close()` 되었으면 값을 담은 `SendError::Closed` 를 던집니다. 취소된 `recv_async` 는 값을 꺼내지 않고, 취소된 `send_async` 는 값을 보내지 않습니다 ([2.18.4](218-task.md#2184-협력적-취소--taskcancel)). `Mutex::lock` / `lock_async` 도 같은 구분입니다 ([2.16](216-sync.md)).
+`recv` 와 `send` (bounded 가 가득 찬 경우, rendezvous 에서 값이 받아질 때까지) 는 스레드를 block 합니다. async 코드에서 task 만 중단하려면 `await rx.recv_async()`, `for await v in rx`, `try await tx.send_async(v)` 를 씁니다. `send_async` 는 bounded 채널이 가득 찬 동안, rendezvous 채널에서는 receiver 가 값을 가져갈 때까지 task 를 중단합니다. `send` 와 같이, 이 sender 가 이미 `close()` 되었으면 값을 담은 `SendError::Closed` 를 던집니다. 취소된 `recv_async` 는 값을 꺼내지 않고, 취소된 `send_async` 는 값을 보내지 않습니다 ([2.18.4](218-task.md#2184-협력적-취소---taskcancel)). `Mutex::lock` / `lock_async` 도 같은 구분입니다 ([2.16](216-sync.md)).
 
 ## 2.17.3. close 의미
 
-채널이 닫히는 시점과 그 신호가 전달되는 방식은 다음과 같습니다. 우선 모든 sender 가 `close()` 되면 채널은 closed 상태가 됩니다. 이때 receiver 쪽에서는 `recv()` 가 `none` 을 반환하여 close 신호를 받게 됩니다. rok 은 scope 종료 시 자동 drop 이 없으므로 ([2.13.4](213-marker.md#2134-drop--using-해제-시-정리)), sender 를 닫는 것은 명시적인 `close()` 입니다.
+채널이 닫히는 시점과 그 신호가 전달되는 방식은 다음과 같습니다. 우선 모든 sender 가 `close()` 되면 채널은 closed 상태가 됩니다. 이때 receiver 쪽에서는 `recv()` 가 `none` 을 반환하여 close 신호를 받게 됩니다. rok 은 scope 종료 시 자동 drop 이 없으므로 ([2.13.4](213-marker.md#2134-drop---using-해제-시-정리)), sender 를 닫는 것은 명시적인 `close()` 입니다.
 
 다음은 `close()` 로 채널을 닫는 예시입니다.
 
@@ -105,7 +105,7 @@ let v1 = rx.recv();
 let v2 = rx.recv();
 ```
 
-반면 `Receiver<T>` 는 Clone 을 구현하지 않으므로 single consumer 로 동작합니다. 이는 mpsc — multi producer single consumer — 모델을 의미합니다. 만약 multi-consumer 가 필요한 상황이라면 별도의 fan-out task 를 두어 분배하는 방식을 택하면 됩니다.
+반면 `Receiver<T>` 는 Clone 을 구현하지 않으므로 single consumer 로 동작합니다. 이는 mpsc - multi producer single consumer - 모델을 의미합니다. 만약 multi-consumer 가 필요한 상황이라면 별도의 fan-out task 를 두어 분배하는 방식을 택하면 됩니다.
 
 ## 2.17.5. `for` / `Stream` 통합
 

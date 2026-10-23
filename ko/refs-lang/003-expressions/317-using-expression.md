@@ -1,8 +1,8 @@
-# 3.17. `using` 표현식 — 자원의 결정론적 해제
+# 3.17. `using` 표현식 - 자원의 결정론적 해제
 
 `using` 키워드 ([키워드](../001-lexical/105-keywords.md)) 는 자원을 한 블록의 수명에 묶어 두기 위한 표현식 형태입니다. 블록이 어떤 경로로 끝나든 (정상 종료, 조기 `return`, `?` 의 `none` 반환, 에러 전파) 묶인 자원의 `Drop::drop` 이 반드시 호출됩니다.
 
-GC 가 메모리는 자동으로 회수해 주지만 외부 자원 (file, socket, mutex, FFI 핸들, GC pin 등) 은 결정론적으로 해제되어야 합니다. `using` 은 이 결정론을 문법으로 보장하며, `Drop::drop` 이 호출되는 유일한 경로입니다. 일반 바인딩은 scope 를 벗어나도 `drop` 되지 않습니다 ([stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop--using-해제-시-정리)).
+GC 가 메모리는 자동으로 회수해 주지만 외부 자원 (file, socket, mutex, FFI 핸들, GC pin 등) 은 결정론적으로 해제되어야 합니다. `using` 은 이 결정론을 문법으로 보장하며, `Drop::drop` 이 호출되는 유일한 경로입니다. 일반 바인딩은 scope 를 벗어나도 `drop` 되지 않습니다 ([stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop---using-해제-시-정리)).
 
 ## 3.17.1. 형태
 
@@ -48,7 +48,7 @@ let f = try fs::open(path);
 try {
     f.read_line()
 } finally {
-    f.drop();          // 컴파일러가 넣는 호출 — 사용자가 직접 쓰면 에러
+    f.drop();          // 컴파일러가 넣는 호출 - 사용자가 직접 쓰면 에러
 }
 ```
 
@@ -99,10 +99,10 @@ panic 과 fatal 에러는 프로세스를 곧바로 종료하므로 `drop` 을 �
 
 ## 3.17.7. 묶을 수 있는 타입
 
-`using` 의 우변 식의 타입은 [`Drop`](../../refs-standard-libraries/200-core/213-marker.md) 을 구현하거나, `Drop` 을 가진 필드를 담아야 합니다 (drop glue, [stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop--using-해제-시-정리)). 둘 다 아니면 컴파일 에러입니다.
+`using` 의 우변 식의 타입은 [`Drop`](../../refs-standard-libraries/200-core/213-marker.md) 을 구현하거나, `Drop` 을 가진 필드를 담아야 합니다 (drop glue, [stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop---using-해제-시-정리)). 둘 다 아니면 컴파일 에러입니다.
 
 ```rok
-using x = 42 { ... }   // ERROR: using 에는 Drop 구현 타입이 필요 — i32 는 Drop 을 구현하지 않음
+using x = 42 { ... }   // ERROR: using 에는 Drop 구현 타입이 필요 - i32 는 Drop 을 구현하지 않음
 ```
 
 이 제약은 의미가 있는 자원만 `using` 으로 묶이도록 강제합니다. 단순 값에 `using` 이 등장하는 일을 사양 차원에서 차단합니다.
@@ -118,6 +118,6 @@ using x = 42 { ... }   // ERROR: using 에는 Drop 구현 타입이 필요 — i
 | Swift  | `defer { x.close() }`         | function     | 명시적 작성 필요                |
 | Go     | `defer x.Close()`             | **function** | 블록 단위 X                     |
 | Zig    | `defer x.close();`            | block        | `errdefer` 변형                 |
-| Rust   | (RAII 자동, 별도 키워드 없음) | block        | GC 없음 — drop 시점 자동 결정   |
+| Rust   | (RAII 자동, 별도 키워드 없음) | block        | GC 없음 - drop 시점 자동 결정   |
 
 rok 의 `using` 은 GC 언어 (C#, Java, Python) 의 명시적 블록 패턴과 식 (expression) 으로서의 합성성, `try` 통합, 다중 자원 역순 해제를 결합한 형태입니다.

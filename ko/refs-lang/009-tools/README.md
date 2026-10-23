@@ -13,7 +13,7 @@
 - [9.7. JIT 셀 실행 흐름과 상태 관리](907-jit-cells.md)
 - [9.8. Jupyter 커널 통합](908-jupyter-integration.md)
 - [9.9. 디버그 / 진단 도구](909-debug-tools.md)
-- [9.10. `rok` — 패키지 / 빌드 front-end](910-rok-frontend.md)
+- [9.10. `rok` - 패키지 / 빌드 front-end](910-rok-frontend.md)
 
 ## 도구 표면
 
@@ -28,7 +28,7 @@ rok  (front-end, cargo-like)
 rokc  (compiler)
   │
   ├── build / run
-  │   ├── rokc build      : AOT compile — .rok source to .a / executable
+  │   ├── rokc build      : AOT compile - .rok source to .a / executable
   │   ├── rokc run        : AOT compile then run immediately
   │   ├── rokc test       : collect + run test functions (#[test])
   │   ├── rokc bench      : collect + run benchmarks (#[bench])

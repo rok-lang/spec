@@ -1,4 +1,4 @@
-# 3.10. `crypto::` — the OS random source
+# 3.10. `crypto::` - the OS random source
 
 ## 3.10.1. `random`
 

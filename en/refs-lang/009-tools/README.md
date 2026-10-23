@@ -13,7 +13,7 @@ This block specifies the rok compiler `rokc`, the front-end `rok`, and the execu
 - [9.7. JIT cell execution flow and state management](907-jit-cells.md)
 - [9.8. Jupyter kernel integration](908-jupyter-integration.md)
 - [9.9. Debug / diagnostic tools](909-debug-tools.md)
-- [9.10. `rok` — package / build front-end](910-rok-frontend.md)
+- [9.10. `rok` - package / build front-end](910-rok-frontend.md)
 
 ## Tool surface
 
@@ -28,7 +28,7 @@ rok  (front-end, cargo-like)
 rokc  (compiler)
   │
   ├── build / run
-  │   ├── rokc build      : AOT compile — .rok source to .a / executable
+  │   ├── rokc build      : AOT compile - .rok source to .a / executable
   │   ├── rokc run        : AOT compile then run immediately
   │   ├── rokc test       : collect + run test functions (#[test])
   │   ├── rokc bench      : collect + run benchmarks (#[bench])

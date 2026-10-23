@@ -23,9 +23,9 @@ The standard libraries are not a single flat plane but are divided into three la
 ```
 rok::bare   (base, depends only on runtime extern "C")
   ↓
-rok::core   (foundation, safe, all targets — uses rok::bare internally)
+rok::core   (foundation, safe, all targets - uses rok::bare internally)
   ↓
-rok::std   (target-dep — uses rok::core + rok::bare)
+rok::std   (target-dep - uses rok::core + rok::bare)
 ```
 
 `rok::bare` exposes only raw capabilities at the bottom, and `rok::core` provides a safe foundation on top of it, identically on every target. `rok::std` adds host-dependent features on top of `rok::core`, completing the surface an ordinary application expects. Everyday code needs only `rok::core`; it reaches for `rok::std` the moment OS resources are needed, and imports `rok::bare` explicitly only when it must cross an abstraction boundary directly. The detailed dependency rules are covered in [0.1 Tier model](000-meta/001-tier-model.md).
@@ -40,32 +40,32 @@ rok::std   (target-dep — uses rok::core + rok::bare)
 
 ## Chapters
 
-### 0. Meta — [000-meta/](000-meta/README.md)
+### 0. Meta - [000-meta/](000-meta/README.md)
 
 Library-wide policies and tables.
 
 - [0.1. The 3-tier model](000-meta/001-tier-model.md)
 - [0.2. Import policy (implicit `use rok::core::**;`)](000-meta/002-import.md)
-- [0.3. Intrinsic mechanism — the compiler ↔ standard library boundary](000-meta/003-intrinsics.md)
+- [0.3. Intrinsic mechanism - the compiler ↔ standard library boundary](000-meta/003-intrinsics.md)
 - [0.4. `#[lang]` slot mapping table](000-meta/004-lang-slot-table.md)
 - [0.5. Notation](000-meta/005-notation.md)
 
-### 1. Unsafe — [100-bare/](100-bare/README.md)
+### 1. Unsafe - [100-bare/](100-bare/README.md)
 
 Low-level / dangerous area. Explicit import required.
 
-- 1.1. [Pointer family (`Ptr`/`ConstPtr`/`ManyPtr`/`CPtr` — Zig arity-encoded + Rust strict provenance)](100-bare/101-ptr.md)
+- 1.1. [Pointer family (`Ptr`/`ConstPtr`/`ManyPtr`/`CPtr` - Zig arity-encoded + Rust strict provenance)](100-bare/101-ptr.md)
 - 1.2. [Cast operations (`ptr_cast`/`align_cast`/`const_cast`/`reinterpret`)](100-bare/102-cast.md)
 - 1.3. [`MaybeUninit<T>` + `Pod` + raw mem ops](100-bare/103-mem.md)
 - 1.4. [Raw allocation](100-bare/104-alloc.md)
 - 1.5. [Volatile memory access](100-bare/105-volatile.md)
-- 1.6. [`Pinned<T>` — GC pin (Go 1.21 Pinner model)](100-bare/106-gc-pin.md)
-- 1.7. [FFI — `extern "C"` / `CStr` / `CString`](100-bare/107-ffi.md)
+- 1.6. [`Pinned<T>` - GC pin (Go 1.21 Pinner model)](100-bare/106-gc-pin.md)
+- 1.7. [FFI - `extern "C"` / `CStr` / `CString`](100-bare/107-ffi.md)
 - 1.8. [WASM Component Model (`ffi.wit`)](100-bare/108-wit.md)
-- 1.9. [`rok::bare::mlir` — direct access to MLIR dialects](100-bare/109-mlir.md)
-- 1.10. [`rok::bare::mlir::plugin` — registering user-defined dialects](100-bare/110-mlir-plugin.md)
+- 1.9. [`rok::bare::mlir` - direct access to MLIR dialects](100-bare/109-mlir.md)
+- 1.10. [`rok::bare::mlir::plugin` - registering user-defined dialects](100-bare/110-mlir-plugin.md)
 
-### 2. Rok — [200-core/](200-core/README.md)
+### 2. Rok - [200-core/](200-core/README.md)
 
 Safe area. All targets. `use rok::core::**;` applied implicitly (no separate prelude module).
 
@@ -89,25 +89,25 @@ Safe area. All targets. `use rok::core::**;` applied implicitly (no separate pre
 - 2.18. [`task::` API](200-core/218-task.md)
 - 2.19. [`par::` API](200-core/219-par.md)
 - 2.20. [`Future` / `await` integration](200-core/220-future.md)
-- 2.21. [`crypto::` — hashes, MACs, AEADs, key exchange, signatures](200-core/221-crypto.md)
+- 2.21. [`crypto::` - hashes, MACs, AEADs, key exchange, signatures](200-core/221-crypto.md)
 
 > [!NOTE]
 > Scientific computing / AI areas such as tensors / automatic differentiation / SIMD / GPU are not part of the standard libraries and are split out into external libraries. External libraries can access MLIR dialects directly through the [`rok::bare::mlir`](100-bare/109-mlir.md) module.
 
-### 3. Std — [300-std/](300-std/README.md)
+### 3. Std - [300-std/](300-std/README.md)
 
 Target-dependent area. Explicit import.
 
-- 3.1. [`fs::` — file system (atomic ops, Dir capability, reflink)](300-std/301-fs.md)
-- 3.2. [`net::` — TCP/UDP/Unix + TLS 1.3 (HTTP is external)](300-std/302-net.md)
-- 3.3. [`time::` — `Instant` / `SystemTime` / `Duration` / `BootTime`](300-std/303-time.md)
-- 3.4. [`thread::` — OS threads (1:1, separate from tasks)](300-std/304-thread.md)
-- 3.5. [`io::` — `Reader` / `Writer` / stdin/out/err (sync only — no async traits)](300-std/305-io.md)
-- 3.6. [`env::` — environment variables / args / directories](300-std/306-env.md)
-- 3.7. [`process::` — `Command` / pidfd / kill_on_drop](300-std/307-process.md)
-- 3.8. [`path::` — UTF-8 `Path` + `/` operator (Python pathlib style)](300-std/308-path.md)
-- 3.9. [`rokon::` — the ROKON data format (`.rokon`)](300-std/309-rokon.md)
-- 3.10. [`crypto::` — the OS random source](300-std/310-crypto.md)
+- 3.1. [`fs::` - file system (atomic ops, Dir capability, reflink)](300-std/301-fs.md)
+- 3.2. [`net::` - TCP/UDP/Unix + TLS 1.3 (HTTP is external)](300-std/302-net.md)
+- 3.3. [`time::` - `Instant` / `SystemTime` / `Duration` / `BootTime`](300-std/303-time.md)
+- 3.4. [`thread::` - OS threads (1:1, separate from tasks)](300-std/304-thread.md)
+- 3.5. [`io::` - `Reader` / `Writer` / stdin/out/err (sync only - no async traits)](300-std/305-io.md)
+- 3.6. [`env::` - environment variables / args / directories](300-std/306-env.md)
+- 3.7. [`process::` - `Command` / pidfd / kill_on_drop](300-std/307-process.md)
+- 3.8. [`path::` - UTF-8 `Path` + `/` operator (Python pathlib style)](300-std/308-path.md)
+- 3.9. [`rokon::` - the ROKON data format (`.rokon`)](300-std/309-rokon.md)
+- 3.10. [`crypto::` - the OS random source](300-std/310-crypto.md)
 
 ---
 
@@ -144,8 +144,8 @@ This document follows a different directory convention from `refs-lang`, because
 
 | Specification           | Prefix                 | Reason                                                          |
 |-------------------------|------------------------|-----------------------------------------------------------------|
-| refs-lang               | One digit (`002-`)     | 10 chapters (0–9), all with equal authority — flat shape        |
-| refs-standard-libraries | Three digits (`200-`)  | 3 tiers × N modules — the tier is key cross-reference information |
+| refs-lang               | One digit (`002-`)     | 10 chapters (0–9), all with equal authority - flat shape        |
+| refs-standard-libraries | Three digits (`200-`)  | 3 tiers × N modules - the tier is key cross-reference information |
 
 The concrete file naming rules are as follows. Tier directories have prefixes in units of 100, and module files within them start with a three-digit prefix combining one tier digit and two module digits.
 

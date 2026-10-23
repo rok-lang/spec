@@ -37,7 +37,7 @@ To select several steps at once, separate them with commas, as in `--emit=mlir,l
 ## 9.9.2. ROKHIR inspection
 
 ```
-rokc rokhir-text path/to/foo.rokhir      # or libfoo.a — reads the sibling foo.rokhir
+rokc rokhir-text path/to/foo.rokhir      # or libfoo.a - reads the sibling foo.rokhir
 ```
 
 This command prints the [ROKHIR](904-rokhir-bytecode.md) of a prebuilt library in human-readable form. After the version, producer and meta, each interface file follows as `--- <path>` and its text (source with concrete function bodies cut down to `;`).
@@ -148,7 +148,7 @@ There is one code per error kind. Diagnostics of the same kind have the same cod
 | `E102` | `module`      | Module / file                |
 | `E200` | `type`        | Type                         |
 | `E201` | `pattern`     | Pattern / exhaustiveness     |
-| `E202` | `handoff`     | Use after hand-off ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--thread-boundary-markers)) |
+| `E202` | `handoff`     | Use after hand-off ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers)) |
 | `E300` | `meta`        | Meta block / attribute / keyword magic |
 | `E400` | `lowering`    | HIR / MIR lowering           |
 | `E401` | `codegen`     | Code generation              |
@@ -371,7 +371,7 @@ The detailed LSP specification is outside this specification (the LSP standard +
 Information about a prebuilt library package can be viewed at once.
 
 ```
-rokc inspect path/to/libfoo.a        # or foo.rokhir — the sibling file is read too
+rokc inspect path/to/libfoo.a        # or foo.rokhir - the sibling file is read too
 ```
 
 This command shows information from the ROKHIR ([9.4](904-rokhir-bytecode.md)) and the [archive](../000-meta/007-glossary.md#archive) as follows.

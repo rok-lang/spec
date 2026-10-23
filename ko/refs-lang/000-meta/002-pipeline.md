@@ -10,13 +10,13 @@ rok 컴파일러를 본 사양에서는 `rokc` 라고 부릅니다. `rokc` 는 L
   source code
         │
         ▼
-   rok-hir         (High-level IR — pre type inference, user code structure preserved)
+   rok-hir         (High-level IR - pre type inference, user code structure preserved)
         │
         ▼
-   rok-mir         (Mid-level IR — monomorphized / operators desugared, all types fixed)
+   rok-mir         (Mid-level IR - monomorphized / operators desugared, all types fixed)
         │
         ▼
-   standard MLIR   (upstream MLIR dialects — `func`, `arith`, `scf`, ...)    -O1 이상
+   standard MLIR   (upstream MLIR dialects - `func`, `arith`, `scf`, ...)    -O1 이상
         │
         ▼
    LLVM IR → native object → lld

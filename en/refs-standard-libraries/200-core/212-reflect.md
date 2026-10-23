@@ -1,4 +1,4 @@
-# 2.12. reflect — `Reflect` / `Inspect`
+# 2.12. reflect - `Reflect` / `Inspect`
 
 The `rok::core::reflect` module provides the authoritative signatures for runtime type information and **field introspection**. The detailed semantics are governed by [refs-lang 6.10 reflection](../../refs-lang/006-meta-system/610-reflection.md); this chapter covers only the standard library's trait shapes.
 
@@ -13,15 +13,15 @@ Reflection is split into two levels of traits.
 
 The split into automatic and opt-in controls binary size. If every struct carried field reflection metadata, the binary would grow; the opt-in scheme generates the metadata only for the types that need it.
 
-## 2.12.2. `Reflect` — both static and instance
+## 2.12.2. `Reflect` - both static and instance
 
 ```rok
 trait Reflect {
-    fn type_name() -> str;        // static — T::type_name()
+    fn type_name() -> str;        // static - T::type_name()
     fn size() -> usize;
     fn align() -> usize;
 
-    fn type_name_of(self) -> str; // instance — x.type_name_of() (any / sum also OK)
+    fn type_name_of(self) -> str; // instance - x.type_name_of() (any / sum also OK)
     fn size_of(self) -> usize;
 }
 ```
@@ -38,18 +38,18 @@ The compiler provides `Reflect` for every type; there is no impl in source.
 ### Static vs instance
 
 ```rok
-i32::type_name();          //→ "i32"           (static — decided at compile time)
+i32::type_name();          //→ "i32"           (static - decided at compile time)
 i32::size();               //→ 4
 i32::align();              //→ 4
 
 let x: i32 = 42;
-x.type_name_of();          //→ "i32"           (instance — usually the same as static)
+x.type_name_of();          //→ "i32"           (instance - usually the same as static)
 
 let y: i32 | f64 = 42i32;
-y.type_name_of();          //→ "i32"           (runtime dispatch — checks the sum tag)
+y.type_name_of();          //→ "i32"           (runtime dispatch - checks the sum tag)
 
 let z: any = "hello";
-z.type_name_of();          //→ "str"           (runtime — any slot dispatch)
+z.type_name_of();          //→ "str"           (runtime - any slot dispatch)
 ```
 
 `type_name_of` is a runtime dispatch, so for a sum type or `any` it returns the name of the variant currently held.
@@ -57,8 +57,8 @@ z.type_name_of();          //→ "str"           (runtime — any slot dispatch)
 ### No global functions
 
 ```rok
-typeof(x);                 // ERROR — no global typeof
-sizeof(T);                 // ERROR — no global sizeof
+typeof(x);                 // ERROR - no global typeof
+sizeof(T);                 // ERROR - no global sizeof
 ```
 
 Instead, everything is uniformly a method.
@@ -72,7 +72,7 @@ T::align()
 
 This is part of [refs-lang 3.5 Member access and method calls](../../refs-lang/003-expressions/305-member-access-and-method-call.md): all introspection is unified in method form.
 
-## 2.12.3. `Inspect` — opt-in fields / methods
+## 2.12.3. `Inspect` - opt-in fields / methods
 
 ```rok
 trait Inspect: Reflect {
@@ -198,7 +198,7 @@ The display form is `{type_name_of}: {Debug}`. For a type without `Debug`, only 
 
 | Item               | Location                                          | Mechanism                         |
 |--------------------|---------------------------------------------------|-----------------------------------|
-| `Reflect` (automatic) | compiler + `rok::core::reflect`                | type info table — attached to the binary |
+| `Reflect` (automatic) | compiler + `rok::core::reflect`                | type info table - attached to the binary |
 | `Inspect` derive   | `rok::core::reflect` + meta block `#[impl_derive]` | code generation from template tokens |
 | `MethodInfo`       | `rok::core::reflect`                              | plain struct                      |
 | `any` type         | compiler built-in                                 | type tag + payload                |

@@ -64,7 +64,7 @@ This pattern keeps the vertical flow more concise than `match`, which is useful 
 
 ## 3.16.5. Visibility
 
-On a successful match, the pattern's binding variables are introduced into the scope where the `let-else` appears — not inside the `else` body.
+On a successful match, the pattern's binding variables are introduced into the scope where the `let-else` appears - not inside the `else` body.
 
 ```rok
 {

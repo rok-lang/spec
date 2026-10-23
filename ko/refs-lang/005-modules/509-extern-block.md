@@ -45,7 +45,7 @@ extern "C" {
 | 값                          | `extern "rok"` 의 전달                   |
 |-----------------------------|------------------------------------------|
 | `str`                       | `(ptr, len)` 두 word                     |
-| `fn` 값                     | `{code, env}` ([8.5.0a](../008-abi/805-extern-symbols.md#850a-rokfn--함수-값의-c-abi-형태)) |
+| `fn` 값                     | `{code, env}` ([8.5.0a](../008-abi/805-extern-symbols.md#850a-rokfn---함수-값의-c-abi-형태)) |
 | `extern "C" fn(..)` 매개변수 | env 없는 C 함수 포인터                   |
 | 그 밖                       | 값 그대로 (C ABI 와 같음)                |
 
@@ -101,7 +101,7 @@ extern "C" {
 - 함수 타입 매개변수: `extern "C"` 선언의 `fn(..) -> R` 매개변수는 `extern "C" fn(..) -> R` 과 같습니다.
 - `str`: 아래 규칙으로 변환됩니다.
 
-`extern "C"` 시그니처의 `str` 매개변수는 NUL 로 끝나는 `char*` 하나입니다. 바이트 뒤에 NUL 이 있으면 그 바이트를 그대로 넘기고, 없으면 (slice 등) 호출 동안 고정한 사본을 넘깁니다. C 는 호출이 끝난 뒤 그 포인터를 보관하면 안 됩니다. `str` 반환은 `char*` 이며 길이는 `strlen` 으로 잽니다. 내부에 NUL 이 있으면 C 쪽에서는 첫 NUL 까지만 보입니다. 반환된 `char*` 가 null 이면 동작은 정의되지 않으므로, null 일 수 있는 C 문자열은 `CPtr<c_char>` 로 받습니다 ([stdlib 1.7.2](../../refs-standard-libraries/100-bare/107-ffi.md#172-cstr--cstring--null-terminated-string)).
+`extern "C"` 시그니처의 `str` 매개변수는 NUL 로 끝나는 `char*` 하나입니다. 바이트 뒤에 NUL 이 있으면 그 바이트를 그대로 넘기고, 없으면 (slice 등) 호출 동안 고정한 사본을 넘깁니다. C 는 호출이 끝난 뒤 그 포인터를 보관하면 안 됩니다. `str` 반환은 `char*` 이며 길이는 `strlen` 으로 잽니다. 내부에 NUL 이 있으면 C 쪽에서는 첫 NUL 까지만 보입니다. 반환된 `char*` 가 null 이면 동작은 정의되지 않으므로, null 일 수 있는 C 문자열은 `CPtr<c_char>` 로 받습니다 ([stdlib 1.7.2](../../refs-standard-libraries/100-bare/107-ffi.md#172-cstr--cstring---null-terminated-string)).
 
 모듈 `m` 의 `extern` 블록에 있는 `pub` 함수는 `m::f` 로도 닿을 수 있으며, 그 심볼에는 접두어가 붙지 않습니다. `extern "C"` 블록의 `rok_*` 이름은 `str` 을 받거나 돌려줄 수 없습니다 ([8.5](../008-abi/805-extern-symbols.md)).
 
@@ -135,7 +135,7 @@ extern "C" {
     fn qsort(base: Ptr<u8>, n: usize, size: usize, cmp: unsafe extern "C" fn(ConstPtr<u8>, ConstPtr<u8>) -> i32);
 }
 let f: unsafe extern "C" fn(ConstPtr<u8>, ConstPtr<u8>) -> i32 = cmp_i32;   // C 선언의 값은 unsafe
-let g: extern "C" fn(ConstPtr<u8>, ConstPtr<u8>) -> i32 = cmp_i32;          // ERROR — 안전한 자리
+let g: extern "C" fn(ConstPtr<u8>, ConstPtr<u8>) -> i32 = cmp_i32;          // ERROR - 안전한 자리
 ```
 
 ### extern 함수의 이름 공간
@@ -197,7 +197,7 @@ extern "C" {
 
 ```rok
 fn f() {
-    extern "C" { ... }                     // ERROR — 함수 안에서는 안 됨
+    extern "C" { ... }                     // ERROR - 함수 안에서는 안 됨
 }
 ```
 
@@ -243,7 +243,7 @@ extern "C" fn callback(arg: i32) -> i32 {
 ```rok
 #[export_name("on_event")]
 extern "C" fn on_event(code: i32) -> i32 { code }     // C 에서 on_event 로 보임
-extern "C" fn bad(s: str) { }                          // ERROR — str 은 쓸 수 없음
+extern "C" fn bad(s: str) { }                          // ERROR - str 은 쓸 수 없음
 ```
 
 외부 함수 호출과 외부 노출, 이 두 메커니즘이 함께 FFI 의 양방향을 이룹니다.

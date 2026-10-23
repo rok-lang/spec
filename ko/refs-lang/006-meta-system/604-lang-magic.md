@@ -84,7 +84,7 @@ a + b    →    <typeof(a) as 그_트레잇<typeof(b)>>::add(a, b)
 
 ```rok
 #[lang("add_trait")] trait MyAdd { ... }
-#[lang("add_trait")] trait OtherAdd { ... }    // ERROR — 슬롯 중복
+#[lang("add_trait")] trait OtherAdd { ... }    // ERROR - 슬롯 중복
 ```
 
 각 슬롯은 오직 하나의 항목에만 유일하게 매핑되도록 설계됩니다. 이 유일성은 프로그램 전체 (링크되는 모든 패키지) 기준입니다. 따라서 `rok::core` 가 정의한 슬롯 (`panic_fn`, `oom_fn`, `unreachable_fn` 등) 을 사용자 패키지가 다시 부착해 바꿀 수 없으며, 부착하면 컴파일 에러입니다.
@@ -105,7 +105,7 @@ trait Add<Rhs = Self> {              // 슬롯이 요구하는 형태
 
 ```rok
 #[lang("add_trait")]
-trait BadAdd { fn run() }            // ERROR — 'add_trait' 슬롯의 형태와 다름
+trait BadAdd { fn run() }            // ERROR - 'add_trait' 슬롯의 형태와 다름
 ```
 
 ## 6.4.8. 알려지지 않은 슬롯 이름

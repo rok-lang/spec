@@ -199,6 +199,14 @@ fn parse(s: str) throws (A | B | C) -> i32 { ... }  // 합 타입
 
 두 경우 모두 런타임은 메시지를 표준 에러 (stderr) 에 출력하고 프로세스를 종료 코드 `101` 로 종료합니다. 어느 상황이 panic 이나 fatal 에 해당하는지의 정확한 목록은 표준 라이브러리에서 정의합니다.
 
+실패한 `try!` 는 `try!` 의 위치에서 panic 합니다. 메시지는 `main` 밖으로 나간 에러와 같은 방식으로 에러를 보여 주고 ([4.16.4](../004-functions/416-entry-point.md): `Display`, 없으면 `Debug`, 없으면 타입 이름), 이어서 그 에러가 발생한 위치를 보여 줍니다.
+
+```text
+thread 'main' panicked at src/main.rok:12:13:
+try! failed: no such key `port`
+  raised at src/main.rok:12:18
+```
+
 ## 3.14.9. 평가 순서
 
 `catch` 식과 `finally` 의 평가는 다음 순서로 이루어집니다.
@@ -210,7 +218,7 @@ fn parse(s: str) throws (A | B | C) -> i32 { ... }  // 합 타입
 
 `throw` 문이 평가될 때는 그 식의 평가가 먼저 끝난 뒤에 에러가 던져집니다.
 
-## 3.14.10. `?` 연산자 — `none` 조기 반환
+## 3.14.10. `?` 연산자 - `none` 조기 반환
 
 `?` 는 `T | none` 값을 풀어서 쓰고, `none` 이면 둘러싼 함수에서 곧바로 `none` 을 반환하는 후위 단항 연산자입니다.
 
@@ -247,7 +255,7 @@ match expr {
 
 ```rok
 fn load() -> Result<Config, IOError> {
-    let raw = read_result(path)?;     // ERROR — `?` 는 `T | none` 전용입니다.
+    let raw = read_result(path)?;     // ERROR - `?` 는 `T | none` 전용입니다.
                                       //   에러 전파는 `throws` 와 `try` 를 쓰세요.
     ...
 }

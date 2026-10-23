@@ -18,9 +18,9 @@ fn() -> ()
 에러를 던질 수 있는 함수의 타입은 함수 선언과 같은 자리에 [`throws`](414-throws.md) 를 적습니다.
 
 ```rok
-fn(str) throws -> i32               // untyped — throws (any Error)
+fn(str) throws -> i32               // untyped - throws (any Error)
 fn(str) throws (ParseError) -> i32  // typed
-fn(Path) throws (IOError)           // 반환 타입 생략 — unit
+fn(Path) throws (IOError)           // 반환 타입 생략 - unit
 ```
 
 `unsafe fn(..) -> R` 은 호출에 `unsafe` 가 필요한 함수의 타입입니다. `unsafe fn` 과 C 함수가 값일 때 이 타입을 가지며, 안전한 `fn` 값은 `unsafe fn` 자리에 들어갈 수 있지만 반대는 안 됩니다 ([4.15](415-unsafe.md#unsafe-fn-타입)).
@@ -89,7 +89,7 @@ let f: fn(i32) -> i32 = |x| x + n;     // n 을 캡처하지만 타입은 fn(i32
 
 ### `Send` / `Sync` bound
 
-함수 타입 끝에 `+ Send` / `+ Sync` 를 붙이면, 그 값이 스레드 경계를 넘을 수 있음을 타입에 적습니다 ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync--스레드-경계-marker)).
+함수 타입 끝에 `+ Send` / `+ Sync` 를 붙이면, 그 값이 스레드 경계를 넘을 수 있음을 타입에 적습니다 ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---스레드-경계-marker)).
 
 ```rok
 fn(i32) -> i32 + Send
@@ -103,10 +103,10 @@ fn() + Send + Sync
 
 ```rok
 let c: Cell<i32> = Cell::new(0);
-let f: fn() + Send = || print("hi");     // OK — 캡처 없음
-let g: fn() + Send = || c.set(1);        // ERROR — Cell 은 Send 가 아님
+let f: fn() + Send = || print("hi");     // OK - 캡처 없음
+let g: fn() + Send = || c.set(1);        // ERROR - Cell 은 Send 가 아님
 let h: fn() = || print("hi");
-let k: fn() + Send = h;                  // ERROR — h 의 타입에 + Send 없음
+let k: fn() + Send = h;                  // ERROR - h 의 타입에 + Send 없음
 ```
 
 ## 4.4.7. 매개변수 / 반환의 점진성
@@ -116,9 +116,9 @@ let k: fn() + Send = h;                  // ERROR — h 의 타입에 + Send 없
 ```rok
 fn id<T>(x: T) -> T { x }
 
-let f = id;                       // ERROR — id 자체는 제네릭, 어떤 T 인지 결정 안 됨
-let f: fn(i32) -> i32 = id;       // OK — i32 로 단형화
-let g = id::<i32>;                // OK — turbofish 로 단형화
+let f = id;                       // ERROR - id 자체는 제네릭, 어떤 T 인지 결정 안 됨
+let f: fn(i32) -> i32 = id;       // OK - i32 로 단형화
+let g = id::<i32>;                // OK - turbofish 로 단형화
 ```
 
 만약 함수 타입에 동적 슬롯을 두고자 한다면 매개변수나 반환에 `any` 를 적어 주시면 됩니다.
@@ -147,7 +147,7 @@ let f: fn() -> i32 = || panic("never");     // fn() -> ! 값 → fn() -> i32 자
 > Rust 나 TypeScript 같은 언어에서 볼 수 있는 함수 타입 부분형 (subtyping) 은 rok 에 없습니다. 즉, 한 함수 타입을 더 일반적이거나 더 구체적인 함수 타입으로 자동 변환하지 않습니다. 매개변수와 반환 타입은 정확히 일치해야 합니다.
 
 ```rok
-let f: fn(i32 | f64) -> i32 = |x: i32| x;     // ERROR — 매개변수 타입이 정확히 일치 안 함
+let f: fn(i32 | f64) -> i32 = |x: i32| x;     // ERROR - 매개변수 타입이 정확히 일치 안 함
 ```
 
 함수 타입 안의 매개변수와 반환 타입은 정확히 일치해야 하며, 합 타입으로 넓히지 않습니다.
@@ -157,9 +157,9 @@ let f: fn(i32 | f64) -> i32 = |x: i32| x;     // ERROR — 매개변수 타입�
 ```rok
 fn parse_typed(s: str) throws (ParseError) -> i32 { ... }
 
-let p: fn(str) throws (ParseError) -> i32 = |s| s.len() as i32;   // OK — non-throwing → throwing
-let q: fn(str) throws -> i32 = parse_typed;   // OK — throws (ParseError) → throws (any Error)
-let r: fn(str) -> i32 = parse_typed;          // ERROR — throwing → non-throwing
+let p: fn(str) throws (ParseError) -> i32 = |s| s.len() as i32;   // OK - non-throwing → throwing
+let q: fn(str) throws -> i32 = parse_typed;   // OK - throws (ParseError) → throws (any Error)
+let r: fn(str) -> i32 = parse_typed;          // ERROR - throwing → non-throwing
 ```
 
 `throws (A)` 함수 값은 `throws (A | B)` 자리에 넣을 수 있고, `A` 가 `Error` 를 구현하면 untyped `throws` 자리에도 넣을 수 있습니다.
@@ -168,7 +168,7 @@ let r: fn(str) -> i32 = parse_typed;          // ERROR — throwing → non-thro
 
 ```rok
 let g: fn(str) throws (ParseError) -> i32 = parse_typed;
-let h: fn(str) throws -> i32 = g;             // OK — 어댑터로 감쌈
+let h: fn(str) throws -> i32 = g;             // OK - 어댑터로 감쌈
 ```
 
 이러한 결정의 동기는 명시성을 우선시하는 데 있습니다. 함수 변환은 [형 변환](../002-types/214-cast-and-conversion.md) 의 명시적인 형태로 사용자가 직접 적도록 하는 것이 rok 의 방침입니다.
@@ -185,7 +185,7 @@ let h: fn(str) throws -> i32 = g;             // OK — 어댑터로 감쌈
 
 ```rok
 fn(i32, i32) -> i32                // OK
-fn(x: i32, y: i32) -> i32          // ERROR — 함수 타입에 이름 없음
+fn(x: i32, y: i32) -> i32          // ERROR - 함수 타입에 이름 없음
 ```
 
 호출 시 named 인자 ([매개변수](402-parameters.md)) 는 함수 정의의 이름을 참조합니다. 따라서 함수 타입을 거쳐 호출하는 경우에는 named 인자가 작동하지 않으며, 값을 통한 호출에서는 위치 인자만 사용 가능합니다.
@@ -194,7 +194,7 @@ fn(x: i32, y: i32) -> i32          // ERROR — 함수 타입에 이름 없음
 fn make_user(name: str, age: i32) -> User { ... }
 let f: fn(str, i32) -> User = make_user;
 
-make_user(name: "A", age: 30i32);    // named OK — 정의 이름 사용
+make_user(name: "A", age: 30i32);    // named OK - 정의 이름 사용
 f("A", 30i32);                        // 위치 OK
-f(name: "A", age: 30i32);             // ERROR — 타입에 이름 없음
+f(name: "A", age: 30i32);             // ERROR - 타입에 이름 없음
 ```

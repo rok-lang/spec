@@ -1,10 +1,10 @@
-# 2.8. stream — async iterator
+# 2.8. stream - async iterator
 
 The `rok::core::stream` module defines `Stream`, the async stepping trait (its element type is the associated type `Item`). Whereas `Iterator` of [2.7 iter](207-iter.md) is **sync**, `Stream` is **async**: each `next()` call is **awaitable**.
 
 This module is also the desugaring authority for `for await x in stream`, which dispatches to the traits defined in this chapter.
 
-## 2.8.1. `Stream` — async stepping
+## 2.8.1. `Stream` - async stepping
 
 The trait is defined as follows.
 
@@ -16,7 +16,7 @@ trait Stream {
 }
 ```
 
-This is the async version of `Iterator::next`. The return value means: `Poll::Ready(v)` (`v: Item`) — the next element `v` is ready; `Poll::Ready(none)` — the end of the stream; `Poll::Pending` — no value is ready yet, and the stream is polled again when the Waker wakes it.
+This is the async version of `Iterator::next`. The return value means: `Poll::Ready(v)` (`v: Item`) - the next element `v` is ready; `Poll::Ready(none)` - the end of the stream; `Poll::Pending` - no value is ready yet, and the stream is polled again when the Waker wakes it.
 
 In short, it has the same meaning as `Iterator`'s `next() -> T | none`, the decisive difference being that it is **awaitable**.
 
@@ -41,7 +41,7 @@ loop {
 
 This has the same shape as the sync version in [2.7.2 for desugar](207-iter.md), with only `await` added.
 
-## 2.8.3. `IntoStream` — async iterable
+## 2.8.3. `IntoStream` - async iterable
 
 Next is the trait representing an async iterable.
 
@@ -74,7 +74,7 @@ for await event in event_source { ... }
 //   }
 ```
 
-## 2.8.4. `async yield` — creating a Stream
+## 2.8.4. `async yield` - creating a Stream
 
 The most direct way to create a Stream is to write an `async yield` function.
 
@@ -123,7 +123,7 @@ As with the adapters of [2.7 iter](207-iter.md), the return types are named conc
 
 Of these, `buffer_unordered(n)` and `buffered(n)` serve as concurrency control, processing N futures concurrently.
 
-## 2.8.6. `FromStream<T>` — dispatch of `collect`
+## 2.8.6. `FromStream<T>` - dispatch of `collect`
 
 The trait that handles dispatch of `collect` is `FromStream<T>`. It is the async counterpart of `FromIterator<T>` in [2.7 iter](207-iter.md); its signature has the same form, except that `from_stream` is awaitable.
 
@@ -178,7 +178,7 @@ fn select<S1: Stream, S2: Stream>(a: S1, b: S2) -> Select<S1, S2>;  // Stream<It
 > [!NOTE]
 > `select` shares its name with `task::select`; under the implicit `use rok::core::**;` the bare name is ambiguous ([refs-lang 5.5.6](../../refs-lang/005-modules/505-use.md#556-glob--recursive-glob-conflicts)): write `stream::select` or import it.
 
-## 2.8.8a. `AsyncStream<T>` / `TryAsyncStream<T, E>` — the value of an async stream
+## 2.8.8a. `AsyncStream<T>` / `TryAsyncStream<T, E>` - the value of an async stream
 
 These are the values of an `async yield fn` call and of an `async yield { .. }` block ([refs-lang 4.1.11](../../refs-lang/004-functions/401-function-declaration.md#result-types-of-coroutine-functions)).
 
