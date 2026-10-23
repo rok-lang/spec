@@ -20,6 +20,21 @@ union EpollData {
 
 본체와 필드 문법은 [`struct`](203-struct.md) 의 named `struct` 와 동일합니다. 다만 키워드가 `union` 이라는 점, 그리고 모든 필드가 같은 메모리 위치를 공유한다는 의미론에서 차이가 납니다.
 
+### 제네릭 union
+
+`union` 은 `struct` 처럼 bound, `where` 절, 기본값을 가진 타입 매개변수 ([2.10](210-generics.md)) 를 가질 수 있습니다. 각 인스턴스는 자기 레이아웃을 가진 별개의 타입이며, 그 크기와 정렬은 그 인자에 대한 필드 타입을 따릅니다.
+
+```rok
+union Bits<T> { v: T; raw: u64; }
+union Small<T = u16> { v: T; raw: u8; }
+
+let a = Bits::<f64> { raw: 0x3FF0000000000000u64 };
+let b = Bits { v: 7i32 };              // 준 필드에서 추론한 Bits<i32>
+let x = unsafe { a.v };                // 1.0 (the bits of 1.0f64)
+```
+
+union 리터럴의 인자는 주어진 필드 하나에서 추론합니다. bound 는 인스턴스마다 검사하며, 진단은 인스턴스를 이름으로 부릅니다 (``reading field `v` of union `Bits<i32>` needs an `unsafe` block``). `union` 은 적어도 필드 하나를 선언합니다.
+
 ## 2.5.2. 의미론
 
 다음 예시를 통해 `union` 의 동작 방식을 살펴보겠습니다.

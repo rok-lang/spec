@@ -379,7 +379,7 @@ cf.cond_br %need_yield, ^slow, ^cont
   ; ... 계속 ...
 ```
 
-컴파일러는 함수의 진입 지점과 루프의 back-edge 에 위 코드를 emit 합니다.
+컴파일러는 함수의 진입 지점 (또는 각 경로의 첫 safepoint 앞, [8.4.7](804-safepoint.md#847-safepoint-의-불변)) 과 루프의 back-edge 에 위 코드를 emit 합니다.
 
 ## 8.9.12. Shadow stack frame
 
@@ -414,7 +414,7 @@ llvm.store %obj, %x : !llvm.ptr, !llvm.ptr
 llvm.store %saved, %head_ptr : !llvm.ptr, !llvm.ptr
 ```
 
-`@rok_tls` 는 [8.3.8](803-tls-slots.md#838-컴파일러-emit-의-형식) 의 thread-local 블록이며, shadow stack 머리는 그 offset 0 슬롯입니다. 에러 반환도 일반 `return` 이므로 ([8.9.6](#896-try--catch--finally-값-기반-분기)) 같은 unlink 를 지납니다. GC 참조를 들고 있고 safepoint 에 닿을 수 있는 함수만 frame 이 필요합니다 ([8.4.2](804-safepoint.md#842-emit-위치)). 반환하지 않는 함수 (panic) 와 할당도 block 도 하지 않는 런타임 함수 ([8.5.2](805-extern-symbols.md#safepoint-가-아닌-함수)) 의 호출은 세지 않습니다.
+`@rok_tls` 는 [8.3.8](803-tls-slots.md#838-컴파일러-emit-의-형식) 의 thread-local 블록이며, shadow stack 머리는 그 offset 0 슬롯입니다. 에러 반환도 일반 `return` 이므로 ([8.9.6](#896-try--catch--finally-값-기반-분기)) 같은 unlink 를 지납니다. link 는 위 예보다 늦게, 각 경로의 첫 safepoint 앞에서 할 수도 있습니다 ([8.4.7](804-safepoint.md#847-safepoint-의-불변)). 그때는 link 한 경로의 return 만 unlink 합니다. GC 참조를 들고 있고 safepoint 에 닿을 수 있는 함수만 frame 이 필요합니다 ([8.4.2](804-safepoint.md#842-emit-위치)). 반환하지 않는 함수 (panic) 와 할당도 block 도 하지 않는 런타임 함수 ([8.5.2](805-extern-symbols.md#safepoint-가-아닌-함수)) 의 호출은 세지 않습니다.
 
 ### 모듈의 data layout
 

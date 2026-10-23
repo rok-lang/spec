@@ -49,8 +49,8 @@ GC 참조를 들고 있고 safepoint 에 닿을 수 있는 함수만 frame 이 �
 safepoint 를 넘어 살아 있는 지역 변수만 root 가 필요합니다.
 
 1. 진입 시 GC 참조 word 들을 0 으로 채웁니다.
-2. 기계 스택에 `ShadowFrame` 을 잡고 `slots` 에 그 word 들의 주소를 기록합니다. `prev` 에 현재 `rok_tls_shadow_stack_top` 을 저장한 뒤 머리를 이 frame 으로 바꿉니다 (link).
-3. 모든 `return` 직전에 머리를 `prev` 로 되돌립니다 (unlink). 에러 반환도 일반 `return` 이므로 같은 경로를 지납니다. panic 은 프로세스를 끝내므로 unlink 가 필요 없습니다.
+2. 기계 스택에 `ShadowFrame` 을 잡습니다. 함수를 지나는 각 경로의 첫 safepoint 앞에서 `slots` 에 그 word 들의 주소를 기록하고, `prev` 에 현재 `rok_tls_shadow_stack_top` 을 저장한 뒤 머리를 이 frame 으로 바꿉니다 (link). link 는 더 일찍, 함수 진입까지 당겨도 됩니다. 경로가 합쳐지는 곳에서는 모든 경로가 link 했거나 어느 경로도 하지 않았어야 합니다. safepoint 에 닿지 않는 경로는 link 하지 않아도 됩니다.
+3. frame 을 link 한 경로의 모든 `return` 직전에 머리를 `prev` 로 되돌립니다 (unlink). 에러 반환도 일반 `return` 이므로 같은 경로를 지납니다. panic 은 프로세스를 끝내므로 unlink 가 필요 없습니다.
 
 변수가 더 이상 쓰이지 않게 되면 (liveness 기준), 그 root 슬롯이 가리키는 word 를 null 로 지워도 됩니다. 그 word 를 다시 읽지 않는 한 의미는 바뀌지 않으며, frame 이 죽은 객체를 붙잡아 두지 않게 됩니다.
 

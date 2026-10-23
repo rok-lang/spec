@@ -23,6 +23,7 @@ where_pred      ::= type_expr ":" type_bounds
 fn id<T>(x: T) -> T { x }                       // 함수
 struct Pair<A, B> { first: A; second: B; }      // 구조체
 enum Result<T, E> { Ok(T), Err(E) }              // enum
+union Bits<T> { v: T; raw: u64; }               // union
 trait Convert<Target> { ... }                    // 트레잇
 impl<T> List<T> { ... }                          // impl
 type Maybe<T> = T | none;                        // 타입 별칭
@@ -108,6 +109,8 @@ fn sort_all<T: Ord + Clone>(ref items: List<T>) { ... }
 
 `매개변수: 트레잇` 형태로 단일 바운드를 적으며, 여러 바운드가 필요하면 `+` 로 묶어서 표현합니다. 만약 바운드가 없으면 매개변수에는 모든 타입이 지원하는 것만 적용됩니다: 이동, `Reflect`, `any` 로의 저장, `none` 과의 합, `is` (2.10.9).
 
+bound, `where` 절, `impl`, supertrait 목록, `any Tr` 에 적은 트레잇은 다른 이름과 똑같이 해소합니다: 다른 모듈의 트레잇은 `use` 나 경로가 필요합니다 ([5.5](../005-modules/505-use.md)). 그렇지 않으면 적은 자리를 알리는 cannot-find 에러이며 (``cannot find trait `Shape` (named in a bound)``, `(named in an impl)`, `(named as a supertrait)`), 더할 `use` 를 함께 알립니다.
+
 ## 2.10.4. where 절
 
 바운드가 길어지면 `where` 절로 분리하는 편이 좋습니다.
@@ -138,6 +141,24 @@ trait Add<Rhs = Self> {
 ```
 
 호출이나 인스턴스화 시 매개변수를 생략하면 자동으로 기본값이 사용됩니다. 다만 기본값을 가진 매개변수 뒤에는 기본값이 없는 매개변수가 올 수 없으며, 뒤로 갈수록 기본값을 갖춰야 한다는 점에 유의해야 합니다.
+
+### 인자 개수
+
+제네릭 `struct`, `union`, `enum`, 타입 별칭은 매개변수 개수보다 많은 인자를 받지 않으며, 기본값 없는 매개변수 개수보다 적은 인자도 받지 않습니다. 그 밖은 선언을 알리는 에러입니다.
+
+```rok
+struct P<T, U> { a: T; b: U; }
+struct D<T, U = i32> { a: T; b: U; }
+
+let p: P<i64> = P { a: 1, b: 2 };          // ERROR — `P` takes 2 generic arguments but 1 was given
+                                           //   help: `P` is declared `P<T, U>`; add one for `U`
+let d: D<i32, i32, i32> = D { a: 1, b: 2 }; // ERROR — `D` takes 1 to 2 generic arguments but 3 were given
+let e: D<i32> = D { a: 1, b: 2 };          // OK — `U` 는 `i32`
+```
+
+함수나 메서드에는 매개변수보다 적은 명시 인자를 줄 수 있으며 (`f::<i32>(..)`), 나머지는 추론합니다. 더 많이 주면 같은 에러이며, 트레잇 bound 에 트레잇이 가진 것보다 많은 인자를 줘도 그렇습니다 (`` `Tr` takes at most 1 generic argument but 2 were given ``). enum 의 경로에 적은 인자는 그 인스턴스를 가리킵니다: `E::<i64>::A(1)` 은 `E<i64>` 입니다.
+
+타입이 올 자리에 인자 없이 적은 제네릭 타입 (`struct S<T>` 에 대한 `x: S`) 은 기본값 없는 매개변수가 있으면 에러입니다 (매개변수가 모두 기본값을 가진 타입은 인자 없이 적어도 됨): `` `S` needs generic arguments ``, help `` `S` is declared `S<T>`; write it with them, e.g. `S<i32>` ``.
 
 ## 2.10.6. 단형화 (monomorphization)
 

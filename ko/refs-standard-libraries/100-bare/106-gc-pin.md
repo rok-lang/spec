@@ -186,7 +186,7 @@ impl Pinned<str> {
 }
 ```
 
-이 container 메서드들이 추출 API 이며, 제네릭 `as_ptr` 은 없으며, `as_value_ptr` 는 `List` 의 `as_data_ptr` 와 구별되는 이름입니다. container 별로 전용 추출 메서드가 마련됩니다. buffer 시작이나
+이 container 메서드들이 추출 API 이며, `Pinned` 를 들고 있는 동안 유효합니다. (`str::as_ptr` 와 `CStr::as_ptr` 는 pin 없이 주소를 주며, 더 좁은 [2.15.2](../200-core/215-string.md#2152-str--불변-utf-8-문자열) 의 규칙을 따릅니다.) 제네릭 `as_ptr` 은 없으며, `as_value_ptr` 는 `List` 의 `as_data_ptr` 와 구별되는 이름입니다. container 별로 전용 추출 메서드가 마련됩니다. buffer 시작이나
 null-terminated 형태처럼, 각 컨테이너의 layout 에 맞춘 형태로 꺼내 쓸 수 있도록
 한 것입니다.
 

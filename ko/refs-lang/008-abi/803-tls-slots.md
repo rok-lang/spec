@@ -4,7 +4,7 @@
 
 ## 8.3.1. TLS 슬롯 구조
 
-TLS 슬롯은 런타임이 정의하고 export 하는 하나의 `thread_local` 블록 `rok_tls` 이며, 각 슬롯은 그 안의 고정 offset 에 있습니다. 컴파일된 코드는 함수마다 블록의 주소를 한 번 얻고, 각 슬롯을 그 offset 으로 접근합니다.
+TLS 슬롯은 런타임이 정의하고 export 하는 하나의 `thread_local` 블록 `rok_tls` 이며, 각 슬롯은 그 안의 고정 offset 에 있습니다. 컴파일된 코드는 블록 주소에서 각 슬롯의 offset 으로 접근하며, rok 함수는 그 주소를 호출자에게서 받습니다 (8.3.8).
 
 `p` 는 바이트 단위의 포인터 폭입니다.
 
@@ -154,13 +154,14 @@ rok_thread_shutdown():
 
 ## 8.3.8. 컴파일러 emit 의 형식
 
-블록은 런타임이 정의하고 export 하는 `thread_local` global 입니다. 컴파일러는 이를 외부 선언으로 참조하고, 함수마다 그 주소를 한 번 얻어 슬롯을 offset 으로 load 합니다.
+블록은 런타임이 정의하고 export 하는 `thread_local` global 입니다. 컴파일러는 이를 외부 선언으로 참조하고, 블록 주소에서 슬롯을 offset 으로 load 합니다. rok 함수는 그 주소를 호출자에게서 숨은 마지막 인자로 받으므로 (8.6.6) rok 함수 사이의 호출은 TLS 를 읽지 않습니다. rok 바깥에서 들어오는 코드는 주소를 직접 한 번 얻어 (`llvm.threadlocal.address`) 넘겨 줍니다: C `main`, `extern "C"` 정의의 C 진입점, `#[export_name]` rok 함수, `any` dispatcher, lazy `static` 의 초기화 함수, 그리고 함수 값이 거치는 thunk (8.6.11) 입니다.
 
 ```mlir
 ; LLVM IR — 정의는 런타임, 컴파일러 산출물은 external 선언
 @rok_tls = external thread_local global [N x i8]
 
-%t = call ptr @llvm.threadlocal.address(ptr @rok_tls)   ; 함수마다 한 번
+%t = call ptr @llvm.threadlocal.address(ptr @rok_tls)   ; rok 로 들어오는 곳에서 한 번
+                                                         ; (rok 함수: 마지막 인자)
 
 ; safepoint poll (yield_flag 는 10p+8)
 %flag_p = getelementptr i8, ptr %t, i64 88               ; p = 8 일 때 10p+8
@@ -175,7 +176,7 @@ br i1 %check, label %slow, label %cont
 
 ### shadow stack 머리
 
-`rok_tls` 의 offset 0 슬롯 (`rok_tls_shadow_stack_top`) 은 [배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack) 의 [shadow stack](../000-meta/007-glossary.md#shadow-stack) 체인 머리, 즉 가장 안쪽 `ShadowFrame` 의 주소입니다 (없으면 null). 체인 머리는 이것 하나뿐입니다. 컴파일러가 emit 하는 함수 진입 코드가 frame 을 link 하고 모든 `return` 직전에 unlink 합니다.
+`rok_tls` 의 offset 0 슬롯 (`rok_tls_shadow_stack_top`) 은 [배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack) 의 [shadow stack](../000-meta/007-glossary.md#shadow-stack) 체인 머리, 즉 가장 안쪽 `ShadowFrame` 의 주소입니다 (없으면 null). 체인 머리는 이것 하나뿐입니다. 컴파일러가 emit 하는 코드가 함수를 지나는 각 경로의 첫 safepoint 앞에서 frame 을 link 하고, link 한 경로의 모든 `return` 직전에 unlink 합니다 (8.4.7).
 
 LLVM 의 `llvm.gcroot` 와 `llvm_gc_root_chain` 은 쓰지 않습니다. `llvm_gc_root_chain` 은 프로세스 전역 하나뿐이라 thread 별 체인을 표현할 수 없기 때문입니다.
 

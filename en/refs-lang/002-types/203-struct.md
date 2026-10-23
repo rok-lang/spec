@@ -118,7 +118,7 @@ Fields are laid out in declaration order with natural alignment, the same as `#[
 
 ## 2.3.7. No duplicate definitions in the same module
 
-Declaring two structs with the same name in the same module is a compile error. Duplicate field names within one struct are also an error. This rule applies regardless of visibility level.
+Declaring two structs with the same name in the same module is a compile error. Duplicate field names within one struct are also an error. This rule applies regardless of visibility level. A tuple or unit struct's constructor is a value, in the namespace of functions, `const`s and `static`s ([4.1.10](../004-functions/401-function-declaration.md#4110-no-duplicate-definitions-in-the-same-module)): `struct Point(i32, i32);` and a `fn`, `const` or `static` named `Point` in the same module are a duplicate definition (E200).
 
 ## 2.3.8. Value semantics
 

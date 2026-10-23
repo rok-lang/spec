@@ -255,7 +255,7 @@ match v {
 
 ## 2.6.9. type alias 와 결합
 
-긴 합 타입은 `type` 으로 별칭을 줄 수 있습니다 (`type Num = i32 | f64;`). 순환하는 타입 별칭 (제네릭 인자를 거쳐도) 은 에러입니다. 타입 별칭의 `where` 는 별칭 대상 뒤에 둡니다 (`type A<T> = B<T> where T: X;`). 별칭의 `where` 는 별칭을 쓰는 자리마다 검사됩니다. 쓰는 자리의 인자가 타입 매개변수를 가리키면, 제네릭 본체에서처럼 ([2.10.9](210-generics.md#2109-본체-검사)) 그 자리의 범위에 있는 bound 가 정합니다: 둘러싼 함수, `impl`, 트레잇의 매개변수 bound 와 `where` 절, 트레잇의 supertrait 와 연관 타입 bound. `type W<T> = S<T> where T: Num;` 이면 `fn get<T: Num>(x: W<T>)` 와 `impl<T: Num> W<T> { .. }` 는 유효하고, `fn get<T>(x: W<T>)` 는 한 번도 호출하지 않아도 에러입니다. `type` 은 문맥 키워드로, 항목 시작에서 식별자와 `=` 또는 `<` 가 이어질 때만 키워드입니다 ([1.5.4](../001-lexical/105-keywords.md#154-문맥-키워드)). 정확한 alias 문법은 타입 별칭 사양에서 정의합니다.
+긴 합 타입은 `type` 으로 별칭을 줄 수 있습니다 (`type Num = i32 | f64;`). 순환하는 타입 별칭 (제네릭 인자를 거쳐도) 은 에러입니다. 타입 별칭의 `where` 는 별칭 대상 뒤에 둡니다 (`type A<T> = B<T> where T: X;`). 별칭의 `where` 는 별칭을 쓰는 자리마다 검사됩니다. 쓰는 자리의 인자가 타입 매개변수를 가리키면, 제네릭 본체에서처럼 ([2.10.9](210-generics.md#2109-본체-검사)) 그 자리의 범위에 있는 bound 가 정합니다: 둘러싼 함수, `impl`, 트레잇의 매개변수 bound 와 `where` 절, 트레잇의 supertrait 와 연관 타입 bound. `type W<T> = S<T> where T: Num;` 이면 `fn get<T: Num>(x: W<T>)` 와 `impl<T: Num> W<T> { .. }` 는 유효하고, `fn get<T>(x: W<T>)` 는 한 번도 호출하지 않아도 에러입니다. 선언의 타입에서도 마찬가지입니다: `struct`, `enum`, `union` 의 필드, 트레잇 `impl` 의 트레잇 인자와 연관 타입, 트레잇 메서드의 시그니처는 별칭의 `where` 를 만족하지 않으면, 아무것도 그것을 쓰지 않아도 거부됩니다. help 는 bound 를 더할 제네릭을 알립니다 (``add `T: Num` to `F`'s generics``). `type` 은 문맥 키워드로, 항목 시작에서 식별자와 `=` 또는 `<` 가 이어질 때만 키워드입니다 ([1.5.4](../001-lexical/105-keywords.md#154-문맥-키워드)). 정확한 alias 문법은 타입 별칭 사양에서 정의합니다.
 
 ```rok
 type Number = i32 | i64 | f32 | f64;

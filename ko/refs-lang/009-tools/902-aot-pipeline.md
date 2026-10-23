@@ -251,7 +251,7 @@ target/
 패키지 안에서 `Fresh` 가 아닌 빌드는 컴파일한 코드를 codegen unit 단위로 재사용합니다. rokc 는 패키지의 코드 (실행 파일이든 라이브러리든) 를 unit 으로 나눕니다: 패키지의 모듈마다 하나, 그 인스턴스를 컴파일하는 라이브러리의 모듈마다 하나 (인스턴스는 타입 인자에 따라 여러 unit 에 나뉠 수 있음), 그리고 프로그램에 한 번만 있는 것 (static, C `main`, GC 타입 등록) 을 위한 unit 하나입니다.
 
 - unit 은 같은 target 디렉토리로의 지난 빌드 이후 그 키가 바뀌었을 때만 컴파일합니다. 아니면 `target/<profile>/incremental/<name>/` (라이브러리의 것은 `lib<name>/`) 에 둔 결과를 재사용하고, 그 뒤 모두 링크합니다.
-- 익명 파일의 unit 은 패키지 없이 쓰는 target 디렉토리 (`--target-dir`, `ROKC_TARGET_DIR`, 없으면 `<시스템 임시 디렉토리>/rokc-target/`) 의 `[<triple>/]<profile>/incremental/<stem>-<경로의 hash>/` 에 둡니다.
+- 익명 파일의 unit 은 패키지 없이 쓰는 target 디렉토리 (`--target-dir`, `ROKC_TARGET_DIR`, 없으면 `<시스템 임시 디렉토리>/rokc-target/`) 의 `[<triple>/]<profile>/incremental/<stem>-<경로의 hash>/` 에 둡니다. 기본 `rokc-target/` 은 캐시입니다: rokc 는 하루에 많아야 한 번, 일주일 동안 어떤 빌드도 쓰지 않은 파일을 지웁니다.
 - unit 의 키는 그 함수들의 코드, 다른 unit 에서 쓰는 것의 시그니처와 코드 생성 정보 (함수의 시그니처가 바뀌면 호출자의 unit 을 다시 컴파일), 쓰는 static 과 GC 타입, target, 최적화 수준, 코드 생성 옵션, 컴파일러의 정체, 그리고 `-g` 이면 그 debug info 가 가리키는 소스 파일의 경로를 담습니다 (파일을 더하면 그것을 가리키는 unit 만 다시 컴파일).
 - 심볼과 GC type id 는 다른 unit 의 내용에 의존하지 않으므로 (unit 은 GC type id 를 패키지의 공유 unit 이 정의한 심볼에서 읽음; [9.5.7](905-symbol-mangling.md#957-충돌-회피-typehash-의-안정성)), 산출물은 깨끗한 빌드가 만드는 것과 같습니다.
 - 최적화 빌드도 unit 사이에서 inline 합니다 (ThinLTO, unit 별 결과도 cache 됨).

@@ -88,7 +88,7 @@ This scheme was chosen for the following reasons.
 
 ## 8.6.6. rok-to-rok calling convention
 
-Calls between rok functions pass scalars in the registers of 8.6.2. An aggregate (struct, tuple, array, `str`) over 64 bytes is passed by address and returned through a leading result pointer. The callee copies a by-address argument on entry, so the caller's value is not modified. The callee may write the result through the result pointer at any point before it returns, after copying its by-address arguments. The result pointer may therefore point at a by-address argument, but at no other memory the callee reads during the call. This holds for every rok-to-rok call, including calls into prebuilt code, exported functions and function values. Smaller aggregates are passed and returned as first-class aggregates, lowered the way LLVM's SelectionDAG lowers them on the target, with one exception: on 32-bit Arm, an array whose elements are 1 or 2 bytes is passed and returned by address, like an aggregate over 64 bytes, because LLVM's own lowering of such stack arguments differs between caller and callee. Both backends produce exactly this lowering, so code from either calls the other. It differs from the C ABI classification of 8.6.3. The rules below apply to aggregates of 64 bytes or less.
+Calls between rok functions pass scalars in the registers of 8.6.2. An aggregate (struct, tuple, array, `str`) over 64 bytes is passed by address and returned through a leading result pointer. The callee copies a by-address argument on entry, so the caller's value is not modified. The callee may write the result through the result pointer at any point before it returns, after copying its by-address arguments. The result pointer may therefore point at a by-address argument, but at no other memory the callee reads during the call. This holds for every rok-to-rok call, including calls into prebuilt code, exported functions and function values. A direct call also passes the caller's `rok_tls` block address ([8.3.8](803-tls-slots.md#838-form-of-compiler-emission)) as a hidden last pointer argument, after the declared ones; a function value, an `#[export_name]` rok function and the `any` dispatcher take none (8.6.11). Smaller aggregates are passed and returned as first-class aggregates, lowered the way LLVM's SelectionDAG lowers them on the target, with one exception: on 32-bit Arm, an array whose elements are 1 or 2 bytes is passed and returned by address, like an aggregate over 64 bytes, because LLVM's own lowering of such stack arguments differs between caller and callee. Both backends produce exactly this lowering, so code from either calls the other. It differs from the C ABI classification of 8.6.3. The rules below apply to aggregates of 64 bytes or less.
 
 > [!NOTE]
 > A value passed by address is moved in memory (`memcpy`), never as a first-class aggregate.
@@ -160,7 +160,7 @@ extern "C" {
 %result = call i32 %fn_ptr(...)
 ```
 
-Arguments and returns have the same ABI, so direct and indirect calls share the same interface.
+Arguments and returns have the same ABI, so direct and indirect calls share the same interface, except for the hidden `rok_tls` address of 8.6.6: a function value takes none. Its code pointer is a thunk that reads the address itself and calls the function with it.
 
 ## 8.6.12. Closure calls
 

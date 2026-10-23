@@ -39,7 +39,7 @@ cont:
 
 | 위치                  | 이유                      |
 |-----------------------|---------------------------|
-| 함수 진입             | 호출 후 즉시 GC 협력 가능 |
+| 함수 진입 (또는 각 경로의 첫 safepoint 앞) | 호출 후 즉시 GC 협력 가능 |
 | 루프 back-edge        | 무한 루프가 GC 차단 막음  |
 | 함수 호출 직후 (가능) | 호출이 길었으면 즉시 협력 |
 
@@ -110,7 +110,7 @@ STW 수집 (minor, evacuation 이 있는 full, `rok_gc_collect`) 은 pause 한 �
 
 safepoint 에 도달했을 때, mutator 의 살아있는 모든 GC 객체 변수가 shadow stack 에 등록되어 있어야 합니다.
 
-이 보장은 컴파일러가 [배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md) 의 shadow stack frame 을 함수 진입 시 직접 link 함으로써 이루어집니다. safepoint 에서 GC 참조를 가진 지역 변수는 frame 에 등록되며, 등록된 word 는 쓸 때마다 최신으로 유지합니다. 수집은 루트 word 를 다시 쓰지 않으므로 (루트에서 바로 닿는 객체는 옮기지 않음, [7.4.1](../007-runtime/704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack)) 컴파일러는 (레지스터에) 사본을 따로 둘 수도 있습니다.
+이 보장은 컴파일러가 [배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md) 의 shadow stack frame 을 함수를 지나는 각 경로의 첫 safepoint 앞에서 (진입 시, 또는 safepoint 에 닿는 경로에서는 그보다 나중에) link 함으로써 이루어집니다. safepoint 에 닿지 않는 경로는 link 하지 않아도 되고, frame 은 link 된 곳에서만 반환 시 unlink 합니다. 마찬가지로 직접 rok 호출로만 들어오는 함수는 진입 poll 을 link 바로 뒤로 옮길 수 있습니다. 호출 순환을 닫는 호출이 safepoint 이므로 모든 호출 순환에는 여전히 poll 이 있습니다. C 나 함수 값으로 호출되는 함수는 진입 시 poll 합니다. safepoint 에서 GC 참조를 가진 지역 변수는 frame 에 등록되며, 등록된 word 는 쓸 때마다 최신으로 유지합니다. 수집은 루트 word 를 다시 쓰지 않으므로 (루트에서 바로 닿는 객체는 옮기지 않음, [7.4.1](../007-runtime/704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack)) 컴파일러는 (레지스터에) 사본을 따로 둘 수도 있습니다.
 
 ## 8.4.8. Loop back-edge poll
 

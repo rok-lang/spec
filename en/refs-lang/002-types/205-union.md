@@ -20,6 +20,21 @@ union EpollData {
 
 The body and field syntax are the same as the named `struct` of [`struct`](203-struct.md). The differences are the keyword `union` and the semantics: all fields share the same memory location.
 
+### Generic unions
+
+A `union` may have type parameters ([2.10](210-generics.md)), with bounds, a `where` clause and defaults as for a `struct`. Each instance is its own type with its own layout: its size and alignment follow its field types for those arguments.
+
+```rok
+union Bits<T> { v: T; raw: u64; }
+union Small<T = u16> { v: T; raw: u8; }
+
+let a = Bits::<f64> { raw: 0x3FF0000000000000u64 };
+let b = Bits { v: 7i32 };              // Bits<i32>, inferred from the field given
+let x = unsafe { a.v };                // 1.0 (the bits of 1.0f64)
+```
+
+In a union literal the arguments are inferred from the one field given. Bounds are checked per instance, and diagnostics name the instance (``reading field `v` of union `Bits<i32>` needs an `unsafe` block``). A `union` declares at least one field.
+
 ## 2.5.2. Semantics
 
 The following example shows how a `union` behaves.

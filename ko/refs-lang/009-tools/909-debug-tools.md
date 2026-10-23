@@ -95,7 +95,7 @@ error[E100]: cannot find value `count` in this scope
 
 이 형식은 [소스 파일](../001-lexical/101-source-files.md) 의 파일 + 줄 + 컬럼 진단 단위를 사용합니다.
 
-머리줄은 `<severity>[<code>]: <message>` 이고 `--> path:line:col` 이 주 위치입니다. 주 span 은 `^`, 보조 span 은 `-` 로 밑줄을 긋고, 다른 파일의 보조 span 은 `::: path:line:col` 로 시작합니다. 끝의 `= note:` 줄은 맥락을, `= help:` 줄은 고치는 방법을 덧붙입니다.
+머리줄은 `<severity>[<code>]: <message>` 이고 `--> path:line:col` 이 주 위치입니다. 주 span 은 `^`, 보조 span 은 `-` 로 밑줄을 긋고, 다른 파일의 보조 span 은 `::: path:line:col` 로 시작합니다. 끝의 `= note:` 줄은 맥락을, `= help:` 줄은 고치는 방법을 덧붙입니다. 찾지 못한 이름을 다른 곳의 항목이 가지고 있으면, help 는 그것을 들여오는 `use` 줄 (최대 셋: 패키지 자신의 항목 먼저, 그다음 표준 라이브러리, 그다음 의존 패키지) 이나, 패키지의 유일한 그런 항목이 가려져 있으면 빠진 `pub` 을 알립니다 (``add `use geo::Point;` ``; `` `geo::secret` has that name, but it is private to module `geo`: add `pub` to it ``).
 
 ### JSON 형식 (도구 통합)
 

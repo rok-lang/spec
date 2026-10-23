@@ -95,7 +95,7 @@ error[E100]: cannot find value `count` in this scope
 
 This format uses the file + line + column diagnostic units of [Source files](../001-lexical/101-source-files.md).
 
-The header is `<severity>[<code>]: <message>` and `--> path:line:col` gives the primary location. The primary span is underlined with `^`, secondary spans with `-`; a secondary span in another file is introduced by `::: path:line:col`. Trailing `= note:` lines add context and `= help:` lines suggest a fix.
+The header is `<severity>[<code>]: <message>` and `--> path:line:col` gives the primary location. The primary span is underlined with `^`, secondary spans with `-`; a secondary span in another file is introduced by `::: path:line:col`. Trailing `= note:` lines add context and `= help:` lines suggest a fix. For a name not found that an item elsewhere has, the help gives the `use` lines that bring it in (up to three: the package's own items first, then the standard library's, then the dependencies'), or the missing `pub` when the package's only such item is hidden (``add `use geo::Point;` ``; `` `geo::secret` has that name, but it is private to module `geo`: add `pub` to it ``).
 
 ### JSON format (tool integration)
 

@@ -4,7 +4,7 @@ Each OS thread (= scheduler worker = mutator) holds runtime information at fixed
 
 ## 8.3.1. TLS slot structure
 
-The TLS slots are one `thread_local` block, `rok_tls`, defined and exported by the runtime; each slot is at a fixed offset in it. Compiled code takes the block's address once per function and reaches each slot at its offset.
+The TLS slots are one `thread_local` block, `rok_tls`, defined and exported by the runtime; each slot is at a fixed offset in it. Compiled code reaches each slot at its offset from the block's address, which a rok function receives from its caller (8.3.8).
 
 `p` is the pointer width in bytes.
 
@@ -154,13 +154,14 @@ rok_thread_shutdown():
 
 ## 8.3.8. Form of compiler emission
 
-The block is a `thread_local` global defined and exported by the runtime. The compiler references it as an external declaration, takes its address once per function and loads slots at their offsets.
+The block is a `thread_local` global defined and exported by the runtime. The compiler references it as an external declaration and loads slots at their offsets from the block's address. A rok function takes that address from its caller as a hidden last argument (8.6.6), so a call between rok functions reads no TLS. Code entered from outside rok takes the address itself, once (`llvm.threadlocal.address`) and passes it on: the C `main`, the C entry of an `extern "C"` definition, an `#[export_name]` rok function, the `any` dispatcher, a lazy `static`'s initializer, and the thunk a function value goes through (8.6.11).
 
 ```mlir
 ; LLVM IR — defined by the runtime; compiler output has an external declaration
 @rok_tls = external thread_local global [N x i8]
 
-%t = call ptr @llvm.threadlocal.address(ptr @rok_tls)   ; once per function
+%t = call ptr @llvm.threadlocal.address(ptr @rok_tls)   ; once, where code enters rok
+                                                         ; (a rok function: its last argument)
 
 ; safepoint poll (yield_flag at 10p+8)
 %flag_p = getelementptr i8, ptr %t, i64 88               ; 10p+8 with p = 8
@@ -175,7 +176,7 @@ On ELF, `rok_tls` uses the initial-exec TLS model (the compiler emits access cod
 
 ### Shadow stack head
 
-The slot at offset 0 of `rok_tls` (`rok_tls_shadow_stack_top`) is the head of the [shadow stack](../000-meta/007-glossary.md#shadow-stack) chain from [Barriers and root tracking](../007-runtime/704-barriers-and-roots.md#741-root-tracking-a-shadow-stack-emitted-directly-by-the-compiler), i.e. the address of the innermost `ShadowFrame` (null if none). It is the only chain head. Function entry code emitted by the compiler links the frame and unlinks it immediately before every `return`.
+The slot at offset 0 of `rok_tls` (`rok_tls_shadow_stack_top`) is the head of the [shadow stack](../000-meta/007-glossary.md#shadow-stack) chain from [Barriers and root tracking](../007-runtime/704-barriers-and-roots.md#741-root-tracking-a-shadow-stack-emitted-directly-by-the-compiler), i.e. the address of the innermost `ShadowFrame` (null if none). It is the only chain head. Code emitted by the compiler links the frame before the first safepoint of each path through the function, and unlinks it immediately before every `return` of a path that linked it (8.4.7).
 
 LLVM's `llvm.gcroot` and `llvm_gc_root_chain` are not used. `llvm_gc_root_chain` is a single process-global and cannot express per-thread chains.
 

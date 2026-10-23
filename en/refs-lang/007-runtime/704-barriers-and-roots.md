@@ -49,8 +49,8 @@ A function needs a frame only if it holds GC references and can reach a safepoin
 Only locals live across a safepoint need a root.
 
 1. On entry, zero the GC reference words.
-2. Reserve a `ShadowFrame` on the machine stack and record the addresses of those words in `slots`. Save the current `rok_tls_shadow_stack_top` in `prev`, then set the head to this frame (link).
-3. Immediately before every `return`, restore the head to `prev` (unlink). An error return is also an ordinary `return`, so it takes the same path. A panic terminates the process, so no unlink is needed.
+2. Reserve a `ShadowFrame` on the machine stack. Before the first safepoint on each path through the function, record the addresses of those words in `slots`, save the current `rok_tls_shadow_stack_top` in `prev`, then set the head to this frame (link). The link may come earlier, up to the function's entry; where paths join, either all of them have linked or none has. A path that reaches no safepoint need not link.
+3. Immediately before every `return` on a path that linked the frame, restore the head to `prev` (unlink). An error return is also an ordinary `return`, so it takes the same path. A panic terminates the process, so no unlink is needed.
 
 When a variable is no longer used (by liveness), the word its root slot points to may be cleared to null. This does not change meaning as long as that word is not read again, and keeps the frame from holding dead objects alive.
 

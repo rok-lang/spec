@@ -23,6 +23,7 @@ Generic parameters appear in these positions:
 fn id<T>(x: T) -> T { x }                       // function
 struct Pair<A, B> { first: A; second: B; }      // struct
 enum Result<T, E> { Ok(T), Err(E) }              // enum
+union Bits<T> { v: T; raw: u64; }               // union
 trait Convert<Target> { ... }                    // trait
 impl<T> List<T> { ... }                          // impl
 type Maybe<T> = T | none;                        // type alias
@@ -108,6 +109,8 @@ fn sort_all<T: Ord + Clone>(ref items: List<T>) { ... }
 
 A single bound is written as `Param: Trait`; multiple bounds are joined with `+`. Without bounds, only what every type supports applies to the parameter: moving, `Reflect`, storage into `any`, sums with `none`, and `is` (2.10.9).
 
+A trait named in a bound, a `where` clause, an `impl`, a supertrait list or `any Tr` resolves like any other name: a trait of another module needs a `use` or a path ([5.5](../005-modules/505-use.md)). Otherwise it is a cannot-find error naming where it was written: ``cannot find trait `Shape` (named in a bound)``, `(named in an impl)` or `(named as a supertrait)`, with the `use` to add.
+
 ## 2.10.4. where clauses
 
 When bounds get long, it is better to move them into a `where` clause.
@@ -138,6 +141,24 @@ trait Add<Rhs = Self> {
 ```
 
 If the parameter is omitted at a call or instantiation, the default is used. A parameter without a default cannot follow one with a default; defaults must be trailing.
+
+### Argument counts
+
+A generic `struct`, `union`, `enum` or type alias takes at most as many arguments as it has parameters, and at least as many as its parameters without defaults. Anything else is an error naming the declaration:
+
+```rok
+struct P<T, U> { a: T; b: U; }
+struct D<T, U = i32> { a: T; b: U; }
+
+let p: P<i64> = P { a: 1, b: 2 };          // ERROR — `P` takes 2 generic arguments but 1 was given
+                                           //   help: `P` is declared `P<T, U>`; add one for `U`
+let d: D<i32, i32, i32> = D { a: 1, b: 2 }; // ERROR — `D` takes 1 to 2 generic arguments but 3 were given
+let e: D<i32> = D { a: 1, b: 2 };          // OK — `U` is `i32`
+```
+
+A function or method may be given fewer explicit arguments than it has parameters (`f::<i32>(..)`); the rest are inferred. Giving more is the same error, and so is giving a trait bound more arguments than the trait has (`` `Tr` takes at most 1 generic argument but 2 were given ``). Arguments written on an enum's path name its instance: `E::<i64>::A(1)` is an `E<i64>`.
+
+A generic type written without arguments where a type is expected (`x: S` for `struct S<T>`) is an error when a parameter has no default (a type whose parameters all have defaults may be written bare): `` `S` needs generic arguments ``, help `` `S` is declared `S<T>`; write it with them, e.g. `S<i32>` ``.
 
 ## 2.10.6. Monomorphization
 

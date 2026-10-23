@@ -113,7 +113,7 @@ Package {
 - 값은 ROKON 의 리터럴 (문자열, `{ "k": v }` dict, 빈 dict `{}`) 과 `Dep::path("..")` / `Dep::git("url", rev | tag | branch: "..")` / `Dep::version("req", registry: "url")` 입니다. `Dep::git` 의 `rev` / `tag` / `branch` 는 많아야 하나이고, `Dep::version` 의 `registry` 는 선택입니다. 의존성 값이 문자열 하나면 `Dep::version` 의 줄임입니다.
 - `Dep::path` / `Dep::git` / `Dep::version` 은 `optional: true`, `features: ["<f>", ..]`, `default_features: false` 도 받습니다 (9.10.4c). optional 인 dev 의존은 에러입니다.
 - `Dep::registry` 는 `rok.lock` 전용이며 `rok.rokon` 에 쓰면 에러입니다.
-- 패키지 이름 (`deps` 의 키, `name`) 은 `[a-z0-9_-]+` 의 소문자 ASCII 이며 글자로 시작합니다 (숫자, `-`, `_` 로 시작하면 에러). 키는 문자열입니다 (`"rok-syntax": Dep::version("^0.1")`).
+- 패키지 이름 (`deps` 의 키, `name`) 은 `[a-z0-9_-]+` 의 소문자 ASCII 이며 글자로 시작합니다 (숫자, `-`, `_` 로 시작하면 에러). 이름 `rok` 은 표준 라이브러리용으로 예약되어 있습니다: 패키지, 의존 패키지, native 패키지, registry 이름이 `rok` 이면 에러이며 (`` `rok` is reserved for the standard library; name the package something else, e.g. `rok_util` ``), 그것으로 `rok new` / `rok init` / `rok add` 해도 마찬가지입니다. 키는 문자열입니다 (`"rok-syntax": Dep::version("^0.1")`).
 - 코드에서는 `-` 를 `_` 로 바꾼 이름이 그 패키지를 가리키는 최상위 경로입니다 (`rok-syntax` → `use rok_syntax::..`, `--extern rok_syntax=..`).
 - 레지스트리와 한 의존 그래프 안에서 이름은 `-` 와 `_` 를 같게, 대소문자를 구분하지 않고 비교합니다. 그래서 `rok-syntax` 와 `rok_syntax` 는 함께 있을 수 없습니다.
 - 의존 패키지는 `src/lib.rok` 를 가져야 하며, 그 패키지에 `src/main.rok` 도 있든 없든 그 라이브러리가 의존하는 쪽이 얻는 것입니다. `src/main.rok` 만 있는 의존 패키지는 그것이 `rok install` 용 프로그램이라고 알리는 에러입니다. 전이 의존은 의존 패키지의 `deps` 입니다 (`dev_deps` 는 전이되지 않음).
@@ -382,17 +382,17 @@ REPL 의 `:add <dep> ..` 는 현재 환경으로 `rok install <dep> ..` 을, 패
 rok install <name>[@<req>] [--registry <url>]
 rok install [<name>] --path <dir | file.rok>
 rok install [<name>] --git <url> [--rev <rev> | --tag <tag> | --branch <branch>]
-rok install .. [--features <f,..>] [--no-default-features] [--lib]
+rok install .. [--features <f,..>] [--no-default-features] [--lib] [--force]
 rok install --native <name>[@<req>] [--registry <url>]
 rok install --list
 rok uninstall [--native] <name>..
 ```
 
-- 소스의 패키지는 먼저 캐시로 가져옵니다 ([9.10.4](#9104-의존성-rok-add--remove--update--deps)). `src/main.rok` 가 있는 패키지나 스크립트 파일은 실행 파일입니다: `cargo install` 처럼 `--release` 로 빌드해 그 실행 파일을 `$ROK_HOME/bin/<name>` 에 둡니다. git 이나 stone 패키지는 checkout 의 임시 사본에서, path 패키지와 스크립트 파일은 제자리에서 빌드합니다. `$ROK_HOME/installs.rokon` (`Package { deps: { "<name>": <source> } }`) 이 각 실행 파일과 그 출처를 기록합니다. 패키지에 `src/lib.rok` 도 있으면 `rok install` 은 그것을 알리고, `--lib` 가 대신 라이브러리를 설치한다고 알립니다.
+- 소스의 패키지는 먼저 캐시로 가져옵니다 ([9.10.4](#9104-의존성-rok-add--remove--update--deps)). `src/main.rok` 가 있는 패키지나 스크립트 파일은 실행 파일입니다: `cargo install` 처럼 `--release` 로 빌드해 그 실행 파일을 `$ROK_HOME/bin/<name>` 에 둡니다. git 이나 stone 패키지는 checkout 의 임시 사본에서, path 패키지와 스크립트 파일은 제자리에서 빌드합니다. `$ROK_HOME/installs.rokon` (`Package { deps: { "<name>": <source> } }`) 이 각 실행 파일과 그 정확한 출처 (stone 은 `=<version>`, git 패키지는 그 `rev:` 와 함께) 를 기록합니다. 패키지에 `src/lib.rok` 도 있으면 `rok install` 은 그것을 알리고, `--lib` 가 대신 라이브러리를 설치한다고 알립니다.
 - `src/lib.rok` 만 있는 패키지, 또는 `--lib` 를 준 `src/lib.rok` 가 있는 패키지는 라이브러리이며, `pip install` 처럼 `rok repl`, `rok jupyter`, `:add` 를 위해 활성 환경 ([9.10.5](#9105-환경)) 에 들어갑니다: 환경의 `rok.rokon` 에 적고 (요구 없는 stone 은 `^<가장 새 버전>`, path 는 절대 경로), 그 `rok.lock` 으로 해소하며, 그 `target/` 에 미리 빌드합니다. 스크립트는 그것을 보지 않습니다: 스크립트는 `rok add <name> <file.rok>` 로 라이브러리를 얻으며, 출력 줄이 이것을 알립니다. 빌드되지 않으면 아무것도 설치하지 않습니다. `src/lib.rok` 가 없는 패키지나 스크립트에 `--lib` 를 주면 에러입니다.
 - `<name>` 은 라이브러리의 최상위 이름, 또는 실행 파일의 파일 이름입니다. 생략하면 패키지의 `name`, 없으면 디렉토리 이름 (path), `.git` 을 뗀 저장소 이름 (git), 파일 stem (스크립트) 입니다. [9.10.3](#9103-rokrokon--roklock) 의 이름 규칙을 따릅니다.
 - `--features` / `--no-default-features` 는 라이브러리의 `Dep` 에, 또는 실행 파일의 빌드에 들어가며, `--dev` / `--optional` 은 에러입니다. `--native` 는 환경의 `native` 에 native 패키지를 더합니다 ([9.10.4b](#9104b-native-패키지)).
-- proxy `rok`, `rokc`, `rokls` ([9.10.6](#9106-toolchain)) 는 결코 교체하지 않으며, `rok install` 이 두지 않은 `$ROK_HOME/bin` 의 파일도 마찬가지입니다 (에러). 실행 파일을 다시 설치하면 교체합니다.
+- proxy `rok`, `rokc`, `rokls` ([9.10.6](#9106-toolchain)) 는 결코 교체하지 않으며, `rok install` 이 두지 않은 `$ROK_HOME/bin` 의 파일도 마찬가지입니다 (에러). 실행 파일을 다시 설치할 때: 같은 stone 버전이나 git commit 에 같은 feature 인 것은 다시 빌드하지 않고 유지하며 (`` `tool` 0.1.0 is installed already (<path>); to rebuild it, run `rok install tool --force` ``), `--force` 가 다시 빌드합니다 (`Reinstalled`). 다른 버전은 그것을 교체하며 (`Upgraded tool from 0.1.0 to 0.2.0`, `Downgraded …`), 다른 git commit 도 마찬가지입니다 (`Replaced <url> at <commit> with …`). path 나 스크립트 파일에서 온 것은 `cargo install --path` 처럼 언제나 다시 빌드합니다. 라이브러리 설치는 그대로입니다.
 - `--list` 는 ``libraries (environment `<env>`):`` 와 `executables (<bin dir>):` 를 출력하며, 각각 뒤에 설치 순서대로 `  <name> <source>` 줄이 옵니다.
 - `rok uninstall <name>..` 은 각 이름을 활성 환경의 라이브러리에서 지우거나 (lock 을 다시 해소), 아니면 `rok install` 이 `$ROK_HOME/bin` 에 둔 실행 파일을 지웁니다. `--native` 는 환경에서 native 패키지를 지웁니다. 둘 다 아닌 이름은 에러입니다.
 - `rok install` 말고 `$ROK_HOME` 아래에 쓰는 것은 `rok toolchain` (toolchain, proxy, `config.rokon`), `rok login` (`credentials.rokon`), `rok env` (환경), 그리고 캐시뿐입니다.

@@ -379,7 +379,7 @@ cf.cond_br %need_yield, ^slow, ^cont
   ; ... continue ...
 ```
 
-The compiler emits this code at function entry and on loop back-edges.
+The compiler emits this code at function entry (or before the first safepoint of each path, [8.4.7](804-safepoint.md#847-safepoint-invariant)) and on loop back-edges.
 
 ## 8.9.12. Shadow stack frame
 
@@ -414,7 +414,7 @@ llvm.store %obj, %x : !llvm.ptr, !llvm.ptr
 llvm.store %saved, %head_ptr : !llvm.ptr, !llvm.ptr
 ```
 
-`@rok_tls` is the thread-local block of [8.3.8](803-tls-slots.md#838-form-of-compiler-emission); the shadow stack head is its slot at offset 0. An error return is also an ordinary `return` ([8.9.6](#896-try--catch--finally-value-based-branching)), so it passes through the same unlink. A function needs a frame only if it holds GC references and can reach a safepoint ([8.4.2](804-safepoint.md#842-emission-sites)). Calls to functions that never return (panics) and to runtime functions that neither allocate nor block ([8.5.2](805-extern-symbols.md#functions-that-are-not-safepoints)) do not count.
+`@rok_tls` is the thread-local block of [8.3.8](803-tls-slots.md#838-form-of-compiler-emission); the shadow stack head is its slot at offset 0. An error return is also an ordinary `return` ([8.9.6](#896-try--catch--finally-value-based-branching)), so it passes through the same unlink. The link may also come later than shown, before the first safepoint of each path ([8.4.7](804-safepoint.md#847-safepoint-invariant)); then only the returns of paths that linked unlink. A function needs a frame only if it holds GC references and can reach a safepoint ([8.4.2](804-safepoint.md#842-emission-sites)). Calls to functions that never return (panics) and to runtime functions that neither allocate nor block ([8.5.2](805-extern-symbols.md#functions-that-are-not-safepoints)) do not count.
 
 ### Module data layout
 

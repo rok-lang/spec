@@ -89,7 +89,7 @@ impl str {
 }
 ```
 
-`as_ptr` returns a pointer that stays valid while the `str` is held in a live local. A string reachable only through another object may be moved by the GC; it is not pinned ([stdlib 1.6](../100-bare/106-gc-pin.md)).
+`as_ptr` returns a pointer to the string's bytes in place. The GC does not move the string, and the pointer stays valid, while a variable holding the `str` is in scope in a function where a pointer value can appear: a variable's or an expression's type names a `rok::bare::ptr` type, also as a type argument (`List<ConstPtr<u8>>`) or in a function type. In a generator or `async` body this holds across `yield` / `await`. Elsewhere a variable holds the string only up to its last use, and a string reachable only through another object may be moved by the GC: it is not pinned ([stdlib 1.6](../100-bare/106-gc-pin.md)). To keep the bytes in place longer, pin the string ([1.6.6](../100-bare/106-gc-pin.md#166-extraction-methods)).
 
 ### `StrBuf` — mutable buffer
 

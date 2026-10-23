@@ -167,7 +167,7 @@ fn add(x: f64, y: f64) -> f64 { x + y }   // ERROR — duplicate
 
 To vary behavior by type, combine traits and generics ([`trait`](../002-types/208-trait.md)).
 
-Functions, `const`s and `static`s of a module share one value namespace: a `const`, `static` or function with the name of another of them in the same module is also a compile error. Different arities, `async`, or type parameters do not make two functions distinct. To accept different argument counts, give one function default values for its trailing parameters ([4.2.3](402-parameters.md#423-default-values)).
+Functions, `const`s and `static`s of a module share one value namespace: a `const`, `static` or function with the name of another of them in the same module is also a compile error. A tuple or unit struct's constructor is in that namespace too ([2.3.7](../002-types/203-struct.md#237-no-duplicate-definitions-in-the-same-module)): `struct Point(i32, i32);` beside `fn Point`, `const Point` or `static Point` is a duplicate definition. Different arities, `async`, or type parameters do not make two functions distinct. To accept different argument counts, give one function default values for its trailing parameters ([4.2.3](402-parameters.md#423-default-values)).
 
 ## 4.1.11. Order and combination of fn modifiers
 

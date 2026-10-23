@@ -171,7 +171,7 @@ impl Pinned<str> {
 }
 ```
 
-These container methods are the extraction API: there is no generic `as_ptr`; `as_value_ptr` is named apart from `List`'s `as_data_ptr`. Each container gets dedicated extraction methods, so data can be taken out in a form matching each container's layout, such as the buffer start or a null-terminated form.
+These container methods are the extraction API, valid for as long as the `Pinned` is held. (`str::as_ptr` and `CStr::as_ptr` give an address without a pin, under the narrower rule of [2.15.2](../200-core/215-string.md#2152-str--immutable-utf-8-string).) There is no generic `as_ptr`; `as_value_ptr` is named apart from `List`'s `as_data_ptr`. Each container gets dedicated extraction methods, so data can be taken out in a form matching each container's layout, such as the buffer start or a null-terminated form.
 
 ## 1.6.7. GC runtime linkage
 
