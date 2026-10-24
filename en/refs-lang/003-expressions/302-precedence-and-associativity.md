@@ -35,22 +35,22 @@ The language fixes the precedence and associativity of every built-in operator t
 ### Precedence levels
 
 ```
-Level Operators                                       Assoc
+Level Operators                                                 Assoc
 13   postfix: member access (.), ?., method call, indexing, ?   left
-12   prefix unary: - ! ~ √ await                      -
-11   as is (postfix conversion / type test)           left
-10   << >>                                            left
- 9   ∘ (function composition)                         left
- 8   * / % %% × ⋅ ÷ ∩                                 left
- 7   + - ∪                                            left
- 6   & ^                                              left
- 5   |                                                left
- 4   == != < > <= >= ≡ ≠ ≤ ≥ ∈ ∉ ⊂ ⊆                  none
- 3   &&                                               left
- 2   ||                                               left
- 1   ?? (null coalescing)                             right
- 0   .. ..= (range)                                   none
--1   = += -= *= /= %= %%= &= |= ^= <<= >>= (assignment)   right
+12   prefix unary: - ! ~ √ await                                -
+11   as is (postfix conversion / type test)                     left
+10   << >>                                                      left
+ 9   ∘ (function composition)                                   left
+ 8   * / % %% × ⋅ ÷ ∩                                           left
+ 7   + - ∪                                                      left
+ 6   & ^                                                        left
+ 5   |                                                          left
+ 4   == != < > <= >= ≡ ≠ ≤ ≥ ∈ ∉ ⊂ ⊆                            none
+ 3   &&                                                         left
+ 2   ||                                                         left
+ 1   ?? (null coalescing)                                       right
+ 0   .. ..= (range)                                             none
+-1   = += -= *= /= %= %%= &= |= ^= <<= >>= (assignment)         right
 ```
 
 The Unicode operators in the table (`× ⋅ ÷ ∩ ∪ ∘ √ ≡ ≠ ≤ ≥ ∈ ∉ ⊂ ⊆`) are fixed tokens of [1.10.3](../001-lexical/110-punctuation-and-operator-tokens.md#1103-fixed-token-table). Extension tokens not in the 3.2 table ([1.10.4](../001-lexical/110-punctuation-and-operator-tokens.md#1104-extension-tokens)) do not create new levels; they take the level and associativity of the existing token named at registration, as in `like = "+"` ([6.7.2](../006-meta-system/607-operator-magic.md#672-arguments)).

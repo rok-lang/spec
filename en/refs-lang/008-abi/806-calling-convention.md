@@ -101,12 +101,12 @@ Calls between rok functions pass scalars in the registers of 8.6.2. An aggregate
 
 **Results**
 
-- AArch64: up to 8 integer (`x0`–`x7`) and 8 floating-point (`v0`–`v7`) registers. A larger result is returned through an sret pointer passed in `x8` (not returned).
+- AArch64: up to 8 integer (`x0`-`x7`) and 8 floating-point (`v0`-`v7`) registers. A larger result is returned through an sret pointer passed in `x8` (not returned).
 - x86-64: up to three integer registers (`rax`, `rdx`, `rcx`); floating-point results use `xmm0` / `xmm1`, then x87 `st0` / `st1`. A result needing a 4th integer or 5th floating-point register is returned through an sret pointer passed in `rdi` and returned in `rax`.
 
 **Windows**
 
-- Windows x64: integer and floating-point arguments share four register positions (`rcx` `rdx` `r8` `r9` / `xmm0`–`xmm3`); each argument takes the next position, in the register of its class. Stack slots are 8 bytes, after the caller's 32-byte home area. The sret pointer is passed in `rcx`; results are otherwise as on x86-64.
+- Windows x64: integer and floating-point arguments share four register positions (`rcx` `rdx` `r8` `r9` / `xmm0`-`xmm3`); each argument takes the next position, in the register of its class. Stack slots are 8 bytes, after the caller's 32-byte home area. The sret pointer is passed in `rcx`; results are otherwise as on x86-64.
 - Windows arm64: AAPCS64 as above. A C variadic call passes every floating-point argument in integer registers.
 
 **Narrow integers**
@@ -115,7 +115,7 @@ A callee must not rely on the upper bits of narrow integer or `bool` arguments a
 
 A function no other module can reach (internal, never used as a value) may use an implementation-defined convention.
 
-Calls to `extern "C"` and `extern "rok"` runtime functions use the C ABI rules of 8.6.1–8.6.5.
+Calls to `extern "C"` and `extern "rok"` runtime functions use the C ABI rules of 8.6.1-8.6.5.
 
 ## 8.6.7. Tail calls
 

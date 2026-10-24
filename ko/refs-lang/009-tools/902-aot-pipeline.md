@@ -214,7 +214,7 @@ target/
 | 의존 패키지     | `target/<profile>/deps/` (`lib<dep>.a`, `<dep>.rokhir`, `<dep>.fp`, 9.2.3) |
 | 교차 빌드       | `target/<triple>/<profile>/...` (위와 같은 구조)                  |
 | 문서            | `target/doc/`                                                     |
-| 증분            | `target/<profile>/incremental/<name>/` (실행 파일의 codegen unit), `…/lib<name>/` (라이브러리의 것), target 루트마다의 `…/<name>-<hash>/` (front end), 9.2.16 |
+| 증분            | `target/<profile>/incremental/<name>/` (실행 파일의 codegen unit), `.../lib<name>/` (라이브러리의 것), target 루트마다의 `.../<name>-<hash>/` (front end), 9.2.16 |
 
 루트 파일이 둘 다 있는 패키지는 두 산출물 `target/<profile>/<name>` 과 `target/<profile>/lib<name>.a` (+ `<name>.rokhir`) 를 가지며, `-o` 는 실행 파일의 이름을 정합니다.
 

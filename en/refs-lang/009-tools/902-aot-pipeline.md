@@ -112,7 +112,7 @@ This includes deciding between gradual and static slots (see [`any` slot](../002
 
 The type-checked AST is converted into the rok-hir ([HIR](../000-meta/007-glossary.md#hir-high-level-ir--mir-mid-level-ir)) data structure.
 
-HIR is an intermediate representation rich in type information, reflecting all results of steps 4–5 above. It is structurally compressed so that identical types and identifiers share a representation.
+HIR is an intermediate representation rich in type information, reflecting all results of steps 4-5 above. It is structurally compressed so that identical types and identifiers share a representation.
 
 ## 9.2.8. specialize: monomorphization
 
@@ -214,7 +214,7 @@ target/
 | Dependencies    | `target/<profile>/deps/` (`lib<dep>.a`, `<dep>.rokhir`, `<dep>.fp`, 9.2.3) |
 | Cross build     | `target/<triple>/<profile>/...` (same structure as above)         |
 | Documentation   | `target/doc/`                                                     |
-| Incremental     | `target/<profile>/incremental/<name>/` (an executable's codegen units), `…/lib<name>/` (a library's), and `…/<name>-<hash>/` per target root (the front end), 9.2.16 |
+| Incremental     | `target/<profile>/incremental/<name>/` (an executable's codegen units), `.../lib<name>/` (a library's), and `.../<name>-<hash>/` per target root (the front end), 9.2.16 |
 
 A package with both root files has both outputs, `target/<profile>/<name>` and `target/<profile>/lib<name>.a` (+ `<name>.rokhir`); `-o` names the executable.
 

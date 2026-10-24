@@ -72,7 +72,7 @@ The same PrefixVarInt as MLIR bytecode, a variant of LEB128. The number of leadi
 | Field            | Meaning                                                                           |
 |------------------|-----------------------------------------------------------------------------------|
 | name             | The package's mount name. It appears in symbols, so it must equal `--extern <name>=` |
-| hash             | Package hash ([0.3.3](../000-meta/003-source-units.md#033-package-identifier)). The value used in symbol mangling. For the standard library package `rok` it is a `pkg=hash;…` list, one entry per tier |
+| hash             | Package hash ([0.3.3](../000-meta/003-source-units.md#033-package-identifier)). The value used in symbol mangling. For the standard library package `rok` it is a `pkg=hash;...` list, one entry per tier |
 | source dir       | The directory holding the package source at build time. The base for file paths in the body; downstream reads the body, not the disk |
 | gc type offset / count | This package's GC type id range `[offset, offset + count)` (9.4.8)          |
 | features         | The `feature` cfg values the package was built with. Downstream parses the body with the build's other cfg and these features |

@@ -135,9 +135,9 @@ q.x = 9.0;                        // ps[0].x 는 그대로
 ps[0] = q;                        // 되씀
 ```
 
-공유는 참조 핸들로 합니다: 컬렉션 (`List`, `Dict`, `Set`, `StrBuf`, `Deque`, …, [stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md#참조-핸들)), `Mutex`, `RwLock`, atomic, 채널, `[ref x]` 캡처 셀. 핸들을 복사하면 객체를 공유합니다.
+공유는 참조 핸들로 합니다: 컬렉션 (`List`, `Dict`, `Set`, `StrBuf`, `Deque`, ..., [stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md#참조-핸들)), `Mutex`, `RwLock`, atomic, 채널, `[ref x]` 캡처 셀. 핸들을 복사하면 객체를 공유합니다.
 
-|                     | 값 타입 (`struct`, `enum`, 튜플, 원시 타입) | 참조 핸들 (`List`, `Dict`, `Mutex`, …) |
+|                     | 값 타입 (`struct`, `enum`, 튜플, 원시 타입) | 참조 핸들 (`List`, `Dict`, `Mutex`, ...) |
 |---------------------|---------------------------------------------|----------------------------------------|
 | `let b = a;`        | 독립된 사본                                 | 같은 객체                              |
 | 필드 / 원소 쓰기    | 사본에만                                    | 모든 핸들에서 보임                     |

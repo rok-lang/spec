@@ -93,7 +93,7 @@ fn make() -> AsyncFuture<()> { let c = Cell::new(0); async { c.set(1); } }
 task::spawn(make());                       // ERROR - helper 가 만든 future 의 frame 도 검사
 ```
 
-같은 검사가 다른 스레드로 클로저를 보내는 자리에도 적용됩니다: `thread::spawn`, `thread::Builder::spawn`, `par` 의 `Scope::spawn`, `task::spawn_blocking`. 클로저가 `Send` 가 아닌 frame 의 future 를 들고 있으면 ``` `X` would move a future to another thread: … ``` 에러입니다.
+같은 검사가 다른 스레드로 클로저를 보내는 자리에도 적용됩니다: `thread::spawn`, `thread::Builder::spawn`, `par` 의 `Scope::spawn`, `task::spawn_blocking`. 클로저가 `Send` 가 아닌 frame 의 future 를 들고 있으면 ``` `X` would move a future to another thread: ... ``` 에러입니다.
 
 이 검사는 보수적으로 근사해도 됩니다. 구현은 실제로는 `Send` 인 future 를 거부할 수 있지만, `Send` 가 아닌 값을 다른 스레드로 넘기는 future 를 받아서는 안 됩니다. 다음 값은 따라 들어가지 않습니다.
 

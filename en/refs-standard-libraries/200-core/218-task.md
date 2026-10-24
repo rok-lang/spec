@@ -91,7 +91,7 @@ fn make() -> AsyncFuture<()> { let c = Cell::new(0); async { c.set(1); } }
 task::spawn(make());                       // ERROR - the frame of a future made by a helper is checked too
 ```
 
-The same check applies wherever a closure is sent to another thread: `thread::spawn`, `thread::Builder::spawn`, `par`'s `Scope::spawn`, and `task::spawn_blocking`. If the closure holds a future whose frame is not `Send`, it is the error ``` `X` would move a future to another thread: … ```.
+The same check applies wherever a closure is sent to another thread: `thread::spawn`, `thread::Builder::spawn`, `par`'s `Scope::spawn`, and `task::spawn_blocking`. If the closure holds a future whose frame is not `Send`, it is the error ``` `X` would move a future to another thread: ... ```.
 
 The check may approximate conservatively. An implementation may reject a future that is actually `Send`, but must never accept a future that passes a non-`Send` value to another thread. The check does not descend into:
 

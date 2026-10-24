@@ -6,7 +6,7 @@ rok 의 컴파일 단위는 **패키지**입니다. 패키지는 파일 시스�
 
 패키지는 실행 파일, 라이브러리, 또는 둘 다를 가집니다. 무엇을 가지는지는 소스 디렉토리 `src/` 의 루트 파일만으로 정해집니다: `src/main.rok` 는 실행 파일의 루트, `src/lib.rok` 는 라이브러리의 루트입니다.
 
-패키지 디렉토리는 패키지의 소스를 `src/` 에 두고, 그 밖의 모든 것을 그 옆에 둡니다: 매니페스트 `rok.rokon` 과 lockfile `rok.lock` (0.3.4), `target/` (빌드 산출물, [9.2.15](../009-tools/902-aot-pipeline.md#9215-산출물)), 그리고 `README`, `LICENSE`, 테스트 데이터 같은 파일입니다. `src/` 아래의 파일만 패키지의 소스이며, `src/` 밖의 `.rok` 파일은 패키지의 일부가 아닙니다 (함께 컴파일되지 않고, 식별자 (0.3.3) 에 들어가지 않으며, 따로 실행하면 익명 패키지입니다, [4.16.8](../004-functions/416-entry-point.md#4168-단일-파일-실행)).
+패키지 디렉토리는 패키지의 소스를 `src/` 에 두고, 그 밖의 모든 것을 그 옆에 둡니다: 매니페스트 `rok.rokon` 과 lockfile `rok.lock` (0.3.4), `target/` (빌드 산출물, [9.2.15](../009-tools/902-aot-pipeline.md#9215-산출물)), 그리고 `README`, `LICENSE`, 테스트 데이터 같은 파일입니다. `src/` 아래의 파일만 패키지의 소스이며, `src/` 밖의 `.rok` 파일은 패키지의 일부가 아닙니다 (함께 컴파일되지 않고, 식별자 (0.3.3) 에 들어가지 않으며, 따로 실행하면 익명 패키지입니다, [4.16.8](../004-functions/416-entry-point.md#4168-단일-파일-실행)). 유일한 예외는 `tests/` 와 `benches/` 디렉토리로, `rokc test` / `rokc bench` 에서만 컴파일됩니다 ([0.3.5](#035-테스트와-벤치마크-디렉토리)).
 
 ### 실행 패키지: `src/main.rok`
 
@@ -77,3 +77,25 @@ foo/                   <- foo's submodules
 의존성, dev 의존성, toolchain 고정 같은 정보가 필요할 때만 패키지 루트의 `src/` 옆에 매니페스트 `rok.rokon` ([9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) 을 두고, 도구가 해소한 결과는 lockfile `rok.lock` 에 남습니다. 두 파일 이름은 이 철자 그대로 (모두 소문자) 입니다. 대소문자가 다른 이름 (`Rok.rokon` 등) 은 경고입니다. 두 파일은 [ROKON](../../refs-standard-libraries/300-std/309-rokon.md) 형식이며, 매니페스트는 `Package { .. }` 값 하나로 읽기만 하고 컴파일하거나 실행하지 않습니다.
 
 이 결정은 두 가지를 가능하게 합니다. 첫째로 의존성이 없는 패키지는 컴파일러가 파일만 보고 처리할 수 있습니다. 둘째로 매니페스트는 추가될 뿐이며, 기존 패키지 정의를 깨지 않습니다.
+
+## 0.3.5. 테스트와 벤치마크 디렉토리
+
+패키지는 `src/` 옆에 `tests/` 와 `benches/` 디렉토리를 둘 수 있습니다. `src/` 밖의 다른 파일 (0.3.1) 과 달리 이들은 컴파일되지만, 대응하는 명령에서만 그렇습니다: `tests/` 는 `rokc test`, `benches/` 는 `rokc bench`. 일반 빌드, 라이브러리 인터페이스 (`.rokhir`), 패키지 식별자 (0.3.3) 에는 들어가지 않으며, 이들은 모두 `src/` 만으로 정해집니다.
+
+각 디렉토리는 합성 루트 모듈로 올라갑니다 - `tests/` 는 `tests` 모듈, `benches/` 는 `benches` 모듈 아래에 - [모듈](../005-modules/504-modules.md#544-패키지-루트) 의 일반 레이아웃 규칙을 따릅니다: `tests/parse.rok` 는 `tests::parse` 이고, 옆의 `tests/parse/` 폴더가 그 모듈의 하위 모듈을 담습니다. `mod.rok` 는 없습니다 ([5.4.6](../005-modules/504-modules.md#546-사용자-정의-경로-path)); 이름 규칙은 `src/` 와 같습니다.
+
+코드는 in-crate 입니다: 패키지와 함께 컴파일되며 `pkg::` 로 패키지에 닿고, `src/` 아래 모듈과 동일한 패키지 내부 가시성을 가집니다 - 의존성의 `pub` 전용 뷰가 아니므로 `pub(pkg)` 항목과 패키지 자신의 비공개 모듈까지 다룰 수 있습니다. 매니페스트의 `dev_deps` ([9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) 를 쓸 수 있습니다. `src/lib.rok` 와 `src/main.rok` 를 둘 다 가진 패키지에서는 두 디렉토리가 라이브러리를 대상으로 빌드되며, 실행 파일 자신의 테스트는 `src/` 안에 인라인으로 둡니다.
+
+여기의 파일은 암묵적으로 test/bench 전용이라 `#[cfg(test)]` 가 필요 없습니다. 측정 함수는 `#[test]` 나 `#[bench]` 로 표시하고 ([6.2.5](../006-meta-system/602-built-in-attributes.md#625-test-테스트-함수-마커)), 디렉토리의 다른 항목은 공용 헬퍼입니다.
+
+```
+my_lib/
+├── rok.rokon
+├── src/
+│   └── lib.rok
+├── tests/                <- rokc test 전용
+│   ├── parse.rok             tests::parse   (pkg:: 사용)
+│   └── common.rok            tests::common  (공용 헬퍼, #[test] 없음)
+└── benches/              <- rokc bench 전용
+    └── parse.rok             benches::parse
+```

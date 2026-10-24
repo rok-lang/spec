@@ -102,7 +102,7 @@ No separate rule like Go 1.22's per-iteration scope is needed; value capture pro
 
 Value capture copies the value into the closure. A [`struct`](../002-types/203-struct.md) is a value type, so the closure holds its own copy; a field write inside the closure does not reach the outer variable. Use `[ref p]` for that.
 
-Collections (`List`, `Dict`, `Set`, `StrBuf`, …) are reference handles ([stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md#reference-handles)). Value capture copies the handle, so the object is shared.
+Collections (`List`, `Dict`, `Set`, `StrBuf`, ...) are reference handles ([stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md#reference-handles)). Value capture copies the handle, so the object is shared.
 
 ```rok
 let xs = [1, 2, 3];

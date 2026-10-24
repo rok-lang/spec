@@ -15,7 +15,7 @@ Files written in other encodings such as UTF-16, GBK or Shift_JIS are rejected b
 
 ### Bidirectional control characters are forbidden
 
-The bidirectional (bidi) control characters U+202A–202E and U+2066–2069 are a compile error anywhere in the source (including comments and string literals). This prevents attacks in which the displayed code differs from the actual token order. If a string needs one of these characters, write it with an escape such as `\u{202E}`.
+The bidirectional (bidi) control characters U+202A-202E and U+2066-2069 are a compile error anywhere in the source (including comments and string literals). This prevents attacks in which the displayed code differs from the actual token order. If a string needs one of these characters, write it with an escape such as `\u{202E}`.
 
 ## 1.1.3. Line terminators
 

@@ -169,7 +169,7 @@ by_ref(ref a);                    // a = 10
 
 ## 4.7.9. Structs and reference handles
 
-A `struct` is a value type: pass by value copies it, so a field write in the callee is local. To change the caller's struct, take it as `ref` (or `ref self`), or return the new value. A reference handle (`List`, `Dict`, …, [stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md#reference-handles)) is copied as a handle, so changes to its elements are visible to the caller.
+A `struct` is a value type: pass by value copies it, so a field write in the callee is local. To change the caller's struct, take it as `ref` (or `ref self`), or return the new value. A reference handle (`List`, `Dict`, ..., [stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md#reference-handles)) is copied as a handle, so changes to its elements are visible to the caller.
 
 ```rok
 fn set_x(p: Point) { p.x = 10.0; }          // local copy - the caller's p is unchanged

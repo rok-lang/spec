@@ -558,7 +558,7 @@ The area of each symbol prefix is summarized below.
 | `rok_timer_*`   | Timers         |
 | `rok_panic`     | Diagnostics    |
 
-This prefix convention avoids symbol collisions with external libraries and user code. The tables of 8.5.1 – 8.5.7 list the normative runtime symbols; the runtime may export further implementation-defined `rok_*` symbols (e.g. `rok_fmt_*`, `rok_os_*`, `rok_stdio_*`, `rok_static_init_*`).
+This prefix convention avoids symbol collisions with external libraries and user code. The tables of 8.5.1 - 8.5.7 list the normative runtime symbols; the runtime may export further implementation-defined `rok_*` symbols (e.g. `rok_fmt_*`, `rok_os_*`, `rok_stdio_*`, `rok_static_init_*`).
 
 ## 8.5.9. Compatibility of function signatures
 

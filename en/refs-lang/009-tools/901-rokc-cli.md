@@ -138,13 +138,15 @@ The exit code of `rokc run` is the exit code of the program. If the program term
 
 ### `rokc test`: tests
 
-`rokc test` collects test functions, builds them and runs them.
+`rokc test` collects test functions and builds the test harness; `rok test` ([9.10](910-rok-frontend.md)) runs it.
 
 ```
 rokc test [path] [filter]
 ```
 
-It collects functions marked `#[test]`, builds a test executable and runs it. `#[test]` implies `#[cfg(test)]` ([6.2.5](../006-meta-system/602-built-in-attributes.md#625-test-test-function-marker)), so test functions are not part of a normal build. A test build uses an entry point that selects tests instead of the package's entry point.
+It collects functions marked `#[test]` and builds a test executable (the harness). `#[test]` implies `#[cfg(test)]` ([6.2.5](../006-meta-system/602-built-in-attributes.md#625-test-test-function-marker)), so test functions are not part of a normal build. Tests are collected both from `src/` (under `#[cfg(test)]`) and from the `tests/` directory ([0.3.5](../000-meta/003-source-units.md#035-test-and-benchmark-directories)). A test build uses an entry point that selects tests instead of the package's entry point.
+
+`rokc` does not run the harness. `--emit-harness <file>` writes the built executables and the tests in them - the manifest `rok test` runs - to `<file>`; without it the built executables are named on standard error. Running the harness (selecting tests, the process isolation, parallelism and reporting below) is the `rok test` runner ([9.10](910-rok-frontend.md)).
 
 If there is a single argument and it is not an existing path, it is taken as `filter`. `filter` matches the test name including its module path (`math::adds`).
 
@@ -188,15 +190,28 @@ In a package with both root files, the library's tests run first, then the execu
 rokc bench [path] [filter]
 ```
 
-Collects functions marked `#[bench]`, runs them in an optimized build (`-O2` unless `-O` is given) and measures them ([9.9.11](909-debug-tools.md#9911-benchmarks)). Like `#[test]`, `#[bench]` implies `#[cfg(test)]`. The `path` and `filter` rules are the same as `rokc test`.
+Collects functions marked `#[bench]` and builds them in an optimized build (`-O2` unless `-O` is given); `rok bench` ([9.10](910-rok-frontend.md)) runs the harness and measures them ([9.9.11](909-debug-tools.md#9911-benchmarks)). Like `#[test]`, `#[bench]` implies `#[cfg(test)]`, and benches are collected both from `src/` and from the `benches/` directory ([0.3.5](../000-meta/003-source-units.md#035-test-and-benchmark-directories)). The `path`, `filter` and `--emit-harness` rules are the same as `rokc test`.
 
-- `--iters=N` is the number of calls per sample. If omitted, it is calibrated so that one sample takes about 10 ms.
-- `--samples=N` is the number of samples measured (default 10). One warm-up sample is discarded before them.
+A benchmark takes a `Bench` handle and times a closure, so setup stays out of the measurement:
 
-Benchmarks run one at a time, and print in cargo form the mean ns per call and the standard deviation across samples.
+```rok
+#[bench]
+fn parse_1kb(b: Bench) {
+    let input = sample(1024);               // setup: run once, not timed
+    b.bytes(1024);                          // optional: report throughput
+    b.iter(|| parse(black_box(input)));     // the timed region
+}
+```
+
+`b.iter(f)` performs the whole measurement (calibrate, warm up, sample); its result is black-boxed. `black_box` ([`rok::core`](../../refs-standard-libraries/README.md)) is an identity the optimizer cannot see through - apply it to the inputs and result of the timed region so the work is neither hoisted out nor folded away. `b.bytes(n)` / `b.items(n)` add a throughput column. `Bench`, `black_box` and the statistics are library API; the method is defined in [9.9.11](909-debug-tools.md#9911-benchmarks).
+
+- `--iters=N` fixes the number of calls per sample instead of calibrating.
+- `--samples=N` is the number of samples measured (default 100).
+
+Benchmarks run one at a time. Terminal output is one aligned line per benchmark, in human units; when stdout is not a terminal a stable machine form is written for regression tools.
 
 ```
-bench fib_20 ... bench:       41,503 ns/iter (+/- 312)
+  json::parse_1kb     1.84 us +/- 0.03 us   543 MiB/s   [2 outliers]
 ```
 
 ### `rokc repl`: terminal REPL

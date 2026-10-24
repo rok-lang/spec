@@ -70,7 +70,7 @@ So sum types of the same shape are the same type, and the user need not care whe
 
 ### Layers of generic sums
 
-A sum with a generic term, `T | X1 | … | Xn` (e.g. `T | none`, `T | ParseErr`), semantically has **its own layer**. `X1 … Xn` are the non-generic terms written in that sum. Generic terms are these four:
+A sum with a generic term, `T | X1 | ... | Xn` (e.g. `T | none`, `T | ParseErr`), semantically has **its own layer**. `X1 ... Xn` are the non-generic terms written in that sum. Generic terms are these four:
 
 - type parameters (`T`)
 - `Self`
@@ -79,7 +79,7 @@ A sum with a generic term, `T | X1 | … | Xn` (e.g. `T | none`, `T | ParseErr`)
 
 The layering rule applies when a generic term is replaced by an actual type. If the substituted type overlaps a co-written term, a nested layer results; if not, it is flattened. Below, `T` stands for one generic term.
 
-**When a layer remains.** If the type substituted for `T` shares any term with `X1 … Xn`, the substituted `T` remains a single term and becomes a **nested layer**. If there is no overlap, it is flattened. Flattening loses no information distinguishing values, so the result appears and is treated as a flat sum.
+**When a layer remains.** If the type substituted for `T` shares any term with `X1 ... Xn`, the substituted `T` remains a single term and becomes a **nested layer**. If there is no overlap, it is flattened. Flattening loses no information distinguishing values, so the result appears and is treated as a flat sum.
 
 | Generic sum          | `T` substitution     | Result                                              |
 |----------------------|----------------------|-----------------------------------------------------|

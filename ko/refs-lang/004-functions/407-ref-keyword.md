@@ -169,7 +169,7 @@ by_ref(ref a);                    // a = 10
 
 ## 4.7.9. 구조체와 참조 핸들
 
-`struct` 는 값 타입입니다. 값 pass 는 그것을 복사하므로 피호출자의 필드 쓰기는 지역적입니다. 호출자의 구조체를 바꾸려면 `ref` (또는 `ref self`) 로 받거나 새 값을 반환합니다. 참조 핸들 (`List`, `Dict`, …, [stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md#참조-핸들)) 은 핸들로 복사되므로 원소 변경이 호출자에게 보입니다.
+`struct` 는 값 타입입니다. 값 pass 는 그것을 복사하므로 피호출자의 필드 쓰기는 지역적입니다. 호출자의 구조체를 바꾸려면 `ref` (또는 `ref self`) 로 받거나 새 값을 반환합니다. 참조 핸들 (`List`, `Dict`, ..., [stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md#참조-핸들)) 은 핸들로 복사되므로 원소 변경이 호출자에게 보입니다.
 
 ```rok
 fn set_x(p: Point) { p.x = 10.0; }          // 지역 사본 - 호출자의 p 는 그대로

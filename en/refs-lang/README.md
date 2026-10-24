@@ -2,7 +2,7 @@
 
 This is the formal specification of the rok programming language. It defines the language's **syntax** and **semantics** and provides the normative baseline that compilers and runtimes must follow.
 
-The reference date is 2026-04-30. This specification is the normative baseline for compiler and runtime implementations; the actual implementations of the compiler and the standard libraries live in separate repositories.
+The reference date is 2026-10-23. This specification is the normative baseline for compiler and runtime implementations; the actual implementations of the compiler and the standard libraries live in separate repositories.
 
 ---
 
@@ -25,7 +25,7 @@ The rok specification consists of ten chapters, numbered 0 through 9. The chapte
 
 Chapter 0 collects the build model, platform assumptions and notation that every later chapter presupposes; reading it once means the conventions repeated in the body need not be tracked down again. Chapter 1, lexical structure, comes next for a simple reason: types and expressions can take form only once the shape of tokens is defined. Chapters 2 (types), 3 (expressions) and 4 (functions) then introduce, in turn, the core structures needed to create and manipulate values inside a single module.
 
-Modules, visibility and packages appear only in Chapter 5 by design: file boundaries and encapsulation can be discussed only after the semantics within a single file are fully defined. Chapter 6, the meta-system, presupposes all of Chapters 1–5. Attributes, `lang` / `literal` / `keyword` magic, and reflection operate *on* lexical structure, types, expressions, functions and modules, so their meaning is clear only once all of those targets are defined.
+Modules, visibility and packages appear only in Chapter 5 by design: file boundaries and encapsulation can be discussed only after the semantics within a single file are fully defined. Chapter 6, the meta-system, presupposes all of Chapters 1-5. Attributes, `lang` / `literal` / `keyword` magic, and reflection operate *on* lexical structure, types, expressions, functions and modules, so their meaning is clear only once all of those targets are defined.
 
 Finally, Chapter 7 (runtime model), Chapter 8 (ABI and MLIR lowering) and Chapter 9 (execution and tools) cover the steps that turn the surface language into actual execution. Chapter 7 describes object layout, GC and the scheduler abstractly; Chapter 8 pins down which bits in memory and registers implement them; and Chapter 9 ties it all together and specifies the `rokc` CLI and the form of build outputs that users interact with.
 

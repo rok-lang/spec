@@ -135,9 +135,9 @@ q.x = 9.0;                        // ps[0].x unchanged
 ps[0] = q;                        // written back
 ```
 
-Sharing goes through reference handles: collections (`List`, `Dict`, `Set`, `StrBuf`, `Deque`, …, [stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md#reference-handles)), `Mutex`, `RwLock`, atomics, channels, and `[ref x]` capture cells. Copying a handle shares the object.
+Sharing goes through reference handles: collections (`List`, `Dict`, `Set`, `StrBuf`, `Deque`, ..., [stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md#reference-handles)), `Mutex`, `RwLock`, atomics, channels, and `[ref x]` capture cells. Copying a handle shares the object.
 
-|                         | Value type (`struct`, `enum`, tuple, primitive) | Reference handle (`List`, `Dict`, `Mutex`, …) |
+|                         | Value type (`struct`, `enum`, tuple, primitive) | Reference handle (`List`, `Dict`, `Mutex`, ...) |
 |-------------------------|-------------------------------------------------|-----------------------------------------------|
 | `let b = a;`            | independent copy                                | same object                                   |
 | field / element write   | local to the copy                               | seen through every handle                     |

@@ -11,7 +11,7 @@
 - [6.5. `#[literal(...)]` 매직](605-literal-magic.md)
 - [6.6. `#[keyword(...)]` 매직](606-keyword-magic.md)
 - [6.7. 연산자 매직](607-operator-magic.md)
-- [6.8. 사용자 정의 메타 블록](608-meta-blocks.md)
+- [6.8. 사용자 정의 메타 정의 (메타 블록과 매크로)](608-meta-blocks.md)
 - [6.9. 템플릿 토큰과 확장](609-template-tokens.md)
 - [6.10. 리플렉션](610-reflection.md)
 - [6.11. 컴파일 시점 파일 포함](611-include.md)
@@ -25,8 +25,10 @@ attribute
   ├── plain attribute - hints / metadata for compiler / tools
   └── magic - channel where the library binds to language meaning
 
-meta block - user-defined derive / attribute definitions
-  └── template token (@Self, @field, ...)
+meta definition - user-defined code generator, one template engine (6.8)
+  ├── derive / attribute / per-field  - triggered by #[..] on a type or item
+  └── macro                           - triggered by a call, name!(..)
+      └── template token (@Self, @field, ..) + matcher (typed fragments)
 ```
 
 ### 속성 (attribute)
@@ -66,9 +68,9 @@ fn linux_only() { ... }
 
 이 매직들이 `1 + 2` 와 같은 언어 토큰을 라이브러리 트레잇 메서드 호출로 연결하는 역할을 담당합니다. 자세한 내용은 [`#[literal]` 매직](605-literal-magic.md) 부터 [연산자 매직](607-operator-magic.md) 까지에 걸쳐 정의됩니다.
 
-### 메타 블록 (meta block)
+### 메타 정의 (meta definition)
 
-메타 블록은 사용자가 자신만의 derive 또는 attribute 를 정의할 수 있도록 하는 코드 생성기로서, Rust 의 proc macro 자리에 해당하는 개념입니다.
+메타 정의는 코드 생성기입니다. 세 형태는 사용자가 자신만의 derive 또는 attribute 를 정의하게 하고 (Rust 의 derive·attribute proc macro 자리), 넷째인 [매크로](608-meta-blocks.md#6812-macro-형태) 는 호출 `name!(..)` 로 트리거되어 호출자가 쓴 것으로부터 코드를 생성합니다 (함수형 경우). 넷 다 하나의 템플릿 엔진을 공유합니다.
 
 ```rok
 #[impl_derive(MyTrait)] pub @derive {
@@ -80,7 +82,7 @@ fn linux_only() { ... }
 }
 ```
 
-메타 블록에는 `#[impl_derive]`, `#[impl_attribute]`, `#[impl_derive_attribute]` 의 세 종류가 있으며, 본체에 `@Self`, `@field`, `@for_fields` 와 같은 템플릿 토큰을 사용해 코드 생성 규칙을 작성합니다. proc macro 스타일의 토큰 스트림 조작은 도입하지 않으며, 템플릿 토큰만으로도 충분한 표현력을 제공합니다. 자세한 정의는 [메타 블록](608-meta-blocks.md) 에서 다룹니다.
+네 가지 형태가 모두 같은 방식 — `#[impl_<kind>(name)]`, 가시성, `@` 시작자, 블록 — 으로 쓰입니다. attribute 로 트리거되는 `#[impl_derive]`, `#[impl_attribute]`, `#[impl_derive_attribute]` 와, 호출로 트리거되는 `#[impl_macro(name)] @macro { .. }` (`name!(..)` 로 호출) 입니다. 본체에 `@Self`, `@field`, `@for_fields` 같은 템플릿 토큰으로 코드 생성 규칙을 작성하고, 매크로는 타입드 fragment 매처 (`@x: expr`) 를 더합니다. proc macro 스타일의 토큰 스트림 조작은 도입하지 않으며, 템플릿 토큰만으로도 충분한 표현력을 제공합니다. 자세한 정의는 [메타 정의](608-meta-blocks.md) 에서 다룹니다.
 
 ## 핵심 원칙
 
@@ -88,9 +90,9 @@ fn linux_only() { ... }
 
 ### 1. 토큰 스트림 조작 없음
 
-Rust 의 `syn` 이나 `quote` 와 같은 임의 토큰 조작 매크로는 rok 에 존재하지 않으며, 사용자 코드 생성은 오로지 템플릿 블록과 메타 토큰을 통해서만 가능합니다.
+Rust 의 `syn` 이나 `quote` 와 같은 절차적·토큰 조작 매크로는 rok 에 존재하지 않습니다. 모든 사용자 코드 생성 — attribute 로 트리거되는 메타 블록과 호출로 트리거되는 매크로 ([6.8.12](608-meta-blocks.md#6812-macro-형태)) 둘 다 — 은 오로지 패턴과 템플릿을 통해서만 이루어집니다. 매처가 입력의 일부를 바인딩하고 템플릿이 그것을 전사할 뿐, 어떤 단계도 임의 코드를 실행하거나 원시 토큰 스트림을 고쳐 쓰지 않습니다.
 
-이러한 제약을 두는 이유는, 사용자 정의 derive 가 만들어 내는 코드를 컴파일러가 이해할 수 있는 상태로 유지하기 위함입니다. 임의의 토큰 변환을 허용하게 되면 예측 불가성, 디버깅의 어려움, 도구 표면의 폭발이라는 트레이드오프가 강제로 따라붙게 됩니다.
+이러한 제약을 두는 이유는, 생성된 코드를 컴파일러·포매터·언어 서버가 따라갈 수 있는 상태로 유지하기 위함입니다. 임의의 토큰 변환을 허용하게 되면 예측 불가성, 디버깅의 어려움, 도구 표면의 폭발이라는 트레이드오프가 강제로 따라붙게 됩니다. 매크로는 이 규칙 안에 머물면서 호출부 코드 생성 (나머지 형태가 할 수 없는 것) 을 더합니다.
 
 ### 2. 매직은 표준 라이브러리가 사용
 

@@ -115,7 +115,7 @@ When a task hits `await` or `yield`, only the coroutine frame goes back into the
 
 ## 7.6.12. Spawn cost
 
-`task::spawn` completes by merely allocating a stackless coroutine frame. The frame's size depends on the task's local variables, roughly 64–256 bytes, and it is allocated on the [TLAB](../000-meta/007-glossary.md#tlab-thread-local-allocation-buffer) fast path, so the cost is near zero.
+`task::spawn` completes by merely allocating a stackless coroutine frame. The frame's size depends on the task's local variables, roughly 64-256 bytes, and it is allocated on the [TLAB](../000-meta/007-glossary.md#tlab-thread-local-allocation-buffer) fast path, so the cost is near zero.
 
 As a result, even millions of concurrent tasks are incomparably lighter than OS threads.
 

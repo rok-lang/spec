@@ -14,14 +14,15 @@
 | `env`                                                             | 환경 (9.10.5)                           |
 | `toolchain`                                                       | toolchain (9.10.6)                      |
 | `install`, `uninstall`                                            | REPL / Jupyter 용 라이브러리와 실행 파일 (9.10.5a) |
-| `build`, `check`, `run`, `test`, `bench`, `emit`                  | 의존성을 붙여 `rokc` 에 위임            |
+| `build`, `check`, `run`, `emit`                                   | 의존성을 붙여 `rokc` 에 위임            |
+| `test`, `bench`                                                   | `rokc` 가 의존성을 붙여 하네스를 빌드하고, `rok` 가 실행 ([9.1](901-rokc-cli.md)) |
 | `doc`, `lint`, `repl [path]`, `lsp`                               | 의존성을 붙여 `rokc` 에 위임            |
 | `fmt`, `clean`, `demangle`, `profdata`                            | 의존성 없이 `rokc` 에 위임              |
 | `jupyter`                                                         | 커널 실행 (`--connection-file`) 은 위임, `jupyter install [--env <name>]` 은 kernelspec 설치 ([9.8.3](908-jupyter-integration.md#983-kernelspec-설치)) |
 | `version`, `help`                                                 |                                         |
 | (없음)                                                            | `rok repl` 과 같음 - REPL 시작          |
 
-위임하는 서브명령은 같은 이름의 `rokc` 서브명령을 실행합니다. `rok` 는 자기 전역 옵션 (`--env` / `--offline` / `--locked` / `--cwd`, `--` 앞 어디든) 만 소비하고, 나머지 인자는 그대로 넘기며 다음을 더합니다.
+위임하는 서브명령은 같은 이름의 `rokc` 서브명령을 실행합니다. `rok` 는 자기 전역 옵션 (`--env` / `--offline` / `--locked` / `--cwd`, `--` 앞 어디든) 만 소비하고, 나머지 인자는 그대로 넘기며 다음을 더합니다. `test` 와 `bench` 는 `rok` 가 `rokc` 로 하네스를 빌드하게만 하고 (`--emit-harness`) 실행은 직접 하므로 ([9.1](901-rokc-cli.md)), 러너는 컴파일러에 속하지 않습니다.
 
 - 의존 패키지마다 `--extern name=<소스 디렉토리>`. `rok.lock` 을 따라 준비하며, 의존되는 쪽이 의존하는 쪽보다 앞입니다 (`rok deps` 가 출력하는 순서). 미리 빌드는 `rokc` 가 합니다 ([9.2.3](902-aot-pipeline.md#미리-빌드한-의존-패키지)).
 - 패키지 자신의 feature 는 `--cfg feature=<f>` 로, 각 의존 패키지의 feature 는 `--extern-feature <name>=<f>` 로 (9.10.4c). build / run / test / bench / check / lint / doc / emit / repl / lsp / jupyter / deps 의 feature 옵션 `--features <f,..>` (여러 번 가능, `<dep>/<f>` 도), `--all-features`, `--no-default-features` 는 `rok` 이 소비합니다 (`--` 앞).
@@ -392,7 +393,7 @@ rok uninstall [--native] <name>..
 - `src/lib.rok` 만 있는 패키지, 또는 `--lib` 를 준 `src/lib.rok` 가 있는 패키지는 라이브러리이며, `pip install` 처럼 `rok repl`, `rok jupyter`, `:add` 를 위해 활성 환경 ([9.10.5](#9105-환경)) 에 들어갑니다: 환경의 `rok.rokon` 에 적고 (요구 없는 stone 은 `^<가장 새 버전>`, path 는 절대 경로), 그 `rok.lock` 으로 해소하며, 그 `target/` 에 미리 빌드합니다. 스크립트는 그것을 보지 않습니다: 스크립트는 `rok add <name> <file.rok>` 로 라이브러리를 얻으며, 출력 줄이 이것을 알립니다. 빌드되지 않으면 아무것도 설치하지 않습니다. `src/lib.rok` 가 없는 패키지나 스크립트에 `--lib` 를 주면 에러입니다.
 - `<name>` 은 라이브러리의 최상위 이름, 또는 실행 파일의 파일 이름입니다. 생략하면 패키지의 `name`, 없으면 디렉토리 이름 (path), `.git` 을 뗀 저장소 이름 (git), 파일 stem (스크립트) 입니다. [9.10.3](#9103-rokrokon--roklock) 의 이름 규칙을 따릅니다.
 - `--features` / `--no-default-features` 는 라이브러리의 `Dep` 에, 또는 실행 파일의 빌드에 들어가며, `--dev` / `--optional` 은 에러입니다. `--native` 는 환경의 `native` 에 native 패키지를 더합니다 ([9.10.4b](#9104b-native-패키지)).
-- proxy `rok`, `rokc`, `rokls` ([9.10.6](#9106-toolchain)) 는 결코 교체하지 않으며, `rok install` 이 두지 않은 `$ROK_HOME/bin` 의 파일도 마찬가지입니다 (에러). 실행 파일을 다시 설치할 때: 같은 stone 버전이나 git commit 에 같은 feature 인 것은 다시 빌드하지 않고 유지하며 (`` `tool` 0.1.0 is installed already (<path>); to rebuild it, run `rok install tool --force` ``), `--force` 가 다시 빌드합니다 (`Reinstalled`). 다른 버전은 그것을 교체하며 (`Upgraded tool from 0.1.0 to 0.2.0`, `Downgraded …`), 다른 git commit 도 마찬가지입니다 (`Replaced <url> at <commit> with …`). path 나 스크립트 파일에서 온 것은 `cargo install --path` 처럼 언제나 다시 빌드합니다. 라이브러리 설치는 그대로입니다.
+- proxy `rok`, `rokc`, `rokls` ([9.10.6](#9106-toolchain)) 는 결코 교체하지 않으며, `rok install` 이 두지 않은 `$ROK_HOME/bin` 의 파일도 마찬가지입니다 (에러). 실행 파일을 다시 설치할 때: 같은 stone 버전이나 git commit 에 같은 feature 인 것은 다시 빌드하지 않고 유지하며 (`` `tool` 0.1.0 is installed already (<path>); to rebuild it, run `rok install tool --force` ``), `--force` 가 다시 빌드합니다 (`Reinstalled`). 다른 버전은 그것을 교체하며 (`Upgraded tool from 0.1.0 to 0.2.0`, `Downgraded ...`), 다른 git commit 도 마찬가지입니다 (`Replaced <url> at <commit> with ...`). path 나 스크립트 파일에서 온 것은 `cargo install --path` 처럼 언제나 다시 빌드합니다. 라이브러리 설치는 그대로입니다.
 - `--list` 는 ``libraries (environment `<env>`):`` 와 `executables (<bin dir>):` 를 출력하며, 각각 뒤에 설치 순서대로 `  <name> <source>` 줄이 옵니다.
 - `rok uninstall <name>..` 은 각 이름을 활성 환경의 라이브러리에서 지우거나 (lock 을 다시 해소), 아니면 `rok install` 이 `$ROK_HOME/bin` 에 둔 실행 파일을 지웁니다. `--native` 는 환경에서 native 패키지를 지웁니다. 둘 다 아닌 이름은 에러입니다.
 - `rok install` 말고 `$ROK_HOME` 아래에 쓰는 것은 `rok toolchain` (toolchain, proxy, `config.rokon`), `rok login` (`credentials.rokon`), `rok env` (환경), 그리고 캐시뿐입니다.
@@ -423,9 +424,9 @@ rok toolchain update [<version>]
 
 ### 배포
 
-- 릴리스 archive 는 `rok-<version>-<triple>.tar.gz` (Windows 는 `.zip`) 이며, 안은 toolchain 레이아웃입니다. 옆에 `<archive>.sha256` 이 있습니다: archive 의 SHA-256 을 hex 로 적고, 그 뒤에 파일 이름이 올 수 있습니다 (sha256sum 형식).
+- 릴리스 archive 는 `rok-<version>-<triple>.tar.gz` (Windows 는 `.zip`) 이며, 안은 toolchain 레이아웃입니다. Windows 가 아니면 같은 파일을 담은 `rok-<version>-<triple>.tar.xz` 도 옆에 있습니다. 각 archive 옆에 `<archive>.sha256` 이 있습니다: archive 의 SHA-256 을 hex 로 적고, 그 뒤에 파일 이름이 올 수 있습니다 (sha256sum 형식).
 - `install.sh`, `install.ps1`, `rok toolchain install --from <url>` 은 같은 곳에서 `<url>.sha256` 을 받아, SHA-256 이 다른 archive 를 거부합니다. `.sha256` 이 없으면 에러입니다. 경로로 준 archive 는 `<path>.sha256` 이 있을 때 그것과 대조합니다. 서명은 정의하지 않으며, 출처는 HTTPS 가 보증합니다.
-- `install.sh` (<https://rok-lang.org/install.sh>) 는 archive 나 `rok-lang` 조직의 GitHub release 에서 `$ROK_HOME` 에 설치합니다.
+- `install.sh` (<https://rok-lang.org/install.sh>) 는 archive 나 `rok-lang` 조직의 GitHub release 에서 `$ROK_HOME` 에 설치합니다. tar 가 읽을 수 있고 (macOS, 또는 `PATH` 에 `xz`) 릴리스에 있으면 `.tar.xz` 를, 아니면 `.tar.gz` 를 받습니다. `rok toolchain install` 은 `.tar.gz` 를 받습니다.
 - 릴리스는 `$ROK_DIST` (기본값 `https://github.com/rok-lang/rok/releases`) 에서 제공됩니다: `<dist>/download/v<version>/<archive>` 와 그 `.sha256`, 그리고 최신 릴리스의 버전을 담은 `<dist>/latest/download/rok-version`.
 
 ## 9.10.7. 단일 파일 스크립트의 inline 매니페스트

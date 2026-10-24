@@ -234,7 +234,7 @@ On an `any Tr` value, only methods of `Tr` and its supertraits can be called, an
 - a trait type parameter not fixed by an argument of the bound
 - an associated type not fixed by an `X = ..` binding of the bound
 
-A bound may omit arguments and bindings; omitted ones are treated as unconstrained. A call on `any Tr<A, X = B>` is checked against the trait declaration's signature with `A` and `B` substituted. So it can be called even when `Tr` is implemented only by generic impls. For example, `next` cannot be called on `any Iterator` (`Item` not fixed), but can on `any Iterator<Item = i32>`. The cost model is the same as `any` in 2.2.3. To use other methods or fields, narrow to the concrete type with an `is` check or a type pattern as in 2.2.5–2.2.6.
+A bound may omit arguments and bindings; omitted ones are treated as unconstrained. A call on `any Tr<A, X = B>` is checked against the trait declaration's signature with `A` and `B` substituted. So it can be called even when `Tr` is implemented only by generic impls. For example, `next` cannot be called on `any Iterator` (`Item` not fixed), but can on `any Iterator<Item = i32>`. The cost model is the same as `any` in 2.2.3. To use other methods or fields, narrow to the concrete type with an `is` check or a type pattern as in 2.2.5-2.2.6.
 
 ```rok
 fn describe(e: any Error) -> str {

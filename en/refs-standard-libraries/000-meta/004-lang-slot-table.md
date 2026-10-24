@@ -46,7 +46,7 @@ Standard library additions (PascalCase struct + `#[keyword(...)]`):
 | `float_type` | `float` auto-promote type     | `rok::core::num::Float` + `#[keyword("float")]`           | 2.1  |
 | `range_type` | `Range<T>` (`a..b`)           | `rok::core::range::Range` + `#[literal( expr ".." expr )]` | 2.7  |
 
-A compiler that provides the primitive types built in may leave `i32_type` … `str_type`, `none_type` and `char_type` unattached.
+A compiler that provides the primitive types built in may leave `i32_type` ... `str_type`, `none_type` and `char_type` unattached.
 
 ## 0.4.3. Trait slots (30)
 
@@ -128,7 +128,7 @@ Where the previous sections listed "which slots exist", this section summarizes 
 | Desugaring a default `f"{x}"` hole                 | `display_trait`                          |
 | Desugaring `f"{x:?}"`                              | `debug_trait`                            |
 | Desugaring `await expr`                            | `future_trait`                           |
-| Primitive lowering of arithmetic / bitwise / logical operators | `add_trait` … `logical_or_trait` |
+| Primitive lowering of arithmetic / bitwise / logical operators | `add_trait` ... `logical_or_trait` |
 | `==` / `!=`, literal pattern matching              | `eq_trait`                               |
 | `<` / `>` / `<=` / `>=`, range pattern matching    | `cmp_trait`                              |
 | Expanding `#[derive(Clone / Ord / Hash)]`          | `clone_trait`, `ord_trait`, `hash_trait` |

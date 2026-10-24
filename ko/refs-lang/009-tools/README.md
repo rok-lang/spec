@@ -30,8 +30,8 @@ rokc  (compiler)
   ├── build / run
   │   ├── rokc build      : AOT compile - .rok source to .a / executable
   │   ├── rokc run        : AOT compile then run immediately
-  │   ├── rokc test       : collect + run test functions (#[test])
-  │   ├── rokc bench      : collect + run benchmarks (#[bench])
+  │   ├── rokc test       : collect + build the #[test] harness (rok test runs it)
+  │   ├── rokc bench      : collect + build the #[bench] harness (rok bench runs it)
   │   ├── rokc check      : type / diagnostics only (no native build)
   │   └── rokc clean      : remove build artifacts
   │

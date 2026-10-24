@@ -360,7 +360,31 @@ fn run() { ... }
 //   }
 ```
 
-## 6.9.8. Expansion mechanism
+## 6.9.8. Call-site (macro) tokens
+
+The tokens above bind a type or item the definition is attached to. A macro ([6.8.12](608-meta-blocks.md#6812-the-macro-form)) binds the caller's tokens instead, through a matcher, and uses these tokens; `@for`, `@apply_if` and `@concat` are shared with the forms above.
+
+| Token                                  | In a matcher / template                                        | Section |
+|----------------------------------------|----------------------------------------------------------------|---------|
+| `@name: <fragment>`                    | Matcher: capture one fragment (`expr`, `stmt`, `block`, `ty`, `pat`, `path`, `ident`, `literal`, `item`, `tt`) | 6.9.8 |
+| `@name`                                | Template: the captured fragment, or the current element in a `@for` | 6.9.8 |
+| `@rep[sep = ",", trailing] { .. }`     | Matcher: a sub-pattern repeated, with an optional separator and optional trailing one | 6.9.8 |
+| `@for @name { .. }`                    | Template: the body once per element of a captured sequence (lockstep over several) | 6.9.3 |
+| `@concat(a, @name, ..)`                | Template: join name tokens / string literals into one indexed identifier | 6.9.8 |
+
+### `@name: <fragment>` fragment capture
+
+In a matcher, `@name: <fragment>` matches and binds that grammar. A fragment other than `tt` is parsed into a real syntax node, so the captured code is typed and checked and the tools resolve names inside it; `tt` captures one raw token tree (a token or a balanced group) for a non-rok DSL. Literal tokens elsewhere in the matcher must appear verbatim. In the template, `@name` substitutes the capture, preserving the call site's hygiene ([6.9.9](#699-expansion-mechanism)).
+
+### `@rep` / `@for` repetition
+
+`@rep[sep = ",", trailing] { <sub-pattern> }` matches the sub-pattern zero or more times; a metavariable captured inside binds a sequence. `@for @name { <body> }` is the same iterator as `@for_fields` ([6.9.3](#693-field-iteration)), here over that sequence; metavariables from one `@rep` iterate in lockstep and must have equal length. `@rep` and `@for` nest.
+
+### `@concat(..)` name synthesis
+
+`@concat(..)` joins name tokens (`@name`, `@Self.name`, a bare identifier) and string literals into a single identifier, at a definition or path position only. The identifier it forms is recorded, so symbol search and go-to-definition reach the generated item ([6.8.12](608-meta-blocks.md#tooling)); a non-name piece, or use outside a name position, is an error.
+
+## 6.9.9. Expansion mechanism
 
 ### Collection and expansion
 
@@ -427,11 +451,11 @@ Template authors use absolute paths (`rok::core::..`, the library's `pkg::..`) o
 
 Errors during expansion and parse errors of the expansion result point to the template's location and append the use site (`#[derive(X)]` / `#[x]`) as a note. Tokens that come from the item through template tokens point to the item's location.
 
-## 6.9.9. Debugging
+## 6.9.10. Debugging
 
 `rokc build --emit=expanded` ([9.9.10](../009-tools/909-debug-tools.md#9910-meta-block-debugging)) prints the expansion results of the user package as source text. Each expansion is a `// expanded from this #[derive(X)] (file:line:col)` comment followed by the generated source; if the output is expanded again, it follows the outer expansion.
 
-## 6.9.10. Summary
+## 6.9.11. Summary
 
 Template tokens are the code generation vocabulary of rok's meta-system. Simple as they are, they cover all the core cases of practical derives and attributes.
 

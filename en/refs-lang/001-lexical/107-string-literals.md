@@ -41,7 +41,7 @@ The following escape sequences are recognized.
 | `\t`       | Tab (`U+0009`)                                                       |
 | `\0`       | NULL (`U+0000`)                                                      |
 | `\xHH`     | One byte (two hex digits, only `U+0000`-`U+007F` allowed - ASCII range) |
-| `\u{H...}` | Any Unicode code point (1–6 hex digits, at most `U+10FFFF`)          |
+| `\u{H...}` | Any Unicode code point (1-6 hex digits, at most `U+10FFFF`)          |
 
 Hex digits inside `\u{...}` may be separated with `_` (e.g. `\u{1_F600}`). Any backslash sequence other than those listed above is a lexical error; an unknown escape is never silently left as its original characters.
 
@@ -197,6 +197,6 @@ let magic = b"\x7FELF";          // [u8; 4]
 let req: Slice<u8> = b"GET /\r\n";
 ```
 
-Characters written directly must be ASCII; any other byte is written as an escape. Escape sequences follow the table of 1.7.1 as for `c'A'` ([1.8.1](108-character-literals.md#181-two-kinds)): `\xHH` may be any value `\x00`–`\xFF`, and every escape's value must lie within `U+0000`–`U+00FF`. A non-ASCII character written directly, or an escape above `U+00FF`, is a lexical error. Line continuation (`\` + line terminator) is not supported.
+Characters written directly must be ASCII; any other byte is written as an escape. Escape sequences follow the table of 1.7.1 as for `c'A'` ([1.8.1](108-character-literals.md#181-two-kinds)): `\xHH` may be any value `\x00`-`\xFF`, and every escape's value must lie within `U+0000`-`U+00FF`. A non-ASCII character written directly, or an escape above `U+00FF`, is a lexical error. Line continuation (`\` + line terminator) is not supported.
 
 Where the expected type is `Slice<u8>`, or a sum type with a `Slice<u8>` member and no array member, the literal is instead a `Slice<u8>` view of that array, as if written `b"..."[:]`.

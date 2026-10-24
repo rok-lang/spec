@@ -26,13 +26,13 @@ This follows UAX #31 §7.1 "Mathematical Compatibility Notation Profile". `math_
 | Set             | Code points                                                                                                 |
 |-----------------|-------------------------------------------------------------------------------------------------------------|
 | `math_start`    | `∂` U+2202, `∇` U+2207, `∞` U+221E, their mathematical style variants U+1D6C1, U+1D6DB, U+1D6FB, U+1D715, U+1D735, U+1D74F, U+1D76F, U+1D789, U+1D7A9, U+1D7C3 (`𝛁 𝛛 𝛻 𝜕 𝜵 𝝏 𝝯 𝞉 𝞩 𝟃`), and `∑` U+2211, `∏` U+220F, `∫` U+222B |
-| `math_continue` | All of `math_start`, superscripts `¹ ² ³ ⁰ ⁴`–`⁹` `⁺ ⁻ ⁼ ⁽ ⁾` (U+00B2, U+00B3, U+00B9, U+2070, U+2074–207E), subscripts `₀`–`₉` `₊ ₋ ₌ ₍ ₎` (U+2080–208E) |
+| `math_continue` | All of `math_start`, superscripts `¹ ² ³ ⁰ ⁴`-`⁹` `⁺ ⁻ ⁼ ⁽ ⁾` (U+00B2, U+00B3, U+00B9, U+2070, U+2074-207E), subscripts `₀`-`₉` `₊ ₋ ₌ ₍ ₎` (U+2080-208E) |
 
 `∑ ∏ ∫` are added by rok so that they can be used as function names; for this reason they cannot be operator tokens.
 
 ### Primes
 
-`′ ″ ‴ ⁗` (U+2032–2034, U+2057) may appear only in `identifier_continue` (`f′`, `x″`).
+`′ ″ ‴ ⁗` (U+2032-2034, U+2057) may appear only in `identifier_continue` (`f′`, `x″`).
 
 ### Emoji
 
@@ -40,9 +40,9 @@ This follows UAX #31 §7.1 "Mathematical Compatibility Notation Profile". `math_
 - `emoji_component`: may appear only in continue positions.
   - ZWJ (U+200D) - only between two pictographs
   - Variation selectors U+FE0E / U+FE0F - removed by normalization (1.4.2)
-  - Skin tone modifiers U+1F3FB–1F3FF
-  - Regional indicators U+1F1E6–1F1FF (flags)
-  - Tags U+E0020–E007F
+  - Skin tone modifiers U+1F3FB-1F3FF
+  - Regional indicators U+1F1E6-1F1FF (flags)
+  - Tags U+E0020-E007F
 
 - `flag`: a flag made of two regional indicators (`🇰🇷`) may also appear at the start of an identifier.
 
@@ -93,7 +93,7 @@ This decision ensures searchability and consistency of diagnostic messages.
 The compiler emits a **warning** (not an error) in the following cases.
 
 - When distinct names within the same package (regardless of file) have the same skeleton. The skeleton is NFKC normalization plus confusable folding; an implementation may use only a subset of the UTS #39 confusable table. Examples: `σ²` and `σ2`; Latin `a` and Cyrillic `а`.
-- When Cyrillic characters are mixed with Latin or Greek characters within one identifier. Latin–Greek mixing (`Δt`, `σx`) is common in mathematical names and is not warned about; neither is mixing Hangul, Han characters or Kana with Latin.
+- When Cyrillic characters are mixed with Latin or Greek characters within one identifier. Latin-Greek mixing (`Δt`, `σx`) is common in mathematical names and is not warned about; neither is mixing Hangul, Han characters or Kana with Latin.
 
 ## 1.4.3. Case
 

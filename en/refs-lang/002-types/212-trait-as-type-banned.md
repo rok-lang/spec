@@ -63,7 +63,7 @@ Use the following criteria to choose among the alternatives.
 
 | Situation                                                     | Choice      |
 |---------------------------------------------------------------|-------------|
-| Candidates are a small fixed set (3–5)                        | Sum type    |
+| Candidates are a small fixed set (3-5)                        | Sum type    |
 | Candidates are extensible by users / libraries                | Generics    |
 | Candidates are decided only at runtime (e.g. plugins, heterogeneous collections) | `any Trait` |
 | Anything must be held, with no constraint                     | `any`       |

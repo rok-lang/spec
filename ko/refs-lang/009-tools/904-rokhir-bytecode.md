@@ -72,7 +72,7 @@ MLIR bytecode 와 같은 PrefixVarInt 이며 LEB128 의 변형입니다. 첫 바
 | 필드             | 의미                                                                              |
 |------------------|-----------------------------------------------------------------------------------|
 | name             | 패키지의 mount 이름. 심볼에 들어가므로 `--extern <name>=` 과 같아야 함            |
-| hash             | 패키지 해시 ([0.3.3](../000-meta/003-source-units.md#033-패키지-식별자)). 심볼 맹글링에 쓰인 값. 표준 라이브러리 패키지 `rok` 에서는 tier 마다 하나씩인 `pkg=hash;…` 목록 |
+| hash             | 패키지 해시 ([0.3.3](../000-meta/003-source-units.md#033-패키지-식별자)). 심볼 맹글링에 쓰인 값. 표준 라이브러리 패키지 `rok` 에서는 tier 마다 하나씩인 `pkg=hash;...` 목록 |
 | source dir       | 빌드 때 패키지 소스가 있던 디렉토리. body 의 파일 경로의 기준이며, 다운스트림은 디스크가 아니라 body 를 읽음 |
 | gc type offset / count | 이 패키지의 GC type id 구간 `[offset, offset + count)` (9.4.8)              |
 | features         | 패키지를 빌드할 때의 `feature` cfg 값. downstream 은 빌드의 다른 cfg 와 이 feature 로 body 를 파싱합니다 |

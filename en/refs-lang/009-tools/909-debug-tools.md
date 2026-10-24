@@ -321,10 +321,21 @@ To see the full AST after all meta expansion and desugaring as rok source, use `
 Microbenchmarks are run with the following command.
 
 ```
-rokc bench
+rok bench
 ```
 
-This command ([9.1.2](901-rokc-cli.md#rokc-bench-benchmarks)) runs the functions marked `#[bench]` one at a time in an `-O2` build and prints the mean time per call and the standard deviation across samples as `ns/iter (+/- sd)`. `--iters` / `--samples` adjust the sampling.
+`rokc bench` builds the benchmark harness and `rok bench` ([9.10](910-rok-frontend.md)) runs it ([9.1.2](901-rokc-cli.md#rokc-bench-benchmarks)), measuring the functions marked `#[bench]` one at a time in an `-O2` build. Each takes a `Bench` handle and times a closure through `b.iter`, so setup outside the closure is not measured. The measurement is:
+
+1. **Clock.** A monotonic nanosecond clock. Its fixed overhead is amortized by timing `iters` calls per sample, never a single call.
+2. **Calibration.** Unless `--iters` is given, `iters` is raised until one sample takes about 100 ms, so clock quantization and overhead are negligible.
+3. **Warm-up.** Calls are run for about one sample's worth of time and discarded, to settle caches, branch predictors and paging.
+4. **Sampling.** `--samples` samples (default 100) are taken; each records the total time of `iters` calls, and the per-call time is that total divided by `iters`.
+5. **Statistics.** Mean, median, standard deviation, median absolute deviation (MAD), min and max are computed. Samples outside the Tukey fences (1.5 IQR mild, 3 IQR severe) are reported as outliers but kept out of the summary figure. The reported figure is the **median (+/- MAD)**, which is robust to an occasional slow sample.
+6. **GC awareness.** The runtime's collection counter is read around each sample; a sample during which a collection ran is classed as an outlier and counted separately, so GC pauses do not distort the median.
+
+`black_box(x)` is an identity the optimizer cannot see through; apply it to the inputs and result of the timed closure so the work is neither hoisted out nor folded away. `b.bytes(n)` / `b.items(n)` turn the per-call time into a throughput (`MiB/s`, `Melem/s`).
+
+Terminal output is aligned and in human units; non-terminal output is a stable one-line-per-bench machine form for regression tools. `--iters` / `--samples` adjust the sampling.
 
 ## 9.9.12. CI / test integration
 
@@ -349,7 +360,7 @@ The exit codes of the [`rokc` CLI interface](901-rokc-cli.md) are defined as fol
 | `2`   | CLI error        |
 | `101` | rokc internal panic |
 
-`rokc test` exits with `1` if any test fails. Each test runs in a separate process, so a test's panic (`101`) does not become rokc's `101`.
+`rokc test` builds the harness; it does not run the tests. `rok test` runs them and exits with `1` if any fails. Each test runs in a separate process, so a test's panic (`101`) does not become the runner's `101`.
 
 CI can apply different handling per code (retry, notification, etc.).
 

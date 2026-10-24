@@ -89,7 +89,7 @@ The canonical form emitted by `rokon::to_string` and by `rok` (when editing the 
 - A value is written on one line if it fits within 100 columns; otherwise on multiple lines with a comma after each element.
 - Floats use the shortest notation that reads back to the same value (`1.0`, `1.0e300`). Attempting to write NaN / infinity panics ("NaN/infinity has no ROKON form").
 - A variant with only named values has one canonical form, `E::V { .. }` (`Value::Variant` keeps no form flag).
-- Bidi controls (U+202A–U+202E, U+2066–U+2069) in strings and chars are written escaped (`\u{202e}`).
+- Bidi controls (U+202A-U+202E, U+2066-U+2069) in strings and chars are written escaped (`\u{202e}`).
 - Reading the canonical form back yields the same value (round-trip). A reader rejects float literals out of range (`1e999`).
 
 `rokc fmt` checks that a `.rokon` file is ROKON and only re-indents it. It does not rewrite it into canonical form, so comments and layout are preserved.

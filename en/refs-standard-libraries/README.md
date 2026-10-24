@@ -115,7 +115,7 @@ Target-dependent area. Explicit import.
 
 ### First reading
 
-On a first approach, it is recommended to follow Chapters 0–6 of [`refs-lang`](../refs-lang/README.md) to understand the language's mechanisms, and then read this document on top of that. This document gives meaning to the mechanisms refs-lang defines; without a feel for those mechanisms, the traits and signatures tend to read as if floating in the air. Reading the two documents side by side, moving back and forth, is the most efficient approach.
+On a first approach, it is recommended to follow Chapters 0-6 of [`refs-lang`](../refs-lang/README.md) to understand the language's mechanisms, and then read this document on top of that. This document gives meaning to the mechanisms refs-lang defines; without a feel for those mechanisms, the traits and signatures tend to read as if floating in the air. Reading the two documents side by side, moving back and forth, is the most efficient approach.
 
 ### As a reference
 
@@ -144,7 +144,7 @@ This document follows a different directory convention from `refs-lang`, because
 
 | Specification           | Prefix                 | Reason                                                          |
 |-------------------------|------------------------|-----------------------------------------------------------------|
-| refs-lang               | One digit (`002-`)     | 10 chapters (0–9), all with equal authority - flat shape        |
+| refs-lang               | One digit (`002-`)     | 10 chapters (0-9), all with equal authority - flat shape        |
 | refs-standard-libraries | Three digits (`200-`)  | 3 tiers × N modules - the tier is key cross-reference information |
 
 The concrete file naming rules are as follows. Tier directories have prefixes in units of 100, and module files within them start with a three-digit prefix combining one tier digit and two module digits.

@@ -18,7 +18,7 @@ While cursor is below limit, there is enough space. If cursor plus size exceeds 
 ## 7.2.2. Fast path: 4 inline instructions
 
 > [!IMPORTANT]
-> Most allocations are handled by inline code. They finish in 4–5 machine instructions, with zero synchronization cost.
+> Most allocations are handled by inline code. They finish in 4-5 machine instructions, with zero synchronization cost.
 
 ```
 1. tmp = cursor
@@ -28,7 +28,7 @@ While cursor is below limit, there is enough space. If cursor plus size exceeds 
    (return tmp)
 ```
 
-This path completes in 4–5 machine instructions. The branch is almost always `false`, following the fast path, and since the TLAB itself is thread-local, synchronization cost is zero.
+This path completes in 4-5 machine instructions. The branch is almost always `false`, following the fast path, and since the TLAB itself is thread-local, synchronization cost is zero.
 
 The fast path is inline code the compiler generates directly in LLVM IR; the runtime does not expose it as a function call.
 

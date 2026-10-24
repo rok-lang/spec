@@ -133,7 +133,7 @@ fn test_addition() {
 }
 ```
 
-`assert_eq` is in [stdlib 2.14.5](../../refs-standard-libraries/200-core/214-error.md#assert--assert_eq--assert_ne). `#[test]` on a function marks it as a test function. The test runner (`rokc test`, etc.) collects and runs such functions automatically. In ordinary builds they are excluded, as if `#[cfg(test)]` were also attached. A test function is run whatever its own visibility and that of its enclosing modules; `#[test]` does not change visibility for other code.
+`assert_eq` is in [stdlib 2.14.5](../../refs-standard-libraries/200-core/214-error.md#assert--assert_eq--assert_ne). `#[test]` on a function marks it as a test function. `rokc test` collects such functions into a harness and the test runner (`rok test`, etc.) runs them automatically. In ordinary builds they are excluded, as if `#[cfg(test)]` were also attached. A test function is run whatever its own visibility and that of its enclosing modules; `#[test]` does not change visibility for other code.
 
 `#[bench]` marks a benchmark function and, like `#[test]`, implies `#[cfg(test)]`. `rokc bench` collects and runs them ([9.1.2](../009-tools/901-rokc-cli.md#rokc-bench-benchmarks)). A benchmark function is run whatever its own visibility and that of its enclosing modules; `#[bench]` does not change visibility for other code.
 

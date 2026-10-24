@@ -84,7 +84,7 @@ A method is mangled with `<type>.<method>` as its name and the module where the 
 
 ### Nested functions
 
-A nested function ([4.10](../004-functions/410-nested-functions.md)) is mangled in the module of its enclosing item with `<outer>/<name>` as its name, where `<outer>` is the enclosing function's name (`<type>.<method>` for a method, `<trait>.<method>` for a trait default body, recursively `<outer>/<name>` for a nested one). Two nested functions with the same `<outer>/<name>` in one source file get `/2`, `/3`, … in source order. `/` occurs in no other item name, so the symbol is distinct from a module path and from a method. `/` is escaped per the table (`_12f_`).
+A nested function ([4.10](../004-functions/410-nested-functions.md)) is mangled in the module of its enclosing item with `<outer>/<name>` as its name, where `<outer>` is the enclosing function's name (`<type>.<method>` for a method, `<trait>.<method>` for a trait default body, recursively `<outer>/<name>` for a nested one). Two nested functions with the same `<outer>/<name>` in one source file get `/2`, `/3`, ... in source order. `/` occurs in no other item name, so the symbol is distinct from a module path and from a method. `/` is escaped per the table (`_12f_`).
 
 ```
 mod a { fn outer() { fn helper() } }   → _Y<pkg>_a_outer_12f_helper_

@@ -184,7 +184,7 @@ Every `*Assign` impl for primitive types carries `#[intrinsic("rok.OP_assign.TYP
 | `str`        | `AddAssign<str>`, `AddAssign<char>`         | `s = s + t` - replaced by a new str (str is immutable) |
 | `Dict<K,V>`  | `AddAssign<Dict<K,V>>`                      | merge - overwrites existing keys                |
 
-`a op= b` calls `XxxAssign::xxx_assign` (`AddAssign::add_assign`, …) when the left type implements it; otherwise it is `a = a op b`.
+`a op= b` calls `XxxAssign::xxx_assign` (`AddAssign::add_assign`, ...) when the left type implements it; otherwise it is `a = a op b`.
 
 ## 2.4.7. *Assign on collections - the main use
 

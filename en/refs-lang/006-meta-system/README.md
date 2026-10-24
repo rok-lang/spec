@@ -11,7 +11,7 @@ This part defines rok's meta-system: attributes, magic, and meta [blocks](../000
 - [6.5. `#[literal(...)]` magic](605-literal-magic.md)
 - [6.6. `#[keyword(...)]` magic](606-keyword-magic.md)
 - [6.7. Operator magic](607-operator-magic.md)
-- [6.8. User-defined meta blocks](608-meta-blocks.md)
+- [6.8. User-defined meta definitions (meta blocks and macros)](608-meta-blocks.md)
 - [6.9. Template tokens and expansion](609-template-tokens.md)
 - [6.10. Reflection](610-reflection.md)
 - [6.11. Compile-time file embedding](611-include.md)
@@ -25,8 +25,10 @@ attribute
   ├── plain attribute - hints / metadata for compiler / tools
   └── magic - channel where the library binds to language meaning
 
-meta block - user-defined derive / attribute definitions
-  └── template token (@Self, @field, ...)
+meta definition - user-defined code generator, one template engine (6.8)
+  ├── derive / attribute / per-field  - triggered by #[..] on a type or item
+  └── macro                           - triggered by a call, name!(..)
+      └── template token (@Self, @field, ..) + matcher (typed fragments)
 ```
 
 ### Attributes
@@ -68,7 +70,7 @@ These magics connect language tokens such as `1 + 2` to library trait method cal
 
 ### Meta blocks
 
-A meta block is a code generator that lets users define their own derives or attributes; it takes the place of Rust's proc macros.
+A meta definition is a code generator. Three forms let users define their own derives or attributes (taking the place of Rust's derive and attribute proc macros); the fourth, a [macro](608-meta-blocks.md#6812-the-macro-form), is triggered by a call `name!(..)` and generates code from what the caller writes (the function-like case). All four share one template engine.
 
 ```rok
 #[impl_derive(MyTrait)] pub @derive {
@@ -80,7 +82,7 @@ A meta block is a code generator that lets users define their own derives or att
 }
 ```
 
-There are three kinds of meta blocks: `#[impl_derive]`, `#[impl_attribute]`, and `#[impl_derive_attribute]`. Their bodies write code generation rules with template tokens such as `@Self`, `@field`, and `@for_fields`. proc-macro-style token stream manipulation is not provided; template tokens alone give sufficient expressiveness. The full definition is in [meta blocks](608-meta-blocks.md).
+There are four forms, all written the same way - `#[impl_<kind>(name)]`, a visibility, an `@` introducer, and a block: the attribute-triggered `#[impl_derive]`, `#[impl_attribute]`, and `#[impl_derive_attribute]`, and the call-triggered `#[impl_macro(name)] @macro { .. }` (invoked as `name!(..)`). Their bodies write code generation rules with template tokens such as `@Self`, `@field`, and `@for_fields`, and a macro adds a matcher of typed fragments (`@x: expr`). proc-macro-style token stream manipulation is not provided; template tokens alone give sufficient expressiveness. The full definition is in [meta definitions](608-meta-blocks.md).
 
 ## Core principles
 
@@ -88,9 +90,9 @@ Four core principles underpin the meta-system.
 
 ### 1. No token stream manipulation
 
-rok has no arbitrary token-manipulating macros like Rust's `syn` or `quote`; user code generation is possible only through template blocks and meta tokens.
+rok has no procedural, token-manipulating macros like Rust's `syn` or `quote`. All user code generation - the attribute-triggered meta blocks and the call-triggered macro ([6.8.12](608-meta-blocks.md#6812-the-macro-form)) alike - is by pattern and template only: a matcher binds parts of the input, a template transcribes them. No step runs arbitrary code or rewrites a raw token stream.
 
-The reason is to keep the code produced by user-defined derives in a state the compiler can understand. Allowing arbitrary token transformations forces trade-offs: unpredictability, difficult debugging, and an explosion of the tooling surface.
+The reason is to keep generated code in a state the compiler, formatter and language server can follow. Allowing arbitrary token transformations forces trade-offs: unpredictability, difficult debugging, and an explosion of the tooling surface. The macro adds call-site code generation (what the other forms cannot do) while staying inside this rule.
 
 ### 2. Magic is used by the standard library
 

@@ -46,7 +46,7 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 | `float_type` | `float` auto-promote 타입 | `rok::core::num::Float` + `#[keyword("float")]`            | 2.1  |
 | `range_type` | `Range<T>` (`a..b`)       | `rok::core::range::Range` + `#[literal( expr ".." expr )]`  | 2.7  |
 
-기본 타입을 내장으로 제공하는 컴파일러는 `i32_type` … `str_type`, `none_type`, `char_type` 을 붙이지 않은 채 둘 수 있습니다.
+기본 타입을 내장으로 제공하는 컴파일러는 `i32_type` ... `str_type`, `none_type`, `char_type` 을 붙이지 않은 채 둘 수 있습니다.
 
 ## 0.4.3. 트레잇 슬롯 (30)
 
@@ -113,7 +113,7 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 
 ## 0.4.6. 슬롯 사용 측, 컴파일러의 lookup 위치
 
-앞 절들이 “어떤 슬롯이 존재하는가” 를 나열했다면, 이번 절은 거꾸로 “컴파일러가 언제 어떤 슬롯을 찾는가” 를 정리합니다. 사용자가 작성한 문법 한 줄이 표준 라이브러리의 어떤 항목으로 풀려나가는지 추적하고 싶을 때, 다음 표가 출발점이 됩니다.
+앞 절들이 "어떤 슬롯이 존재하는가" 를 나열했다면, 이번 절은 거꾸로 "컴파일러가 언제 어떤 슬롯을 찾는가" 를 정리합니다. 사용자가 작성한 문법 한 줄이 표준 라이브러리의 어떤 항목으로 풀려나가는지 추적하고 싶을 때, 다음 표가 출발점이 됩니다.
 
 | 컴파일러 동작                                | lookup 슬롯                              |
 |----------------------------------------------|------------------------------------------|
@@ -128,7 +128,7 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 | `f"{x}"` 기본 자리 desugar                   | `display_trait`                          |
 | `f"{x:?}"` desugar                           | `debug_trait`                            |
 | `await expr` desugar                         | `future_trait`                           |
-| 산술 / 비트 / 논리 연산자 primitive lowering | `add_trait` … `logical_or_trait`         |
+| 산술 / 비트 / 논리 연산자 primitive lowering | `add_trait` ... `logical_or_trait`         |
 | `==` / `!=`, literal 패턴 매칭               | `eq_trait`                               |
 | `<` / `>` / `<=` / `>=`, range 패턴 매칭     | `cmp_trait`                              |
 | `#[derive(Clone / Ord / Hash)]` 확장         | `clone_trait`, `ord_trait`, `hash_trait` |

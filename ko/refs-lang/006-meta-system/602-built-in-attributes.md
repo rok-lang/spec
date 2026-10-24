@@ -133,7 +133,7 @@ fn test_addition() {
 }
 ```
 
-`assert_eq` 는 [stdlib 2.14.5](../../refs-standard-libraries/200-core/214-error.md#assert--assert_eq--assert_ne) 에 있습니다. `#[test]` 를 함수에 부착하면 그 함수가 테스트 함수임을 표시합니다. 그러면 테스트 러너 (`rokc test` 등) 가 이러한 함수들을 자동으로 수집하여 실행합니다. 일반 빌드에서는 마치 `#[cfg(test)]` 가 함께 붙어 있는 것처럼 제외되니 참고합니다. 테스트 함수는 자신과 바깥 모듈의 가시성과 관계없이 실행되며, `#[test]` 가 다른 코드에 대한 가시성을 바꾸지는 않습니다.
+`assert_eq` 는 [stdlib 2.14.5](../../refs-standard-libraries/200-core/214-error.md#assert--assert_eq--assert_ne) 에 있습니다. `#[test]` 를 함수에 부착하면 그 함수가 테스트 함수임을 표시합니다. `rokc test` 가 이러한 함수들을 하네스로 수집하고, 테스트 러너 (`rok test` 등) 가 자동으로 실행합니다. 일반 빌드에서는 마치 `#[cfg(test)]` 가 함께 붙어 있는 것처럼 제외되니 참고합니다. 테스트 함수는 자신과 바깥 모듈의 가시성과 관계없이 실행되며, `#[test]` 가 다른 코드에 대한 가시성을 바꾸지는 않습니다.
 
 `#[bench]` 는 벤치마크 함수를 표시하며, `#[test]` 와 같이 `#[cfg(test)]` 를 함의합니다. `rokc bench` 가 모아 실행합니다 ([9.1.2](../009-tools/901-rokc-cli.md#rokc-bench-벤치마크)). 벤치마크 함수는 자신과 바깥 모듈의 가시성과 관계없이 실행되며, `#[bench]` 가 다른 코드에 대한 가시성을 바꾸지는 않습니다.
 

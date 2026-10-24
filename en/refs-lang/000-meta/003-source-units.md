@@ -6,7 +6,7 @@ rok's compilation unit is the **package**. A package is recognized on the file s
 
 A package has an executable, a library, or both. Which it has is decided solely by the root files in its source directory `src/`: `src/main.rok` is the executable's root, `src/lib.rok` the library's.
 
-A package directory holds the package's source in `src/` and everything else beside it: the manifest `rok.rokon` and lockfile `rok.lock` (0.3.4), `target/` (build output, [9.2.15](../009-tools/902-aot-pipeline.md#9215-output)), and files such as `README`, `LICENSE` or test data. Only the files under `src/` are the package's source; a `.rok` file outside `src/` is not part of the package (it is not compiled with it, is not in its identifier (0.3.3), and run on its own it is an anonymous package, [4.16.8](../004-functions/416-entry-point.md#4168-single-file-execution)).
+A package directory holds the package's source in `src/` and everything else beside it: the manifest `rok.rokon` and lockfile `rok.lock` (0.3.4), `target/` (build output, [9.2.15](../009-tools/902-aot-pipeline.md#9215-output)), and files such as `README`, `LICENSE` or test data. Only the files under `src/` are the package's source; a `.rok` file outside `src/` is not part of the package (it is not compiled with it, is not in its identifier (0.3.3), and run on its own it is an anonymous package, [4.16.8](../004-functions/416-entry-point.md#4168-single-file-execution)). The sole exception is the `tests/` and `benches/` directories, which are compiled only for `rokc test` / `rokc bench` ([0.3.5](#035-test-and-benchmark-directories)).
 
 ### Executable package: `src/main.rok`
 
@@ -77,3 +77,25 @@ What constitutes a package is determined solely by the presence of files. If `sr
 Only when information such as dependencies, dev dependencies or a toolchain pin is needed is a manifest `rok.rokon` ([9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) placed at the package root, beside `src/`; the results resolved by the tool are recorded in the lockfile `rok.lock`. The two file names are spelled exactly this way (all lowercase). A name differing in case (`Rok.rokon`, etc.) is a warning. Both files use the [ROKON](../../refs-standard-libraries/300-std/309-rokon.md) format; the manifest is only read as a single `Package { .. }` value and is never compiled or executed.
 
 This decision enables two things. First, the compiler can process a package without dependencies by looking at its files alone. Second, the manifest is purely additive and never breaks an existing package definition.
+
+## 0.3.5. Test and benchmark directories
+
+A package may hold a `tests/` and a `benches/` directory beside `src/`. Unlike other files outside `src/` (0.3.1), these are compiled - but only for the matching command: `tests/` by `rokc test`, `benches/` by `rokc bench`. They are never in a normal build, in the library interface (`.rokhir`), or in the package identifier (0.3.3), all of which stay `src/`-only.
+
+Each directory is mounted as a synthetic root module - `tests/` under the module `tests`, `benches/` under `benches` - laid out by the ordinary rules of [Modules](../005-modules/504-modules.md#544-package-root): `tests/parse.rok` is `tests::parse`, and a `tests/parse/` folder beside it holds that module's submodules. There is no `mod.rok` ([5.4.6](../005-modules/504-modules.md#546-custom-paths-path)); the naming is the same as under `src/`.
+
+The code is in-crate: compiled with the package and reaching it through `pkg::` with the same in-package visibility a module under `src/` has - not a dependency's `pub`-only view - so it can exercise `pub(pkg)` items and the package's own non-public modules. It may use the manifest's `dev_deps` ([9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock)). In a package with both `src/lib.rok` and `src/main.rok`, the two directories are built against the library; an executable's own tests stay inline under `src/`.
+
+A file here is implicitly test- or bench-only, so it needs no `#[cfg(test)]`. Mark the measured functions with `#[test]` or `#[bench]` ([6.2.5](../006-meta-system/602-built-in-attributes.md#625-test-test-function-marker)); other items in the directory are shared helpers.
+
+```
+my_lib/
+├── rok.rokon
+├── src/
+│   └── lib.rok
+├── tests/                <- rokc test only
+│   ├── parse.rok             tests::parse   (uses pkg::...)
+│   └── common.rok            tests::common  (shared helper, no #[test])
+└── benches/              <- rokc bench only
+    └── parse.rok             benches::parse
+```
