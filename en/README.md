@@ -26,12 +26,12 @@ rok started from one kind of code its author wants to write. It does not target 
 A language born of a personal motive needs principles it can fall back on at every decision to stay coherent. Two slogans guide the design of rok.
 
 > [!IMPORTANT]
-> **"A small language, a rich library."**
+> **"A small language, rich libraries."**
 
 The first principle is a promise about the size of the specification. The rok specification defines as little as possible. Almost everything that shapes how the language *feels* - numeric semantics, conversions, collections, I/O, concurrency - lives in the standard library. A small core is easier to evolve, verify and teach; the weight of each domain is carried by a rich library instead.
 
 > [!IMPORTANT]
-> **"Freedom within control."**
+> **"The clearer the rules, the freer you are within them."**
 
 The second principle concerns the relation between freedom and constraint. rok does not avoid constraints. Static types, closed sum types, the trait-as-type ban, no implicit promotion, AOT-only compilation - each of these decisions deliberately narrows the paths a user can take. Within that narrower space, code becomes predictable and can be controlled in depth.
 

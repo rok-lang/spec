@@ -362,7 +362,7 @@ fn run() { ... }
 
 ## 6.9.8. Call-site (macro) tokens
 
-The tokens above bind a type or item the definition is attached to. A macro ([6.8.12](608-meta-blocks.md#6812-the-macro-form)) binds the caller's tokens instead, through a matcher, and uses these tokens; `@for`, `@apply_if` and `@concat` are shared with the forms above.
+The tokens above bind a type or item the definition is attached to. A macro ([6.8.12](608-meta-blocks.md#6812-the-macro-form)) binds the caller's tokens instead, through a matcher, and uses these tokens; `@for` and `@concat` are shared with the forms above. The shape conditionals (`@apply_if` and the `@Self` / `@field` / `@variant` tokens they test) are not: a macro has no type shape to test.
 
 | Token                                  | In a matcher / template                                        | Section |
 |----------------------------------------|----------------------------------------------------------------|---------|
@@ -382,7 +382,7 @@ In a matcher, `@name: <fragment>` matches and binds that grammar. A fragment oth
 
 ### `@concat(..)` name synthesis
 
-`@concat(..)` joins name tokens (`@name`, `@Self.name`, a bare identifier) and string literals into a single identifier, at a definition or path position only. The identifier it forms is recorded, so symbol search and go-to-definition reach the generated item ([6.8.12](608-meta-blocks.md#tooling)); a non-name piece, or use outside a name position, is an error.
+`@concat(..)` joins name tokens (`@name`, `@Self.name`, a bare identifier) and string literals into a single identifier, at a definition or path position only. The identifier it forms is recorded, so symbol search and go-to-definition reach the generated item ([6.8.12](608-meta-blocks.md#tooling-and-hygiene)); a non-name piece, or use outside a name position, is an error.
 
 ## 6.9.9. Expansion mechanism
 

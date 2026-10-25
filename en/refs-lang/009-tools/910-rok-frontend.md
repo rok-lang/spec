@@ -415,12 +415,14 @@ rok toolchain install <version> --from <dir | archive | url>
 rok toolchain default [<version>]          # without an argument, prints the current default
 rok toolchain remove <version>
 rok toolchain update [<version>]
+rok toolchain clean                        # remove every installed toolchain but the default
 ```
 
 - An installation is `$ROK_HOME/toolchains/<version>-<triple>/` and is self-contained ([9.2.19](902-aot-pipeline.md#9219-installation-layout)). `install` requires `--from`.
 - `install` verifies with `bin/rokc --version --verbose`; the version and host must match.
 - The first installed toolchain becomes the default, and the `bin/` proxies are created at that point.
 - `rok toolchain update` replaces the default toolchain under `$ROK_HOME`. Without an argument it installs the latest release; with a version it installs that version. The installed toolchain becomes the default and the `bin/` proxies are rewritten; on Windows a running proxy is renamed before its copy replaces it. It downloads the release archive and verifies its SHA-256 (Distribution, below), unpacks it apart and moves it into place, then checks that the proxies run it; on failure the previous default and proxies are restored and the new toolchain is removed. Earlier toolchains stay installed. A version already installed is made the default without a download. `rok update` re-resolves `rok.lock`; `rok toolchain update` replaces the toolchain (9.10.4).
+- `rok toolchain clean` removes every installed toolchain except the current default, an opt-in tidy-up for the earlier versions that `update` leaves installed. A version a project pins is removed too, so reinstall it if a build needs it; with no default set it is an error.
 
 ### Distribution
 

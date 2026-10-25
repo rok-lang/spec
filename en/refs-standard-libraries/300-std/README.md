@@ -12,7 +12,7 @@ Upward, it depends on `rok` and `unsafe`. Downward, user code stands in the depe
 
 ## User import policy
 
-The implicit `use rok::;` does not include std items - `rok::std::*` requires a separate explicit import. Because availability differs by target, the design makes users express platform dependencies **explicitly**.
+The implicit `use rok::core::**;` does not include std items - `rok::std::*` requires a separate explicit import. Because availability differs by target, the design makes users express platform dependencies **explicitly**.
 
 ```rok
 use rok::std::fs;
@@ -24,7 +24,7 @@ use rok::std::thread::Builder;
 
 This tier consists of the following ten modules.
 
-- [3.1. `fs::` - file system (atomic ops, Dir capsules, reflink copy)](301-fs.md)
+- [3.1. `fs::` - file system (atomic ops, Dir capability, reflink copy)](301-fs.md)
 - [3.2. `net::` - TCP / UDP / Unix + TLS 1.3](302-net.md)
 - [3.3. `time::` - `Instant` / `SystemTime` / `Duration` / `BootTime`](303-time.md)
 - [3.4. `thread::` - OS threads (1:1, separate from `task::`)](304-thread.md)

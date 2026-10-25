@@ -415,12 +415,14 @@ rok toolchain install <version> --from <dir | archive | url>
 rok toolchain default [<version>]          # 인자 없으면 지금의 기본을 출력
 rok toolchain remove <version>
 rok toolchain update [<version>]
+rok toolchain clean                        # 기본값을 제외한 설치된 모든 toolchain 제거
 ```
 
 - 설치본은 `$ROK_HOME/toolchains/<version>-<triple>/` 이며 자기 완결입니다 ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)). `install` 은 `--from` 이 필수입니다.
 - `install` 은 `bin/rokc --version --verbose` 로 검증하며, 버전과 host 가 맞아야 합니다.
 - 처음 설치한 toolchain 이 기본이 되고, 이때 `bin/` proxy 를 만듭니다.
 - `rok toolchain update` 는 `$ROK_HOME` 아래의 기본 toolchain 을 교체합니다. 인자가 없으면 최신 릴리스를, 버전을 주면 그 버전을 설치합니다. 설치한 toolchain 이 기본값이 되고 `bin/` proxy 를 다시 씁니다. Windows 에서는 실행 중인 proxy 의 이름을 바꾼 뒤 그 사본으로 교체합니다. 릴리스 archive 를 받아 SHA-256 을 검증하고 (아래 배포), 따로 풀어 제자리로 옮긴 뒤 proxy 가 그것을 실행하는지 확인합니다. 실패하면 이전 기본값과 proxy 를 되돌리고 새 toolchain 을 지웁니다. 이전 toolchain 들은 설치된 채로 남습니다. 이미 설치된 버전은 다운로드 없이 기본값이 됩니다. `rok update` 는 `rok.lock` 을 다시 해소하고, `rok toolchain update` 는 toolchain 을 교체합니다 (9.10.4).
+- `rok toolchain clean` 은 지금의 기본값을 제외한 설치된 모든 toolchain 을 지웁니다. `update` 가 남겨 둔 이전 버전을 정리하는 선택적(opt-in) 명령입니다. 프로젝트가 고정한 버전도 함께 지워지므로 빌드에 필요하면 다시 설치해야 하며, 기본 toolchain 이 없으면 에러입니다.
 
 ### 배포
 

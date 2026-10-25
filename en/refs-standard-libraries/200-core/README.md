@@ -1,6 +1,6 @@
 # 2. Rok tier
 
-The Rok tier is the safe standard library: the practical surface of rok that builds on every target. Because about 90% of user code uses items from this tier, it is the layer that determines what rok looks like in everyday programming.
+The rok tier is the safe standard library: the practical surface of rok that builds on every target. Because about 90% of user code uses items from this tier, it is the layer that determines what rok looks like in everyday programming.
 
 ## Location
 

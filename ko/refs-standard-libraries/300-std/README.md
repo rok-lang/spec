@@ -12,7 +12,7 @@ spec 본체는 `spec/ko/refs-standard-libraries/300-std/` 아래 둡니다.
 
 ## 사용자 import 정책
 
-묵시 `use rok::;` 는 std 항목을 포함하지 않습니다 - `rok::std::*` 는 별도 명시 import 를 강제합니다. target 별 가용성 차이가 있기 때문에, 사용자가 **명시적으로** 플랫폼 의존성을 표현하도록 설계했습니다.
+묵시 `use rok::core::**;` 는 std 항목을 포함하지 않습니다 - `rok::std::*` 는 별도 명시 import 를 강제합니다. target 별 가용성 차이가 있기 때문에, 사용자가 **명시적으로** 플랫폼 의존성을 표현하도록 설계했습니다.
 
 ```rok
 use rok::std::fs;
@@ -24,7 +24,7 @@ use rok::std::thread::Builder;
 
 본 tier 는 다음 열 모듈로 구성합니다.
 
-- [3.1. `fs::` - 파일 시스템 (atomic ops, Dir 캡슐, reflink copy)](301-fs.md)
+- [3.1. `fs::` - 파일 시스템 (atomic ops, Dir capability, reflink copy)](301-fs.md)
 - [3.2. `net::` - TCP / UDP / Unix + TLS 1.3](302-net.md)
 - [3.3. `time::` - `Instant` / `SystemTime` / `Duration` / `BootTime`](303-time.md)
 - [3.4. `thread::` - OS 스레드 (1:1, `task::` 와 별개)](304-thread.md)

@@ -18,7 +18,7 @@
 
 ## 1.10.2. plugin 빌드 형태
 
-`rokc` 는 MLIR 을 내장하며 ([0.2.4](../../refs-lang/000-meta/002-pipeline.md#024-backend)) plugin 을 자신의 MLIR context 에 로드합니다. plugin 은 MLIR 의 표준 plugin 형태를 따르는 동적 라이브러리입니다.
+`rokc` 는 MLIR 을 내장하며 ([0.2.4](../../refs-lang/000-meta/002-pipeline.md#024-backends)) plugin 을 자신의 MLIR context 에 로드합니다. plugin 은 MLIR 의 표준 plugin 형태를 따르는 동적 라이브러리입니다.
 
 | 종류            | 진입점 (C ABI)                    |
 |-----------------|-----------------------------------|

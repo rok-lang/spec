@@ -1,14 +1,14 @@
 # 0.6. 플랫폼 타깃
 
-rok 은 LLVM 이 코드 생성을 지원하는 플랫폼이라면 어느 host 에서든 그 플랫폼용으로 빌드합니다 (`--target`, [0.2.4](002-pipeline.md#024-backend)). 다만 실제로 동작이 보증되는 플랫폼은 한정된 목록(Tier 1)으로 정해 두며, 그 외의 플랫폼은 필요에 따라 사안별로 검토합니다.
+rok 은 LLVM 이 코드 생성을 지원하는 플랫폼이라면 어느 host 에서든 그 플랫폼용으로 빌드합니다 (`--target`, [0.2.4](002-pipeline.md#024-backends)). 다만 실제로 동작이 보증되는 플랫폼은 한정된 목록(Tier 1)으로 정해 두며, 그 외의 플랫폼은 필요에 따라 사안별로 검토합니다.
 
 ## 0.6.1. Tier 1: 정식 지원
 
-다음 14 개의 타깃은 모든 PR 에 대해 CI 가 실행되며, 빌드와 테스트의 통과가 의무로 요구됩니다.
+다음 15 개의 타깃은 모든 PR 에 대해 CI 가 실행되며, 빌드와 테스트의 통과가 의무로 요구됩니다.
 
 ### 64-bit 데스크탑 / 서버
 
-이 영역은 Linux 와 macOS, Windows 의 주요 아키텍처를 모두 포괄하며, 정적 바이너리를 위한 musl 변형까지 포함합니다.
+이 영역은 Linux 와 macOS, Windows 의 주요 아키텍처를 모두 포괄하며, 정적 바이너리를 위한 musl 변형과 64-bit RISC-V Linux 까지 포함합니다.
 
 | 타깃                         | 비고                                       |
 |------------------------------|--------------------------------------------|
@@ -20,6 +20,7 @@ rok 은 LLVM 이 코드 생성을 지원하는 플랫폼이라면 어느 host �
 | `aarch64-pc-windows-msvc`    | Windows ARM                                |
 | `x86_64-unknown-linux-musl`  | Alpine / `static` binary                   |
 | `aarch64-unknown-linux-musl` | 동일, ARM                                  |
+| `riscv64gc-unknown-linux-gnu`| RISC-V 64-bit Linux 서버                   |
 
 ### WebAssembly
 
@@ -44,11 +45,11 @@ rok 은 LLVM 이 코드 생성을 지원하는 플랫폼이라면 어느 host �
 | `i686-pc-windows-msvc`          | 32-bit Windows                       |
 | `armv7-unknown-linux-gnueabihf` | 32-bit ARM Linux (Raspberry Pi 4 등) |
 
-이렇게 총 14 개의 타깃을 통해 과학·데이터·HPC·Jupyter·임베디드 분야의 사용자 대부분을 직접 커버합니다.
+이렇게 총 15 개의 타깃을 통해 과학·데이터·HPC·Jupyter·임베디드 분야의 사용자 대부분을 직접 커버합니다.
 
 ## 0.6.2. Tier 1 외 타깃: 보증 없음
 
-다음 타깃들은 Tier 1 에 속하지 않으며, 본 사양은 이들에 대한 동작을 보증하지 않습니다. 구체적으로는 RISC-V 서버용 `riscv64gc-unknown-linux-gnu`, IBM Power HPC 환경의 `powerpc64le-unknown-linux-gnu`, FreeBSD 용 `x86_64-unknown-freebsd`, RISC-V 임베디드용 `riscv32imac-unknown-none`, 그리고 IBM Z 메인프레임을 위한 `s390x-unknown-linux-gnu` 가 여기에 해당합니다.
+다음 타깃들은 Tier 1 에 속하지 않으며, 본 사양은 이들에 대한 동작을 보증하지 않습니다. 구체적으로는 IBM Power HPC 환경의 `powerpc64le-unknown-linux-gnu`, FreeBSD 용 `x86_64-unknown-freebsd`, RISC-V 임베디드용 `riscv32imac-unknown-none`, 그리고 IBM Z 메인프레임을 위한 `s390x-unknown-linux-gnu` 가 여기에 해당합니다.
 
 ## 0.6.3. 32-bit 지원의 함의
 

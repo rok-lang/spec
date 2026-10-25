@@ -1,6 +1,6 @@
 # 8.7. MLIR 다이얼렉트 사용
 
-[컴파일 파이프라인](../000-meta/002-pipeline.md) 에서 정한 표준 MLIR 다이얼렉트를 본 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 블록의 lowering 사양에 적용합니다. 일반 코드는 7 개 핵심 다이얼렉트로 lower 되며, 가속 영역의 라이브러리는 `linalg` / `tensor` / `vector` / `gpu` / `affine` / `async` 같은 추가 다이얼렉트를 [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md) 로 직접 활용할 수 있습니다. 이것은 MLIR → LLVM backend (`-O1` 이상) 의 lowering 입니다. native backend (`-O0`, REPL) 는 rok-mir 에서 바로 기계어를 만들며 같은 ABI 를 따릅니다 ([0.2.4](../000-meta/002-pipeline.md#024-backend)).
+[컴파일 파이프라인](../000-meta/002-pipeline.md) 에서 정한 표준 MLIR 다이얼렉트를 본 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 블록의 lowering 사양에 적용합니다. 일반 코드는 7 개 핵심 다이얼렉트로 lower 되며, 가속 영역의 라이브러리는 `linalg` / `tensor` / `vector` / `gpu` / `affine` / `async` 같은 추가 다이얼렉트를 [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md) 로 직접 활용할 수 있습니다. 이것은 MLIR → LLVM backend (`-O1` 이상) 의 lowering 입니다. native backend (`-O0`, REPL) 는 rok-mir 에서 바로 기계어를 만들며 같은 ABI 를 따릅니다 ([0.2.4](../000-meta/002-pipeline.md#024-backends)).
 
 ## 8.7.1. 일반 코드 사용 다이얼렉트 (재확인)
 

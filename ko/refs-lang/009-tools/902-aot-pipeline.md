@@ -137,7 +137,7 @@ MIR 은 HIR 보다 한층 더 낮은 수준의 IR 로, 이 단계에서 연산�
 
 ## 9.2.10. Backend 선택
 
-기본으로는 최적화 수준이 코드 생성기를 고르며 ([0.2.4](../000-meta/002-pipeline.md#024-backend)), `-C backend=native|llvm` 이나 `ROK_BACKEND` 로 바꿀 수 있습니다.
+기본으로는 최적화 수준이 코드 생성기를 고르며 ([0.2.4](../000-meta/002-pipeline.md#024-backends)), `-C backend=native|llvm` 이나 `ROK_BACKEND` 로 바꿀 수 있습니다.
 
 | 수준                     | Backend      |
 |--------------------------|--------------|

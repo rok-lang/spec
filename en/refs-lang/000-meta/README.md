@@ -30,6 +30,7 @@ The exact boundary between the language and the libraries is declared in [0.4. B
 
 ## Freedom within control
 
+> [!IMPORTANT]
 > **"The clearer the rules, the freer you are within them."**
 
 rok does not shy away from constraints. Static types, closed sum types, the trait-as-type ban, the ban on implicit promotion, and AOT-only compilation are such decisions. They narrow the user's options. Within those narrower options, however, the user writes code that is predictable and deeply controllable.

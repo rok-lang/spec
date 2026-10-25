@@ -4,11 +4,11 @@ rok builds for any platform for which LLVM supports code generation, from any ho
 
 ## 0.6.1. Tier 1: official support
 
-For the following 14 targets, CI runs on every PR, and builds and tests are required to pass.
+For the following 15 targets, CI runs on every PR, and builds and tests are required to pass.
 
 ### 64-bit desktop / server
 
-This group covers the major architectures of Linux, macOS and Windows, including musl variants for static binaries.
+This group covers the major architectures of Linux, macOS and Windows, including musl variants for static binaries and 64-bit RISC-V Linux.
 
 | Target                       | Notes                                      |
 |------------------------------|--------------------------------------------|
@@ -20,6 +20,7 @@ This group covers the major architectures of Linux, macOS and Windows, including
 | `aarch64-pc-windows-msvc`    | Windows ARM                                |
 | `x86_64-unknown-linux-musl`  | Alpine / `static` binary                   |
 | `aarch64-unknown-linux-musl` | Same, ARM                                  |
+| `riscv64gc-unknown-linux-gnu`| RISC-V 64-bit Linux server                 |
 
 ### WebAssembly
 
@@ -44,11 +45,11 @@ For embedded and legacy environments still in active use, the following three 32
 | `i686-pc-windows-msvc`          | 32-bit Windows                       |
 | `armv7-unknown-linux-gnueabihf` | 32-bit ARM Linux (Raspberry Pi 4, etc.) |
 
-These 14 targets directly cover most users in science, data, HPC, Jupyter and embedded work.
+These 15 targets directly cover most users in science, data, HPC, Jupyter and embedded work.
 
 ## 0.6.2. Targets outside Tier 1: no guarantee
 
-The following targets are not in Tier 1, and this specification does not guarantee behavior on them: `riscv64gc-unknown-linux-gnu` for RISC-V servers, `powerpc64le-unknown-linux-gnu` for IBM Power HPC environments, `x86_64-unknown-freebsd` for FreeBSD, `riscv32imac-unknown-none` for RISC-V embedded, and `s390x-unknown-linux-gnu` for IBM Z mainframes.
+The following targets are not in Tier 1, and this specification does not guarantee behavior on them: `powerpc64le-unknown-linux-gnu` for IBM Power HPC environments, `x86_64-unknown-freebsd` for FreeBSD, `riscv32imac-unknown-none` for RISC-V embedded, and `s390x-unknown-linux-gnu` for IBM Z mainframes.
 
 ## 0.6.3. Implications of 32-bit support
 

@@ -303,7 +303,7 @@ A macro is called as `name!( .. )`, `name![ .. ]` or `name!{ .. }`; the delimite
 
 ### Matchers and fragments
 
-A matcher is a token pattern. Literal tokens must appear verbatim in the call; a **metavariable** `@name: <fragment>` captures a part of the call for the template. The fragment fixes how much is parsed and as what: `expr`, `stmt`, `block`, `ty`, `pat`, `path`, `ident`, `literal`, `item`, or `tt` (one raw token tree). A fragment is parsed as that grammar into a real syntax node, so the argument of `@e: expr` has a type, is checked, and the language server resolves names inside it ([6.8.12](#tooling)); `tt` alone is unparsed, for a DSL that is not rok grammar, and even then stays balanced.
+A matcher is a token pattern. Literal tokens must appear verbatim in the call; a **metavariable** `@name: <fragment>` captures a part of the call for the template. The fragment fixes how much is parsed and as what: `expr`, `stmt`, `block`, `ty`, `pat`, `path`, `ident`, `literal`, `item`, or `tt` (one raw token tree). A fragment is parsed as that grammar into a real syntax node, so the argument of `@e: expr` has a type, is checked, and the language server resolves names inside it ([6.8.12](#tooling-and-hygiene)); `tt` alone is unparsed, for a DSL that is not rok grammar, and even then stays balanced.
 
 ```rok
 #[impl_macro(clamp)] pub @macro {
@@ -327,7 +327,7 @@ A matcher is a token pattern. Literal tokens must appear verbatim in the call; a
 let xs = list![a, b, c];        // acc.push(a); acc.push(b); acc.push(c);
 ```
 
-`@rep[sep = ","] { <sub-pattern> }` matches the sub-pattern repeated with the `sep` token between (`sep` optional; `trailing` also allows one trailing separator). A metavariable captured inside `@rep` binds a sequence. `@for @x { <body> }` emits the body per element; several metavariables from one `@rep` iterate in lockstep and must have equal length. `@rep` and `@for` nest. `@apply_if` ([6.9.5](609-template-tokens.md)) works in a macro template as elsewhere.
+`@rep[sep = ","] { <sub-pattern> }` matches the sub-pattern repeated with the `sep` token between (`sep` optional; `trailing` also allows one trailing separator). A metavariable captured inside `@rep` binds a sequence. `@for @x { <body> }` emits the body per element; several metavariables from one `@rep` iterate in lockstep and must have equal length. `@rep` and `@for` nest. The shape tokens (`@Self`, `@field`, `@apply_if`, ..) belong to the type-driven forms, not a macro: a macro has no shape to test, so using one is an error.
 
 ### Name synthesis
 
@@ -371,7 +371,7 @@ A template may call macros, including itself; expansion repeats until no macro c
 
 `cfg!` ([6.3](603-cfg.md)) and `include_str!` / `include_bytes!` ([6.11](611-include.md)) end in `!` but are fixed compiler built-ins, not macros, and cannot be redefined, shadowed or taken as a macro name. They are the only `!`-forms the compiler provides; every other `name!` is a macro defined in rok.
 
-### <a name="tooling"></a>Tooling and hygiene
+### Tooling and hygiene
 
 A macro keeps the guarantees of every meta definition ([6.8.9](#689-no-token-stream-manipulation)), with the specifics a call site adds:
 

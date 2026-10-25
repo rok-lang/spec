@@ -75,7 +75,7 @@ rokc build [path]
 - `--name <n>` 은 패키지 이름 ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock) 의 이름 규칙) 을 정합니다. 산출물은 `lib<n>.a` / `<n>.rokhir` 이고 mount 이름은 `-` 를 `_` 로 바꾼 것입니다. 기본은 디렉토리 이름입니다. `--extern a-b=..` 도 `a_b` 로 묶습니다.
 - `--bootstrap <file>` 은 미리 읽을 표준 라이브러리 루트 (여러 번 가능), `--rokr <lib>` 는 링크할 런타임입니다. 기본값은 sysroot 의 `lib/rok/{core,std,bare}/src/lib.rok` 와 `lib/librokr.a` 입니다 ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)). bootstrap 루트의 tier 는 그 `src/` 위 디렉토리의 이름이며, `bare` 루트 없이 `core/src/lib.rok` 를 주면 그 옆의 `bare/src/lib.rok` 도 읽습니다. 찾지 못하면 찾아본 경로를 나열하는 에러입니다.
 - `-O0` / `-O1` / `-O2` / `-O3` / `-Os` 는 최적화 단계를 명시적으로 지정합니다. `-O0` 은 native backend 를, 나머지는 MLIR → LLVM backend 를 씁니다 ([9.2.10](902-aot-pipeline.md#9210-backend-선택)).
-- `--target=<target>` 은 타깃 플랫폼을 지정합니다: [플랫폼 타깃](../000-meta/006-platform-targets.md) 의 14 개 Tier 1 같은 내장 이름, 또는 `<name>.rokon` 타깃 명세 파일 ([0.6.5](../000-meta/006-platform-targets.md#065-타깃-명세)). 어느 host 에서나 어느 대상이든 빌드할 수 있습니다 ([0.2.4](../000-meta/002-pipeline.md#024-backend)).
+- `--target=<target>` 은 타깃 플랫폼을 지정합니다: [플랫폼 타깃](../000-meta/006-platform-targets.md) 의 15 개 Tier 1 같은 내장 이름, 또는 `<name>.rokon` 타깃 명세 파일 ([0.6.5](../000-meta/006-platform-targets.md#065-타깃-명세)). 어느 host 에서나 어느 대상이든 빌드할 수 있습니다 ([0.2.4](../000-meta/002-pipeline.md#024-backends)).
 - `-L <dir>` 은 `#[link]` 의 라이브러리 검색 디렉토리를 더합니다 ([5.9.9](../005-modules/509-extern-block.md#599-linklibname-라이브러리-명시)). `LIBRARY_PATH` 보다 먼저 찾습니다. 여러 번 쓸 수 있습니다.
 - `-l [static=|dylib=]<name>` 은 라이브러리 `<name>` 을 링크하며 (`#[link]` 처럼 찾음), `--native-runtime <file>` 은 실행 파일 옆에 둘 공유 라이브러리를 지정합니다 ([9.2.14](902-aot-pipeline.md#9214-링킹-실행-파일의-경우)). 둘 다 여러 번 쓸 수 있으며, `rok` 가 native 패키지에 대해 넘깁니다 ([9.10.4b](910-rok-frontend.md#9104b-native-패키지)).
 - `-o` / `--out=<path>` 는 출력 위치를 지정합니다.
