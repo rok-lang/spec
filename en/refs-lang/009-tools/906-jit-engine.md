@@ -47,7 +47,7 @@ Code of the standard library and dependency packages is compiled only once per s
 2. rokc: cell → MIR → native backend → machine code
          (already loaded functions as references, redefinitions under new names)
 3. host: load the code in a process forked from the session snapshot and run the cell once
-4. success: that process becomes the new snapshot. If there is a value, print `type: value`
+4. success: that process becomes the new snapshot. If there is a value, print the value (`Display`)
    failure (panic, exit, signal, load failure): the previous snapshot takes over (9.7.0 rule 5)
 ```
 

@@ -178,21 +178,24 @@ fn dump_struct<T: Inspect>(x: T) {
 
 ## 2.12.4. REPL 출력
 
-REPL 의 마지막 식 자동 출력은 이 장의 `Reflect::type_name_of` 와 [2.10 fmt](210-fmt.md) 의 `Debug` 가 합성되어 작동합니다 ([refs-lang 6.10.3](../../refs-lang/006-meta-system/610-reflection.md#6103-repl--jupyter-자동-출력)).
+REPL 은 평범한 마지막 식을 `Display` 로, 뒤에 `?` 를 붙이면 `Debug` 로, `:type` 은 이 장의 `Reflect::type_name_of` 로 출력합니다 ([2.10 fmt](210-fmt.md), [refs-lang 6.10.3](../../refs-lang/006-meta-system/610-reflection.md#6103-repl--jupyter-자동-출력)).
 
 ```
 > let x = 42i32;
 > x
-i32: 42
+42
 
 > [1, 2, 3]
-List<i32>: [1, 2, 3]
+List<i32>
 
-> User { id: 1, name: "Alice" }
-User: User { id: 1, name: "Alice" }
+> [1, 2, 3]?
+[1, 2, 3]
+
+> User { id: 1, name: "Alice" }?
+User { id: 1, name: "Alice" }
 ```
 
-표시 형태는 `{type_name_of}: {Debug}` 입니다. `Debug` 가 없는 타입이면 타입 이름만 출력합니다.
+평범한 식은 `Display`, 뒤에 `?` 는 `Debug`, 둘 다 없는 값은 타입 이름만 출력합니다.
 
 ## 2.12.5. 모듈 매핑
 

@@ -222,7 +222,7 @@ Benchmarks run one at a time. Terminal output is one aligned line per benchmark,
 rokc repl [path]
 ```
 
-This mode runs as a terminal interactive shell. Cell semantics follow the rules of [9.7.0](907-jit-cells.md#970-rules-of-the-cell-session): each cell runs exactly once, top-level `let` bindings and items carry over to later cells, and a failed cell leaves no trace in the bindings. An expression cell prints `type: value`.
+This mode runs as a terminal interactive shell. Cell semantics follow the rules of [9.7.0](907-jit-cells.md#970-rules-of-the-cell-session): each cell runs exactly once, top-level `let` bindings and items carry over to later cells, and a failed cell leaves no trace in the bindings. An expression cell prints its value (`Display`).
 
 - The default mode compiles each cell with the native backend and hands the code to a JIT host process that lives for the session; the host loads it and runs it once ([9.6](906-jit-engine.md)). Bindings, `static` state and `any` values carry over between cells. A binding whose type cannot be named at top level (closures, private types, etc.) is rejected when created.
 - Diagnostics and panic locations name `<repl>:line:col` over the cell's own text.

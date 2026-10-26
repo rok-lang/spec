@@ -178,21 +178,24 @@ fn dump_struct<T: Inspect>(x: T) {
 
 ## 2.12.4. REPL output
 
-The REPL's automatic printing of the last expression combines this chapter's `Reflect::type_name_of` with `Debug` from [2.10 fmt](210-fmt.md) ([refs-lang 6.10.3](../../refs-lang/006-meta-system/610-reflection.md#6103-repl--jupyter-auto-printing)).
+The REPL prints a bare last expression with `Display`, a trailing `?` with `Debug`, and `:type` with this chapter's `Reflect::type_name_of` ([2.10 fmt](210-fmt.md), [refs-lang 6.10.3](../../refs-lang/006-meta-system/610-reflection.md#6103-repl--jupyter-auto-printing)).
 
 ```
 > let x = 42i32;
 > x
-i32: 42
+42
 
 > [1, 2, 3]
-List<i32>: [1, 2, 3]
+List<i32>
 
-> User { id: 1, name: "Alice" }
-User: User { id: 1, name: "Alice" }
+> [1, 2, 3]?
+[1, 2, 3]
+
+> User { id: 1, name: "Alice" }?
+User { id: 1, name: "Alice" }
 ```
 
-The display form is `{type_name_of}: {Debug}`. For a type without `Debug`, only the type name is printed.
+A bare expression uses `Display`, a trailing `?` uses `Debug`, and a value with neither prints only its type name.
 
 ## 2.12.5. Module mapping
 

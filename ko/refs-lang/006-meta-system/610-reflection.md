@@ -92,27 +92,24 @@ c.set_field("xxx", 1)              // false (없는 필드)
 
 ## 6.10.3. REPL / Jupyter 자동 출력
 
-REPL 에서 마지막 식 결과를 출력할 때는 `Reflect.type_name_of` 와 `Debug` 를 조합해서 보여 줍니다 ([9.7.7](../009-tools/907-jit-cells.md#977-시각화--출력)).
+REPL 은 평범한 마지막 식을 `Display` 로, 뒤에 `?` 를 붙이면 `Debug` 로, `:type` 은 `Reflect.type_name_of` 로 출력합니다 ([9.7.7](../009-tools/907-jit-cells.md#977-시각화--출력)).
 
 ```
 > let x = 42i32;
 > x
-i32: 42
+42
 
 > [1, 2, 3]
-List<i32>: [1, 2, 3]
+List<i32>
 
 > Config { host: "h", port: 80 }
-Config: Config { host: "h", port: 80 }
+Config
+
+> Config { host: "h", port: 80 }?
+Config { host: "h", port: 80 }
 ```
 
-출력 포맷은 다음과 같습니다.
-
-```
-{type_name_of(value)}: {value:?}
-```
-
-`Debug` 가 없는 타입이면 타입 이름만 출력합니다. 이 동작은 REPL 과 Jupyter 의 셀 세션 ([9.7](../009-tools/907-jit-cells.md)) 이 사용합니다.
+평범한 식은 `Display`, 뒤에 `?` 는 `Debug`, 둘 다 없는 값은 타입 이름만 출력합니다. 이 동작은 REPL 과 Jupyter 의 셀 세션 ([9.7](../009-tools/907-jit-cells.md)) 이 사용합니다.
 
 ## 6.10.4. 글로벌 `typeof` / `sizeof` 함수 없음
 

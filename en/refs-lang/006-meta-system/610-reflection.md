@@ -92,27 +92,24 @@ c.set_field("xxx", 1)              // false (no such field)
 
 ## 6.10.3. REPL / Jupyter auto-printing
 
-When the REPL prints the result of the last expression, it combines `Reflect.type_name_of` and `Debug` ([9.7.7](../009-tools/907-jit-cells.md#977-visualization--output)).
+When the REPL prints a bare last expression it uses `Display`; a trailing `?` uses `Debug`; `:type` uses `Reflect.type_name_of` ([9.7.7](../009-tools/907-jit-cells.md#977-visualization--output)).
 
 ```
 > let x = 42i32;
 > x
-i32: 42
+42
 
 > [1, 2, 3]
-List<i32>: [1, 2, 3]
+List<i32>
 
 > Config { host: "h", port: 80 }
-Config: Config { host: "h", port: 80 }
+Config
+
+> Config { host: "h", port: 80 }?
+Config { host: "h", port: 80 }
 ```
 
-The output format is:
-
-```
-{type_name_of(value)}: {value:?}
-```
-
-For a type without `Debug`, only the type name is printed. This behavior is used by REPL and Jupyter cell sessions ([9.7](../009-tools/907-jit-cells.md)).
+A bare expression uses `Display`, a trailing `?` uses `Debug`, and a value with neither prints only its type name. This behavior is used by REPL and Jupyter cell sessions ([9.7](../009-tools/907-jit-cells.md)).
 
 ## 6.10.4. No global `typeof` / `sizeof` functions
 

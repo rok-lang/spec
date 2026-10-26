@@ -70,7 +70,7 @@ On receiving an `execute_request`, the kernel sends:
 
 1. iopub `execute_input` (code and execution count).
 2. The cell's output **after it finishes**: stdout / stderr as iopub `stream`. Output is not sent incrementally during execution.
-3. If there is a value, iopub `execute_result`: `text/plain` holding the same `type: value` as the REPL (9.7.7).
+3. If there is a value, iopub `execute_result`: `text/plain` holding the same output as the REPL (9.7.7).
 4. On failure, iopub `error`: `evalue` is the first line of stderr, `traceback` is the lines of stderr.
 5. shell `execute_reply` (including `execution_count`, with success / failure status).
 

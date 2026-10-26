@@ -70,7 +70,7 @@ rok jupyter --connection-file <path>        # 의존성을 해소한 뒤 rokc ju
 
 1. iopub `execute_input` (코드와 실행 번호).
 2. 셀이 **끝난 뒤** 그 출력: stdout / stderr 는 iopub `stream` 으로. 실행 중에 조금씩 보내지 않습니다.
-3. 값이 있으면 iopub `execute_result`: `text/plain` 에 REPL 과 같은 `타입: 값` (9.7.7).
+3. 값이 있으면 iopub `execute_result`: `text/plain` 에 REPL 과 같은 출력 (9.7.7).
 4. 실패하면 iopub `error`: `evalue` 는 stderr 의 첫 줄, `traceback` 은 stderr 의 줄들.
 5. shell `execute_reply` (`execution_count` 포함, 성공 / 실패 status).
 
