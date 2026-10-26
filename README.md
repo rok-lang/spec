@@ -1,6 +1,6 @@
-# rok
+# Rok
 
-The formal specification for the **rok** programming language.
+The formal specification for the **Rok** programming language.
 
 Designed and maintained by [Han Damin](https://github.com/miniex) (`@miniex`).
 
