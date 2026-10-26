@@ -1,10 +1,10 @@
 # 9.8. Jupyter 커널 통합
 
-[Jupyter 표면](../000-meta/001-execution-modes.md) 의 rok 커널을 정의합니다.
+[Jupyter 표면](../000-meta/001-execution-modes.md) 의 Rok 커널을 정의합니다.
 
 ## 9.8.1. 커널
 
-Jupyter 가 rok 커널을 별도 프로세스로 실행하며, ZeroMQ 기반 Jupyter wire protocol 로 통신합니다. 커널은 `protocol_version` 을 `"5.3"` 으로 알립니다 (`jupyter_client` 가 기대하는 값, 5.3 이상의 클라이언트와 동작). 이 형태에서는 OS 자원, 즉 파일과 네트워크와 외부 프로세스를 모두 사용할 수 있습니다.
+Jupyter 가 Rok 커널을 별도 프로세스로 실행하며, ZeroMQ 기반 Jupyter wire protocol 로 통신합니다. 커널은 `protocol_version` 을 `"5.3"` 으로 알립니다 (`jupyter_client` 가 기대하는 값, 5.3 이상의 클라이언트와 동작). 이 형태에서는 OS 자원, 즉 파일과 네트워크와 외부 프로세스를 모두 사용할 수 있습니다.
 
 커널은 터미널 REPL 과 **같은 셀 세션** 위에서 동작하며 [9.7.0](907-jit-cells.md#970-셀-세션의-규칙) 의 규칙을 따릅니다. 각 셀은 한 번만 실행되고, 바인딩과 항목은 이후 셀로 이어지며, 실패한 셀은 바인딩에 흔적을 남기지 않습니다. 커널의 엔진은 REPL 과 같은 [JIT 세션](906-jit-engine.md) 입니다.
 
@@ -14,7 +14,7 @@ Jupyter 가 rok 커널을 별도 프로세스로 실행하며, ZeroMQ 기반 Jup
 
 ## 9.8.2. 로컬 네이티브 커널: 동작
 
-사용자가 노트북의 kernel 로 "rok" 를 고르면 Jupyter 가 kernelspec (9.8.3) 의 명령을 별도 프로세스로 실행합니다.
+사용자가 노트북의 kernel 로 "Rok" 를 고르면 Jupyter 가 kernelspec (9.8.3) 의 명령을 별도 프로세스로 실행합니다.
 
 ```
 rokc jupyter --connection-file <path>       # --extern 등 rokc 옵션도 받음
@@ -102,7 +102,7 @@ kernelspec 은 다음 디렉토리 아래의 `kernels/rok/kernel.json` 입니다
 }
 ```
 
-이렇게 설치하고 나면 Jupyter, VS Code, nteract 등 어디서든 rok 커널을 사용할 수 있습니다.
+이렇게 설치하고 나면 Jupyter, VS Code, nteract 등 어디서든 Rok 커널을 사용할 수 있습니다.
 
 ## 9.8.4. 인터럽트 / 종료
 

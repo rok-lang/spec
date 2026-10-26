@@ -198,6 +198,6 @@ unsafe impl Send for Handle { }
 | Swift   | `@unsafe` 어노테이션 / `withUnsafePointer` 함수형 패턴 |
 | Go      | `unsafe` 패키지 (별도 import) - 블록 표기 없음         |
 | Zig     | `@ptrCast` 등 명시 builtin - 블록 표기 없음            |
-| **rok** | **Rust 식 `unsafe fn` + `unsafe { ... }` 채택**        |
+| **Rok** | **Rust 식 `unsafe fn` + `unsafe { ... }` 채택**        |
 
-rok 은 Rust 의 모델을 그대로 따릅니다. 위험 영역의 시각적 분리가 단일 키워드로 일관되게 표시되며, 이는 코드 리뷰와 정적 분석 모두에 유리합니다.
+Rok 은 Rust 의 모델을 그대로 따릅니다. 위험 영역의 시각적 분리가 단일 키워드로 일관되게 표시되며, 이는 코드 리뷰와 정적 분석 모두에 유리합니다.

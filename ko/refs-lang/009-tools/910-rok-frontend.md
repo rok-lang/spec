@@ -130,7 +130,7 @@ Package {
 | stone       | `Dep::version("req"[, registry: "url"])` 또는 문자열 `"req"` ([9.10.4a](#9104a-stone-과-rokstonesio)) | 버전, 커밋, tree hash |
 | native      | `Dep::native("req")` / `Dep::native(url:, sha256:)` ([9.10.4b](#9104b-native-패키지)) | 버전과 항목 SHA-256 (index), 없음 (해시가 고정) |
 
-rok 에는 build script 가 없습니다: 빌드 시점에 패키지의 코드는 실행되지 않습니다. C / C++ 라이브러리는 미리 빌드된 native 패키지로 들어옵니다 (9.10.4b).
+Rok 에는 build script 가 없습니다: 빌드 시점에 패키지의 코드는 실행되지 않습니다. C / C++ 라이브러리는 미리 빌드된 native 패키지로 들어옵니다 (9.10.4b).
 
 한 빌드 안에서 한 이름은 한 패키지입니다. 같은 이름이 서로 다른 출처 (다른 경로, 또는 다른 url / 커밋) 로 요구되면 두 요구처를 보여 주는 에러입니다.
 
@@ -289,7 +289,7 @@ rok yank [--native] --vers <version> [--undo] [--index <checkout>] [name]   # --
 
 ## 9.10.4b. Native 패키지
 
-rok 은 C 를 컴파일하지 않습니다. native 패키지는 target triple 마다의 미리 빌드된 archive 와 다음 값입니다:
+Rok 은 C 를 컴파일하지 않습니다. native 패키지는 target triple 마다의 미리 빌드된 archive 와 다음 값입니다:
 
 ```rokon
 Native {

@@ -202,15 +202,15 @@ span 은 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_p
 
 `debug` profile 빌드와, `-g` 를 준 `release` 빌드 ([9.2.15](902-aot-pipeline.md#9215-산출물)) 는 DWARF 디버그 정보를 emit 합니다. Windows 대상에서는 그 대신 같은 정보를 담은 CodeView 와 PDB 를 냅니다. 이때 다음과 같은 특성을 갖습니다.
 
-- 함수의 `DW_AT_name` 은 rok 경로 (`geom::distance`) 이며, linkage name (맹글링된 심볼) 은 두지 않습니다. 디버거가 `_Y` 맹글링을 모르기 때문입니다.
+- 함수의 `DW_AT_name` 은 Rok 경로 (`geom::distance`) 이며, linkage name (맹글링된 심볼) 은 두지 않습니다. 디버거가 `_Y` 맹글링을 모르기 때문입니다.
 - 줄 번호는 원본 .rok 파일의 줄을 가리킵니다.
-- 지역 변수는 원본 이름과 타입으로 보입니다. 원시 타입 (정수, 부동소수, `bool`, `char`) 외에 struct (필드 이름), 튜플, `str`, `any`, sum 타입, 배열의 DWARF 타입을 냅니다. sum 타입과 enum 은 DWARF variant part 입니다: artificial discriminant 멤버와, 변형마다 (데이터 없는 변형 포함) `DW_AT_discr_value` 를 가진 `DW_TAG_variant` 하나씩이며, 각각은 `<Sum>::<Variant>` 라는 이름의 struct 를 담습니다. 두 backend 가 같은 형태를 쓰며, 디버거가 variant part 를 읽도록 compile unit 은 `DW_LANG_Rust` 를 씁니다 (rok 의 DWARF 언어 코드는 없음). `GcBuf<T>` 참조는 그 객체 (헤더, 그 다음 `T` 원소들) 를 가리키는 포인터로 기술합니다. `any` 값은 그 안에 저장된 타입들에 대한 variant part 이며, discriminant 는 저장된 tag 입니다. discriminant 는 artificial `i32` 입니다 (저장된 tag; `throws` carrier 의 `bool` tag 는 바이트). 함수 값 (`fn` 타입이나 클로저) 은 그 타입 이름 (`fn(i32) -> i32`) 의 구조체이며, 멤버는 `code` (`DW_TAG_subroutine_type` 을 가리키는 포인터: 환경, 그다음 매개변수) 와 `env` (그 환경; 클로저의 타입을 알면 환경 객체를 가리키는 포인터) 입니다. 그래서 디버거가 대상 함수를 보여 줍니다. 참조로 캡처한 변수는 그 값으로 보입니다. 컴파일러가 만드는 함수 (C `main`, static 초기화 guard) 도 subprogram 을 가집니다. 컴파일러가 만든 지역 변수 (이름이 `#` 이나 `__` 로 시작) 는 빠집니다.
+- 지역 변수는 원본 이름과 타입으로 보입니다. 원시 타입 (정수, 부동소수, `bool`, `char`) 외에 struct (필드 이름), 튜플, `str`, `any`, sum 타입, 배열의 DWARF 타입을 냅니다. sum 타입과 enum 은 DWARF variant part 입니다: artificial discriminant 멤버와, 변형마다 (데이터 없는 변형 포함) `DW_AT_discr_value` 를 가진 `DW_TAG_variant` 하나씩이며, 각각은 `<Sum>::<Variant>` 라는 이름의 struct 를 담습니다. 두 backend 가 같은 형태를 쓰며, 디버거가 variant part 를 읽도록 compile unit 은 `DW_LANG_Rust` 를 씁니다 (Rok 의 DWARF 언어 코드는 없음). `GcBuf<T>` 참조는 그 객체 (헤더, 그 다음 `T` 원소들) 를 가리키는 포인터로 기술합니다. `any` 값은 그 안에 저장된 타입들에 대한 variant part 이며, discriminant 는 저장된 tag 입니다. discriminant 는 artificial `i32` 입니다 (저장된 tag; `throws` carrier 의 `bool` tag 는 바이트). 함수 값 (`fn` 타입이나 클로저) 은 그 타입 이름 (`fn(i32) -> i32`) 의 구조체이며, 멤버는 `code` (`DW_TAG_subroutine_type` 을 가리키는 포인터: 환경, 그다음 매개변수) 와 `env` (그 환경; 클로저의 타입을 알면 환경 객체를 가리키는 포인터) 입니다. 그래서 디버거가 대상 함수를 보여 줍니다. 참조로 캡처한 변수는 그 값으로 보입니다. 컴파일러가 만드는 함수 (C `main`, static 초기화 guard) 도 subprogram 을 가집니다. 컴파일러가 만든 지역 변수 (이름이 `#` 이나 `__` 로 시작) 는 빠집니다.
 - 블록마다 lexical block scope 를 내므로 가려진 (shadowed) 이름은 해당 블록 안에서만 보입니다.
 - 스택 슬롯을 가진 지역은 debug / release 모두 `llvm.alloca` 하나에 놓입니다. 그래서 `-g` 는 최적화 수준과 무관하게 같은 슬롯에 debug 정보를 붙입니다.
 
 ### gdb / lldb 사용
 
-표준 gdb 와 lldb 명령어가 rok 코드에 그대로 동작합니다.
+표준 gdb 와 lldb 명령어가 Rok 코드에 그대로 동작합니다.
 
 ```
 gdb ./target/debug/my_binary
@@ -234,7 +234,7 @@ rokc --print lldbinit >> ~/.lldbinit
 
 ### macOS / Windows 디버거
 
-각 플랫폼의 기본 디버거가 rok 바이너리를 처리합니다.
+각 플랫폼의 기본 디버거가 Rok 바이너리를 처리합니다.
 
 - macOS 에서는 lldb 또는 Xcode debugger 를 사용하면 됩니다.
 - Windows 에서는 Visual Studio debugger 또는 WinDbg (PDB 디버그 정보) 를 사용하면 됩니다.
@@ -250,7 +250,7 @@ perf record ./target/release/my_binary
 perf report
 ```
 
-이 경우 rok 함수가 demangled 이름으로 표시됩니다.
+이 경우 Rok 함수가 demangled 이름으로 표시됩니다.
 
 ### Profile-guided optimization
 
@@ -314,7 +314,7 @@ rokc build --emit=expanded      # → target/<profile>/build/<name>.expanded.rok
 impl MyHash for Point { ... }
 ```
 
-메타 확장과 desugar 를 모두 거친 전체 AST 를 rok 소스로 보려면 `--emit=ast` (`<name>.ast.rok`) 를 씁니다.
+메타 확장과 desugar 를 모두 거친 전체 AST 를 Rok 소스로 보려면 `--emit=ast` (`<name>.ast.rok`) 를 씁니다.
 
 ## 9.9.11. 벤치마크
 
@@ -413,6 +413,6 @@ Concrete .o files:
 
 ## 9.9.15. 정리
 
-지금까지 살펴본 도구들이 rok 의 개발과 디버그 경험의 핵심을 이룹니다. 표준 도구 (gdb, perf, jupyter) 와의 통합과 rok 고유 도구 (`rokc demangle`, `rokc rokhir-text` 등) 가 결합되어 풍부한 진단 환경을 제공합니다.
+지금까지 살펴본 도구들이 Rok 의 개발과 디버그 경험의 핵심을 이룹니다. 표준 도구 (gdb, perf, jupyter) 와의 통합과 Rok 고유 도구 (`rokc demangle`, `rokc rokhir-text` 등) 가 결합되어 풍부한 진단 환경을 제공합니다.
 
 이로써 9 장 (실행과 툴) 을 마무리하며, 본 사양 전체가 큰 그림을 완성합니다.

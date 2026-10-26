@@ -1,12 +1,12 @@
 # 1.9. `rok::bare::mlir` - MLIR 다이얼렉트 직접 접근
 
-`rok::bare::mlir` 모듈은 rok 컴파일러가 사용하는 MLIR 백엔드의 다이얼렉트 op 을 직접 호출할 수 있는 escape hatch 를 제공합니다. 외부 라이브러리 작성자가 텐서 / 자동 미분 / SIMD / GPU / 양자화 같은 가속 영역의 커널을 rok 안에서 표현하기 위한 자리입니다.
+`rok::bare::mlir` 모듈은 Rok 컴파일러가 사용하는 MLIR 백엔드의 다이얼렉트 op 을 직접 호출할 수 있는 escape hatch 를 제공합니다. 외부 라이브러리 작성자가 텐서 / 자동 미분 / SIMD / GPU / 양자화 같은 가속 영역의 커널을 Rok 안에서 표현하기 위한 자리입니다.
 
-일반 rok 코드는 이 모듈을 보지 않습니다. rok 의 일상적인 추상은 [200-core/](../200-core/) 의 트레잇과 컬렉션으로 충분하며, MLIR 노출은 어디까지나 라이브러리 작성자의 영역에 한정됩니다.
+일반 Rok 코드는 이 모듈을 보지 않습니다. Rok 의 일상적인 추상은 [200-core/](../200-core/) 의 트레잇과 컬렉션으로 충분하며, MLIR 노출은 어디까지나 라이브러리 작성자의 영역에 한정됩니다.
 
 ## 1.9.1. 동기 - 왜 사용자 표면에 MLIR 이 필요한가
 
-rok 의 일반 사용자는 MLIR 을 알 필요가 없습니다. 산술과 비교, 컬렉션, 동시성은 표준 라이브러리가 충분히 추상화해 두었기 때문입니다. 하지만 다음과 같은 라이브러리 작성자에게는 사정이 다릅니다.
+Rok 의 일반 사용자는 MLIR 을 알 필요가 없습니다. 산술과 비교, 컬렉션, 동시성은 표준 라이브러리가 충분히 추상화해 두었기 때문입니다. 하지만 다음과 같은 라이브러리 작성자에게는 사정이 다릅니다.
 
 - 텐서 라이브러리: `linalg.generic` / `tensor.*` / `vector.*` / `gpu.*` 다이얼렉트 위에서 커널을 합성
 - 자동 미분 라이브러리: source-to-source 변환 결과를 MLIR op 그래프로 표현
@@ -14,7 +14,7 @@ rok 의 일반 사용자는 MLIR 을 알 필요가 없습니다. 산술과 비�
 - GPU 백엔드: `gpu.launch_func` 와 `gpu.module` 로 디바이스 코드 emit
 - 양자화 / 희소 연산: 전용 다이얼렉트로 표현 후 표준 패스 활용
 
-이런 라이브러리들이 rok 표준 라이브러리만으로 만들어질 수 없는 이유는, MLIR 의 multi-level 추상화가 곧 성능의 원천이기 때문입니다. `linalg.generic` 한 줄이 인접 연산 융합 / 임시 할당 제거 / SIMD / GPU lowering 까지 자동으로 풀어 주는데, 이것을 우회하면 PyTorch / JAX / Mojo 와의 성능 격차가 좁혀지지 않습니다.
+이런 라이브러리들이 Rok 표준 라이브러리만으로 만들어질 수 없는 이유는, MLIR 의 multi-level 추상화가 곧 성능의 원천이기 때문입니다. `linalg.generic` 한 줄이 인접 연산 융합 / 임시 할당 제거 / SIMD / GPU lowering 까지 자동으로 풀어 주는데, 이것을 우회하면 PyTorch / JAX / Mojo 와의 성능 격차가 좁혀지지 않습니다.
 
 ## 1.9.2. 표면 - `__mlir_op` 호출
 
@@ -31,7 +31,7 @@ unsafe {
 
 호출은 항상 `unsafe` 블록 안에서만 허용되며, 첫 번째 generic 인자가 다이얼렉트 op 이름 (`"dialect.op"`), 그 다음이 결과 타입 `R` 입니다.
 
-- `R` 은 rok 타입입니다. `_` 이면 기대 타입을, `()` 이면 결과 없음을 뜻합니다.
+- `R` 은 Rok 타입입니다. `_` 이면 기대 타입을, `()` 이면 결과 없음을 뜻합니다.
 - 나머지 인자가 operand 입니다. 속성은 `attributes = { "k": __mlir_attr::<"text"> }` 로 줍니다.
 - 컴파일러는 op 을 MLIR generic form (`"dialect.op"(%a, %b) {k = text} : (..) -> R`) 으로 냅니다. op 이름, operand, 속성의 검증은 `rokc` 에 내장된 MLIR 이 합니다 ([0.2.4](../../refs-lang/000-meta/002-pipeline.md#024-backends)). `__mlir_op` 을 쓰는 모듈은 어느 최적화 수준에서나 MLIR → LLVM backend 로 컴파일합니다 ([refs-lang 9.2.10](../../refs-lang/009-tools/902-aot-pipeline.md#9210-backend-선택)).
 
@@ -59,7 +59,7 @@ unsafe {
 
 ### MLIR 타입 표현
 
-rok 타입과 직접 매핑되지 않는 MLIR 타입 (`index`, `!llvm.ptr`, `memref<?xi32>` 등) 은 타입 자리에서 `__mlir_type<"...">` 로 적습니다 (`__mlir_type::<"...">` 도 됩니다).
+Rok 타입과 직접 매핑되지 않는 MLIR 타입 (`index`, `!llvm.ptr`, `memref<?xi32>` 등) 은 타입 자리에서 `__mlir_type<"...">` 로 적습니다 (`__mlir_type::<"...">` 도 됩니다).
 
 ```rok
 unsafe {
@@ -113,7 +113,7 @@ unsafe {
 
 ### Variadic operand
 
-`vector.shuffle` 처럼 가변 인자를 받는 op 은 rok 의 spread 문법으로 전달합니다.
+`vector.shuffle` 처럼 가변 인자를 받는 op 은 Rok 의 spread 문법으로 전달합니다.
 
 ```rok
 unsafe {
@@ -151,7 +151,7 @@ unsafe {
 
 `rok::bare::mlir` 사용자는 다음 책임을 집니다.
 
-- **타입 일치**: MLIR op 의 operand / result 타입과 rok 타입이 정확히 lower 가능해야 합니다.
+- **타입 일치**: MLIR op 의 operand / result 타입과 Rok 타입이 정확히 lower 가능해야 합니다.
 - **다이얼렉트 가용성**: 일부 다이얼렉트 (특히 `gpu`) 는 backend 가 활성화된 빌드에서만 lower 가능합니다.
 - **안정성**: MLIR 다이얼렉트는 LLVM 버전마다 op 이름 / 시그니처가 변할 수 있으며, 이 모듈을 직접 쓰는 라이브러리는 LLVM 버전을 pin 하는 것이 권장됩니다.
 - **GC root**: `memref` / `llvm.ptr` 위에 GC 객체 데이터를 노출할 때는 [1.6 `Pinned<T>`](106-gc-pin.md) 로 pin 을 잡아 두어야 합니다.
@@ -187,9 +187,9 @@ mod tensor::ops {
 | Swift   | `Builtin.X` (stdlib 내부)          | stdlib 작성자 한정                                   |
 | Julia   | `llvmcall` (사용자 가능)           | 권장 안 함, 외부 라이브러리 한정                     |
 | Rust    | LLVM intrinsic (사용자 불가)       | nightly + intrinsics crate                           |
-| **rok** | **`rok::bare::mlir` (명시 unsafe)** | **라이브러리 작성자 한정 - 일반 사용자는 보지 않음** |
+| **Rok** | **`rok::bare::mlir` (명시 unsafe)** | **라이브러리 작성자 한정 - 일반 사용자는 보지 않음** |
 
-rok 의 모델은 Swift 와 Julia 에 가깝습니다. Mojo 처럼 일반 사용자에게도 MLIR 을 노출하지 않으며, `unsafe` 라는 명시적 진입을 강제해 사용자가 어떤 영역에 발을 들이는지 코드 위에 드러냅니다.
+Rok 의 모델은 Swift 와 Julia 에 가깝습니다. Mojo 처럼 일반 사용자에게도 MLIR 을 노출하지 않으며, `unsafe` 라는 명시적 진입을 강제해 사용자가 어떤 영역에 발을 들이는지 코드 위에 드러냅니다.
 
 ## 1.9.7. 권한 / escape hatch 정책
 

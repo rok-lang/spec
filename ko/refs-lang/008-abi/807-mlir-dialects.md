@@ -16,7 +16,7 @@
 | `math`     | 수학 함수                                | sqrt / sin / cos 등                                                     |
 | `llvm`     | 저수준 op (intrinsic, `struct`, `alloca`, load / store) | 스택 슬롯, 객체 / 배열, [GC](../000-meta/007-glossary.md#gc-garbage-collector) |
 
-별도의 커스텀 rok 다이얼렉트는 두지 않습니다. 일반 rok 코드의 의미는 위에 나열한 일곱 개의 표준 다이얼렉트로 표현되며, 가속 라이브러리가 추가로 활용하는 다이얼렉트는 8.7.5 에서 다룹니다.
+별도의 커스텀 Rok 다이얼렉트는 두지 않습니다. 일반 Rok 코드의 의미는 위에 나열한 일곱 개의 표준 다이얼렉트로 표현되며, 가속 라이브러리가 추가로 활용하는 다이얼렉트는 8.7.5 에서 다룹니다.
 
 ## 8.7.2. 변환 흐름 정리
 
@@ -134,7 +134,7 @@ lowering 은 의미를 표현할 수 있는 곳에서 `scf`, `index`, `math` 를
 
 ## 8.7.5. 라이브러리 / 가속 영역 다이얼렉트
 
-다음 다이얼렉트들은 rok 의 *일반 코드* lowering 에서는 사용하지 않지만, 라이브러리 작성자가 [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md) 를 통해 직접 활용할 수 있습니다.
+다음 다이얼렉트들은 Rok 의 *일반 코드* lowering 에서는 사용하지 않지만, 라이브러리 작성자가 [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md) 를 통해 직접 활용할 수 있습니다.
 
 | 다이얼렉트 | 활용 영역                                     |
 |------------|-----------------------------------------------|
@@ -145,7 +145,7 @@ lowering 은 의미를 표현할 수 있는 곳에서 `scf`, `index`, `math` 를
 | `gpu`      | GPU launch / kernel / shared memory (GPU lib) |
 | `async`    | async fork / await (전용 런타임 라이브러리)   |
 
-일반 rok 코드의 lowering 은 8.7.1 의 일곱 다이얼렉트만으로 충분하지만, 텐서 / 자동 미분 / SIMD / GPU 같은 가속 영역의 라이브러리는 위 다이얼렉트를 직접 호출하여 PyTorch / JAX / Mojo 와 같은 성능 표면을 구성합니다.
+일반 Rok 코드의 lowering 은 8.7.1 의 일곱 다이얼렉트만으로 충분하지만, 텐서 / 자동 미분 / SIMD / GPU 같은 가속 영역의 라이브러리는 위 다이얼렉트를 직접 호출하여 PyTorch / JAX / Mojo 와 같은 성능 표면을 구성합니다.
 
 라이브러리 작성자가 다이얼렉트를 호출하는 메커니즘과 안전 책임은 [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md) 에서 정의합니다.
 

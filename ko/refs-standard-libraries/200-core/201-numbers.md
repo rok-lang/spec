@@ -1,6 +1,6 @@
 # 2.1. 숫자 타입
 
-`rok::core::num` 모듈은 rok 의 모든 수치 타입을 정의합니다. rok 은 두 세계의 숫자를
+`rok::core::num` 모듈은 Rok 의 모든 수치 타입을 정의합니다. Rok 은 두 세계의 숫자를
 함께 두며, 사용자가 자유롭게 어느 쪽을 쓸지 선택할 수 있습니다.
 
 ```
@@ -158,7 +158,7 @@ impl Float {
 
 `float` 의 한계도 분명히 짚어 두어야 합니다. 정밀도는 무한이 아니라 53 bit 입니다.
 그래서 IEEE 754 f64 와 동일한 round-off 가 발생합니다. 예를 들어 `0.1 + 0.2` 가
-`0.3` 이 되지 않는 현상은 rok 에서도 동일하게 나타납니다. 또한 `Eq` 가
+`0.3` 이 되지 않는 현상은 Rok 에서도 동일하게 나타납니다. 또한 `Eq` 가
 구현되어 있지 않은데, `float` 는 `Eq` 마커 트레잇을 구현하지 않고 NaN 처리를
 위해 `PartialEq` 만 구현합니다. 자세한 위계는 [2.5 cmp](205-cmp.md) 를
 참고합니다.
@@ -421,7 +421,7 @@ let c1 = a + int::from_i32(b);    // int (a + int(3))
 let c2 = (a.to_i32()? + b);       // i32 (a 가 i32 범위 안이면 OK)
 ```
 
-이러한 정책 덕분에 silent type mixing 이 차단됩니다. rok 은 Julia 처럼 자동
+이러한 정책 덕분에 silent type mixing 이 차단됩니다. Rok 은 Julia 처럼 자동
 promote 를 하지 않으며, 어느 세계를 쓸지는 사용자가 명시하도록 되어 있습니다.
 
 ## 2.1.7. fixed primitive ↔ int 변환
@@ -486,16 +486,16 @@ opt-in niche 가 필요한 경우에는 [2.2 non-zero](202-non-zero.md) 의
 
 ## 2.1.10. 다른 언어와의 비교 - 디자인 결정 근거
 
-rok 의 두-세계 모델 (`int` auto-promote 와 fixed primitive) 은 여러 언어에서
+Rok 의 두-세계 모델 (`int` auto-promote 와 fixed primitive) 은 여러 언어에서
 영향을 받았습니다. Smalltalk 의 SmallInteger ↔ LargeInteger 는 auto-promote
 의 원형이라고 할 수 있고, Lisp 와 Scheme 의 numeric tower (fixnum / bignum /
 rational / real) 도 중요한 참고가 됩니다. 또한 **Python int** 는 무한 정밀도를
 default 로 두지만 fixed primitive 가 없다는 차이가 있고, **Julia** 는 fixed
-primitive 를 default 로 둡니다. rok 도 리터럴의 기본은 fixed (`i32` / `f64`) 이고, `int` 는 opt-in 입니다.
+primitive 를 default 로 둡니다. Rok 도 리터럴의 기본은 fixed (`i32` / `f64`) 이고, `int` 는 opt-in 입니다.
 
 각 언어와의 차이는 다음과 같습니다. **Python** 은 int 만 제공하며,
 fixed-width 가 없어서 FFI 나 성능 critical 한 상황에서는 NumPy 에 의존하게
-됩니다. **Julia** 는 rok 과 같이 fixed 가 default 이며, 무한 정밀도가
+됩니다. **Julia** 는 Rok 과 같이 fixed 가 default 이며, 무한 정밀도가
 필요하면 `BigInt` 를 명시합니다. **Rust** 는 fixed only 라서 매번
-사용자가 type 을 적어야만 합니다. **rok** 는 두 세계가 공존하도록
+사용자가 type 을 적어야만 합니다. **Rok** 는 두 세계가 공존하도록
 하여, 리터럴은 기대 타입을 따르고 (없으면 `i32` / `f64`), 무한 정밀도가 필요한 자리에서 `int` / `float` 를 적도록 설계됩니다.

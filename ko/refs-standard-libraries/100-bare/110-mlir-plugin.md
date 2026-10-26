@@ -1,6 +1,6 @@
 # 1.10. `rok::bare::mlir::plugin` - 사용자 정의 다이얼렉트 등록
 
-`rok::bare::mlir::plugin` 은 rok 컴파일러가 외부에서 빌드된 MLIR 다이얼렉트를 동적으로 로드하여 [`__mlir_op`](109-mlir.md) 의 호출 대상으로 추가할 수 있도록 하는 인터페이스를 정의합니다. 도메인 특화 컴파일러 (암호화, 신호 처리, 형식 검증, 새 가속기 ISA 등) 를 rok 위에 얹고 싶은 라이브러리 작성자를 위한 자리입니다.
+`rok::bare::mlir::plugin` 은 Rok 컴파일러가 외부에서 빌드된 MLIR 다이얼렉트를 동적으로 로드하여 [`__mlir_op`](109-mlir.md) 의 호출 대상으로 추가할 수 있도록 하는 인터페이스를 정의합니다. 도메인 특화 컴파일러 (암호화, 신호 처리, 형식 검증, 새 가속기 ISA 등) 를 Rok 위에 얹고 싶은 라이브러리 작성자를 위한 자리입니다.
 
 본 절은 plugin 의 **등록 메커니즘과 안전 책임** 을 정의합니다. 다이얼렉트 자체의 정의 (op / type / attribute 의 의미와 스키마) 는 MLIR 의 영역 (TableGen / IRDL) 이며 본 사양 범위 밖입니다.
 
@@ -10,11 +10,11 @@
 |----------------------------------------------------------|--------------------------------------------|
 | 다이얼렉트 정의 (op 스키마, type 시스템)                 | **spec 밖** - MLIR (TableGen `.td` / IRDL) |
 | 다이얼렉트 빌드 (`.so` / `.dylib` / `.dll`)              | **spec 밖** - 사용자 빌드 도구             |
-| rok 컴파일러가 plugin 을 로드 / register 하는 인터페이스 | **spec 안** (본 절)                        |
+| Rok 컴파일러가 plugin 을 로드 / register 하는 인터페이스 | **spec 안** (본 절)                        |
 | 로드된 plugin op 을 `__mlir_op` 으로 호출                | **spec 안** ([1.9](109-mlir.md))           |
 | plugin op 의 lowering / 패스                             | **spec 밖** - plugin 자체가 책임           |
 
-이 분리는 rok 이 MLIR 자체의 dialect-definition DSL 진화 (TableGen → IRDL → 차세대 형식) 에 종속되지 않도록 합니다.
+이 분리는 Rok 이 MLIR 자체의 dialect-definition DSL 진화 (TableGen → IRDL → 차세대 형식) 에 종속되지 않도록 합니다.
 
 ## 1.10.2. plugin 빌드 형태
 
@@ -80,11 +80,11 @@ plugin 사용자 (라이브러리 작성자 + 그 라이브러리를 쓰는 사�
 
 ## 1.10.6. ABI 버전 정책
 
-plugin ABI 는 rok 가 정하지 않고 MLIR 의 plugin API (`MLIR_PLUGIN_API_VERSION`) 를 따릅니다. 호환성 판정은 MLIR 이 하며, 내장 LLVM 버전이 바뀌면 plugin 을 다시 빌드해야 합니다. 이는 `rok::bare` tier 가 stable 하지 않다는 일반 원칙 ([0.5 표준 라이브러리 계층](../../refs-lang/000-meta/005-standard-libraries-tiers.md)) 과 맞습니다.
+plugin ABI 는 Rok 가 정하지 않고 MLIR 의 plugin API (`MLIR_PLUGIN_API_VERSION`) 를 따릅니다. 호환성 판정은 MLIR 이 하며, 내장 LLVM 버전이 바뀌면 plugin 을 다시 빌드해야 합니다. 이는 `rok::bare` tier 가 stable 하지 않다는 일반 원칙 ([0.5 표준 라이브러리 계층](../../refs-lang/000-meta/005-standard-libraries-tiers.md)) 과 맞습니다.
 
 ## 1.10.7. 빌드 격리
 
-plugin 으로 등록된 다이얼렉트는 **그 빌드에서만 활성화** 됩니다. 일반 사용자가 작성하는 rok 코드의 표면 의미는 plugin 유무와 무관합니다.
+plugin 으로 등록된 다이얼렉트는 **그 빌드에서만 활성화** 됩니다. 일반 사용자가 작성하는 Rok 코드의 표면 의미는 plugin 유무와 무관합니다.
 
 ```rok
 // crypto plugin 없이 빌드되면 빌드 에러 (MLIR 이 op 을 모름)
@@ -95,7 +95,7 @@ unsafe {
 
 `rokc` 는 plugin 의 namespace 를 알 수 없으므로 op 이름 검사는 MLIR 이 하며, 그 진단이 빌드 에러로 보고됩니다.
 
-이 격리는 plugin 다이얼렉트가 rok 언어 자체의 의미에 침투하지 못하도록 하는 장치입니다. 일반 사용자 코드의 의미는 항상 본 사양만으로 결정됩니다.
+이 격리는 plugin 다이얼렉트가 Rok 언어 자체의 의미에 침투하지 못하도록 하는 장치입니다. 일반 사용자 코드의 의미는 항상 본 사양만으로 결정됩니다.
 
 ## 1.10.8. 다른 언어와의 비교
 
@@ -104,15 +104,15 @@ unsafe {
 | Mojo       | 컴파일러 빌드 시점 통합 (외부 plugin 로드 미공식화) | 빌드       |
 | MLIR C API | `mlirContextLoadAllAvailableDialects` 등            | 라이브러리 |
 | LLVM       | `-load=plugin.so` (legacy pass manager)             | CLI        |
-| **rok**    | **`--load-mlir-plugin ...` → `rokc` 의 MLIR 에 로드** | CLI      |
+| **Rok**    | **`--load-mlir-plugin ...` → `rokc` 의 MLIR 에 로드** | CLI      |
 
-rok 은 자체 plugin ABI 를 두지 않고 MLIR 의 plugin 형태를 그대로 씁니다.
+Rok 은 자체 plugin ABI 를 두지 않고 MLIR 의 plugin 형태를 그대로 씁니다.
 
 ## 1.10.9. 범위 밖
 
 다음은 본 사양 범위 밖입니다.
 
-- rok 소스 코드 안에서 다이얼렉트 / op 정의 (Mojo 도 안 함)
+- Rok 소스 코드 안에서 다이얼렉트 / op 정의 (Mojo 도 안 함)
 - 동일 namespace 의 plugin 두 개를 같이 로드 (충돌 - MLIR 이 거부)
 - 런타임 (실행 시점) 에 다이얼렉트 추가
 - plugin 의 LLVM 버전 간 호환 (MLIR plugin API 를 따름)

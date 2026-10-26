@@ -4,7 +4,7 @@
 고정하는 메커니즘을 정의합니다. raw `Ptr<T>` 가 GC 객체를 가리키고 있을 때 객체가
 이동하면 포인터가 무효가 되는데, 이 장은 바로 그 충돌을 해소하는 방법을 다룹니다.
 
-이 장은 rok unsafe tier 의 가장 중요한 장으로, pointer 와 GC 의 충돌을 어떻게
+이 장은 Rok unsafe tier 의 가장 중요한 장으로, pointer 와 GC 의 충돌을 어떻게
 조정하는지를 정면에서 설명합니다.
 
 ## 1.6.1. 동기 - pinning 이 필요한 이유
@@ -121,7 +121,7 @@ struct GcPtr<T> {
 }
 ```
 
-rok 의 GC 는 컴파일러가 직접 emit 하는 **thread 별 shadow stack** 으로 root set 을 추적합니다 ([refs-lang 7.4.1](../../refs-lang/007-runtime/704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack)).
+Rok 의 GC 는 컴파일러가 직접 emit 하는 **thread 별 shadow stack** 으로 root set 을 추적합니다 ([refs-lang 7.4.1](../../refs-lang/007-runtime/704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack)).
 
 ## 1.6.4. pin / unpin 의 GC 측 메커니즘
 
@@ -204,7 +204,7 @@ null-terminated 형태처럼, 각 컨테이너의 layout 에 맞춘 형태로 �
 
 ## 1.6.8. 다른 언어와의 비교
 
-| 측면             | Java JNI                       | .NET fixed             | Go 1.21 Pinner           | rok                       |
+| 측면             | Java JNI                       | .NET fixed             | Go 1.21 Pinner           | Rok                       |
 |------------------|--------------------------------|------------------------|--------------------------|---------------------------|
 | pin API          | `Get*Critical`                 | `fixed (T* p = ...)`   | `runtime.Pinner`         | `rok::bare::gc::pin(obj)`  |
 | RAII guard       | `Release` 명시                 | block scope            | `defer pin.Unpin()`      | `using` block (자동 drop) |
@@ -212,7 +212,7 @@ null-terminated 형태처럼, 각 컨테이너의 layout 에 맞춘 형태로 �
 | pin 후 만료 검증 | **없음**                       | 컴파일러 (block scope) | **없음** (수동)          | type system + scope       |
 | 다중 pin         | overlapping OK                 | **제한**               | overlapping OK           | overlapping OK (count)    |
 
-rok 이 다른 언어와 갈라지는 가장 큰 지점은 두 가지입니다.
+Rok 이 다른 언어와 갈라지는 가장 큰 지점은 두 가지입니다.
 
 1. 타입 시스템이 강제한다는 점입니다. `GcPtr<T>` 와 `Ptr<T>` 는 서로 다른
    타입이며, 자동 변환은 거부됩니다. 오직 pin guard 를 통해서만 건너갈 수 있습니다.
@@ -220,7 +220,7 @@ rok 이 다른 언어와 갈라지는 가장 큰 지점은 두 가지입니다.
    누락이 일어나지 않습니다. Go 의 수동 `defer` 방식보다 한층 안전한
    설계입니다.
 
-> 이 정책은 rok pointer 모델의 backbone 입니다. unsafe 와 GC, 두 영역이 안전하게
+> 이 정책은 Rok pointer 모델의 backbone 입니다. unsafe 와 GC, 두 영역이 안전하게
 > 만나는 접점입니다.
 
 ## 1.6.9. `Weak<T>` - 약한 참조

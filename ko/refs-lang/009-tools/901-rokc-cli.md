@@ -328,7 +328,7 @@ rokc bindgen <header> [--target <t>] [-o <file>] [-- <clang args>]
 rokc demangle <symbol>...
 ```
 
-심볼마다 [9.5.4](905-symbol-mangling.md) 형식의 블록을 빈 줄로 나눠 출력합니다 ([9.9.3](909-debug-tools.md#993-심볼-demangle)). rok 심볼이 아닌 인자가 있으면 종료 코드는 `1` 입니다.
+심볼마다 [9.5.4](905-symbol-mangling.md) 형식의 블록을 빈 줄로 나눠 출력합니다 ([9.9.3](909-debug-tools.md#993-심볼-demangle)). Rok 심볼이 아닌 인자가 있으면 종료 코드는 `1` 입니다.
 
 ### `rokc rokhir-text`: [ROKHIR](../000-meta/007-glossary.md#rokhir-rok-hir-bytecode) 텍스트 출력
 
@@ -423,7 +423,7 @@ rokc <subcommand> --help
 | `--color=auto\|always\|never`    | 진단의 색상 출력                                            |
 | `--no-color`                     | `--color=never` 와 같음                                     |
 | `--cwd=<path>`                   | 작업 디렉토리를 바꾼 뒤 실행                                |
-| `--print cfg\|target-list\|target-spec\|lldbinit` | 활성 cfg, 내장 타깃 이름, 타깃 명세, 또는 rok 의 formatter 를 로드하는 lldb 명령을 출력 (9.1.4) |
+| `--print cfg\|target-list\|target-spec\|lldbinit` | 활성 cfg, 내장 타깃 이름, 타깃 명세, 또는 Rok 의 formatter 를 로드하는 lldb 명령을 출력 (9.1.4) |
 | `--message-format=human\|json`   | 진단 형식. `json` 은 stdout 에 한 줄씩 (9.1.8)              |
 | `-A` / `-W` / `-D <lint \| group>` | lint 수준 (`--allow` / `--warn` / `--deny`). 패키지를 컴파일하는 모든 명령 (`build`, `run`, `test`, `bench`, `emit`, `check`, `lint`, `lsp`) 에 적용. 여러 번 쓸 수 있고 뒤의 것이 이김 |
 
@@ -537,7 +537,7 @@ rokc build --message-format=json
 
 ## 9.1.11. 표준 포맷 (`rokc fmt`)
 
-`rokc fmt` 의 표준 포맷은 **토큰을 보존하는 배치 규칙** 입니다. 줄 안의 토큰과 주석은 바꾸지 않고 줄의 들여쓰기와 공백 줄만 정합니다. `rokc fmt` 는 의도적으로 설정이 없습니다: 모든 rok 코드에 표준 포맷은 하나입니다.
+`rokc fmt` 의 표준 포맷은 **토큰을 보존하는 배치 규칙** 입니다. 줄 안의 토큰과 주석은 바꾸지 않고 줄의 들여쓰기와 공백 줄만 정합니다. `rokc fmt` 는 의도적으로 설정이 없습니다: 모든 Rok 코드에 표준 포맷은 하나입니다.
 
 1. 들여쓰기는 괄호 (`(` `[` `{` `#[`) 깊이마다 공백 4 칸입니다. 닫는 괄호로 시작하는 줄은 여는 줄의 깊이를 따릅니다. 탭은 공백으로 바뀝니다.
 2. 이어지는 줄, 곧 앞 토큰이 `;` `,` 나 괄호가 아닌 줄 (긴 식을 나눈 줄 등) 은 원래 파일에서 블록 들여쓰기보다 더 들여쓴 만큼을 유지합니다.

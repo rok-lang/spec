@@ -77,7 +77,7 @@ enum TrySendError<T> { Full(T), Closed(T) }
 
 ## 2.17.3. close 의미
 
-채널이 닫히는 시점과 그 신호가 전달되는 방식은 다음과 같습니다. 우선 모든 sender 가 `close()` 되면 채널은 closed 상태가 됩니다. 이때 receiver 쪽에서는 `recv()` 가 `none` 을 반환하여 close 신호를 받게 됩니다. rok 은 scope 종료 시 자동 drop 이 없으므로 ([2.13.4](213-marker.md#2134-drop---using-해제-시-정리)), sender 를 닫는 것은 명시적인 `close()` 입니다.
+채널이 닫히는 시점과 그 신호가 전달되는 방식은 다음과 같습니다. 우선 모든 sender 가 `close()` 되면 채널은 closed 상태가 됩니다. 이때 receiver 쪽에서는 `recv()` 가 `none` 을 반환하여 close 신호를 받게 됩니다. Rok 은 scope 종료 시 자동 drop 이 없으므로 ([2.13.4](213-marker.md#2134-drop---using-해제-시-정리)), sender 를 닫는 것은 명시적인 `close()` 입니다.
 
 다음은 `close()` 로 채널을 닫는 예시입니다.
 

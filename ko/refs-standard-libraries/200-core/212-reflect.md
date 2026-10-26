@@ -205,7 +205,7 @@ User: User { id: 1, name: "Alice" }
 
 ## 2.12.6. 다른 언어와의 비교
 
-| 측면               | Rust                         | Java             | Python              | rok                                         |
+| 측면               | Rust                         | Java             | Python              | Rok                                         |
 |--------------------|------------------------------|------------------|---------------------|---------------------------------------------|
 | 타입 이름          | `std::any::type_name::<T>()` | `getClass()`     | `type(x).__name__`  | `x.type_name_of()` 메서드                   |
 | 필드 introspection | **없음** (lib `bincode` 등)  | Reflection API   | `vars(x)` `getattr` | `x.get_field(name)` (opt-in)                |
@@ -213,6 +213,6 @@ User: User { id: 1, name: "Alice" }
 | 자동 구현          | **없음**                     | 모든 객체        | 모든 객체           | `Reflect` 자동, `Inspect` opt-in            |
 | 메모리 비용        | 0                            | 모든 클래스 메타 | 모든 객체 dict      | `Reflect` 만 자동 (opt-in 분리)             |
 
-rok 의 가장 큰 차이점은 두 가지입니다. 첫째, 두 단계로 분리되어 있어 가벼운 `Reflect` 는 자동으로 제공되고 무거운 `Inspect` 는 opt-in 으로 제공됩니다. 이는 Java 나 Python 의 전부 자동 모델보다 메모리 효율이 좋고, Rust 의 전부 수동 모델보다 ergonomic 합니다. 둘째, 메서드 일관성을 유지하여 `typeof(x)` 같은 글로벌 함수가 **없으며**, 모든 introspection 이 메서드 형태로 제공됩니다.
+Rok 의 가장 큰 차이점은 두 가지입니다. 첫째, 두 단계로 분리되어 있어 가벼운 `Reflect` 는 자동으로 제공되고 무거운 `Inspect` 는 opt-in 으로 제공됩니다. 이는 Java 나 Python 의 전부 자동 모델보다 메모리 효율이 좋고, Rust 의 전부 수동 모델보다 ergonomic 합니다. 둘째, 메서드 일관성을 유지하여 `typeof(x)` 같은 글로벌 함수가 **없으며**, 모든 introspection 이 메서드 형태로 제공됩니다.
 
 자세한 reflection 의미는 [refs-lang 6.10](../../refs-lang/006-meta-system/610-reflection.md) 이 권위입니다.

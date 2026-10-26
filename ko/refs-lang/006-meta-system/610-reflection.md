@@ -116,7 +116,7 @@ Config: Config { host: "h", port: 80 }
 
 ## 6.10.4. 글로벌 `typeof` / `sizeof` 함수 없음
 
-다른 언어들이 `typeof` 나 `sizeof` 같은 키워드로 노출하는 introspection 을, rok 에서는 트레잇 메서드로만 제공합니다.
+다른 언어들이 `typeof` 나 `sizeof` 같은 키워드로 노출하는 introspection 을, Rok 에서는 트레잇 메서드로만 제공합니다.
 
 ```rok
 // rok - 메서드 호출

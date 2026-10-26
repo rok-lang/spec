@@ -1,6 +1,6 @@
 # 7. 런타임 개요
 
-본 블록은 rok 런타임 시스템 ([GC](../000-meta/007-glossary.md#gc-garbage-collector), 작업 스케줄러, 코루틴) 의 구현 사양을 정의합니다. 이 시스템은 [실행 엔진과 사용자 표면](../000-meta/001-execution-modes.md) 의 두 엔진 ([JIT](../000-meta/007-glossary.md#jit-just-in-time) / [AOT](../000-meta/007-glossary.md#aot-ahead-of-time)) 양쪽에서 동일하게 작동합니다.
+본 블록은 Rok 런타임 시스템 ([GC](../000-meta/007-glossary.md#gc-garbage-collector), 작업 스케줄러, 코루틴) 의 구현 사양을 정의합니다. 이 시스템은 [실행 엔진과 사용자 표면](../000-meta/001-execution-modes.md) 의 두 엔진 ([JIT](../000-meta/007-glossary.md#jit-just-in-time) / [AOT](../000-meta/007-glossary.md#aot-ahead-of-time)) 양쪽에서 동일하게 작동합니다.
 
 ## 목차
 

@@ -196,7 +196,7 @@ INTERIOR_REF 는 객체 내부의 (시작이 아닌) 위치를 가리킵니다.
 
 ## 8.2.10. 직렬화의 endianness
 
-모든 필드는 little-endian 입니다. rok 은 little-endian 타깃을 우선하며 ([플랫폼 타깃](../000-meta/006-platform-targets.md) 의 모든 Tier 1 타깃이 little-endian 입니다), 이에 따라 직렬화 포맷도 동일하게 정합니다.
+모든 필드는 little-endian 입니다. Rok 은 little-endian 타깃을 우선하며 ([플랫폼 타깃](../000-meta/006-platform-targets.md) 의 모든 Tier 1 타깃이 little-endian 입니다), 이에 따라 직렬화 포맷도 동일하게 정합니다.
 
 big-endian 타깃 지원이 추가되는 시점에는 직렬화 endianness 를 little 로 고정할지 아니면 호스트 endianness 를 따를지를 그때 결정합니다.
 

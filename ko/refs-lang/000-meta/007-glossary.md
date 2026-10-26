@@ -1,14 +1,14 @@
 # 0.7. 용어집
 
-본 사양을 읽다 보면 같은 개념이 여러 장에 걸쳐 반복적으로 등장하기 때문에, 자주 쓰이는 용어를 한 곳에 모아 두는 것이 독자에게 도움이 됩니다. 이 문서는 rok 사양 전반에서 자주 등장하는 핵심 용어를 정리하여, 본문을 읽다가 개념이 모호해질 때 곧바로 참조할 수 있도록 마련한 항목집입니다. 각 항목은 짧은 정의에 더해 rok 의 구체적인 맥락을 함께 담고 있어, 단순한 사전적 풀이를 넘어 사양 내에서 그 용어가 어떤 위치를 차지하는지 짚을 수 있도록 구성하였습니다.
+본 사양을 읽다 보면 같은 개념이 여러 장에 걸쳐 반복적으로 등장하기 때문에, 자주 쓰이는 용어를 한 곳에 모아 두는 것이 독자에게 도움이 됩니다. 이 문서는 Rok 사양 전반에서 자주 등장하는 핵심 용어를 정리하여, 본문을 읽다가 개념이 모호해질 때 곧바로 참조할 수 있도록 마련한 항목집입니다. 각 항목은 짧은 정의에 더해 Rok 의 구체적인 맥락을 함께 담고 있어, 단순한 사전적 풀이를 넘어 사양 내에서 그 용어가 어떤 위치를 차지하는지 짚을 수 있도록 구성하였습니다.
 
 ## ABI (Application Binary Interface)
 
-ABI 는 컴파일된 코드가 링크와 실행 시점에 따라야 하는 바이너리 수준의 계약을 가리킵니다. 객체 레이아웃, 호출 규약, 심볼 명명 등이 여기에 포함됩니다. rok 의 ABI 는 [8장 - ABI / MLIR lowering](../008-abi/README.md) 에서 정의합니다.
+ABI 는 컴파일된 코드가 링크와 실행 시점에 따라야 하는 바이너리 수준의 계약을 가리킵니다. 객체 레이아웃, 호출 규약, 심볼 명명 등이 여기에 포함됩니다. Rok 의 ABI 는 [8장 - ABI / MLIR lowering](../008-abi/README.md) 에서 정의합니다.
 
 ## AOT (Ahead-of-Time)
 
-AOT 는 소스를 미리 컴파일하여 정적 산출물(`.a` 또는 실행 파일) 을 생성하는 모드를 가리키며, JIT 와 대조됩니다. rok 은 JIT 와 AOT 두 엔진을 모두 지원하며, 두 엔진은 rok-mir 까지 같은 파이프라인을 공유합니다.
+AOT 는 소스를 미리 컴파일하여 정적 산출물(`.a` 또는 실행 파일) 을 생성하는 모드를 가리키며, JIT 와 대조됩니다. Rok 은 JIT 와 AOT 두 엔진을 모두 지원하며, 두 엔진은 rok-mir 까지 같은 파이프라인을 공유합니다.
 
 ## archive
 
@@ -28,7 +28,7 @@ Immix 의 block 은 GC 의 메모리 단위로서, 32 KB 의 OS 메모리 페이
 
 ## dispatch (디스패치)
 
-디스패치란 이름, 연산자, 메서드 호출이 어떤 구현으로 연결되는지를 결정하는 과정을 뜻합니다. rok 은 정적 디스패치만 사용하며, 트레잇-as-타입 금지로 인해 vtable 간접 호출이 존재하지 않습니다.
+디스패치란 이름, 연산자, 메서드 호출이 어떤 구현으로 연결되는지를 결정하는 과정을 뜻합니다. Rok 은 정적 디스패치만 사용하며, 트레잇-as-타입 금지로 인해 vtable 간접 호출이 존재하지 않습니다.
 
 ## extern "C" 심볼
 
@@ -40,7 +40,7 @@ FFI 는 다른 언어(주로 C) 의 함수를 호출하거나, 다른 언어로�
 
 ## GC (Garbage Collector)
 
-GC 는 자동 메모리 관리 메커니즘입니다. rok 의 GC 는 Immix mark-region 과 Sticky Mark-Bit generational 을 결합한 형태로 구성됩니다.
+GC 는 자동 메모리 관리 메커니즘입니다. Rok 의 GC 는 Immix mark-region 과 Sticky Mark-Bit generational 을 결합한 형태로 구성됩니다.
 
 ## generic / 제네릭
 
@@ -70,7 +70,7 @@ LOS 는 GC 의 큰 객체 전용 공간입니다. 임계(8 KB / 2 KB) 이상의 
 
 단형화는 generic 함수를 호출 지점의 구체 타입별로 별도로 컴파일하는 과정을 뜻합니다. 간접 호출 비용이 0 이라는 이점을 얻는 대신, 컴파일 시간과 바이너리 크기를 비용으로 치릅니다.
 
-## ROKHIR (rok HIR bytecode)
+## ROKHIR (Rok HIR bytecode)
 
 ROKHIR 은 미리 빌드한 라이브러리 패키지의 인터페이스 파일 (`<name>.rokhir`) 입니다. archive 옆에 놓이며, 다운스트림 패키지가 선언을 읽고 generic fn 을 specialize 할 수 있게 합니다. body 는 구체 함수 본문을 잘라 낸 패키지 소스입니다 ([9.4](../009-tools/904-rokhir-bytecode.md)).
 
@@ -92,7 +92,7 @@ specialize 는 [monomorphization (단형화)](#monomorphization-단형화) 의 �
 
 ## stone
 
-레지스트리에 올린 rok 패키지입니다. 이름은 `[a-z0-9_-]+` (글자로 시작) 이며, 코드에서는 `-` 를 `_` 로 바꿔 씁니다. 레지스트리에서 `-` / `_` 와 대소문자는 같은 이름으로 봅니다. `rok.rokon` 에서 `Dep::version("req")` 나 문자열 `"req"` 로 요구합니다 ([9.10.4a](../009-tools/910-rok-frontend.md#9104a-stone-과-rokstonesio)).
+레지스트리에 올린 Rok 패키지입니다. 이름은 `[a-z0-9_-]+` (글자로 시작) 이며, 코드에서는 `-` 를 `_` 로 바꿔 씁니다. 레지스트리에서 `-` / `_` 와 대소문자는 같은 이름으로 봅니다. `rok.rokon` 에서 `Dep::version("req")` 나 문자열 `"req"` 로 요구합니다 ([9.10.4a](../009-tools/910-rok-frontend.md#9104a-stone-과-rokstonesio)).
 
 ## sticky mark-bit
 
@@ -112,11 +112,11 @@ work-stealing 은 스케줄러의 load balancing 메커니즘입니다. 각 work
 
 ## unsafe block / unsafe fn
 
-`unsafe { ... }` 블록 표현식과 `unsafe fn` 함수 modifier 는 안전 추상의 보장 밖에 있는 영역을 시각적으로 가두는 rok 의 단일 메커니즘입니다. raw pointer dereference, `unsafe fn` 호출, MLIR op 직접 호출 등이 unsafe scope 안에서만 허용됩니다. 자세한 내용은 [4.15 unsafe](../004-functions/415-unsafe.md) 를 참조하시면 됩니다.
+`unsafe { ... }` 블록 표현식과 `unsafe fn` 함수 modifier 는 안전 추상의 보장 밖에 있는 영역을 시각적으로 가두는 Rok 의 단일 메커니즘입니다. raw pointer dereference, `unsafe fn` 호출, MLIR op 직접 호출 등이 unsafe scope 안에서만 허용됩니다. 자세한 내용은 [4.15 unsafe](../004-functions/415-unsafe.md) 를 참조하시면 됩니다.
 
 ## MLIR plugin
 
-MLIR plugin 은 rok 컴파일러에 내장된 MLIR 에 외부에서 빌드된 MLIR 다이얼렉트를 동적으로 등록하기 위한 메커니즘입니다. `--load-mlir-plugin=<path>` CLI 옵션이나 패키지 매니페스트 선언으로 로드되며, 로드된 op 은 `rok::bare::mlir::__mlir_op` 으로 호출 가능해집니다. 도메인 특화 컴파일러 (암호화, 신호 처리, 새 가속기 ISA 등) 영역에서 활용합니다. 자세한 내용은 [refs-standard-libraries 1.10](../../refs-standard-libraries/100-bare/110-mlir-plugin.md) 을 참조하시면 됩니다.
+MLIR plugin 은 Rok 컴파일러에 내장된 MLIR 에 외부에서 빌드된 MLIR 다이얼렉트를 동적으로 등록하기 위한 메커니즘입니다. `--load-mlir-plugin=<path>` CLI 옵션이나 패키지 매니페스트 선언으로 로드되며, 로드된 op 은 `rok::bare::mlir::__mlir_op` 으로 호출 가능해집니다. 도메인 특화 컴파일러 (암호화, 신호 처리, 새 가속기 ISA 등) 영역에서 활용합니다. 자세한 내용은 [refs-standard-libraries 1.10](../../refs-standard-libraries/100-bare/110-mlir-plugin.md) 을 참조하시면 됩니다.
 
 ## rokc / rok / rokls / rokr
 
@@ -124,11 +124,11 @@ toolchain 을 이루는 실행 파일과 런타임입니다. `rokc` 는 LLVM, ML
 
 ## ROKON
 
-Rok Object Notation. rok 의 리터럴 문법 부분집합으로 값을 적는 데이터 형식이며, 확장자는 `.rokon` 입니다. 매니페스트 `rok.rokon` 과 lockfile `rok.lock` 이 이 형식입니다 ([stdlib 3.9](../../refs-standard-libraries/300-std/309-rokon.md)).
+Rok Object Notation. Rok 의 리터럴 문법 부분집합으로 값을 적는 데이터 형식이며, 확장자는 `.rokon` 입니다. 매니페스트 `rok.rokon` 과 lockfile `rok.lock` 이 이 형식입니다 ([stdlib 3.9](../../refs-standard-libraries/300-std/309-rokon.md)).
 
 ## rokstones.io
 
-rok 의 기본 stone 레지스트리입니다. index 는 별도 git 저장소 `rokstones.io-index` 입니다 ([9.10.4a](../009-tools/910-rok-frontend.md#9104a-stone-과-rokstonesio)).
+Rok 의 기본 stone 레지스트리입니다. index 는 별도 git 저장소 `rokstones.io-index` 입니다 ([9.10.4a](../009-tools/910-rok-frontend.md#9104a-stone-과-rokstonesio)).
 
 ## rok.rokon / rok.lock
 
@@ -138,4 +138,4 @@ rok 의 기본 stone 레지스트리입니다. index 는 별도 git 저장소 `r
 
 `rok` 이 의존성 집합을 두는 단위입니다. `rok.rokon` 이 있는 모든 디렉토리가 환경이며 활성화 단계는 없습니다. 프로젝트 밖에서는 `$ROK_HOME/envs/` 의 이름 있는 환경 (기본 `default`) 을 씁니다 ([9.10.5](../009-tools/910-rok-frontend.md#9105-환경)).
 
-여기에 정리한 항목들은 단지 단어의 뜻을 옮긴 것이 아니라, 컴파일 파이프라인, 메모리 관리, 타입 체계, 동시성 모델 등 rok 이 어떤 토대 위에 서 있는지를 압축적으로 보여 주는 색인이기도 합니다. 본문을 읽다가 개념이 흐릿해질 때마다 이 장으로 돌아오면, 각 용어가 사양 전체에서 어떤 자리를 차지하고 있는지를 더욱 또렷하게 가늠할 수 있을 것입니다.
+여기에 정리한 항목들은 단지 단어의 뜻을 옮긴 것이 아니라, 컴파일 파이프라인, 메모리 관리, 타입 체계, 동시성 모델 등 Rok 이 어떤 토대 위에 서 있는지를 압축적으로 보여 주는 색인이기도 합니다. 본문을 읽다가 개념이 흐릿해질 때마다 이 장으로 돌아오면, 각 용어가 사양 전체에서 어떤 자리를 차지하고 있는지를 더욱 또렷하게 가늠할 수 있을 것입니다.

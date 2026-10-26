@@ -120,7 +120,7 @@ impl<T: Send> IntoFuture for JoinHandle<T> { type Output = T; type IntoFuture = 
 
 JavaScript 와 Python 에는 잘 알려진 **function color** 문제가 있습니다. async 함수와 sync 함수가 자유롭게 섞이지 못한다는 것입니다 (async 안에서만 await 가 가능하고, sync 함수에서는 async 호출이 차단됩니다).
 
-rok 의 정책은 다음과 같습니다.
+Rok 의 정책은 다음과 같습니다.
 
 - `async fn` 과 `await` 가 색깔을 명시합니다
 - `for` 와 `for await` 가 색깔을 명시합니다
@@ -220,7 +220,7 @@ impl<T, E> TryAsyncFuture<T, E> {
 
 각 언어의 비동기 모델을 비교하면 아래 표와 같습니다.
 
-| 측면           | Rust                    | C#                 | Swift                  | rok                               |
+| 측면           | Rust                    | C#                 | Swift                  | Rok                               |
 |----------------|-------------------------|--------------------|------------------------|-----------------------------------|
 | 모델           | poll-based              | callback (state)   | continuation           | poll-based (Rust 동형)            |
 | `async fn`     | ✓                       | ✓                  | ✓                      | ✓                                 |
@@ -230,7 +230,7 @@ impl<T, E> TryAsyncFuture<T, E> {
 | color 통일     | ✗ (sync/async 분리)     | ✗                  | ✗                      | ✗ (산업 표준 채택)                |
 | await 일반화    | `Future` + 외부 lib     | `Task<T>` 통일     | `Task` + AsyncSequence | `IntoFuture` 일반화              |
 
-rok 의 가장 큰 차이점은 다음 두 가지입니다.
+Rok 의 가장 큰 차이점은 다음 두 가지입니다.
 
 1. **prefix `await`**: C#, Swift, JS 와 같은 방식이며, 권위는 [refs-lang 4.12](../../refs-lang/004-functions/412-async.md) 에 있습니다. 결과에 체이닝하려면 괄호로 묶습니다 (`(await x).method()`).
 2. `IntoFuture` 일반 트레잇을 도입하여 Task, Thread 도 동일하게 await 될 수 있습니다. Swift 의 `Task` 통일과 비슷한 발상이지만, 고유 타입을 보존한 후 trait 으로 일반화한다는 점이 다릅니다.

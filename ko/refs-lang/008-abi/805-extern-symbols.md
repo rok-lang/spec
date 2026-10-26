@@ -2,7 +2,7 @@
 
 `librokr.a` 가 노출하는 [심볼](../000-meta/007-glossary.md#extern-c-심볼) 의 시그니처를 정의합니다. 컴파일러가 생성한 코드와 표준 라이브러리가 이 심볼을 부릅니다.
 
-rok 쪽 선언은 런타임 ABI `extern "rok"` ([5.9.2](../005-modules/509-extern-block.md#592-abi-명시)) 이며, toolchain 이 `rok::core::rt` 에 `pub(pkg)` 로 둡니다. 아래 블록의 `fn` 값은 `RokFn` (8.5.0a), 그 밖의 값은 C ABI 와 같습니다. `str` 은 `struct { const uint8_t *ptr; size_t len; }` 이며, `str` 을 받거나 돌려주는 런타임 함수는 `RokFn` 처럼 16 바이트 구조체에 대한 플랫폼 C ABI 를 따릅니다 ([8.6.3](806-calling-convention.md#863-struct-인자--반환-small-struct-rule)): ABI 가 허용하면 레지스터로 값 전달하고, 레지스터와 스택에 나뉘지 않으며, Windows x64 에서는 참조로 넘깁니다. 프로그램은 런타임 심볼을 직접 선언할 수 있습니다 (`extern "rok"` / `extern "C"`). 그 선언은 여기서 정한 시그니처를 가져야 하며, 다르면 에러입니다.
+Rok 쪽 선언은 런타임 ABI `extern "rok"` ([5.9.2](../005-modules/509-extern-block.md#592-abi-명시)) 이며, toolchain 이 `rok::core::rt` 에 `pub(pkg)` 로 둡니다. 아래 블록의 `fn` 값은 `RokFn` (8.5.0a), 그 밖의 값은 C ABI 와 같습니다. `str` 은 `struct { const uint8_t *ptr; size_t len; }` 이며, `str` 을 받거나 돌려주는 런타임 함수는 `RokFn` 처럼 16 바이트 구조체에 대한 플랫폼 C ABI 를 따릅니다 ([8.6.3](806-calling-convention.md#863-struct-인자--반환-small-struct-rule)): ABI 가 허용하면 레지스터로 값 전달하고, 레지스터와 스택에 나뉘지 않으며, Windows x64 에서는 참조로 넘깁니다. 프로그램은 런타임 심볼을 직접 선언할 수 있습니다 (`extern "rok"` / `extern "C"`). 그 선언은 여기서 정한 시그니처를 가져야 하며, 다르면 에러입니다.
 
 > [!IMPORTANT]
 > 모든 심볼은 `rok_` 접두사로 시작합니다. 이는 외부 라이브러리나 사용자 코드와의 심볼 충돌을 회피하기 위함입니다.
@@ -24,7 +24,7 @@ rok 쪽 선언은 런타임 ABI `extern "rok"` ([5.9.2](../005-modules/509-exter
 
 ## 8.5.0a. `RokFn` - 함수 값의 C ABI 형태
 
-rok 함수 값 `{code, env}` ([4.4](../004-functions/404-function-type.md#함수-값의-표현)) 를 런타임 심볼에 넘길 때의 C 표현입니다.
+Rok 함수 값 `{code, env}` ([4.4](../004-functions/404-function-type.md#함수-값의-표현)) 를 런타임 심볼에 넘길 때의 C 표현입니다.
 
 ```c
 typedef struct {
@@ -157,7 +157,7 @@ extern "rok" {
 }
 ```
 
-`main()` 이 끝난 직후에 부릅니다. 다른 모든 rok 스레드는 지금 실행 중인 런타임 / C 코드를 마친 뒤 다음 safepoint 에서 영영 멈춥니다. 그 뒤 worker 풀을 끝내고 남은 자원을 정리합니다.
+`main()` 이 끝난 직후에 부릅니다. 다른 모든 Rok 스레드는 지금 실행 중인 런타임 / C 코드를 마친 뒤 다음 safepoint 에서 영영 멈춥니다. 그 뒤 worker 풀을 끝내고 남은 자원을 정리합니다.
 
 ### `rok_exit`
 
@@ -239,7 +239,7 @@ extern "rok" {
 
 ### safepoint 가 아닌 함수
 
-rok 쪽에서는 `#[no_safepoint]` 가 붙은 `extern "rok"` 블록에 선언합니다 ([5.9.2](../005-modules/509-extern-block.md#592-abi-명시)).
+Rok 쪽에서는 `#[no_safepoint]` 가 붙은 `extern "rok"` 블록에 선언합니다 ([5.9.2](../005-modules/509-extern-block.md#592-abi-명시)).
 
 다음 런타임 함수는 할당도 block 도 하지 않음이 보장되므로, 그 호출은 safepoint 가 아닙니다 ([8.4.2](804-safepoint.md#842-emit-위치), [8.9.12](809-lowering-control.md#8912-shadow-stack-frame)): `rok_str_len`, `rok_str_byte`, `rok_str_cmp`, `rok_str_eq`, `rok_str_eq_at`, `rok_str_find`, `rok_str_rfind`, `rok_str_char_count`, `rok_str_hash`, `rok_str_bytes_buf`, `rok_buf_copy`, `rok_char_*` 속성 / 대소문자 함수, `rok_fmt_len`, `rok_f64_*`, `rok_f32_*`.
 
@@ -276,7 +276,7 @@ extern "rok" {
 
 ## 8.5.4. Scheduler 영역
 
-task 런타임 (spawn, join, cancel, executor) 은 `rok::core::task` 의 rok 코드입니다 ([stdlib 2.18](../../refs-standard-libraries/200-core/218-task.md)). 런타임은 아래의 executor 슬롯, 스레드, parking 심볼만 제공합니다.
+task 런타임 (spawn, join, cancel, executor) 은 `rok::core::task` 의 Rok 코드입니다 ([stdlib 2.18](../../refs-standard-libraries/200-core/218-task.md)). 런타임은 아래의 executor 슬롯, 스레드, parking 심볼만 제공합니다.
 
 ### `rok_task_worker_*` / `rok_time_now_ns`
 
@@ -306,7 +306,7 @@ extern "rok" {
 }
 ```
 
-`rok_thread_spawn` 은 rok 클로저 `f` (아래 `RokFn`, 값 전달) 를 OS 스레드에서 실행합니다 (`stack_size` 0 은 기본값). `id` 는 `rok_thread_new_id` 로 받은 값이며 새 스레드의 `rok_tls_worker_id` 가 됩니다. 반환값은 join handle 이고, 생성에 실패하면 0 입니다. 스레드가 끝날 때까지 `env` 는 GC root 입니다.
+`rok_thread_spawn` 은 Rok 클로저 `f` (아래 `RokFn`, 값 전달) 를 OS 스레드에서 실행합니다 (`stack_size` 0 은 기본값). `id` 는 `rok_thread_new_id` 로 받은 값이며 새 스레드의 `rok_tls_worker_id` 가 됩니다. 반환값은 join handle 이고, 생성에 실패하면 0 입니다. 스레드가 끝날 때까지 `env` 는 GC root 입니다.
 
 ### `rok_task_hooks_install` / `rok_task_key`
 
@@ -531,7 +531,7 @@ extern "rok" {
 }
 ```
 
-`fatal error: out of memory` 를 stderr 에 출력하고 종료 코드 `101` 로 종료합니다. 런타임 안의 할당 실패와 core 의 `oom()` 이 모두 이 심볼을 거칩니다. 런타임은 rok 함수를 이름으로 부를 수 없으므로, 할당 실패 시 `oom_fn` 슬롯의 함수를 부르지 않고 이 심볼을 직접 씁니다.
+`fatal error: out of memory` 를 stderr 에 출력하고 종료 코드 `101` 로 종료합니다. 런타임 안의 할당 실패와 core 의 `oom()` 이 모두 이 심볼을 거칩니다. 런타임은 Rok 함수를 이름으로 부를 수 없으므로, 할당 실패 시 `oom_fn` 슬롯의 함수를 부르지 않고 이 심볼을 직접 씁니다.
 
 ### 스택 오버플로
 

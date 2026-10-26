@@ -1,6 +1,6 @@
 # 2.15. 문자열 - `str` / `char` / `c_char`
 
-`rok::core::str` 모듈은 문자열과 문자 타입의 권위 정의를 제공합니다. rok 은 **UTF-8 우선** 정책을 채택하고 있어서, 모든 in-process 문자열은 UTF-8 로 다루며, FFI 경계에서만 `c_char` 를 사용합니다.
+`rok::core::str` 모듈은 문자열과 문자 타입의 권위 정의를 제공합니다. Rok 은 **UTF-8 우선** 정책을 채택하고 있어서, 모든 in-process 문자열은 UTF-8 로 다루며, FFI 경계에서만 `c_char` 를 사용합니다.
 
 이 장은 48 개의 lang slot 중 세 개를 정의합니다. 첫째로 `str_type` 은 `rok::core::str::str` 에 연결되며 언어 기본값에 해당하는 lowercase struct 입니다. 둘째로 `char_type` 은 내장 `char` 이며, 이 장이 그 메서드를 정의합니다. 셋째로 `cchar_type` 은 `rok::core::str::c_char` 에 연결되며 마찬가지로 언어 기본값입니다.
 
@@ -15,17 +15,17 @@
 | `char`   | Unicode scalar value (PascalCase struct + keyword) | 4B (u32)                     | (값 - 변경 X)       |
 | `c_char` | C ABI 1-byte char (FFI primitive)                  | 1B (i8 또는 u8 - target dep) | (값)                |
 
-### Rust / Python / rok 모델 비교
+### Rust / Python / Rok 모델 비교
 
 세 언어가 문자열을 어떻게 다루는지 비교하면 다음과 같습니다.
 
-| 측면       | Rust             | Python         | rok                      |
+| 측면       | Rust             | Python         | Rok                      |
 |------------|------------------|----------------|--------------------------|
 | 값         | `&str`           | `str`          | `str` (불변 `(ptr, len)`) |
 | 가변 buffer | `String`        | `io.StringIO` 등 | `StrBuf`               |
 | 메모리     | borrow checker   | refcount       | GC                       |
 
-rok 의 `str` 은 수명 추적이 필요 없다는 점에서 Python 의 불변 `str` 에 가깝고, 표현은 Rust 의 `&str` 처럼 `(ptr, len)` 쌍입니다. 런타임에 만들어지는 문자열의 바이트는 GC 객체 (type id `1`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-런타임-예약-type-id)) 에 있습니다.
+Rok 의 `str` 은 수명 추적이 필요 없다는 점에서 Python 의 불변 `str` 에 가깝고, 표현은 Rust 의 `&str` 처럼 `(ptr, len)` 쌍입니다. 런타임에 만들어지는 문자열의 바이트는 GC 객체 (type id `1`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-런타임-예약-type-id)) 에 있습니다.
 
 ## 2.15.2. `str` - 불변 UTF-8 문자열
 
@@ -362,7 +362,7 @@ intrinsic 부착에 관해서는, `str` 메서드 본문 일부와 `char` 메서
 
 ## 2.15.9. 다른 언어와의 비교
 
-| 측면         | Rust              | Python 3                | Java                    | rok                                |
+| 측면         | Rust              | Python 3                | Java                    | Rok                                |
 |--------------|-------------------|-------------------------|-------------------------|------------------------------------|
 | 타입 분리    | `&str` + `String` | `str` (단일)            | `String`                | `str` + `StrBuf`                   |
 | mutability   | `String` 만 가변  | **불변**                | **불변**                | `str` 불변, `StrBuf` 가변          |

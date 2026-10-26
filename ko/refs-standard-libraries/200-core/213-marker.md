@@ -2,13 +2,13 @@
 
 값을 복제하고, 더 이상 필요 없어진 자원을 정리하는 일은 어떤 언어에서도 피할 수 없는 주제입니다. `rok::core::marker` 모듈은 이 두 가지 관심사를 세 트레잇으로 묶어 표현합니다. 먼저 `Clone` 은 값의 독립적인 사본을 만드는 방법을 정의하고, 그다음 `Copy` 는 단순한 비트 복사로 충분한 타입임을 알리는 표지를 제공하며, 또한 `Drop` 은 scope 를 떠나는 순간 실행해야 하는 정리 코드를 정의합니다. 이 밖에 `none` 리터럴의 타입인 zero-sized marker 타입 `NoneSentinel` 도 이 모듈에 둡니다 (2.13.8).
 
-rok 이 GC 를 채택했다는 사실은 이 트레잇들의 의미에 직접적인 영향을 줍니다. 메모리 회수는 GC 가 책임지므로 `Drop` 은 더 이상 메모리 해제와 얽히지 않습니다. 따라서 `Drop` 은 파일 핸들이나 소켓처럼 언어 외부에 존재하는 자원을 정리하는 finalize 작업에 한정됩니다. 이러한 차이가 rok 의 marker 트레잇을 Rust 와도, Java/Python 과도 다른 자리에 놓이게 합니다.
+Rok 이 GC 를 채택했다는 사실은 이 트레잇들의 의미에 직접적인 영향을 줍니다. 메모리 회수는 GC 가 책임지므로 `Drop` 은 더 이상 메모리 해제와 얽히지 않습니다. 따라서 `Drop` 은 파일 핸들이나 소켓처럼 언어 외부에 존재하는 자원을 정리하는 finalize 작업에 한정됩니다. 이러한 차이가 Rok 의 marker 트레잇을 Rust 와도, Java/Python 과도 다른 자리에 놓이게 합니다.
 
 ## 2.13.1. 메모리 모델 - GC 가 있는 언어의 Clone/Drop
 
-rok 의 런타임은 [Immix + Sticky Mark-Bit Generational GC](../../refs-lang/007-runtime/703-gc-algorithm.md) 가 heap 객체의 수명을 자동으로 관리합니다. 즉 어떤 객체가 언제 메모리에서 사라지는지를 사용자가 직접 결정할 필요가 없습니다. 그러나 외부 자원의 정리만큼은 결정론적으로 일어나야 하기 때문에, rok 의 `Drop` 은 GC 와 분리된 별도의 메커니즘으로 동작합니다. 이를 Rust 와 비교하면 다음과 같습니다.
+Rok 의 런타임은 [Immix + Sticky Mark-Bit Generational GC](../../refs-lang/007-runtime/703-gc-algorithm.md) 가 heap 객체의 수명을 자동으로 관리합니다. 즉 어떤 객체가 언제 메모리에서 사라지는지를 사용자가 직접 결정할 필요가 없습니다. 그러나 외부 자원의 정리만큼은 결정론적으로 일어나야 하기 때문에, Rok 의 `Drop` 은 GC 와 분리된 별도의 메커니즘으로 동작합니다. 이를 Rust 와 비교하면 다음과 같습니다.
 
-| 측면              | Rust (no GC)            | rok (GC)                                        |
+| 측면              | Rust (no GC)            | Rok (GC)                                        |
 |-------------------|-------------------------|-------------------------------------------------|
 | 메모리 회수       | `Drop` 가 책임          | GC 가 자동 - `Drop` **하지 않음**               |
 | `Drop::drop` 의미 | 자원 해제 + 메모리 free | **외부 자원 정리만** (file handle, socket, ...) |
@@ -49,7 +49,7 @@ b;                           //→ [1, 2, 3, 4]
 
 ### 자동 호출 없음 - `clone_trait` lang slot
 
-언어에 따라서는 `let y = x;` 만 써도 컴파일러가 알아서 `clone` 을 호출하기도 합니다. rok 은 이 부분에서 명시적인 쪽을 택했습니다.
+언어에 따라서는 `let y = x;` 만 써도 컴파일러가 알아서 `clone` 을 호출하기도 합니다. Rok 은 이 부분에서 명시적인 쪽을 택했습니다.
 
 ```rok
 let xs: List<i32> = [1, 2, 3];
@@ -107,7 +107,7 @@ trait Copy: Clone {
 }
 ```
 
-rok 에서는 모든 값이 값으로 복사됩니다. 컬렉션이나 GC 객체는 핸들이 복사되어 같은 객체를 가리키고, 원시 값, `str` (불변 `(ptr, len)`), 구조체, enum, 튜플은 그 자체가 복사됩니다 ([refs-lang 2.3.8](../../refs-lang/002-types/203-struct.md#238-값-의미)). 따라서 `Copy` 는 **marker 일 뿐** 이며, 대입이나 인자 전달의 의미를 바꾸지 않습니다. `Copy` 는 제네릭 bound (`T: Copy`) 에서 "비트 복사가 곧 독립된 사본" 인 타입을 고를 때만 쓰입니다.
+Rok 에서는 모든 값이 값으로 복사됩니다. 컬렉션이나 GC 객체는 핸들이 복사되어 같은 객체를 가리키고, 원시 값, `str` (불변 `(ptr, len)`), 구조체, enum, 튜플은 그 자체가 복사됩니다 ([refs-lang 2.3.8](../../refs-lang/002-types/203-struct.md#238-값-의미)). 따라서 `Copy` 는 **marker 일 뿐** 이며, 대입이나 인자 전달의 의미를 바꾸지 않습니다. `Copy` 는 제네릭 bound (`T: Copy`) 에서 "비트 복사가 곧 독립된 사본" 인 타입을 고를 때만 쓰입니다.
 
 ### impl 정책
 
@@ -145,7 +145,7 @@ trait Drop {
 
 ### 호출 시점 - `using` 바인딩에서만
 
-rok 은 GC 언어이므로 일반 바인딩이 scope 를 벗어날 때 자동으로 `drop` 을 부르지 않습니다. `drop` 은 `using` 으로 묶은 바인딩에서만, 블록을 빠져나갈 때 호출됩니다 ([refs-lang 3.17 `using`](../../refs-lang/003-expressions/317-using-expression.md)).
+Rok 은 GC 언어이므로 일반 바인딩이 scope 를 벗어날 때 자동으로 `drop` 을 부르지 않습니다. `drop` 은 `using` 으로 묶은 바인딩에서만, 블록을 빠져나갈 때 호출됩니다 ([refs-lang 3.17 `using`](../../refs-lang/003-expressions/317-using-expression.md)).
 
 - 정상 종료, `return`, `break`, 에러 전파 모두에서 호출됩니다.
 - 여러 바인딩은 선언의 역순 (LIFO) 으로 호출됩니다.
@@ -271,9 +271,9 @@ impl Drop for Container {
 
 ## 2.13.7. 다른 언어와의 비교
 
-지금까지 설명한 rok 의 모델이 기존 언어들과 어떻게 다른지 비교해 보면, 설계 의도가 좀 더 분명해집니다.
+지금까지 설명한 Rok 의 모델이 기존 언어들과 어떻게 다른지 비교해 보면, 설계 의도가 좀 더 분명해집니다.
 
-| 측면              | Rust                     | Java/Python (GC)            | rok (GC + Drop)          |
+| 측면              | Rust                     | Java/Python (GC)            | Rok (GC + Drop)          |
 |-------------------|--------------------------|-----------------------------|--------------------------|
 | 메모리 회수       | `Drop` 가 책임           | GC                          | GC                       |
 | 결정론적 finalize | `Drop` (컴파일러 보장)   | **없음** (finalizer 비결정) | `Drop` (scope-bound)     |
@@ -281,7 +281,7 @@ impl Drop for Container {
 | Clone 의미        | 깊은 복제                | `clone()` (Object.clone)    | 깊은 복제                |
 | derive            | `#[derive(Clone, Copy)]` | `Cloneable` 인터페이스      | `#[derive(Clone, Copy)]` |
 
-rok 이 두드러지는 지점은 결국 GC 와 결정론적 `Drop` 의 공존입니다. 메모리 회수는 GC 가 맡기 때문에 `Drop` 이 메모리 해제를 의미하지 않으며, 그래서 일반 객체는 `Drop` 을 구현할 필요가 전혀 없습니다. 따라서 외부 자원 정리가 필요한 타입만 `Drop` 을 구현하고, 사용하는 쪽은 `using` 으로 묶으면 충분합니다.
+Rok 이 두드러지는 지점은 결국 GC 와 결정론적 `Drop` 의 공존입니다. 메모리 회수는 GC 가 맡기 때문에 `Drop` 이 메모리 해제를 의미하지 않으며, 그래서 일반 객체는 `Drop` 을 구현할 필요가 전혀 없습니다. 따라서 외부 자원 정리가 필요한 타입만 `Drop` 을 구현하고, 사용하는 쪽은 `using` 으로 묶으면 충분합니다.
 
 이 모델은 한쪽으로는 Java/Python 의 finalizer 비결정성 문제를, 다른 한쪽으로는 GC 가 없는 데에서 오는 Rust 의 비용을 동시에 회피합니다.
 
@@ -312,7 +312,7 @@ trait Sync { }      // 공유 참조로 여러 스레드에서 읽어도 안전
 - 원시 숫자, `bool`, `char`, `c_char`, `str`, `none` 은 `Send + Sync` 입니다.
 - `struct`, `enum`, `union`, 튜플, 배열, 합 타입은 모든 필드 (구성 요소) 가 `Send` 이면 `Send`, 모두 `Sync` 이면 `Sync` 입니다. 제네릭 컨테이너의 `Send` 는 같은 규칙으로 `T` 에 따릅니다.
 - 컬렉션 (`List`, `Dict`, `Set`, `StrBuf`, `Deque`, `BinaryHeap`, `OrderedDict`, `OrderedSet`, `Slice`) 은 `Send` 이고 `!Sync` 입니다. 가변 핸들을 공유하기 때문입니다. 스레드 사이에서는 `Mutex` / `RwLock` / 채널로 공유합니다.
-- rok 에는 move 의미가 없습니다. 값을 넘겨도 (`Mutex::new(xs)`, `RwLock::new(xs)`, `tx.send(xs)` / `try_send` / `send_async`, `Handoff::new(xs)`) 보낸 쪽의 핸들은 새 소유자가 이제 다른 스레드와 공유하는 객체를 가리킵니다. guard 에서 꺼낸 (`get`), guard 에 넣은 (`set`), `update` 의 클로저가 닿은 핸들도 guard 의 `using` 블록이 끝난 뒤 여전히 보호된 객체를 가리킵니다. 그 뒤에 그런 값을 어느 경로에서든 쓰는 것은 컴파일 에러 (`E202`, [refs-lang 9.9.4](../../refs-lang/009-tools/909-debug-tools.md#994-진단--에러-메시지)) 입니다. 값은 다음을 거쳐 추적합니다:
+- Rok 에는 move 의미가 없습니다. 값을 넘겨도 (`Mutex::new(xs)`, `RwLock::new(xs)`, `tx.send(xs)` / `try_send` / `send_async`, `Handoff::new(xs)`) 보낸 쪽의 핸들은 새 소유자가 이제 다른 스레드와 공유하는 객체를 가리킵니다. guard 에서 꺼낸 (`get`), guard 에 넣은 (`set`), `update` 의 클로저가 닿은 핸들도 guard 의 `using` 블록이 끝난 뒤 여전히 보호된 객체를 가리킵니다. 그 뒤에 그런 값을 어느 경로에서든 쓰는 것은 컴파일 에러 (`E202`, [refs-lang 9.9.4](../../refs-lang/009-tools/909-debug-tools.md#994-진단--에러-메시지)) 입니다. 값은 다음을 거쳐 추적합니다:
   - 복사 (`let ys = xs`, struct 필드나 tuple 원소, 필드 대입);
   - 그 값을 넘기는 필드 (`Mutex::new(s.items)`);
   - 그 값을 담는 객체 (`all.push(xs)`, 그 값을 캡처하는 클로저). 양쪽 모두입니다: `xs` 를 넘기면 `all` 도 쓸 수 없습니다;

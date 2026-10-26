@@ -1,10 +1,10 @@
 # 3.9. `rokon::` - ROKON 데이터 형식
 
-ROKON (Rok Object Notation) 은 rok 의 리터럴 문법으로 값을 적는 데이터 형식입니다. 확장자는 `.rokon` 입니다. Rust 의 RON, Zig 의 ZON 과 같은 자리이며, 패키지 매니페스트 `rok.rokon` 과 lockfile `rok.lock` ([refs-lang 9.10.3](../../refs-lang/009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) 이 이 형식을 씁니다.
+ROKON (Rok Object Notation) 은 Rok 의 리터럴 문법으로 값을 적는 데이터 형식입니다. 확장자는 `.rokon` 입니다. Rust 의 RON, Zig 의 ZON 과 같은 자리이며, 패키지 매니페스트 `rok.rokon` 과 lockfile `rok.lock` ([refs-lang 9.10.3](../../refs-lang/009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) 이 이 형식을 씁니다.
 
 ## 3.9.1. 형식
 
-ROKON 은 rok 식 문법의 부분집합이며, rok 의 lexer / parser 로 읽습니다. 파일 하나에 값 하나입니다.
+ROKON 은 Rok 식 문법의 부분집합이며, Rok 의 lexer / parser 로 읽습니다. 파일 하나에 값 하나입니다.
 
 | 형태        | 예                                                    | 비고                                                  |
 |-------------|-------------------------------------------------------|-------------------------------------------------------|
@@ -26,7 +26,7 @@ ROKON 은 rok 식 문법의 부분집합이며, rok 의 lexer / parser 로 읽�
 - NaN 과 무한대는 ROKON 표기가 없습니다. 입력의 `nan` / `inf` 는 맨 식별자로 거부됩니다.
 
 > [!NOTE]
-> 알려진 한계: 첫 키가 `none` 인 dict (`{ none: 1 }`) 는 지원하지 않습니다. rok parser 가 이것을 블록으로 읽기 때문입니다.
+> 알려진 한계: 첫 키가 `none` 인 dict (`{ none: 1 }`) 는 지원하지 않습니다. Rok parser 가 이것을 블록으로 읽기 때문입니다.
 
 ```rokon
 // config.rokon
@@ -41,9 +41,9 @@ Config {
 }
 ```
 
-## 3.9.2. rok 타입과의 대응
+## 3.9.2. Rok 타입과의 대응
 
-| ROKON          | rok 타입                                                                     |
+| ROKON          | Rok 타입                                                                     |
 |----------------|------------------------------------------------------------------------------|
 | `none`         | `T \| none` 의 `none`                                                        |
 | `true` / `false` | `bool`                                                                     |
@@ -177,6 +177,6 @@ print(rokon::to_string(cfg));
 |--------|-----------------------------|-----------------------------------|
 | RON    | `Name(field: v)`            | Rust 와 다른 전용 문법            |
 | ZON    | `.{ .name = "x" }`          | Zig 의 익명 struct 리터럴         |
-| ROKON  | `Name { field: v }`         | rok 자체의 리터럴 문법 그대로     |
+| ROKON  | `Name { field: v }`         | Rok 자체의 리터럴 문법 그대로     |
 
-ROKON 은 별도 문법을 두지 않고 rok 리터럴을 그대로 쓰므로, 소스에 적은 값과 파일에 적은 값이 같은 모양입니다.
+ROKON 은 별도 문법을 두지 않고 Rok 리터럴을 그대로 쓰므로, 소스에 적은 값과 파일에 적은 값이 같은 모양입니다.

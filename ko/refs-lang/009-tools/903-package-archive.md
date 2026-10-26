@@ -31,11 +31,11 @@ part1.o
 | `.data`   | `static` 의 초기값                                          |
 | `.bss`    | 0 으로 초기화되는 `static`                                  |
 
-ScanTable 은 일반 상수 데이터이며, 생성된 등록 코드가 프로세스 시작 시 `rok_gc_register_type` 으로 런타임에 등록합니다 ([8.2.13](../008-abi/802-scan-table.md#8213-등록-시점)). rok 전용 섹션은 없습니다.
+ScanTable 은 일반 상수 데이터이며, 생성된 등록 코드가 프로세스 시작 시 `rok_gc_register_type` 으로 런타임에 등록합니다 ([8.2.13](../008-abi/802-scan-table.md#8213-등록-시점)). Rok 전용 섹션은 없습니다.
 
 ## 9.3.3. 정적 .a 원칙
 
-모든 라이브러리 산출물은 정적 `.a` 입니다. 동적 라이브러리는 rok 의 표준 산출물이 아닙니다. [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) 로 동적 라이브러리를 부르는 것은 됩니다.
+모든 라이브러리 산출물은 정적 `.a` 입니다. 동적 라이브러리는 Rok 의 표준 산출물이 아닙니다. [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) 로 동적 라이브러리를 부르는 것은 됩니다.
 
 ## 9.3.4. 버전 호환 검사
 

@@ -4,7 +4,7 @@
 
 ## 8.3.1. TLS 슬롯 구조
 
-TLS 슬롯은 런타임이 정의하고 export 하는 하나의 `thread_local` 블록 `rok_tls` 이며, 각 슬롯은 그 안의 고정 offset 에 있습니다. 컴파일된 코드는 블록 주소에서 각 슬롯의 offset 으로 접근하며, rok 함수는 그 주소를 호출자에게서 받습니다 (8.3.8).
+TLS 슬롯은 런타임이 정의하고 export 하는 하나의 `thread_local` 블록 `rok_tls` 이며, 각 슬롯은 그 안의 고정 offset 에 있습니다. 컴파일된 코드는 블록 주소에서 각 슬롯의 offset 으로 접근하며, Rok 함수는 그 주소를 호출자에게서 받습니다 (8.3.8).
 
 `p` 는 바이트 단위의 포인터 폭입니다.
 
@@ -28,7 +28,7 @@ TLS 슬롯은 런타임이 정의하고 export 하는 하나의 `thread_local` �
 **impl-defined 슬롯**: 런타임은 스케줄링, 통계, 프로파일링, 디버깅 등을 위한 thread-local 상태를 ABI 슬롯 뒤나 다른 곳에 더 둘 수 있습니다. 컴파일러와 외부 패키지는 이것을 참조해서는 안 됩니다.
 
 > [!NOTE]
-> rok 의 런타임은 `task_lane` 을 10p+16, `static_inits` 를 11p+16, `held_locks` (이 스레드가 가진 lock. 세션 host 에서 사라진 스레드가 block 중에 가진 lock 은 해제됨) 를 12p+16 에 둡니다.
+> Rok 의 런타임은 `task_lane` 을 10p+16, `static_inits` 를 11p+16, `held_locks` (이 스레드가 가진 lock. 세션 host 에서 사라진 스레드가 block 중에 가진 lock 은 해제됨) 를 12p+16 에 둡니다.
 
 ## 8.3.2. 접근 메커니즘
 
@@ -154,7 +154,7 @@ rok_thread_shutdown():
 
 ## 8.3.8. 컴파일러 emit 의 형식
 
-블록은 런타임이 정의하고 export 하는 `thread_local` global 입니다. 컴파일러는 이를 외부 선언으로 참조하고, 블록 주소에서 슬롯을 offset 으로 load 합니다. rok 함수는 그 주소를 호출자에게서 숨은 마지막 인자로 받으므로 (8.6.6) rok 함수 사이의 호출은 TLS 를 읽지 않습니다. rok 바깥에서 들어오는 코드는 주소를 직접 한 번 얻어 (`llvm.threadlocal.address`) 넘겨 줍니다: C `main`, `extern "C"` 정의의 C 진입점, `#[export_name]` rok 함수, `any` dispatcher, lazy `static` 의 초기화 함수, 그리고 함수 값이 거치는 thunk (8.6.11) 입니다.
+블록은 런타임이 정의하고 export 하는 `thread_local` global 입니다. 컴파일러는 이를 외부 선언으로 참조하고, 블록 주소에서 슬롯을 offset 으로 load 합니다. Rok 함수는 그 주소를 호출자에게서 숨은 마지막 인자로 받으므로 (8.6.6) Rok 함수 사이의 호출은 TLS 를 읽지 않습니다. Rok 바깥에서 들어오는 코드는 주소를 직접 한 번 얻어 (`llvm.threadlocal.address`) 넘겨 줍니다: C `main`, `extern "C"` 정의의 C 진입점, `#[export_name]` Rok 함수, `any` dispatcher, lazy `static` 의 초기화 함수, 그리고 함수 값이 거치는 thunk (8.6.11) 입니다.
 
 ```mlir
 ; LLVM IR - 정의는 런타임, 컴파일러 산출물은 external 선언

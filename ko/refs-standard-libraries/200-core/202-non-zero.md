@@ -125,7 +125,7 @@ let nz: NonZero<i32> = unsafe { NonZero::new_unchecked(n) };
 
 ## 2.2.9. 다른 언어와의 비교
 
-| 측면         | Rust                          | rok                                   |
+| 측면         | Rust                          | Rok                                   |
 |--------------|-------------------------------|---------------------------------------|
 | `NonZero<T>` | `NonZero<T>` (정수)           | `NonZero<T: NicheInt>`                |
 | `NonNan` / `Finite` | 없음 (외부 crate)      | 내장                                  |

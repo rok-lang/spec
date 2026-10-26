@@ -111,7 +111,7 @@ using x = 42 { ... }   // ERROR: using 에는 Drop 구현 타입이 필요 - i32
 
 | 언어   | 형태                          | 스코프 단위  | 비고                            |
 |--------|-------------------------------|--------------|---------------------------------|
-| rok    | `using x = try e { ... }`     | block        | 표현식, 다중 자원, `try` 통합   |
+| Rok    | `using x = try e { ... }`     | block        | 표현식, 다중 자원, `try` 통합   |
 | C#     | `using (var x = e) { ... }`   | block        | `IDisposable` 필요              |
 | Java   | `try (var x = e) { ... }`     | try block    | `AutoCloseable` 필요, 다중 자원 |
 | Python | `with x as f: ...`            | block        | `__enter__` / `__exit__`        |
@@ -120,4 +120,4 @@ using x = 42 { ... }   // ERROR: using 에는 Drop 구현 타입이 필요 - i32
 | Zig    | `defer x.close();`            | block        | `errdefer` 변형                 |
 | Rust   | (RAII 자동, 별도 키워드 없음) | block        | GC 없음 - drop 시점 자동 결정   |
 
-rok 의 `using` 은 GC 언어 (C#, Java, Python) 의 명시적 블록 패턴과 식 (expression) 으로서의 합성성, `try` 통합, 다중 자원 역순 해제를 결합한 형태입니다.
+Rok 의 `using` 은 GC 언어 (C#, Java, Python) 의 명시적 블록 패턴과 식 (expression) 으로서의 합성성, `try` 통합, 다중 자원 역순 해제를 결합한 형태입니다.

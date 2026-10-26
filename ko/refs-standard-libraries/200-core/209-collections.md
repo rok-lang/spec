@@ -542,7 +542,7 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 
 ## 2.9.11. 다른 언어와의 비교
 
-| 측면        | Rust                 | Python                     | rok                                    |
+| 측면        | Rust                 | Python                     | Rok                                    |
 |-------------|----------------------|----------------------------|----------------------------------------|
 | 동적 배열   | `Vec<T>`             | `list`                     | `List<T>`                              |
 | hash map    | `HashMap<K, V>`      | `dict` (insertion-ordered) | `Dict<K, V>` + `OrderedDict<K, V>`     |
@@ -552,7 +552,7 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 | 리터럴      | `vec![...]` (매크로) | `[...]` `{...}` `(...)`    | `[...]` `{...}` `(...)` (`#[literal]`) |
 | ordered map | `BTreeMap` (정렬 맵) | **기본 dict**              | 별도 `OrderedDict`                     |
 
-rok 의 가장 큰 차이점은 다음과 같습니다. 첫째로 6 가지 컬렉션이 모두 1급 리터럴 문법을 가지므로 `vec![]` 같은 매크로를 사용하지 않습니다. 둘째로 `Dict` / `Set` 의 insertion order 는 보장되지 않으며, 이는 Python 3.7+ 와 다른 점이므로 순서가 필요한 경우에는 `OrderedDict` 를 명시적으로 사용해야 합니다. 셋째로 `Slice<T>` 가 stride 를 가지는 view 이기 때문에 `xs[::2]` 같은 표현조차 zero-copy 로 처리됩니다.
+Rok 의 가장 큰 차이점은 다음과 같습니다. 첫째로 6 가지 컬렉션이 모두 1급 리터럴 문법을 가지므로 `vec![]` 같은 매크로를 사용하지 않습니다. 둘째로 `Dict` / `Set` 의 insertion order 는 보장되지 않으며, 이는 Python 3.7+ 와 다른 점이므로 순서가 필요한 경우에는 `OrderedDict` 를 명시적으로 사용해야 합니다. 셋째로 `Slice<T>` 가 stride 를 가지는 view 이기 때문에 `xs[::2]` 같은 표현조차 zero-copy 로 처리됩니다.
 
 ## 2.9.12. `GcBuf<T>` - raw GC buffer
 

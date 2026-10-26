@@ -34,9 +34,9 @@ _Y3f8a1c2b_std_vec_push_a7c91d8e44b2f190
 
 ## 9.5.2. 부분별 의미
 
-### `_Y`: rok 심볼 prefix
+### `_Y`: Rok 심볼 prefix
 
-모든 rok 심볼은 `_Y` 로 시작합니다. 밑줄 + 대문자로 시작하는 이름은 C 에서 구현 예약 영역이므로 일반 C 심볼과 충돌하지 않으며, 이미 널리 쓰이는 맹글링 스킴 (C++ Itanium 의 `_Z`, Rust v0 의 `_R`, D 의 `_D`, Swift 의 `$s`) 과도 겹치지 않도록 `_Y` 를 골랐습니다. 또한 `nm` 이나 링커 에러 출력에서 rok 이 발행한 심볼을 한눈에 구분할 수 있습니다. prefix 바로 뒤에는 소문자 16진수 `<pkg_hash_8>` 이 오므로, 대문자 한 글자가 이어지는 예약 prefix (`_YK` 등, [9.5.5](#955-예약된-prefix)) 와는 첫 글자만으로 구분됩니다.
+모든 Rok 심볼은 `_Y` 로 시작합니다. 밑줄 + 대문자로 시작하는 이름은 C 에서 구현 예약 영역이므로 일반 C 심볼과 충돌하지 않으며, 이미 널리 쓰이는 맹글링 스킴 (C++ Itanium 의 `_Z`, Rust v0 의 `_R`, D 의 `_D`, Swift 의 `$s`) 과도 겹치지 않도록 `_Y` 를 골랐습니다. 또한 `nm` 이나 링커 에러 출력에서 Rok 이 발행한 심볼을 한눈에 구분할 수 있습니다. prefix 바로 뒤에는 소문자 16진수 `<pkg_hash_8>` 이 오므로, 대문자 한 글자가 이어지는 예약 prefix (`_YK` 등, [9.5.5](#955-예약된-prefix)) 와는 첫 글자만으로 구분됩니다.
 
 ### `<pkg_hash_8>`
 
@@ -127,7 +127,7 @@ _ZN3std3vec10push_inner17h2d4c3e9d8f1a2b3cE
 
 Itanium 호환이라는 장점이 있지만, 읽기가 어렵고 길이 prefix 가 인코딩 측면에서 비효율적이라는 단점이 있습니다.
 
-이에 비해 rok 의 `N...` 은 읽기가 쉽고 길이 prefix 도 따로 두지 않습니다 (구분자 `_` 로 구분). demangle 과정도 단순하게 가져갈 수 있습니다.
+이에 비해 Rok 의 `N...` 은 읽기가 쉽고 길이 prefix 도 따로 두지 않습니다 (구분자 `_` 로 구분). demangle 과정도 단순하게 가져갈 수 있습니다.
 
 ## 9.5.4. demangle 도구
 
@@ -153,7 +153,7 @@ generics: a7c91d8e44b2f190 (type tuple hash)
 
 | Prefix   | 의미                                                                           |
 |----------|--------------------------------------------------------------------------------|
-| `_Y...`  | rok 일반 심볼                                                                  |
+| `_Y...`  | Rok 일반 심볼                                                                  |
 | `rok_*`  | `extern` "C" 런타임 함수 ([Extern "C" 심볼](../008-abi/805-extern-symbols.md)) |
 | `_YK...` | (예약) keyword 핸들러                                                          |
 | `_YL...` | (예약) literal 핸들러                                                          |
@@ -164,7 +164,7 @@ generics: a7c91d8e44b2f190 (type tuple hash)
 
 ## 9.5.6. 심볼 길이
 
-대부분의 rok 심볼은 다음과 같은 길이 분포를 보입니다.
+대부분의 Rok 심볼은 다음과 같은 길이 분포를 보입니다.
 
 ```
 _Y + 8 + _ + path (수십) + _ + 이름 (수~수십) + _ + 16
@@ -198,7 +198,7 @@ _Y + 8 + _ + path (수십) + _ + 이름 (수~수십) + _ + 16
 
 ## 9.5.8. `extern` "C" 함수: 맹글링 미적용
 
-[`extern` 블록](../005-modules/509-extern-block.md) 에서 선언한 외부 함수는 해당 ABI 의 표준 명명 규칙을 그대로 사용합니다. rok 의 맹글링은 적용하지 않습니다.
+[`extern` 블록](../005-modules/509-extern-block.md) 에서 선언한 외부 함수는 해당 ABI 의 표준 명명 규칙을 그대로 사용합니다. Rok 의 맹글링은 적용하지 않습니다.
 
 ```rok
 extern "C" {
@@ -206,7 +206,7 @@ extern "C" {
 }
 ```
 
-반대 방향으로, `#[export_name("name")]` 을 사용하면 rok 함수를 외부에 노출할 때 이름을 직접 지정해 둘 수 있습니다 ([`extern` 블록 ([FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) 선언)](../005-modules/509-extern-block.md) 참고). 이런 항목은 도달 불가 함수 제거의 root 이므로 항상 emit 됩니다 ([9.2.8](902-aot-pipeline.md#928-specialize-단형화)).
+반대 방향으로, `#[export_name("name")]` 을 사용하면 Rok 함수를 외부에 노출할 때 이름을 직접 지정해 둘 수 있습니다 ([`extern` 블록 ([FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) 선언)](../005-modules/509-extern-block.md) 참고). 이런 항목은 도달 불가 함수 제거의 root 이므로 항상 emit 됩니다 ([9.2.8](902-aot-pipeline.md#928-specialize-단형화)).
 
 ```rok
 #[export_name("rok_compute")]
@@ -214,7 +214,7 @@ pub fn compute(x: i32, y: i32) -> i32 { x + y }
 // 심볼: "rok_compute" (맹글링 안 됨)
 ```
 
-이 두 가지 메커니즘 덕분에 rok 과 C 사이의 자연스러운 통합이 이루어지게 됩니다.
+이 두 가지 메커니즘 덕분에 Rok 과 C 사이의 자연스러운 통합이 이루어지게 됩니다.
 
 ## 9.5.9. main 함수의 심볼
 
@@ -231,7 +231,7 @@ _initialize, then main              (wasm32-unknown-unknown; host 가 부르는 
 
 `wasm32-unknown-unknown` 에서 모듈은 reactor 입니다: host 가 `_initialize` 를, 그 다음 export `main` 을 부르며, 런타임은 그 뒤에도 살아 있습니다 (shutdown 없음). `#[export_name("x")]` 함수는 이름이 `x` 인 wasm export 입니다. 모든 wasm32 타깃에서 런타임은 `__main_void`, `main`, export 호출 가운데 처음 것에서 시작합니다.
 
-Windows 에서는 rok 자신의 startup object 가 `mainCRTStartup` (console) 이나 `WinMainCRTStartup` 과 `WinMain` (GUI) 을 제공하며, 이것이 rokc 가 생성한 `main` wrapper 를 부릅니다.
+Windows 에서는 Rok 자신의 startup object 가 `mainCRTStartup` (console) 이나 `WinMainCRTStartup` 과 `WinMain` (GUI) 을 제공하며, 이것이 rokc 가 생성한 `main` wrapper 를 부릅니다.
 
 플랫폼별 진입점은 rokc 가 생성한 wrapper 안에서 사용자가 정의한 main 함수를 호출해 주게 됩니다. wrapper 는 `rok_runtime_init` 과 타입 등록 함수 `rok.register_types` ([8.2.13](../008-abi/802-scan-table.md#8213-등록-시점)) 를 차례로 호출한 뒤 진입 함수를 호출하고, [4.16.4](../004-functions/416-entry-point.md#4164-종료-코드와-미처리-예외) 의 규칙으로 종료 코드를 정한 다음 `rok_runtime_shutdown` 을 거쳐 반환합니다.
 
@@ -247,7 +247,7 @@ debugger 출력.
     (mangled: _Y3f8a1c2b_geom_distance_a7c91d8e44b2f190)
 ```
 
-이 정보 덕분에 gdb, lldb, VS Code 같은 도구들이 rok 함수를 원본 이름으로 표시해 줄 수 있습니다. 코루틴의 resume 함수 이름은 `<creator>::{coroutine#k}` 이며, `k` 는 그 creator 의 클로저와 코루틴을 함께 셉니다.
+이 정보 덕분에 gdb, lldb, VS Code 같은 도구들이 Rok 함수를 원본 이름으로 표시해 줄 수 있습니다. 코루틴의 resume 함수 이름은 `<creator>::{coroutine#k}` 이며, `k` 는 그 creator 의 클로저와 코루틴을 함께 셉니다.
 
 ## 9.5.11. 안정성
 

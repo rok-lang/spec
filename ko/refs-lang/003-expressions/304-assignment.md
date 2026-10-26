@@ -130,7 +130,7 @@ trait AddAssign<Rhs = Self> {
 
 ## 3.4.4. 다중 대입
 
-C 와 Python 식의 연쇄 대입 (`a = b = c = 1`) 은 rok 에서 허용되지 않습니다.
+C 와 Python 식의 연쇄 대입 (`a = b = c = 1`) 은 Rok 에서 허용되지 않습니다.
 
 ```
 a = b = c = 1;             // ERROR

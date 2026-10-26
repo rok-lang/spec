@@ -120,7 +120,7 @@ impl BootTime {
 
 `BootTime` 과 `Instant` 의 차이는 suspend 동작에서 갈립니다. `Instant` 는 Linux `CLOCK_MONOTONIC` 처럼 suspend 동안에는 멈춰 있는 반면, `BootTime` 은 `CLOCK_BOOTTIME` 을 따라 suspend 중에도 계속 진행합니다.
 
-이러한 차이는 모바일이나 laptop 앱에서 "실제 경과 시간 (suspend 포함)" 을 측정해야 할 때 결정적입니다. Rust 는 2026 시점에도 stable API 가 없는 영역인데, rok 은 이를 일찍 표면에 노출시켜 둡니다.
+이러한 차이는 모바일이나 laptop 앱에서 "실제 경과 시간 (suspend 포함)" 을 측정해야 할 때 결정적입니다. Rust 는 2026 시점에도 stable API 가 없는 영역인데, Rok 은 이를 일찍 표면에 노출시켜 둡니다.
 
 ## 3.3.5. `Duration`
 

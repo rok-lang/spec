@@ -1,6 +1,6 @@
 # 0.6. 플랫폼 타깃
 
-rok 은 LLVM 이 코드 생성을 지원하는 플랫폼이라면 어느 host 에서든 그 플랫폼용으로 빌드합니다 (`--target`, [0.2.4](002-pipeline.md#024-backends)). 다만 실제로 동작이 보증되는 플랫폼은 한정된 목록(Tier 1)으로 정해 두며, 그 외의 플랫폼은 필요에 따라 사안별로 검토합니다.
+Rok 은 LLVM 이 코드 생성을 지원하는 플랫폼이라면 어느 host 에서든 그 플랫폼용으로 빌드합니다 (`--target`, [0.2.4](002-pipeline.md#024-backends)). 다만 실제로 동작이 보증되는 플랫폼은 한정된 목록(Tier 1)으로 정해 두며, 그 외의 플랫폼은 필요에 따라 사안별로 검토합니다.
 
 ## 0.6.1. Tier 1: 정식 지원
 
@@ -79,6 +79,6 @@ rok 은 LLVM 이 코드 생성을 지원하는 플랫폼이라면 어느 host �
 | `rust_target` | 런타임을 빌드하는 Rust 타깃 |
 | `exe_suffix`, `staticlib_prefix` / `staticlib_suffix`, `dylib_prefix` / `dylib_suffix`, `c_symbol_prefix` | 파일과 심볼 이름 |
 | `stack_size`, `stack_probes`, `threads` | main 스레드의 스택, stack probing, 스레드 지원 |
-| `native_backend`, `repl`, `profile_runtime` | rok 자신의 `-O0` backend, REPL host, `-C profile-generate` 의 런타임 |
+| `native_backend`, `repl`, `profile_runtime` | Rok 자신의 `-O0` backend, REPL host, `-C profile-generate` 의 런타임 |
 
 명세에는 안정된 해시가 있으며, 모든 빌드 cache 는 그것을 키로 씁니다.

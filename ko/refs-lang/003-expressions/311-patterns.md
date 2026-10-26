@@ -120,7 +120,7 @@ Rectangle(w, ..)
 `enum` 패턴은 변형 이름으로 시작합니다. tuple 변형은 위치 부분 패턴 (`Circle(r)`) 으로, named 변형은 필드 이름과 부분 패턴 (`Click { x, y }`) 으로, unit 변형은 이름만 (`Pending`) 으로 표현합니다. tuple 변형 패턴에는 나머지 `..` 를 한 번 쓸 수 있습니다 (`V(..)`, `V(a, ..)`, `V(.., z)`).
 
 > [!NOTE]
-> 다른 언어의 `Option<T>` 자리는 rok 에서 [합 타입](../002-types/206-sum-types.md) 의 `T | none` 으로 표현됩니다. 따라서 `Some(v)` 나 `None` 같은 `enum` 변형 패턴은 없습니다. `T | none` 의 매칭은 타입 검사 패턴 (`v: T`) 과 리터럴 패턴 (`none`) 으로 이루어집니다.
+> 다른 언어의 `Option<T>` 자리는 Rok 에서 [합 타입](../002-types/206-sum-types.md) 의 `T | none` 으로 표현됩니다. 따라서 `Some(v)` 나 `None` 같은 `enum` 변형 패턴은 없습니다. `T | none` 의 매칭은 타입 검사 패턴 (`v: T`) 과 리터럴 패턴 (`none`) 으로 이루어집니다.
 
 ### `struct` 패턴
 
