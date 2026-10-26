@@ -111,7 +111,7 @@ This restriction ensures only meaningful resources are bound with `using`, rulin
 
 | Language | Form                          | Scope unit   | Notes                                   |
 |----------|-------------------------------|--------------|-----------------------------------------|
-| rok      | `using x = try e { ... }`     | block        | expression, multiple resources, `try` integration |
+| Rok      | `using x = try e { ... }`     | block        | expression, multiple resources, `try` integration |
 | C#       | `using (var x = e) { ... }`   | block        | requires `IDisposable`                  |
 | Java     | `try (var x = e) { ... }`     | try block    | requires `AutoCloseable`, multiple resources |
 | Python   | `with x as f: ...`            | block        | `__enter__` / `__exit__`                |
@@ -120,4 +120,4 @@ This restriction ensures only meaningful resources are bound with `using`, rulin
 | Zig      | `defer x.close();`            | block        | `errdefer` variant                      |
 | Rust     | (automatic RAII, no keyword)  | block        | no GC - drop point determined automatically |
 
-rok's `using` combines the explicit block pattern of GC languages (C#, Java, Python) with composability as an expression, `try` integration, and reverse-order release of multiple resources.
+Rok's `using` combines the explicit block pattern of GC languages (C#, Java, Python) with composability as an expression, `try` integration, and reverse-order release of multiple resources.

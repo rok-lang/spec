@@ -1,6 +1,6 @@
 # 2.14. error - Error traits / types
 
-The `rok::core::error` / `rok::core::panic` modules provide the authority for error handling. rok has a single error model. A function that can throw an error writes `throws` in its signature, and the caller marks the call with `try` ([refs-lang 4.14](../../refs-lang/004-functions/414-throws.md)). `Result<T, E>` is an ordinary enum for **holding an error as a value**; it is not a means of propagating errors.
+The `rok::core::error` / `rok::core::panic` modules provide the authority for error handling. Rok has a single error model. A function that can throw an error writes `throws` in its signature, and the caller marks the call with `try` ([refs-lang 4.14](../../refs-lang/004-functions/414-throws.md)). `Result<T, E>` is an ordinary enum for **holding an error as a value**; it is not a means of propagating errors.
 
 This chapter defines three of the 48 lang slots: `panic_fn` / `oom_fn` / `unreachable_fn`.
 
@@ -53,7 +53,7 @@ enum Result<T, E> {
 ```
 
 > [!NOTE]
-> rok has **no `Some` / `None` enum variants**. `Option<T>` itself **does not exist**;
+> Rok has **no `Some` / `None` enum variants**. `Option<T>` itself **does not exist**;
 > the sum type `T | none` is used in its place. `Result` is defined as a separate enum because **both branches carry meaningful data**.
 
 ### Core methods
@@ -246,7 +246,7 @@ The compiler calls `panic_fn` in the following places. In every case the panic c
 
 ### OOM handling
 
-When a GC allocation fails, OOM is handled as follows. The runtime cannot call a rok function by name, so it calls the runtime symbol `rok_oom` directly instead of `oom()` ([refs-lang 8.5.7](../../refs-lang/008-abi/805-extern-symbols.md#857-diagnostic-area)).
+When a GC allocation fails, OOM is handled as follows. The runtime cannot call a Rok function by name, so it calls the runtime symbol `rok_oom` directly instead of `oom()` ([refs-lang 8.5.7](../../refs-lang/008-abi/805-extern-symbols.md#857-diagnostic-area)).
 
 ```
 rok_gc_alloc_slow:
@@ -413,9 +413,9 @@ The traits each error type implements:
 
 ## 2.14.9. Comparison with other languages
 
-Compared with other major languages, rok's error model sits as follows.
+Compared with other major languages, Rok's error model sits as follows.
 
-| Aspect           | Rust           | Swift                     | Java            | rok                                       |
+| Aspect           | Rust           | Swift                     | Java            | Rok                                       |
 |------------------|----------------|---------------------------|-----------------|-------------------------------------------|
 | Base model       | `Result<T, E>` | `throws`                  | `throws`        | `throws` - `Result` is for holding        |
 | Call-site marker | `?`            | `try`                     | **none**        | `try` / `try?` / `try!`                   |
@@ -425,4 +425,4 @@ Compared with other major languages, rok's error model sits as follows.
 | Implementation   | return value   | return value (error register) | stack unwinding | return value `{ is_err, payload }`    |
 | panic            | `panic!`       | `fatalError`              | `Error`         | `panic_fn` - cannot be caught, exit code 101 |
 
-rok differs in three main ways. First, there is no `Option`; the sum type `T | none` takes its place, removing one type. Second, error propagation is unified under `throws` and `try`, and `Result` serves only to hold errors as values. Third, the typed sum throws `throws (A | B | C)` is more expressive than Swift's typed throws, which accepts only a single type.
+Rok differs in three main ways. First, there is no `Option`; the sum type `T | none` takes its place, removing one type. Second, error propagation is unified under `throws` and `try`, and `Result` serves only to hold errors as values. Third, the typed sum throws `throws (A | B | C)` is more expressive than Swift's typed throws, which accepts only a single type.

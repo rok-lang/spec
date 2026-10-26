@@ -2,7 +2,7 @@
 
 Defines the signatures of the [symbols](../000-meta/007-glossary.md#extern-c-symbol) exposed by `librokr.a`. Compiler-generated code and the standard library call these symbols.
 
-On the rok side they are declared with the runtime ABI `extern "rok"` ([5.9.2](../005-modules/509-extern-block.md#592-abi-specifiers)), which the toolchain places in `rok::core::rt` as `pub(pkg)`. In the blocks below a `fn` value is `RokFn` (8.5.0a) and all other values are as in the C ABI. `str` is `struct { const uint8_t *ptr; size_t len; }`; runtime functions taking or returning `str` follow the platform C ABI for a 16-byte struct ([8.6.3](806-calling-convention.md#863-struct-arguments--return-small-struct-rule)), like `RokFn`: by value in registers where the ABI allows, never split between registers and the stack, and by reference on Windows x64. A program may declare a runtime symbol itself (`extern "rok"` / `extern "C"`); its declaration must have the signature given here, and a different one is an error.
+On the Rok side they are declared with the runtime ABI `extern "rok"` ([5.9.2](../005-modules/509-extern-block.md#592-abi-specifiers)), which the toolchain places in `rok::core::rt` as `pub(pkg)`. In the blocks below a `fn` value is `RokFn` (8.5.0a) and all other values are as in the C ABI. `str` is `struct { const uint8_t *ptr; size_t len; }`; runtime functions taking or returning `str` follow the platform C ABI for a 16-byte struct ([8.6.3](806-calling-convention.md#863-struct-arguments--return-small-struct-rule)), like `RokFn`: by value in registers where the ABI allows, never split between registers and the stack, and by reference on Windows x64. A program may declare a runtime symbol itself (`extern "rok"` / `extern "C"`); its declaration must have the signature given here, and a different one is an error.
 
 > [!IMPORTANT]
 > Every symbol starts with the `rok_` prefix, to avoid symbol collisions with external libraries and user code.
@@ -24,7 +24,7 @@ Each symbol definition carries a **Thread-safety** annotation. It is part of the
 
 ## 8.5.0a. `RokFn` - C ABI form of function values
 
-The C representation used when passing a rok function value `{code, env}` ([4.4](../004-functions/404-function-type.md#representation-of-function-values)) to a runtime symbol.
+The C representation used when passing a Rok function value `{code, env}` ([4.4](../004-functions/404-function-type.md#representation-of-function-values)) to a runtime symbol.
 
 ```c
 typedef struct {
@@ -157,7 +157,7 @@ extern "rok" {
 }
 ```
 
-Called right after `main()` ends. Every other rok thread stops for good at its next safepoint, after finishing any runtime or C code it is in. Then the worker pool shuts down and outstanding resources are released.
+Called right after `main()` ends. Every other Rok thread stops for good at its next safepoint, after finishing any runtime or C code it is in. Then the worker pool shuts down and outstanding resources are released.
 
 ### `rok_exit`
 
@@ -239,7 +239,7 @@ These families are runtime-internal helpers of the reference runtime and are not
 
 ### Functions that are not safepoints
 
-On the rok side they are declared in an `extern "rok"` block marked `#[no_safepoint]` ([5.9.2](../005-modules/509-extern-block.md#592-abi-specifiers)).
+On the Rok side they are declared in an `extern "rok"` block marked `#[no_safepoint]` ([5.9.2](../005-modules/509-extern-block.md#592-abi-specifiers)).
 
 The following runtime functions are guaranteed never to allocate and never to block, so a call to them is not a safepoint ([8.4.2](804-safepoint.md#842-emission-sites), [8.9.12](809-lowering-control.md#8912-shadow-stack-frame)): `rok_str_len`, `rok_str_byte`, `rok_str_cmp`, `rok_str_eq`, `rok_str_eq_at`, `rok_str_find`, `rok_str_rfind`, `rok_str_char_count`, `rok_str_hash`, `rok_str_bytes_buf`, `rok_buf_copy`, the `rok_char_*` property and case functions, `rok_fmt_len`, `rok_f64_*`, `rok_f32_*`.
 
@@ -276,7 +276,7 @@ Here `waker` is an **opaque pointer (`Ptr<u8>`)** to a bundle of wake function a
 
 ## 8.5.4. Scheduler area
 
-The task runtime (spawn, join, cancel, executor) is rok code in `rok::core::task` ([stdlib 2.18](../../refs-standard-libraries/200-core/218-task.md)). The runtime provides only the executor slot, thread and parking symbols below.
+The task runtime (spawn, join, cancel, executor) is Rok code in `rok::core::task` ([stdlib 2.18](../../refs-standard-libraries/200-core/218-task.md)). The runtime provides only the executor slot, thread and parking symbols below.
 
 ### `rok_task_worker_*` / `rok_time_now_ns`
 
@@ -306,7 +306,7 @@ extern "rok" {
 }
 ```
 
-`rok_thread_spawn` runs the rok closure `f` (a `RokFn`, passed by value) on an OS thread (`stack_size` 0 means the default). `id` is a value obtained from `rok_thread_new_id` and becomes the new thread's `rok_tls_worker_id`. The return value is a join handle, or 0 if creation fails. `env` is a GC root until the thread finishes.
+`rok_thread_spawn` runs the Rok closure `f` (a `RokFn`, passed by value) on an OS thread (`stack_size` 0 means the default). `id` is a value obtained from `rok_thread_new_id` and becomes the new thread's `rok_tls_worker_id`. The return value is a join handle, or 0 if creation fails. `env` is a GC root until the thread finishes.
 
 ### `rok_task_hooks_install` / `rok_task_key`
 
@@ -531,7 +531,7 @@ extern "rok" {
 }
 ```
 
-Prints `fatal error: out of memory` to stderr and exits with code `101`. Allocation failures inside the runtime and core's `oom()` both go through this symbol. The runtime cannot call rok functions by name, so on allocation failure it uses this symbol directly instead of calling the function in the `oom_fn` slot.
+Prints `fatal error: out of memory` to stderr and exits with code `101`. Allocation failures inside the runtime and core's `oom()` both go through this symbol. The runtime cannot call Rok functions by name, so on allocation failure it uses this symbol directly instead of calling the function in the `oom_fn` slot.
 
 ### Stack overflow
 

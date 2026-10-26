@@ -1,6 +1,6 @@
 # 1.4. raw allocation - `alloc` / `dealloc` / `realloc`
 
-The `rok::bare::alloc` module provides an API for allocating and freeing memory directly in a region outside the GC's control. Ordinary rok code is managed by the GC, but this module is used where the GC is not a good fit: handing memory to the C side across an FFI boundary, large buffers, mmap and the like.
+The `rok::bare::alloc` module provides an API for allocating and freeing memory directly in a region outside the GC's control. Ordinary Rok code is managed by the GC, but this module is used where the GC is not a good fit: handing memory to the C side across an FFI boundary, large buffers, mmap and the like.
 
 ## 1.4.1. API
 
@@ -74,4 +74,4 @@ Regions outside the GC are not traced by it, so cleanup is the user's responsibi
 
 ## 1.4.4. Runtime linkage
 
-The body of `rok::bare::alloc::alloc` lowers to a wrapper the rok runtime provides over system malloc, ultimately calling `libc::malloc` / `libc::free` / `libc::realloc`.
+The body of `rok::bare::alloc::alloc` lowers to a wrapper the Rok runtime provides over system malloc, ultimately calling `libc::malloc` / `libc::free` / `libc::realloc`.

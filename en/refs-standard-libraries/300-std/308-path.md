@@ -4,7 +4,7 @@ The `rok::std::path` module defines path representation. The key point is that i
 
 ## 3.8.1. Two types - `Path` / `RawPath`
 
-rok's path representation is split into two types.
+Rok's path representation is split into two types.
 
 | Type      | Meaning                                       | Frequency of use      |
 |-----------|-----------------------------------------------|-----------------------|
@@ -181,7 +181,7 @@ The capability model is covered in detail in [3.1 fs](301-fs.md).
 
 To pin down the design decision, compare with neighboring languages.
 
-| Aspect        | Rust                      | Python `pathlib` | Go `filepath`   | rok                         |
+| Aspect        | Rust                      | Python `pathlib` | Go `filepath`   | Rok                         |
 |---------------|---------------------------|------------------|-----------------|-----------------------------|
 | Type          | `Path` / `PathBuf`        | `Path`           | `string`        | `Path`                      |
 | owned vs view | borrowed `&Path` / owned  | **immutable**    | **immutable**   | **immutable** (`/` gives a new Path) |
@@ -190,4 +190,4 @@ To pin down the design decision, compare with neighboring languages.
 | canonicalize  | `.canonicalize()`         | `.resolve()`     | `filepath.Abs`  | `.canonicalize()`           |
 | Method chaining | OK (mostly)             | excellent        | OK              | excellent                   |
 
-In summary, rok's **biggest decision** is the combination of a UTF-8 default and the `/` operator, which brings Python pathlib's ergonomics together with Rust-level performance.
+In summary, Rok's **biggest decision** is the combination of a UTF-8 default and the `/` operator, which brings Python pathlib's ergonomics together with Rust-level performance.

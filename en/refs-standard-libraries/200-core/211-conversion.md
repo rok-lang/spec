@@ -1,12 +1,12 @@
 # 2.11. Conversion traits
 
-The `rok::core::convert` module defines the family of traits that move a value from one type to another. The central principle of rok's conversion policy is to reject silent information loss. `.into()` therefore allows only lossless conversions; for a conversion that may lose information, the user must choose the policy explicitly.
+The `rok::core::convert` module defines the family of traits that move a value from one type to another. The central principle of Rok's conversion policy is to reject silent information loss. `.into()` therefore allows only lossless conversions; for a conversion that may lose information, the user must choose the policy explicitly.
 
 The syntax of [refs-lang 2.14 Conversions](../../refs-lang/002-types/214-cast-and-conversion.md) dispatches to these traits.
 
 ## 2.11.1. Conversion policy - four kinds
 
-rok separates conversions into four kinds by **intent**. The user must state which kind applies each time.
+Rok separates conversions into four kinds by **intent**. The user must state which kind applies each time.
 
 | Kind         | Method                              | Meaning                                    | On failure                  |
 |--------------|-------------------------------------|--------------------------------------------|-----------------------------|
@@ -19,7 +19,7 @@ Each kind's method name states the intent by itself. Writing `.into()` means **l
 
 ### Design rationale
 
-A silent saturate or silent wrap alters a value without the user knowing, producing bugs that are hard to debug. rok adopts both the lesson JS learned in introducing Number → BigInt and the lesson NumPy learned in moving from wrap to OverflowError.
+A silent saturate or silent wrap alters a value without the user knowing, producing bugs that are hard to debug. Rok adopts both the lesson JS learned in introducing Number → BigInt and the lesson NumPy learned in moving from wrap to OverflowError.
 
 ## 2.11.2. `From<U>` trait - lossless conversion
 
@@ -362,15 +362,15 @@ let auto: i64 = (a + b).into();  // explicit From<i32> for i64 (lossless)
 
 ## 2.11.11. Comparison with other languages - design rationale
 
-| Language | Conversion model                                         | Difference from rok                                                               |
+| Language | Conversion model                                         | Difference from Rok                                                               |
 |----------|----------------------------------------------------------|-----------------------------------------------------------------------------------|
-| Rust     | `From`/`Into` lossless, `as` wrap, `try_into` Result     | closest to rok - rok adds explicit `saturating_into`/`wrapping_into` methods      |
-| Swift    | all integer conversions trap by default, `.init(clamping:)` opt-in | rok rejects trapping - debug=panic + release=wrap (fixed-width arithmetic), conversions are explicit |
-| Julia    | `Int32(big)` traps, `convert` function family            | rok unifies on trait methods (`from`/`into`)                                      |
-| Python   | `int(x)`/`float(x)` functions - always arbitrary precision | rok's `int` / `float` share the spirit; fixed primitives are a separate world   |
-| C        | implicit conversion (`int` → `long` automatically)       | rok explicitly rejects it - blocks silent type mixing                             |
+| Rust     | `From`/`Into` lossless, `as` wrap, `try_into` Result     | closest to Rok - Rok adds explicit `saturating_into`/`wrapping_into` methods      |
+| Swift    | all integer conversions trap by default, `.init(clamping:)` opt-in | Rok rejects trapping - debug=panic + release=wrap (fixed-width arithmetic), conversions are explicit |
+| Julia    | `Int32(big)` traps, `convert` function family            | Rok unifies on trait methods (`from`/`into`)                                      |
+| Python   | `int(x)`/`float(x)` functions - always arbitrary precision | Rok's `int` / `float` share the spirit; fixed primitives are a separate world   |
+| C        | implicit conversion (`int` → `long` automatically)       | Rok explicitly rejects it - blocks silent type mixing                             |
 
-From this comparison, rok's key design decisions are: reject silent information loss (influenced by Rust); force expression of intent by making the four kinds (`into`, `try_into`, `saturating_into`, `as`) explicit; allow auto-From only in literal context and require explicit conversion for runtime values; and separate the auto-promotion of `int` / `float` from fixed primitives, a decision influenced by Python and Smalltalk.
+From this comparison, Rok's key design decisions are: reject silent information loss (influenced by Rust); force expression of intent by making the four kinds (`into`, `try_into`, `saturating_into`, `as`) explicit; allow auto-From only in literal context and require explicit conversion for runtime values; and separate the auto-promotion of `int` / `float` from fixed primitives, a decision influenced by Python and Smalltalk.
 
 ## 2.11.12. Module mapping
 

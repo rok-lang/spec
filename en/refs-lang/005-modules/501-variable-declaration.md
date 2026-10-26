@@ -104,7 +104,7 @@ The design keeps both the meaning that an inner variable disappears when the blo
 
 ### Difference from shadowing
 
-Rust-style shadowing allows declaring the same name again in the same scope. rok forbids redeclaration within the same scope (5.1.4).
+Rust-style shadowing allows declaring the same name again in the same scope. Rok forbids redeclaration within the same scope (5.1.4).
 
 Declaring the same name in an inner block is not shadowing but a separate binding in a new scope. The effect (the outer name is hidden inside the block) looks similar, but the semantics clearly differ.
 

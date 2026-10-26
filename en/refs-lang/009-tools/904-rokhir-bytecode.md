@@ -103,7 +103,7 @@ A root is a parameter index or `r` (the return value), then a `.`-separated fiel
 A prebuilt library cannot see the whole program at once, so packages are reconciled by the following rules.
 
 - **`any` tag.** The tag of an `any` slot is a 31-bit hash of the type name, so separately built packages use the same tag for the same type.
-- **`any` seed.** So that the program knows the types a library puts into `any`, the library appends a small rok function using those types to the end of the body. The program's closed-world `any` dispatcher includes these types too.
+- **`any` seed.** So that the program knows the types a library puts into `any`, the library appends a small Rok function using those types to the end of the body. The program's closed-world `any` dispatcher includes these types too.
 - **Dispatcher symbol.** The `any` dispatcher is the symbol `rok.any.<hash>`, defined weak in libraries and strong in the program. At link time the program's definition wins.
 - **Sum member order.** Terms of a sum are ordered by a structural key, not by internal type numbers ([2.6.4](../002-types/206-sum-types.md#canonical-order)), so tags agree across packages.
 - **GC type id.** Each package has its own GC type id range (9.4.6). It is an error for the ranges of two packages in one program to overlap.

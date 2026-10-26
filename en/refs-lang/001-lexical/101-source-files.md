@@ -1,10 +1,10 @@
 # 1.1. Source files
 
-This section covers the physical format of rok source files: how a file must be encoded on disk, and what the compiler assumes when it begins reading the first byte.
+This section covers the physical format of Rok source files: how a file must be encoded on disk, and what the compiler assumes when it begins reading the first byte.
 
 ## 1.1.1. Extension
 
-The extension of a rok source file is `.rok`. Other extensions, such as `.no` or `.rokr`, are not recognized as rok source.
+The extension of a Rok source file is `.rok`. Other extensions, such as `.no` or `.rokr`, are not recognized as Rok source.
 
 ## 1.1.2. Character encoding
 

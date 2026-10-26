@@ -17,11 +17,11 @@ As in these examples, a trait name appearing directly as a variable type, parame
 
 The target of the ban is **hidden** dynamic dispatch. Writing a trait name directly in type position is indistinguishable at a glance from an ordinary static type, but actually creates runtime dispatch. That dispatch has real cost. The implementation is chosen and called at runtime, so on a branch misprediction it can be more than twice as slow as a direct call. It needs extra memory accesses to the dispatch data, hurting cache friendliness. Above all, it blocks the compiler's inlining and optimization.
 
-So that core numeric loops in scientific and data code do not take on this cost unknowingly, rok does not allow a bare trait name as a type. Runtime polymorphism exists only where `any` is written. `any Trait` is allowed because its dynamic dispatch cost is visible in the syntax through the `any` keyword.
+So that core numeric loops in scientific and data code do not take on this cost unknowingly, Rok does not allow a bare trait name as a type. Runtime polymorphism exists only where `any` is written. `any Trait` is allowed because its dynamic dispatch cost is visible in the syntax through the `any` keyword.
 
 ## 2.12.3. When polymorphism is needed: three alternatives
 
-rok provides three alternatives when polymorphism is needed.
+Rok provides three alternatives when polymorphism is needed.
 
 ### 1. Sum types for a closed set of candidates
 

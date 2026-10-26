@@ -1,12 +1,12 @@
 # 1.9. `rok::bare::mlir` - direct access to MLIR dialects
 
-The `rok::bare::mlir` module provides an escape hatch for calling dialect ops of the MLIR backend used by the rok compiler directly. It is the place for external library authors to express, within rok, kernels for acceleration domains such as tensors / automatic differentiation / SIMD / GPU / quantization.
+The `rok::bare::mlir` module provides an escape hatch for calling dialect ops of the MLIR backend used by the Rok compiler directly. It is the place for external library authors to express, within Rok, kernels for acceleration domains such as tensors / automatic differentiation / SIMD / GPU / quantization.
 
-Ordinary rok code does not see this module. The traits and collections of [200-core/](../200-core/) are sufficient for rok's everyday abstractions; MLIR exposure is confined to library authors.
+Ordinary Rok code does not see this module. The traits and collections of [200-core/](../200-core/) are sufficient for Rok's everyday abstractions; MLIR exposure is confined to library authors.
 
 ## 1.9.1. Motivation - why MLIR is needed on the user surface
 
-Ordinary rok users need not know MLIR, since the standard library abstracts arithmetic, comparison, collections and concurrency sufficiently. The situation differs for library authors such as:
+Ordinary Rok users need not know MLIR, since the standard library abstracts arithmetic, comparison, collections and concurrency sufficiently. The situation differs for library authors such as:
 
 - Tensor libraries: composing kernels on the `linalg.generic` / `tensor.*` / `vector.*` / `gpu.*` dialects
 - Automatic differentiation libraries: expressing source-to-source transformation results as MLIR op graphs
@@ -14,7 +14,7 @@ Ordinary rok users need not know MLIR, since the standard library abstracts arit
 - GPU backends: emitting device code with `gpu.launch_func` and `gpu.module`
 - Quantization / sparse operations: expressing them in dedicated dialects and using standard passes
 
-These libraries cannot be built from the rok standard library alone because MLIR's multi-level abstraction is itself the source of performance. A single `linalg.generic` automatically unfolds into fusion of adjacent operations / elimination of temporary allocations / SIMD / GPU lowering; bypassing it leaves the performance gap with PyTorch / JAX / Mojo open.
+These libraries cannot be built from the Rok standard library alone because MLIR's multi-level abstraction is itself the source of performance. A single `linalg.generic` automatically unfolds into fusion of adjacent operations / elimination of temporary allocations / SIMD / GPU lowering; bypassing it leaves the performance gap with PyTorch / JAX / Mojo open.
 
 ## 1.9.2. Surface - `__mlir_op` calls
 
@@ -31,7 +31,7 @@ unsafe {
 
 Calls are allowed only inside an `unsafe` block. The first generic argument is the dialect op name (`"dialect.op"`), followed by the result type `R`.
 
-- `R` is a rok type. `_` means the expected type; `()` means no result.
+- `R` is a Rok type. `_` means the expected type; `()` means no result.
 - The remaining arguments are operands. Attributes are given as `attributes = { "k": __mlir_attr::<"text"> }`.
 - The compiler emits the op in MLIR generic form (`"dialect.op"(%a, %b) {k = text} : (..) -> R`). The op name, operands and attributes are verified by the MLIR embedded in `rokc` ([0.2.4](../../refs-lang/000-meta/002-pipeline.md#024-backends)). A module using `__mlir_op` is compiled by the MLIR → LLVM backend at every optimization level ([refs-lang 9.2.10](../../refs-lang/009-tools/902-aot-pipeline.md#9210-backend-selection)).
 
@@ -59,7 +59,7 @@ unsafe {
 
 ### MLIR type representation
 
-MLIR types that do not map directly to rok types (`index`, `!llvm.ptr`, `memref<?xi32>`, etc.) are written as `__mlir_type<"...">` in type position (`__mlir_type::<"...">` also works).
+MLIR types that do not map directly to Rok types (`index`, `!llvm.ptr`, `memref<?xi32>`, etc.) are written as `__mlir_type<"...">` in type position (`__mlir_type::<"...">` also works).
 
 ```rok
 unsafe {
@@ -113,7 +113,7 @@ Rules:
 
 ### Variadic operand
 
-Ops taking variadic arguments, such as `vector.shuffle`, receive them through rok's spread syntax.
+Ops taking variadic arguments, such as `vector.shuffle`, receive them through Rok's spread syntax.
 
 ```rok
 unsafe {
@@ -151,7 +151,7 @@ Only these dialects, plus `bufferization` / `ub` / `dlti` for lowering, are regi
 
 Users of `rok::bare::mlir` bear the following responsibilities.
 
-- **Type agreement**: the operand / result types of the MLIR op and the rok types must lower exactly.
+- **Type agreement**: the operand / result types of the MLIR op and the Rok types must lower exactly.
 - **Dialect availability**: some dialects (notably `gpu`) can be lowered only in builds with the backend enabled.
 - **Stability**: MLIR dialect op names / signatures may change between LLVM versions; libraries using this module directly are advised to pin the LLVM version.
 - **GC root**: when exposing GC object data through `memref` / `llvm.ptr`, it must be pinned with [1.6 `Pinned<T>`](106-gc-pin.md).
@@ -187,9 +187,9 @@ This is isomorphic to the pattern of encapsulating [1.7 FFI](107-ffi.md)'s `exte
 | Swift   | `Builtin.X` (inside the stdlib)    | Stdlib authors only                                  |
 | Julia   | `llvmcall` (available to users)    | Discouraged, external libraries only                 |
 | Rust    | LLVM intrinsics (not available to users) | nightly + intrinsics crate                     |
-| **rok** | **`rok::bare::mlir` (explicit unsafe)** | **Library authors only - ordinary users do not see it** |
+| **Rok** | **`rok::bare::mlir` (explicit unsafe)** | **Library authors only - ordinary users do not see it** |
 
-rok's model is close to Swift and Julia. Unlike Mojo, it does not expose MLIR to ordinary users, and it enforces an explicit `unsafe` entry so that the code shows which territory the user is stepping into.
+Rok's model is close to Swift and Julia. Unlike Mojo, it does not expose MLIR to ordinary users, and it enforces an explicit `unsafe` entry so that the code shows which territory the user is stepping into.
 
 ## 1.9.7. Permission / escape hatch policy
 

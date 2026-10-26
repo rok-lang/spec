@@ -4,7 +4,7 @@ The `#[literal(...)]` attribute registers a user-written syntax pattern as a lit
 
 ## 6.5.1. Motivation
 
-Beyond the lexical literals from [numeric literals](../001-lexical/106-numeric-literals.md) through [boolean and sentinel literals](../001-lexical/109-other-literals.md) - numbers, strings, characters, booleans - rok registers compound literals such as collections, ranges, and slices in the standard library.
+Beyond the lexical literals from [numeric literals](../001-lexical/106-numeric-literals.md) through [boolean and sentinel literals](../001-lexical/109-other-literals.md) - numbers, strings, characters, booleans - Rok registers compound literals such as collections, ranges, and slices in the standard library.
 
 ```
 [1, 2, 3]                 → List<T> instance (fixed array if the expected type is [T; N] - compiler)
@@ -220,6 +220,6 @@ Which function call `[1, 2, 3]` becomes is thus determined unambiguously at comp
 
 ## 6.5.11. Magic and the standard library
 
-`#[literal]` is used almost exclusively by the standard library; rok's collection literals are its main registrations.
+`#[literal]` is used almost exclusively by the standard library; Rok's collection literals are its main registrations.
 
 Users may register literals in their own libraries, but must choose patterns carefully so they do not collide with basic tokens.

@@ -1,6 +1,6 @@
 # 1.9. Boolean and sentinel literals
 
-rok has three literals that take the form of keywords but actually denote values. Grammatically they are defined as follows.
+Rok has three literals that take the form of keywords but actually denote values. Grammatically they are defined as follows.
 
 ```
 sentinel_lit    ::= "true" | "false" | "none"

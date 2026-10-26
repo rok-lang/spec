@@ -91,9 +91,9 @@ using pin = rok::bare::gc::pin(obj) {           // pin begins
 
 ### 4. Casts only as explicitly named operations
 
-The pitfalls of `as` casts on pointers in C and Rust are the biggest hazard. rok therefore exposes every unsafe cast only as an explicitly named function.
+The pitfalls of `as` casts on pointers in C and Rust are the biggest hazard. Rok therefore exposes every unsafe cast only as an explicitly named function.
 
-| C/Rust notation   | rok notation                             | Meaning                        |
+| C/Rust notation   | Rok notation                             | Meaning                        |
 |-------------------|------------------------------------------|--------------------------------|
 | `ptr as *U`       | `rok::bare::ptr_cast<U>(p)`               | Type change only (provenance kept) |
 | `ptr as *Aligned` | `rok::bare::align_cast(p)`                | Alignment up-cast (checked in debug) |

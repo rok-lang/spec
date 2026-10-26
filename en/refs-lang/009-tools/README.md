@@ -1,6 +1,6 @@
 # 9. Execution / tools overview
 
-This block specifies the rok compiler `rokc`, the front-end `rok`, and the execution environments (REPL / Jupyter kernel). It covers how the two engines ([JIT](../000-meta/007-glossary.md#jit-just-in-time) / [AOT](../000-meta/007-glossary.md#aot-ahead-of-time)) and the three user surfaces (REPL / Jupyter / direct execution of AOT output) defined in [Execution engines and user surfaces](../000-meta/001-execution-modes.md) are implemented.
+This block specifies the Rok compiler `rokc`, the front-end `rok`, and the execution environments (REPL / Jupyter kernel). It covers how the two engines ([JIT](../000-meta/007-glossary.md#jit-just-in-time) / [AOT](../000-meta/007-glossary.md#aot-ahead-of-time)) and the three user surfaces (REPL / Jupyter / direct execution of AOT output) defined in [Execution engines and user surfaces](../000-meta/001-execution-modes.md) are implemented.
 
 ## Contents
 

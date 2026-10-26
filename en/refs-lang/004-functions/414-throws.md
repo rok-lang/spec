@@ -3,7 +3,7 @@
 This section defines the `throws` / `rethrows` forms of function signatures, which combine with `throw`, `try`, `catch` and `finally` from [error control flow](../003-expressions/314-error-control-flow.md).
 
 > [!IMPORTANT]
-> rok has a single error model: `throws`. A function that can throw an error writes `throws` in its signature, and the caller marks the call with `try`. The standard library's [`Result<T, E>`](../../refs-standard-libraries/200-core/214-error.md) is used only when an error must be held as a value. The rule is one line: **throw it → `throws`; hold it → `Result`.**
+> Rok has a single error model: `throws`. A function that can throw an error writes `throws` in its signature, and the caller marks the call with `try`. The standard library's [`Result<T, E>`](../../refs-standard-libraries/200-core/214-error.md) is used only when an error must be held as a value. The rule is one line: **throw it → `throws`; hold it → `Result`.**
 
 ## 4.14.1. Form
 

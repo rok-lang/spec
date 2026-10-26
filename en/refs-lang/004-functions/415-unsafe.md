@@ -198,6 +198,6 @@ This automatic treatment reduces noisy repetition of `unsafe { ... }` in commonl
 | Swift    | `@unsafe` annotation / `withUnsafePointer` functional pattern |
 | Go       | `unsafe` package (separate import) - no block notation      |
 | Zig      | explicit builtins such as `@ptrCast` - no block notation    |
-| **rok**  | **adopts Rust-style `unsafe fn` + `unsafe { ... }`**        |
+| **Rok**  | **adopts Rust-style `unsafe fn` + `unsafe { ... }`**        |
 
-rok follows Rust's model as-is. Visual separation of dangerous regions is marked consistently with a single keyword, which benefits both code review and static analysis.
+Rok follows Rust's model as-is. Visual separation of dangerous regions is marked consistently with a single keyword, which benefits both code review and static analysis.

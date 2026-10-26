@@ -209,7 +209,7 @@ See [refs-lang 3.13](../../refs-lang/003-expressions/313-loop-expressions.md) fo
 
 ## 2.7.3. `Step` - the one-step abstraction
 
-Iteration over `Range<T>` rests on the simple operation "move to the next value". This differs in meaning from general arithmetic (`Add`): for example, the next value of a `char` is codepoint + 1, but `char + char` itself is undefined. rok therefore puts stepping in a separate trait.
+Iteration over `Range<T>` rests on the simple operation "move to the next value". This differs in meaning from general arithmetic (`Add`): for example, the next value of a `char` is codepoint + 1, but `char + char` itself is undefined. Rok therefore puts stepping in a separate trait.
 
 ```rok
 trait Step: PartialOrd + Clone {

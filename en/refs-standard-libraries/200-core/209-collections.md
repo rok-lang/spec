@@ -542,7 +542,7 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 
 ## 2.9.11. Comparison with other languages
 
-| Aspect          | Rust                 | Python                     | rok                                    |
+| Aspect          | Rust                 | Python                     | Rok                                    |
 |-----------------|----------------------|----------------------------|----------------------------------------|
 | Dynamic array   | `Vec<T>`             | `list`                     | `List<T>`                              |
 | Hash map        | `HashMap<K, V>`      | `dict` (insertion-ordered) | `Dict<K, V>` + `OrderedDict<K, V>`     |
@@ -552,7 +552,7 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 | Literals        | `vec![...]` (macro)  | `[...]` `{...}` `(...)`    | `[...]` `{...}` `(...)` (`#[literal]`) |
 | Ordered map     | `BTreeMap` (sorted map) | **default dict**        | separate `OrderedDict`                 |
 
-rok differs most in these ways. First, all 6 collections have first-class literal syntax, so no macro such as `vec![]` is used. Second, insertion order of `Dict` / `Set` is not guaranteed - unlike Python 3.7+ - so `OrderedDict` must be used explicitly when order matters. Third, `Slice<T>` is a view with a stride, so even an expression like `xs[::2]` is zero-copy.
+Rok differs most in these ways. First, all 6 collections have first-class literal syntax, so no macro such as `vec![]` is used. Second, insertion order of `Dict` / `Set` is not guaranteed - unlike Python 3.7+ - so `OrderedDict` must be used explicitly when order matters. Third, `Slice<T>` is a view with a stride, so even an expression like `xs[::2]` is zero-copy.
 
 ## 2.9.12. `GcBuf<T>` - raw GC buffer
 

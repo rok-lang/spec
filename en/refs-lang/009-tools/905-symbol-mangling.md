@@ -34,9 +34,9 @@ _Y3f8a1c2b_std_vec_push_a7c91d8e44b2f190
 
 ## 9.5.2. Meaning of each part
 
-### `_Y`: rok symbol prefix
+### `_Y`: Rok symbol prefix
 
-Every rok symbol begins with `_Y`. Names beginning with underscore + uppercase letter are reserved for the implementation in C, so they do not collide with ordinary C symbols; `_Y` was chosen so as not to overlap with widely used mangling schemes either (C++ Itanium's `_Z`, Rust v0's `_R`, D's `_D`, Swift's `$s`). It also makes symbols emitted by rok easy to spot in `nm` or linker error output. The prefix is immediately followed by the lowercase hexadecimal `<pkg_hash_8>`, so it is distinguished by the first character alone from the reserved prefixes followed by an uppercase letter (`_YK` etc., [9.5.5](#955-reserved-prefixes)).
+Every Rok symbol begins with `_Y`. Names beginning with underscore + uppercase letter are reserved for the implementation in C, so they do not collide with ordinary C symbols; `_Y` was chosen so as not to overlap with widely used mangling schemes either (C++ Itanium's `_Z`, Rust v0's `_R`, D's `_D`, Swift's `$s`). It also makes symbols emitted by Rok easy to spot in `nm` or linker error output. The prefix is immediately followed by the lowercase hexadecimal `<pkg_hash_8>`, so it is distinguished by the first character alone from the reserved prefixes followed by an uppercase letter (`_YK` etc., [9.5.5](#955-reserved-prefixes)).
 
 ### `<pkg_hash_8>`
 
@@ -127,7 +127,7 @@ _ZN3std3vec10push_inner17h2d4c3e9d8f1a2b3cE
 
 It has the advantage of Itanium compatibility, but is hard to read and length prefixes are inefficient to encode.
 
-By contrast, rok's `N...` is easy to read and has no length prefixes (components are separated by `_`). Demangling stays simple too.
+By contrast, Rok's `N...` is easy to read and has no length prefixes (components are separated by `_`). Demangling stays simple too.
 
 ## 9.5.4. demangle tool
 
@@ -153,7 +153,7 @@ The prefixes in use and reserved are:
 
 | Prefix   | Meaning                                                                        |
 |----------|--------------------------------------------------------------------------------|
-| `_Y...`  | Ordinary rok symbol                                                            |
+| `_Y...`  | Ordinary Rok symbol                                                            |
 | `rok_*`  | `extern` "C" runtime functions ([Extern "C" symbols](../008-abi/805-extern-symbols.md)) |
 | `_YK...` | (reserved) keyword handlers                                                    |
 | `_YL...` | (reserved) literal handlers                                                    |
@@ -164,7 +164,7 @@ The prefixes in use and reserved are:
 
 ## 9.5.6. Symbol length
 
-Most rok symbols have the following length distribution.
+Most Rok symbols have the following length distribution.
 
 ```
 _Y + 8 + _ + path (tens) + _ + name (a few to tens) + _ + 16
@@ -198,7 +198,7 @@ The exact normalization algorithm is chosen by `rokc`. This specification only r
 
 ## 9.5.8. `extern` "C" functions: no mangling
 
-External functions declared in an [`extern` block](../005-modules/509-extern-block.md) use the standard naming convention of that ABI unchanged. rok mangling is not applied.
+External functions declared in an [`extern` block](../005-modules/509-extern-block.md) use the standard naming convention of that ABI unchanged. Rok mangling is not applied.
 
 ```rok
 extern "C" {
@@ -206,7 +206,7 @@ extern "C" {
 }
 ```
 
-In the other direction, `#[export_name("name")]` specifies the name directly when exposing a rok function externally (see [`extern` block ([FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) declarations)](../005-modules/509-extern-block.md)). Such items are roots for unreachable-function elimination and are always emitted ([9.2.8](902-aot-pipeline.md#928-specialize-monomorphization)).
+In the other direction, `#[export_name("name")]` specifies the name directly when exposing a Rok function externally (see [`extern` block ([FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) declarations)](../005-modules/509-extern-block.md)). Such items are roots for unreachable-function elimination and are always emitted ([9.2.8](902-aot-pipeline.md#928-specialize-monomorphization)).
 
 ```rok
 #[export_name("rok_compute")]
@@ -214,7 +214,7 @@ pub fn compute(x: i32, y: i32) -> i32 { x + y }
 // symbol: "rok_compute" (not mangled)
 ```
 
-These two mechanisms provide integration between rok and C.
+These two mechanisms provide integration between Rok and C.
 
 ## 9.5.9. Symbol of the main function
 
@@ -231,7 +231,7 @@ _initialize, then main              (wasm32-unknown-unknown; reactor exports cal
 
 On `wasm32-unknown-unknown` the module is a reactor: the host calls `_initialize`, then the export `main`, and the runtime stays up afterwards (no shutdown). `#[export_name("x")]` functions are wasm exports named `x`. On every wasm32 target the runtime starts on the first of `__main_void`, `main` or an exported call.
 
-On Windows, rok's own startup object provides `mainCRTStartup` (console) or `WinMainCRTStartup` and `WinMain` (GUI), which call the rokc-generated `main` wrapper.
+On Windows, Rok's own startup object provides `mainCRTStartup` (console) or `WinMainCRTStartup` and `WinMain` (GUI), which call the rokc-generated `main` wrapper.
 
 The platform entry point calls the user-defined main function inside a wrapper generated by rokc. The wrapper calls `rok_runtime_init` and the type registration function `rok.register_types` ([8.2.13](../008-abi/802-scan-table.md#8213-registration-time)) in order, then calls the entry function, determines the exit code by the rules of [4.16.4](../004-functions/416-entry-point.md#4164-exit-codes-and-unhandled-exceptions), and returns via `rok_runtime_shutdown`.
 
@@ -247,7 +247,7 @@ debugger output.
     (mangled: _Y3f8a1c2b_geom_distance_a7c91d8e44b2f190)
 ```
 
-This lets tools such as gdb, lldb and VS Code display rok functions by their original names. A coroutine's resume function is named `<creator>::{coroutine#k}`, where `k` counts the closures and coroutines of that creator together.
+This lets tools such as gdb, lldb and VS Code display Rok functions by their original names. A coroutine's resume function is named `<creator>::{coroutine#k}`, where `k` counts the closures and coroutines of that creator together.
 
 ## 9.5.11. Stability
 

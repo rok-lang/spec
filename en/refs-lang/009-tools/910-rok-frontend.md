@@ -130,7 +130,7 @@ Package {
 | stone       | `Dep::version("req"[, registry: "url"])` or the string `"req"` ([9.10.4a](#9104a-stones-and-rokstonesio)) | Version, commit, tree hash |
 | native      | `Dep::native("req")` / `Dep::native(url:, sha256:)` ([9.10.4b](#9104b-native-packages)) | Version and entry SHA-256 (index); none (the hash pins it) |
 
-rok has no build scripts: no code from a package runs at build time. C / C++ libraries come in as prebuilt native packages (9.10.4b).
+Rok has no build scripts: no code from a package runs at build time. C / C++ libraries come in as prebuilt native packages (9.10.4b).
 
 Within one build, one name is one package. If the same name is required from different sources (different paths, or different urls / commits), it is an error showing both requirers.
 
@@ -289,7 +289,7 @@ rok yank [--native] --vers <version> [--undo] [--index <checkout>] [name]   # na
 
 ## 9.10.4b. Native packages
 
-rok compiles no C. A native package is a prebuilt archive per target triple plus a value:
+Rok compiles no C. A native package is a prebuilt archive per target triple plus a value:
 
 ```rokon
 Native {

@@ -1,6 +1,6 @@
 # 5. Variables / modules / visibility / packages overview
 
-This part covers rok's name space. Its goal is to define where variables are visible, how modules are grouped, how visibility levels work, and where the boundaries between packages lie.
+This part covers Rok's name space. Its goal is to define where variables are visible, how modules are grouped, how visibility levels work, and where the boundaries between packages lie.
 
 ## Contents
 

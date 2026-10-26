@@ -4,7 +4,7 @@
 
 ## 7.8.1. State machine lowering
 
-rok's coroutines are stackless and are lowered to state machines built by the compiler itself. LLVM coroutine intrinsics (`llvm.coro.*`) are not used, because the compiler must know the frame layout to build the frame's ScanTable. There is no per-arch context-switch code; it is the same on all Tier 1 targets.
+Rok's coroutines are stackless and are lowered to state machines built by the compiler itself. LLVM coroutine intrinsics (`llvm.coro.*`) are not used, because the compiler must know the frame layout to build the frame's ScanTable. There is no per-arch context-switch code; it is the same on all Tier 1 targets.
 
 ```
 yield / async / async yield block

@@ -2,7 +2,7 @@
 
 The `rok::bare::gc` module defines a mechanism for temporarily fixing an object on the GC heap so that it cannot move. When a raw `Ptr<T>` points to a GC object and the object moves, the pointer becomes invalid; this chapter covers how that conflict is resolved.
 
-This is the most important chapter of rok's unsafe tier: it explains head-on how the conflict between pointers and the GC is reconciled.
+This is the most important chapter of Rok's unsafe tier: it explains head-on how the conflict between pointers and the GC is reconciled.
 
 ## 1.6.1. Motivation - why pinning is needed
 
@@ -108,7 +108,7 @@ struct GcPtr<T> {
 }
 ```
 
-rok's GC traces the root set through a **per-thread shadow stack** emitted directly by the compiler ([refs-lang 7.4.1](../../refs-lang/007-runtime/704-barriers-and-roots.md#741-root-tracking-a-shadow-stack-emitted-directly-by-the-compiler)).
+Rok's GC traces the root set through a **per-thread shadow stack** emitted directly by the compiler ([refs-lang 7.4.1](../../refs-lang/007-runtime/704-barriers-and-roots.md#741-root-tracking-a-shadow-stack-emitted-directly-by-the-compiler)).
 
 ## 1.6.4. GC-side mechanism of pin / unpin
 
@@ -187,7 +187,7 @@ Each item maps to GC runtime calls as follows.
 
 ## 1.6.8. Comparison with other languages
 
-| Aspect           | Java JNI                       | .NET fixed             | Go 1.21 Pinner           | rok                       |
+| Aspect           | Java JNI                       | .NET fixed             | Go 1.21 Pinner           | Rok                       |
 |------------------|--------------------------------|------------------------|--------------------------|---------------------------|
 | pin API          | `Get*Critical`                 | `fixed (T* p = ...)`   | `runtime.Pinner`         | `rok::bare::gc::pin(obj)`  |
 | RAII guard       | explicit `Release`             | block scope            | `defer pin.Unpin()`      | `using` block (automatic drop) |
@@ -195,12 +195,12 @@ Each item maps to GC runtime calls as follows.
 | Expiry check after pin | **none**                 | compiler (block scope) | **none** (manual)        | type system + scope       |
 | Multiple pins    | overlapping OK                 | **restricted**         | overlapping OK           | overlapping OK (count)    |
 
-rok diverges from other languages at two main points.
+Rok diverges from other languages at two main points.
 
 1. The type system enforces it. `GcPtr<T>` and `Ptr<T>` are distinct types and automatic conversion is rejected; the only way across is through a pin guard.
 2. Release is based on the `using` block. `Pinned<T>` is dropped on leaving the `using` block, so an unpin is never missed. This is safer than Go's manual `defer` approach.
 
-> This policy is the backbone of rok's pointer model: the point where the two domains, unsafe and the GC, meet safely.
+> This policy is the backbone of Rok's pointer model: the point where the two domains, unsafe and the GC, meet safely.
 
 ## 1.6.9. `Weak<T>` - weak references
 

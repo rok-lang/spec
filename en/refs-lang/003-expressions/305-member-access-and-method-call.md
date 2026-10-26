@@ -128,7 +128,7 @@ A form attached to an instance, such as `obj.method`, is not a function value (3
 
 ## 3.5.4. `.method` (without a call)
 
-When `.method` is written without parentheses, rok does not interpret it as a function value. No separate meaning such as partial application or method reference is assigned.
+When `.method` is written without parentheses, Rok does not interpret it as a function value. No separate meaning such as partial application or method reference is assigned.
 
 ```
 let f = obj.method;        // ERROR: not a method call; the expression is incomplete

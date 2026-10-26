@@ -77,7 +77,7 @@ extern "C" {
 ```
 
 - `static mut` is allowed only inside an `extern "C"` block.
-- `static mut` in ordinary rok code is an ERROR.
+- `static mut` in ordinary Rok code is an ERROR.
 - Assigning to a `static` that is not an extern `static mut` is a compile error (`COUNTER = ...`). Interior mutation goes through the methods of the wrappers above.
 
 Shared mutable state is a direct cause of data races, hence this restriction. Ordinary code gets safety through wrappers; raw access is allowed only in the FFI domain.
@@ -127,7 +127,7 @@ static CACHE: Mutex<Dict<str, Data>> = Mutex::new(Dict::new());
 
 ## 5.3.10. `extern static`: FFI
 
-A `static` in an `extern "C"` block, as shown above, references from rok a global defined externally; no initializer is written.
+A `static` in an `extern "C"` block, as shown above, references from Rok a global defined externally; no initializer is written.
 
 ```rok
 extern "C" {

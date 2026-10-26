@@ -1,6 +1,6 @@
 # 7.6. Scheduler
 
-rok's scheduler is M:N [work-stealing](../000-meta/007-glossary.md#work-stealing); this document defines its structure.
+Rok's scheduler is M:N [work-stealing](../000-meta/007-glossary.md#work-stealing); this document defines its structure.
 
 ## 7.6.1. Unified worker model
 

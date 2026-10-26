@@ -23,7 +23,7 @@ The interface used when compiler-generated code is linked and run together with 
 
 ### 2. MLIR lowering
 
-The rules, applied in the rok-mir → standard MLIR stage of the [compilation pipeline](../000-meta/002-pipeline.md), that translate rok's high-level semantics into standard MLIR dialects. `tagged union`, `any` slots, pattern matching, try/catch and generics are all lowered to standard MLIR dialects. There is no custom rok dialect.
+The rules, applied in the rok-mir → standard MLIR stage of the [compilation pipeline](../000-meta/002-pipeline.md), that translate Rok's high-level semantics into standard MLIR dialects. `tagged union`, `any` slots, pattern matching, try/catch and generics are all lowered to standard MLIR dialects. There is no custom Rok dialect.
 
 ## Why this specification text is authoritative
 

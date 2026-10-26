@@ -35,7 +35,7 @@ ScanTables are ordinary constant data; generated registration code registers the
 
 ## 9.3.3. Static .a principle
 
-Every library output is a static `.a`. Dynamic libraries are not a standard rok output. Calling a dynamic library through [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) is allowed.
+Every library output is a static `.a`. Dynamic libraries are not a standard Rok output. Calling a dynamic library through [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) is allowed.
 
 ## 9.3.4. Version compatibility check
 

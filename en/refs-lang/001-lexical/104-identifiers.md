@@ -28,7 +28,7 @@ This follows UAX #31 §7.1 "Mathematical Compatibility Notation Profile". `math_
 | `math_start`    | `∂` U+2202, `∇` U+2207, `∞` U+221E, their mathematical style variants U+1D6C1, U+1D6DB, U+1D6FB, U+1D715, U+1D735, U+1D74F, U+1D76F, U+1D789, U+1D7A9, U+1D7C3 (`𝛁 𝛛 𝛻 𝜕 𝜵 𝝏 𝝯 𝞉 𝞩 𝟃`), and `∑` U+2211, `∏` U+220F, `∫` U+222B |
 | `math_continue` | All of `math_start`, superscripts `¹ ² ³ ⁰ ⁴`-`⁹` `⁺ ⁻ ⁼ ⁽ ⁾` (U+00B2, U+00B3, U+00B9, U+2070, U+2074-207E), subscripts `₀`-`₉` `₊ ₋ ₌ ₍ ₎` (U+2080-208E) |
 
-`∑ ∏ ∫` are added by rok so that they can be used as function names; for this reason they cannot be operator tokens.
+`∑ ∏ ∫` are added by Rok so that they can be used as function names; for this reason they cannot be operator tokens.
 
 ### Primes
 

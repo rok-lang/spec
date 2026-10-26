@@ -1,6 +1,6 @@
 # 0.1. The 3-tier model
 
-The rok standard libraries are divided into three tiers. Each tier may depend on a different
+The Rok standard libraries are divided into three tiers. Each tier may depend on a different
 area, and the import rules in user code differ as well.
 
 ```

@@ -196,7 +196,7 @@ The exact handling is determined by the GC implementation.
 
 ## 8.2.10. Endianness of the serialization
 
-All fields are little-endian. rok targets little-endian platforms first (all Tier 1 targets in [Platform targets](../000-meta/006-platform-targets.md) are little-endian), and the serialization format follows suit.
+All fields are little-endian. Rok targets little-endian platforms first (all Tier 1 targets in [Platform targets](../000-meta/006-platform-targets.md) are little-endian), and the serialization format follows suit.
 
 When big-endian target support is added, it will be decided at that time whether serialization endianness stays fixed to little or follows the host endianness.
 

@@ -116,9 +116,9 @@ Compared with macro systems of other languages:
 
 - Rust proc macro: performs arbitrary token transformations; users generate code freely. Hygiene is a separate matter.
 - Lisp macro: dynamic macros that can also be registered at runtime.
-- rok `#[keyword]`: compile-time keyword registration; a handler function determines the desugaring. Free token transformation is impossible.
+- Rok `#[keyword]`: compile-time keyword registration; a handler function determines the desugaring. Free token transformation is impossible.
 
-rok deliberately has a restricted macro system, favoring tool friendliness in the trade-off between expressiveness and tool friendliness.
+Rok deliberately has a restricted macro system, favoring tool friendliness in the trade-off between expressiveness and tool friendliness.
 
 ## 6.6.12. Registered keywords vs function calls
 

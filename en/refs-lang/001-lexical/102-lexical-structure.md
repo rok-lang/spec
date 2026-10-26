@@ -58,7 +58,7 @@ Indentation is not significant. Python-style significant indentation is not adop
 
 ## 1.2.3. Comments
 
-rok supports three kinds of comments: line, block and doc comments. A shebang line on a file's first line is ignored like a comment.
+Rok supports three kinds of comments: line, block and doc comments. A shebang line on a file's first line is ignored like a comment.
 
 ### Shebang line
 

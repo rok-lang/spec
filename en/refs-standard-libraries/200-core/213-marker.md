@@ -2,13 +2,13 @@
 
 Duplicating values and cleaning up resources that are no longer needed are unavoidable concerns in any language. The `rok::core::marker` module expresses these two concerns with three traits. `Clone` defines how to make an independent copy of a value; `Copy` is a marker stating that a plain bit copy suffices for a type; and `Drop` defines cleanup code that must run when a value leaves scope. The module also holds `NoneSentinel`, the zero-sized marker type of the `none` literal (2.13.8).
 
-rok's use of a GC directly affects the meaning of these traits. The GC is responsible for reclaiming memory, so `Drop` is not tied to memory deallocation. `Drop` is limited to finalization work that cleans up resources living outside the language, such as file handles and sockets. This places rok's marker traits apart from both Rust and Java/Python.
+Rok's use of a GC directly affects the meaning of these traits. The GC is responsible for reclaiming memory, so `Drop` is not tied to memory deallocation. `Drop` is limited to finalization work that cleans up resources living outside the language, such as file handles and sockets. This places Rok's marker traits apart from both Rust and Java/Python.
 
 ## 2.13.1. Memory model - Clone/Drop in a language with a GC
 
-In rok's runtime, the [Immix + Sticky Mark-Bit Generational GC](../../refs-lang/007-runtime/703-gc-algorithm.md) manages the lifetime of heap objects automatically. The user does not decide when an object disappears from memory. Cleanup of external resources, however, must happen deterministically, so rok's `Drop` operates as a mechanism separate from the GC. Compared with Rust:
+In Rok's runtime, the [Immix + Sticky Mark-Bit Generational GC](../../refs-lang/007-runtime/703-gc-algorithm.md) manages the lifetime of heap objects automatically. The user does not decide when an object disappears from memory. Cleanup of external resources, however, must happen deterministically, so Rok's `Drop` operates as a mechanism separate from the GC. Compared with Rust:
 
-| Aspect               | Rust (no GC)                 | rok (GC)                                          |
+| Aspect               | Rust (no GC)                 | Rok (GC)                                          |
 |----------------------|------------------------------|---------------------------------------------------|
 | Memory reclamation   | `Drop` is responsible        | GC automatically - `Drop` **does not**            |
 | Meaning of `Drop::drop` | release resource + free memory | **external resource cleanup only** (file handle, socket, ...) |
@@ -49,7 +49,7 @@ b;                           //→ [1, 2, 3, 4]
 
 ### No automatic calls - `clone_trait` lang slot
 
-In some languages, writing `let y = x;` makes the compiler call `clone` automatically. rok chooses the explicit side here.
+In some languages, writing `let y = x;` makes the compiler call `clone` automatically. Rok chooses the explicit side here.
 
 ```rok
 let xs: List<i32> = [1, 2, 3];
@@ -107,7 +107,7 @@ trait Copy: Clone {
 }
 ```
 
-In rok every value is copied by value. For collections and GC objects the handle is copied and points to the same object; primitive values, `str` (an immutable `(ptr, len)`), structs, enums and tuples are copied themselves ([refs-lang 2.3.8](../../refs-lang/002-types/203-struct.md#238-value-semantics)). `Copy` is therefore **only a marker** and does not change the meaning of assignment or argument passing. `Copy` is used only in generic bounds (`T: Copy`) to select types for which "a bit copy is an independent copy".
+In Rok every value is copied by value. For collections and GC objects the handle is copied and points to the same object; primitive values, `str` (an immutable `(ptr, len)`), structs, enums and tuples are copied themselves ([refs-lang 2.3.8](../../refs-lang/002-types/203-struct.md#238-value-semantics)). `Copy` is therefore **only a marker** and does not change the meaning of assignment or argument passing. `Copy` is used only in generic bounds (`T: Copy`) to select types for which "a bit copy is an independent copy".
 
 ### impl policy
 
@@ -145,7 +145,7 @@ trait Drop {
 
 ### When called - only for `using` bindings
 
-rok is a GC language, so `drop` is not called automatically when an ordinary binding leaves scope. `drop` is called only for bindings bound with `using`, on leaving the block ([refs-lang 3.17 `using`](../../refs-lang/003-expressions/317-using-expression.md)).
+Rok is a GC language, so `drop` is not called automatically when an ordinary binding leaves scope. `drop` is called only for bindings bound with `using`, on leaving the block ([refs-lang 3.17 `using`](../../refs-lang/003-expressions/317-using-expression.md)).
 
 - It is called on normal completion, `return`, `break` and error propagation alike.
 - Multiple bindings are dropped in reverse declaration order (LIFO).
@@ -271,9 +271,9 @@ The principle behind the table is simple. Every primitive and internal GC type i
 
 ## 2.13.7. Comparison with other languages
 
-Comparing rok's model with existing languages makes the design intent clearer.
+Comparing Rok's model with existing languages makes the design intent clearer.
 
-| Aspect                  | Rust                     | Java/Python (GC)                | rok (GC + Drop)          |
+| Aspect                  | Rust                     | Java/Python (GC)                | Rok (GC + Drop)          |
 |-------------------------|--------------------------|---------------------------------|--------------------------|
 | Memory reclamation      | `Drop` is responsible    | GC                              | GC                       |
 | Deterministic finalize  | `Drop` (compiler-guaranteed) | **none** (finalizers nondeterministic) | `Drop` (scope-bound) |
@@ -281,7 +281,7 @@ Comparing rok's model with existing languages makes the design intent clearer.
 | Meaning of Clone        | deep copy                | `clone()` (Object.clone)        | deep copy                |
 | derive                  | `#[derive(Clone, Copy)]` | `Cloneable` interface           | `#[derive(Clone, Copy)]` |
 
-What sets rok apart is the coexistence of a GC with a deterministic `Drop`. Because the GC handles memory reclamation, `Drop` does not mean memory deallocation, so ordinary objects never need to implement `Drop`. Only types that need external resource cleanup implement `Drop`, and users bind them with `using`.
+What sets Rok apart is the coexistence of a GC with a deterministic `Drop`. Because the GC handles memory reclamation, `Drop` does not mean memory deallocation, so ordinary objects never need to implement `Drop`. Only types that need external resource cleanup implement `Drop`, and users bind them with `using`.
 
 This model avoids both the nondeterminism of Java/Python finalizers and the costs Rust incurs from having no GC.
 
@@ -312,7 +312,7 @@ Both traits are **automatic marker traits** with no methods; the compiler implem
 - Primitive numbers, `bool`, `char`, `c_char`, `str` and `none` are `Send + Sync`.
 - A `struct`, `enum`, `union`, tuple, array or sum type is `Send` if all its fields (components) are `Send`, and `Sync` if all are `Sync`. `Send` for a generic container follows `T` by the same rule.
 - Collections (`List`, `Dict`, `Set`, `StrBuf`, `Deque`, `BinaryHeap`, `OrderedDict`, `OrderedSet`, `Slice`) are `Send` and `!Sync`: they share a mutable handle. Across threads they are shared through `Mutex` / `RwLock` / channels.
-- rok has no move semantics. Handing a value over (`Mutex::new(xs)`, `RwLock::new(xs)`, `tx.send(xs)` / `try_send` / `send_async`, `Handoff::new(xs)`) leaves the sender's handle pointing at the object the new owner now shares with other threads. A handle taken out of a guard (`get`), given to it (`set`) or reached by `update`'s closure still points at the guarded object after the guard's `using` block ends. Using such a value afterwards, on any path, is a compile error (`E202`, [refs-lang 9.9.4](../../refs-lang/009-tools/909-debug-tools.md#994-diagnostics--error-messages)). The value is followed through:
+- Rok has no move semantics. Handing a value over (`Mutex::new(xs)`, `RwLock::new(xs)`, `tx.send(xs)` / `try_send` / `send_async`, `Handoff::new(xs)`) leaves the sender's handle pointing at the object the new owner now shares with other threads. A handle taken out of a guard (`get`), given to it (`set`) or reached by `update`'s closure still points at the guarded object after the guard's `using` block ends. Using such a value afterwards, on any path, is a compile error (`E202`, [refs-lang 9.9.4](../../refs-lang/009-tools/909-debug-tools.md#994-diagnostics--error-messages)). The value is followed through:
   - copies (`let ys = xs`, a struct field or tuple element, a field assignment);
   - the fields it is passed by (`Mutex::new(s.items)`);
   - the objects that hold it (`all.push(xs)`, a closure that captures it), both ways: handing over `xs` leaves `all` unusable too;

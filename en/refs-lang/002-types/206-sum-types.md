@@ -42,7 +42,7 @@ This representation is subject to [niche optimization](207-niche-optimization.md
 ### Value recursion and size limits
 
 - A recursive type that contains itself by value (even through structs, enums, tuples, sums, arrays or generic instances) is an error at the declaration site. Use GC reference types (`List<T>` etc.) for recursion.
-- rok's implementation limit (implementation-defined, [0.4.4](../000-meta/004-language-vs-standard-libraries.md#044-implementation-limits)): a value type exceeding 65536 flattened scalar slots or 4 GiB is an error.
+- Rok's implementation limit (implementation-defined, [0.4.4](../000-meta/004-language-vs-standard-libraries.md#044-implementation-limits)): a value type exceeding 65536 flattened scalar slots or 4 GiB is an error.
 
 The exact placement is up to the implementation, but one thing is guaranteed: zero-filled `T | none` storage (elements of `GcBuf<T | none>` and collection buffers, fields of newly allocated GC objects) reads as `none`.
 

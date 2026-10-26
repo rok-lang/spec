@@ -133,7 +133,7 @@ List<ref i32>                      // ERROR - same reason
 - Closure capture lists.
 - Call arguments of functions and methods.
 
-Since `ref` cannot be used in a return type, rok has no functions that return references (no forms like Rust's `deref_mut`). APIs that change an inner value exchange values, as in `set` / `update(f)`.
+Since `ref` cannot be used in a return type, Rok has no functions that return references (no forms like Rust's `deref_mut`). APIs that change an inner value exchange values, as in `set` / `update(f)`.
 
 ## 4.7.7. References cannot be first-class values
 

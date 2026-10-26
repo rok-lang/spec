@@ -1,6 +1,6 @@
 # 1.2. cast operations - explicitly named casts
 
-The `rok::bare::cast` module exposes conversions between pointers and types only as **named functions**. The reason `as` casts in C and Rust are so dangerous is that the conversion happens silently; to avoid that pitfall, rok requires every cast to carry an **explicit name**.
+The `rok::bare::cast` module exposes conversions between pointers and types only as **named functions**. The reason `as` casts in C and Rust are so dangerous is that the conversion happens silently; to avoid that pitfall, Rok requires every cast to carry an **explicit name**.
 
 ## 1.2.1. The 4 cast functions
 
@@ -198,4 +198,4 @@ The cast policy of this chapter comes down to four points.
 - The `Pod` marker trait provides the safety condition for bit reinterpretation.
 - `transmute_unchecked` is exposed only as an escape hatch.
 
-With this policy rok avoids both C's cumbersome type conversions and Rust's `as` pitfalls.
+With this policy Rok avoids both C's cumbersome type conversions and Rust's `as` pitfalls.

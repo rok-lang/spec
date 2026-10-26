@@ -1,6 +1,6 @@
 # 6. Meta-system overview
 
-This part defines rok's meta-system: attributes, magic, and meta [blocks](../000-meta/007-glossary.md#block). The meta-system is the core mechanism that enables the [boundary between language and standard library](../000-meta/004-language-vs-standard-libraries.md) model: the language provides a small core, and the standard library fills in its meaning.
+This part defines Rok's meta-system: attributes, magic, and meta [blocks](../000-meta/007-glossary.md#block). The meta-system is the core mechanism that enables the [boundary between language and standard library](../000-meta/004-language-vs-standard-libraries.md) model: the language provides a small core, and the standard library fills in its meaning.
 
 ## Contents
 
@@ -90,7 +90,7 @@ Four core principles underpin the meta-system.
 
 ### 1. No token stream manipulation
 
-rok has no procedural, token-manipulating macros like Rust's `syn` or `quote`. All user code generation - the attribute-triggered meta blocks and the call-triggered macro ([6.8.12](608-meta-blocks.md#6812-the-macro-form)) alike - is by pattern and template only: a matcher binds parts of the input, a template transcribes them. No step runs arbitrary code or rewrites a raw token stream.
+Rok has no procedural, token-manipulating macros like Rust's `syn` or `quote`. All user code generation - the attribute-triggered meta blocks and the call-triggered macro ([6.8.12](608-meta-blocks.md#6812-the-macro-form)) alike - is by pattern and template only: a matcher binds parts of the input, a template transcribes them. No step runs arbitrary code or rewrites a raw token stream.
 
 The reason is to keep generated code in a state the compiler, formatter and language server can follow. Allowing arbitrary token transformations forces trade-offs: unpredictability, difficult debugging, and an explosion of the tooling surface. The macro adds call-site code generation (what the other forms cannot do) while staying inside this rule.
 

@@ -1,6 +1,6 @@
 # 2. Type system overview
 
-This chapter sets out what the rok type system is responsible for and what it delegates to the standard library. The concrete kinds of types and their syntax are defined in the documents that follow.
+This chapter sets out what the Rok type system is responsible for and what it delegates to the standard library. The concrete kinds of types and their syntax are defined in the documents that follow.
 
 ## Contents
 
@@ -21,7 +21,7 @@ This chapter sets out what the rok type system is responsible for and what it de
 
 ## Positional definition
 
-A type is the information by which the compiler decides what shape and behavior a value is allowed to have. Every rok value belongs to some type; there is no untyped value.
+A type is the information by which the compiler decides what shape and behavior a value is allowed to have. Every Rok value belongs to some type; there is no untyped value.
 
 Variables are slightly different. A variable is either fixed to one type (static) or a slot that can hold several types (dynamic), and both modes coexist in the same language.
 

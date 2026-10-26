@@ -120,7 +120,7 @@ Rectangle(w, ..)
 An `enum` pattern starts with a variant name. A tuple variant uses positional subpatterns (`Circle(r)`), a named variant uses field names and subpatterns (`Click { x, y }`), and a unit variant uses just the name (`Pending`). A tuple variant pattern may use the rest `..` once (`V(..)`, `V(a, ..)`, `V(.., z)`).
 
 > [!NOTE]
-> What other languages express as `Option<T>` is expressed in rok as `T | none` of [sum types](../002-types/206-sum-types.md). There are therefore no `enum` variant patterns like `Some(v)` or `None`. Matching on `T | none` uses a type-check pattern (`v: T`) and a literal pattern (`none`).
+> What other languages express as `Option<T>` is expressed in Rok as `T | none` of [sum types](../002-types/206-sum-types.md). There are therefore no `enum` variant patterns like `Some(v)` or `None`. Matching on `T | none` uses a type-check pattern (`v: T`) and a literal pattern (`none`).
 
 ### `struct` patterns
 

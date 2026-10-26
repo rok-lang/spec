@@ -231,6 +231,6 @@ Because of this rule, generic bodies are checked independently of call sites, so
 
 Generics are compile-time polymorphism, called directly through monomorphization.
 
-Trait-as-type is runtime polymorphism using vtable dispatch, which rok forbids in the [Type system overview](README.md).
+Trait-as-type is runtime polymorphism using vtable dispatch, which Rok forbids in the [Type system overview](README.md).
 
 So whenever polymorphism is needed, use generics (this document) or sum types ([Sum types](206-sum-types.md)).

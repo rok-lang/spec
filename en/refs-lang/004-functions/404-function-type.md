@@ -139,7 +139,7 @@ let f: fn() -> i32 = || panic("never");     // fn() -> ! value → fn() -> i32 p
 
 ### Representation of function values
 
-A function value is a `{code, env}` pair: `code` is a code pointer and `env` is the capture environment. For a named function's value, `env` is null. A function-typed parameter of an `extern "C"` declaration has type `extern "C" fn(..)`, a C function pointer without `env`, and is not convertible to or from rok function values ([5.9.4](../005-modules/509-extern-block.md#c-function-pointer-types)). Method paths (`S::new`, `i32::add`) are also function values ([3.5.3](../003-expressions/305-member-access-and-method-call.md#method-path-values)).
+A function value is a `{code, env}` pair: `code` is a code pointer and `env` is the capture environment. For a named function's value, `env` is null. A function-typed parameter of an `extern "C"` declaration has type `extern "C" fn(..)`, a C function pointer without `env`, and is not convertible to or from Rok function values ([5.9.4](../005-modules/509-extern-block.md#c-function-pointer-types)). Method paths (`S::new`, `i32::add`) are also function values ([3.5.3](../003-expressions/305-member-access-and-method-call.md#method-path-values)).
 
 ## 4.4.9. Subtyping between function types (none)
 
@@ -171,7 +171,7 @@ let g: fn(str) throws (ParseError) -> i32 = parse_typed;
 let h: fn(str) throws -> i32 = g;             // OK - wrapped in an adapter
 ```
 
-The motivation is explicitness. rok's policy is that function conversions are written by the user in the explicit form of [conversion](../002-types/214-cast-and-conversion.md).
+The motivation is explicitness. Rok's policy is that function conversions are written by the user in the explicit form of [conversion](../002-types/214-cast-and-conversion.md).
 
 ## 4.4.10. Evaluation of function types
 

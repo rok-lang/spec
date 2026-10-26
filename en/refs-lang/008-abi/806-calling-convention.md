@@ -4,7 +4,7 @@ This document defines the register and stack conventions used for function calls
 
 ## 8.6.1. Default: platform C ABI
 
-Every function declared as an [Extern "C" symbol](805-extern-symbols.md) uses the platform's C ABI. Calls between rok functions use the same registers, but pass aggregates differently (8.6.6).
+Every function declared as an [Extern "C" symbol](805-extern-symbols.md) uses the platform's C ABI. Calls between Rok functions use the same registers, but pass aggregates differently (8.6.6).
 
 | Platform                 | ABI                |
 |--------------------------|--------------------|
@@ -46,9 +46,9 @@ When an aggregate is passed by value across the C boundary (`extern "C"` declara
 
 - `signext` / `zeroext` on narrow integer parameters and returns (`i8` / `i16` / `u8` / `u16` / `bool` / `c_char`) follow the platform C ABI: x86_64 SysV and Apple arm64 extend `i8` / `i16` / `bool`; Linux AAPCS64 extends none; Windows x64 extends only `bool`.
 - Every function carries an inline stack probe, so a large frame touches the guard page instead of skipping it.
-- The same classification applies to `extern "C" fn` **definitions**. A definition has a separate C-ABI entry point called from C; calls from rok keep using the rok convention.
+- The same classification applies to `extern "C" fn` **definitions**. A definition has a separate C-ABI entry point called from C; calls from Rok keep using the Rok convention.
 - On System V i386, the in-aggregate alignment of `i64` / `u64` / `f64` is 4 bytes (same as C).
-- This classification does not apply to calls between rok functions (8.6.6). It is needed only where rok meets C, including runtime functions taking or returning `str` (a 16-byte struct; by reference on Windows x64, [8.5](805-extern-symbols.md)).
+- This classification does not apply to calls between Rok functions (8.6.6). It is needed only where Rok meets C, including runtime functions taking or returning `str` (a 16-byte struct; by reference on Windows x64, [8.5](805-extern-symbols.md)).
 
 ## 8.6.4. GC object pointers: as ordinary pointers
 
@@ -88,7 +88,7 @@ This scheme was chosen for the following reasons.
 
 ## 8.6.6. rok-to-rok calling convention
 
-Calls between rok functions pass scalars in the registers of 8.6.2. An aggregate (struct, tuple, array, `str`) over 64 bytes is passed by address and returned through a leading result pointer. The callee copies a by-address argument on entry, so the caller's value is not modified. The callee may write the result through the result pointer at any point before it returns, after copying its by-address arguments. The result pointer may therefore point at a by-address argument, but at no other memory the callee reads during the call. This holds for every rok-to-rok call, including calls into prebuilt code, exported functions and function values. A direct call also passes the caller's `rok_tls` block address ([8.3.8](803-tls-slots.md#838-form-of-compiler-emission)) as a hidden last pointer argument, after the declared ones; a function value, an `#[export_name]` rok function and the `any` dispatcher take none (8.6.11). Smaller aggregates are passed and returned as first-class aggregates, lowered the way LLVM's SelectionDAG lowers them on the target, with one exception: on 32-bit Arm, an array whose elements are 1 or 2 bytes is passed and returned by address, like an aggregate over 64 bytes, because LLVM's own lowering of such stack arguments differs between caller and callee. Both backends produce exactly this lowering, so code from either calls the other. It differs from the C ABI classification of 8.6.3. The rules below apply to aggregates of 64 bytes or less.
+Calls between Rok functions pass scalars in the registers of 8.6.2. An aggregate (struct, tuple, array, `str`) over 64 bytes is passed by address and returned through a leading result pointer. The callee copies a by-address argument on entry, so the caller's value is not modified. The callee may write the result through the result pointer at any point before it returns, after copying its by-address arguments. The result pointer may therefore point at a by-address argument, but at no other memory the callee reads during the call. This holds for every rok-to-rok call, including calls into prebuilt code, exported functions and function values. A direct call also passes the caller's `rok_tls` block address ([8.3.8](803-tls-slots.md#838-form-of-compiler-emission)) as a hidden last pointer argument, after the declared ones; a function value, an `#[export_name]` Rok function and the `any` dispatcher take none (8.6.11). Smaller aggregates are passed and returned as first-class aggregates, lowered the way LLVM's SelectionDAG lowers them on the target, with one exception: on 32-bit Arm, an array whose elements are 1 or 2 bytes is passed and returned by address, like an aggregate over 64 bytes, because LLVM's own lowering of such stack arguments differs between caller and callee. Both backends produce exactly this lowering, so code from either calls the other. It differs from the C ABI classification of 8.6.3. The rules below apply to aggregates of 64 bytes or less.
 
 > [!NOTE]
 > A value passed by address is moved in memory (`memcpy`), never as a first-class aggregate.
@@ -133,7 +133,7 @@ The left-to-right evaluation order of [parameters](../004-functions/402-paramete
 
 Left-to-right evaluation means each argument expression is evaluated in order starting from the left. Which register or stack slot receives each result is a separate question decided by the ABI.
 
-Some C and C++ ABIs favor right-to-left evaluation because of stack push order. rok, however, guarantees left-to-right semantics, and the compiler reconciles the two requirements using temporaries and registers as needed.
+Some C and C++ ABIs favor right-to-left evaluation because of stack push order. Rok, however, guarantees left-to-right semantics, and the compiler reconciles the two requirements using temporaries and registers as needed.
 
 ## 8.6.10. Variadic functions
 
@@ -147,7 +147,7 @@ extern "C" {
 }
 ```
 
-- `...` may appear only in declarations in an `extern` block, and only as the last parameter. rok function definitions cannot have C variadics.
+- `...` may appear only in declarations in an `extern` block, and only as the last parameter. Rok function definitions cannot have C variadics.
 - C default argument promotion applies to arguments in variadic positions: `bool`, `i8`, `i16`, `u8`, `u16` and `c_char` are passed as `c_int` (`i32`), `f32` as `f64`, and `str` as `char*` (a NUL-terminated byte pointer).
 - Aggregates (struct / tuple / array) cannot be passed as variadic arguments (compile error).
 
@@ -189,6 +189,6 @@ let r = await f;             // coroutine mechanism
 
 ## 8.6.14. Stability
 
-This calling convention follows the platform C ABI, so it has no separate stability decision. rok stays compatible within the range the platform guarantees compatibility.
+This calling convention follows the platform C ABI, so it has no separate stability decision. Rok stays compatible within the range the platform guarantees compatibility.
 
 The return value layout of throwing functions (8.6.5) is part of the runtime ABI; any change follows the stability policy in the [overview](README.md).

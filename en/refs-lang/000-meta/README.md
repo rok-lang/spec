@@ -11,11 +11,11 @@
 - [0.7. Glossary](007-glossary.md)
 - [0.8. Notation](008-notation.md)
 
-## What rok is
+## What Rok is
 
-**rok** is a general-purpose programming language aimed primarily at science and data analysis. In science it covers numerical computation, simulation and modeling. In data analysis it covers tabular data processing, statistics and visualization. As a general-purpose language it is not limited to these areas: system tools, web backends and CLIs can reasonably be written in it as well.
+**Rok** is a general-purpose programming language aimed primarily at science and data analysis. In science it covers numerical computation, simulation and modeling. In data analysis it covers tabular data processing, statistics and visualization. As a general-purpose language it is not limited to these areas: system tools, web backends and CLIs can reasonably be written in it as well.
 
-Real workflows cut across all three. Code that starts in a notebook becomes part of a static artifact, then is packaged as a library and called from another notebook. rok is designed so that this flow continues within a single language.
+Real workflows cut across all three. Code that starts in a notebook becomes part of a static artifact, then is packaged as a library and called from another notebook. Rok is designed so that this flow continues within a single language.
 
 ## Design slogan
 
@@ -33,7 +33,7 @@ The exact boundary between the language and the libraries is declared in [0.4. B
 > [!IMPORTANT]
 > **"The clearer the rules, the freer you are within them."**
 
-rok does not shy away from constraints. Static types, closed sum types, the trait-as-type ban, the ban on implicit promotion, and AOT-only compilation are such decisions. They narrow the user's options. Within those narrower options, however, the user writes code that is predictable and deeply controllable.
+Rok does not shy away from constraints. Static types, closed sum types, the trait-as-type ban, the ban on implicit promotion, and AOT-only compilation are such decisions. They narrow the user's options. Within those narrower options, however, the user writes code that is predictable and deeply controllable.
 
 This philosophy comes from two directions. On one side are the areas the language controls: types, dispatch, the memory model and evaluation order. The language decides these once, rather than the user deciding each time. On the other side are the areas where the user is free: library design, domain modeling, algorithm choice and code structure. The language imposes nothing there, and the libraries and the meta-system permit deep expressiveness.
 

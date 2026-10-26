@@ -84,7 +84,7 @@ try tls_conn.write_all(req);
 let resp = try tls_conn.read_to_end();
 ```
 
-The stack is rok's own, written on `rok::core::crypto` ([2.21](../200-core/221-crypto.md)); no OS or third-party TLS library is used ([3.2.5](302-net.md#325-tls-13---nettls)).
+The stack is Rok's own, written on `rok::core::crypto` ([2.21](../200-core/221-crypto.md)); no OS or third-party TLS library is used ([3.2.5](302-net.md#325-tls-13---nettls)).
 
 HTTP/1, HTTP/2 and HTTP/3 (QUIC), on the other hand, live **outside std**, split into a separate `rok/http` package. This is the lesson from Go's `net/http` being **frozen at 1.0**.
 

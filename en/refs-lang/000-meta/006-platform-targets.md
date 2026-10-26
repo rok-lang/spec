@@ -1,6 +1,6 @@
 # 0.6. Platform targets
 
-rok builds for any platform for which LLVM supports code generation, from any host (`--target`, [0.2.4](002-pipeline.md#024-backends)). The platforms on which behavior is actually guaranteed, however, are fixed in a limited list (Tier 1); other platforms are considered case by case as needed.
+Rok builds for any platform for which LLVM supports code generation, from any host (`--target`, [0.2.4](002-pipeline.md#024-backends)). The platforms on which behavior is actually guaranteed, however, are fixed in a limited list (Tier 1); other platforms are considered case by case as needed.
 
 ## 0.6.1. Tier 1: official support
 
@@ -79,6 +79,6 @@ Every target is described by one target specification; the compiler, the linker 
 | `rust_target` | The Rust target the runtime is built for |
 | `exe_suffix`, `staticlib_prefix` / `staticlib_suffix`, `dylib_prefix` / `dylib_suffix`, `c_symbol_prefix` | File and symbol naming |
 | `stack_size`, `stack_probes`, `threads` | The main thread's stack, stack probing, thread support |
-| `native_backend`, `repl`, `profile_runtime` | rok's own `-O0` backend, the REPL host, the runtime of `-C profile-generate` |
+| `native_backend`, `repl`, `profile_runtime` | Rok's own `-O0` backend, the REPL host, the runtime of `-C profile-generate` |
 
 A specification has a stable hash; every build cache keys on it.

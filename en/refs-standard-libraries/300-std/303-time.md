@@ -120,7 +120,7 @@ impl BootTime {
 
 `BootTime` and `Instant` differ in their behavior across suspend. `Instant`, like Linux `CLOCK_MONOTONIC`, stops during suspend, whereas `BootTime` follows `CLOCK_BOOTTIME` and keeps advancing during suspend.
 
-This difference is decisive when a mobile or laptop app must measure "real elapsed time (including suspend)". Rust still has no stable API for this as of 2026; rok exposes it on the surface early.
+This difference is decisive when a mobile or laptop app must measure "real elapsed time (including suspend)". Rust still has no stable API for this as of 2026; Rok exposes it on the surface early.
 
 ## 3.3.5. `Duration`
 

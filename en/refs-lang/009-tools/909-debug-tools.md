@@ -202,15 +202,15 @@ In addition to `-v`, prints a `Reading <file>` line for each file processed and 
 
 A `debug` profile build, and a `release` build with `-g` ([9.2.15](902-aot-pipeline.md#9215-output)), emits DWARF debug information with the following properties. For Windows targets it emits CodeView in a PDB instead, carrying the same information.
 
-- A function's `DW_AT_name` is its rok path (`geom::distance`); no linkage name (mangled symbol) is emitted, because debuggers do not understand `_Y` mangling.
+- A function's `DW_AT_name` is its Rok path (`geom::distance`); no linkage name (mangled symbol) is emitted, because debuggers do not understand `_Y` mangling.
 - Line numbers refer to lines of the original .rok file.
-- Local variables appear with their original names and types. Besides primitive types (integers, floating-point, `bool`, `char`), DWARF types are emitted for structs (field names), tuples, `str`, `any`, sum types and arrays. A sum type or enum is a DWARF variant part: an artificial discriminant member, and one `DW_TAG_variant` per variant (dataless variants included) with `DW_AT_discr_value`, each holding a struct named `<Sum>::<Variant>`. Both back ends write the same form, and compile units use `DW_LANG_Rust` so debuggers read variant parts (there is no DWARF language code for rok). A `GcBuf<T>` reference is described as a pointer to its object (header, then the `T` elements). An `any` value is a variant part over the types stored into it, with the stored tag as the discriminant. The discriminant is an artificial `i32` (the stored tag; a `throws` carrier's `bool` tag is a byte). A function value (a `fn` type or a closure) is a structure named for its type (`fn(i32) -> i32`) with members `code`, a pointer to a `DW_TAG_subroutine_type` (the environment, then the parameters), and `env`, its environment (a pointer to the environment object when the closure's type is known), so a debugger shows the target function. A variable captured by reference shows as its value. Functions the compiler makes (the C `main`, static initializer guards) have subprograms too. Compiler-generated locals (names beginning `#` or `__`) are omitted.
+- Local variables appear with their original names and types. Besides primitive types (integers, floating-point, `bool`, `char`), DWARF types are emitted for structs (field names), tuples, `str`, `any`, sum types and arrays. A sum type or enum is a DWARF variant part: an artificial discriminant member, and one `DW_TAG_variant` per variant (dataless variants included) with `DW_AT_discr_value`, each holding a struct named `<Sum>::<Variant>`. Both back ends write the same form, and compile units use `DW_LANG_Rust` so debuggers read variant parts (there is no DWARF language code for Rok). A `GcBuf<T>` reference is described as a pointer to its object (header, then the `T` elements). An `any` value is a variant part over the types stored into it, with the stored tag as the discriminant. The discriminant is an artificial `i32` (the stored tag; a `throws` carrier's `bool` tag is a byte). A function value (a `fn` type or a closure) is a structure named for its type (`fn(i32) -> i32`) with members `code`, a pointer to a `DW_TAG_subroutine_type` (the environment, then the parameters), and `env`, its environment (a pointer to the environment object when the closure's type is known), so a debugger shows the target function. A variable captured by reference shows as its value. Functions the compiler makes (the C `main`, static initializer guards) have subprograms too. Compiler-generated locals (names beginning `#` or `__`) are omitted.
 - A lexical block scope is emitted for each block, so shadowed names are visible only inside their block.
 - Locals with stack slots are placed in a single `llvm.alloca` in both debug and release, so `-g` attaches debug info to the same slot regardless of optimization level.
 
 ### Using gdb / lldb
 
-Standard gdb and lldb commands work on rok code as is.
+Standard gdb and lldb commands work on Rok code as is.
 
 ```
 gdb ./target/debug/my_binary
@@ -234,7 +234,7 @@ rokc --print lldbinit >> ~/.lldbinit
 
 ### macOS / Windows debuggers
 
-Each platform's native debugger handles rok binaries.
+Each platform's native debugger handles Rok binaries.
 
 - On macOS, use lldb or the Xcode debugger.
 - On Windows, use the Visual Studio debugger or WinDbg (PDB debug information).
@@ -250,7 +250,7 @@ perf record ./target/release/my_binary
 perf report
 ```
 
-rok functions are shown by their demangled names.
+Rok functions are shown by their demangled names.
 
 ### Profile-guided optimization
 
@@ -314,7 +314,7 @@ This option prints the result of [meta expansion](../006-meta-system/609-templat
 impl MyHash for Point { ... }
 ```
 
-To see the full AST after all meta expansion and desugaring as rok source, use `--emit=ast` (`<name>.ast.rok`).
+To see the full AST after all meta expansion and desugaring as Rok source, use `--emit=ast` (`<name>.ast.rok`).
 
 ## 9.9.11. Benchmarks
 
@@ -413,6 +413,6 @@ This gives an at-a-glance view of what the package exposes externally.
 
 ## 9.9.15. Summary
 
-The tools above form the core of rok's development and debugging experience. Integration with standard tools (gdb, perf, jupyter) combined with rok-specific tools (`rokc demangle`, `rokc rokhir-text`, etc.) provides a rich diagnostic environment.
+The tools above form the core of Rok's development and debugging experience. Integration with standard tools (gdb, perf, jupyter) combined with rok-specific tools (`rokc demangle`, `rokc rokhir-text`, etc.) provides a rich diagnostic environment.
 
 This concludes chapter 9 (execution and tools) and completes the overall picture of this specification.

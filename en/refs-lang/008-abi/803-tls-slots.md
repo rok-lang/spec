@@ -4,7 +4,7 @@ Each OS thread (= scheduler worker = mutator) holds runtime information at fixed
 
 ## 8.3.1. TLS slot structure
 
-The TLS slots are one `thread_local` block, `rok_tls`, defined and exported by the runtime; each slot is at a fixed offset in it. Compiled code reaches each slot at its offset from the block's address, which a rok function receives from its caller (8.3.8).
+The TLS slots are one `thread_local` block, `rok_tls`, defined and exported by the runtime; each slot is at a fixed offset in it. Compiled code reaches each slot at its offset from the block's address, which a Rok function receives from its caller (8.3.8).
 
 `p` is the pointer width in bytes.
 
@@ -28,7 +28,7 @@ The **ABI contract** is the block symbol `rok_tls` and each slot's offset, type 
 **Implementation-defined slots**: the runtime may keep further thread-local state, after the ABI slots or elsewhere, for scheduling, statistics, profiling, debugging and so on. The compiler and external packages must not reference it.
 
 > [!NOTE]
-> rok's runtime places `task_lane` at 10p+16, `static_inits` at 11p+16 and `held_locks` (the locks this thread holds; in a session host, locks a thread that is gone held while blocked are released) at 12p+16.
+> Rok's runtime places `task_lane` at 10p+16, `static_inits` at 11p+16 and `held_locks` (the locks this thread holds; in a session host, locks a thread that is gone held while blocked are released) at 12p+16.
 
 ## 8.3.2. Access mechanism
 
@@ -154,7 +154,7 @@ rok_thread_shutdown():
 
 ## 8.3.8. Form of compiler emission
 
-The block is a `thread_local` global defined and exported by the runtime. The compiler references it as an external declaration and loads slots at their offsets from the block's address. A rok function takes that address from its caller as a hidden last argument (8.6.6), so a call between rok functions reads no TLS. Code entered from outside rok takes the address itself, once (`llvm.threadlocal.address`) and passes it on: the C `main`, the C entry of an `extern "C"` definition, an `#[export_name]` rok function, the `any` dispatcher, a lazy `static`'s initializer, and the thunk a function value goes through (8.6.11).
+The block is a `thread_local` global defined and exported by the runtime. The compiler references it as an external declaration and loads slots at their offsets from the block's address. A Rok function takes that address from its caller as a hidden last argument (8.6.6), so a call between Rok functions reads no TLS. Code entered from outside Rok takes the address itself, once (`llvm.threadlocal.address`) and passes it on: the C `main`, the C entry of an `extern "C"` definition, an `#[export_name]` Rok function, the `any` dispatcher, a lazy `static`'s initializer, and the thunk a function value goes through (8.6.11).
 
 ```mlir
 ; LLVM IR - defined by the runtime; compiler output has an external declaration

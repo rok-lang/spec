@@ -1,6 +1,6 @@
 # 0.3. Source units
 
-rok's compilation unit is the **package**. A package is recognized on the file system by a fixed convention (`src/main.rok` / `src/lib.rok`). The manifest `rok.rokon` is present only when declaring dependencies and the like; a package without dependencies does not need one (0.3.4).
+Rok's compilation unit is the **package**. A package is recognized on the file system by a fixed convention (`src/main.rok` / `src/lib.rok`). The manifest `rok.rokon` is present only when declaring dependencies and the like; a package without dependencies does not need one (0.3.4).
 
 ## 0.3.1. Executables and libraries
 

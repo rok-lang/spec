@@ -1,10 +1,10 @@
 # 3.9. `rokon::` - the ROKON data format
 
-ROKON (Rok Object Notation) is a data format that writes values in rok's literal syntax. The file extension is `.rokon`. It fills the same role as Rust's RON and Zig's ZON; the package manifest `rok.rokon` and the lockfile `rok.lock` ([refs-lang 9.10.3](../../refs-lang/009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) use this format.
+ROKON (Rok Object Notation) is a data format that writes values in Rok's literal syntax. The file extension is `.rokon`. It fills the same role as Rust's RON and Zig's ZON; the package manifest `rok.rokon` and the lockfile `rok.lock` ([refs-lang 9.10.3](../../refs-lang/009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) use this format.
 
 ## 3.9.1. Format
 
-ROKON is a subset of rok expression syntax and is read with rok's lexer / parser. One file holds one value.
+ROKON is a subset of Rok expression syntax and is read with Rok's lexer / parser. One file holds one value.
 
 | Form        | Example                                               | Notes                                                 |
 |-------------|-------------------------------------------------------|-------------------------------------------------------|
@@ -26,7 +26,7 @@ ROKON is a subset of rok expression syntax and is read with rok's lexer / parser
 - NaN and infinity have no ROKON notation. `nan` / `inf` in the input are rejected as bare identifiers.
 
 > [!NOTE]
-> Known limitation: a dict whose first key is `none` (`{ none: 1 }`) is not supported, because the rok parser reads it as a block.
+> Known limitation: a dict whose first key is `none` (`{ none: 1 }`) is not supported, because the Rok parser reads it as a block.
 
 ```rokon
 // config.rokon
@@ -41,9 +41,9 @@ Config {
 }
 ```
 
-## 3.9.2. Correspondence with rok types
+## 3.9.2. Correspondence with Rok types
 
-| ROKON          | rok type                                                                     |
+| ROKON          | Rok type                                                                     |
 |----------------|------------------------------------------------------------------------------|
 | `none`         | `none` of `T \| none`                                                        |
 | `true` / `false` | `bool`                                                                     |
@@ -177,6 +177,6 @@ print(rokon::to_string(cfg));
 |--------|-----------------------------|-----------------------------------|
 | RON    | `Name(field: v)`            | A dedicated syntax different from Rust |
 | ZON    | `.{ .name = "x" }`          | Zig's anonymous struct literal    |
-| ROKON  | `Name { field: v }`         | rok's own literal syntax as is    |
+| ROKON  | `Name { field: v }`         | Rok's own literal syntax as is    |
 
-ROKON adds no separate syntax and uses rok literals directly, so a value written in source and a value written in a file look the same.
+ROKON adds no separate syntax and uses Rok literals directly, so a value written in source and a value written in a file look the same.

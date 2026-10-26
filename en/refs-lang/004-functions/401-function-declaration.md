@@ -158,7 +158,7 @@ The exact meaning of each visibility level is defined in [visibility](../005-mod
 
 ## 4.1.10. No duplicate definitions in the same module
 
-Declaring two functions with the same name in the same module is a compile error. rok has no overloading.
+Declaring two functions with the same name in the same module is a compile error. Rok has no overloading.
 
 ```rok
 fn add(x: i32, y: i32) -> i32 { x + y }

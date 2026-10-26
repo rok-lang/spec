@@ -77,7 +77,7 @@ If `T: Send`, then `Sender<T>` and `Receiver<T>` are also `Send` and can be move
 
 ## 2.17.3. Close semantics
 
-When a channel closes and how the signal is delivered: once every sender is `close()`d, the channel is closed. The receiver then gets the close signal as `recv()` returning `none`. rok has no automatic drop at scope exit ([2.13.4](213-marker.md#2134-drop---cleanup-on-using-release)), so closing a sender is an explicit `close()`.
+When a channel closes and how the signal is delivered: once every sender is `close()`d, the channel is closed. The receiver then gets the close signal as `recv()` returning `none`. Rok has no automatic drop at scope exit ([2.13.4](213-marker.md#2134-drop---cleanup-on-using-release)), so closing a sender is an explicit `close()`.
 
 Closing a channel with `close()`:
 

@@ -457,8 +457,8 @@ Errors during expansion and parse errors of the expansion result point to the te
 
 ## 6.9.11. Summary
 
-Template tokens are the code generation vocabulary of rok's meta-system. Simple as they are, they cover all the core cases of practical derives and attributes.
+Template tokens are the code generation vocabulary of Rok's meta-system. Simple as they are, they cover all the core cases of practical derives and attributes.
 
-rok's choice is to limit the flexibility of token transformation in exchange for debuggability, tool friendliness, and guaranteed hygiene.
+Rok's choice is to limit the flexibility of token transformation in exchange for debuggability, tool friendliness, and guaranteed hygiene.
 
 This concludes chapter 6 (Meta-system).

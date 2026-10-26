@@ -1,6 +1,6 @@
 # 1. Lexical structure
 
-This chapter covers the rules for breaking rok source code into tokens. It examines every element encountered during tokenization, starting with files and lines and continuing through identifiers, keywords, literals and operator tokens.
+This chapter covers the rules for breaking Rok source code into tokens. It examines every element encountered during tokenization, starting with files and lines and continuing through identifiers, keywords, literals and operator tokens.
 
 Higher layers such as types, expressions and statements receive input that has already been tokenized, so all rules that apply during tokenization are gathered in this one chapter.
 

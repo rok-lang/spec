@@ -205,7 +205,7 @@ The display form is `{type_name_of}: {Debug}`. For a type without `Debug`, only 
 
 ## 2.12.6. Comparison with other languages
 
-| Aspect              | Rust                         | Java               | Python              | rok                                         |
+| Aspect              | Rust                         | Java               | Python              | Rok                                         |
 |---------------------|------------------------------|--------------------|---------------------|---------------------------------------------|
 | Type name           | `std::any::type_name::<T>()` | `getClass()`       | `type(x).__name__`  | `x.type_name_of()` method                   |
 | Field introspection | **none** (libraries such as `bincode`) | Reflection API | `vars(x)` `getattr` | `x.get_field(name)` (opt-in)          |
@@ -213,6 +213,6 @@ The display form is `{type_name_of}: {Debug}`. For a type without `Debug`, only 
 | Automatic impl      | **none**                     | every object       | every object        | `Reflect` automatic, `Inspect` opt-in       |
 | Memory cost         | 0                            | metadata for every class | dict for every object | only `Reflect` automatic (opt-in split) |
 
-rok differs in two main ways. First, the two-level split provides the lightweight `Reflect` automatically and the heavyweight `Inspect` as opt-in. This is more memory-efficient than the all-automatic model of Java or Python and more ergonomic than Rust's all-manual model. Second, for method consistency there are **no** global functions such as `typeof(x)`; all introspection is provided in method form.
+Rok differs in two main ways. First, the two-level split provides the lightweight `Reflect` automatically and the heavyweight `Inspect` as opt-in. This is more memory-efficient than the all-automatic model of Java or Python and more ergonomic than Rust's all-manual model. Second, for method consistency there are **no** global functions such as `typeof(x)`; all introspection is provided in method form.
 
 The detailed reflection semantics are governed by [refs-lang 6.10](../../refs-lang/006-meta-system/610-reflection.md).

@@ -10,10 +10,10 @@ The 48 slots fall into four groups according to their responsibility. The table 
 
 | Group   | Responsibility                                                              | Slots   |
 |---------|-----------------------------------------------------------------------------|---------|
-| Type    | Standard library types rok recognizes as **concrete types**                 | 14      |
-| Trait   | Traits rok uses for **operator / control-flow desugaring**, derive, and thread-boundary checks | 30 |
-| Method  | Methods rok **calls automatically** (drop)                                  | 1       |
-| Function | Standard library functions rok calls as **intrinsic calls**                | 3       |
+| Type    | Standard library types Rok recognizes as **concrete types**                 | 14      |
+| Trait   | Traits Rok uses for **operator / control-flow desugaring**, derive, and thread-boundary checks | 30 |
+| Method  | Methods Rok **calls automatically** (drop)                                  | 1       |
+| Function | Standard library functions Rok calls as **intrinsic calls**                | 3       |
 | Total   |                                                                             | **48**  |
 
 ## 0.4.2. Type slots (14)

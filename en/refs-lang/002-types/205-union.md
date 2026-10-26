@@ -51,7 +51,7 @@ Creating an instance with some field writes that field's bits to memory. Reading
 
 Bit reinterpretation by a `union` is behavior defined by the language, but the meaning of the result is the program domain's responsibility. For example, writing `1.0` to an `f32` field and reading the `i32` field gives `1065353216` (`0x3F800000`); conversely, reading `i32` bits as `f32` gives the real value given by the IEEE 754 bit representation. The language does not check whether that value is meaningful for the domain.
 
-This model differs from C's `union`. In C, reading from a different member is undefined behavior; in rok it is defined as bit reinterpretation. Since the result is not guaranteed to be a valid value, reads are marked `unsafe`.
+This model differs from C's `union`. In C, reading from a different member is undefined behavior; in Rok it is defined as bit reinterpretation. Since the result is not guaranteed to be a valid value, reads are marked `unsafe`.
 
 ## 2.5.4. Default layout is left to the compiler
 
@@ -75,7 +75,7 @@ The two forms differ as follows.
 
 | Form                         | Used in     | Layout            | Bit compatibility         |
 |------------------------------|-------------|-------------------|---------------------------|
-| `union T { ... }`            | Ordinary code | Left to compiler | Guaranteed only within rok |
+| `union T { ... }`            | Ordinary code | Left to compiler | Guaranteed only within Rok |
 | `#[repr(C)] union T { ... }` | FFI         | Same as C ABI     | Compatible with C code    |
 
 ## 2.5.6. Visibility / duplicate definitions

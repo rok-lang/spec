@@ -116,7 +116,7 @@ For a type without `Debug`, only the type name is printed. This behavior is used
 
 ## 6.10.4. No global `typeof` / `sizeof` functions
 
-Introspection that other languages expose through keywords such as `typeof` or `sizeof` is provided in rok only as trait methods.
+Introspection that other languages expose through keywords such as `typeof` or `sizeof` is provided in Rok only as trait methods.
 
 ```rok
 // rok - method calls

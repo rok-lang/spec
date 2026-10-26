@@ -1,6 +1,6 @@
 # 2. Rok tier
 
-The rok tier is the safe standard library: the practical surface of rok that builds on every target. Because about 90% of user code uses items from this tier, it is the layer that determines what rok looks like in everyday programming.
+The Rok tier is the safe standard library: the practical surface of Rok that builds on every target. Because about 90% of user code uses items from this tier, it is the layer that determines what Rok looks like in everyday programming.
 
 ## Location
 
@@ -10,11 +10,11 @@ The specification documents live at:
 
 ## Dependencies
 
-Upward, the rok tier depends on `unsafe` for internal use; downward, `std` and user code depend on it. The rok tier therefore sits at the center of the safe region, between unsafe and std.
+Upward, the Rok tier depends on `unsafe` for internal use; downward, `std` and user code depend on it. The Rok tier therefore sits at the center of the safe region, between unsafe and std.
 
 ## User import policy
 
-`use rok::core::**;` is **applied implicitly**: the compiler prepends it to every user file. As a result, every pub item of rok (List, Dict, Add, Display, Iterator, Mutex, task, ...) is usable without an explicit import.
+`use rok::core::**;` is **applied implicitly**: the compiler prepends it to every user file. As a result, every pub item of Rok (List, Dict, Add, Display, Iterator, Mutex, task, ...) is usable without an explicit import.
 
 Narrow explicit imports are also allowed where needed.
 
@@ -24,14 +24,14 @@ use rok::core::ops::{Add, Sub};
 ```
 
 > [!NOTE]
-> rok has **no separate `rok::core::prelude` module**. The `**` recursive glob itself serves
+> Rok has **no separate `rok::core::prelude` module**. The `**` recursive glob itself serves
 > as the prelude - no extra indirection.
 
 The full policy is covered in [0.2 Import policy](../000-meta/002-import.md).
 
 ## Module index
 
-The modules provided by the rok tier, grouped by area:
+The modules provided by the Rok tier, grouped by area:
 
 ### Numbers / niche
 
@@ -82,11 +82,11 @@ The modules provided by the rok tier, grouped by area:
 - [2.21. `crypto::` - hashes, MACs, AEADs, key exchange, signatures](221-crypto.md)
 
 > [!NOTE]
-> Scientific computing areas such as tensors, automatic differentiation, SIMD and GPU are not part of the rok tier; they are split out into **external libraries**. External libraries can access MLIR dialects directly through the [`rok::bare::mlir`](../100-bare/) module.
+> Scientific computing areas such as tensors, automatic differentiation, SIMD and GPU are not part of the Rok tier; they are split out into **external libraries**. External libraries can access MLIR dialects directly through the [`rok::bare::mlir`](../100-bare/) module.
 
 ## Core design principles
 
-The design of the rok tier follows four axes.
+The design of the Rok tier follows four axes.
 
 First, traits come first. Every semantic decision is made by trait method dispatch: `+` resolves to `Add::add`, and `[i]` indexing resolves to `Index::index`.
 

@@ -65,7 +65,7 @@ The result of a `const` does not reside at any memory location, so its address c
 let p = &X;                       // ERROR - a const has no address (conceptually)
 ```
 
-Whether rok actually has a direct address operator such as `&` is defined by the pointer types in [type expressions](../002-types/201-type-expressions.md) and by the [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) specification.
+Whether Rok actually has a direct address operator such as `&` is defined by the pointer types in [type expressions](../002-types/201-type-expressions.md) and by the [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) specification.
 
 ## 5.2.4. Constant expressions and the evaluator
 

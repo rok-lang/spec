@@ -1,6 +1,6 @@
 # 2.16. sync - Concurrency primitives
 
-The `rok::core::sync` module defines the primitive traits and types for safe access to shared state. They are used to share data between multiple tasks or threads under rok's GC and M:N scheduler.
+The `rok::core::sync` module defines the primitive traits and types for safe access to shared state. They are used to share data between multiple tasks or threads under Rok's GC and M:N scheduler.
 
 Because `use rok::core::**;` applies implicitly, `Atomic`, `Mutex`, `RwLock` and `Cell` are usable without any import. Where concurrent code should be visibly marked as such, a narrow import like the following is recommended.
 
@@ -173,7 +173,7 @@ match STATE.try_lock() {
 
 ### Poisoning - **none**
 
-rok's Mutex differs from Rust's PoisonError model. Even if a panic occurs, the lock is released automatically and the next task can enter normally. There are two reasons for this design.
+Rok's Mutex differs from Rust's PoisonError model. Even if a panic occurs, the lock is released automatically and the next task can enter normally. There are two reasons for this design.
 
 1. A panic cannot be caught and ends the process, so no other task ever observes the lock state mid-panic. When an error propagates via `throw` out of a `using` block, [`using` calls Drop](213-marker.md#2134-drop---cleanup-on-using-release), so the `MutexGuard`'s drop is responsible for releasing the lock.
 2. Poisoning looks conservative but burdens users heavily and is a false positive in most cases.

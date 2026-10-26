@@ -93,7 +93,7 @@ m * n           // matrix product (Mul impl, user-defined)
 m .* n          // element-wise product (Hadamard product, DotMul)
 ```
 
-To avoid the confusion caused by NumPy's `*` implicitly being element-wise, rok always keeps the two meanings visually separate.
+To avoid the confusion caused by NumPy's `*` implicitly being element-wise, Rok always keeps the two meanings visually separate.
 
 This separation applies directly the principle "syntax belongs to the language, meaning to the library" from [the boundary between the language and the standard libraries](../000-meta/004-language-vs-standard-libraries.md): two different meanings map to two different syntaxes.
 

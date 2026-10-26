@@ -1,6 +1,6 @@
 # 0.4. Boundary between the language and the standard libraries
 
-This document declares the boundary between what the language defines and what the standard libraries define. This boundary is a core decision of the rok specification, and all subsequent specification documents are written on the premise of it.
+This document declares the boundary between what the language defines and what the standard libraries define. This boundary is a core decision of the Rok specification, and all subsequent specification documents are written on the premise of it.
 
 ## 0.4.1. What the language defines
 
@@ -63,13 +63,13 @@ Operations on almost all values outside the list above are the library's decisio
 
 Instead, the specification states the following: which trait method call the operation desugars into; the location convention for which library tier defines that trait; and the form of the compile error that occurs when it is not defined.
 
-This split is how rok's design slogan, "a small language, rich libraries", is realized at the specification level.
+This split is how Rok's design slogan, "a small language, rich libraries", is realized at the specification level.
 
 ## 0.4.4. Implementation limits
 
-The language sets no fixed limits on nesting, chain length, value size or compile-time evaluation. An implementation may set its own; they are implementation-defined, not language requirements. rok's are:
+The language sets no fixed limits on nesting, chain length, value size or compile-time evaluation. An implementation may set its own; they are implementation-defined, not language requirements. Rok's are:
 
-| Limit | rok |
+| Limit | Rok |
 |-------|-----|
 | Parser nesting depth | 256 |
 | Operator / postfix chain links ([3.2.6a](../003-expressions/302-precedence-and-associativity.md#326a-implementation-limits)) | 4096 |

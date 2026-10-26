@@ -99,7 +99,7 @@ A step is not part of the notation. It is provided instead by the standard libra
 (0..100).step_by(2)         // [0, 2, 4, ..., 98]
 ```
 
-This is consistent with rok's general direction: keep language syntax simple and provide extras as methods. The `[::2]` of slicing is a separate notation, introduced because a step is natural there.
+This is consistent with Rok's general direction: keep language syntax simple and provide extras as methods. The `[::2]` of slicing is a separate notation, introduced because a step is natural there.
 
 ## 3.7.6. Reverse direction
 

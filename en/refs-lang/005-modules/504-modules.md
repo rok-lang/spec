@@ -161,7 +161,7 @@ mod geom;
 mod shared;
 ```
 
-The file at the given path is mapped as the module body. The path is relative to the directory where `name.rok` would normally be found. Submodules of that module go in the folder next to the file with its stem: for `#[path("f.rok")]`, in `f/`. The target file may not be named `mod.rok`, since rok has no `mod.rok` body form ([5.4.4](#544-package-root)); it is an error. `#[path(..)]` is the only form. It rarely appears in ordinary use and serves special cases such as build systems and generated code.
+The file at the given path is mapped as the module body. The path is relative to the directory where `name.rok` would normally be found. Submodules of that module go in the folder next to the file with its stem: for `#[path("f.rok")]`, in `f/`. The target file may not be named `mod.rok`, since Rok has no `mod.rok` body form ([5.4.4](#544-package-root)); it is an error. `#[path(..)]` is the only form. It rarely appears in ordinary use and serves special cases such as build systems and generated code.
 
 ## 5.4.7. Items within a module
 

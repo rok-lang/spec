@@ -1,6 +1,6 @@
 # 7. Runtime overview
 
-This block defines the implementation specification of the rok runtime system ([GC](../000-meta/007-glossary.md#gc-garbage-collector), task scheduler, coroutines). The system works identically under both engines ([JIT](../000-meta/007-glossary.md#jit-just-in-time) / [AOT](../000-meta/007-glossary.md#aot-ahead-of-time)) of [Execution engines and the user surface](../000-meta/001-execution-modes.md).
+This block defines the implementation specification of the Rok runtime system ([GC](../000-meta/007-glossary.md#gc-garbage-collector), task scheduler, coroutines). The system works identically under both engines ([JIT](../000-meta/007-glossary.md#jit-just-in-time) / [AOT](../000-meta/007-glossary.md#aot-ahead-of-time)) of [Execution engines and the user surface](../000-meta/001-execution-modes.md).
 
 ## Contents
 

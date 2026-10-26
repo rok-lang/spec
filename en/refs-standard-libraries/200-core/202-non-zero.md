@@ -125,7 +125,7 @@ let nz: NonZero<i32> = unsafe { NonZero::new_unchecked(n) };
 
 ## 2.2.9. Comparison with other languages
 
-| Aspect       | Rust                          | rok                                   |
+| Aspect       | Rust                          | Rok                                   |
 |--------------|-------------------------------|---------------------------------------|
 | `NonZero<T>` | `NonZero<T>` (integers)       | `NonZero<T: NicheInt>`                |
 | `NonNan` / `Finite` | None (external crate)  | Built in                              |

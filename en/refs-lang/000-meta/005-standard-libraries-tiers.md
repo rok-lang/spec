@@ -32,7 +32,7 @@ The caller of a function in this tier is responsible for safety, and the path it
 
 Acceleration domains such as tensors / automatic differentiation / SIMD / GPU are not part of `rok::core`; external libraries implement them directly on top of `rok::bare::mlir`. The standard libraries are responsible only for the surface semantics of ordinary code and leave the acceleration domain to decisions at the library layer.
 
-The items of `rok::core` are made visible by the compiler implicitly applying `use rok::core::**;` at the start of every rok source. That is, `rok::core::vec::Vec` can be written simply as `Vec`. There is no separate prelude module; the implicit recursive glob itself plays that role.
+The items of `rok::core` are made visible by the compiler implicitly applying `use rok::core::**;` at the start of every Rok source. That is, `rok::core::vec::Vec` can be written simply as `Vec`. There is no separate prelude module; the implicit recursive glob itself plays that role.
 
 Items of `rok::core` are `pub` by default. The surface exposed to external packages is exactly the automatically visible surface, so no separate step is needed.
 

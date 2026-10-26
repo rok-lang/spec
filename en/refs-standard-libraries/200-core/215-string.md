@@ -1,6 +1,6 @@
 # 2.15. Strings - `str` / `char` / `c_char`
 
-The `rok::core::str` module provides the authoritative definitions of the string and character types. rok follows a **UTF-8 first** policy: every in-process string is handled as UTF-8, and `c_char` is used only at FFI boundaries.
+The `rok::core::str` module provides the authoritative definitions of the string and character types. Rok follows a **UTF-8 first** policy: every in-process string is handled as UTF-8, and `c_char` is used only at FFI boundaries.
 
 This chapter defines three of the 48 lang slots. First, `str_type` is bound to `rok::core::str::str`, a lowercase struct that is a language built-in. Second, `char_type` is the built-in `char`, whose methods this chapter defines. Third, `cchar_type` is bound to `rok::core::str::c_char`, likewise a language built-in.
 
@@ -15,17 +15,17 @@ This chapter defines three of the 48 lang slots. First, `str_type` is bound to `
 | `char`   | Unicode scalar value (PascalCase struct + keyword) | 4B (u32)                     | (value - cannot change) |
 | `c_char` | C ABI 1-byte char (FFI primitive)                  | 1B (i8 or u8 - target-dependent) | (value)         |
 
-### Rust / Python / rok model comparison
+### Rust / Python / Rok model comparison
 
 How the three languages handle strings:
 
-| Aspect         | Rust             | Python             | rok                        |
+| Aspect         | Rust             | Python             | Rok                        |
 |----------------|------------------|--------------------|----------------------------|
 | Value          | `&str`           | `str`              | `str` (immutable `(ptr, len)`) |
 | Mutable buffer | `String`         | `io.StringIO`, etc. | `StrBuf`                  |
 | Memory         | borrow checker   | refcount           | GC                         |
 
-rok's `str` is close to Python's immutable `str` in needing no lifetime tracking, and is represented like Rust's `&str` as a `(ptr, len)` pair. The bytes of strings created at runtime live in a GC object (type id `1`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-runtime-reserved-type-ids)).
+Rok's `str` is close to Python's immutable `str` in needing no lifetime tracking, and is represented like Rust's `&str` as a `(ptr, len)` pair. The bytes of strings created at runtime live in a GC object (type id `1`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-runtime-reserved-type-ids)).
 
 ## 2.15.2. `str` - immutable UTF-8 string
 
@@ -362,7 +362,7 @@ As for intrinsics, some `str` method bodies and some `char` methods carry `#[int
 
 ## 2.15.9. Comparison with other languages
 
-| Aspect          | Rust              | Python 3                | Java                    | rok                                |
+| Aspect          | Rust              | Python 3                | Java                    | Rok                                |
 |-----------------|-------------------|-------------------------|-------------------------|------------------------------------|
 | Type split      | `&str` + `String` | `str` (single)          | `String`                | `str` + `StrBuf`                   |
 | Mutability      | only `String` mutable | **immutable**       | **immutable**           | `str` immutable, `StrBuf` mutable  |
@@ -372,4 +372,4 @@ As for intrinsics, some `str` method bodies and some `char` methods carry `#[int
 | Meaning of len  | byte len          | char count              | UTF-16 code unit        | byte len (explicit `.chars().count()`) |
 | index `s[i]`    | **none**          | char (Python str)       | UTF-16 code unit        | **none** (explicit chars/bytes)    |
 
-`str` is an immutable `(ptr, len)` value, and the mutable buffer is split off as `StrBuf`; with a GC, no lifetime distinction is needed, unlike Rust. `len()` means **byte length**, matching Rust; the char count is obtained separately with `chars().count()`. By **not providing** `s[i]`, rok matches Rust and avoids byte vs char ambiguity. Defining `char` as a 4B Unicode scalar avoids the surrogate pitfalls caused by Java's 2B UTF-16 code units. Finally, `c_char` is a separate type, keeping a clear ABI distinction from `char`.
+`str` is an immutable `(ptr, len)` value, and the mutable buffer is split off as `StrBuf`; with a GC, no lifetime distinction is needed, unlike Rust. `len()` means **byte length**, matching Rust; the char count is obtained separately with `chars().count()`. By **not providing** `s[i]`, Rok matches Rust and avoids byte vs char ambiguity. Defining `char` as a 4B Unicode scalar avoids the surrogate pitfalls caused by Java's 2B UTF-16 code units. Finally, `c_char` is a separate type, keeping a clear ABI distinction from `char`.

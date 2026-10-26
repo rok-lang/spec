@@ -72,7 +72,7 @@ The following rules follow from this equivalence.
 - **A top-level `let` is not visible inside item bodies.** In the example above, if the body of `greet` referred to `names` or `total`, it would be a name resolution error. Capturing the local variable in a closure is possible (`let shout = |s| println(f"{s}! ({total})");`) - the closure is a statement and is created inside the implicit `main` body.
 
 > [!NOTE]
-> **Why top-level `let` is not visible to items.** Items exist regardless of order, but a `let` gets its value only at run time. If `fn greet` could see a top-level `let`, the meaning would have to be defined for the case where `greet` is called **before** that `let` (e.g., calling `greet()` on the first line), which amounts to bringing "global initialization order" semantics into the language. rok's principle is to have no global initialization order (4.16.6), so top-level `let` is restricted to local variables of the implicit `main`. State that must be shared between items is passed as parameters or declared `static`.
+> **Why top-level `let` is not visible to items.** Items exist regardless of order, but a `let` gets its value only at run time. If `fn greet` could see a top-level `let`, the meaning would have to be defined for the case where `greet` is called **before** that `let` (e.g., calling `greet()` on the first line), which amounts to bringing "global initialization order" semantics into the language. Rok's principle is to have no global initialization order (4.16.6), so top-level `let` is restricted to local variables of the implicit `main`. State that must be shared between items is passed as parameters or declared `static`.
 
 ## 4.16.3. Signature of an explicit `main`
 
@@ -123,12 +123,12 @@ println(body.len());
 
 Top-level statements are allowed **only in the entry module `main.rok`**. `lib.rok` and every module file other than `main.rok` (and inline `mod { ... }` bodies) may contain only items (`module_file ::= item*`); a top-level statement there is a **compile error**. For statements in an inline `mod x { stmt }` body, a dedicated diagnostic pointing to this section is issued.
 
-As a result, **importing a module (`mod`, `use`) runs no code.** This deliberately differs from Python. In Python, `import` runs a module file's top-level code, so a file used both as a library and as a script must separate the two uses with an `if __name__ == "__main__":` guard. rok needs no such guard: code run as a script exists only in `main.rok`, and every other file causes nothing at import time.
+As a result, **importing a module (`mod`, `use`) runs no code.** This deliberately differs from Python. In Python, `import` runs a module file's top-level code, so a file used both as a library and as a script must separate the two uses with an `if __name__ == "__main__":` guard. Rok needs no such guard: code run as a script exists only in `main.rok`, and every other file causes nothing at import time.
 
 The rationale for this decision:
 
 - **AOT is the reference for meaning** ([0.1.4](../000-meta/001-execution-modes.md#014-semantic-baseline)). Supporting import-time execution in AOT output would require synthesizing per-module initialization functions and their call order at link time. Definition-only modules need no such machinery.
-- **No initialization order semantics.** Import-time code across modules would require defining "which module is initialized first" and "what is visible during cyclic imports". rok ensures these questions never arise. Initial values of global state are determined at compile time (4.16.7).
+- **No initialization order semantics.** Import-time code across modules would require defining "which module is initialized first" and "what is visible during cyclic imports". Rok ensures these questions never arise. Initial values of global state are determined at compile time (4.16.7).
 - **Caching and incremental builds.** Since a module's meaning is determined by its definitions alone, caches based on content hashes ([0.3.3](../000-meta/003-source-units.md#033-package-identifier)) and incremental builds need not account for execution side effects.
 - **Package kind is determined by file presence** ([0.3.4](../000-meta/003-source-units.md#034-the-manifest-rokrokon-is-optional)). Executable code lives exactly in `src/main.rok`, so the answers to "is this an executable package?" and "where is the executable code?" always coincide.
 
@@ -149,7 +149,7 @@ If the file given as an argument is not in the `src/` of a package, `rokc` const
 
 ## 4.16.9. No entry point attribute
 
-rok has **no** attribute for designating the entry point (e.g., `#[main]`). The root file `src/main.rok` already designates the entry module, and the name `main` (or top-level statements) designates the entry function, so there is no second means of expressing the same information. Keeping a single mechanism for determining the entry point means "which function runs" can be determined from the file structure alone. `main` is not a reserved word, and the language does not reserve the name `#[main]` either.
+Rok has **no** attribute for designating the entry point (e.g., `#[main]`). The root file `src/main.rok` already designates the entry module, and the name `main` (or top-level statements) designates the entry function, so there is no second means of expressing the same information. Keeping a single mechanism for determining the entry point means "which function runs" can be determined from the file structure alone. `main` is not a reserved word, and the language does not reserve the name `#[main]` either.
 
 ## 4.16.10. Relationship to JIT / REPL
 

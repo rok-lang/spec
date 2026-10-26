@@ -1,6 +1,6 @@
-# rok language reference
+# Rok language reference
 
-This is the formal specification of the rok programming language. It defines the language's **syntax** and **semantics** and provides the normative baseline that compilers and runtimes must follow.
+This is the formal specification of the Rok programming language. It defines the language's **syntax** and **semantics** and provides the normative baseline that compilers and runtimes must follow.
 
 The reference date is 2026-10-23. This specification is the normative baseline for compiler and runtime implementations; the actual implementations of the compiler and the standard libraries live in separate repositories.
 
@@ -8,7 +8,7 @@ The reference date is 2026-10-23. This specification is the normative baseline f
 
 ## Chapters
 
-The rok specification consists of ten chapters, numbered 0 through 9. The chapters are not listed arbitrarily: they are arranged in dependency order so that each chapter's definitions use only concepts from earlier chapters. Chapter 0 (meta) comes first; the sequence then starts from lexical structure, moves through progressively more abstract areas, and ends with the execution environment and tooling.
+The Rok specification consists of ten chapters, numbered 0 through 9. The chapters are not listed arbitrarily: they are arranged in dependency order so that each chapter's definitions use only concepts from earlier chapters. Chapter 0 (meta) comes first; the sequence then starts from lexical structure, moves through progressively more abstract areas, and ends with the execution environment and tooling.
 
 | # | Chapter                                                       | Scope                                                                       |
 |---|---------------------------------------------------------------|-----------------------------------------------------------------------------|

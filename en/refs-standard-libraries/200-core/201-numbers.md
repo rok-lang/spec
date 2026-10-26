@@ -1,6 +1,6 @@
 # 2.1. Numeric types
 
-The `rok::core::num` module defines every numeric type of rok. rok keeps numbers from two
+The `rok::core::num` module defines every numeric type of rok. Rok keeps numbers from two
 worlds side by side, and the user is free to choose either.
 
 ```
@@ -157,7 +157,7 @@ too small toward 0 (underflow), it is promoted to a BigFloat representation inst
 
 The limitations of `float` must be stated clearly. Its precision is 53 bits, not unbounded,
 so it has the same round-off as IEEE 754 f64. For example, `0.1 + 0.2` not being
-`0.3` happens in rok as well. `Eq` is also not
+`0.3` happens in Rok as well. `Eq` is also not
 implemented: `float` does not implement the `Eq` marker trait and implements only `PartialEq`, to handle NaN.
 See [2.5 cmp](205-cmp.md) for the full hierarchy.
 
@@ -417,7 +417,7 @@ let c1 = a + int::from_i32(b);    // int (a + int(3))
 let c2 = (a.to_i32()? + b);       // i32 (OK if a is within the i32 range)
 ```
 
-This policy blocks silent type mixing. Unlike Julia, rok does not auto-promote;
+This policy blocks silent type mixing. Unlike Julia, Rok does not auto-promote;
 the user states which world to use.
 
 ## 2.1.7. Fixed primitive ↔ int conversion
@@ -481,16 +481,16 @@ The 3 types added by the standard library are registered as PascalCase structs w
 
 ## 2.1.10. Comparison with other languages - design rationale
 
-rok's two-world model (auto-promote `int` and fixed primitives) draws on several
+Rok's two-world model (auto-promote `int` and fixed primitives) draws on several
 languages. Smalltalk's SmallInteger ↔ LargeInteger is the prototype of auto-promote,
 and the numeric tower of Lisp and Scheme (fixnum / bignum /
 rational / real) is another important reference. **Python int** makes arbitrary precision
 the default but has no fixed primitives, while **Julia** makes fixed
-primitives the default. In rok too, literals default to fixed (`i32` / `f64`), and `int` is opt-in.
+primitives the default. In Rok too, literals default to fixed (`i32` / `f64`), and `int` is opt-in.
 
 The differences from each language: **Python** offers only int; lacking
 fixed width, it depends on NumPy for FFI and performance-critical
-work. **Julia**, like rok, defaults to fixed and requires an explicit `BigInt` when arbitrary precision is
+work. **Julia**, like Rok, defaults to fixed and requires an explicit `BigInt` when arbitrary precision is
 needed. **Rust** is fixed only, so the user must always
-write the type. **rok** lets the two worlds coexist:
+write the type. **Rok** lets the two worlds coexist:
 literals follow the expected type (`i32` / `f64` if none), and `int` / `float` are written where arbitrary precision is needed.

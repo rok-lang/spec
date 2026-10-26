@@ -53,7 +53,7 @@ On targets where `"system"` and `"C"` coincide (every Tier 1 target but 32-bit x
 > ABIs of other languages such as `"Rust"` are generally unstable and are not targets of `extern`. Interfacing with other languages is possible only over a stable ABI both sides agree on (usually `"C"`).
 
 > [!NOTE]
-> rok propagates errors as return values and does not use stack unwinding ([8.6.5](../008-abi/806-calling-convention.md#865-return-of-throwing-functions-value-based-error-propagation)). Exceptions or unwinding from a foreign language crossing a rok frame are therefore undefined behavior; foreign functions must handle exceptions within the call boundary.
+> Rok propagates errors as return values and does not use stack unwinding ([8.6.5](../008-abi/806-calling-convention.md#865-return-of-throwing-functions-value-based-error-propagation)). Exceptions or unwinding from a foreign language crossing a Rok frame are therefore undefined behavior; foreign functions must handle exceptions within the call boundary.
 
 A plain `extern { ... }` without an ABI is a compile error; the ABI must be specified.
 
@@ -115,8 +115,8 @@ c_fn_type ::= "unsafe"? "extern" ("\"C\"" | "\"system\"") "fn" "(" (type_expr ("
 
 - The ABI string may only be `"C"` or `"system"`. Anything else is an error.
 - `extern "system" fn(..) -> R` follows the same rules as `extern "C" fn(..) -> R`, so Win32 callbacks are expressible. It is a distinct type only on 32-bit x86 Windows, where it is stdcall; elsewhere the two are the same type.
-- Values of this type are made only from named C-ABI functions. The value of a C declaration in an `extern` block has type `unsafe extern "C" fn(..)` and cannot be put in a safe (non-`unsafe`) position; a rok `extern "C" fn` definition (its C entry point, 5.9.10) yields a safe `extern "C" fn(..)` value.
-- rok `fn` values (including closures and variables of function type) and C function pointers do not convert to each other.
+- Values of this type are made only from named C-ABI functions. The value of a C declaration in an `extern` block has type `unsafe extern "C" fn(..)` and cannot be put in a safe (non-`unsafe`) position; a Rok `extern "C" fn` definition (its C entry point, 5.9.10) yields a safe `extern "C" fn(..)` value.
+- Rok `fn` values (including closures and variables of function type) and C function pointers do not convert to each other.
 - Calling through a type without `unsafe` is safe; calling through `unsafe extern "C" fn` requires `unsafe`.
 - A non-`none` C function pointer value is not null. Receiving NULL into an `extern "C" fn` position without `| none` (parameter, return, field) is therefore undefined behavior, and a C API that may return NULL must be declared with `| none`.
 
@@ -158,7 +158,7 @@ extern "C" {
 
 ## 5.9.6. Calls / use
 
-Functions declared in an `extern` block are called like ordinary rok functions.
+Functions declared in an `extern` block are called like ordinary Rok functions.
 
 ```rok
 extern "C" {
@@ -175,7 +175,7 @@ fn use_malloc() {
 }
 ```
 
-User-declared `extern "C"` functions are unsafe and are called inside `unsafe { ... }` ([4.15](../004-functions/415-unsafe.md)). Runtime functions declared by the toolchain (`rok_print_*`, `rok_panic_str`, etc.) can be called safely. Otherwise an `extern` function call differs from an ordinary call only in that it is an external symbol. rok's ordinary semantics apply to the result type. An `extern static` can likewise be read and (if mut) written like an ordinary variable.
+User-declared `extern "C"` functions are unsafe and are called inside `unsafe { ... }` ([4.15](../004-functions/415-unsafe.md)). Runtime functions declared by the toolchain (`rok_print_*`, `rok_panic_str`, etc.) can be called safely. Otherwise an `extern` function call differs from an ordinary call only in that it is an external symbol. Rok's ordinary semantics apply to the result type. An `extern static` can likewise be read and (if mut) written like an ordinary variable.
 
 ## 5.9.7. Visibility
 
@@ -218,7 +218,7 @@ extern "C" {
 
 ## 5.9.10. `extern fn` definitions (exposed externally)
 
-The forms in the preceding sections call external functions from rok. The reverse form exposes a rok function through an external ABI.
+The forms in the preceding sections call external functions from rok. The reverse form exposes a Rok function through an external ABI.
 
 ```rok
 #[export_name("rok_compute")]

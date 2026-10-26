@@ -1,12 +1,12 @@
 # 8.8. Lowering: data types and expressions
 
-This section defines how rok values, types and expressions are lowered to standard MLIR dialects.
+This section defines how Rok values, types and expressions are lowered to standard MLIR dialects.
 
 ## 8.8.1. Primitive integers / floating-point
 
 Primitive numeric types map to MLIR types as follows.
 
-| rok type          | MLIR type                                                                                   |
+| Rok type          | MLIR type                                                                                   |
 |-------------------|---------------------------------------------------------------------------------------------|
 | `i8` ~ `i64`      | `i8` ~ `i64`                                                                                |
 | `u8` ~ `u64`      | `i8` ~ `i64` (sign determined by the op)                                                    |

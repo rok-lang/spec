@@ -16,7 +16,7 @@ The table from the [compilation pipeline](../000-meta/002-pipeline.md), repeated
 | `math`     | Math functions                           | sqrt / sin / cos, etc.                                                  |
 | `llvm`     | Low-level ops (intrinsic, `struct`, `alloca`, load / store) | Stack slots, objects / arrays, [GC](../000-meta/007-glossary.md#gc-garbage-collector) |
 
-There is no custom rok dialect. The semantics of ordinary rok code are expressed with the seven standard dialects above; additional dialects used by acceleration libraries are covered in 8.7.5.
+There is no custom Rok dialect. The semantics of ordinary Rok code are expressed with the seven standard dialects above; additional dialects used by acceleration libraries are covered in 8.7.5.
 
 ## 8.7.2. Translation flow
 
@@ -134,7 +134,7 @@ Lowering may use `scf`, `index` and `math` where they express the semantics, and
 
 ## 8.7.5. Library / acceleration-domain dialects
 
-The following dialects are not used in lowering rok's *ordinary code*, but library authors can use them directly through [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md).
+The following dialects are not used in lowering Rok's *ordinary code*, but library authors can use them directly through [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md).
 
 | Dialect    | Domain                                        |
 |------------|-----------------------------------------------|
@@ -145,7 +145,7 @@ The following dialects are not used in lowering rok's *ordinary code*, but libra
 | `gpu`      | GPU launch / kernel / shared memory (GPU lib) |
 | `async`    | async fork / await (dedicated runtime library) |
 
-Lowering ordinary rok code needs only the seven dialects of 8.7.1, but libraries in acceleration domains such as tensors / automatic differentiation / SIMD / GPU call the dialects above directly to build a performance surface comparable to PyTorch / JAX / Mojo.
+Lowering ordinary Rok code needs only the seven dialects of 8.7.1, but libraries in acceleration domains such as tensors / automatic differentiation / SIMD / GPU call the dialects above directly to build a performance surface comparable to PyTorch / JAX / Mojo.
 
 The mechanism by which library authors call dialects, and their safety responsibilities, are defined in [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md).
 

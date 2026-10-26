@@ -1,14 +1,14 @@
 # 0.7. Glossary
 
-The same concepts recur across many chapters of this specification, so it helps readers to collect frequently used terms in one place. This document gathers the core terms that appear throughout the rok specification, so that a reader can consult it directly whenever a concept becomes unclear while reading the body. Each entry gives a short definition together with its specific rok context, indicating not just the dictionary meaning but the place the term occupies within the specification.
+The same concepts recur across many chapters of this specification, so it helps readers to collect frequently used terms in one place. This document gathers the core terms that appear throughout the Rok specification, so that a reader can consult it directly whenever a concept becomes unclear while reading the body. Each entry gives a short definition together with its specific Rok context, indicating not just the dictionary meaning but the place the term occupies within the specification.
 
 ## ABI (Application Binary Interface)
 
-The ABI is the binary-level contract that compiled code must follow at link and run time. It includes object layout, calling conventions, symbol naming and so on. rok's ABI is defined in [Chapter 8 - ABI / MLIR lowering](../008-abi/README.md).
+The ABI is the binary-level contract that compiled code must follow at link and run time. It includes object layout, calling conventions, symbol naming and so on. Rok's ABI is defined in [Chapter 8 - ABI / MLIR lowering](../008-abi/README.md).
 
 ## AOT (Ahead-of-Time)
 
-AOT is the mode that compiles source ahead of time into a static artifact (`.a` or an executable), in contrast to JIT. rok supports both the JIT and AOT engines, and the two share the same pipeline up to rok-mir.
+AOT is the mode that compiles source ahead of time into a static artifact (`.a` or an executable), in contrast to JIT. Rok supports both the JIT and AOT engines, and the two share the same pipeline up to rok-mir.
 
 ## archive
 
@@ -28,7 +28,7 @@ A concrete fn is a function whose types at the call site are all concrete; a gen
 
 ## dispatch
 
-Dispatch is the process of determining which implementation a name, operator or method call is bound to. rok uses only static dispatch; because of the trait-as-type ban, there are no indirect vtable calls.
+Dispatch is the process of determining which implementation a name, operator or method call is bound to. Rok uses only static dispatch; because of the trait-as-type ban, there are no indirect vtable calls.
 
 ## extern "C" symbol
 
@@ -40,7 +40,7 @@ FFI is the interface for calling functions in other languages (mainly C) or bein
 
 ## GC (Garbage Collector)
 
-The GC is the automatic memory management mechanism. rok's GC combines Immix mark-region with Sticky Mark-Bit generational collection.
+The GC is the automatic memory management mechanism. Rok's GC combines Immix mark-region with Sticky Mark-Bit generational collection.
 
 ## generic
 
@@ -70,7 +70,7 @@ The LOS is the GC's space dedicated to large objects. Objects at or above the th
 
 Monomorphization is the process of compiling a generic function separately for each concrete type at its call sites. It gains zero indirect-call cost at the price of compile time and binary size.
 
-## ROKHIR (rok HIR bytecode)
+## ROKHIR (Rok HIR bytecode)
 
 ROKHIR is the interface file (`<name>.rokhir`) of a prebuilt library package. It sits beside the archive and lets downstream packages read declarations and specialize generic fns. Its body is the package source with concrete function bodies stripped out ([9.4](../009-tools/904-rokhir-bytecode.md)).
 
@@ -92,7 +92,7 @@ Specialize is another name for [monomorphization](#monomorphization). It is used
 
 ## stone
 
-A rok package published to a registry. Its name is `[a-z0-9_-]+` (starting with a letter), and in code `-` is written as `_`. The registry treats `-` / `_` and differing case as the same name. In `rok.rokon` it is required with `Dep::version("req")` or the string `"req"` ([9.10.4a](../009-tools/910-rok-frontend.md#9104a-stones-and-rokstonesio)).
+A Rok package published to a registry. Its name is `[a-z0-9_-]+` (starting with a letter), and in code `-` is written as `_`. The registry treats `-` / `_` and differing case as the same name. In `rok.rokon` it is required with `Dep::version("req")` or the string `"req"` ([9.10.4a](../009-tools/910-rok-frontend.md#9104a-stones-and-rokstonesio)).
 
 ## sticky mark-bit
 
@@ -112,11 +112,11 @@ Work-stealing is the scheduler's load-balancing mechanism. Each worker has a loc
 
 ## unsafe block / unsafe fn
 
-The `unsafe { ... }` block expression and the `unsafe fn` function modifier are rok's single mechanism for visibly confining regions outside the guarantees of safe abstractions. Raw pointer dereference, calls to `unsafe fn`, direct calls of MLIR ops, etc. are allowed only inside an unsafe scope. See [4.15 unsafe](../004-functions/415-unsafe.md) for details.
+The `unsafe { ... }` block expression and the `unsafe fn` function modifier are Rok's single mechanism for visibly confining regions outside the guarantees of safe abstractions. Raw pointer dereference, calls to `unsafe fn`, direct calls of MLIR ops, etc. are allowed only inside an unsafe scope. See [4.15 unsafe](../004-functions/415-unsafe.md) for details.
 
 ## MLIR plugin
 
-An MLIR plugin is the mechanism for dynamically registering an externally built MLIR dialect with the MLIR embedded in the rok compiler. It is loaded via the `--load-mlir-plugin=<path>` CLI option or a package manifest declaration, and loaded ops become callable through `rok::bare::mlir::__mlir_op`. It is used in domain-specific compiler areas (cryptography, signal processing, new accelerator ISAs, etc.). See [refs-standard-libraries 1.10](../../refs-standard-libraries/100-bare/110-mlir-plugin.md) for details.
+An MLIR plugin is the mechanism for dynamically registering an externally built MLIR dialect with the MLIR embedded in the Rok compiler. It is loaded via the `--load-mlir-plugin=<path>` CLI option or a package manifest declaration, and loaded ops become callable through `rok::bare::mlir::__mlir_op`. It is used in domain-specific compiler areas (cryptography, signal processing, new accelerator ISAs, etc.). See [refs-standard-libraries 1.10](../../refs-standard-libraries/100-bare/110-mlir-plugin.md) for details.
 
 ## rokc / rok / rokls / rokr
 
@@ -124,11 +124,11 @@ The executables and runtime that make up the toolchain. `rokc` is the compiler (
 
 ## ROKON
 
-Rok Object Notation. A data format for writing values using a subset of rok's literal syntax, with the extension `.rokon`. The manifest `rok.rokon` and the lockfile `rok.lock` use this format ([stdlib 3.9](../../refs-standard-libraries/300-std/309-rokon.md)).
+Rok Object Notation. A data format for writing values using a subset of Rok's literal syntax, with the extension `.rokon`. The manifest `rok.rokon` and the lockfile `rok.lock` use this format ([stdlib 3.9](../../refs-standard-libraries/300-std/309-rokon.md)).
 
 ## rokstones.io
 
-rok's default stone registry. Its index is the separate git repository `rokstones.io-index` ([9.10.4a](../009-tools/910-rok-frontend.md#9104a-stones-and-rokstonesio)).
+Rok's default stone registry. Its index is the separate git repository `rokstones.io-index` ([9.10.4a](../009-tools/910-rok-frontend.md#9104a-stones-and-rokstonesio)).
 
 ## rok.rokon / rok.lock
 
@@ -138,4 +138,4 @@ The manifest and lockfile at the package root. The names are spelled exactly thi
 
 The unit in which `rok` keeps a dependency set. Every directory containing `rok.rokon` is an environment, and there is no activation step. Outside a project, a named environment in `$ROK_HOME/envs/` (default `default`) is used ([9.10.5](../009-tools/910-rok-frontend.md#9105-environments)).
 
-The entries collected here are not mere word translations; they also form a compact index of the foundations rok stands on: the compilation pipeline, memory management, the type system, the concurrency model and so on. Whenever a concept blurs while reading the body, returning to this chapter clarifies the place each term occupies in the specification as a whole.
+The entries collected here are not mere word translations; they also form a compact index of the foundations Rok stands on: the compilation pipeline, memory management, the type system, the concurrency model and so on. Whenever a concept blurs while reading the body, returning to this chapter clarifies the place each term occupies in the specification as a whole.

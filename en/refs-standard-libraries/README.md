@@ -1,6 +1,6 @@
-# rok standard library reference
+# Rok standard library reference
 
-This is the formal specification of the rok standard libraries. Where the language specification defines syntax and semantic mechanisms, the standard library specification supplies the meaning of the types, traits and functions those mechanisms need in order to actually work. It defines in one place which traits operators resolve to, which interfaces collections have, and on which guarantees async and I/O operate.
+This is the formal specification of the Rok standard libraries. Where the language specification defines syntax and semantic mechanisms, the standard library specification supplies the meaning of the types, traits and functions those mechanisms need in order to actually work. It defines in one place which traits operators resolve to, which interfaces collections have, and on which guarantees async and I/O operate.
 
 The language specification is collected separately in [`refs-lang/`](../refs-lang/README.md); this document covers only the specification. The actual implementation of the libraries is outside the scope of the spec.
 

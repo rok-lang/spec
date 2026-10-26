@@ -1,6 +1,6 @@
 # 6.8. User-defined meta definitions
 
-A **meta definition** is a user-defined code generator. All of them are one mechanism: a definition binds parts of an input and transcribes a template of rok code and template tokens ([6.9](609-template-tokens.md)), hygienically ([6.8.9](#689-no-token-stream-manipulation)) and to a fixed point ([6.8.8](#688-fixed-point-expansion)). They differ only in how they are *triggered* and what input they bind. There are four forms; the first three are triggered by an attribute on an item, the fourth by a call:
+A **meta definition** is a user-defined code generator. All of them are one mechanism: a definition binds parts of an input and transcribes a template of Rok code and template tokens ([6.9](609-template-tokens.md)), hygienically ([6.8.9](#689-no-token-stream-manipulation)) and to a fixed point ([6.8.8](#688-fixed-point-expansion)). They differ only in how they are *triggered* and what input they bind. There are four forms; the first three are triggered by an attribute on an item, the fourth by a call:
 
 | Form                                    | Defined as                         | Triggered by           | Binds                                   |
 |-----------------------------------------|------------------------------------|------------------------|-----------------------------------------|
@@ -9,7 +9,7 @@ A **meta definition** is a user-defined code generator. All of them are one mech
 | per-field derive attribute              | `#[impl_derive_attribute(T, a)] @derive {}` | `#[derive(T)]` + `#[a]` on fields | shape + field attributes      |
 | **macro**                               | `#[impl_macro(n)] @macro { (m) => {t} }` | `n!(..)` call      | the call's tokens (`@x: expr`, `@rep`)  |
 
-The first three generate code *from a type or item the author attaches them to*; the macro generates code *from what the caller writes*, the one need the others cannot serve ([6.8.12](#6812-the-macro-form)). They share the template engine, the `@` tokens, hygiene and the tooling guarantees below; this chapter and [6.9](609-template-tokens.md) note where the bound input differs. These four are rok's entire metaprogramming surface - together they take the place of Rust's derive, attribute and function-like macros, without procedural code or raw token manipulation.
+The first three generate code *from a type or item the author attaches them to*; the macro generates code *from what the caller writes*, the one need the others cannot serve ([6.8.12](#6812-the-macro-form)). They share the template engine, the `@` tokens, hygiene and the tooling guarantees below; this chapter and [6.9](609-template-tokens.md) note where the bound input differs. These four are Rok's entire metaprogramming surface - together they take the place of Rust's derive, attribute and function-like macros, without procedural code or raw token manipulation.
 
 ```
 meta_block      ::= meta_attr visibility? meta_kind block
@@ -167,7 +167,7 @@ This form takes two arguments - the Trait being derived and the attribute that m
 
 ## 6.8.5. Body (template block)
 
-In every form the body is a template block containing both ordinary rok code and template tokens (`@Self`, `@field`, `@for_fields` for the attribute-triggered forms; `@x`, `@rep`, `@for`, `@concat` for a macro, [6.8.12](#6812-the-macro-form)).
+In every form the body is a template block containing both ordinary Rok code and template tokens (`@Self`, `@field`, `@for_fields` for the attribute-triggered forms; `@x`, `@rep`, `@for`, `@concat` for a macro, [6.8.12](#6812-the-macro-form)).
 
 The full list of template tokens is defined in [template tokens and expansion](609-template-tokens.md).
 
@@ -223,23 +223,23 @@ Circular expansion (A invokes B and B invokes A again) is detected by the compil
 
 ## 6.8.9. No token stream manipulation
 
-Every meta definition - the three attribute-triggered forms and the macro - generates code using template tokens only. rok has no arbitrary token transformation facility like Rust's `syn` or `quote`, and no procedural form that runs code at compile time.
+Every meta definition - the three attribute-triggered forms and the macro - generates code using template tokens only. Rok has no arbitrary token transformation facility like Rust's `syn` or `quote`, and no procedural form that runs code at compile time.
 
-This restriction guarantees that the output of a meta definition is rok code the compiler can understand, securing both tool friendliness and debuggability.
+This restriction guarantees that the output of a meta definition is Rok code the compiler can understand, securing both tool friendliness and debuggability.
 
 ## 6.8.10. Comparison with proc macros
 
-Comparing Rust proc macros with rok meta blocks:
+Comparing Rust proc macros with Rok meta blocks:
 
-| Aspect          | Rust proc macro                | rok meta block                                  |
+| Aspect          | Rust proc macro                | Rok meta block                                  |
 |-----------------|--------------------------------|-------------------------------------------------|
 | Input           | Arbitrary token stream         | Structural information of the item (fields, variants, etc.) |
-| Output          | Arbitrary token stream         | rok code and template tokens                    |
+| Output          | Arbitrary token stream         | Rok code and template tokens                    |
 | Hygiene         | Up to the proc macro           | Automatic (hygienic)                            |
 | Debugging       | Inspect output tokens          | Inspect the expanded AST                        |
 | Expressiveness  | Very high                      | Limited                                         |
 
-rok's choice trades expressiveness for predictability and ease of debugging.
+Rok's choice trades expressiveness for predictability and ease of debugging.
 
 ## 6.8.11. Combination with registration/visibility
 
@@ -303,7 +303,7 @@ A macro is called as `name!( .. )`, `name![ .. ]` or `name!{ .. }`; the delimite
 
 ### Matchers and fragments
 
-A matcher is a token pattern. Literal tokens must appear verbatim in the call; a **metavariable** `@name: <fragment>` captures a part of the call for the template. The fragment fixes how much is parsed and as what: `expr`, `stmt`, `block`, `ty`, `pat`, `path`, `ident`, `literal`, `item`, or `tt` (one raw token tree). A fragment is parsed as that grammar into a real syntax node, so the argument of `@e: expr` has a type, is checked, and the language server resolves names inside it ([6.8.12](#tooling-and-hygiene)); `tt` alone is unparsed, for a DSL that is not rok grammar, and even then stays balanced.
+A matcher is a token pattern. Literal tokens must appear verbatim in the call; a **metavariable** `@name: <fragment>` captures a part of the call for the template. The fragment fixes how much is parsed and as what: `expr`, `stmt`, `block`, `ty`, `pat`, `path`, `ident`, `literal`, `item`, or `tt` (one raw token tree). A fragment is parsed as that grammar into a real syntax node, so the argument of `@e: expr` has a type, is checked, and the language server resolves names inside it ([6.8.12](#tooling-and-hygiene)); `tt` alone is unparsed, for a DSL that is not Rok grammar, and even then stays balanced.
 
 ```rok
 #[impl_macro(clamp)] pub @macro {
@@ -379,10 +379,10 @@ A macro keeps the guarantees of every meta definition ([6.8.9](#689-no-token-str
 - **Spans**: every expanded token carries the span of the call, so a diagnostic points at the call with the expansion shown as a note.
 - **Resolution**: because fragments are parsed as real nodes and synthesized names are indexed, hover, go-to-definition and find-references work through a macro - into its arguments and onto the items it generates.
 - **Expansion on request**: the language server can expand a call in place ([9.9.13](../009-tools/909-debug-tools.md)).
-- **Formatting**: the formatter formats a call's arguments when they are rok fragments, and leaves a raw `tt` DSL as written within its balanced delimiters.
+- **Formatting**: the formatter formats a call's arguments when they are Rok fragments, and leaves a raw `tt` DSL as written within its balanced delimiters.
 
 ## 6.8.13. Summary
 
-These four forms - derive, attribute, per-field derive attribute, and the call-triggered macro - make up rok's entire metaprogramming surface, over one template engine. They lack the expressiveness of procedural macros but cover the core use cases: derives, attributes, per-field attributes, and call-site generation, each hygienic and followable by the tools.
+These four forms - derive, attribute, per-field derive attribute, and the call-triggered macro - make up Rok's entire metaprogramming surface, over one template engine. They lack the expressiveness of procedural macros but cover the core use cases: derives, attributes, per-field attributes, and call-site generation, each hygienic and followable by the tools.
 
 [Template tokens and expansion](609-template-tokens.md) defines the exact list of template tokens - for both the type-driven and the call-driven input - and the expansion mechanism.

@@ -8,7 +8,7 @@ This chapter defines the 19 broadcast traits together with the desugaring rules 
 
 In NumPy and MATLAB, the **silent ambiguity** of `*` meaning element-wise on arrays but multiplication on matrices has long been a source of bugs (the same concern motivated the introduction of `@` in PEP 465).
 
-rok's policy, by contrast, is clear.
+Rok's policy, by contrast, is clear.
 
 ```rok
 m * n       // user-defined Mul - matrix multiplication, dot product, etc.
@@ -262,7 +262,7 @@ The compiler fuses consecutive dot operations into a single loop.
 let result = sin.(a) .+ cos.(b) .* 2.0;
 ```
 
-A naive lowering would need 3 temporary List allocations and 3 loops. rok guarantees one loop with no intermediate collections; the mechanism (for example a `linalg.generic` op) is the compiler's choice.
+A naive lowering would need 3 temporary List allocations and 3 loops. Rok guarantees one loop with no intermediate collections; the mechanism (for example a `linalg.generic` op) is the compiler's choice.
 
 ```rok
 // conceptually equivalent to this single elementwise call
@@ -289,13 +289,13 @@ Numeric containers such as `Matrix<T>` / `Tensor<T>` are defined in external lib
 
 Broadcasting between arrays of different dimensions follows NumPy. When 1-D meets 0-D (a scalar), the scalar applies to every element; the same dimension with the same shape is pointwise; different shapes are matched from the trailing dimension, and a dimension of 1 is stretched.
 
-This section defines only the general meaning of the dot traits; full authority over multidimensional broadcasting rules is delegated to external tensor libraries. The rok standard library is responsible only for the element-wise meaning of 1-D containers (`List<T>`, `[T; N]`, `Slice<T>`).
+This section defines only the general meaning of the dot traits; full authority over multidimensional broadcasting rules is delegated to external tensor libraries. The Rok standard library is responsible only for the element-wise meaning of 1-D containers (`List<T>`, `[T; N]`, `Slice<T>`).
 
 ## 2.6.9. Comparison with other languages
 
 Compared with other major languages:
 
-| Aspect             | NumPy                | Julia                      | MATLAB           | rok                           |
+| Aspect             | NumPy                | Julia                      | MATLAB           | Rok                           |
 |--------------------|----------------------|----------------------------|------------------|-------------------------------|
 | element-wise       | `*` (silent)         | `.*` (explicit)            | `.*` (explicit)  | `.*` (explicit)               |
 | matrix mul         | `@` (PEP 465)        | `*`                        | `*`              | `*` (user-defined Mul)        |
@@ -305,4 +305,4 @@ Compared with other major languages:
 | comparison         | `==` returns array   | `.==`                      | `==` (confusing) | `.==`                         |
 | separate dot traits | **none**            | **none** (`*` overload only) | **none**       | **DotAdd/DotMul/...** (19)    |
 
-rok differs most from other languages in two points. First, every dot operator has its own trait. Julia layers dot syntax on top of an overloaded `+`, whereas in rok `Add` and `DotAdd` are different traits, and `Matrix * Matrix` and `Matrix .* Matrix` follow entirely different dispatch. Second, the compiler enforces dot usage. Broadcasting through ordinary `*` is **impossible**, which guarantees a deterministic separation that does not depend on user code.
+Rok differs most from other languages in two points. First, every dot operator has its own trait. Julia layers dot syntax on top of an overloaded `+`, whereas in Rok `Add` and `DotAdd` are different traits, and `Matrix * Matrix` and `Matrix .* Matrix` follow entirely different dispatch. Second, the compiler enforces dot usage. Broadcasting through ordinary `*` is **impossible**, which guarantees a deterministic separation that does not depend on user code.

@@ -1,10 +1,10 @@
 # 9.8. Jupyter kernel integration
 
-This section defines the rok kernel of the [Jupyter surface](../000-meta/001-execution-modes.md).
+This section defines the Rok kernel of the [Jupyter surface](../000-meta/001-execution-modes.md).
 
 ## 9.8.1. Kernel
 
-Jupyter runs the rok kernel as a separate process and communicates over the ZeroMQ-based Jupyter wire protocol. The kernel announces `protocol_version` as `"5.3"` (the value `jupyter_client` expects; works with clients 5.3 and later). In this form all OS resources, i.e. files, network and external processes, are available.
+Jupyter runs the Rok kernel as a separate process and communicates over the ZeroMQ-based Jupyter wire protocol. The kernel announces `protocol_version` as `"5.3"` (the value `jupyter_client` expects; works with clients 5.3 and later). In this form all OS resources, i.e. files, network and external processes, are available.
 
 The kernel runs on **the same cell session** as the terminal REPL and follows the rules of [9.7.0](907-jit-cells.md#970-rules-of-the-cell-session): each cell runs exactly once, bindings and items carry over to later cells, and a failed cell leaves no trace in the bindings. The kernel's engine is the same [JIT session](906-jit-engine.md) as the REPL.
 
@@ -14,7 +14,7 @@ A notebook cell is split into several REPL cells by the same rules the terminal 
 
 ## 9.8.2. Local native kernel: operation
 
-When the user selects "rok" as the notebook's kernel, Jupyter runs the command of the kernelspec (9.8.3) as a separate process.
+When the user selects "Rok" as the notebook's kernel, Jupyter runs the command of the kernelspec (9.8.3) as a separate process.
 
 ```
 rokc jupyter --connection-file <path>       # also accepts rokc options such as --extern
@@ -102,7 +102,7 @@ The kernelspec is `kernels/rok/kernel.json` under the directory below. Installed
 }
 ```
 
-Once installed, the rok kernel is usable from Jupyter, VS Code, nteract and others.
+Once installed, the Rok kernel is usable from Jupyter, VS Code, nteract and others.
 
 ## 9.8.4. Interrupt / shutdown
 

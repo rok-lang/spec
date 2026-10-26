@@ -3,7 +3,7 @@
 The `*Assign` trait family of `rok::core::ops` dispatches compound assignment operators such as `a += b` and `a *= b` as **in-place** updates. The syntax defined in [refs-lang 3.4 Assignment and compound assignment](../../refs-lang/003-expressions/304-assignment.md) desugars to these traits.
 
 > [!NOTE]
-> rok does not use a `mut` keyword in ordinary code ([refs-lang 5.1 Variable declarations](../../refs-lang/005-modules/501-variable-declaration.md)).
+> Rok does not use a `mut` keyword in ordinary code ([refs-lang 5.1 Variable declarations](../../refs-lang/005-modules/501-variable-declaration.md)).
 > Variables are always declared with `let`, and assigning to the same name again is a **reassignment**.
 > In-place update of a heap object (List, Dict, etc.) is determined not by a `let mut` declarator but by
 > **whether the object exposes mutating methods**. The `*Assign` traits are where those mutating methods live.
@@ -16,7 +16,7 @@ a += b;
 
 This expression has two possible meanings. With **in-place dispatch**, it resolves to `<typeof(a) as AddAssign<typeof(b)>>::add_assign(ref a, b)`, which directly modifies the **contents** of the object `a` refers to and creates no new object. With the **fallback** (`Add::add` followed by reassignment), it becomes `a = a + b`, storing the result of the `Add` call back into `a` and creating a new object.
 
-rok chooses between the two modes automatically.
+Rok chooses between the two modes automatically.
 
 ```
 Compiler behavior (on a += b):
@@ -200,7 +200,7 @@ alias;                       //→ [1, 2, 3, 4, 5]  (alias sees the change too)
 // compare: xs = xs + [4, 5] creates a new List, and alias does not see the change
 ```
 
-This meaning matches rok's automatic sharing model for heap objects ([refs-lang 4.7](../../refs-lang/004-functions/407-ref-keyword.md)) exactly.
+This meaning matches Rok's automatic sharing model for heap objects ([refs-lang 4.7](../../refs-lang/004-functions/407-ref-keyword.md)) exactly.
 
 ## 2.4.8. User-defined *Assign
 
@@ -235,7 +235,7 @@ impl AddAssign for Vec3 {
 
 ## 2.4.9. Supertrait relationship of *Assign - none
 
-rok does **not** make `Add` a supertrait of `AddAssign`. The two traits are independent.
+Rok does **not** make `Add` a supertrait of `AddAssign`. The two traits are independent.
 
 The reason is that some types, such as collections, have no meaningful `Add` (`xs + ys` is expensive because it creates a new collection) but do have a meaningful `AddAssign`. A supertrait relationship would make it impossible for such types to implement only `AddAssign`.
 

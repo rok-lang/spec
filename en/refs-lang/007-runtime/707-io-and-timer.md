@@ -130,4 +130,4 @@ After `task::timeout` expires or `task::race` decides a winner, the losing tasks
 
 ## 7.7.10. Comparison with the reactor pattern
 
-rok uses a traditional reactor structure: a single separate reactor thread waits on I/O and meets the worker threads only through the parking table. The price is that an I/O wakeup crosses threads (one unpark).
+Rok uses a traditional reactor structure: a single separate reactor thread waits on I/O and meets the worker threads only through the parking table. The price is that an I/O wakeup crosses threads (one unpark).

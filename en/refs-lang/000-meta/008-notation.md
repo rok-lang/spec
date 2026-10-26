@@ -79,7 +79,7 @@ fn example() -> i32 {
 }
 ```
 
-The rules for writing code examples are as follows. First, every code example must be part of a **compilable** rok program. Second, a snippet is marked with `// ...` and its context is stated in the body. Third, an intentionally incorrect example must be stated clearly in the body and accompanied by a `// ERROR: ...` comment or prose explanation. Finally, execution results or output are marked with a `//→ ` comment.
+The rules for writing code examples are as follows. First, every code example must be part of a **compilable** Rok program. Second, a snippet is marked with `// ...` and its context is stated in the body. Third, an intentionally incorrect example must be stated clearly in the body and accompanied by a `// ERROR: ...` comment or prose explanation. Finally, execution results or output are marked with a `//→ ` comment.
 
 The following example applies the last rule.
 

@@ -1,9 +1,9 @@
 # 2.2. The `any` slot
 
-`any` is the type name denoting a variable slot that can hold a value of any type (a contextual keyword, a keyword only in type position, [1.5.4](../001-lexical/105-keywords.md#154-contextual-keywords); declaring a type named `any` is an error). It is the core concept of rok's gradual typing.
+`any` is the type name denoting a variable slot that can hold a value of any type (a contextual keyword, a keyword only in type position, [1.5.4](../001-lexical/105-keywords.md#154-contextual-keywords); declaring a type named `any` is an error). It is the core concept of Rok's gradual typing.
 
 > [!IMPORTANT]
-> An `any` slot exists only where `any` is written. A variable whose type annotation is omitted becomes a static slot inferred from its initializer's type ([5.1.7](../005-modules/501-variable-declaration.md#517-type-annotations-and-type-inference)). rok's gradual typing is decided by a one-line rule: "static by default, dynamic only where `any` is written."
+> An `any` slot exists only where `any` is written. A variable whose type annotation is omitted becomes a static slot inferred from its initializer's type ([5.1.7](../005-modules/501-variable-declaration.md#517-type-annotations-and-type-inference)). Rok's gradual typing is decided by a one-line rule: "static by default, dynamic only where `any` is written."
 
 ## 2.2.1. Contrast with static slots
 

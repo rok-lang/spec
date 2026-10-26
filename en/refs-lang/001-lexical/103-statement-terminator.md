@@ -1,7 +1,7 @@
 # 1.3. Statement terminator
 
 > [!IMPORTANT]
-> rok statements end with a semicolon (`;`). A line break alone cannot end a statement.
+> Rok statements end with a semicolon (`;`). A line break alone cannot end a statement.
 
 ```
 stmt_terminator ::= ";"
@@ -22,7 +22,7 @@ Schematically:
 
 ## 1.3.2. Why there is no automatic insertion at line breaks
 
-rok does not adopt automatic rules such as JavaScript's ASI (Automatic Semicolon Insertion), Go's automatic end-of-line semicolons, or Swift's line-based termination.
+Rok does not adopt automatic rules such as JavaScript's ASI (Automatic Semicolon Insertion), Go's automatic end-of-line semicolons, or Swift's line-based termination.
 
 The reasons are as follows. First, automatic rules create ambiguity in rare cases; JavaScript's ASI pitfalls are a well-known example. Second, an explicit terminator lets tools such as formatters, LSPs and editors' jump-to-next-statement determine statement boundaries deterministically. Finally, writing several statements on one line is natural in places such as quick REPL input.
 

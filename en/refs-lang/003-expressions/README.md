@@ -26,7 +26,7 @@ This chapter defines the forms of expressions and statements, and the consequenc
 
 An expression is a construct that produces a value: evaluating it yields a value of some type. A **statement** is a unit of code that produces no value and ends with the `;` [statement terminator](../001-lexical/103-statement-terminator.md).
 
-rok relates the two by the following rule.
+Rok relates the two by the following rule.
 
 ```
 <statement> = <expression> ';'        // a statement that discards the expression's result

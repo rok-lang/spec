@@ -120,7 +120,7 @@ Only `future_trait` is registered as a lang slot; `IntoFuture` is an ordinary tr
 
 JavaScript and Python have the well-known **function color** problem: async and sync functions cannot mix freely (await is possible only inside async, and async calls are blocked in sync functions).
 
-rok's policy:
+Rok's policy:
 
 - `async fn` and `await` make the color explicit
 - `for` and `for await` make the color explicit
@@ -220,7 +220,7 @@ The module location and lang slot / role of each item:
 
 The asynchronous models of each language compare as follows.
 
-| Aspect               | Rust                    | C#                 | Swift                  | rok                               |
+| Aspect               | Rust                    | C#                 | Swift                  | Rok                               |
 |----------------------|-------------------------|--------------------|------------------------|-----------------------------------|
 | Model                | poll-based              | callback (state)   | continuation           | poll-based (isomorphic to Rust)   |
 | `async fn`           | ✓                       | ✓                  | ✓                      | ✓                                 |
@@ -230,7 +230,7 @@ The asynchronous models of each language compare as follows.
 | Color unification    | ✗ (sync/async split)    | ✗                  | ✗                      | ✗ (adopts the industry standard)  |
 | await generalization | `Future` + external libs | unified `Task<T>` | `Task` + AsyncSequence | generalized via `IntoFuture`      |
 
-rok differs in two main ways.
+Rok differs in two main ways.
 
 1. **Prefix `await`**: the same as C#, Swift and JS; the authority is [refs-lang 4.12](../../refs-lang/004-functions/412-async.md). To chain on the result, wrap it in parentheses (`(await x).method()`).
 2. The ordinary trait `IntoFuture` lets Task and Thread be awaited uniformly. The idea is similar to Swift's `Task` unification, but differs in preserving the distinct types and generalizing through a trait.

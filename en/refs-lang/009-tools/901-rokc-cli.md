@@ -328,7 +328,7 @@ Writes the declarations of [std 1.7.6](../../refs-standard-libraries/100-bare/10
 rokc demangle <symbol>...
 ```
 
-For each symbol it prints a block in the [9.5.4](905-symbol-mangling.md) format, separated by blank lines ([9.9.3](909-debug-tools.md#993-symbol-demangle)). If any argument is not a rok symbol, the exit code is `1`.
+For each symbol it prints a block in the [9.5.4](905-symbol-mangling.md) format, separated by blank lines ([9.9.3](909-debug-tools.md#993-symbol-demangle)). If any argument is not a Rok symbol, the exit code is `1`.
 
 ### `rokc rokhir-text`: [ROKHIR](../000-meta/007-glossary.md#rokhir-rok-hir-bytecode) text output
 
@@ -423,7 +423,7 @@ The global options are listed below. They may appear before or after the subcomm
 | `--color=auto\|always\|never`    | Colored diagnostic output                                   |
 | `--no-color`                     | Equivalent to `--color=never`                               |
 | `--cwd=<path>`                   | Change working directory before running                     |
-| `--print cfg\|target-list\|target-spec\|lldbinit` | Print the active cfg, the built-in target names, a target's specification, or the lldb command loading rok's formatters (9.1.4) |
+| `--print cfg\|target-list\|target-spec\|lldbinit` | Print the active cfg, the built-in target names, a target's specification, or the lldb command loading Rok's formatters (9.1.4) |
 | `--message-format=human\|json`   | Diagnostic format. `json` writes one line per diagnostic to stdout (9.1.8) |
 | `-A` / `-W` / `-D <lint \| group>` | Lint level (`--allow` / `--warn` / `--deny`). Applies to every command that compiles the package (`build`, `run`, `test`, `bench`, `emit`, `check`, `lint`, `lsp`). May be repeated; the later one wins |
 
@@ -537,7 +537,7 @@ Writing `-` in an argument position, as in `rokc check -`, means standard input,
 
 ## 9.1.11. Standard format (`rokc fmt`)
 
-The standard format of `rokc fmt` is a **token-preserving layout rule**. It does not change tokens or comments within a line; it only sets line indentation and blank lines. `rokc fmt` has no configuration by design: there is one standard format for all rok code.
+The standard format of `rokc fmt` is a **token-preserving layout rule**. It does not change tokens or comments within a line; it only sets line indentation and blank lines. `rokc fmt` has no configuration by design: there is one standard format for all Rok code.
 
 1. Indentation is 4 spaces per bracket (`(` `[` `{` `#[`) depth. A line beginning with a closing bracket takes the depth of the line that opened it. Tabs become spaces.
 2. A continuation line, i.e. one whose preceding token is not `;` `,` or a bracket (such as a line splitting a long expression), keeps the amount by which it was indented beyond the block indentation in the original file.

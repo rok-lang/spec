@@ -1,10 +1,10 @@
-# The rok language specification
+# The Rok language specification
 
 **English** · [한국어](../ko/README.md)
 
 > **Status** - active draft. The specification is published in two editions: English (`en/`, the default) and Korean ([`ko/`](../ko/README.md)). Both cover the same content with the same section numbers.
 
-rok is a programming language, and this repository is its formal specification. Starting from lexical structure and the type system, it defines every layer of the language in one place: expressions, the runtime model, the ABI, and the tools that accompany the specification. The compiler and the standard library implementation live in a separate repository; this one holds only the normative answer to the question "what is rok".
+Rok is a programming language, and this repository is its formal specification. Starting from lexical structure and the type system, it defines every layer of the language in one place: expressions, the runtime model, the ABI, and the tools that accompany the specification. The compiler and the standard library implementation live in a separate repository; this one holds only the normative answer to the question "what is Rok".
 
 Designed and maintained by [Han Damin](https://github.com/miniex) (`@miniex`).
 
@@ -17,9 +17,9 @@ Designed and maintained by [Han Damin](https://github.com/miniex) (`@miniex`).
 | stone registry       | <https://rokstones.io>                                  |
 | Registry index       | <https://github.com/rok-lang/rokstones.io-index>        |
 
-## Why rok exists
+## Why Rok exists
 
-rok started from one kind of code its author wants to write. It does not target a particular audience and does not argue an academic position. At the center of every design decision is one simple motive: "a single language that can do everything the author wants to do". That sentence is, more or less, all of rok.
+Rok started from one kind of code its author wants to write. It does not target a particular audience and does not argue an academic position. At the center of every design decision is one simple motive: "a single language that can do everything the author wants to do". That sentence is, more or less, all of rok.
 
 ## Philosophy
 
@@ -28,16 +28,16 @@ A language born of a personal motive needs principles it can fall back on at eve
 > [!IMPORTANT]
 > **"A small language, rich libraries."**
 
-The first principle is a promise about the size of the specification. The rok specification defines as little as possible. Almost everything that shapes how the language *feels* - numeric semantics, conversions, collections, I/O, concurrency - lives in the standard library. A small core is easier to evolve, verify and teach; the weight of each domain is carried by a rich library instead.
+The first principle is a promise about the size of the specification. The Rok specification defines as little as possible. Almost everything that shapes how the language *feels* - numeric semantics, conversions, collections, I/O, concurrency - lives in the standard library. A small core is easier to evolve, verify and teach; the weight of each domain is carried by a rich library instead.
 
 > [!IMPORTANT]
 > **"The clearer the rules, the freer you are within them."**
 
-The second principle concerns the relation between freedom and constraint. rok does not avoid constraints. Static types, closed sum types, the trait-as-type ban, no implicit promotion, AOT-only compilation - each of these decisions deliberately narrows the paths a user can take. Within that narrower space, code becomes predictable and can be controlled in depth.
+The second principle concerns the relation between freedom and constraint. Rok does not avoid constraints. Static types, closed sum types, the trait-as-type ban, no implicit promotion, AOT-only compilation - each of these decisions deliberately narrows the paths a user can take. Within that narrower space, code becomes predictable and can be controlled in depth.
 
 The line between control and freedom is clear. What can be decided once and need not be decided again on every line - types, dispatch, the memory model, evaluation order - the language decides, all at once. What necessarily differs from person to person - library design, domain modeling, algorithms, code structure - is left to the user, and the meta-system lets the language extend itself so that libraries can decide meaning.
 
-Freedom and control are therefore not opposites. rok's position is that a free area survives safely only on top of a well-controlled core. The full discussion of both slogans continues in [`refs-lang/000-meta/`](refs-lang/000-meta/).
+Freedom and control are therefore not opposites. Rok's position is that a free area survives safely only on top of a well-controlled core. The full discussion of both slogans continues in [`refs-lang/000-meta/`](refs-lang/000-meta/).
 
 ## Layout
 
@@ -115,6 +115,6 @@ Sharing, adapting and translating the text are freely permitted as long as attri
 
 ## Trademark
 
-"rok" is the name of this project and the identifier of the canonical specification. CC BY 4.0 covers the **text** only: with attribution, the text itself may be copied, translated and adapted freely. Please do not, however, use the name "rok" for forked specifications, alternative specifications or competing implementations. Use a different name so they are not confused with the canonical project.
+"Rok" is the name of this project and the identifier of the canonical specification. CC BY 4.0 covers the **text** only: with attribution, the text itself may be copied, translated and adapted freely. Please do not, however, use the name "Rok" for forked specifications, alternative specifications or competing implementations. Use a different name so they are not confused with the canonical project.
 
 This is a **request**, not a registered trademark. If the project grows to need formal protection, registration will be considered.
