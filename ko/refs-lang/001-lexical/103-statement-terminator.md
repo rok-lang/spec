@@ -52,7 +52,7 @@ let n = if a { 1 } else { 2 };   // let 문은 여전히 ; 로 끝남
 
 ```rok
 if c { a(); } else { b(); }
--x;                          // 새 문장 (if 문 - x 가 아님)
+-x;                          // 새 문장 (if 문에서 x 를 뺀 식이 아님)
 match v { ... }.len();       // . 는 이어짐
 ```
 

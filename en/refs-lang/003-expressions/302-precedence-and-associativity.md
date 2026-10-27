@@ -78,7 +78,7 @@ The Unicode operators in the table (`× ⋅ ÷ ∩ ∪ ∘ √ ≡ ≠ ≤ ≥ �
 When the same token can appear as prefix, binary, and postfix (for example `-`), each position has its own precedence (prefix is usually stronger than binary).
 
 ```
--a + b          →   (-a) + b              // prefix - binds tighter than +
+-a + b          →   (-a) + b              // prefix `-` binds tighter than `+`
 ```
 
 ## 3.2.4. Conflicts

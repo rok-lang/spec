@@ -102,7 +102,7 @@ target-dep 영역. 명시 import.
 - 3.2. [`net::` - TCP/UDP/Unix + TLS 1.3 (HTTP 외부)](300-std/302-net.md)
 - 3.3. [`time::` - `Instant` / `SystemTime` / `Duration` / `BootTime`](300-std/303-time.md)
 - 3.4. [`thread::` - OS 스레드 (1:1, task 와 별개)](300-std/304-thread.md)
-- 3.5. [`io::` - `Reader` / `Writer` / stdin/out/err (sync 만 - async 트레잇 없음)](300-std/305-io.md)
+- 3.5. [`io::` - `Reader` / `Writer` / stdin/out/err (sync 만, async 트레잇 없음)](300-std/305-io.md)
 - 3.6. [`env::` - 환경 변수 / args / 디렉토리](300-std/306-env.md)
 - 3.7. [`process::` - `Command` / pidfd / kill_on_drop](300-std/307-process.md)
 - 3.8. [`path::` - UTF-8 `Path` + `/` 연산자 (Python pathlib 식)](300-std/308-path.md)
