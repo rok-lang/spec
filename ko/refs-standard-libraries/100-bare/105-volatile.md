@@ -66,7 +66,7 @@ atomic 보장을 주지는 않습니다.
 
 ## 1.5.5. lowering
 
-`volatile::read` 와 `volatile::write` 는 LLVM 의 `load volatile` / `store volatile` 로 lower 되며, intrinsic 이름은 각각 `rok.volatile.read.T` 와 `rok.volatile.write.T` 입니다.
+`volatile::read` 와 `volatile::write` 는 LLVM 의 `load volatile` / `store volatile` 로 lower 되며니다. 둘은 `ConstPtr` / `Ptr` 의 메서드 `read_volatile` / `write_volatile` 을 부르며, 그 intrinsic 은 `rok.ptr.read_volatile` 과 `rok.ptr.write_volatile` 입니다.
 
 자세한 atomic 관련 내용은 [2.16 sync](../200-core/216-sync.md) 에서 다루고, 이 장은
 atomic 이 아닌 자리에 한해서만 권위를 가집니다.

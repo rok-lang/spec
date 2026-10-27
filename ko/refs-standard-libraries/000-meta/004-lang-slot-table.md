@@ -20,33 +20,33 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 
 타입 슬롯은 컴파일러가 리터럴이나 키워드를 만났을 때 lower 시킬 구체 타입을 가리키는 자리입니다. 이 그룹은 다시 두 부류로 나뉘는데, 먼저 lowercase 식별자로 곧장 노출되는 언어 기본값 타입들이 있습니다. 이들은 키워드 등록이 따로 필요하지 않으며, 사용자가 매일 마주치는 primitive 들에 해당합니다.
 
-언어 기본값 (lowercase struct, `#[keyword]` 불필요):
+언어 기본값 (내장 primitive, `#[keyword]` 불필요):
 
 | slot 이름    | 의미                         | 표준 라이브러리 항목    | 참조 |
 |--------------|------------------------------|-------------------------|------|
-| `i32_type`   | `i32` primitive              | `rok::core::num::i32`    | 2.1  |
-| `i64_type`   | `i64` primitive              | `rok::core::num::i64`    | 2.1  |
-| `f32_type`   | `f32` primitive              | `rok::core::num::f32`    | 2.1  |
-| `f64_type`   | `f64` primitive              | `rok::core::num::f64`    | 2.1  |
-| `usize_type` | `usize` primitive            | `rok::core::num::usize`  | 2.1  |
-| `isize_type` | `isize` primitive            | `rok::core::num::isize`  | 2.1  |
-| `bool_type`  | `bool` primitive             | `rok::core::num::bool`   | 2.1  |
-| `cchar_type` | `c_char` primitive (FFI)     | `rok::core::str::c_char` | 2.15 |
-| `str_type`   | `str` primitive (UTF-8 view) | `rok::core::str::str`    | 2.15 |
-| `char_type`  | `char` primitive (Unicode scalar) | `char` (메서드: `rok::core::str`) | 2.15 |
+| `i32_type`   | `i32` primitive              | 내장 (메서드: `rok::core::num`) | 2.1  |
+| `i64_type`   | `i64` primitive              | 내장 (메서드: `rok::core::num`) | 2.1  |
+| `f32_type`   | `f32` primitive              | 내장 (메서드: `rok::core::num`) | 2.1  |
+| `f64_type`   | `f64` primitive              | 내장 (메서드: `rok::core::num`) | 2.1  |
+| `usize_type` | `usize` primitive            | 내장 (메서드: `rok::core::num`) | 2.1  |
+| `isize_type` | `isize` primitive            | 내장 (메서드: `rok::core::num`) | 2.1  |
+| `bool_type`  | `bool` primitive             | 내장 (메서드: `rok::core::num`) | 2.1  |
+| `cchar_type` | `c_char` primitive (FFI)     | 내장 (impl: `rok::core::num`) | 2.15 |
+| `str_type`   | `str` primitive (UTF-8 view) | 내장 (메서드: `rok::core::str`) | 2.15 |
+| `char_type`  | `char` primitive (Unicode scalar) | 내장 (메서드: `rok::core::str`) | 2.15 |
 
-다음으로 표준 라이브러리가 추가로 제공하는 PascalCase 타입들이 있습니다. 이쪽은 `#[keyword(...)]` 로 사용자에게 익숙한 소문자 별칭을 따로 노출하는데, `int` 와 `float` 의 auto-promote, `none` sentinel, `Range` 리터럴 같이 언어 문법과 직접 얽힌 항목들이 여기에 모입니다.
+다음으로 언어 문법과 직접 얽힌 슬롯들이 있습니다. `int` 와 `float` 의 auto-promote, `none` sentinel, `Range` 리터럴이 여기에 속합니다. `int` 와 `float` 은 `#[keyword(...)]` 로 소문자 이름을 노출하는 PascalCase 라이브러리 struct 이고, `none` 은 내장이며 라이브러리는 그 타입을 `pub type NoneSentinel = none` 으로 `NoneSentinel` 이라 부릅니다.
 
-표준 라이브러리 추가 (PascalCase struct + `#[keyword(...)]`):
+문법과 얽힌 슬롯:
 
 | slot 이름    | 의미                      | 표준 라이브러리 항목                                      | 참조 |
 |--------------|---------------------------|-----------------------------------------------------------|------|
-| `none_type`  | `none` 리터럴의 타입      | `rok::core::marker::NoneSentinel`                          | 2.13 |
-| `int_type`   | `int` auto-promote 타입   | `rok::core::num::Int` + `#[keyword("int")]`                | 2.1  |
-| `float_type` | `float` auto-promote 타입 | `rok::core::num::Float` + `#[keyword("float")]`            | 2.1  |
+| `none_type`  | `none` 리터럴의 타입      | 내장 (별칭: `rok::core::marker::NoneSentinel`) | 2.13 |
+| `int_type`   | `int` auto-promote 타입   | `rok::core::num::bigint::Int` + `#[keyword("int")]` | 2.1  |
+| `float_type` | `float` auto-promote 타입 | `rok::core::num::bigfloat::Float` + `#[keyword("float")]` | 2.1  |
 | `range_type` | `Range<T>` (`a..b`)       | `rok::core::range::Range` + `#[literal( expr ".." expr )]`  | 2.7  |
 
-기본 타입을 내장으로 제공하는 컴파일러는 `i32_type` ... `str_type`, `none_type`, `char_type` 을 붙이지 않은 채 둘 수 있습니다.
+기본 타입을 내장으로 제공하는 컴파일러는 `i32_type` ... `str_type`, `none_type`, `char_type` 을 붙이지 않은 채 둘 수 있습니다. 참조 컴파일러가 이 경우입니다. 이 슬롯 이름들은 받아들여지지만 라이브러리는 어떤 항목도 붙이지 않습니다 (`str` 과 `c_char` 는 라이브러리 struct 가 아니고, `NoneSentinel` 은 `#[lang]` 항목이 아닌 별칭입니다). 0.4.6 에서 이들 중 하나를 찾는 자리에서는 컴파일러가 내장 타입을 씁니다.
 
 ## 0.4.3. 트레잇 슬롯 (30)
 
@@ -56,9 +56,9 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 |-----------------------|----------------------------|--------------------------------|------|
 | `iterator_trait`      | `for x in xs` 의 단계 진행 | `rok::core::iter::Iterator`     | 2.7  |
 | `into_iterator_trait` | `for x in xs` 의 시작      | `rok::core::iter::IntoIterator` | 2.7  |
-| `index_trait`         | `arr[i]` 읽기              | `rok::core::ops::Index`         | 2.3  |
-| `index_set_trait`     | `arr[i] = v` 쓰기          | `rok::core::ops::IndexSet`      | 2.3  |
-| `slice_trait`         | `s[1:3]` 슬라이싱          | `rok::core::ops::Sliceable`     | 2.3  |
+| `index_trait`         | `arr[i]` 읽기              | `rok::core::index::Index` | 2.3  |
+| `index_set_trait`     | `arr[i] = v` 쓰기          | `rok::core::index::IndexSet` | 2.3  |
+| `slice_trait`         | `s[1:3]` 슬라이싱          | `rok::core::index::Sliceable` | 2.3  |
 | `display_trait`       | `f"{x}"` 기본 포맷         | `rok::core::fmt::Display`       | 2.10 |
 | `debug_trait`         | `f"{x:?}"` 디버그 포맷     | `rok::core::fmt::Debug`         | 2.10 |
 | `future_trait`        | `await expr` 의 단계 진행  | `rok::core::future::Future`     | 2.20 |
@@ -82,8 +82,8 @@ slot 표는 spec 의 권위 있는 자리이며, 컴파일러와 표준 라이�
 | `shr_trait`         | `a >> b`                          | `rok::core::ops::Shr`        | 2.3  |
 | `logical_and_trait` | `a && b`                          | `rok::core::ops::LogicalAnd` | 2.3  |
 | `logical_or_trait`  | `a \|\| b`                        | `rok::core::ops::LogicalOr`  | 2.3  |
-| `eq_trait`          | `==` / `!=`, literal 패턴           | `rok::core::cmp::PartialEq`  | 2.5  |
-| `cmp_trait`         | `<` / `>` / `<=` / `>=`, range 패턴 | `rok::core::cmp::PartialOrd` | 2.5  |
+| `eq_trait`          | `==` / `!=`, literal 패턴           | `rok::core::ops::PartialEq` | 2.5  |
+| `cmp_trait`         | `<` / `>` / `<=` / `>=`, range 패턴 | `rok::core::ops::PartialOrd` | 2.5  |
 | `ord_trait`         | 완전 순서 (`#[derive(Ord)]`)          | `rok::core::cmp::Ord`        | 2.5  |
 | `hash_trait`        | 해시 (`#[derive(Hash)]`)            | `rok::core::cmp::Hash`       | 2.5  |
 | `clone_trait`       | 복제 (`#[derive(Clone)]`)           | `rok::core::marker::Clone`   | 2.13 |

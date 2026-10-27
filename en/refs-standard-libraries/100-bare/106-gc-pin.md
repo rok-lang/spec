@@ -18,9 +18,11 @@ For managed code (`GcPtr<T>`), the GC traces roots and updates every ptr automat
 
 ```rok
 let xs: List<i32> = [1, 2, 3];                 // GcPtr (updated automatically)
-let raw: Ptr<i32> = rok::bare::ptr::list_data(xs); // raw ptr
-                                                // ↓ a GC cycle may occur
-gc::collect();
+let raw: Ptr<i32> = Ptr::dangling();
+using pin = gc::pin(xs) {
+    raw = pin.as_data_ptr();                    // raw ptr, valid inside the pin
+}                                               // unpinned here
+gc::collect();                                  // xs may move
 unsafe { raw.read() };                          // UB - raw is stale
 ```
 
@@ -34,12 +36,16 @@ struct Pinned<T> {
     // internal: registered in the GC's pin set
 }
 
-trait Pinnable {}                       // List<T>, str, GcPtr<T>
-impl<T> Pinnable for List<T> {}
-impl Pinnable for str {}
-impl<T> Pinnable for GcPtr<T> {}
+trait Pinnable {
+    // the GC object holding the value's data; none when nothing can move
+    fn gc_object(self) -> GcBuf<u8> | none;
+}
+impl<T> Pinnable for List<T> { /* the list's buffer; none when empty */ }
+impl Pinnable for str { /* none (2.15.2) */ }
+impl<T> Pinnable for GcPtr<T> { /* the cell */ }
 
 fn pin<T: Pinnable>(obj: T) -> Pinned<T>;
+fn collect();                           // a full collection now; may move every unpinned object
 
 impl<T> Pinned<T> {
     fn obj(self) -> T;
@@ -52,7 +58,7 @@ impl<T> Drop for Pinned<T> {
 }
 ```
 
-It is a guard bound with `using`. While the `Pinned<T>` returned by `pin()` is inside a `using` block, the GC does not move the object; on leaving the block `Pinned::drop` is called and the object is unpinned. A `Pinned<T>` obtained without `using` is not released automatically. Pins count: an object moves again only after as many unpins.
+It is a guard bound with `using`. While the `Pinned<T>` returned by `pin()` is inside a `using` block, the GC does not move the object; on leaving the block `Pinned::drop` is called and the object is unpinned. A `Pinned<T>` obtained without `using` is not released automatically. Pins count: an object moves again only after as many unpins. `pin` pins the object `gc_object` names, and pins nothing when it returns `none`. `GcBuf<u8>` is the type-erased GC buffer of [1.3.9](103-mem.md#139-gcbuft-and-the-buf_-primitives); a user type can implement `Pinnable` by returning the GC object that holds its data.
 
 ### Example - FFI call
 
@@ -181,6 +187,7 @@ Each item maps to GC runtime calls as follows.
 |------------------|--------------------------------|
 | `Pinned<T>`      | `rok_gc_pin` / `rok_gc_unpin`  |
 | `pin<T>()`       | (same as above)                |
+| `collect()`      | `rok_gc_collect`               |
 | `GcPtr<T>`       | shadow stack frame slot (compiler-emitted) |
 | `as_data_ptr` etc. | depends on each container's layout |
 | `Weak<T>`        | `rok_gc_weak_new` / `rok_gc_weak_get` (1.6.9) |

@@ -4,16 +4,16 @@ The unsafe tier defines the standard library items that are low-level or dangero
 
 ## Dependencies
 
-Upward, it depends only on the `extern "C"` symbols exposed by the runtime. Downward, `rok`, `std` and user code are its dependents, but only through explicit imports.
+Upward, it depends only on the symbols the runtime exposes through the runtime ABI `extern "rok"`. Downward, `rok`, `std` and user code are its dependents, but only through explicit imports.
 
 ## User import policy
 
 ```rok
-use rok::bare::ptr::Ptr;                              // explicit import required - danger signal
+use rok::bare::ptr::CPtr;                             // explicit import required - danger signal
 use rok::bare::alloc::{alloc, Layout};
 
 let layout = try! Layout::array::<u8>(1024);
-let p: Ptr<u8> = unsafe { alloc(layout) };
+let p: CPtr<u8> = unsafe { alloc(layout) };    // null on failure
 ```
 
 The implicitly applied `use rok::core::**;` does not include unsafe items. `rok::bare::*` therefore requires a separate explicit import, which makes visible in the code the point where the user enters dangerous territory.
@@ -43,7 +43,7 @@ The implicitly applied `use rok::core::**;` does not include unsafe items. `rok:
 ### MLIR backend
 
 - [1.9. `rok::bare::mlir` - direct access to MLIR dialects](109-mlir.md)
-- [1.10. `rok::bare::mlir::plugin` - registering user-defined dialects](110-mlir-plugin.md)
+- [1.10. MLIR dialect plugins - loading user-defined dialects into `rokc`](110-mlir-plugin.md)
 
 ## Core design principles
 
@@ -70,7 +70,7 @@ let r: Ptr<i32> = rok::bare::ptr::from_exposed_provenance(addr);  // unsafe - fr
 | `Slice<T>`    | **N contiguous** Ts (length included)    | (ptr, len)      |
 | `CPtr<T>`     | C-compatible **nullable** pointer        | `T*` (nullable) |
 
-`Slice<T>` is a safe view defined in [2.9 collections](../200-core/209-collections.md) and does not belong to the unsafe tier. This chapter covers only the paths that expose the underlying ptr of a `Slice` raw.
+`Slice<T>` is a safe view defined in [2.9 collections](../200-core/209-collections.md) and does not belong to the unsafe tier. This chapter covers only the raw paths between a `Slice` and pointers: `ManyPtr::slice`, and a pin for the data pointer of a list.
 
 ### 3. GC + raw pointer - two separate type levels
 
@@ -83,8 +83,8 @@ This distinction follows Go 1.21's `runtime.Pinner` model. A raw `Ptr<T>` is val
 
 ```rok
 let obj: List<i32> = [1, 2, 3];                // GcPtr (automatic)
-using pin = rok::bare::gc::pin(obj) {           // pin begins
-    let raw: Ptr<i32> = rok::bare::ptr::list_data(obj);
+using pin = rok::bare::gc::pin(obj) {          // pin begins
+    let raw: Ptr<i32> = pin.as_data_ptr();
     ffi_function(raw, obj.len());
 }                                              // pin released - raw invalid
 ```
@@ -96,7 +96,7 @@ The pitfalls of `as` casts on pointers in C and Rust are the biggest hazard. Rok
 | C/Rust notation   | Rok notation                             | Meaning                        |
 |-------------------|------------------------------------------|--------------------------------|
 | `ptr as *U`       | `rok::bare::ptr_cast<U>(p)`               | Type change only (provenance kept) |
-| `ptr as *Aligned` | `rok::bare::align_cast(p)`                | Alignment up-cast (checked in debug) |
+| `ptr as *Aligned` | `rok::bare::align_cast(p)`                | Alignment up-cast (`none` when misaligned) |
 | `*const → *mut`   | `rok::bare::const_cast(p)`                | Removes const                  |
 | `transmute<A,B>`  | `rok::bare::reinterpret<A:Pod, B:Pod>(a)` | Bit reinterpretation (Pod enforced) |
 
@@ -105,9 +105,23 @@ The pitfalls of `as` casts on pointers in C and Rust are the biggest hazard. Rok
 Every GC language has learned that finalizers are unreliable in a GC environment. External resources such as files, sockets and mutexes are therefore released by explicit `using` blocks. The GC never calls `drop` and there are no finalizers; an unreleased resource is reported by the `unclosed_resource` lint ([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)).
 
 ```rok
-using f = rok::bare::ffi::open(path) {
-    f.read(...);
-}     // ← _guaranteed_ close at end of scope (RAII via Drop)
+use rok::bare::ptr::{ConstPtr, CPtr, Ptr};
+
+extern "C" {
+    fn fopen(path: ConstPtr<c_char>, mode: ConstPtr<c_char>) -> CPtr<u8>;
+    fn fclose(f: Ptr<u8>) -> i32;
+}
+
+// a user-written wrapper: Drop closes the C handle
+struct File { raw: Ptr<u8>; }
+
+impl Drop for File {
+    fn drop(ref self) { unsafe { fclose(self.raw) }; }
+}
+
+using f = File { raw: opened } {   // opened: Ptr<u8> from fopen
+    // ... use f.raw ...
+}     // ← _guaranteed_ fclose at end of scope (RAII via Drop)
 
 // ordinary GC objects need no using - the GC reclaims them
 let xs: List<i32> = [1, 2, 3];     // GC automatic

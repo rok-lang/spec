@@ -63,7 +63,47 @@ Rok 은 저자가 직접 쓰고 싶은 코드 한 가지에서 출발한 언어�
 
 ## 표기 규약
 
-본문, 표, 인용문은 모두 한국어로 적습니다. 다만 코드 펜스 안에 들어가는 ASCII 또는 box-drawing 다이어그램만은 예외적으로 영어 라벨을 사용합니다. GitHub 의 monospace 폰트가 한글을 ASCII 폭의 정확히 두 배가 아니라 1.5-1.7 배로 렌더링하기 때문에, 한글 라벨이 섞인 다이어그램은 정렬이 어긋날 수밖에 없기 때문입니다. 그래서 다이어그램 자체는 영어로 그리고, 그 바로 아래에 한국어 인용문으로 라벨을 풀어 설명하는 방식을 택했습니다. 코드 예제는 번역된 주석과 부수적인 문자열을 제외하면 두 판에서 동일합니다.
+본문, 표, 인용문은 모두 한국어로 적습니다. 다만 코드 펜스 안에 들어가는 ASCII 또는 box-drawing 다이어그램만은 예외적으로 영어 라벨을 사용합니다. GitHub 의 monospace 폰트가 한글을 ASCII 폭의 정확히 두 배가 아니라 1.5-1.7 배로 렌더링하기 때문에, 한글 라벨이 섞인 다이어그램은 정렬이 어긋날 수밖에 없기 때문입니다. 그래서 다이어그램 자체는 영어로 그리고, 그 바로 아래에 한국어 인용문으로 라벨을 풀어 설명하는 방식을 택했습니다. 코드 예제는 번역된 주석, 부수적인 문자열, 그리고 사용자가 채울 부분을 나타내는 문법 자리표시자 (메타변수) 를 제외하면 두 판에서 동일합니다.
+
+## 용어
+
+아래 용어는 한국어 판 전체에서 일관되게 쓰입니다 (번역자를 위해 영어 판의 대응어를 함께 적습니다). 핵심 용어의 정의는 [용어집](refs-lang/000-meta/007-glossary.md) 에 있습니다.
+
+| English | 한국어 |
+|---|---|
+| specification, chapter, section | 사양, 장, 절 |
+| language reference / standard library reference | 언어 참조 / 표준 라이브러리 참조 |
+| sum type | 합 타입 |
+| variant | 변형 |
+| trait; trait-as-type ban | 트레잇; 트레잇-as-타입 금지 |
+| associated type / constant | 연관 타입 / 상수 |
+| monomorphization; concrete | 단형화; 구체 |
+| slot; `any` slot; lang slot ("magic") | 슬롯; any 슬롯; lang slot (매직) |
+| implicit promotion / conversion | 묵시적 승급 / 암묵 변환 |
+| conversion / cast | 형 변환 / 캐스트 |
+| expression / statement; statement terminator | 표현식(식) / 문장; 문장 종결자 |
+| block; body | 블록; 본체 |
+| arm (of `match`) / branch | 가지 / 분기 |
+| pattern; binding; destructuring (assignment) | 패턴; 바인딩; 분해 (대입) |
+| optional chaining / coalescing | 옵셔널 체이닝 / 병합 |
+| broadcast | 브로드캐스트 |
+| literal; identifier; keyword; reserved word | 리터럴; 식별자; 키워드; 예약어 |
+| boolean; sentinel; floating-point; integer | 진리값; 센티넬; 부동소수; 정수 |
+| punctuation; trailing comma | 구두점; 트레일링 쉼표 |
+| parameter / argument | 매개변수 / 인자 |
+| closure; capture; coroutine; async | 클로저; 캡처; 코루틴; 비동기 |
+| entry point | 진입점 |
+| module; visibility; path; item | 모듈; 가시성; 경로; 항목 |
+| package; stone; registry | 패키지; stone; 레지스트리 |
+| manifest; lockfile; environment; dependency; pin | 매니페스트; lockfile; 환경; 의존성; 고정 |
+| meta-system; attribute; template tokens | 메타 시스템; 속성; 템플릿 토큰 |
+| runtime; object; root; barrier; generation | 런타임; 객체; 루트; 배리어; 세대 |
+| lowering; dialect; symbol | 하강 (lowering); 다이얼렉트; 심볼 |
+| error; "is an error" / "is a compile error"; diagnostic | 에러; "에러입니다" / "컴파일 에러"; 진단 |
+| raw pointer; collection; iterator | 원시 포인터; 컬렉션; 반복자 |
+| evaluation order; incremental build | 평가 순서; 증분 빌드 |
+
+이미 영어인 이름은 두 판 모두 그대로 둡니다. ROKON, `rok.rokon`, `rok.lock`, `rokc`, `rok`, `rokls`, `rokr`, ROKHIR, HIR, MIR, MLIR, AOT, JIT, GC, Immix, LOS, TLAB, shadow stack, `scan_table`, niche optimization, sticky mark-bit, work-stealing, ABI, FFI, toolchain, sysroot.
 
 ## 라이선스
 

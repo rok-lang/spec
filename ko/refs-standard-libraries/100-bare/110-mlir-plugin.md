@@ -1,6 +1,6 @@
-# 1.10. `rok::bare::mlir::plugin` - 사용자 정의 다이얼렉트 등록
+# 1.10. MLIR 다이얼렉트 plugin - 사용자 정의 다이얼렉트를 `rokc` 에 로드
 
-`rok::bare::mlir::plugin` 은 Rok 컴파일러가 외부에서 빌드된 MLIR 다이얼렉트를 동적으로 로드하여 [`__mlir_op`](109-mlir.md) 의 호출 대상으로 추가할 수 있도록 하는 인터페이스를 정의합니다. 도메인 특화 컴파일러 (암호화, 신호 처리, 형식 검증, 새 가속기 ISA 등) 를 Rok 위에 얹고 싶은 라이브러리 작성자를 위한 자리입니다.
+MLIR 다이얼렉트 plugin 은 라이브러리 모듈이 아니라 컴파일러 메커니즘입니다. `rok::bare::mlir::plugin` 은 없습니다. `rokc` 는 외부에서 빌드된 MLIR 다이얼렉트를 동적으로 로드하여 (`--load-mlir-plugin`, `ROK_MLIR_PLUGIN_PATH` 에서 탐색, 1.10.3) [`__mlir_op`](109-mlir.md) 의 호출 대상으로 추가합니다. plugin op 에는 `rok::bare::mlir` 로만 닿기 때문에 이 장이 bare tier 에 있습니다. 도메인 특화 컴파일러 (암호화, 신호 처리, 형식 검증, 새 가속기 ISA 등) 를 Rok 위에 얹고 싶은 라이브러리 작성자를 위한 자리입니다.
 
 본 절은 plugin 의 **등록 메커니즘과 안전 책임** 을 정의합니다. 다이얼렉트 자체의 정의 (op / type / attribute 의 의미와 스키마) 는 MLIR 의 영역 (TableGen / IRDL) 이며 본 사양 범위 밖입니다.
 
@@ -56,7 +56,7 @@ rokc build --load-mlir-pass-plugin mypasses --mlir-pass my-lower main.rok
 로드된 plugin 의 op 은 upstream MLIR op 과 동일한 syntax 로 호출됩니다.
 
 ```rok
-use rok::bare::mlir::__mlir_op;
+use rok::bare::mlir::{__mlir_attr, __mlir_op};
 
 unsafe {
     // plugin namespace 가 "crypto" 라고 가정

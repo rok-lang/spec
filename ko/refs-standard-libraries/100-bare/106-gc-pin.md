@@ -25,9 +25,11 @@ managed code (`GcPtr<T>`) 의 경우 GC 가 root 를 추적하면서 모든 ptr 
 
 ```rok
 let xs: List<i32> = [1, 2, 3];                 // GcPtr (자동 갱신)
-let raw: Ptr<i32> = rok::bare::ptr::list_data(xs); // raw ptr
-                                                // ↓ GC cycle 발생 가능
-gc::collect();
+let raw: Ptr<i32> = Ptr::dangling();
+using pin = gc::pin(xs) {
+    raw = pin.as_data_ptr();                    // raw ptr, pin 안에서만 유효
+}                                               // 여기서 unpin
+gc::collect();                                  // xs 가 이동할 수 있음
 unsafe { raw.read() };                          // UB - raw 가 stale
 ```
 
@@ -42,12 +44,16 @@ struct Pinned<T> {
     // 내부: GC 의 pin set 등록
 }
 
-trait Pinnable {}                       // List<T>, str, GcPtr<T>
-impl<T> Pinnable for List<T> {}
-impl Pinnable for str {}
-impl<T> Pinnable for GcPtr<T> {}
+trait Pinnable {
+    // 값의 data 를 담은 GC 객체; 움직일 것이 없으면 none
+    fn gc_object(self) -> GcBuf<u8> | none;
+}
+impl<T> Pinnable for List<T> { /* list 의 buffer; 비어 있으면 none */ }
+impl Pinnable for str { /* none (2.15.2) */ }
+impl<T> Pinnable for GcPtr<T> { /* 그 cell */ }
 
 fn pin<T: Pinnable>(obj: T) -> Pinned<T>;
+fn collect();                           // 지금 전체 collection; pin 되지 않은 객체는 모두 이동 가능
 
 impl<T> Pinned<T> {
     fn obj(self) -> T;
@@ -62,7 +68,7 @@ impl<T> Drop for Pinned<T> {
 
 `using` 으로 묶는 guard 입니다. `pin()` 이 반환한 `Pinned<T>` 가 `using` 블록 안에 있는
 동안 GC 는 해당 객체를 이동시키지 않으며, 블록을 빠져나갈 때 `Pinned::drop` 이 불려 unpin
-됩니다. `using` 없이 받은 `Pinned<T>` 는 자동으로 풀리지 않습니다. pin 은 셉니다: 객체는 그만큼 unpin 된 뒤에야 다시 움직입니다.
+됩니다. `using` 없이 받은 `Pinned<T>` 는 자동으로 풀리지 않습니다. pin 은 셉니다: 객체는 그만큼 unpin 된 뒤에야 다시 움직입니다. `pin` 은 `gc_object` 가 가리키는 객체를 pin 하며, `none` 이 돌아오면 아무것도 pin 하지 않습니다. `GcBuf<u8>` 은 [1.3.9](103-mem.md#139-gcbuft-와-buf_-primitive) 의 타입이 지워진 GC buffer 이며, 사용자 타입은 자기 data 를 담은 GC 객체를 돌려줌으로써 `Pinnable` 을 구현할 수 있습니다.
 
 ### 사용 예 - FFI 호출
 
@@ -198,6 +204,7 @@ null-terminated 형태처럼, 각 컨테이너의 layout 에 맞춘 형태로 �
 |------------------|--------------------------------|
 | `Pinned<T>`      | `rok_gc_pin` / `rok_gc_unpin`  |
 | `pin<T>()`       | (위와 동일)                    |
+| `collect()`      | `rok_gc_collect`               |
 | `GcPtr<T>`       | shadow stack frame 슬롯 (컴파일러 emit) |
 | `as_data_ptr` 등 | container 별 layout 의존       |
 | `Weak<T>`        | `rok_gc_weak_new` / `rok_gc_weak_get` (1.6.9) |

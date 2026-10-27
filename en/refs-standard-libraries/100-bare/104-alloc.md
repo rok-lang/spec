@@ -5,6 +5,10 @@ The `rok::bare::alloc` module provides an API for allocating and freeing memory 
 ## 1.4.1. API
 
 ```rok
+struct LayoutError {
+    pub reason: str;
+}
+
 struct Layout {
     size: usize;
     align: usize;
@@ -14,6 +18,9 @@ impl Layout {
     fn new<T>() -> Layout;                     // size_of<T>(), align_of<T>()
     fn array<T>(n: usize) throws (LayoutError) -> Layout;
     fn from_size_align(size: usize, align: usize) throws (LayoutError) -> Layout;
+                                               // align must be a power of two
+    fn size(self) -> usize;
+    fn align(self) -> usize;
 }
 
 unsafe fn alloc(layout: Layout) -> CPtr<u8>;
@@ -28,7 +35,7 @@ unsafe fn dealloc_one<T>(ptr: Ptr<T>);
 unsafe fn dealloc_array<T>(ptr: Ptr<T>, n: usize);
 ```
 
-If `alloc` fails it returns `CPtr::null()`; it does not abort, so the caller must check and handle the result.
+If `alloc` fails it returns `CPtr::null()`; it does not abort, so the caller must check and handle the result. `Layout`'s fields are private: read them with `size()` / `align()`. `array` throws `LayoutError` when `n` elements overflow `usize`, `from_size_align` when `align` is not a power of two; `reason` says which.
 
 ## 1.4.2. Example
 
@@ -58,6 +65,21 @@ using buf = try rok::bare::alloc::Allocation::<u32>::new(1000) {
 ```
 
 Here `Allocation<T>` is the RAII wrapper included in this module.
+
+```rok
+struct Allocation<T> { /* private: pointer + length */ }
+
+impl<T> Allocation<T> {
+    fn new(n: usize) throws (LayoutError) -> Allocation<T>;   // n zeroed Ts
+    fn as_ptr(self) -> Ptr<T>;
+    fn as_many(self) -> ManyPtr<T>;
+    fn len(self) -> usize;
+}
+
+impl<T> Drop for Allocation<T> { /* frees the block */ }
+```
+
+`new` throws `LayoutError` when the size overflows `usize` or the system has no memory (`reason` is `"out of memory"`). Copies of an `Allocation` share one block, so use it only inside the `using` block that frees it.
 
 ## 1.4.3. Relationship with the GC
 

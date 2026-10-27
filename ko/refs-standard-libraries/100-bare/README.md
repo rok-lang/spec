@@ -4,16 +4,16 @@ Unsafe tier 는 저수준이거나 위험한 영역에 속하는 표준 라이�
 
 ## 의존성
 
-위쪽으로는 runtime 이 노출하는 `extern "C"` 심볼에만 의존합니다. 한편 아래쪽으로는 `rok`, `std`, 그리고 사용자 코드가 의존자가 되지만, 어디까지나 명시 import 가 있을 때에만 그렇습니다.
+위쪽으로는 runtime 이 runtime ABI `extern "rok"` 로 노출하는 심볼에만 의존합니다. 한편 아래쪽으로는 `rok`, `std`, 그리고 사용자 코드가 의존자가 되지만, 어디까지나 명시 import 가 있을 때에만 그렇습니다.
 
 ## 사용자 import 정책
 
 ```rok
-use rok::bare::ptr::Ptr;                              // 명시 import 필수 - 위험 시그널
+use rok::bare::ptr::CPtr;                             // 명시 import 필수 - 위험 시그널
 use rok::bare::alloc::{alloc, Layout};
 
 let layout = try! Layout::array::<u8>(1024);
-let p: Ptr<u8> = unsafe { alloc(layout) };
+let p: CPtr<u8> = unsafe { alloc(layout) };    // 실패 시 null
 ```
 
 묵시적으로 적용되는 `use rok::core::**;` 는 unsafe 항목을 포함하지 않습니다. 따라서 `rok::bare::*` 는 별도의 명시 import 를 강제하며, 이로써 사용자가 위험 영역으로 진입하는 순간이 코드 위에 시각적으로 드러납니다.
@@ -43,7 +43,7 @@ let p: Ptr<u8> = unsafe { alloc(layout) };
 ### MLIR backend
 
 - [1.9. `rok::bare::mlir` - MLIR 다이얼렉트 직접 접근](109-mlir.md)
-- [1.10. `rok::bare::mlir::plugin` - 사용자 정의 다이얼렉트 등록](110-mlir-plugin.md)
+- [1.10. MLIR 다이얼렉트 plugin - 사용자 정의 다이얼렉트를 `rokc` 에 로드](110-mlir-plugin.md)
 
 ## 핵심 디자인 원칙
 
@@ -70,7 +70,7 @@ let r: Ptr<i32> = rok::bare::ptr::from_exposed_provenance(addr);  // unsafe - pr
 | `Slice<T>`    | **연속 N개** T (길이 포함)         | (ptr, len)      |
 | `CPtr<T>`     | C 호환 **nullable** pointer        | `T*` (nullable) |
 
-`Slice<T>` 는 [2.9 collections](../200-core/209-collections.md) 에 정의된 안전한 view 이므로 unsafe tier 에 속하지 않습니다. 따라서 본 장에서는 `Slice` 의 underlying ptr 을 raw 로 노출하는 경로만을 다룹니다.
+`Slice<T>` 는 [2.9 collections](../200-core/209-collections.md) 에 정의된 안전한 view 이므로 unsafe tier 에 속하지 않습니다. 따라서 본 장에서는 `Slice` 와 pointer 사이의 raw 경로만을 다룹니다. `ManyPtr::slice`, 그리고 list 의 data pointer 를 얻는 pin 이 그것입니다.
 
 ### 3. GC + raw pointer - 두 type level 분리
 
@@ -83,8 +83,8 @@ let r: Ptr<i32> = rok::bare::ptr::from_exposed_provenance(addr);  // unsafe - pr
 
 ```rok
 let obj: List<i32> = [1, 2, 3];                // GcPtr (자동)
-using pin = rok::bare::gc::pin(obj) {           // pin 시작
-    let raw: Ptr<i32> = rok::bare::ptr::list_data(obj);
+using pin = rok::bare::gc::pin(obj) {          // pin 시작
+    let raw: Ptr<i32> = pin.as_data_ptr();
     ffi_function(raw, obj.len());
 }                                              // pin 해제 - raw 무효
 ```
@@ -96,7 +96,7 @@ C 와 Rust 에서 `as` cast 가 pointer 위에서 일으키는 함정은 가장 
 | C/Rust 표기       | Rok 표기                                 | 의미                           |
 |-------------------|------------------------------------------|--------------------------------|
 | `ptr as *U`       | `rok::bare::ptr_cast<U>(p)`               | type 만 변경 (provenance 보존) |
-| `ptr as *Aligned` | `rok::bare::align_cast(p)`                | alignment up-cast (debug 검증) |
+| `ptr as *Aligned` | `rok::bare::align_cast(p)`                | alignment up-cast (어긋나면 `none`) |
 | `*const → *mut`   | `rok::bare::const_cast(p)`                | const 제거                     |
 | `transmute<A,B>`  | `rok::bare::reinterpret<A:Pod, B:Pod>(a)` | bit reinterpret (Pod 강제)     |
 
@@ -105,9 +105,23 @@ C 와 Rust 에서 `as` cast 가 pointer 위에서 일으키는 함정은 가장 
 GC 환경에서 finalizer 의 신뢰성이 부족하다는 사실은 모든 GC 언어가 학습한 경험입니다. 따라서 file, socket, mutex 같은 외부 자원은 명시적인 `using` 블록으로 해제합니다. GC 는 `drop` 을 부르지 않으며 finalizer 는 없습니다. 해제하지 않은 자원은 `unclosed_resource` lint 가 알립니다 ([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)).
 
 ```rok
-using f = rok::bare::ffi::open(path) {
-    f.read(...);
-}     // ← scope 끝에서 _보장된_ close (RAII via Drop)
+use rok::bare::ptr::{ConstPtr, CPtr, Ptr};
+
+extern "C" {
+    fn fopen(path: ConstPtr<c_char>, mode: ConstPtr<c_char>) -> CPtr<u8>;
+    fn fclose(f: Ptr<u8>) -> i32;
+}
+
+// 사용자가 쓴 wrapper: Drop 이 C handle 을 닫음
+struct File { raw: Ptr<u8>; }
+
+impl Drop for File {
+    fn drop(ref self) { unsafe { fclose(self.raw) }; }
+}
+
+using f = File { raw: opened } {   // opened: fopen 이 준 Ptr<u8>
+    // ... f.raw 사용 ...
+}     // ← scope 끝에서 _보장된_ fclose (RAII via Drop)
 
 // 일반 GC 객체는 using 불필요 - GC 가 자동 회수
 let xs: List<i32> = [1, 2, 3];     // GC 자동

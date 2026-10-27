@@ -1,6 +1,6 @@
 # 1.2. cast operations - explicitly named casts
 
-The `rok::bare::cast` module exposes conversions between pointers and types only as **named functions**. The reason `as` casts in C and Rust are so dangerous is that the conversion happens silently; to avoid that pitfall, Rok requires every cast to carry an **explicit name**.
+Conversions between pointers and types exist only as **named functions**. There is no `cast` module: `ptr_cast`, `align_cast`, `align_cast_unchecked` and `const_cast` are defined in `rok::bare::ptr`, `reinterpret` and `transmute_unchecked` in `rok::bare::mem`, and the `rok::bare` root re-exports all six (`rok::bare::ptr_cast`). The reason `as` casts in C and Rust are so dangerous is that the conversion happens silently; to avoid that pitfall, Rok requires every cast to carry an **explicit name**.
 
 ## 1.2.1. The 4 cast functions
 
@@ -8,8 +8,8 @@ The four basic functions are:
 
 | Function                                 | Meaning                                    | Risk                    |
 |------------------------------------------|--------------------------------------------|-------------------------|
-| `ptr_cast<U>(p: Ptr<T>)`                 | Changes the type only (provenance/address kept) | alignment check    |
-| `align_cast<T>(p: Ptr<u8>)`              | Alignment up-cast                          | checked (debug)         |
+| `ptr_cast<U>(p: Ptr<T>)`                 | Changes the type only (provenance/address kept) | alignment is the caller's |
+| `align_cast<T>(p: Ptr<u8>)`              | Alignment up-cast                          | checked (`none` when misaligned) |
 | `const_cast<T>(p: ConstPtr<T>)`          | Removes const                              | very high (caller guarantees) |
 | `reinterpret<A: Pod, B: Pod>(a: A) -> B` | bit-level cast (`Pod` only)                | low (guaranteed by the Pod marker) |
 
@@ -38,7 +38,7 @@ let r: Ptr<u64> = rok::bare::ptr_cast::<u64>(p);  // dangerous - u64 needs 8-byt
                                                  // r.read() may SIGBUS (ARM)
 ```
 
-In debug builds an **alignment check** is inserted and leads to a panic; in release builds the check is gone and it is UB.
+No alignment check is inserted, in any build: reading or writing through a misaligned result is UB. Check first with `align_cast` (1.2.3) or `is_aligned` (1.1.2).
 
 ### Safe cast - type-equivalent
 
@@ -95,7 +95,7 @@ This function strips const. The danger is obvious: if the original lives in a re
 let s: str = "hello";              // immortal const
 let p: ConstPtr<u8> = s.as_ptr();
 let m: Ptr<u8> = rok::bare::const_cast(p);
-unsafe { m.write(c'H') };          // SEGFAULT - write to immortal const
+unsafe { m.write(72u8) };          // 'H': SEGFAULT - write to immortal const
 ```
 
 It is exactly isomorphic to C's `const_cast<T*>`. Its use is limited to temporarily wrapping a read-only API where mutability is required; ordinary code **must not use it**.
@@ -130,13 +130,16 @@ impl Pod for f32, f64 { }
 impl Pod for bool { }
 impl Pod for char, c_char { }
 impl<T: Pod, const N: usize> Pod for [T; N] { }
-impl<T: Pod, U: Pod> Pod for (T, U) { }
-// larger tuple arities via macro / automatic
+impl<A: Pod> Pod for (A,) { }
+impl<A: Pod, B: Pod> Pod for (A, B) { }
+impl<A: Pod, B: Pod, C: Pod> Pod for (A, B, C) { }
+impl<A: Pod, B: Pod, C: Pod, D: Pod> Pod for (A, B, C, D) { }
 ```
 
-The following are not given it automatically (because uninit could be exposed):
+`bool` and `char` are on this list although not every bit pattern is a valid value (`bool` is 0 or 1, `char` a Unicode scalar). `reinterpret` does not check the bits, so reinterpreting other bits as a `bool` or `char` gives an invalid value, which is UB; the caller checks them first.
 
-- `bool` is valid only as 0/1, but in practice the niche catches invalid bits, so it is applied automatically.
+The following are not given it automatically:
+
 - `Ptr<T>` carries separate provenance information and cannot be represented by bits alone.
 - User structs must opt in explicitly with `#[derive(Pod)]`.
 
@@ -155,10 +158,10 @@ This design follows the [Project Safe Transmute (Rust RFC 2835)](https://rust-la
 ## 1.2.6. `transmute_unchecked<A, B>` - escape hatch
 
 ```rok
-fn transmute_unchecked<A, B>(a: A) -> B;       // no size check either
+unsafe fn transmute_unchecked<A, B>(a: A) -> B;   // no size check either
 ```
 
-This function moves bits as is, **without** even `Pod` checking. As the name says, it is the most dangerous cast: uninit exposure, size mismatch and alignment problems are all the caller's responsibility.
+This function moves bits as is, **without** even `Pod` checking. As the name says, it is the most dangerous cast, so it is an `unsafe fn`: uninit exposure, size mismatch, alignment problems and the GC references inside are all the caller's responsibility. A size mismatch is not rejected; the value goes through a zeroed scratch block as large as the larger type, so the bytes past the source's size read as zero.
 
 Its use is limited to the **lowest layer** inside the standard library, only for cases that cannot be expressed with any other tool, such as writing a `Pod` impl itself. Ordinary user code must never use it.
 
@@ -169,7 +172,7 @@ impl Pod for SomeNewtype {
 }
 
 let s: SomeNewtype = ...;
-let bits: u64 = rok::bare::transmute_unchecked(s);   // code where SomeNewtype guarantees size 8
+let bits: u64 = unsafe { rok::bare::transmute_unchecked(s) };   // code where SomeNewtype guarantees size 8
 ```
 
 ## 1.2.7. Where `as` casts apply

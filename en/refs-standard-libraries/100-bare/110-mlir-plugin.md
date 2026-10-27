@@ -1,6 +1,6 @@
-# 1.10. `rok::bare::mlir::plugin` - registering user-defined dialects
+# 1.10. MLIR dialect plugins - loading user-defined dialects into `rokc`
 
-`rok::bare::mlir::plugin` defines the interface through which the Rok compiler dynamically loads externally built MLIR dialects and adds them as call targets of [`__mlir_op`](109-mlir.md). It is for library authors who want to layer domain-specific compilers (cryptography, signal processing, formal verification, new accelerator ISAs, etc.) on top of rok.
+MLIR dialect plugins are a compiler mechanism, not a library module: there is no `rok::bare::mlir::plugin`. `rokc` dynamically loads externally built MLIR dialects (`--load-mlir-plugin`, looked up in `ROK_MLIR_PLUGIN_PATH`, 1.10.3) and adds them as call targets of [`__mlir_op`](109-mlir.md). The chapter sits in the bare tier because plugin ops are reached only through `rok::bare::mlir`. It is for library authors who want to layer domain-specific compilers (cryptography, signal processing, formal verification, new accelerator ISAs, etc.) on top of Rok.
 
 This section defines the **registration mechanism and safety responsibilities** of plugins. The definition of a dialect itself (the meaning and schema of its ops / types / attributes) belongs to MLIR (TableGen / IRDL) and is outside the scope of this specification.
 
@@ -56,7 +56,7 @@ A plugin declared in the package manifest (`rok.rokon`, [refs-lang 9.10](../../r
 Ops of a loaded plugin are called with the same syntax as upstream MLIR ops.
 
 ```rok
-use rok::bare::mlir::__mlir_op;
+use rok::bare::mlir::{__mlir_attr, __mlir_op};
 
 unsafe {
     // assume the plugin namespace is "crypto"

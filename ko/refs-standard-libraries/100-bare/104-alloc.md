@@ -5,6 +5,10 @@
 ## 1.4.1. API
 
 ```rok
+struct LayoutError {
+    pub reason: str;
+}
+
 struct Layout {
     size: usize;
     align: usize;
@@ -14,6 +18,9 @@ impl Layout {
     fn new<T>() -> Layout;                     // size_of<T>(), align_of<T>()
     fn array<T>(n: usize) throws (LayoutError) -> Layout;
     fn from_size_align(size: usize, align: usize) throws (LayoutError) -> Layout;
+                                               // align 은 2 의 거듭제곱
+    fn size(self) -> usize;
+    fn align(self) -> usize;
 }
 
 unsafe fn alloc(layout: Layout) -> CPtr<u8>;
@@ -28,7 +35,7 @@ unsafe fn dealloc_one<T>(ptr: Ptr<T>);
 unsafe fn dealloc_array<T>(ptr: Ptr<T>, n: usize);
 ```
 
-`alloc` 이 실패하면 `CPtr::null()` 을 반환하며, abort 하지 않으니 호출자가 직접 결과를 살펴 처리해야 합니다.
+`alloc` 이 실패하면 `CPtr::null()` 을 반환하며, abort 하지 않으니 호출자가 직접 결과를 살펴 처리해야 합니다. `Layout` 의 필드는 private 이므로 `size()` / `align()` 으로 읽습니다. `array` 는 `n` 개 원소가 `usize` 를 넘칠 때, `from_size_align` 은 `align` 이 2 의 거듭제곱이 아닐 때 `LayoutError` 를 던지며, `reason` 이 그 까닭을 알려 줍니다.
 
 ## 1.4.2. 사용 예
 
@@ -58,6 +65,21 @@ using buf = try rok::bare::alloc::Allocation::<u32>::new(1000) {
 ```
 
 여기서 `Allocation<T>` 는 본 모듈에 포함된 RAII wrapper 입니다.
+
+```rok
+struct Allocation<T> { /* private: pointer + 길이 */ }
+
+impl<T> Allocation<T> {
+    fn new(n: usize) throws (LayoutError) -> Allocation<T>;   // 0 으로 채운 T n 개
+    fn as_ptr(self) -> Ptr<T>;
+    fn as_many(self) -> ManyPtr<T>;
+    fn len(self) -> usize;
+}
+
+impl<T> Drop for Allocation<T> { /* block 을 해제 */ }
+```
+
+`new` 는 크기가 `usize` 를 넘치거나 시스템에 메모리가 없을 때 `LayoutError` 를 던집니다 (`reason` 은 `"out of memory"`). `Allocation` 의 복사본들은 block 하나를 공유하므로, 그것을 해제하는 `using` 블록 안에서만 씁니다.
 
 ## 1.4.3. GC 와의 관계
 

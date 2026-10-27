@@ -24,14 +24,14 @@ rok::std   (target-dep - uses foundation + bare)
 
 ### `rok::bare`
 
-가장 아래의 `rok::bare` tier 는 runtime 의 `extern "C"` 심볼만을 의존 대상으로 삼습니다.
+가장 아래의 `rok::bare` tier 는 runtime 의 `extern "rok"` 심볼만을 의존 대상으로 삼습니다.
 여기서 `Ptr<T>`, `ConstPtr<T>`, `transmute`, raw allocation, pin/unpin, volatile
 같은 원시 도구들을 노출하므로, 사용자가 끌어 쓸 때는 반드시 명시적인 `use` 가
 필요합니다. 명시는 곧 위험 시그널이며, 코드 리뷰 시점에 위험 영역이 한눈에 보이도록
 의도된 장치입니다.
 
 ```rok
-use rok::bare::CPtr;
+use rok::bare::ptr::CPtr;
 use rok::bare::alloc::{alloc, Layout};
 let layout = try Layout::array::<u8>(1024);
 let p: CPtr<u8> = unsafe { alloc(layout) };    // 실패 시 null - 1.4 alloc 참고
@@ -39,7 +39,7 @@ let p: CPtr<u8> = unsafe { alloc(layout) };    // 실패 시 null - 1.4 alloc �
 
 ### `rok::core` (foundation)
 
-가운데의 foundation tier 인 `rok::core` 에는 `rok::core::vec`, `rok::core::iter`, `rok::core::ops` 같은 모듈이 자리 잡으며 내부적으로만 `rok::bare` 에 의존합니다. 숫자 타입, 산술 트레잇,
+가운데의 foundation tier 인 `rok::core` 에는 `rok::core::collections`, `rok::core::iter`, `rok::core::ops` 같은 모듈이 자리 잡으며 내부적으로만 `rok::bare` 에 의존합니다. 숫자 타입, 산술 트레잇,
 iter, 컬렉션, fmt, 변환, sync, task, future 등 언어를 일상적으로 쓰는 데
 필요한 거의 모든 추상이 이 층에 모여 있습니다. 사용자 코드에서는 **`use rok::core::**;`
 가 묵시적으로 자동 적용** 되므로 (자세한 정책은 [0.2 import 정책](002-import.md) 참고)

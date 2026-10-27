@@ -50,7 +50,7 @@ fn main() {
     let m = Mutex::new(0);                 // rok::core::sync::Mutex
     task::spawn(async { /* ... */ });              // rok::core::task::spawn
 
-    let h = handle::new();                 // rok::core::sync::Handle
+    let n = Atomic::new(0);                // rok::core::sync::Atomic
 }
 ```
 
@@ -71,7 +71,7 @@ Only `use rok::core::**;` is implicit. unsafe and std are **explicit only**.
 
 ```rok
 // unsafe - danger signal
-use rok::bare::{Ptr, ConstPtr};
+use rok::bare::ptr::{Ptr, ConstPtr};
 use rok::bare::ffi::{CStr, CString};
 
 // std - target-dependency signal

@@ -113,14 +113,11 @@ unsafe {
 
 ### Variadic operand
 
-`vector.shuffle` 처럼 가변 인자를 받는 op 은 Rok 의 spread 문법으로 전달합니다.
+`vector.from_elements` 처럼 가변 operand 묶음을 받는 op 은 operand 를 일반 인자로, op 이 기대하는 순서대로 하나씩 나열해 받습니다. spread 형태는 없으며, operand 개수는 호출을 쓰는 자리에서 정해집니다.
 
 ```rok
 unsafe {
-    let masked: Vector<i32, 4> = __mlir_op::<"vector.shuffle", _>(
-        v1, v2,
-        attributes = { "mask": __mlir_attr::<"[0, 2, 4, 6]"> },
-    );
+    let v = __mlir_op::<"vector.from_elements", __mlir_type<"vector<4xi32>">>(a, b, c, d);
 }
 ```
 

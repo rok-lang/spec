@@ -57,6 +57,6 @@ Variables shared between threads must therefore use [`Atomic<T>`](../200-core/21
 
 ## 1.5.5. lowering
 
-`volatile::read` and `volatile::write` lower to LLVM's `load volatile` / `store volatile`; their intrinsic names are `rok.volatile.read.T` and `rok.volatile.write.T` respectively.
+`volatile::read` and `volatile::write` lower to LLVM's `load volatile` / `store volatile`; they call the `ConstPtr` / `Ptr` methods `read_volatile` / `write_volatile`, whose intrinsics are `rok.ptr.read_volatile` and `rok.ptr.write_volatile`.
 
 Atomics are covered in detail in [2.16 sync](../200-core/216-sync.md); this chapter is authoritative only for non-atomic cases.

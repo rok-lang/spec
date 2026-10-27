@@ -1,6 +1,6 @@
 # 1.2. cast 연산 - 명시 named cast
 
-`rok::bare::cast` 모듈은 pointer 와 type 사이의 변환을 오직 **named function** 형태로만 노출합니다. C 와 Rust 의 `as` cast 가 가장 위험한 까닭은 변환이 조용히(silent) 일어난다는 점이며, Rok 은 이 함정을 피하기 위해 모든 cast 를 **명시적인 이름** 으로 강제합니다.
+pointer 와 type 사이의 변환은 오직 **named function** 형태로만 존재합니다. `cast` 모듈은 없습니다. `ptr_cast`, `align_cast`, `align_cast_unchecked`, `const_cast` 는 `rok::bare::ptr` 에, `reinterpret` 와 `transmute_unchecked` 는 `rok::bare::mem` 에 정의되며, `rok::bare` 루트가 여섯 개 모두를 다시 내보냅니다 (`rok::bare::ptr_cast`). C 와 Rust 의 `as` cast 가 가장 위험한 까닭은 변환이 조용히(silent) 일어난다는 점이며, Rok 은 이 함정을 피하기 위해 모든 cast 를 **명시적인 이름** 으로 강제합니다.
 
 ## 1.2.1. cast 함수 4 종
 
@@ -8,8 +8,8 @@
 
 | 함수                                     | 의미                                   | 위험도                  |
 |------------------------------------------|----------------------------------------|-------------------------|
-| `ptr_cast<U>(p: Ptr<T>)`                 | type 만 변경 (provenance/address 보존) | alignment 검증          |
-| `align_cast<T>(p: Ptr<u8>)`              | alignment up-cast                      | 검증 (debug)            |
+| `ptr_cast<U>(p: Ptr<T>)`                 | type 만 변경 (provenance/address 보존) | alignment 는 호출자 책임 |
+| `align_cast<T>(p: Ptr<u8>)`              | alignment up-cast                      | 검증 (어긋나면 `none`)  |
 | `const_cast<T>(p: ConstPtr<T>)`          | const 제거                             | 매우 높음 (호출자 보장) |
 | `reinterpret<A: Pod, B: Pod>(a: A) -> B` | bit-level cast (`Pod` 만)              | 낮음 (Pod marker 보장)  |
 
@@ -38,7 +38,7 @@ let r: Ptr<u64> = rok::bare::ptr_cast::<u64>(p);  // 위험 - u64 은 8-byte 필
                                                  // r.read() 시 SIGBUS 가능 (ARM)
 ```
 
-debug 빌드에서는 **alignment 검증** 이 들어가 panic 으로 이어지지만, release 빌드에서는 검증이 사라져 그대로 UB 가 됩니다.
+어떤 빌드에서도 **alignment 검증** 은 들어가지 않습니다. 정렬이 어긋난 결과를 통해 읽거나 쓰면 UB 입니다. 먼저 `align_cast` (1.2.3) 나 `is_aligned` (1.1.2) 로 확인합니다.
 
 ### 안전 cast - type-equivalent
 
@@ -95,7 +95,7 @@ fn const_cast<T>(p: ConstPtr<T>) -> Ptr<T>;
 let s: str = "hello";              // immortal const
 let p: ConstPtr<u8> = s.as_ptr();
 let m: Ptr<u8> = rok::bare::const_cast(p);
-unsafe { m.write(c'H') };          // SEGFAULT - immortal const 쓰기
+unsafe { m.write(72u8) };          // 'H': SEGFAULT - immortal const 쓰기
 ```
 
 C 의 `const_cast<T*>` 와 정확히 동형입니다. 사용처는 read-only API 를 임시로 mutability 가 필요한 자리에 wrapping 하는 정도로 한정되며, 일반 코드에서는 **사용하지 말 것**.
@@ -130,13 +130,16 @@ impl Pod for f32, f64 { }
 impl Pod for bool { }
 impl Pod for char, c_char { }
 impl<T: Pod, const N: usize> Pod for [T; N] { }
-impl<T: Pod, U: Pod> Pod for (T, U) { }
-// Tuple 더 큰 arity 는 macro / 자동
+impl<A: Pod> Pod for (A,) { }
+impl<A: Pod, B: Pod> Pod for (A, B) { }
+impl<A: Pod, B: Pod, C: Pod> Pod for (A, B, C) { }
+impl<A: Pod, B: Pod, C: Pod, D: Pod> Pod for (A, B, C, D) { }
 ```
 
-반면 다음은 자동으로 붙지 않습니다 (uninit 노출 가능성 때문입니다).
+`bool` 과 `char` 는 모든 bit pattern 이 유효한 값은 아닌데도 (`bool` 은 0 또는 1, `char` 는 Unicode scalar) 이 목록에 있습니다. `reinterpret` 는 bit 를 검사하지 않으므로, 다른 bit 를 `bool` 이나 `char` 로 reinterpret 하면 유효하지 않은 값이 되고 이는 UB 입니다. 호출자가 먼저 검사합니다.
 
-- `bool` 은 0/1 만 valid 이지만, 실제로는 niche 가 invalid bit 를 잡아 주므로 자동 적용됩니다.
+반면 다음은 자동으로 붙지 않습니다.
+
 - `Ptr<T>` 는 provenance 정보가 따로 있어 bit 만으로는 표현되지 않습니다.
 - 사용자 struct 는 `#[derive(Pod)]` 로 명시해야 합니다.
 
@@ -155,10 +158,10 @@ let v2: Vec3 = rok::bare::reinterpret(bytes);
 ## 1.2.6. `transmute_unchecked<A, B>` - escape hatch
 
 ```rok
-fn transmute_unchecked<A, B>(a: A) -> B;       // size check 도 안 함
+unsafe fn transmute_unchecked<A, B>(a: A) -> B;   // size check 도 안 함
 ```
 
-이 함수는 `Pod` 검증조차 **없이** bit 를 그대로 옮깁니다. 이름 그대로 가장 위험한 cast 로, uninit 노출, size 불일치, alignment 문제 모두 호출자 책임입니다.
+이 함수는 `Pod` 검증조차 **없이** bit 를 그대로 옮깁니다. 이름 그대로 가장 위험한 cast 이므로 `unsafe fn` 입니다. uninit 노출, size 불일치, alignment 문제, 안에 든 GC 참조 모두 호출자 책임입니다. size 불일치는 거부되지 않습니다. 값은 둘 중 큰 타입 크기의 0 으로 채워진 scratch block 을 거치므로, 원본 크기를 넘는 byte 는 0 으로 읽힙니다.
 
 쓰임새는 표준 라이브러리 내부의 가장 **낮은 layer** 에 한정됩니다. 예컨대 `Pod` impl 자체를 작성할 때처럼 다른 도구로는 도저히 표현할 수 없는 경우만 해당합니다. 일반 사용자 코드에서는 절대 쓰지 말 것.
 
@@ -169,7 +172,7 @@ impl Pod for SomeNewtype {
 }
 
 let s: SomeNewtype = ...;
-let bits: u64 = rok::bare::transmute_unchecked(s);   // SomeNewtype 이 size 8 보장한 코드
+let bits: u64 = unsafe { rok::bare::transmute_unchecked(s) };   // SomeNewtype 이 size 8 보장한 코드
 ```
 
 ## 1.2.7. `as` cast 의 적용 자리

@@ -24,13 +24,13 @@ is responsible for one of these three requirements.
 
 ### `rok::bare`
 
-The bottom tier, `rok::bare`, depends only on the runtime's `extern "C"` symbols.
+The bottom tier, `rok::bare`, depends only on the runtime's `extern "rok"` symbols.
 It exposes raw tools such as `Ptr<T>`, `ConstPtr<T>`, `transmute`, raw allocation, pin/unpin and
 volatile, so using them always requires an explicit `use`. Being explicit is the danger signal:
 it is a deliberate device so that dangerous areas are visible at a glance during code review.
 
 ```rok
-use rok::bare::CPtr;
+use rok::bare::ptr::CPtr;
 use rok::bare::alloc::{alloc, Layout};
 let layout = try Layout::array::<u8>(1024);
 let p: CPtr<u8> = unsafe { alloc(layout) };    // null on failure - see 1.4 alloc
@@ -38,7 +38,7 @@ let p: CPtr<u8> = unsafe { alloc(layout) };    // null on failure - see 1.4 allo
 
 ### `rok::core` (foundation)
 
-The middle, foundation tier, `rok::core`, holds modules such as `rok::core::vec`, `rok::core::iter` and `rok::core::ops`, and depends on `rok::bare` only internally. Nearly every abstraction needed for everyday use of the language - numeric types, arithmetic traits,
+The middle, foundation tier, `rok::core`, holds modules such as `rok::core::collections`, `rok::core::iter` and `rok::core::ops`, and depends on `rok::bare` only internally. Nearly every abstraction needed for everyday use of the language - numeric types, arithmetic traits,
 iter, collections, fmt, conversion, sync, task, future, etc. - is gathered in this tier. In user code,
 **`use rok::core::**;` is applied implicitly and automatically** (see [0.2 Import policy](002-import.md)
 for the detailed policy), so it can be used directly without any import.

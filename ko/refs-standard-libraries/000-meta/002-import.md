@@ -50,7 +50,7 @@ fn main() {
     let m = Mutex::new(0);                 // rok::core::sync::Mutex
     task::spawn(async { /* ... */ });              // rok::core::task::spawn
 
-    let h = handle::new();                 // rok::core::sync::Handle
+    let n = Atomic::new(0);                // rok::core::sync::Atomic
 }
 ```
 
@@ -71,7 +71,7 @@ let xs: rok::core::collections::List<i32> = [1, 2];   // 경로로 가리킨 cor
 
 ```rok
 // unsafe - 위험 시그널
-use rok::bare::{Ptr, ConstPtr};
+use rok::bare::ptr::{Ptr, ConstPtr};
 use rok::bare::ffi::{CStr, CString};
 
 // std - target-dep 시그널

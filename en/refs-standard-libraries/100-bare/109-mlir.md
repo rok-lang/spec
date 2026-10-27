@@ -113,14 +113,11 @@ Rules:
 
 ### Variadic operand
 
-Ops taking variadic arguments, such as `vector.shuffle`, receive them through Rok's spread syntax.
+An op with a variadic operand group, such as `vector.from_elements`, takes its operands as ordinary arguments, listed one by one in the order the op expects. There is no spread form: the number of operands is fixed where the call is written.
 
 ```rok
 unsafe {
-    let masked: Vector<i32, 4> = __mlir_op::<"vector.shuffle", _>(
-        v1, v2,
-        attributes = { "mask": __mlir_attr::<"[0, 2, 4, 6]"> },
-    );
+    let v = __mlir_op::<"vector.from_elements", __mlir_type<"vector<4xi32>">>(a, b, c, d);
 }
 ```
 

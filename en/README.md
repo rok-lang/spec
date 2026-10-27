@@ -63,7 +63,7 @@ The specification is written to be read from chapter 0 to chapter 9. A new conce
 
 ## Conventions
 
-ASCII and box-drawing diagrams inside code fences use English labels, explained in the text below them. Code examples are identical in both editions apart from translated comments and incidental strings.
+ASCII and box-drawing diagrams inside code fences use English labels, explained in the text below them. Code examples are identical in both editions apart from translated comments, incidental strings, and the grammar placeholders (metavariables) that stand for user-written parts.
 
 ## Terminology
 

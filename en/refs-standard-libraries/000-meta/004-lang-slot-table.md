@@ -20,33 +20,33 @@ The 48 slots fall into four groups according to their responsibility. The table 
 
 Type slots indicate the concrete type the compiler lowers to when it encounters a literal or keyword. This group divides further into two kinds. First, there are the language default types exposed directly as lowercase identifiers. They need no separate keyword registration and are the primitives users encounter every day.
 
-Language defaults (lowercase struct, no `#[keyword]` needed):
+Language defaults (built-in primitives, no `#[keyword]` needed):
 
 | Slot name    | Meaning                      | Standard library item    | Ref  |
 |--------------|------------------------------|--------------------------|------|
-| `i32_type`   | `i32` primitive              | `rok::core::num::i32`    | 2.1  |
-| `i64_type`   | `i64` primitive              | `rok::core::num::i64`    | 2.1  |
-| `f32_type`   | `f32` primitive              | `rok::core::num::f32`    | 2.1  |
-| `f64_type`   | `f64` primitive              | `rok::core::num::f64`    | 2.1  |
-| `usize_type` | `usize` primitive            | `rok::core::num::usize`  | 2.1  |
-| `isize_type` | `isize` primitive            | `rok::core::num::isize`  | 2.1  |
-| `bool_type`  | `bool` primitive             | `rok::core::num::bool`   | 2.1  |
-| `cchar_type` | `c_char` primitive (FFI)     | `rok::core::str::c_char` | 2.15 |
-| `str_type`   | `str` primitive (UTF-8 view) | `rok::core::str::str`    | 2.15 |
-| `char_type`  | `char` primitive (Unicode scalar) | `char` (methods: `rok::core::str`) | 2.15 |
+| `i32_type`   | `i32` primitive              | built-in (methods: `rok::core::num`) | 2.1  |
+| `i64_type`   | `i64` primitive              | built-in (methods: `rok::core::num`) | 2.1  |
+| `f32_type`   | `f32` primitive              | built-in (methods: `rok::core::num`) | 2.1  |
+| `f64_type`   | `f64` primitive              | built-in (methods: `rok::core::num`) | 2.1  |
+| `usize_type` | `usize` primitive            | built-in (methods: `rok::core::num`) | 2.1  |
+| `isize_type` | `isize` primitive            | built-in (methods: `rok::core::num`) | 2.1  |
+| `bool_type`  | `bool` primitive             | built-in (methods: `rok::core::num`) | 2.1  |
+| `cchar_type` | `c_char` primitive (FFI)     | built-in (impls: `rok::core::num`) | 2.15 |
+| `str_type`   | `str` primitive (UTF-8 view) | built-in (methods: `rok::core::str`) | 2.15 |
+| `char_type`  | `char` primitive (Unicode scalar) | built-in (methods: `rok::core::str`) | 2.15 |
 
-Second, there are the PascalCase types additionally provided by the standard library. These expose a familiar lowercase alias to users separately via `#[keyword(...)]`; items directly entangled with language syntax gather here, such as the auto-promoting `int` and `float`, the `none` sentinel, and the `Range` literal.
+Second, there are the slots tied to language syntax: the auto-promoting `int` and `float`, the `none` sentinel, and the `Range` literal. `int` and `float` are PascalCase library structs that expose a lowercase name via `#[keyword(...)]`; `none` is built in, and the library names its type `NoneSentinel` with `pub type NoneSentinel = none`.
 
-Standard library additions (PascalCase struct + `#[keyword(...)]`):
+Syntax-tied slots:
 
 | Slot name    | Meaning                       | Standard library item                                     | Ref  |
 |--------------|-------------------------------|-----------------------------------------------------------|------|
-| `none_type`  | Type of the `none` literal    | `rok::core::marker::NoneSentinel`                         | 2.13 |
-| `int_type`   | `int` auto-promote type       | `rok::core::num::Int` + `#[keyword("int")]`               | 2.1  |
-| `float_type` | `float` auto-promote type     | `rok::core::num::Float` + `#[keyword("float")]`           | 2.1  |
+| `none_type`  | Type of the `none` literal    | built-in (alias: `rok::core::marker::NoneSentinel`) | 2.13 |
+| `int_type`   | `int` auto-promote type       | `rok::core::num::bigint::Int` + `#[keyword("int")]` | 2.1  |
+| `float_type` | `float` auto-promote type     | `rok::core::num::bigfloat::Float` + `#[keyword("float")]` | 2.1  |
 | `range_type` | `Range<T>` (`a..b`)           | `rok::core::range::Range` + `#[literal( expr ".." expr )]` | 2.7  |
 
-A compiler that provides the primitive types built in may leave `i32_type` ... `str_type`, `none_type` and `char_type` unattached.
+A compiler that provides the primitive types built in may leave `i32_type` ... `str_type`, `none_type` and `char_type` unattached. The reference compiler does: these slot names are accepted, but the library attaches no item to them (`str` and `c_char` are not library structs, and `NoneSentinel` is an alias, not a `#[lang]` item). Where 0.4.6 looks up one of them, the compiler uses its built-in type.
 
 ## 0.4.3. Trait slots (30)
 
@@ -56,9 +56,9 @@ Trait slots indicate which trait the compiler goes to when user-written syntax i
 |-----------------------|---------------------------------|---------------------------------|------|
 | `iterator_trait`      | Stepping in `for x in xs`       | `rok::core::iter::Iterator`     | 2.7  |
 | `into_iterator_trait` | Start of `for x in xs`          | `rok::core::iter::IntoIterator` | 2.7  |
-| `index_trait`         | `arr[i]` read                   | `rok::core::ops::Index`         | 2.3  |
-| `index_set_trait`     | `arr[i] = v` write              | `rok::core::ops::IndexSet`      | 2.3  |
-| `slice_trait`         | `s[1:3]` slicing                | `rok::core::ops::Sliceable`     | 2.3  |
+| `index_trait`         | `arr[i]` read                   | `rok::core::index::Index` | 2.3  |
+| `index_set_trait`     | `arr[i] = v` write              | `rok::core::index::IndexSet` | 2.3  |
+| `slice_trait`         | `s[1:3]` slicing                | `rok::core::index::Sliceable` | 2.3  |
 | `display_trait`       | `f"{x}"` default format         | `rok::core::fmt::Display`       | 2.10 |
 | `debug_trait`         | `f"{x:?}"` debug format         | `rok::core::fmt::Debug`         | 2.10 |
 | `future_trait`        | Stepping in `await expr`        | `rok::core::future::Future`     | 2.20 |
@@ -82,8 +82,8 @@ Next come the operator trait slots. The dispatch target of an operator token is 
 | `shr_trait`         | `a >> b`                                 | `rok::core::ops::Shr`        | 2.3  |
 | `logical_and_trait` | `a && b`                                 | `rok::core::ops::LogicalAnd` | 2.3  |
 | `logical_or_trait`  | `a \|\| b`                               | `rok::core::ops::LogicalOr`  | 2.3  |
-| `eq_trait`          | `==` / `!=`, literal patterns            | `rok::core::cmp::PartialEq`  | 2.5  |
-| `cmp_trait`         | `<` / `>` / `<=` / `>=`, range patterns  | `rok::core::cmp::PartialOrd` | 2.5  |
+| `eq_trait`          | `==` / `!=`, literal patterns            | `rok::core::ops::PartialEq` | 2.5  |
+| `cmp_trait`         | `<` / `>` / `<=` / `>=`, range patterns  | `rok::core::ops::PartialOrd` | 2.5  |
 | `ord_trait`         | Total order (`#[derive(Ord)]`)           | `rok::core::cmp::Ord`        | 2.5  |
 | `hash_trait`        | Hash (`#[derive(Hash)]`)                 | `rok::core::cmp::Hash`       | 2.5  |
 | `clone_trait`       | Clone (`#[derive(Clone)]`)               | `rok::core::marker::Clone`   | 2.13 |
