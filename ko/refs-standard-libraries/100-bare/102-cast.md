@@ -34,7 +34,7 @@ fn ptr_cast<U, T>(p: ManyPtr<T>) -> ManyPtr<U>;
 ```rok
 let p: Ptr<u32> = ...;        // 4-byte aligned
 let q: Ptr<u8> = rok::bare::ptr_cast::<u8>(p);    // 안전 (down-align)
-let r: Ptr<u64> = rok::bare::ptr_cast::<u64>(p);  // 위험 - u64 은 8-byte 필요
+let r: Ptr<u64> = rok::bare::ptr_cast::<u64>(p);  // 위험: u64 은 8-byte 필요
                                                  // r.read() 시 SIGBUS 가능 (ARM)
 ```
 
@@ -97,7 +97,7 @@ use rok::bare::ptr::{Ptr, ConstPtr, const_cast};
 let s: str = "hello";              // immortal const
 let p: ConstPtr<u8> = s.as_ptr();
 let m: Ptr<u8> = const_cast(p);
-unsafe { m.write(72u8) };          // 'H': SEGFAULT - immortal const 쓰기
+unsafe { m.write(72u8) };          // 'H': SEGFAULT (immortal const 쓰기)
 ```
 
 C 의 `const_cast<T*>` 와 정확히 동형입니다. 사용처는 read-only API 를 임시로 mutability 가 필요한 자리에 wrapping 하는 정도로 한정되며, 일반 코드에서는 **사용하지 말 것**.
@@ -105,7 +105,7 @@ C 의 `const_cast<T*>` 와 정확히 동형입니다. 사용처는 read-only API
 ## 1.2.5. `reinterpret<A: Pod, B: Pod>` - bit cast (안전)
 
 ```rok
-trait Pod { /* marker - Plain Old Data */ }
+trait Pod { /* marker: Plain Old Data */ }
 
 fn reinterpret<A: Pod, B: Pod>(a: A) -> B;
 ```
@@ -118,7 +118,7 @@ fn reinterpret<A: Pod, B: Pod>(a: A) -> B;
 
 ```rok
 let f: f32 = 3.14;
-let bits: u32 = rok::bare::reinterpret(f);     // OK - 둘 다 Pod, 4 byte
+let bits: u32 = rok::bare::reinterpret(f);     // OK: 둘 다 Pod, 4 byte
 let f2: f32 = rok::bare::reinterpret(bits);    // round-trip OK
 ```
 
@@ -184,13 +184,13 @@ let bits: u64 = unsafe { rok::bare::transmute_unchecked(s) };   // SomeNewtype �
 | 표현               | 결과                                                   |
 |--------------------|--------------------------------------------------------|
 | `i32 as i64`       | OK (lossless widening)                                 |
-| `i64 as i32`       | **컴파일 에러** - `try_into` / `saturating_into`       |
+| `i64 as i32`       | **컴파일 에러**: `try_into` / `saturating_into`        |
 | `f32 as f64`       | OK (lossless)                                          |
-| `i32 as f32`       | **컴파일 에러** - `as f32` 정밀도 손실 가능            |
-| `u32 as i32`       | **컴파일 에러** - bit reinterpret (`reinterpret` 사용) |
-| `Ptr<T> as Ptr<U>` | **컴파일 에러** - `rok::bare::ptr_cast::<U>`            |
-| `Ptr<T> as usize`  | **컴파일 에러** - `.addr()` 또는 `expose_provenance`   |
-| `usize as Ptr<T>`  | **컴파일 에러** - `from_exposed_provenance`            |
+| `i32 as f32`       | **컴파일 에러**: `as f32` 정밀도 손실 가능             |
+| `u32 as i32`       | **컴파일 에러**: bit reinterpret (`reinterpret` 사용)  |
+| `Ptr<T> as Ptr<U>` | **컴파일 에러**: `rok::bare::ptr_cast::<U>`             |
+| `Ptr<T> as usize`  | **컴파일 에러**: `.addr()` 또는 `expose_provenance`    |
+| `usize as Ptr<T>`  | **컴파일 에러**: `from_exposed_provenance`             |
 
 자세한 변환 매트릭스는 [2.11 conversion](../200-core/211-conversion.md) 을 참고하라.
 

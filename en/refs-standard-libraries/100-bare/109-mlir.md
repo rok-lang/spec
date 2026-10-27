@@ -78,7 +78,7 @@ Ops with region bodies, such as `scf.if`, `scf.for` and `linalg.generic`, receiv
 
 ```rok
 unsafe {
-    // scf.if - two regions, then / else
+    // scf.if: two regions, then / else
     let r: i32 = __mlir_op::<"scf.if", i32>(
         cond,
         regions = [
@@ -87,7 +87,7 @@ unsafe {
         ],
     );
 
-    // scf.for - lb / ub / step are index values
+    // scf.for: lb / ub / step are index values
     let lb = __mlir_op::<"arith.index_cast", __mlir_type<"index">>(0i64);
     let ub = __mlir_op::<"arith.index_cast", __mlir_type<"index">>(n);
     let step = __mlir_op::<"arith.index_cast", __mlir_type<"index">>(1i64);
@@ -158,11 +158,11 @@ Libraries for which these responsibilities are too burdensome should be written 
 ## 1.9.5. Relationship with ordinary user code
 
 ```rok
-// ordinary user - does not see MLIR
+// ordinary user: does not see MLIR
 let xs: List<f32> = [1.0, 2.0, 3.0];
 let sum = xs.iter().sum();
 
-// inside a library - uses rok::bare::mlir
+// inside a library: uses rok::bare::mlir
 mod tensor::ops {
     pub fn matmul<...>(a: Tensor<f32, (M, K)>, b: Tensor<f32, (K, N)>) -> Tensor<f32, (M, N)> {
         unsafe {
@@ -184,7 +184,7 @@ This is isomorphic to the pattern of encapsulating [1.7 FFI](107-ffi.md)'s `exte
 | Swift   | `Builtin.X` (inside the stdlib)    | Stdlib authors only                                  |
 | Julia   | `llvmcall` (available to users)    | Discouraged, external libraries only                 |
 | Rust    | LLVM intrinsics (not available to users) | nightly + intrinsics crate                     |
-| **Rok** | **`rok::bare::mlir` (explicit unsafe)** | **Library authors only - ordinary users do not see it** |
+| **Rok** | **`rok::bare::mlir` (explicit unsafe)** | **Library authors only; ordinary users do not see it** |
 
 Rok's model is close to Swift and Julia. Unlike Mojo, it does not expose MLIR to ordinary users, and it enforces an explicit `unsafe` entry so that the code shows which territory the user is stepping into.
 

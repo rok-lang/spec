@@ -32,7 +32,7 @@ impl Add for i32 {
 
     #[intrinsic("rok.add.i32")]
     fn add(self, rhs: i32) -> i32 {
-        // an empty body is OK - the compiler uses the intrinsic path
+        // an empty body is OK; the compiler uses the intrinsic path
         // even if a body exists, the compiler takes precedence
     }
 }
@@ -79,7 +79,7 @@ A method with an intrinsic attached may still have a body. The following example
 impl Add for BigInt {
     type Output = BigInt;
 
-    // BigInt is not fixed-width, so no intrinsic - the body is authoritative
+    // BigInt is not fixed-width, so no intrinsic; the body is authoritative
     fn add(self, rhs: BigInt) -> BigInt {
         // actual BigInt addition implementation
         ...
@@ -91,7 +91,7 @@ impl Add for i32 {
 
     #[intrinsic("rok.add.i32")]
     fn add(self, rhs: i32) -> i32 {
-        // body - runs when taken out as an fn value or in environments that do not know the intrinsic
+        // body: runs when taken out as an fn value or in environments that do not know the intrinsic
         self + rhs                    // primitive operators lower directly to machine operations
     }
 }
@@ -106,7 +106,7 @@ When the method is taken out as an `fn` value (`let f = i32::add;`), calling tha
 `#[intrinsic(...)]` is a mechanism that operates only at the boundary where the standard library is coupled to the compiler, so user code cannot attach this attribute directly: on a function, a generic function or a method alike.
 
 ```rok
-// user code - rejected.
+// user code: rejected.
 #[intrinsic("rok.add.i32")]
 fn my_add(a: i32, b: i32) -> i32 { ... }
 // compile error: "the intrinsic attribute is restricted to the standard library"

@@ -26,7 +26,7 @@ using pin = gc::pin(xs) {
     raw = pin.as_data_ptr();                    // raw ptr, valid inside the pin
 }                                               // unpinned here
 gc::collect();                                  // xs may move
-unsafe { raw.read() };                          // UB - raw is stale
+unsafe { raw.read() };                          // UB: raw is stale
 ```
 
 The solution is **pinning**: explicitly telling the GC "do not move this object".
@@ -81,8 +81,8 @@ The `using` block here follows the RAII form defined by [refs-lang 3.17 using ex
 ## 1.6.3. `GcPtr<T>` vs `Ptr<T>` - separation at the type level
 
 ```rok
-struct GcPtr<T> { /* compiler-managed - roots traced automatically */ }
-struct Ptr<T>   { /* raw - no root tracking */ }
+struct GcPtr<T> { /* compiler-managed; roots traced automatically */ }
+struct Ptr<T>   { /* raw; no root tracking */ }
 ```
 
 | Aspect     | `GcPtr<T>`                    | `Ptr<T>`                                         |
@@ -112,7 +112,7 @@ impl<T> Pinnable for GcPtr<T> {}
 
 ```rok
 struct GcPtr<T> {
-    // internal: usually a plain `*T` - the GC traces it externally via the root set
+    // internal: usually a plain `*T`; the GC traces it externally via the root set
     // for a local variable, kept in a shadow stack frame slot emitted by the compiler
 }
 ```
@@ -154,7 +154,7 @@ Pinning is **unnecessary** in the following situations.
 
 | Place            | Reason                                  |
 |------------------|-----------------------------------------|
-| Ordinary method calls | GcPtr is updated automatically - no raw ptr is created |
+| Ordinary method calls | GcPtr is updated automatically; no raw ptr is created |
 | Operations between GcPtrs | All traced by the GC           |
 | Short FFI (no GC) | When the GC is guaranteed not to run during the FFI |
 | Immortal const   | Already does not move (string literals, etc.) |
@@ -176,7 +176,7 @@ impl<T> Pinned<GcPtr<T>> {
 
 impl Pinned<str> {
     fn as_bytes_ptr(self) -> ConstPtr<u8>;   // UTF-8 bytes
-    fn as_c_str(self) -> ConstPtr<c_char>;   // null termination not guaranteed - convert separately
+    fn as_c_str(self) -> ConstPtr<c_char>;   // null termination not guaranteed; convert separately
 }
 ```
 

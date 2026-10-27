@@ -49,7 +49,7 @@ unsafe fn write<T>(dst: Ptr<T>, value: T);
 |------------------------|---------------------------------------|
 | MMIO register          | hardware 가 read 만으로도 side effect |
 | Memory-mapped 디바이스 | DMA 등                                |
-| signal handler 변수    | signal 안에서 변경 - 외부에서 봐야 함 |
+| signal handler 변수    | signal 안에서 변경, 외부에서 봐야 함 |
 | spinlock retry loop    | 다른 thread 가 변경한 값 반복 read    |
 
 ## 1.5.4. 주의 - atomic 과 다름

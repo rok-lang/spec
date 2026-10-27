@@ -34,7 +34,7 @@ This function keeps address and provenance intact and changes only the type tag.
 ```rok
 let p: Ptr<u32> = ...;        // 4-byte aligned
 let q: Ptr<u8> = rok::bare::ptr_cast::<u8>(p);    // safe (down-align)
-let r: Ptr<u64> = rok::bare::ptr_cast::<u64>(p);  // dangerous - u64 needs 8-byte
+let r: Ptr<u64> = rok::bare::ptr_cast::<u64>(p);  // dangerous: u64 needs 8-byte
                                                  // r.read() may SIGBUS (ARM)
 ```
 
@@ -97,7 +97,7 @@ use rok::bare::ptr::{Ptr, ConstPtr, const_cast};
 let s: str = "hello";              // immortal const
 let p: ConstPtr<u8> = s.as_ptr();
 let m: Ptr<u8> = const_cast(p);
-unsafe { m.write(72u8) };          // 'H': SEGFAULT - write to immortal const
+unsafe { m.write(72u8) };          // 'H': SEGFAULT (write to immortal const)
 ```
 
 It is exactly isomorphic to C's `const_cast<T*>`. Its use is limited to temporarily wrapping a read-only API where mutability is required; ordinary code **must not use it**.
@@ -105,7 +105,7 @@ It is exactly isomorphic to C's `const_cast<T*>`. Its use is limited to temporar
 ## 1.2.5. `reinterpret<A: Pod, B: Pod>` - bit cast (safe)
 
 ```rok
-trait Pod { /* marker - Plain Old Data */ }
+trait Pod { /* marker: Plain Old Data */ }
 
 fn reinterpret<A: Pod, B: Pod>(a: A) -> B;
 ```
@@ -118,7 +118,7 @@ For types with the `Pod` (Plain Old Data) marker, **safe transmute** is guarante
 
 ```rok
 let f: f32 = 3.14;
-let bits: u32 = rok::bare::reinterpret(f);     // OK - both Pod, 4 bytes
+let bits: u32 = rok::bare::reinterpret(f);     // OK: both Pod, 4 bytes
 let f2: f32 = rok::bare::reinterpret(bits);    // round-trip OK
 ```
 
@@ -184,13 +184,13 @@ let bits: u64 = unsafe { rok::bare::transmute_unchecked(s) };   // code where So
 | Expression         | Result                                                 |
 |--------------------|--------------------------------------------------------|
 | `i32 as i64`       | OK (lossless widening)                                 |
-| `i64 as i32`       | **Compile error** - `try_into` / `saturating_into`     |
+| `i64 as i32`       | **Compile error**: `try_into` / `saturating_into`      |
 | `f32 as f64`       | OK (lossless)                                          |
-| `i32 as f32`       | **Compile error** - `as f32` may lose precision        |
-| `u32 as i32`       | **Compile error** - bit reinterpret (use `reinterpret`) |
-| `Ptr<T> as Ptr<U>` | **Compile error** - `rok::bare::ptr_cast::<U>`          |
-| `Ptr<T> as usize`  | **Compile error** - `.addr()` or `expose_provenance`   |
-| `usize as Ptr<T>`  | **Compile error** - `from_exposed_provenance`          |
+| `i32 as f32`       | **Compile error**: `as f32` may lose precision         |
+| `u32 as i32`       | **Compile error**: bit reinterpret (use `reinterpret`)  |
+| `Ptr<T> as Ptr<U>` | **Compile error**: `rok::bare::ptr_cast::<U>`           |
+| `Ptr<T> as usize`  | **Compile error**: `.addr()` or `expose_provenance`    |
+| `usize as Ptr<T>`  | **Compile error**: `from_exposed_provenance`           |
 
 See [2.11 conversion](../200-core/211-conversion.md) for the full conversion matrix.
 

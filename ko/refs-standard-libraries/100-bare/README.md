@@ -9,7 +9,7 @@ Unsafe tier 는 저수준이거나 위험한 영역에 속하는 표준 라이�
 ## 사용자 import 정책
 
 ```rok
-use rok::bare::ptr::CPtr;                             // 명시 import 필수 - 위험 시그널
+use rok::bare::ptr::CPtr;                             // 명시 import 필수 (위험 시그널)
 use rok::bare::alloc::{alloc, Layout};
 
 let layout = try! Layout::array::<u8>(1024);
@@ -53,9 +53,9 @@ let p: CPtr<u8> = unsafe { alloc(layout) };    // 실패 시 null
 
 ```rok
 let p: Ptr<i32> = ...;
-let addr: usize = p.addr();              // 안전 - 주소만
-let q: Ptr<i32> = p.with_addr(addr + 4); // 안전 - provenance 보존, address 만 변경
-let r: Ptr<i32> = rok::bare::ptr::from_exposed_provenance(addr);  // unsafe - provenance 새로
+let addr: usize = p.addr();              // 안전: 주소만
+let q: Ptr<i32> = p.with_addr(addr + 4); // 안전: provenance 보존, address 만 변경
+let r: Ptr<i32> = rok::bare::ptr::from_exposed_provenance(addr);  // unsafe: provenance 새로
 ```
 
 `as` cast 는 pointer 에 절대 사용할 수 없습니다. 이 방향성은 [Ralf Jung "Pointers Are Complicated"](https://www.ralfj.de/blog/2022/04/11/provenance-exposed.html) 가 권위로서 자리잡고 있고, Rust 1.84 (Dec 2024) 가 안정화한 모델과 동형입니다.
@@ -86,7 +86,7 @@ let obj: List<i32> = [1, 2, 3];                // GcPtr (자동)
 using pin = rok::bare::gc::pin(obj) {          // pin 시작
     let raw: Ptr<i32> = pin.as_data_ptr();
     ffi_function(raw, obj.len());
-}                                              // pin 해제 - raw 무효
+}                                              // pin 해제, raw 무효
 ```
 
 ### 4. Cast 는 명시 named operation 만
@@ -123,7 +123,7 @@ using f = File { raw: opened } {   // opened: fopen 이 준 Ptr<u8>
     // ... f.raw 사용 ...
 }     // ← scope 끝에서 _보장된_ fclose (RAII via Drop)
 
-// 일반 GC 객체는 using 불필요 - GC 가 자동 회수
+// 일반 GC 객체는 using 불필요. GC 가 자동 회수
 let xs: List<i32> = [1, 2, 3];     // GC 자동
 ```
 

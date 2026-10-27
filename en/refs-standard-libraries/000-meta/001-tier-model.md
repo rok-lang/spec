@@ -6,9 +6,9 @@ area, and the import rules in user code differ as well.
 ```
 rok::bare   (base, depends only on runtime extern "C")
   ↓
-rok::core     (foundation, safe, all targets - uses bare internally)
+rok::core     (foundation, safe, all targets; uses bare internally)
   ↓
-rok::std   (target-dep - uses foundation + bare)
+rok::std   (target-dep; uses foundation + bare)
 ```
 
 All three tiers live under the virtual namespace `rok::` ([refs-lang 5.7.4](../../refs-lang/005-modules/507-paths.md#574-rok-the-standard-library-virtual-namespace)).
@@ -33,18 +33,18 @@ it is a deliberate device so that dangerous areas are visible at a glance during
 use rok::bare::ptr::CPtr;
 use rok::bare::alloc::{alloc, Layout};
 let layout = try Layout::array::<u8>(1024);
-let p: CPtr<u8> = unsafe { alloc(layout) };    // null on failure - see 1.4 alloc
+let p: CPtr<u8> = unsafe { alloc(layout) };    // null on failure (see 1.4 alloc)
 ```
 
 ### `rok::core` (foundation)
 
-The middle, foundation tier, `rok::core`, holds modules such as `rok::core::collections`, `rok::core::iter` and `rok::core::ops`, and depends on `rok::bare` only internally. Nearly every abstraction needed for everyday use of the language - numeric types, arithmetic traits,
-iter, collections, fmt, conversion, sync, task, future, etc. - is gathered in this tier. In user code,
+The middle, foundation tier, `rok::core`, holds modules such as `rok::core::collections`, `rok::core::iter` and `rok::core::ops`, and depends on `rok::bare` only internally. Nearly every abstraction needed for everyday use of the language (numeric types, arithmetic traits,
+iter, collections, fmt, conversion, sync, task, future, etc.) is gathered in this tier. In user code,
 **`use rok::core::**;` is applied implicitly and automatically** (see [0.2 Import policy](002-import.md)
 for the detailed policy), so it can be used directly without any import.
 
 ```rok
-let xs: List<i32> = [1, 2, 3];        // List used directly - brought in by the implicit use rok::core::**;
+let xs: List<i32> = [1, 2, 3];        // List used directly, brought in by the implicit use rok::core::**;
 let r = a + b;                         // Add trait automatic
 let m = Mutex::new(0);                 // sync::Mutex automatic too
 task::spawn(async { /* ... */ });              // task module automatic too

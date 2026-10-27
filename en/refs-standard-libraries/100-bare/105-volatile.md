@@ -43,7 +43,7 @@ The places that need `volatile` generally fall into these patterns.
 |------------------------|---------------------------------------|
 | MMIO register          | Hardware has side effects even on read |
 | Memory-mapped device   | DMA, etc.                             |
-| Signal handler variable | Changed inside a signal - must be visible outside |
+| Signal handler variable | Changed inside a signal, must be visible outside |
 | Spinlock retry loop    | Repeatedly reads a value changed by another thread |
 
 ## 1.5.4. Caution - not the same as atomic

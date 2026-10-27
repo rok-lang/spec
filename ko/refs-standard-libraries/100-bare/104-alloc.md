@@ -28,7 +28,7 @@ unsafe fn alloc_zeroed(layout: Layout) -> CPtr<u8>;
 unsafe fn dealloc(ptr: Ptr<u8>, layout: Layout);
 unsafe fn realloc(ptr: Ptr<u8>, old_layout: Layout, new_size: usize) -> CPtr<u8>;
 
-// 편의 함수 - typed
+// 편의 함수 (typed)
 unsafe fn alloc_one<T>() -> CPtr<T>;
 unsafe fn alloc_array<T>(n: usize) -> CPtr<T>;
 unsafe fn dealloc_one<T>(ptr: Ptr<T>);
@@ -88,7 +88,7 @@ impl<T> Drop for Allocation<T> { /* block 을 해제 */ }
 | 일반 객체 (`List<i32>`)  | GC TLAB bump                | ✓                  |
 | `rok::bare::alloc::alloc` | system malloc               | ✗ (수동)           |
 | FFI `malloc`             | C `malloc`                  | ✗                  |
-| Large object (≥8KB)      | LOS - non-moving mark-sweep | ✓ (단, non-moving) |
+| Large object (≥8KB)      | LOS (non-moving mark-sweep) | ✓ (단, non-moving) |
 
 GC 가 관리하는 raw buffer 가 필요하면 이 모듈 대신 `rok::core::collections::raw::GcBuf<T>` ([2.9.12](../200-core/209-collections.md#2912-gcbuft---raw-gc-buffer)) 를 씁니다.
 

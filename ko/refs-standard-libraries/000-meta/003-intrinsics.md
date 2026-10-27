@@ -32,7 +32,7 @@ impl Add for i32 {
 
     #[intrinsic("rok.add.i32")]
     fn add(self, rhs: i32) -> i32 {
-        // 본문이 비어 있어도 OK - 컴파일러가 intrinsic 경로 사용
+        // 본문이 비어 있어도 OK. 컴파일러가 intrinsic 경로 사용
         // 본문이 있어도 컴파일러가 우선
     }
 }
@@ -79,7 +79,7 @@ intrinsic 이 부착된 메서드라 하더라도 본문을 함께 가질 수 �
 impl Add for BigInt {
     type Output = BigInt;
 
-    // BigInt 는 fixed-width 가 아니라 intrinsic 없음 - 본문이 권위
+    // BigInt 는 fixed-width 가 아니라 intrinsic 없음. 본문이 권위
     fn add(self, rhs: BigInt) -> BigInt {
         // 실제 BigInt 덧셈 구현
         ...
@@ -91,7 +91,7 @@ impl Add for i32 {
 
     #[intrinsic("rok.add.i32")]
     fn add(self, rhs: i32) -> i32 {
-        // 본문 - fn 값으로 꺼내 부르거나 intrinsic 을 모르는 환경에서 실행
+        // 본문: fn 값으로 꺼내 부르거나 intrinsic 을 모르는 환경에서 실행
         self + rhs                    // primitive 연산자는 기계 연산으로 직접 lower
     }
 }
@@ -106,7 +106,7 @@ impl Add for i32 {
 `#[intrinsic(...)]` 은 표준 라이브러리가 컴파일러와 결합되는 경계에서만 동작하는 메커니즘이므로, 사용자 코드는 이 속성을 직접 부착할 수 없습니다. 함수, 제네릭 함수, 메서드 모두 같습니다.
 
 ```rok
-// 사용자 코드 - 거부.
+// 사용자 코드: 거부.
 #[intrinsic("rok.add.i32")]
 fn my_add(a: i32, b: i32) -> i32 { ... }
 // 컴파일 에러: "intrinsic 속성은 표준 라이브러리 한정"

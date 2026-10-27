@@ -33,7 +33,7 @@ using pin = gc::pin(xs) {
     raw = pin.as_data_ptr();                    // raw ptr, pin 안에서만 유효
 }                                               // 여기서 unpin
 gc::collect();                                  // xs 가 이동할 수 있음
-unsafe { raw.read() };                          // UB - raw 가 stale
+unsafe { raw.read() };                          // UB: raw 가 stale
 ```
 
 해법은 **pinning** 입니다. GC 에게 "이 객체는 이동시키지 말라"는 신호를 명시적으로
@@ -92,8 +92,8 @@ using pin = rok::bare::gc::pin(buf) {
 ## 1.6.3. `GcPtr<T>` vs `Ptr<T>` - type level 분리
 
 ```rok
-struct GcPtr<T> { /* compiler-managed - root 자동 추적 */ }
-struct Ptr<T>   { /* raw - root 추적 X */ }
+struct GcPtr<T> { /* compiler-managed; root 자동 추적 */ }
+struct Ptr<T>   { /* raw; root 추적 X */ }
 ```
 
 | 측면       | `GcPtr<T>`                    | `Ptr<T>`                                         |
@@ -125,7 +125,7 @@ impl<T> Pinnable for GcPtr<T> {}
 
 ```rok
 struct GcPtr<T> {
-    // 내부: 보통 단순 `*T` - GC 가 외부에서 root set 으로 추적
+    // 내부: 보통 단순 `*T`. GC 가 외부에서 root set 으로 추적
     // 지역 변수면 컴파일러가 emit 하는 shadow stack frame 슬롯에 둠
 }
 ```
@@ -169,7 +169,7 @@ drop(Pinned):
 
 | 자리             | 이유                                    |
 |------------------|-----------------------------------------|
-| 일반 method 호출 | GcPtr 자동 갱신 - raw ptr 안 만듬       |
+| 일반 method 호출 | GcPtr 자동 갱신, raw ptr 안 만듬       |
 | GcPtr 끼리 연산  | 모두 GC 가 추적                         |
 | 짧은 FFI (no GC) | FFI 안에서 GC 안 도는 보장 시           |
 | Immortal const   | 이미 이동하지 않음 (string literal 등)  |
@@ -191,7 +191,7 @@ impl<T> Pinned<GcPtr<T>> {
 
 impl Pinned<str> {
     fn as_bytes_ptr(self) -> ConstPtr<u8>;   // UTF-8 bytes
-    fn as_c_str(self) -> ConstPtr<c_char>;   // null-terminated 보장 안 함 - 별도 변환
+    fn as_c_str(self) -> ConstPtr<c_char>;   // null-terminated 보장 안 함. 별도 변환
 }
 ```
 

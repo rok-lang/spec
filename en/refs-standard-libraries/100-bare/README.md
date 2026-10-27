@@ -9,7 +9,7 @@ Upward, it depends only on the symbols the runtime exposes through the runtime A
 ## User import policy
 
 ```rok
-use rok::bare::ptr::CPtr;                             // explicit import required - danger signal
+use rok::bare::ptr::CPtr;                             // explicit import required (danger signal)
 use rok::bare::alloc::{alloc, Layout};
 
 let layout = try! Layout::array::<u8>(1024);
@@ -53,9 +53,9 @@ The implicitly applied `use rok::core::**;` does not include unsafe items. `rok:
 
 ```rok
 let p: Ptr<i32> = ...;
-let addr: usize = p.addr();              // safe - address only
-let q: Ptr<i32> = p.with_addr(addr + 4); // safe - provenance kept, only the address changes
-let r: Ptr<i32> = rok::bare::ptr::from_exposed_provenance(addr);  // unsafe - fresh provenance
+let addr: usize = p.addr();              // safe: address only
+let q: Ptr<i32> = p.with_addr(addr + 4); // safe: provenance kept, only the address changes
+let r: Ptr<i32> = rok::bare::ptr::from_exposed_provenance(addr);  // unsafe: fresh provenance
 ```
 
 `as` casts can never be used on pointers. The authority for this direction is [Ralf Jung "Pointers Are Complicated"](https://www.ralfj.de/blog/2022/04/11/provenance-exposed.html), and it is isomorphic to the model stabilized in Rust 1.84 (Dec 2024).
@@ -86,7 +86,7 @@ let obj: List<i32> = [1, 2, 3];                // GcPtr (automatic)
 using pin = rok::bare::gc::pin(obj) {          // pin begins
     let raw: Ptr<i32> = pin.as_data_ptr();
     ffi_function(raw, obj.len());
-}                                              // pin released - raw invalid
+}                                              // pin released, raw invalid
 ```
 
 ### 4. Casts only as explicitly named operations
@@ -123,7 +123,7 @@ using f = File { raw: opened } {   // opened: Ptr<u8> from fopen
     // ... use f.raw ...
 }     // ← _guaranteed_ fclose at end of scope (RAII via Drop)
 
-// ordinary GC objects need no using - the GC reclaims them
+// ordinary GC objects need no using; the GC reclaims them
 let xs: List<i32> = [1, 2, 3];     // GC automatic
 ```
 

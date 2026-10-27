@@ -61,7 +61,7 @@ The code above works without any use statement, because the compiler **implicitl
 A user-defined item whose name `**` also brings in shadows it in that module: lookup takes the module's own items and its `use`s before the implicit `use rok::core::**` ([refs-lang 5.7.1](../../refs-lang/005-modules/507-paths.md#571-starting-identifier-of-a-path)). The core item stays reachable by its path or an alias.
 
 ```rok
-struct List<T> { ... }                  // OK - shadows rok::core::collections::List here
+struct List<T> { ... }                  // OK: shadows rok::core::collections::List here
 let xs: rok::core::collections::List<i32> = [1, 2];   // the core List, by path
 ```
 
@@ -70,11 +70,11 @@ let xs: rok::core::collections::List<i32> = [1, 2];   // the core List, by path
 Only `use rok::core::**;` is implicit. unsafe and std are **explicit only**.
 
 ```rok
-// unsafe - danger signal
+// unsafe: danger signal
 use rok::bare::ptr::{Ptr, ConstPtr};
 use rok::bare::ffi::{CStr, CString};
 
-// std - target-dependency signal
+// std: target-dependency signal
 use rok::std::fs;
 use rok::std::time::Instant;
 ```
@@ -84,8 +84,8 @@ This policy matches the following table of the [0.1 Tier model](001-tier-model.m
 | Tier            | Implicit import | Reason                          |
 |-----------------|-----------------|---------------------------------|
 | `rok::core::**` | ✓               | All targets / safe              |
-| `rok::bare::**` | ✗               | Danger signal - explicit only   |
-| `rok::std::**` | ✗               | Target-dep - explicit only      |
+| `rok::bare::**` | ✗               | Danger signal, explicit only   |
+| `rok::std::**` | ✗               | Target-dep, explicit only      |
 
 This way, which areas a user is entering is immediately visible from the top of the file.
 
@@ -100,7 +100,7 @@ In special situations the implicit `use rok::core::**;` itself can be turned off
 use rok::core::ops::Add;
 let r = a + b;   // OK (Add explicit)
 
-let m = Mutex::new(0);   // ERROR - Mutex not imported
+let m = Mutex::new(0);   // ERROR: Mutex not imported
 ```
 
 Literals are compiler-defined and stay available; only names (and the operators of traits not imported, [refs-lang 6.7.8](../../refs-lang/006-meta-system/607-operator-magic.md#678-visibility-of-mappings)) are lost.
@@ -120,18 +120,18 @@ mod sync {                          // rok::core::sync
     fn helper() { ... }                  // private
 }
 
-// user code - after the implicit use rok::core::**;
+// user code (after the implicit use rok::core::**;)
 let m: Mutex<i32> = Mutex::new(0);       // OK
-rok::core::sync::Internal::new();              // ERROR - pub(pkg)
-rok::core::sync::helper();                     // ERROR - private
+rok::core::sync::Internal::new();              // ERROR: pub(pkg)
+rok::core::sync::helper();                     // ERROR: private
 ```
 
 Names are not flattened; module paths are preserved as they are.
 
 ```rok
 // after the implicit use rok::core::**;
-let m = Mutex::new(0);              // OK - Mutex exposed directly (reachable as pub at rok::core::sync)
-let s = task::spawn(async { /* */ });      // OK - the task module itself is reachable too; spawn is task::spawn
+let m = Mutex::new(0);              // OK: Mutex exposed directly (reachable as pub at rok::core::sync)
+let s = task::spawn(async { /* */ });      // OK: the task module itself is reachable too; spawn is task::spawn
 
 // both mean the same thing.
 rok::core::sync::Mutex::new(0);
@@ -146,7 +146,7 @@ Mutex::new(0);
 | Rust     | `std::prelude::v1::*` re-export module + automatic | 1 (prelude module)               |
 | Haskell  | `Prelude` re-export module + automatic         | 1                                    |
 | Python   | built-ins (language magic)                     | 0 (langauge-level)                   |
-| **Rok**  | Implicit `use rok::core::**;`                  | **0** (direct - `**` is the mechanism) |
+| **Rok**  | Implicit `use rok::core::**;`                  | **0** (direct: `**` is the mechanism) |
 
 The biggest point where Rok diverges from other languages is that there is no prelude module indirection. Because `**` provides a recursive glob **at the language level**, users and the standard library share the same mechanism.
 

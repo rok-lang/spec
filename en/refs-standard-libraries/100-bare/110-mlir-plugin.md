@@ -8,11 +8,11 @@ This section defines the **registration mechanism and safety responsibilities** 
 
 | Responsibility                                           | Where                                      |
 |----------------------------------------------------------|--------------------------------------------|
-| Dialect definition (op schema, type system)              | **Outside the spec** - MLIR (TableGen `.td` / IRDL) |
-| Dialect build (`.so` / `.dylib` / `.dll`)                | **Outside the spec** - user build tools    |
+| Dialect definition (op schema, type system)              | **Outside the spec**: MLIR (TableGen `.td` / IRDL) |
+| Dialect build (`.so` / `.dylib` / `.dll`)                | **Outside the spec**: user build tools    |
 | Interface by which the Rok compiler loads / registers a plugin | **Inside the spec** (this section)   |
 | Calling loaded plugin ops with `__mlir_op`               | **Inside the spec** ([1.9](109-mlir.md))   |
-| Lowering / passes of plugin ops                          | **Outside the spec** - the plugin's own responsibility |
+| Lowering / passes of plugin ops                          | **Outside the spec**: the plugin's own responsibility |
 
 This separation keeps Rok independent of the evolution of MLIR's own dialect-definition DSLs (TableGen → IRDL → next-generation formats).
 
@@ -113,6 +113,6 @@ Rok defines no plugin ABI of its own and uses MLIR's plugin form as is.
 The following are outside the scope of this specification.
 
 - Defining dialects / ops inside Rok source code (Mojo does not do this either)
-- Loading two plugins with the same namespace together (conflict - rejected by MLIR)
+- Loading two plugins with the same namespace together (conflict, rejected by MLIR)
 - Adding dialects at runtime (execution time)
 - Compatibility of plugins across LLVM versions (follows the MLIR plugin API)

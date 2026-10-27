@@ -6,9 +6,9 @@ Rok 표준 라이브러리는 세 계층 (tier) 으로 나뉩니다. 각 tier �
 ```
 rok::bare   (base, runtime extern "C" 만 의존)
   ↓
-rok::core     (foundation, 안전, 모든 target - uses bare internally)
+rok::core     (foundation, 안전, 모든 target; uses bare internally)
   ↓
-rok::std   (target-dep - uses foundation + bare)
+rok::std   (target-dep; uses foundation + bare)
 ```
 
 세 계층 모두 가상 네임스페이스 `rok::` 아래에 자리 잡습니다 ([refs-lang 5.7.4](../../refs-lang/005-modules/507-paths.md#574-rok-표준-라이브러리-가상-네임스페이스)).
@@ -34,7 +34,7 @@ rok::std   (target-dep - uses foundation + bare)
 use rok::bare::ptr::CPtr;
 use rok::bare::alloc::{alloc, Layout};
 let layout = try Layout::array::<u8>(1024);
-let p: CPtr<u8> = unsafe { alloc(layout) };    // 실패 시 null - 1.4 alloc 참고
+let p: CPtr<u8> = unsafe { alloc(layout) };    // 실패 시 null (1.4 alloc 참고)
 ```
 
 ### `rok::core` (foundation)
@@ -46,7 +46,7 @@ iter, 컬렉션, fmt, 변환, sync, task, future 등 언어를 일상적으로 �
 별도의 import 없이 바로 사용할 수 있습니다.
 
 ```rok
-let xs: List<i32> = [1, 2, 3];        // List 직접 사용 - 묵시 use rok::core::**; 가 가져옴
+let xs: List<i32> = [1, 2, 3];        // List 직접 사용, 묵시 use rok::core::**; 가 가져옴
 let r = a + b;                         // Add 트레잇 자동
 let m = Mutex::new(0);                 // sync::Mutex 도 자동
 task::spawn(async { /* ... */ });              // task 모듈도 자동

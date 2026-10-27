@@ -8,11 +8,11 @@ MLIR 다이얼렉트 plugin 은 라이브러리 모듈이 아니라 컴파일러
 
 | 책임                                                     | 위치                                       |
 |----------------------------------------------------------|--------------------------------------------|
-| 다이얼렉트 정의 (op 스키마, type 시스템)                 | **spec 밖** - MLIR (TableGen `.td` / IRDL) |
-| 다이얼렉트 빌드 (`.so` / `.dylib` / `.dll`)              | **spec 밖** - 사용자 빌드 도구             |
+| 다이얼렉트 정의 (op 스키마, type 시스템)                 | **spec 밖**: MLIR (TableGen `.td` / IRDL) |
+| 다이얼렉트 빌드 (`.so` / `.dylib` / `.dll`)              | **spec 밖**: 사용자 빌드 도구             |
 | Rok 컴파일러가 plugin 을 로드 / register 하는 인터페이스 | **spec 안** (본 절)                        |
 | 로드된 plugin op 을 `__mlir_op` 으로 호출                | **spec 안** ([1.9](109-mlir.md))           |
-| plugin op 의 lowering / 패스                             | **spec 밖** - plugin 자체가 책임           |
+| plugin op 의 lowering / 패스                             | **spec 밖**: plugin 자체가 책임           |
 
 이 분리는 Rok 이 MLIR 자체의 dialect-definition DSL 진화 (TableGen → IRDL → 차세대 형식) 에 종속되지 않도록 합니다.
 
@@ -113,6 +113,6 @@ Rok 은 자체 plugin ABI 를 두지 않고 MLIR 의 plugin 형태를 그대로 
 다음은 본 사양 범위 밖입니다.
 
 - Rok 소스 코드 안에서 다이얼렉트 / op 정의 (Mojo 도 안 함)
-- 동일 namespace 의 plugin 두 개를 같이 로드 (충돌 - MLIR 이 거부)
+- 동일 namespace 의 plugin 두 개를 같이 로드 (충돌, MLIR 이 거부)
 - 런타임 (실행 시점) 에 다이얼렉트 추가
 - plugin 의 LLVM 버전 간 호환 (MLIR plugin API 를 따름)

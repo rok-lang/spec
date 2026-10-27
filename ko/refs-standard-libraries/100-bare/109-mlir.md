@@ -78,7 +78,7 @@ unsafe {
 
 ```rok
 unsafe {
-    // scf.if - then / else 두 region
+    // scf.if: then / else 두 region
     let r: i32 = __mlir_op::<"scf.if", i32>(
         cond,
         regions = [
@@ -87,7 +87,7 @@ unsafe {
         ],
     );
 
-    // scf.for - lb / ub / step 은 index 값
+    // scf.for: lb / ub / step 은 index 값
     let lb = __mlir_op::<"arith.index_cast", __mlir_type<"index">>(0i64);
     let ub = __mlir_op::<"arith.index_cast", __mlir_type<"index">>(n);
     let step = __mlir_op::<"arith.index_cast", __mlir_type<"index">>(1i64);
@@ -158,11 +158,11 @@ unsafe {
 ## 1.9.5. 일반 사용자 코드와의 관계
 
 ```rok
-// 일반 사용자 - MLIR 보지 않음
+// 일반 사용자: MLIR 보지 않음
 let xs: List<f32> = [1.0, 2.0, 3.0];
 let sum = xs.iter().sum();
 
-// 라이브러리 내부 - rok::bare::mlir 사용
+// 라이브러리 내부: rok::bare::mlir 사용
 mod tensor::ops {
     pub fn matmul<...>(a: Tensor<f32, (M, K)>, b: Tensor<f32, (K, N)>) -> Tensor<f32, (M, N)> {
         unsafe {
@@ -184,7 +184,7 @@ mod tensor::ops {
 | Swift   | `Builtin.X` (stdlib 내부)          | stdlib 작성자 한정                                   |
 | Julia   | `llvmcall` (사용자 가능)           | 권장 안 함, 외부 라이브러리 한정                     |
 | Rust    | LLVM intrinsic (사용자 불가)       | nightly + intrinsics crate                           |
-| **Rok** | **`rok::bare::mlir` (명시 unsafe)** | **라이브러리 작성자 한정 - 일반 사용자는 보지 않음** |
+| **Rok** | **`rok::bare::mlir` (명시 unsafe)** | **라이브러리 작성자 한정, 일반 사용자는 보지 않음** |
 
 Rok 의 모델은 Swift 와 Julia 에 가깝습니다. Mojo 처럼 일반 사용자에게도 MLIR 을 노출하지 않으며, `unsafe` 라는 명시적 진입을 강제해 사용자가 어떤 영역에 발을 들이는지 코드 위에 드러냅니다.
 
