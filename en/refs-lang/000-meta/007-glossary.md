@@ -4,7 +4,7 @@ The same concepts recur across many chapters of this specification, so it helps 
 
 ## ABI (Application Binary Interface)
 
-The ABI is the binary-level contract that compiled code must follow at link and run time. It includes object layout, calling conventions, symbol naming and so on. Rok's ABI is defined in [Chapter 8 - ABI / MLIR lowering](../008-abi/README.md).
+The ABI is the binary-level contract that compiled code must follow at link and run time. It includes object layout, calling conventions, symbol naming and so on. Rok's ABI is defined in [Chapter 8: ABI / MLIR lowering](../008-abi/README.md).
 
 ## AOT (Ahead-of-Time)
 

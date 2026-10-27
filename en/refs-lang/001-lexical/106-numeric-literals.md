@@ -123,7 +123,7 @@ let y: u8 = 200;         // u8
 let r = a * 2;           // 2 is i32 (follows a)
 let s: f64 = 2.0;
 let t = s * 2;           // 2 is f64 (follows s)
-let e: i32 = 1.5;        // ERROR - floating-point literal cannot be an integer type
+let e: i32 = 1.5;        // ERROR: floating-point literal cannot be an integer type
 let w: i64 = 7i64;
 let k = w + (1 + 2);     // 1 + 2 is i64 (meets w)
 let m: u8 = 2 * 100;     // 2 * 100 is u8 (expected type)
@@ -136,15 +136,15 @@ let v = if flag { 0 } else { w };   // 0 is i64 → v: i64
 A literal value outside the range of its type is a compile error. Hexadecimal, octal and binary literals follow the same range rules as decimal.
 
 ```rok
-let a: u8 = 256;         // ERROR - out of u8 range
-let b = 0xFFi8;          // ERROR - 255 is out of i8 range
-let c = 0xFFu8 as i8;    // OK - convert with as when a bit pattern is needed (-1)
+let a: u8 = 256;         // ERROR: out of u8 range
+let b = 0xFFi8;          // ERROR: 255 is out of i8 range
+let c = 0xFFu8 as i8;    // OK: convert with as when a bit pattern is needed (-1)
 ```
 
 Arithmetic consisting only of literals and constants is folded at compile time; if the result exceeds the type's range or divides by zero, it is a compile error ([5.2.4](../005-modules/502-const.md#524-constant-expressions-and-the-evaluator)).
 
 ```rok
-let m: u8 = 2 * 200;     // ERROR - 400 is out of u8 range
+let m: u8 = 2 * 200;     // ERROR: 400 is out of u8 range
 ```
 
 ## 1.6.5. Rejected forms
@@ -170,6 +170,6 @@ There is no separate negative literal token. `-42` consists of two tokens, the u
 There is one exception to range checking. A literal immediately after unary `-` is allowed up to `MAX + 1` of its type, so `-128i8` is the minimum value of `i8`. Operands of binary operations have no such exception.
 
 ```rok
-let m = -128i8;          // OK - i8::MIN
-let n = a - 128i8;       // ERROR - 128 is out of i8 range
+let m = -128i8;          // OK: i8::MIN
+let n = a - 128i8;       // ERROR: 128 is out of i8 range
 ```

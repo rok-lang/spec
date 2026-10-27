@@ -17,7 +17,7 @@ The AOT engine compiles the entire source ahead of time into a single artifact: 
 > [!IMPORTANT]
 > The two engines share the same semantics. Code that works under JIT produces the same result in an AOT build. The difference lies only in **when compilation happens**. This specification applies to both engines simultaneously; no semantics apply to only one of them.
 
-This principle also applies to the entry point. Input to the REPL and Jupyter has the same meaning as appending top-level statements and items, in order, to the end of `main.rok` in an executable package. Only session operations - re-declaring the same name with `let` at cell top level to create a new binding, or re-running a cell - are specific to the interactive surfaces ([4.16.10](../004-functions/416-entry-point.md#41610-relationship-to-jit--repl)).
+This principle also applies to the entry point. Input to the REPL and Jupyter has the same meaning as appending top-level statements and items, in order, to the end of `main.rok` in an executable package. Only session operations (re-declaring the same name with `let` at cell top level to create a new binding, or re-running a cell) are specific to the interactive surfaces ([4.16.10](../004-functions/416-entry-point.md#41610-relationship-to-jit--repl)).
 
 The abbreviations JIT and AOT are used as given in the [glossary](007-glossary.md).
 

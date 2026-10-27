@@ -37,12 +37,12 @@ fn f() -> i32 {
     const SCALE: i32 = 2;
     #[derive(Debug)]
     struct S { x: i32; }               // 이 블록에서 모듈의 `S` 를 가림
-    impl S { fn scaled(self) -> i32 { self.x * SCALE } }   // OK - `SCALE` 은 항목
+    impl S { fn scaled(self) -> i32 { self.x * SCALE } }   // OK: `SCALE` 은 항목
     S { x: 1 }.scaled()
 }
 
 fn g(n: i32) {
-    struct P { v: i32 = n; }           // ERROR - `n` 은 `g` 의 지역 변수
+    struct P { v: i32 = n; }           // ERROR: `n` 은 `g` 의 지역 변수
 }
 ```
 
@@ -124,15 +124,15 @@ let b = { x; };         // b 는 unit
 종결자 없는 마지막 식은 문맥에 따른 명시적 종료문과 동등한 의미를 지닙니다.
 
 ```rok
-// 함수 본체 - 마지막 식 == return value
+// 함수 본체: 마지막 식 == return value
 fn f() -> i32 { 42 }
 fn g() -> i32 { return 42; }      // 같은 의미
 
-// 라벨 블록 - 마지막 식 == break 'label value
+// 라벨 블록: 마지막 식 == break 'label value
 let x = 'b: { 42 };
 let y = 'b: { break 'b 42; };     // 같은 의미
 
-// loop - break 없는 loop 는 divergent. 마지막 식 자리는 없음.
+// loop: break 없는 loop 는 divergent. 마지막 식 자리는 없음.
 ```
 
 마지막 식 자리는 값이 도달하는 표면입니다. 함수 본체에서는 함수 반환과 같은 의미를 가지며, 라벨 블록에서는 그 라벨로의 break 와 같은 의미를 가집니다. 둘 중 어느 형태로 적든 컴파일러는 같은 결과를 만들어 냅니다.
@@ -208,7 +208,7 @@ divergent 의 정확한 검출 규칙은 함수와 제어 흐름 사양에서 �
 
 ## 3.9.10. 라벨 블록: `'label: { ... }`
 
-라벨 블록은 블록 표현식이 등장할 수 있는 모든 위치에서 사용 가능합니다 - `let` 초기값, 함수 본체, `if` / `else` 분기, `match` 가지 본체, 다른 블록의 트레일링 식 등이 그 예입니다. 위치별 추가 제약은 따로 없으며, 라벨이 그 블록의 종료 지점만을 가리키는 역할을 합니다.
+라벨 블록은 블록 표현식이 등장할 수 있는 모든 위치에서 사용 가능합니다. `let` 초기값, 함수 본체, `if` / `else` 분기, `match` 가지 본체, 다른 블록의 트레일링 식 등이 그 예입니다. 위치별 추가 제약은 따로 없으며, 라벨이 그 블록의 종료 지점만을 가리키는 역할을 합니다.
 
 블록 앞에 `'이름:` 형태의 라벨을 붙이면, 그 블록 안에서 `break '이름 값;` 을 통해 일찍 빠져나가면서 블록의 값을 정할 수 있습니다.
 
@@ -218,7 +218,7 @@ let result = 'b: {
     if shortcut_taken()    { break 'b  0; }
     let x = compute();
     let y = refine(x);
-    x + y                    // 일반 흐름의 마지막 식 - 'b 의 값
+    x + y                    // 일반 흐름의 마지막 식: 'b 의 값
 };
 ```
 

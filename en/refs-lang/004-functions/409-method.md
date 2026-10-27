@@ -134,7 +134,7 @@ When `x.method()` has multiple candidates, one is chosen in this order:
 3. If there is still more than one candidate, it is an ambiguity error, and the diagnostic suggests writing it as `Trait::method(x)`.
 
 ```rok
-use pkg::geom::Union;              // user trait - union method
+use pkg::geom::Union;              // user trait: union method
 a.union(b);                        // pkg::geom::Union takes precedence over core's Union
 rok::core::ops::Union::union(a, b) // explicit to use the core one
 ```

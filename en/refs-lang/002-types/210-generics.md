@@ -52,8 +52,8 @@ If type arguments are not written at the call site, the compiler infers them. Be
 ```rok
 fn empty<T>() -> List<T> { [] }
 
-let xs: List<i32> = empty();        // T = i32 - from the let's type annotation
-takes_strs(empty());                // T = str - from the parameter type List<str>
+let xs: List<i32> = empty();        // T = i32, from the let's type annotation
+takes_strs(empty());                // T = str, from the parameter type List<str>
 ```
 
 A `let` without an expected type is inferred from later uses. In an unannotated `let x = f();`, if the generic return type of `f` is not determined by the call alone, later uses determine it. Signatures are always explicit.
@@ -74,16 +74,16 @@ Diagnostics:
 
 ```rok
 let xs = empty();                   // still List<?>
-takes_ints(xs);                     // T = i32 here - parameter List<i32>
+takes_ints(xs);                     // T = i32 here (parameter List<i32>)
 let zs = List::new();
-zs.push(1);                         // zs: List<i32> - from a later method argument
-let ys = empty();                   // ERROR - type annotations needed (no concrete use)
+zs.push(1);                         // zs: List<i32>, from a later method argument
+let ys = empty();                   // ERROR: type annotations needed (no concrete use)
 ```
 
 Static trait methods with no arguments determine `Self` the same way. A call on a type parameter, `T::zero()`, and a trait-path call, `Tr::m()`, take `Self` from the expected type.
 
 ```rok
-let z: i32 = Zero::zero();          // Self = i32 - rok::core::num::Zero
+let z: i32 = Zero::zero();          // Self = i32 (rok::core::num::Zero)
 fn sum<T: Zero + Add<Output = T>>(xs: List<T>) -> T {
     let acc: T = T::zero();          // Self = T
     ...
@@ -94,7 +94,7 @@ A variant constructor of a generic `enum` determines its instance from its argum
 
 ```rok
 enum Pair<A, B> { One(A), Two(A, B) }
-let p = Pair::Two(1, "a");          // Pair<i32, str> - from the arguments
+let p = Pair::Two(1, "a");          // Pair<i32, str>, from the arguments
 ```
 
 ## 2.10.3. Trait bounds
@@ -150,10 +150,10 @@ A generic `struct`, `union`, `enum` or type alias takes at most as many argument
 struct P<T, U> { a: T; b: U; }
 struct D<T, U = i32> { a: T; b: U; }
 
-let p: P<i64> = P { a: 1, b: 2 };          // ERROR - `P` takes 2 generic arguments but 1 was given
+let p: P<i64> = P { a: 1, b: 2 };          // ERROR: `P` takes 2 generic arguments but 1 was given
                                            //   help: `P` is declared `P<T, U>`; add one for `U`
-let d: D<i32, i32, i32> = D { a: 1, b: 2 }; // ERROR - `D` takes 1 to 2 generic arguments but 3 were given
-let e: D<i32> = D { a: 1, b: 2 };          // OK - `U` is `i32`
+let d: D<i32, i32, i32> = D { a: 1, b: 2 }; // ERROR: `D` takes 1 to 2 generic arguments but 3 were given
+let e: D<i32> = D { a: 1, b: 2 };          // OK: `U` is `i32`
 ```
 
 A function or method may be given fewer explicit arguments than it has parameters (`f::<i32>(..)`); the rest are inferred. Giving more is the same error, and so is giving a trait bound more arguments than the trait has (`` `Tr` takes at most 1 generic argument but 2 were given ``). Arguments written on an enum's path name its instance: `E::<i64>::A(1)` is an `E<i64>`.
@@ -167,8 +167,8 @@ Generic calls and instantiations produce a separate compilation result for each 
 ```rok
 fn id<T>(x: T) -> T { x }
 
-let a = id(42i32);          // id<i32> is generated - an i32 → i32 function
-let b = id(3.14f64);        // id<f64> is generated - an f64 → f64 function
+let a = id(42i32);          // id<i32> is generated: an i32 → i32 function
+let b = id(3.14f64);        // id<f64> is generated: an f64 → f64 function
 let c = id("hello");         // id<str> is generated
 ```
 
@@ -197,8 +197,8 @@ A generic parameter denotes only one type within a call. It may denote different
 ```rok
 fn pair<T>(a: T, b: T) -> (T, T) { (a, b) }
 
-let p = pair(1i32, 2i32);     // OK - T = i32 for both arguments
-let q = pair(1i32, 3.14f64);  // ERROR - ambiguous whether T is i32 or f64
+let p = pair(1i32, 2i32);     // OK: T = i32 for both arguments
+let q = pair(1i32, 3.14f64);  // ERROR: ambiguous whether T is i32 or f64
 ```
 
 Multiple parameters (`pair<A, B>`) are each inferred independently.
@@ -209,7 +209,7 @@ The body of a generic function may only use behavior known through its bounds.
 
 ```rok
 fn double<T>(x: T) -> T {
-    x + x       // ERROR - T has no Add bound
+    x + x       // ERROR: T has no Add bound
 }
 
 fn double<T: Add<T, Output = T>>(x: T) -> T {

@@ -1,6 +1,6 @@
 # 3.3. Broadcast operators
 
-The dot-prefixed operators defined in [punctuation and operator tokens](../001-lexical/110-punctuation-and-operator-tokens.md) (`.+`, `.*`, `.==`, etc.) are distinct tokens for element-wise operations (broadcast). They work through the same mechanism as ordinary operators - desugaring to trait method calls - but map to a separate set of traits.
+The dot-prefixed operators defined in [punctuation and operator tokens](../001-lexical/110-punctuation-and-operator-tokens.md) (`.+`, `.*`, `.==`, etc.) are distinct tokens for element-wise operations (broadcast). They work through the same mechanism as ordinary operators (desugaring to trait method calls) but map to a separate set of traits.
 
 ## 3.3.1. Desugaring pattern
 

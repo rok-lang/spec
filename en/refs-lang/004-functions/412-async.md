@@ -80,7 +80,7 @@ Like a closure, an `async` block captures outer values **by copying them when it
 let n = 1;
 let f = async { n * 10 };
 n = 2;
-await f;                       //→ 10 - n at creation time
+await f;                       //→ 10 (n at creation time)
 ```
 
 ## 4.12.5. `async` closures
@@ -144,7 +144,7 @@ This suspension and resumption runs on the same coroutine mechanism as [generato
 To advance multiple Futures concurrently, use standard library functions.
 
 ```rok
-let rs = await task::join([task::spawn(op1()), task::spawn(op2())]);   // all - List<T>
+let rs = await task::join([task::spawn(op1()), task::spawn(op2())]);   // all: List<T>
 let first = await task::race([task::spawn(op1()), task::spawn(op2())]); // whichever finishes first
 let r = try await task::timeout(d, task::spawn(op1()));                // TimeoutError on timeout
 ```
@@ -171,7 +171,7 @@ The positions where `await` is allowed are:
 Because an async function call returns immediately, the following pattern is possible.
 
 ```rok
-let f = fetch_data();             // returns immediately - work has started or is scheduled
+let f = fetch_data();             // returns immediately; work has started or is scheduled
 do_other_work();                   // do other work in parallel
 let data = await f;                // wait when the result is needed
 ```

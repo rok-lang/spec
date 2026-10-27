@@ -18,9 +18,9 @@ The `fn` keyword is followed by a parenthesized list of parameter types, then `-
 The type of a function that can throw writes [`throws`](414-throws.md) in the same position as in a function declaration.
 
 ```rok
-fn(str) throws -> i32               // untyped - throws (any Error)
+fn(str) throws -> i32               // untyped: throws (any Error)
 fn(str) throws (ParseError) -> i32  // typed
-fn(Path) throws (IOError)           // return type omitted - unit
+fn(Path) throws (IOError)           // return type omitted: unit
 ```
 
 `unsafe fn(..) -> R` is the type of a function whose call requires `unsafe`. `unsafe fn` and C functions have this type as values. A safe `fn` value may be used where an `unsafe fn` is expected, but not the reverse ([4.15](415-unsafe.md#unsafe-fn-types)).
@@ -103,10 +103,10 @@ fn() + Send + Sync
 
 ```rok
 let c: Cell<i32> = Cell::new(0);
-let f: fn() + Send = || print("hi");     // OK - no captures
-let g: fn() + Send = || c.set(1);        // ERROR - Cell is not Send
+let f: fn() + Send = || print("hi");     // OK: no captures
+let g: fn() + Send = || c.set(1);        // ERROR: Cell is not Send
 let h: fn() = || print("hi");
-let k: fn() + Send = h;                  // ERROR - h's type has no + Send
+let k: fn() + Send = h;                  // ERROR: h's type has no + Send
 ```
 
 ## 4.4.7. Gradual parameters and returns
@@ -116,9 +116,9 @@ Generic parameters in a function type are not directly expressible in this notat
 ```rok
 fn id<T>(x: T) -> T { x }
 
-let f = id;                       // ERROR - id itself is generic; T is not determined
-let f: fn(i32) -> i32 = id;       // OK - monomorphized to i32
-let g = id::<i32>;                // OK - monomorphized with turbofish
+let f = id;                       // ERROR: id itself is generic; T is not determined
+let f: fn(i32) -> i32 = id;       // OK: monomorphized to i32
+let g = id::<i32>;                // OK: monomorphized with turbofish
 ```
 
 To put a dynamic slot in a function type, write `any` for a parameter or the return.
@@ -147,7 +147,7 @@ A function value is a `{code, env}` pair: `code` is a code pointer and `env` is 
 > Function type subtyping, as found in languages like Rust or TypeScript, does not exist in rok. A function type is not automatically converted to a more general or more specific function type. Parameter and return types must match exactly.
 
 ```rok
-let f: fn(i32 | f64) -> i32 = |x: i32| x;     // ERROR - parameter type does not match exactly
+let f: fn(i32 | f64) -> i32 = |x: i32| x;     // ERROR: parameter type does not match exactly
 ```
 
 Parameter and return types within a function type must match exactly; they are not widened to sum types.
@@ -157,9 +157,9 @@ The only exceptions are the divergent return of 4.4.8 and the error channel. If 
 ```rok
 fn parse_typed(s: str) throws (ParseError) -> i32 { ... }
 
-let p: fn(str) throws (ParseError) -> i32 = |s| s.len() as i32;   // OK - non-throwing → throwing
-let q: fn(str) throws -> i32 = parse_typed;   // OK - throws (ParseError) → throws (any Error)
-let r: fn(str) -> i32 = parse_typed;          // ERROR - throwing → non-throwing
+let p: fn(str) throws (ParseError) -> i32 = |s| s.len() as i32;   // OK: non-throwing → throwing
+let q: fn(str) throws -> i32 = parse_typed;   // OK: throws (ParseError) → throws (any Error)
+let r: fn(str) -> i32 = parse_typed;          // ERROR: throwing → non-throwing
 ```
 
 A `throws (A)` function value may be used in a `throws (A | B)` position, and, if `A` implements `Error`, in an untyped `throws` position.
@@ -168,7 +168,7 @@ This conversion applies to all function values, including function-typed variabl
 
 ```rok
 let g: fn(str) throws (ParseError) -> i32 = parse_typed;
-let h: fn(str) throws -> i32 = g;             // OK - wrapped in an adapter
+let h: fn(str) throws -> i32 = g;             // OK: wrapped in an adapter
 ```
 
 The motivation is explicitness. Rok's policy is that function conversions are written by the user in the explicit form of [conversion](../002-types/214-cast-and-conversion.md).
@@ -185,7 +185,7 @@ Function types contain no parameter names. A definition (`fn name(x: i32)`) has 
 
 ```rok
 fn(i32, i32) -> i32                // OK
-fn(x: i32, y: i32) -> i32          // ERROR - function types have no names
+fn(x: i32, y: i32) -> i32          // ERROR: function types have no names
 ```
 
 Named arguments at a call ([Parameters](402-parameters.md)) refer to the names in the function definition. Named arguments therefore do not work when calling through a function type; calls through a value accept only positional arguments.
@@ -194,7 +194,7 @@ Named arguments at a call ([Parameters](402-parameters.md)) refer to the names i
 fn make_user(name: str, age: i32) -> User { ... }
 let f: fn(str, i32) -> User = make_user;
 
-make_user(name: "A", age: 30i32);    // named OK - uses the definition's names
+make_user(name: "A", age: 30i32);    // named OK: uses the definition's names
 f("A", 30i32);                        // positional OK
-f(name: "A", age: 30i32);             // ERROR - the type has no names
+f(name: "A", age: 30i32);             // ERROR: the type has no names
 ```

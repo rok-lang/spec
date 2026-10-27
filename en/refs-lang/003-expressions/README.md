@@ -36,7 +36,7 @@ A statement is an expression with a terminator attached. Almost every code const
 
 ## Control structures are expressions
 
-Every control structure - `if`, `match`, `loop`, `while`, `for`, `try` - is also an expression. The following example shows control structures producing values directly.
+Every control structure (`if`, `match`, `loop`, `while`, `for`, `try`) is also an expression. The following example shows control structures producing values directly.
 
 ```rok
 let a = if cond { x } else { y };
@@ -65,7 +65,7 @@ The result type of an expression and the type of the slot receiving its value ar
 
 ### Result type of an expression
 
-If every branch of a control structure produces a value of the same type, that type is the result type of the expression. If branches produce values of different types, the receiving side must supply a type (the slot's explicit type, a parameter type, or a return type), and each branch must be compatible with it. If the receiving side has no type, it is a compile error. Automatic sum type inference and automatic promotion to a common supertype - for example implicitly promoting `i32` to `i64` or `f64` - are both disallowed.
+If every branch of a control structure produces a value of the same type, that type is the result type of the expression. If branches produce values of different types, the receiving side must supply a type (the slot's explicit type, a parameter type, or a return type), and each branch must be compatible with it. If the receiving side has no type, it is a compile error. Automatic sum type inference and automatic promotion to a common supertype (for example implicitly promoting `i32` to `i64` or `f64`) are both disallowed.
 
 ```
 if cond { 1i32 } else { 2i32 }          // result type of the expression: i32
@@ -85,7 +85,7 @@ When a variable slot receives the result of an expression, the slot's type follo
 ```rok
 // no type annotation → slot is inferred from the expression's result type
 let a = if cond { 1i32 } else { 2i32 };          // a: i32
-let b = if cond { 1i32 } else { 2.0f64 };        // ERROR: branch type mismatch - type annotation required
+let b = if cond { 1i32 } else { 2.0f64 };        // ERROR: branch type mismatch; type annotation required
 
 // any slot → accepts any combination of branches
 let g: any = if cond { 1i32 } else { 2.0f64 };   // OK
@@ -123,7 +123,7 @@ The three modes can be mixed freely within the same code; the user chooses per v
 Most lines of code take one of these two forms.
 
 ```rok
-<declaration>;           // a definition of let / fn / struct / ... - a statement
+<declaration>;           // a statement: a definition of let / fn / struct / ...
 <control-or-expr>;       // a statement that discards the expression's result
 ```
 
@@ -135,7 +135,7 @@ The last expression in a block is an exception.
 {
     let a = 1;
     let b = 2;
-    a + b           // no terminator - the value of this block
+    a + b           // no terminator: the value of this block
 }
 ```
 

@@ -43,8 +43,8 @@ let counter = 0;
 let config = load_config();
 
 let handler = [ref counter] || {
-    counter = counter + 1;        // ref - reflected in the outer variable
-    print(config.version);         // value - snapshot of config at capture time
+    counter = counter + 1;        // ref: reflected in the outer variable
+    print(config.version);         // value: snapshot of config at capture time
 };
 ```
 
@@ -59,7 +59,7 @@ Ambiguity is resolved by the longest-match rule of [punctuation and operator tok
 ```rok
 let xs = [1, 2, 3];               // List literal
 let f = [ref count] || { ... };   // capture list + closure
-arr[ref count]                     // ERROR - ref cannot be used in indexing
+arr[ref count]                     // ERROR: ref cannot be used in indexing
 ```
 
 ## 4.6.4. Reassigning an outer variable in the body → `ref` required
@@ -106,12 +106,12 @@ Collections (`List`, `Dict`, `Set`, `StrBuf`, ...) are reference handles ([stdli
 
 ```rok
 let xs = [1, 2, 3];
-let f = || { xs.push(4) };        // copies the handle - same List
+let f = || { xs.push(4) };        // copies the handle (same List)
 f();
 // xs == [1, 2, 3, 4]
 
 let p = Point { x: 0.0, y: 0.0 };
-let g = [ref p] || { p.x = 1.0 }; // ref capture - writes the outer p
+let g = [ref p] || { p.x = 1.0 }; // ref capture: writes the outer p
 g();
 // p.x == 1.0
 ```
@@ -123,15 +123,15 @@ For an independent copy of a collection, call `.clone()`.
 ```rok
 let xs = [1, 2, 3];
 
-// value capture - mutating the object is OK, reassigning the binding is not
+// value capture: mutating the object is OK, reassigning the binding is not
 let f = || {
-    xs.push(4);                   // OK - object mutation
-    // xs = [];                    // ERROR - binding reassignment
+    xs.push(4);                   // OK: object mutation
+    // xs = [];                    // ERROR: binding reassignment
 };
 
-// ref capture - reassigning the binding is also allowed
+// ref capture: reassigning the binding is also allowed
 let g = [ref xs] || {
-    xs = [];                      // OK - the outer xs becomes []
+    xs = [];                      // OK: the outer xs becomes []
 };
 ```
 
@@ -141,7 +141,7 @@ This distinction is the same as the `self` and `ref self` model of [`impl`](../0
 
 ## 4.6.9. Additional constraints in parallel and concurrent contexts
 
-Every capture of a `fn() + Send` closure (one passed to `task::spawn`, `par::for_each`, `thread::spawn`, etc.) must be `Send + Sync` ([4.4](404-function-type.md#send--sync-bounds)). A `[ref x]` cell is written by both the closure and the code that created it, so it is never `Send` or `Sync`, whatever the type of `x`: a closure with a `[ref]` capture - or one that captures such a closure, or a future made by an `async [ref x] ||` closure - fits no `+ Send` / `+ Sync` slot. Same-thread uses (`spawn_local`, ordinary calls) are unaffected. Collections are `!Sync` ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers)) and cannot be value-captured this way either.
+Every capture of a `fn() + Send` closure (one passed to `task::spawn`, `par::for_each`, `thread::spawn`, etc.) must be `Send + Sync` ([4.4](404-function-type.md#send--sync-bounds)). A `[ref x]` cell is written by both the closure and the code that created it, so it is never `Send` or `Sync`, whatever the type of `x`: a closure with a `[ref]` capture (or one that captures such a closure, or a future made by an `async [ref x] ||` closure) fits no `+ Send` / `+ Sync` slot. Same-thread uses (`spawn_local`, ordinary calls) are unaffected. Collections are `!Sync` ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers)) and cannot be value-captured this way either.
 
 ```rok
 let buf: List<i32> = [];
@@ -169,7 +169,7 @@ Captured variables live as long as the closure value. Even after the closure lea
 fn make_counter() -> fn() -> i32 {
     let count = 0;
     [ref count] || { count = count + 1; count }
-    // count is captured by ref - kept until the closure goes away
+    // count is captured by ref; kept until the closure goes away
 }
 
 let c = make_counter();

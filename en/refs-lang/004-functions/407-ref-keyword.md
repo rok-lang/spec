@@ -41,10 +41,10 @@ fn bump_then_fail(ref n: i32) throws {
     throw MyError {};
 }
 let a = 1i32;
-try bump_then_fail(ref a) catch _ { };   // a = 2 - written back on throw too
-swap(ref a, ref a);                       // ERROR - same place passed as ref twice
-add(ref a, a);                            // ERROR - place passed as ref read by another argument
-swap(ref p.x, ref p.y);                   // OK - distinct fields
+try bump_then_fail(ref a) catch _ { };   // a = 2 (written back on throw too)
+swap(ref a, ref a);                       // ERROR: same place passed as ref twice
+add(ref a, a);                            // ERROR: place passed as ref read by another argument
+swap(ref p.x, ref p.y);                   // OK: distinct fields
 ```
 
 > [!IMPORTANT]
@@ -67,8 +67,8 @@ This rule makes visible at the call site which variables can change, with the sa
 fn read(x: i32) { ... }
 fn write(ref x: i32) { ... }
 
-read(a);                          // plain - clearly a does not change
-write(ref a);                      // ref - clearly a may change
+read(a);                          // plain: clearly a does not change
+write(ref a);                      // ref: clearly a may change
 ```
 
 ## 4.7.4. Closure capture lists
@@ -94,7 +94,7 @@ In this case, `ref` is not required at the call site.
 
 ```rok
 let c = Counter { count: 0 };
-c.increment();                    // no 'ref' - handled automatically for method receivers
+c.increment();                    // no 'ref': handled automatically for method receivers
 ```
 
 This is a special rule for method receivers, unlike ordinary `ref` parameters. Method call syntax is itself a mechanism that [dispatches](../000-meta/007-glossary.md#dispatch) the receiver automatically, so an extra marker would only be visual noise.
@@ -114,7 +114,7 @@ Counter::increment(ref c);        // calling a ref self method by path also requ
 
 ```rok
 c.increment();                     // copies c in, writes back to c at the end
-c.add_from(|| c.count);            // ERROR - c accessed through a closure during the call
+c.add_from(|| c.count);            // ERROR: c accessed through a closure during the call
 ```
 
 ## 4.7.6. `ref` and types
@@ -122,9 +122,9 @@ c.add_from(|| c.count);            // ERROR - c accessed through a closure durin
 `ref` is a modifier, not a type, and appears nowhere in [type expressions](../002-types/201-type-expressions.md).
 
 ```rok
-let x: ref i32 = ...;             // ERROR - ref is not a type
-struct S { x: ref i32; }          // ERROR - same reason
-List<ref i32>                      // ERROR - same reason
+let x: ref i32 = ...;             // ERROR: ref is not a type
+struct S { x: ref i32; }          // ERROR: same reason
+List<ref i32>                      // ERROR: same reason
 ```
 
 `ref` may therefore appear only in:
@@ -138,7 +138,7 @@ Since `ref` cannot be used in a return type, Rok has no functions that return re
 ## 4.7.7. References cannot be first-class values
 
 ```rok
-let r = ref x;                    // ERROR - ref itself is not an expression
+let r = ref x;                    // ERROR: ref itself is not an expression
 let r: SomePointerType = ref x;   // ERROR
 ```
 
@@ -172,16 +172,16 @@ by_ref(ref a);                    // a = 10
 A `struct` is a value type: pass by value copies it, so a field write in the callee is local. To change the caller's struct, take it as `ref` (or `ref self`), or return the new value. A reference handle (`List`, `Dict`, ..., [stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md#reference-handles)) is copied as a handle, so changes to its elements are visible to the caller.
 
 ```rok
-fn set_x(p: Point) { p.x = 10.0; }          // local copy - the caller's p is unchanged
+fn set_x(p: Point) { p.x = 10.0; }          // local copy: the caller's p is unchanged
 fn set_x_ref(ref p: Point) { p.x = 10.0; }  // written back to the caller's p
-fn fill(xs: List<i32>) { xs.push(1); }      // same List - the caller sees it
+fn fill(xs: List<i32>) { xs.push(1); }      // same List: the caller sees it
 fn reset(ref xs: List<i32>) { xs = []; }    // the caller's variable holds a new List
 ```
 
 | Scenario                                          | Keyword needed                  |
 |---------------------------------------------------|---------------------------------|
 | Change a field of the caller's struct             | `ref`                           |
-| Change elements of a collection                   | ordinary pass by value - enough |
+| Change elements of a collection                   | ordinary pass by value suffices |
 | Make the caller's variable hold another value     | `ref`                           |
 
 ## 4.7.10. `ref` on two bindings at once
@@ -203,5 +203,5 @@ As shown, a single call may have multiple `ref` parameters.
 Passing the same place as two `ref`s at the call site is a compile error under the exclusivity rule of 4.7.2.
 
 ```rok
-swap(ref x, ref x);               // ERROR - same place passed as ref twice
+swap(ref x, ref x);               // ERROR: same place passed as ref twice
 ```

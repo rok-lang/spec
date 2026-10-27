@@ -88,9 +88,9 @@ For a function in the body to be an instance method, its first parameter must be
 
 ```rok
 impl Point {
-    fn origin() -> Point { ... }                    // static - called as Type::method()
-    fn distance(self, other: Point) -> f64 { ... }  // instance - called as instance.method()
-    fn replace_with(ref self, other: Point) { ... } // ref self - may reassign the caller's variable
+    fn origin() -> Point { ... }                    // static: called as Type::method()
+    fn distance(self, other: Point) -> f64 { ... }  // instance: called as instance.method()
+    fn replace_with(ref self, other: Point) { ... } // ref self: may reassign the caller's variable
 }
 ```
 
@@ -116,7 +116,7 @@ However, a given trait can be `impl`emented only once for the same type.
 
 ```rok
 impl Display for Point { ... }
-impl Display for Point { ... }   // ERROR - duplicate implementation
+impl Display for Point { ... }   // ERROR: duplicate implementation
 ```
 
 ## 2.9.4. Generic `impl`
@@ -144,7 +144,7 @@ Implementing a trait defined in one package for a type defined in another packag
 
 ```rok
 // trait Display and type i32 are both defined in the standard library (another package)
-impl Display for i32 { ... }     // ERROR - both from external packages
+impl Display for i32 { ... }     // ERROR: both from external packages
 ```
 
 So at least one must hold: the trait is defined in the current package, or the target type is defined in the current package. Built-in types (primitives, tuples, arrays, function types) count as defined in `rok::core`.
@@ -167,14 +167,14 @@ A (trait, type) pair has only one `impl`, and there is no specialization.
 
 ```rok
 impl<T: Display> Describe for List<T> { ... }
-impl<T: Hash> Describe for List<T> { ... }   // ERROR - i32 satisfies both Display and Hash
+impl<T: Hash> Describe for List<T> { ... }   // ERROR: i32 satisfies both Display and Hash
 impl<T: Shape> Area for T { ... }
-impl<T: Color> Area for T { ... }            // ERROR - T and T unify (bounds irrelevant)
+impl<T: Color> Area for T { ... }            // ERROR: T and T unify (bounds irrelevant)
 ```
 
 ```rok
 impl<T: Display> Describe for T { ... }
-impl Describe for i32 { ... }        // ERROR - overlaps the impl above since i32: Display
+impl Describe for i32 { ... }        // ERROR: overlaps the impl above since i32: Display
 ```
 
 ## 2.9.6. Method visibility

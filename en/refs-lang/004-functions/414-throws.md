@@ -24,9 +24,9 @@ Here `fn_modifiers` is `unsafe? async? yield?` as defined in [4.1 Function Decla
 
 ```rok
 fn name(args) -> R                              // non-throwing
-fn name(args) throws -> R                       // untyped - shorthand for throws (any Error)
-fn name(args) throws (E) -> R                   // typed - single error type
-fn name(args) throws (A | B | C) -> R           // typed - sum type of errors
+fn name(args) throws -> R                       // untyped: shorthand for throws (any Error)
+fn name(args) throws (E) -> R                   // typed: single error type
+fn name(args) throws (A | B | C) -> R           // typed: sum type of errors
 fn name(f: fn(T) throws -> U) rethrows -> R     // throws only when the function argument throws
 ```
 
@@ -42,7 +42,7 @@ In a function without `throws`, no error can leave the function. If an error fro
 
 ```rok
 fn bad() -> i32 {
-    throw ValueError { msg: "nope" };   // ERROR - error leaves a non-throwing function
+    throw ValueError { msg: "nope" };   // ERROR: error leaves a non-throwing function
 }
 ```
 
@@ -70,7 +70,7 @@ The parentheses may state the exact type that can be thrown, and sum types (`A |
 The typed form suits internal or library APIs, embedded environments, and cases where the set of error kinds is closed. The compiler can then check whether the caller's `catch` arms cover all error types; if they do, the expression is treated as no longer throwing.
 
 ```rok
-fn caller() -> Data {             // non-throwing - all three types handled
+fn caller() -> Data {             // non-throwing: all three types handled
     try parse_or_load(input)
     catch e: ParseError { ... }
     catch e: IOError { ... }
@@ -85,7 +85,7 @@ Every error that can leave the function must be compatible with the signature's 
 ```rok
 fn f() throws (A) -> i32 {
     throw A_instance;             // OK
-    throw B_instance;             // ERROR - only A allowed
+    throw B_instance;             // ERROR: only A allowed
 }
 ```
 
@@ -109,8 +109,8 @@ An error from a call marked with `try` is handled by the nearest `catch`; an unh
 
 ```rok
 fn caller() {                     // non-throwing
-    parse(s);                     // ERROR - throwing call not marked with try
-    try parse(s);                 // ERROR - error propagates but caller is not throws
+    parse(s);                     // ERROR: throwing call not marked with try
+    try parse(s);                 // ERROR: error propagates but caller is not throws
 }
 
 fn caller2() throws {             // propagates
@@ -124,8 +124,8 @@ fn caller3() {                    // catches
 }
 
 fn caller4() -> i32 {             // discards the error or turns it into a panic
-    let a = (try? parse(s)) ?? 0; // try? - none on error
-    let b = try! parse(t);        // try! - panic on error
+    let a = (try? parse(s)) ?? 0; // try?: none on error
+    let b = try! parse(t);        // try!: panic on error
     a + b
 }
 ```
@@ -151,8 +151,8 @@ fn map<U>(self, f: fn(T) throws -> U) rethrows -> List<U> {
 - In the body of a `rethrows` function, the only errors that can leave the function are those from calls of the function-typed parameters. If the body throws its own error directly, it is a compile error.
 
 ```rok
-let lens = names.map(|s| s.len());              // non-throwing closure - no try
-let nums = try names.map(|s| try parse(s));     // throwing closure - try required
+let lens = names.map(|s| s.len());              // non-throwing closure: no try
+let nums = try names.map(|s| try parse(s));     // throwing closure: try required
 ```
 
 When a `rethrows` function is used as a value, the expected type (a function type) determines which instance is used. Without an expected type, the error parameter is set to `any Error`.
@@ -163,7 +163,7 @@ When a `rethrows` function is used as a value, the expected type (a function typ
 
 ```rok
 fn(T) -> U                    // non-throwing
-fn(T) throws -> U             // untyped - throws (any Error)
+fn(T) throws -> U             // untyped: throws (any Error)
 fn(T) throws (E) -> U         // typed
 ```
 
@@ -213,7 +213,7 @@ try for line in lines("a.txt") {         // IoError from each next propagates
     process(line);
 }
 try for await ev in events() { handle(ev); }
-for line in lines("a.txt") { ... }       // ERROR - no try
+for line in lines("a.txt") { ... }       // ERROR: no try
 ```
 
 ## 4.14.11. `throws` on methods
@@ -240,7 +240,7 @@ In this model, the cost of the no-error path is a single branch, and entering `t
 
 ## 4.14.13. Panics and fatal errors
 
-A panic is not a `throws` error. Panics - the standard library's `panic_fn`, a failed `try!`, division by zero, integer overflow, a failed bounds check - and the fatal errors of [error control flow](../003-expressions/314-error-control-flow.md) are not part of any `throws` signature and cannot be caught with `catch`. The runtime writes the following to standard error (stderr) and terminates the process with exit code `101`.
+A panic is not a `throws` error. Panics (the standard library's `panic_fn`, a failed `try!`, division by zero, integer overflow, a failed bounds check) and the fatal errors of [error control flow](../003-expressions/314-error-control-flow.md) are not part of any `throws` signature and cannot be caught with `catch`. The runtime writes the following to standard error (stderr) and terminates the process with exit code `101`.
 
 ```
 thread '<name>' panicked at <path>:<line>:<col>:

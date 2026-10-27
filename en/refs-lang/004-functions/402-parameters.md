@@ -21,7 +21,7 @@ Each parameter is written as ` name: type`, separated by commas. Parameter names
 A parameter without a type is treated as generic. See the monomorphization rules of [generics](../002-types/210-generics.md) for details. In a trait `impl`, a method parameter without a type takes the type the trait declares at that position (trait parameters and associated types substituted), not an implicit type parameter.
 
 ```rok
-fn id(x) { x }                                   // x is generic - monomorphized at call
+fn id(x) { x }                                   // x is generic; monomorphized at call
 fn pair(x, y) { ... }                             // both parameters generic
 fn mixed(a: i32, b) { ... }                       // a is i32, b is generic
 ```
@@ -38,8 +38,8 @@ Traits used in the body are not automatically synthesized into a `where` clause 
 fn compute(x, y) { x + y }                       // signature: <T, U>(x: T, y: U)
                                                  //   no where clause synthesized
 
-compute(1i32, 2i32);                             // OK - i32 + i32 dispatch
-compute(1.0f64, 2.0f64);                         // OK - separate monomorphized instance
+compute(1i32, 2i32);                             // OK: i32 + i32 dispatch
+compute(1.0f64, 2.0f64);                         // OK: separate monomorphized instance
 compute(MyType, 1i32);                           // error at the call site:
                                                  //   "MyType has no Add<i32>"
                                                  //   (reported clearly where it is called,
@@ -97,7 +97,7 @@ sum();                            // xs: empty slice
 sum(1i32);                         // xs = [1]
 sum(1i32, 2i32, 3i32);             // xs = [1, 2, 3]
 let ys: List<i32> = [4, 5];
-sum(..ys);                         // xs = [4, 5] - list spread
+sum(..ys);                         // xs = [4, 5] (list spread)
 ```
 
 The following rules apply to variadic parameters:
@@ -125,7 +125,7 @@ let args = (1i32, 2i32, 3i32);
 foo(..args);                      // foo(1, 2, 3)
 
 let xs: List<i32> = [1i32, 2i32, 3i32];
-sum(..xs);                         // sum(1, 2, 3) - received as variadic
+sum(..xs);                         // sum(1, 2, 3) (received as variadic)
 ```
 
 The following rules apply to spread:
@@ -185,7 +185,7 @@ Parameters are introduced into the top-level scope of the function body and are 
 Default value expressions are evaluated in an environment without the parameters. They therefore cannot refer to other parameters of the same function.
 
 ```rok
-fn f(a: i32, b: i32 = a + 1) { ... }   // ERROR - default cannot refer to a
+fn f(a: i32, b: i32 = a + 1) { ... }   // ERROR: default cannot refer to a
 ```
 
 This constraint has the same motivation as the field default constraint of [`struct`](../002-types/203-struct.md): determinism and predictable cost.

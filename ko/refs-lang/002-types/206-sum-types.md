@@ -83,7 +83,7 @@ let y: i32 | f32 = 3.14f32;     // 태그가 f32 자리에 있음
 
 | 제네릭 합            | `T` 치환             | 결과                                                |
 |----------------------|----------------------|-----------------------------------------------------|
-| `T \| none`          | `i32 \| str`         | `i32 \| str \| none` (겹침 없음 - 펼침)              |
+| `T \| none`          | `i32 \| str`         | `i32 \| str \| none` (겹침 없음, 펼침)               |
 | `T \| none`          | `i32 \| none`        | `(i32 \| none)?` (두 층)                             |
 | `T \| ParseErr`      | `i32 \| ParseErr`    | `(i32 \| ParseErr) \| ParseErr`                      |
 | `T \| str \| none`   | `i32 \| str`         | `(i32 \| str) \| str \| none` (`str` 이 겹침)        |
@@ -101,7 +101,7 @@ let y: i32 | f32 = 3.14f32;     // 태그가 f32 자리에 있음
 type Maybe<T> = T | none;
 let r: (i32 | none)? = xs.get(0);       // 두 층
 let q: Maybe<i32 | none> = xs.get(0);   // 같은 타입
-let p: i32? = 1;                         // i32 | none - 겹침 없음
+let p: i32? = 1;                         // i32 | none (겹침 없음)
 let f: (i32 | str)? = none;              // i32 | str | none
 ```
 
@@ -110,7 +110,7 @@ let f: (i32 | str)? = none;              // i32 | str | none
 **변환.** 중첩 타입은 평평한 타입으로 암묵 변환되지 않습니다. 타입 에러입니다.
 
 ```rok
-let v: i32 | none = xs.get(0);    // ERROR - xs: List<i32 | none>
+let v: i32 | none = xs.get(0);    // ERROR: xs: List<i32 | none>
 // mismatched types: `let v` expects `i32 | none`, found `(i32 | none)?`
 ```
 
@@ -123,16 +123,16 @@ struct ParseErr { msg: str; }
 
 fn check<T>(x: T) -> T | ParseErr {
     if bad(x) { return ParseErr { msg: "bad" }; }   // 바깥 층의 ParseErr
-    x                                                // T 의 값 - 안쪽 층
+    x                                                // T 의 값: 안쪽 층
 }
 
-let a = check(1i32);                  // T = i32 - 겹치지 않음: i32 | ParseErr
+let a = check(1i32);                  // T = i32, 겹치지 않음: i32 | ParseErr
 let v: i32 | ParseErr = ParseErr { msg: "earlier" };
-let r = check(v);                     // T = i32 | ParseErr - 겹침: (i32 | ParseErr) | ParseErr
+let r = check(v);                     // T = i32 | ParseErr, 겹침: (i32 | ParseErr) | ParseErr
 match r {
-    e: ParseErr => print(f"check 실패: {e.msg}"),        // 바깥 층 - check 가 만든 에러
+    e: ParseErr => print(f"check 실패: {e.msg}"),        // 바깥 층: check 가 만든 에러
     inner => match inner {                                // inner: i32 | ParseErr
-        e: ParseErr => print(f"원래 값이 에러: {e.msg}"), // 안쪽 층 - v 에 들어 있던 에러
+        e: ParseErr => print(f"원래 값이 에러: {e.msg}"), // 안쪽 층: v 에 들어 있던 에러
         n: i32 => print(n),
     },
 }
@@ -197,19 +197,19 @@ T | none
 ```rok
 let xs: List<i32 | none> = [1, none, 3];
 
-for x in xs { print(f"{x:?}"); }  // 1, none, 3 - 저장된 none 도 원소
+for x in xs { print(f"{x:?}"); }  // 1, none, 3 (저장된 none 도 원소)
 
-match xs.get(1) {                // get: (i32 | none) | none - 두 층
+match xs.get(1) {                // get: (i32 | none) | none (두 층)
     none => print("범위 밖"),     // 바깥 none: 원소 없음
-    v => match v {               // v: i32 | none - 저장된 값
+    v => match v {               // v: i32 | none (저장된 값)
         none => print("저장된 none"),
         n: i32 => print(n),
     },
 }
 
 let d: Dict<str, i32 | none> = {"a": none};
-d.get("a") ?? 0i32;              // none - 키는 있고 값이 none (?? 는 바깥 층만 벗김)
-d.get("b") ?? 0i32;              // 0 - 키 없음
+d.get("a") ?? 0i32;              // none: 키는 있고 값이 none (?? 는 바깥 층만 벗김)
+d.get("b") ?? 0i32;              // 0: 키 없음
 ```
 
 ## 2.6.6. `any` 와의 차이
@@ -234,7 +234,7 @@ d.get("b") ?? 0i32;              // 0 - 키 없음
 
 ```rok
 enum Result { Ok(i32), Err(str) }       // Ok / Err 변형 이름이 enum 안에 정의됨
-type Either = i32 | str;                  // 변형 이름 없음 - 그냥 i32 또는 str
+type Either = i32 | str;                  // 변형 이름 없음: 그냥 i32 또는 str
 ```
 
 선택 기준은 다음과 같습니다. 서로 다른 의미를 가진 변형이라 이름이 필요한 경우에는 `enum` 을 선택하는 것이 적절합니다. 반대로 기존 타입을 그대로 합치는 쪽이 자연스러운 경우에는 합 타입을 선택하면 됩니다.

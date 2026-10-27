@@ -37,12 +37,12 @@ fn f() -> i32 {
     const SCALE: i32 = 2;
     #[derive(Debug)]
     struct S { x: i32; }               // hides the module's `S` in this block
-    impl S { fn scaled(self) -> i32 { self.x * SCALE } }   // OK - `SCALE` is an item
+    impl S { fn scaled(self) -> i32 { self.x * SCALE } }   // OK: `SCALE` is an item
     S { x: 1 }.scaled()
 }
 
 fn g(n: i32) {
-    struct P { v: i32 = n; }           // ERROR - `n` is a local of `g`
+    struct P { v: i32 = n; }           // ERROR: `n` is a local of `g`
 }
 ```
 
@@ -124,15 +124,15 @@ An expression ending without a terminator becomes the block's value, whereas an 
 A final expression without a terminator is equivalent to the explicit exit statement appropriate to its context.
 
 ```rok
-// function body - last expression == return value
+// function body: last expression == return value
 fn f() -> i32 { 42 }
 fn g() -> i32 { return 42; }      // same meaning
 
-// labeled block - last expression == break 'label value
+// labeled block: last expression == break 'label value
 let x = 'b: { 42 };
 let y = 'b: { break 'b 42; };     // same meaning
 
-// loop - a loop without break is divergent. There is no last-expression position.
+// loop: a loop without break is divergent. There is no last-expression position.
 ```
 
 The last-expression position is the surface where a value arrives. In a function body it means the function's return; in a labeled block it means a break to that label. Whichever form is written, the compiler produces the same result.
@@ -208,7 +208,7 @@ If a `return`, `break`, exception, or the like occurs during evaluation, evaluat
 
 ## 3.9.10. Labeled blocks: `'label: { ... }`
 
-A labeled block may be used anywhere a block expression may appear - a `let` initializer, a function body, an `if` / `else` branch, a `match` arm body, the trailing expression of another block, and so on. There are no additional position-specific restrictions; the label only designates the exit point of that block.
+A labeled block may be used anywhere a block expression may appear: a `let` initializer, a function body, an `if` / `else` branch, a `match` arm body, the trailing expression of another block, and so on. There are no additional position-specific restrictions; the label only designates the exit point of that block.
 
 Prefixing a block with a label of the form `'name:` allows `break 'name value;` inside the block to exit early while setting the block's value.
 
@@ -218,7 +218,7 @@ let result = 'b: {
     if shortcut_taken()    { break 'b  0; }
     let x = compute();
     let y = refine(x);
-    x + y                    // last expression of normal flow - the value of 'b
+    x + y                    // last expression of normal flow: the value of 'b
 };
 ```
 

@@ -56,7 +56,7 @@ fn 이름(매개변수들) -> 반환타입;
 ```rok
 trait Greeter {
     fn greet(self) -> str;                          // 요구
-    fn greet_loudly(self) -> str { self.greet() }    // 기본 - 덮어쓰기 가능
+    fn greet_loudly(self) -> str { self.greet() }    // 기본: 덮어쓰기 가능
 }
 ```
 
@@ -97,7 +97,7 @@ impl Iterator for Stream { type Item = i32; ... }
 impl Source for Stream { type Item = str; ... }
 
 impl Stream {
-    fn first(self) -> Self::Item { ... }                   // ERROR - Iterator::Item? Source::Item?
+    fn first(self) -> Self::Item { ... }                   // ERROR: Iterator::Item? Source::Item?
     fn first(self) -> <Self as Iterator>::Item { ... }     // OK
 }
 ```

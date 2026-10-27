@@ -28,7 +28,7 @@ let first = pair.0;
 let second = pair.1;
 ```
 
-Decimal digits after the dot are interpreted as a position index; this is the same tokenization as the `1.foo` rule of [numeric literals](../001-lexical/106-numeric-literals.md). For example, `pair.0` tokenizes into three tokens - the identifier `pair`, `.`, and the integer `0` - and the parser interprets them as positional access.
+Decimal digits after the dot are interpreted as a position index; this is the same tokenization as the `1.foo` rule of [numeric literals](../001-lexical/106-numeric-literals.md). For example, `pair.0` tokenizes into three tokens: the identifier `pair`, `.`, and the integer `0`. The parser interprets them as positional access.
 
 ### Static and dynamic resolution
 
@@ -60,7 +60,7 @@ The receiver (`obj`) at a method call site is handled automatically according to
 
 ```rok
 p.distance(other);          // self
-p.replace_with(other);      // ref self - caller does not write 'ref'
+p.replace_with(other);      // ref self: caller does not write 'ref'
 ```
 
 This is a special rule for method receivers, different from the explicit `ref` rule for ordinary function calls. Details are defined in the function specification.
@@ -97,8 +97,8 @@ The form is `.method::<...>(args)`: the method name follows `.`, then the turbof
 `Type::item` ([type paths](../002-types/213-type-paths.md)) accesses an item attached to a type.
 
 ```
-Type::item       // static method / associated const / associated type - no instance
-obj.item         // member / method attached to an instance - instance required
+Type::item       // static method / associated const / associated type (no instance)
+obj.item         // member / method attached to an instance (instance required)
 ```
 
 These two forms are entirely different kinds of access. The tokens differ (`::` vs. `.`) and so does the meaning.

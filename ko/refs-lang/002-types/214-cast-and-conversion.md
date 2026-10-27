@@ -106,9 +106,9 @@ let m: i32 | none = try? big.try_into::<i32>();
 
 ```rok
 let a: i64 = 100i64;
-let b: i32 = a;                 // ERROR - 명시 변환 필요
+let b: i32 = a;                 // ERROR: 명시 변환 필요
 let b: i32 = a as i32;          // OK
-let b: i32 = try! a.try_into::<i32>();     // OK - 실패하면 panic
+let b: i32 = try! a.try_into::<i32>();     // OK: 실패하면 panic
 ```
 
 이렇게 명시성을 강제하는 이유는 조용한 정밀도 손실을 막기 위함입니다.

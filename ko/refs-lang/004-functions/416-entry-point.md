@@ -18,13 +18,13 @@ top_stmt    ::= let_stmt | let_else_stmt | expr ";" | block_like_expr ";"?   // 
 module_file ::= item*                          // lib.rok 및 main.rok 가 아닌 모든 모듈 파일
 ```
 
-`item` 은 [모듈 안의 항목](../005-modules/504-modules.md#547-모듈-안의-항목) (`fn`, `struct`, `enum`, `trait`, `impl`, `const`, `static`, `mod`, `use` 등) 이고, `let_stmt` / `let_else_stmt` / `expr ";"` 은 [블록 표현식](../003-expressions/309-block-expressions.md) 의 문장과 같습니다. 제어 흐름 (`if`, `match`, `for`, `while`, `loop`, `try`) 은 모두 식이므로 `expr ";"` 에 포함됩니다. 함수 본체와 달리 종결자 없는 마지막 식 (`tail_expr`) 은 두지 않습니다 - 암묵 `main` 은 값을 반환하지 않기 때문입니다. 항목만 있고 문장도 `fn main` 도 없는 `main.rok` 는 빈 암묵 `main` 을 가집니다. 단 WIT 를 export 하는 패키지는 예외로, 진입점 없는 reactor 입니다 ([stdlib 1.8.2](../../refs-standard-libraries/100-bare/108-wit.md#export)).
+`item` 은 [모듈 안의 항목](../005-modules/504-modules.md#547-모듈-안의-항목) (`fn`, `struct`, `enum`, `trait`, `impl`, `const`, `static`, `mod`, `use` 등) 이고, `let_stmt` / `let_else_stmt` / `expr ";"` 은 [블록 표현식](../003-expressions/309-block-expressions.md) 의 문장과 같습니다. 제어 흐름 (`if`, `match`, `for`, `while`, `loop`, `try`) 은 모두 식이므로 `expr ";"` 에 포함됩니다. 함수 본체와 달리 종결자 없는 마지막 식 (`tail_expr`) 은 두지 않습니다. 암묵 `main` 은 값을 반환하지 않기 때문입니다. 항목만 있고 문장도 `fn main` 도 없는 `main.rok` 는 빈 암묵 `main` 을 가집니다. 단 WIT 를 export 하는 패키지는 예외로, 진입점 없는 reactor 입니다 ([stdlib 1.8.2](../../refs-standard-libraries/100-bare/108-wit.md#export)).
 
 > [!IMPORTANT]
 > 한 `main.rok` 안에 top-level 문과 `fn main` 선언이 **함께** 있으면 **컴파일 에러** 입니다. 두 진입점 가운데 어느 쪽이 실행되는지를 독자가 추측해야 하는 상황을 원천적으로 막기 위함입니다.
 
 ```rok
-// main.rok - ERROR
+// main.rok: ERROR
 fn main() { run(); }
 run();                      // ERROR: fn main 이 있는 파일에 top-level 문
 ```
@@ -37,7 +37,7 @@ run();                      // ERROR: fn main 이 있는 파일에 top-level 문
 // main.rok
 let names = ["ada", "grace"];
 for n in names {
-    greet(n);               // greet 은 아래에서 선언 - 순서 무관하게 보임
+    greet(n);               // greet 은 아래에서 선언, 순서 무관하게 보임
 }
 
 fn greet(name: str) {
@@ -55,7 +55,7 @@ fn greet(name: str) {
     println(f"hello, {name}");
 }
 
-fn main() throws {          // 암묵 main 의 형태 - 4.16.4 참고
+fn main() throws {          // 암묵 main 의 형태 (4.16.4 참고)
     let names = ["ada", "grace"];
     for n in names {
         greet(n);
@@ -69,7 +69,7 @@ fn main() throws {          // 암묵 main 의 형태 - 4.16.4 참고
 
 - **항목은 순서와 무관하게 보입니다.** `main.rok` 의 항목은 일반 모듈 항목과 똑같이 모듈 스코프에 속하므로, top-level 문은 자신보다 뒤에 선언된 `fn` / `struct` 등도 참조할 수 있습니다.
 - **top-level `let` 은 암묵 `main` 의 지역 변수입니다.** 전역 변수가 아니며, 선언 이후의 top-level 문에서만 보입니다 ([변수 선언](../005-modules/501-variable-declaration.md) 의 블록 스코프 규칙 그대로).
-- **top-level `let` 은 항목 본체 안에서 보이지 않습니다.** 위 예에서 `greet` 의 본체가 `names` 나 `total` 을 참조하면 이름 해소 에러입니다. 지역 변수를 클로저로 캡처하는 것은 가능합니다 (`let shout = |s| println(f"{s}! ({total})");`) - 클로저는 문이고, 암묵 `main` 본체 안에서 만들어지기 때문입니다.
+- **top-level `let` 은 항목 본체 안에서 보이지 않습니다.** 위 예에서 `greet` 의 본체가 `names` 나 `total` 을 참조하면 이름 해소 에러입니다. 지역 변수를 클로저로 캡처하는 것은 가능합니다 (`let shout = |s| println(f"{s}! ({total})");`). 클로저는 문이고, 암묵 `main` 본체 안에서 만들어지기 때문입니다.
 
 > [!NOTE]
 > **top-level `let` 이 항목에서 보이지 않는 이유.** 항목은 순서와 무관하게 존재하지만 `let` 은 실행 시점에 비로소 값이 생깁니다. 만약 `fn greet` 이 top-level `let` 을 볼 수 있다면, `greet` 이 그 `let` 보다 **먼저** 호출되는 경우 (예: 첫 줄에서 `greet()` 호출) 의 의미를 정해야 하고, 이는 곧 "전역 초기화 순서" 의미론을 언어에 들이는 일이 됩니다. Rok 은 전역 초기화 순서를 갖지 않는 것을 원칙으로 삼으므로 (4.16.6), top-level `let` 을 암묵 `main` 의 지역 변수로 한정합니다. 항목 사이에 공유해야 하는 상태는 매개변수로 넘기거나 `static` 으로 선언합니다.
@@ -114,7 +114,7 @@ fn main() throws {          // 암묵 main 의 형태 - 4.16.4 참고
 암묵 `main` 은 top-level 문에 `await` 가 (다른 `async` 블록이나 클로저 안이 아닌 위치에) 직접 나타날 때 `async fn main() throws` 가 되고, 그렇지 않으면 동기 `fn main() throws` 입니다.
 
 ```rok
-// main.rok - 암묵 async main
+// main.rok: 암묵 async main
 let body = await http::get("https://example.com");
 println(body.len());
 ```

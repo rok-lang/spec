@@ -21,7 +21,7 @@ fn f(x: i32, y: i32) -> i32 { x + y }
 타입을 적지 않으면 제네릭으로 처리됩니다. 자세한 동작은 [제네릭](../002-types/210-generics.md) 의 단형화 규칙을 참고합니다. 트레잇 `impl` 에서 타입이 없는 메서드 매개변수는 암묵 타입 매개변수가 아니라, 트레잇이 그 자리에 선언한 타입 (트레잇 매개변수와 연관 타입을 대입한 것) 을 가집니다.
 
 ```rok
-fn id(x) { x }                                   // x 는 제네릭 - 호출 시 단형화
+fn id(x) { x }                                   // x 는 제네릭, 호출 시 단형화
 fn pair(x, y) { ... }                             // 매개변수 둘 다 제네릭
 fn mixed(a: i32, b) { ... }                       // a 는 i32, b 는 제네릭
 ```
@@ -38,8 +38,8 @@ fn id<T>(x: T) -> T { x }
 fn compute(x, y) { x + y }                       // 시그니처: <T, U>(x: T, y: U)
                                                  //   where 절 자동 합성 안 함
 
-compute(1i32, 2i32);                             // OK - i32 + i32 dispatch
-compute(1.0f64, 2.0f64);                         // OK - 별개 단형화 인스턴스
+compute(1i32, 2i32);                             // OK: i32 + i32 dispatch
+compute(1.0f64, 2.0f64);                         // OK: 별개 단형화 인스턴스
 compute(MyType, 1i32);                           // 에러: 호출 사이트에서
                                                  //   "MyType 에 Add<i32> 없음"
                                                  //   (시그니처 자리가 아닌
@@ -97,7 +97,7 @@ sum();                            // xs: 빈 슬라이스
 sum(1i32);                         // xs = [1]
 sum(1i32, 2i32, 3i32);             // xs = [1, 2, 3]
 let ys: List<i32> = [4, 5];
-sum(..ys);                         // xs = [4, 5] - 리스트 spread
+sum(..ys);                         // xs = [4, 5] (리스트 spread)
 ```
 
 variadic 매개변수에는 다음 규칙이 적용됩니다.
@@ -125,7 +125,7 @@ let args = (1i32, 2i32, 3i32);
 foo(..args);                      // foo(1, 2, 3)
 
 let xs: List<i32> = [1i32, 2i32, 3i32];
-sum(..xs);                         // sum(1, 2, 3) - variadic 받음
+sum(..xs);                         // sum(1, 2, 3) (variadic 받음)
 ```
 
 spread 에는 다음 규칙이 적용됩니다.
@@ -185,7 +185,7 @@ make_user(name: f(), age: g());   // f() 먼저, g() 다음
 기본값 표현식은 매개변수가 없는 환경에서 평가됩니다. 따라서 같은 함수의 다른 매개변수를 참조할 수 없습니다.
 
 ```rok
-fn f(a: i32, b: i32 = a + 1) { ... }   // ERROR - 기본값에서 a 참조 불가
+fn f(a: i32, b: i32 = a + 1) { ... }   // ERROR: 기본값에서 a 참조 불가
 ```
 
 이 제약은 [`struct`](../002-types/203-struct.md) 의 필드 기본값 제약과 동일한 동기를 갖습니다. 결정론과 예측 가능한 비용이 그 이유입니다.

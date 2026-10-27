@@ -40,7 +40,7 @@ matrix[i, j]           →   <typeof(matrix) as Index<(typeof(i), typeof(j))>>::
 let xs = [10, 20, 30];
 xs[-1];                // 30
 let i = -2;
-xs[i];                 // 20 - 리터럴뿐 아니라 변수도
+xs[i];                 // 20 (리터럴뿐 아니라 변수도)
 xs[-4];                // panic: index -4 out of bounds for length 3
 ```
 
@@ -70,7 +70,7 @@ let all = arr[:];
 let stepped = arr[::2];
 let reverse = arr[::-1];
 let full = arr[a:b:s];
-let same = arr[1..3];        // 범위로도 - arr[1:3] 과 같음
+let same = arr[1..3];        // 범위로도 (arr[1:3] 과 같음)
 let whole = arr[..];         // arr[:] 과 같음
 ```
 
@@ -94,15 +94,15 @@ slice_expr  := expr? ':' expr? (':' expr?)?
 let xs = [1, 2, 3, 4, 5];
 xs[-2:];               // [4, 5]
 xs[1:-1];              // [2, 3, 4]
-xs[5:100];             // [] - clamp
+xs[5:100];             // [] (clamp)
 xs[-10:];              // [1, 2, 3, 4, 5]
 xs[:-10];              // []
-xs[3:1];               // [] - start >= end
+xs[3:1];               // [] (start >= end)
 xs[::-1];              // [5, 4, 3, 2, 1]
 xs[-1:0:-1];           // [5, 4, 3, 2]
-xs[3:1:-1];            // [4, 3] - 위치 3, 2
+xs[3:1:-1];            // [4, 3] (위치 3, 2)
 xs[1:4:-2];            // []
-xs[::0];               // panic - step 0
+xs[::0];               // panic: step 0
 ```
 
 단일 원소 인덱싱 (3.6.1) 은 다릅니다. 음수는 끝에서부터 세지만, 범위를 벗어나면 panic 입니다.
@@ -136,10 +136,10 @@ arr[a..b] / arr[..]   →   arr.slice(a..b) / arr.slice(0..n)
 
 | 대상                 | 결과                                                                 |
 |----------------------|----------------------------------------------------------------------|
-| `List<T>`            | `Slice<T>` - 리스트 버퍼의 view (원소 쓰기가 보임)                   |
-| `Slice<T>`           | `Slice<T>` - view 의 view                                            |
-| `[T; N]`             | `Slice<T>` - 배열 사본의 view (배열은 값)                            |
-| `str`, `StrBuf`      | 새 `str` - 바이트 사본 (`str` 은 C 문자열로 남아야 하므로), UTF-8 경계 검사 |
+| `List<T>`            | `Slice<T>`: 리스트 버퍼의 view (원소 쓰기가 보임)                    |
+| `Slice<T>`           | `Slice<T>`: view 의 view                                             |
+| `[T; N]`             | `Slice<T>`: 배열 사본의 view (배열은 값)                             |
+| `str`, `StrBuf`      | 새 `str`: 바이트 사본 (`str` 은 C 문자열로 남아야 하므로), UTF-8 경계 검사 |
 
 ### 슬라이스 대입
 
@@ -150,8 +150,8 @@ arr[a..b] / arr[..]   →   arr.slice(a..b) / arr.slice(0..n)
 같은 `[ ... ]` 안이라도, 콤마 (`,`) 가 등장하면 인덱싱 (다차원 또는 키 튜플) 으로, 콜론 (`:`) 이 등장하면 슬라이싱으로 해석됩니다. 한 괄호 안에서 두 형태를 섞는 것은 허용되지 않으니 주의해야 합니다.
 
 ```
-arr[1, 2]                  // OK - 인덱싱 (i, j)
-arr[1:3]                   // OK - 슬라이싱
+arr[1, 2]                  // OK: 인덱싱 (i, j)
+arr[1:3]                   // OK: 슬라이싱
 arr[1:3, 4:6]              // ERROR: 섞임
 ```
 

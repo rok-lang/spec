@@ -38,8 +38,8 @@ UAX #31 §7.1 "Mathematical Compatibility Notation Profile" 을 따릅니다. `m
 
 - `emoji`: `Extended_Pictographic` 속성을 가진 코드포인트 가운데 U+00FF 이하 (`©`, `®` 등) 를 제외한 것입니다. 시작과 이어지는 자리 모두에 올 수 있습니다.
 - `emoji_component`: 이어지는 자리에만 올 수 있습니다.
-  - ZWJ (U+200D) - 두 pictograph 사이에서만
-  - 변형 선택자 U+FE0E / U+FE0F - 정규화에서 제거됨 (1.4.2)
+  - ZWJ (U+200D): 두 pictograph 사이에서만
+  - 변형 선택자 U+FE0E / U+FE0F: 정규화에서 제거됨 (1.4.2)
   - 피부색 수식자 U+1F3FB-1F3FF
   - 지역 표시자 U+1F1E6-1F1FF (국기)
   - 태그 U+E0020-E007F
@@ -79,7 +79,7 @@ _internal
 my-var     // '-' 는 식별자 글자가 아님
 my var     // 공백
 ′x         // 프라임은 시작 글자가 될 수 없음
-1️⃣         // 키캡 - 숫자로 시작
+1️⃣         // 키캡: 숫자로 시작
 ```
 
 ## 1.4.2. 정규화

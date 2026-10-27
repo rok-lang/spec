@@ -48,7 +48,7 @@ let f = try fs::open(path);
 try {
     f.read_line()
 } finally {
-    f.drop();          // a call inserted by the compiler - writing it directly is an error
+    f.drop();          // a call inserted by the compiler; writing it directly is an error
 }
 ```
 
@@ -102,7 +102,7 @@ Panics and fatal errors terminate the process immediately, so `drop` is not call
 The type of the right-hand expression of `using` must implement [`Drop`](../../refs-standard-libraries/200-core/213-marker.md) or contain fields that have `Drop` (drop glue, [stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop---cleanup-on-using-release)). Otherwise it is a compile error.
 
 ```rok
-using x = 42 { ... }   // ERROR: using requires a type implementing Drop - i32 does not implement Drop
+using x = 42 { ... }   // ERROR: using requires a type implementing Drop; i32 does not implement Drop
 ```
 
 This restriction ensures only meaningful resources are bound with `using`, ruling out `using` on plain values at the specification level.
@@ -118,6 +118,6 @@ This restriction ensures only meaningful resources are bound with `using`, rulin
 | Swift    | `defer { x.close() }`         | function     | must be written explicitly              |
 | Go       | `defer x.Close()`             | **function** | not block-scoped                        |
 | Zig      | `defer x.close();`            | block        | `errdefer` variant                      |
-| Rust     | (automatic RAII, no keyword)  | block        | no GC - drop point determined automatically |
+| Rust     | (automatic RAII, no keyword)  | block        | no GC; drop point determined automatically  |
 
 Rok's `using` combines the explicit block pattern of GC languages (C#, Java, Python) with composability as an expression, `try` integration, and reverse-order release of multiple resources.

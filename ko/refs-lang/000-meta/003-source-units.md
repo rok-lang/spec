@@ -82,9 +82,9 @@ foo/                   <- foo's submodules
 
 패키지는 `src/` 옆에 `tests/` 와 `benches/` 디렉토리를 둘 수 있습니다. `src/` 밖의 다른 파일 (0.3.1) 과 달리 이들은 컴파일되지만, 대응하는 명령에서만 그렇습니다: `tests/` 는 `rokc test`, `benches/` 는 `rokc bench`. 일반 빌드, 라이브러리 인터페이스 (`.rokhir`), 패키지 식별자 (0.3.3) 에는 들어가지 않으며, 이들은 모두 `src/` 만으로 정해집니다.
 
-각 디렉토리는 합성 루트 모듈로 올라갑니다 - `tests/` 는 `tests` 모듈, `benches/` 는 `benches` 모듈 아래에 - [모듈](../005-modules/504-modules.md#544-패키지-루트) 의 일반 레이아웃 규칙을 따릅니다: `tests/parse.rok` 는 `tests::parse` 이고, 옆의 `tests/parse/` 폴더가 그 모듈의 하위 모듈을 담습니다. `mod.rok` 는 없습니다 ([5.4.6](../005-modules/504-modules.md#546-사용자-정의-경로-path)); 이름 규칙은 `src/` 와 같습니다.
+각 디렉토리는 합성 루트 모듈로 올라가며 (`tests/` 는 `tests` 모듈, `benches/` 는 `benches` 모듈 아래), [모듈](../005-modules/504-modules.md#544-패키지-루트) 의 일반 레이아웃 규칙을 따릅니다: `tests/parse.rok` 는 `tests::parse` 이고, 옆의 `tests/parse/` 폴더가 그 모듈의 하위 모듈을 담습니다. `mod.rok` 는 없습니다 ([5.4.6](../005-modules/504-modules.md#546-사용자-정의-경로-path)); 이름 규칙은 `src/` 와 같습니다.
 
-코드는 in-crate 입니다: 패키지와 함께 컴파일되며 `pkg::` 로 패키지에 닿고, `src/` 아래 모듈과 동일한 패키지 내부 가시성을 가집니다 - 의존성의 `pub` 전용 뷰가 아니므로 `pub(pkg)` 항목과 패키지 자신의 비공개 모듈까지 다룰 수 있습니다. 매니페스트의 `dev_deps` ([9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) 를 쓸 수 있습니다. `src/lib.rok` 와 `src/main.rok` 를 둘 다 가진 패키지에서는 두 디렉토리가 라이브러리를 대상으로 빌드되며, 실행 파일 자신의 테스트는 `src/` 안에 인라인으로 둡니다.
+코드는 in-crate 입니다: 패키지와 함께 컴파일되며 `pkg::` 로 패키지에 닿고, `src/` 아래 모듈과 동일한 패키지 내부 가시성을 가집니다. 의존성의 `pub` 전용 뷰가 아니므로 `pub(pkg)` 항목과 패키지 자신의 비공개 모듈까지 다룰 수 있습니다. 매니페스트의 `dev_deps` ([9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) 를 쓸 수 있습니다. `src/lib.rok` 와 `src/main.rok` 를 둘 다 가진 패키지에서는 두 디렉토리가 라이브러리를 대상으로 빌드되며, 실행 파일 자신의 테스트는 `src/` 안에 인라인으로 둡니다.
 
 여기의 파일은 암묵적으로 test/bench 전용이라 `#[cfg(test)]` 가 필요 없습니다. 측정 함수는 `#[test]` 나 `#[bench]` 로 표시하고 ([6.2.5](../006-meta-system/602-built-in-attributes.md#625-test-테스트-함수-마커)), 디렉토리의 다른 항목은 공용 헬퍼입니다.
 

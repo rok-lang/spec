@@ -255,7 +255,7 @@ match expr {
 
 ```rok
 fn load() -> Result<Config, IOError> {
-    let raw = read_result(path)?;     // ERROR - `?` 는 `T | none` 전용입니다.
+    let raw = read_result(path)?;     // ERROR: `?` 는 `T | none` 전용입니다.
                                       //   에러 전파는 `throws` 와 `try` 를 쓰세요.
     ...
 }

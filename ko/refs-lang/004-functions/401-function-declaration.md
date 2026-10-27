@@ -65,7 +65,7 @@ fn double(x: i32) {              // 반환 타입 생략
 
 ```rok
 fn print_msg(s: str) {
-    print(s);                     // 마지막에 종결자 - unit 반환
+    print(s);                     // 마지막에 종결자: unit 반환
 }
 ```
 
@@ -73,7 +73,7 @@ fn print_msg(s: str) {
 
 ```rok
 fn bad() -> i32 {
-    "hello"                       // ERROR - str 이 i32 아님
+    "hello"                       // ERROR: str 이 i32 아님
 }
 ```
 
@@ -111,7 +111,7 @@ fn dyn_id(x: any) {               // x 는 any 슬롯 (런타임 디스패치)
 본체가 비어 있는 함수는 unit 을 반환하는 함수가 됩니다.
 
 ```rok
-fn nothing() { }                  // 본체 비어 있음 - unit 반환
+fn nothing() { }                  // 본체 비어 있음: unit 반환
 ```
 
 ## 4.1.7. 반환 타입과 본체 마지막 식
@@ -128,7 +128,7 @@ fn f() -> i32 {
 
 ```rok
 fn f() -> i32 {
-    42i32;                        // ERROR - 종결자가 있어 값이 폐기됨
+    42i32;                        // ERROR: 종결자가 있어 값이 폐기됨
                                   // (반환 타입 i32 와 안 맞음)
 }
 ```
@@ -162,7 +162,7 @@ fn _internal(s: str) { ... }                     // 모듈 비공개 (기본)
 
 ```rok
 fn add(x: i32, y: i32) -> i32 { x + y }
-fn add(x: f64, y: f64) -> f64 { x + y }   // ERROR - 중복
+fn add(x: f64, y: f64) -> f64 { x + y }   // ERROR: 중복
 ```
 
 타입에 따라 다르게 동작하도록 만들고 싶다면 트레잇과 제네릭을 함께 사용하여 표현해 주시면 됩니다 ([`trait`](../002-types/208-trait.md)).
@@ -180,10 +180,10 @@ unsafe → async → yield
 이 순서를 어기면 syntax error 가 발생합니다. 같은 수식어를 두 번 적는 것 또한 grammar 차원에서 불가능합니다 (`unsafe?` 의 `?` 가 0 또는 1 개만 허용).
 
 ```rok
-unsafe async yield fn ok() -> i32 { ... }   // OK - 정해진 순서
-async unsafe fn bad1() { ... }           // ERROR - async 가 unsafe 앞에 옴
-yield async fn bad2() { ... }            // ERROR - yield 가 async 앞에 옴
-unsafe unsafe fn bad3() { ... }          // ERROR - unsafe 중복
+unsafe async yield fn ok() -> i32 { ... }   // OK: 정해진 순서
+async unsafe fn bad1() { ... }           // ERROR: async 가 unsafe 앞에 옴
+yield async fn bad2() { ... }            // ERROR: yield 가 async 앞에 옴
+unsafe unsafe fn bad3() { ... }          // ERROR: unsafe 중복
 ```
 
 이러한 강제 규칙은 같은 의미의 함수가 항상 같은 모양으로 적히도록 보장하여, formatter / linter / 사용자 가독성을 모두 단순하게 합니다.

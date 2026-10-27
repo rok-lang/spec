@@ -38,8 +38,8 @@ This follows UAX #31 §7.1 "Mathematical Compatibility Notation Profile". `math_
 
 - `emoji`: code points with the `Extended_Pictographic` property, excluding those at or below U+00FF (`©`, `®`, etc.). They may appear in both start and continue positions.
 - `emoji_component`: may appear only in continue positions.
-  - ZWJ (U+200D) - only between two pictographs
-  - Variation selectors U+FE0E / U+FE0F - removed by normalization (1.4.2)
+  - ZWJ (U+200D): only between two pictographs
+  - Variation selectors U+FE0E / U+FE0F: removed by normalization (1.4.2)
   - Skin tone modifiers U+1F3FB-1F3FF
   - Regional indicators U+1F1E6-1F1FF (flags)
   - Tags U+E0020-E007F
@@ -79,7 +79,7 @@ _internal
 my-var     // '-' is not an identifier character
 my var     // whitespace
 ′x         // a prime cannot be the first character
-1️⃣         // keycap - starts with a digit
+1️⃣         // keycap: starts with a digit
 ```
 
 ## 1.4.2. Normalization

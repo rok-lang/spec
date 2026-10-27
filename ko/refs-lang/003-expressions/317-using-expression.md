@@ -48,7 +48,7 @@ let f = try fs::open(path);
 try {
     f.read_line()
 } finally {
-    f.drop();          // 컴파일러가 넣는 호출 - 사용자가 직접 쓰면 에러
+    f.drop();          // 컴파일러가 넣는 호출. 사용자가 직접 쓰면 에러
 }
 ```
 
@@ -102,7 +102,7 @@ panic 과 fatal 에러는 프로세스를 곧바로 종료하므로 `drop` 을 �
 `using` 의 우변 식의 타입은 [`Drop`](../../refs-standard-libraries/200-core/213-marker.md) 을 구현하거나, `Drop` 을 가진 필드를 담아야 합니다 (drop glue, [stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop---using-해제-시-정리)). 둘 다 아니면 컴파일 에러입니다.
 
 ```rok
-using x = 42 { ... }   // ERROR: using 에는 Drop 구현 타입이 필요 - i32 는 Drop 을 구현하지 않음
+using x = 42 { ... }   // ERROR: using 에는 Drop 구현 타입이 필요. i32 는 Drop 을 구현하지 않음
 ```
 
 이 제약은 의미가 있는 자원만 `using` 으로 묶이도록 강제합니다. 단순 값에 `using` 이 등장하는 일을 사양 차원에서 차단합니다.
@@ -118,6 +118,6 @@ using x = 42 { ... }   // ERROR: using 에는 Drop 구현 타입이 필요 - i32
 | Swift  | `defer { x.close() }`         | function     | 명시적 작성 필요                |
 | Go     | `defer x.Close()`             | **function** | 블록 단위 X                     |
 | Zig    | `defer x.close();`            | block        | `errdefer` 변형                 |
-| Rust   | (RAII 자동, 별도 키워드 없음) | block        | GC 없음 - drop 시점 자동 결정   |
+| Rust   | (RAII 자동, 별도 키워드 없음) | block        | GC 없음, drop 시점 자동 결정    |
 
 Rok 의 `using` 은 GC 언어 (C#, Java, Python) 의 명시적 블록 패턴과 식 (expression) 으로서의 합성성, `try` 통합, 다중 자원 역순 해제를 결합한 형태입니다.

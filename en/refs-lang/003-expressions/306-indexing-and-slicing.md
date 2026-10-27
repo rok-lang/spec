@@ -40,7 +40,7 @@ For types indexed by position (`List`, `Slice`, fixed arrays `[T; N]`, and the s
 let xs = [10, 20, 30];
 xs[-1];                // 30
 let i = -2;
-xs[i];                 // 20 - variables too, not just literals
+xs[i];                 // 20 (variables too, not just literals)
 xs[-4];                // panic: index -4 out of bounds for length 3
 ```
 
@@ -70,7 +70,7 @@ let all = arr[:];
 let stepped = arr[::2];
 let reverse = arr[::-1];
 let full = arr[a:b:s];
-let same = arr[1..3];        // a range also works - same as arr[1:3]
+let same = arr[1..3];        // a range also works (same as arr[1:3])
 let whole = arr[..];         // same as arr[:]
 ```
 
@@ -94,15 +94,15 @@ The basic form `[start : end]` denotes the region from start (inclusive) to end 
 let xs = [1, 2, 3, 4, 5];
 xs[-2:];               // [4, 5]
 xs[1:-1];              // [2, 3, 4]
-xs[5:100];             // [] - clamp
+xs[5:100];             // [] (clamp)
 xs[-10:];              // [1, 2, 3, 4, 5]
 xs[:-10];              // []
-xs[3:1];               // [] - start >= end
+xs[3:1];               // [] (start >= end)
 xs[::-1];              // [5, 4, 3, 2, 1]
 xs[-1:0:-1];           // [5, 4, 3, 2]
-xs[3:1:-1];            // [4, 3] - positions 3, 2
+xs[3:1:-1];            // [4, 3] (positions 3, 2)
 xs[1:4:-2];            // []
-xs[::0];               // panic - step 0
+xs[::0];               // panic: step 0
 ```
 
 Single-element indexing (3.6.1) differs: negatives count from the end, but going out of range panics.
@@ -136,10 +136,10 @@ The result type is determined by an associated type of `Sliceable`. In the stand
 
 | Target               | Result                                                               |
 |----------------------|----------------------------------------------------------------------|
-| `List<T>`            | `Slice<T>` - a view of the list buffer (element writes are visible)  |
-| `Slice<T>`           | `Slice<T>` - a view of a view                                        |
-| `[T; N]`             | `Slice<T>` - a view of a copy of the array (arrays are values)       |
-| `str`, `StrBuf`      | new `str` - a byte copy (because `str` must remain a C string), with UTF-8 boundary checks |
+| `List<T>`            | `Slice<T>`: a view of the list buffer (element writes are visible)   |
+| `Slice<T>`           | `Slice<T>`: a view of a view                                         |
+| `[T; N]`             | `Slice<T>`: a view of a copy of the array (arrays are values)        |
+| `str`, `StrBuf`      | new `str`: a byte copy (because `str` must remain a C string), with UTF-8 boundary checks |
 
 ### Slice assignment
 
@@ -150,8 +150,8 @@ Slice assignment (`arr[1:3] = other;`) is not supported. Assign elements one at 
 Within the same `[ ... ]`, a comma (`,`) means indexing (multidimensional or key tuple) and a colon (`:`) means slicing. Mixing the two forms in one bracket is not allowed.
 
 ```
-arr[1, 2]                  // OK - indexing (i, j)
-arr[1:3]                   // OK - slicing
+arr[1, 2]                  // OK: indexing (i, j)
+arr[1:3]                   // OK: slicing
 arr[1:3, 4:6]              // ERROR: mixed
 ```
 

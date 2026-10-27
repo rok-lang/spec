@@ -1,6 +1,6 @@
 # 4.15. `unsafe` - function modifier and block expression
 
-The `unsafe` keyword appears in two forms that visibly confine regions whose safety the compiler does not guarantee: the **modifier on function / method declarations** and the **block expression**. The two work as a pair - a function declared `unsafe fn` must be called by the caller inside an `unsafe { ... }` block.
+The `unsafe` keyword appears in two forms that visibly confine regions whose safety the compiler does not guarantee: the **modifier on function / method declarations** and the **block expression**. The two work as a pair: a function declared `unsafe fn` must be called inside an `unsafe { ... }` block.
 
 ```
 unsafe_fn        ::= "unsafe" fn_decl
@@ -30,7 +30,7 @@ Inside the body of an `unsafe fn` itself, unsafe calls are allowed without a sep
 
 ```rok
 unsafe fn copy_two<T>(p: Ptr<T>) -> (T, T) {
-    let a = p.read();              // body is an unsafe scope - no explicit block needed
+    let a = p.read();              // body is an unsafe scope: no explicit block needed
     let b = p.add(1).read();
     (a, b)
 }
@@ -53,7 +53,7 @@ impl Buffer {
 
 User-declared C ABI functions are all implicitly `unsafe`, because their definitions are outside the compiler's control ([extern blocks](../005-modules/509-extern-block.md)). Writing it explicitly (`unsafe fn`) is recommended; if omitted, it is treated as `unsafe` automatically.
 
-As an exception, functions declared by the toolchain - symbols injected by the compiler or provided by the runtime, such as `rok_print_*` and `rok_panic_str` - may be called safely.
+As an exception, functions declared by the toolchain (symbols injected by the compiler or provided by the runtime, such as `rok_print_*` and `rok_panic_str`) may be called safely.
 
 ```rok
 extern "C" {
@@ -90,20 +90,20 @@ Inside an `unsafe { ... }` block, the following operations are additionally allo
 - Reading `union` fields (bit reinterpretation, [union](../002-types/205-union.md)). Writing fields is allowed without `unsafe`.
 - Using a value after it was handed to another owner ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers)): the block's author guarantees no other thread uses it at the same time.
 
-All other ordinary safe operations work the same inside an unsafe block - `unsafe` *adds capabilities*; it does not *change existing meaning*.
+All other ordinary safe operations work the same inside an unsafe block: `unsafe` *adds capabilities*; it does not *change existing meaning*.
 
 ### Narrowing the scope
 
 `unsafe` blocks should be kept as narrow as possible. Instead of wrapping a whole function in `unsafe { ... }`, wrapping only the one line that is actually dangerous makes the safety of the other lines visibly clear.
 
 ```rok
-// recommended - narrow unsafe scope
+// recommended: narrow unsafe scope
 fn safe_wrapper(p: Ptr<i32>) throws -> i32 {
     let validated = try check_ptr(p);
     unsafe { validated.read() }    // only the dangerous operation is unsafe
 }
 
-// not recommended - wide unsafe scope
+// not recommended: wide unsafe scope
 fn safe_wrapper(p: Ptr<i32>) throws -> i32 {
     unsafe {
         let validated = try check_ptr(p);
@@ -127,7 +127,7 @@ Violating the rules is a compile error:
 
 ```rok
 fn safe_caller(p: Ptr<i32>) -> i32 {
-    p.read()    // ERROR - call to unsafe fn 'read' outside unsafe block
+    p.read()    // ERROR: call to unsafe fn 'read' outside unsafe block
 }
 ```
 
@@ -140,8 +140,8 @@ When an `unsafe fn` or a C function is used as a value, its type is `unsafe fn(.
 ```rok
 let f: unsafe fn(usize) -> CPtr<u8> = malloc;   // C function value
 let p = unsafe { f(16) };
-let g: unsafe fn(i32) -> i32 = |x| x + 1;      // OK - safe → unsafe
-let h: fn(usize) -> CPtr<u8> = f;              // ERROR - unsafe → safe
+let g: unsafe fn(i32) -> i32 = |x| x + 1;      // OK: safe → unsafe
+let h: fn(usize) -> CPtr<u8> = f;              // ERROR: unsafe → safe
 ```
 
 ## 4.15.4. In traits
@@ -175,8 +175,8 @@ unsafe impl Send for Handle { }
 
 `unsafe` does not mean the compiler *gives up* safety checking. It means that the following two responsibilities transfer to the caller:
 
-1. **Memory safety** - the responsibility not to cause undefined behavior such as dangling pointers, misaligned access or data races.
-2. **Preconditions** - the responsibility to satisfy the usage conditions promised by the `unsafe fn`'s documentation (e.g., that a pointer points to a valid object, that a length is within the buffer).
+1. **Memory safety**: the responsibility not to cause undefined behavior such as dangling pointers, misaligned access or data races.
+2. **Preconditions**: the responsibility to satisfy the usage conditions promised by the `unsafe fn`'s documentation (e.g., that a pointer points to a valid object, that a length is within the buffer).
 
 `unsafe { ... }` is the visible signal that the caller accepts these two responsibilities, so dangerous regions are apparent at a glance during code review.
 
@@ -194,10 +194,10 @@ This automatic treatment reduces noisy repetition of `unsafe { ... }` in commonl
 | Language | unsafe notation model                                       |
 |----------|-------------------------------------------------------------|
 | Rust     | `unsafe fn` + `unsafe { ... }` (isomorphic)                 |
-| C / C++  | no separate notation - all code is potentially unsafe       |
+| C / C++  | no separate notation; all code is potentially unsafe        |
 | Swift    | `@unsafe` annotation / `withUnsafePointer` functional pattern |
-| Go       | `unsafe` package (separate import) - no block notation      |
-| Zig      | explicit builtins such as `@ptrCast` - no block notation    |
+| Go       | `unsafe` package (separate import); no block notation       |
+| Zig      | explicit builtins such as `@ptrCast`; no block notation     |
 | **Rok**  | **adopts Rust-style `unsafe fn` + `unsafe { ... }`**        |
 
 Rok follows Rust's model as-is. Visual separation of dangerous regions is marked consistently with a single keyword, which benefits both code review and static analysis.

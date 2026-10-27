@@ -88,9 +88,9 @@ let r = Circle::UNIT;
 
 ```rok
 impl Point {
-    fn origin() -> Point { ... }                    // 정적 - Type::method() 호출
-    fn distance(self, other: Point) -> f64 { ... }  // 인스턴스 - instance.method() 호출
-    fn replace_with(ref self, other: Point) { ... } // ref self - caller 의 변수 재할당 가능
+    fn origin() -> Point { ... }                    // 정적: Type::method() 호출
+    fn distance(self, other: Point) -> f64 { ... }  // 인스턴스: instance.method() 호출
+    fn replace_with(ref self, other: Point) { ... } // ref self: caller 의 변수 재할당 가능
 }
 ```
 
@@ -116,7 +116,7 @@ impl Point {
 
 ```rok
 impl Display for Point { ... }
-impl Display for Point { ... }   // ERROR - 중복 구현
+impl Display for Point { ... }   // ERROR: 중복 구현
 ```
 
 ## 2.9.4. 제네릭 `impl`
@@ -144,7 +144,7 @@ impl<T> Add for Pair<T> where T: Add<T> {
 
 ```rok
 // 트레잇 Display, 타입 i32 가 모두 표준 라이브러리(다른 패키지) 정의
-impl Display for i32 { ... }     // ERROR - 둘 다 외부 패키지
+impl Display for i32 { ... }     // ERROR: 둘 다 외부 패키지
 ```
 
 따라서 트레잇이 현재 패키지 정의이거나, 아니면 대상 타입이 현재 패키지 정의이거나 둘 중 하나는 반드시 충족되어야 합니다. 내장 타입 (원시 타입, 튜플, 배열, 함수 타입) 은 `rok::core` 에서 정의된 것으로 칩니다.
@@ -167,14 +167,14 @@ impl Display for i32 { ... }     // ERROR - 둘 다 외부 패키지
 
 ```rok
 impl<T: Display> Describe for List<T> { ... }
-impl<T: Hash> Describe for List<T> { ... }   // ERROR - i32 가 Display 와 Hash 를 모두 만족
+impl<T: Hash> Describe for List<T> { ... }   // ERROR: i32 가 Display 와 Hash 를 모두 만족
 impl<T: Shape> Area for T { ... }
-impl<T: Color> Area for T { ... }            // ERROR - T 와 T 가 단일화됨 (바운드 무관)
+impl<T: Color> Area for T { ... }            // ERROR: T 와 T 가 단일화됨 (바운드 무관)
 ```
 
 ```rok
 impl<T: Display> Describe for T { ... }
-impl Describe for i32 { ... }        // ERROR - i32: Display 라서 위 impl 과 겹침
+impl Describe for i32 { ... }        // ERROR: i32: Display 라서 위 impl 과 겹침
 ```
 
 ## 2.9.6. 메서드 가시성

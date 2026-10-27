@@ -134,7 +134,7 @@ c.increment();                                 // 'ref' 명시 없음
 3. 그래도 후보가 둘 이상이면 모호성 에러이며, 진단은 `Trait::method(x)` 형태로 적으라고 안내합니다.
 
 ```rok
-use pkg::geom::Union;              // 사용자 트레잇 - union 메서드
+use pkg::geom::Union;              // 사용자 트레잇: union 메서드
 a.union(b);                        // pkg::geom::Union 이 core 의 Union 보다 우선
 rok::core::ops::Union::union(a, b) // core 쪽을 쓰려면 명시
 ```

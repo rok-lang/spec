@@ -35,7 +35,7 @@ let b = if cond { 1i32 };                          // OK, 단 b 의 타입이 un
 ```rok
 // 슬롯에 타입 명시 없음 → 식 결과 타입으로 추론
 let x = if cond { 1i32 } else { 2i32 };          // 식 결과 i32, 슬롯 x: i32
-let y = if cond { 1i32 } else { 2.0f64 };        // ERROR: 분기 타입 불일치 - 타입 명시 필요
+let y = if cond { 1i32 } else { 2.0f64 };        // ERROR: 분기 타입 불일치, 타입 명시 필요
 
 // 슬롯에 합 타입 명시 → 항 일치 검사
 let w: i32 | f64 = if cond { 1i32 } else { 2.0f64 };   // OK
@@ -78,9 +78,9 @@ if x != 0i32 { ... }      // OK
 구분자 안 (`( )`, `[ ]`, 호출 / 메서드 인자, 배열, 튜플, 인덱스, dict 리터럴, 블록 `{ }`) 에서는 됩니다. 최상위에 쓰려면 괄호로 감쌉니다.
 
 ```rok
-if S { a: 1 }.ok() { .. }       // ERROR - `S` 뒤의 `{` 가 본체
+if S { a: 1 }.ok() { .. }       // ERROR: `S` 뒤의 `{` 가 본체
 if (S { a: 1 }).ok() { .. }     // OK
-if check(S { a: 1 }) { .. }     // OK - 인자 안
+if check(S { a: 1 }) { .. }     // OK: 인자 안
 ```
 
 ## 3.10.4. divergent 분기

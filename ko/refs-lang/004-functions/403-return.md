@@ -118,7 +118,7 @@ divergent 함수의 호출은 [블록 표현식](../003-expressions/309-block-ex
 let x: i32 = if cond {
     42i32
 } else {
-    fail_always()                 // divergent - i32 자리에서 OK
+    fail_always()                 // divergent: i32 자리에서 OK
 };
 ```
 

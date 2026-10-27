@@ -38,7 +38,7 @@ The code above is recognized as three empty statements. This form is accepted to
 
 ## 1.3.4. Block-like expression statements
 
-When a block-like expression ending in `}` - `if`, `match`, `loop`, `while`, `for`, or a block (`{ }`, `unsafe { }`, labeled block) - appears in statement position, the trailing `;` may be omitted (the same rule as Rust). The value of that expression must then be unit; to discard a non-unit value, add `;`.
+A block-like expression ends in `}`: `if`, `match`, `loop`, `while`, `for`, or a block (`{ }`, `unsafe { }`, labeled block). When one appears in statement position, the trailing `;` may be omitted (the same rule as Rust). The value of that expression must then be unit; to discard a non-unit value, add `;`.
 
 A call with a block-body [trailing closure](../004-functions/408-trailing-closure.md) (`retry(3) { .. }`, `xs.each |x| { .. }`) also ends a statement without `;` ([4.8.8](../004-functions/408-trailing-closure.md)). In that case the call's value is discarded as if `;` had been written.
 

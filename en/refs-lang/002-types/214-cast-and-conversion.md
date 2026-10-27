@@ -106,9 +106,9 @@ Automatic conversion of runtime variables, by contrast, is not allowed. One of t
 
 ```rok
 let a: i64 = 100i64;
-let b: i32 = a;                 // ERROR - explicit conversion required
+let b: i32 = a;                 // ERROR: explicit conversion required
 let b: i32 = a as i32;          // OK
-let b: i32 = try! a.try_into::<i32>();     // OK - panics on failure
+let b: i32 = try! a.try_into::<i32>();     // OK: panics on failure
 ```
 
 This explicitness prevents silent loss of precision.

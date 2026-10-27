@@ -62,7 +62,7 @@ let x = match v {
 let y = match v {
     1 => 1i32,
     _ => "other",
-};                      // ERROR: 가지 타입 불일치 - 타입 명시 필요
+};                      // ERROR: 가지 타입 불일치, 타입 명시 필요
 
 // 슬롯에 합 타입 명시 → 항 일치 검사
 let w: i32 | str = match v {

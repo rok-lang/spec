@@ -4,7 +4,7 @@
 
 ## ABI (Application Binary Interface)
 
-ABI 는 컴파일된 코드가 링크와 실행 시점에 따라야 하는 바이너리 수준의 계약을 가리킵니다. 객체 레이아웃, 호출 규약, 심볼 명명 등이 여기에 포함됩니다. Rok 의 ABI 는 [8장 - ABI / MLIR lowering](../008-abi/README.md) 에서 정의합니다.
+ABI 는 컴파일된 코드가 링크와 실행 시점에 따라야 하는 바이너리 수준의 계약을 가리킵니다. 객체 레이아웃, 호출 규약, 심볼 명명 등이 여기에 포함됩니다. Rok 의 ABI 는 [8장: ABI / MLIR lowering](../008-abi/README.md) 에서 정의합니다.
 
 ## AOT (Ahead-of-Time)
 

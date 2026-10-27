@@ -41,8 +41,8 @@ The following example shows how a `union` behaves.
 
 ```rok
 let x = EpollData { fd: 5i32 };
-x.fd = 7i32;                    // write - safe
-let y = unsafe { x.val };       // read - requires unsafe; reinterprets x's bit pattern as u64
+x.fd = 7i32;                    // write: safe
+let y = unsafe { x.val };       // read: requires unsafe; reinterprets x's bit pattern as u64
 ```
 
 Creating an instance with some field writes that field's bits to memory. Reading it later through another field reinterprets the same memory bits as that field's type. Writing a field is safe, but reading a field is allowed only inside [`unsafe`](../004-functions/415-unsafe.md#4152-unsafe------block-expression), because the language does not guarantee that the bits read are a valid value of that type (e.g. `bool`, `char`, pointers).

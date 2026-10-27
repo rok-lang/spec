@@ -6,7 +6,7 @@
 ## 2.12.1. What is forbidden
 
 ```rok
-let a: Number = 32i32;                          // ERROR - Number is a trait
+let a: Number = 32i32;                          // ERROR: Number is a trait
 fn process(x: Display) -> str { ... }            // ERROR
 struct Holder { item: Iterator; }                // ERROR
 ```

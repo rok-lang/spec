@@ -11,7 +11,7 @@
 ```
 type_expr   ::= sum_type
 sum_type    ::= unary_type ("|" unary_type)*
-unary_type  ::= base_type "?"*                  // T? - optional (2.1.5a), `??` 는 `?` 두 개
+unary_type  ::= base_type "?"*                  // T?: optional (2.1.5a), `??` 는 `?` 두 개
 base_type   ::= path_type
               | fn_type
               | tuple_type
@@ -140,10 +140,10 @@ A | B | C | D
 
 ```rok
 i32?                // i32 | none
-(i32 | str)?        // i32 | str | none - 겹침 없음, 펼침
-(i32 | none)?       // 두 층 - 바깥 none ≠ 안쪽 none
-i32??               // 두 층 - (i32 | none)? 과 같음
-i32 | none          // 적은 합 - 늘 평평한 i32 | none
+(i32 | str)?        // i32 | str | none (겹침 없음, 펼침)
+(i32 | none)?       // 두 층: 바깥 none ≠ 안쪽 none
+i32??               // 두 층: (i32 | none)? 과 같음
+i32 | none          // 적은 합: 늘 평평한 i32 | none
 ```
 
 - 후위 `?` 는 `|` 보다, 그리고 함수 타입의 `->` 보다 강하게 묶입니다 (2.1.10). `i32 | str?` 는 `i32 | (str?)` 입니다.

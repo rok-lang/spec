@@ -255,7 +255,7 @@ match expr {
 
 ```rok
 fn load() -> Result<Config, IOError> {
-    let raw = read_result(path)?;     // ERROR - `?` is only for `T | none`.
+    let raw = read_result(path)?;     // ERROR: `?` is only for `T | none`.
                                       //   Use `throws` and `try` for error propagation.
     ...
 }

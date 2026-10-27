@@ -56,7 +56,7 @@ An example with both a required method and a default method:
 ```rok
 trait Greeter {
     fn greet(self) -> str;                          // required
-    fn greet_loudly(self) -> str { self.greet() }    // default - may be overridden
+    fn greet_loudly(self) -> str { self.greet() }    // default: may be overridden
 }
 ```
 
@@ -97,7 +97,7 @@ impl Iterator for Stream { type Item = i32; ... }
 impl Source for Stream { type Item = str; ... }
 
 impl Stream {
-    fn first(self) -> Self::Item { ... }                   // ERROR - Iterator::Item? Source::Item?
+    fn first(self) -> Self::Item { ... }                   // ERROR: Iterator::Item? Source::Item?
     fn first(self) -> <Self as Iterator>::Item { ... }     // OK
 }
 ```
@@ -192,7 +192,7 @@ let p = Point { x: 1.0, y: 2.0 };
 let s = p.describe();       // Point's Describe implementation is called statically
 ```
 
-This dispatch is always static, because trait-as-type - writing a trait name as a variable, parameter or return type - is forbidden by the [Type system overview](README.md).
+This dispatch is always static, because trait-as-type (writing a trait name as a variable, parameter or return type) is forbidden by the [Type system overview](README.md).
 
 So when polymorphism is needed, use generics ([Generics](210-generics.md)) or sum types ([Sum types](206-sum-types.md)).
 

@@ -24,9 +24,9 @@ fn_decl ::= visibility? fn_modifiers "fn" identifier "(" param_list? ")" throws_
 
 ```rok
 fn name(args) -> R                              // non-throwing
-fn name(args) throws -> R                       // untyped - throws (any Error) 의 축약
-fn name(args) throws (E) -> R                   // typed - 단일 에러 타입
-fn name(args) throws (A | B | C) -> R           // typed - 합 타입 에러
+fn name(args) throws -> R                       // untyped: throws (any Error) 의 축약
+fn name(args) throws (E) -> R                   // typed: 단일 에러 타입
+fn name(args) throws (A | B | C) -> R           // typed: 합 타입 에러
 fn name(f: fn(T) throws -> U) rethrows -> R     // 인자로 받은 함수가 던질 때만 던짐
 ```
 
@@ -42,7 +42,7 @@ fn add(x: i32, y: i32) -> i32 { x + y }
 
 ```rok
 fn bad() -> i32 {
-    throw ValueError { msg: "nope" };   // ERROR - non-throwing 함수 밖으로 에러가 나감
+    throw ValueError { msg: "nope" };   // ERROR: non-throwing 함수 밖으로 에러가 나감
 }
 ```
 
@@ -70,7 +70,7 @@ fn parse_or_load(s: str) throws (ParseError | IOError | TimeoutError) -> Data { 
 typed 형태는 내부 또는 라이브러리 API, 임베디드 환경, 그리고 에러 종류가 닫혀 있는 경우에 적합합니다. 이 경우 컴파일러는 호출자의 `catch` 가지가 에러 타입을 모두 덮는지 검증할 수 있으며, 모두 덮으면 그 식은 더 이상 에러를 던지지 않는 것으로 취급합니다.
 
 ```rok
-fn caller() -> Data {             // non-throwing - 세 타입을 모두 처리
+fn caller() -> Data {             // non-throwing: 세 타입을 모두 처리
     try parse_or_load(input)
     catch e: ParseError { ... }
     catch e: IOError { ... }
@@ -85,7 +85,7 @@ fn caller() -> Data {             // non-throwing - 세 타입을 모두 처리
 ```rok
 fn f() throws (A) -> i32 {
     throw A_instance;             // OK
-    throw B_instance;             // ERROR - A 만 가능
+    throw B_instance;             // ERROR: A 만 가능
 }
 ```
 
@@ -109,8 +109,8 @@ fn load_config(path: str) throws (ConfigError) -> Config {
 
 ```rok
 fn caller() {                     // non-throwing
-    parse(s);                     // ERROR - throwing 호출에 try 표시 없음
-    try parse(s);                 // ERROR - 에러가 전파되는데 caller 는 throws 가 아님
+    parse(s);                     // ERROR: throwing 호출에 try 표시 없음
+    try parse(s);                 // ERROR: 에러가 전파되는데 caller 는 throws 가 아님
 }
 
 fn caller2() throws {             // 전파
@@ -124,8 +124,8 @@ fn caller3() {                    // 잡음
 }
 
 fn caller4() -> i32 {             // 에러를 버리거나 panic 으로 바꿈
-    let a = (try? parse(s)) ?? 0; // try? - 에러면 none
-    let b = try! parse(t);        // try! - 에러면 panic
+    let a = (try? parse(s)) ?? 0; // try?: 에러면 none
+    let b = try! parse(t);        // try!: 에러면 panic
     a + b
 }
 ```
@@ -151,8 +151,8 @@ fn map<U>(self, f: fn(T) throws -> U) rethrows -> List<U> {
 - `rethrows` 함수의 본체에서 함수 밖으로 나갈 수 있는 에러는 함수형 매개변수의 호출에서 나온 에러뿐입니다. 본체가 자기 에러를 직접 던지면 컴파일 에러입니다.
 
 ```rok
-let lens = names.map(|s| s.len());              // non-throwing 클로저 - try 없음
-let nums = try names.map(|s| try parse(s));     // throwing 클로저 - try 필요
+let lens = names.map(|s| s.len());              // non-throwing 클로저: try 없음
+let nums = try names.map(|s| try parse(s));     // throwing 클로저: try 필요
 ```
 
 `rethrows` 함수를 값으로 쓰면, 기대 타입 (함수 타입) 이 어느 인스턴스를 쓸지 정합니다. 기대 타입이 없으면 에러 매개변수는 `any Error` 로 정해집니다.
@@ -163,7 +163,7 @@ let nums = try names.map(|s| try parse(s));     // throwing 클로저 - try 필�
 
 ```rok
 fn(T) -> U                    // non-throwing
-fn(T) throws -> U             // untyped - throws (any Error)
+fn(T) throws -> U             // untyped: throws (any Error)
 fn(T) throws (E) -> U         // typed
 ```
 
@@ -213,7 +213,7 @@ try for line in lines("a.txt") {         // 각 next 의 IoError 가 전파됨
     process(line);
 }
 try for await ev in events() { handle(ev); }
-for line in lines("a.txt") { ... }       // ERROR - try 없음
+for line in lines("a.txt") { ... }       // ERROR: try 없음
 ```
 
 ## 4.14.11. 메서드의 `throws`

@@ -1,6 +1,6 @@
 # 1.10. Punctuation and operator tokens
 
-This document covers the tokenization rules for operator and punctuation character sequences, limited to their lexical form. The meaning of each token - precedence, associativity, which trait it dispatches to, and so on - is defined in [3. Expressions](../003-expressions/README.md).
+This document covers the tokenization rules for operator and punctuation character sequences, limited to their lexical form. The meaning of each token (precedence, associativity, which trait it dispatches to, and so on) is defined in [3. Expressions](../003-expressions/README.md).
 
 ## 1.10.1. Tokenization principles
 
@@ -35,7 +35,7 @@ The following is the complete list of operator and punctuation character sequenc
 &       |       ^       ~       <<      >>
 ```
 
-`%` is the arithmetic remainder (Rem - the sign follows the dividend), and `%%` is floored modulo (the sign of the result follows the divisor - always in `[0, divisor)` for a positive divisor; Python's `%`). The two tokens map to distinct traits and have different meanings.
+`%` is the arithmetic remainder (Rem; the sign follows the dividend), and `%%` is floored modulo (the sign of the result follows the divisor, so it is always in `[0, divisor)` for a positive divisor; Python's `%`). The two tokens map to distinct traits and have different meanings.
 
 The mapping of each token to the trait method it calls is defined in the standard library operator specification. This document guarantees only lexical tokenization.
 
@@ -50,7 +50,7 @@ These are dot-prefixed forms for element-wise (broadcast) operations. Each arith
 .&      .|      .^      .<<     .>>
 ```
 
-Each of these forms maps to a different trait method from its dotless form. For example, `+` maps to `Add::add` and `.+` to `DotAdd::dot_add`; these mappings are defined in the standard libraries. Unlike their dotless forms, the dot-prefixed logical operators (`.&&`, `.||`) do **not** short-circuit - because broadcast is lowered to a fused loop, both operands are evaluated (see [2.6 broadcast](../../refs-standard-libraries/200-core/206-broadcast.md) for details).
+Each of these forms maps to a different trait method from its dotless form. For example, `+` maps to `Add::add` and `.+` to `DotAdd::dot_add`; these mappings are defined in the standard libraries. Unlike their dotless forms, the dot-prefixed logical operators (`.&&`, `.||`) do **not** short-circuit: because broadcast is lowered to a fused loop, both operands are evaluated (see [2.6 broadcast](../../refs-standard-libraries/200-core/206-broadcast.md) for details).
 
 #### Distinguishing from floating-point literals
 
@@ -94,7 +94,7 @@ Operator characters are all chosen from code points with the Unicode `Pattern_Sy
 &=      |=      ^=      <<=     >>=
 ```
 
-The meaning of compound assignment - how many times the left-hand side is evaluated, the trait mapping, etc. - is defined in the expression specification. `%%=` is the compound assignment form of `%%` (floored modulo); by the longest-match rule, `%%=` is matched before `%=` or `%`.
+The meaning of compound assignment (how many times the left-hand side is evaluated, the trait mapping, etc.) is defined in the expression specification. `%%=` is the compound assignment form of `%%` (floored modulo); by the longest-match rule, `%%=` is matched before `%=` or `%`.
 
 ### Range / slice
 

@@ -85,7 +85,7 @@ if cond { 1i32 } else { 2.0f64 }        // 받는 쪽의 타입이 i32 | f64 등
 ```rok
 // 타입 명시 없음 → 슬롯은 식의 결과 타입으로 추론
 let a = if cond { 1i32 } else { 2i32 };          // a: i32
-let b = if cond { 1i32 } else { 2.0f64 };        // ERROR: 분기 타입 불일치 - 타입 명시 필요
+let b = if cond { 1i32 } else { 2.0f64 };        // ERROR: 분기 타입 불일치, 타입 명시 필요
 
 // any 슬롯 → 어떤 분기 조합이든 받음
 let g: any = if cond { 1i32 } else { 2.0f64 };   // OK
@@ -123,7 +123,7 @@ let f: i32 = if cond { 1i32 } else { 2.0f64 };         // ERROR: f64 분기가 i
 대부분의 코드 줄은 다음 두 형태 중 하나가 됩니다.
 
 ```rok
-<선언>;                  // let / fn / struct / ... 의 정의 - 문장
+<선언>;                  // 문장: let / fn / struct / ... 의 정의
 <제어구조 또는 식>;      // 표현식의 결과를 버리는 문장
 ```
 
@@ -135,7 +135,7 @@ let f: i32 = if cond { 1i32 } else { 2.0f64 };         // ERROR: f64 분기가 i
 {
     let a = 1;
     let b = 2;
-    a + b           // 종결자 없음 - 이 블록의 값
+    a + b           // 종결자 없음: 이 블록의 값
 }
 ```
 

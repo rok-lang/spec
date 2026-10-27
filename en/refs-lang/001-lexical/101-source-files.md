@@ -37,6 +37,6 @@ This specification sets no upper bound on line length, file size or identifier l
 
 Compiler diagnostics (errors, warnings) give positions as file, line and column.
 
-Line numbers start at 1. The column is a 1-based index counted in code points from the start of the line - code points, not bytes. A multibyte character such as a Hangul syllable therefore occupies one column. A tab (`U+0009`) also occupies one column and does not imitate its visual width.
+Line numbers start at 1. The column is a 1-based index counted in code points from the start of the line (code points, not bytes). A multibyte character such as a Hangul syllable therefore occupies one column. A tab (`U+0009`) also occupies one column and does not imitate its visual width.
 
-These rules make diagnostic positions easy for machines - editors and LSPs - to process. Visual alignment is left to the display tool.
+These rules make diagnostic positions easy for machines (editors and LSPs) to process. Visual alignment is left to the display tool.
