@@ -125,11 +125,11 @@ impl BootTime {
 ## 3.3.5. `Duration`
 
 ```rok
-struct Duration { ns: i64; }       // i64 nanosecond - 약 ±292년
+struct Duration { /* opaque: i64 nanosecond - 약 ±292년 */ }
 
 impl Duration {
-    const ZERO: Duration = Duration { ns: 0 };
-    const MAX: Duration = Duration { ns: I64_MAX };
+    const ZERO: Duration;             // 0 ns
+    const MAX: Duration;              // I64_MAX ns
 
     // 생성자
     fn ns(n: i64) -> Duration;

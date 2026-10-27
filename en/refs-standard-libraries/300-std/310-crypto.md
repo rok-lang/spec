@@ -22,4 +22,4 @@ Bytes come from the operating system's cryptographically secure generator, read 
 | wasm32-wasi, wasm32-wasi-threads | WASI `random_get` (the host's CSPRNG) |
 | wasm32-unknown-unknown | the JavaScript host's `crypto.getRandomValues` (through the `random_get` import the host provides) |
 
-An interrupted call is retried. A failing source cannot be recovered from: `fill` and `bytes` panic rather than return predictable bytes. The algorithms are `rok::core::crypto` (2.21), which take their random inputs (keys, seeds, nonces, salts) as arguments; `net::tls` (3.2.5) draws all of its from here.
+An interrupted call is retried. A failing source cannot be recovered from: `fill`, `bytes` and `secret` panic rather than return predictable bytes. The algorithms are `rok::core::crypto` (2.21), which take their random inputs (keys, seeds, nonces, salts) as arguments; `net::tls` (3.2.5) draws all of its from here.

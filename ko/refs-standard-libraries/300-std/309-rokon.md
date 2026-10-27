@@ -4,7 +4,7 @@ ROKON (Rok Object Notation) 은 Rok 의 리터럴 문법으로 값을 적는 데
 
 ## 3.9.1. 형식
 
-ROKON 은 Rok 식 문법의 부분집합이며, Rok 의 lexer / parser 로 읽습니다. 파일 하나에 값 하나입니다.
+ROKON 은 Rok 식 문법의 부분집합입니다. 라이브러리는 그 부분집합을 자체 lexer 와 재귀 하강 parser 로 읽으며, 런타임에 컴파일러의 parser 를 쓰지 않습니다. 파일 하나에 값 하나입니다.
 
 | 형태        | 예                                                    | 비고                                                  |
 |-------------|-------------------------------------------------------|-------------------------------------------------------|
@@ -26,7 +26,7 @@ ROKON 은 Rok 식 문법의 부분집합이며, Rok 의 lexer / parser 로 읽�
 - NaN 과 무한대는 ROKON 표기가 없습니다. 입력의 `nan` / `inf` 는 맨 식별자로 거부됩니다.
 
 > [!NOTE]
-> 알려진 한계: 첫 키가 `none` 인 dict (`{ none: 1 }`) 는 지원하지 않습니다. Rok parser 가 이것을 블록으로 읽기 때문입니다.
+> 알려진 한계: 첫 키가 `none` 인 dict (`{ none: 1 }`) 는 지원하지 않습니다. reader 가 `none:` 을 필드 이름으로 받아 중괄호를 struct 로 읽기 때문입니다.
 
 ```rokon
 // config.rokon
@@ -137,6 +137,8 @@ pub fn decode<T: FromRokon>(v: Value, seg: str) throws (RokonError) -> T;
 - `Value` 의 `==` 와 `hash` 는 구조적입니다. dict 의 항목과 struct 의 필드는 순서와 무관하게 비교하고, 부동소수는 정체로 비교합니다 (NaN == NaN, -0.0 != 0.0). 이름 없는 빈 struct 와 빈 dict 는 같습니다.
 - `Value` 의 `Debug`, `==`, `hash` 는 panic 하지 않습니다.
 - 표준 구현: 모든 정수 타입, `f32` / `f64`, `int` / `float`, `bool` / `char` / `str`, `Value`, `T | none`, `List`, `Set`, `Dict`, `OrderedDict`, `OrderedSet`, 원소 1 ~ 6 개의 튜플, `[T; N]`.
+
+모듈은 `Fields`, `struct_args`, `variant_of`, `variant_args`, `unknown_variant`, `RokonError::new` / `within`, 그리고 하위 모듈 `read` / `write` 도 내보냅니다. 이들은 `#[derive(Rokon)]` 에 대해 `@derive` 가 생성하는 코드를 위한 것이며 안정 API 가 아닙니다.
 
 ### `#[derive(Rokon)]`
 

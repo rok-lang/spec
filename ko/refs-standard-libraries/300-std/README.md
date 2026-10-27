@@ -22,7 +22,7 @@ use rok::std::thread::Builder;
 
 ## 모듈 목차
 
-본 tier 는 다음 열 모듈로 구성합니다.
+본 tier 는 다음 열한 모듈로 구성합니다.
 
 - [3.1. `fs::` - 파일 시스템 (atomic ops, Dir capability, reflink copy)](301-fs.md)
 - [3.2. `net::` - TCP / UDP / Unix + TLS 1.3](302-net.md)
@@ -34,6 +34,16 @@ use rok::std::thread::Builder;
 - [3.8. `path::` - UTF-8 `Path` (Python 식) + `RawPath` 이스케이프](308-path.md)
 - [3.9. `rokon::` - ROKON 데이터 형식 (`.rokon`)](309-rokon.md)
 - [3.10. `crypto::` - OS 난수 원천](310-crypto.md)
+- `wit::` - 생성된 WIT binding 이 부르는 component model 의 async ABI ([1.8](../100-bare/108-wit.md)). binding 내부용입니다: 생성된 코드가 닿을 수 있도록 public 이지만 직접 부르기 위한 것이 아니며, 여기서 명세하지 않습니다.
+
+## 인자 규약
+
+이 tier 의 모든 시그니처에는 두 가지 약기가 적용됩니다.
+
+- `Path` 로 적은 경로 매개변수는 타입 매개변수 `P: AsPath` 를 뜻하므로 `str` 과 `Path` 를 모두 받습니다 ([3.8.3a](308-path.md#383a-aspath---경로-인자)). 경로 매개변수 둘은 서로 독립입니다 (`P: AsPath, Q: AsPath`).
+- 고유 쓰기 함수 (`write`, `write_all`, `send`, `send_to`, `send_with_fd` 와 그 `_async` 판, `fs` 의 쓰기 함수) 의 데이터는 `B: AsBytes` 이므로 `str`, `List<u8>`, `Slice<u8>`, `[u8; N]` 을 넘길 수 있습니다 ([3.5.1](305-io.md#351-asbytes)). `Writer` 트레잇 메서드와 `write_zerocopy` 는 `List<u8>` 을 받습니다.
+
+읽기 buffer 는 길이를 미리 잡아 둔 `List<u8>` 입니다: `read(buf)` 는 `buf[0..n]` 을 채우고 `n` 을 돌려주며, 스트림 끝에서는 `0` 입니다.
 
 ## 핵심 디자인 원칙
 
@@ -147,7 +157,7 @@ fn load_config() throws (ConfigError) -> Config {
 | `rok::std::fs`      | ✓                   | ✓ (cap-based) | ✓ (cap-based)       | ✗ (every call `Unsupported`) |
 | `rok::std::net`     | ✓ (+ TLS 1.3)       | ✓ (`wasi:sockets`) | host 가 넘긴 listener 만 | ✗ (use `fetch`) |
 | `rok::std::time`    | ✓                   | ✓             | ✓                   | ✓ (Date.now)     |
-| `rok::std::thread`  | ✓                   | one thread (`spawn` `Unsupported`) | ✓ (wasi-threads) | one thread (`spawn` `Unsupported`) |
+| `rok::std::thread`  | ✓                   | one thread (`Builder::spawn` `Unsupported`) | ✓ (wasi-threads) | one thread (`Builder::spawn` `Unsupported`) |
 | `rok::std::io`      | ✓                   | ✓             | ✓                   | console / stdin 은 EOF |
 | `rok::std::env`     | ✓                   | ✓             | ✓                   | ✗                |
 | `rok::std::process` | ✓                   | ✗             | ✗                   | ✗                |

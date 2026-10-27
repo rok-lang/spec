@@ -22,7 +22,7 @@ use rok::std::thread::Builder;
 
 ## Module index
 
-This tier consists of the following ten modules.
+This tier consists of the following eleven modules.
 
 - [3.1. `fs::` - file system (atomic ops, Dir capability, reflink copy)](301-fs.md)
 - [3.2. `net::` - TCP / UDP / Unix + TLS 1.3](302-net.md)
@@ -34,6 +34,16 @@ This tier consists of the following ten modules.
 - [3.8. `path::` - UTF-8 `Path` (Python-style) + `RawPath` escape hatch](308-path.md)
 - [3.9. `rokon::` - the ROKON data format (`.rokon`)](309-rokon.md)
 - [3.10. `crypto::` - the OS random source](310-crypto.md)
+- `wit::` - the component model's async ABI that generated WIT bindings call ([1.8](../100-bare/108-wit.md)). Bindings-internal: public so the generated code can reach it, not meant to be called directly, and not specified here.
+
+## Argument conventions
+
+Two shorthands hold in every signature of this tier.
+
+- A path parameter written `Path` stands for a type parameter `P: AsPath`, so it accepts both `str` and `Path` ([3.8.3a](308-path.md#383a-aspath---path-arguments)). Two path parameters are independent (`P: AsPath, Q: AsPath`).
+- The data of an inherent write function (`write`, `write_all`, `send`, `send_to`, `send_with_fd` and their `_async` forms, the `fs` write functions) is `B: AsBytes`, so `str`, `List<u8>`, `Slice<u8>` and `[u8; N]` can be passed ([3.5.1](305-io.md#351-asbytes)). The `Writer` trait methods and `write_zerocopy` take a `List<u8>`.
+
+A read buffer is a `List<u8>` whose length is set up in advance: `read(buf)` fills `buf[0..n]` and returns `n`, `0` at the end of the stream.
 
 ## Core design principles
 
@@ -147,7 +157,7 @@ Module availability per platform:
 | `rok::std::fs`      | ✓                   | ✓ (cap-based) | ✓ (cap-based)       | ✗ (every call `Unsupported`) |
 | `rok::std::net`     | ✓ (+ TLS 1.3)       | ✓ (`wasi:sockets`) | listeners passed in by the host | ✗ (use `fetch`) |
 | `rok::std::time`    | ✓                   | ✓             | ✓                   | ✓ (Date.now)     |
-| `rok::std::thread`  | ✓                   | one thread (`spawn` `Unsupported`) | ✓ (wasi-threads) | one thread (`spawn` `Unsupported`) |
+| `rok::std::thread`  | ✓                   | one thread (`Builder::spawn` `Unsupported`) | ✓ (wasi-threads) | one thread (`Builder::spawn` `Unsupported`) |
 | `rok::std::io`      | ✓                   | ✓             | ✓                   | console / stdin at EOF |
 | `rok::std::env`     | ✓                   | ✓             | ✓                   | ✗                |
 | `rok::std::process` | ✓                   | ✗             | ✗                   | ✗                |

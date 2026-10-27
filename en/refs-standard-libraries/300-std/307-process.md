@@ -6,20 +6,10 @@ The `rok::std::process` module spawns child processes and handles signals. Its b
 
 The first thing you meet is the `Command` struct, the blueprint of a child process. All settings - the program to run, arguments, environment variables, how standard I/O is connected - are built up step by step before moving on to spawn.
 
+Path parameters follow the tier-wide [argument conventions](README.md#argument-conventions) (`Path` is `P: AsPath`).
+
 ```rok
-struct Command {
-    program: Path;
-    args: List<str>;
-    envs: Dict<str, str>;
-    env_clear: bool;
-    stdin: Stdio;
-    stdout: Stdio;
-    stderr: Stdio;
-    cwd: Path | none;
-    kill_on_drop: bool;       // kill when a Child bound with using is released
-    process_group: i32 | none;
-    // ...
-}
+struct Command { /* opaque: program, args, environment, streams, cwd, options */ }
 
 impl Command {
     fn new(program: Path) -> Command;
@@ -35,7 +25,7 @@ impl Command {
     fn stdout(self, cfg: Stdio) -> Command;
     fn stderr(self, cfg: Stdio) -> Command;
 
-    fn kill_on_drop(self, on: bool) -> Command;
+    fn kill_on_drop(self, on: bool) -> Command;         // kill when a Child bound with using is released
     fn process_group(self, pgid: i32) -> Command;       // unix
 
     // execution
@@ -84,9 +74,18 @@ impl Child {
     fn signal(self, sig: i32) throws (IoError);          // unix
 }
 
-impl ChildStdin { ... }                  // file handle - impl Writer
-impl ChildStdout { ... }                 // file handle - impl Reader
-impl ChildStderr { ... }                 // file handle - impl Reader
+impl ChildStdin {                        // write end of the child's stdin pipe - impl Writer
+    fn fd(self) -> RawFd;
+    fn close(self) throws (IoError);     // the child reads end of input
+}
+impl ChildStdout {                       // read end of the child's stdout pipe - impl Reader
+    fn fd(self) -> RawFd;
+    fn close(self) throws (IoError);
+}
+impl ChildStderr {                       // read end of the child's stderr pipe - impl Reader
+    fn fd(self) -> RawFd;
+    fn close(self) throws (IoError);
+}
 
 struct ExitStatus { /* opaque */ }
 
@@ -95,6 +94,7 @@ impl ExitStatus {
     fn code(self) -> i32 | none;        // none = signal terminated (unix)
     fn signal(self) -> i32 | none;       // unix
 }
+impl Display for ExitStatus { ... }      // "exit status: 1" / "signal: 9"
 ```
 
 The exit result is held in the opaque type `ExitStatus`. If `code()` is `none`, the process was terminated by a signal on unix, and the signal number can be retrieved separately with `signal()`.
@@ -160,6 +160,8 @@ Going a level deeper, there are the signal handling functions.
 fn signal(sig: i32, handler: fn() + Send) throws (SignalError);
 fn kill(pid: u32, sig: i32) throws (IoError);
 fn raise(sig: i32) throws (IoError);
+fn id() -> u32;                          // this process's id (= env::pid())
+fn abort() -> !;                         // abnormal termination (SIGABRT); nothing is cleaned up
 
 struct SignalError {
     sig: i32;          // the signal being installed

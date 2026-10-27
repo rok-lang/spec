@@ -4,7 +4,7 @@ ROKON (Rok Object Notation) is a data format that writes values in Rok's literal
 
 ## 3.9.1. Format
 
-ROKON is a subset of Rok expression syntax and is read with Rok's lexer / parser. One file holds one value.
+ROKON is a subset of Rok expression syntax. The library reads it with its own lexer and recursive-descent parser over that subset; the compiler's parser is not used at run time. One file holds one value.
 
 | Form        | Example                                               | Notes                                                 |
 |-------------|-------------------------------------------------------|-------------------------------------------------------|
@@ -26,7 +26,7 @@ ROKON is a subset of Rok expression syntax and is read with Rok's lexer / parser
 - NaN and infinity have no ROKON notation. `nan` / `inf` in the input are rejected as bare identifiers.
 
 > [!NOTE]
-> Known limitation: a dict whose first key is `none` (`{ none: 1 }`) is not supported, because the Rok parser reads it as a block.
+> Known limitation: a dict whose first key is `none` (`{ none: 1 }`) is not supported, because the reader takes `none:` as a field name and reads the braces as a struct.
 
 ```rokon
 // config.rokon
@@ -137,6 +137,8 @@ pub fn decode<T: FromRokon>(v: Value, seg: str) throws (RokonError) -> T;
 - `==` and `hash` on `Value` are structural. Dict entries and struct fields are compared regardless of order, and floating-point values are compared by identity (NaN == NaN, -0.0 != 0.0). An unnamed empty struct and an empty dict are equal.
 - `Debug`, `==` and `hash` on `Value` never panic.
 - Standard implementations: every integer type, `f32` / `f64`, `int` / `float`, `bool` / `char` / `str`, `Value`, `T | none`, `List`, `Set`, `Dict`, `OrderedDict`, `OrderedSet`, tuples of 1 ~ 6 elements, `[T; N]`.
+
+The module also exports `Fields`, `struct_args`, `variant_of`, `variant_args`, `unknown_variant`, `RokonError::new` / `within` and the submodules `read` / `write`. They support the code `@derive` generates for `#[derive(Rokon)]` and are not a stable API.
 
 ### `#[derive(Rokon)]`
 

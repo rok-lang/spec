@@ -125,11 +125,11 @@ This difference is decisive when a mobile or laptop app must measure "real elaps
 ## 3.3.5. `Duration`
 
 ```rok
-struct Duration { ns: i64; }       // i64 nanoseconds - about ±292 years
+struct Duration { /* opaque: i64 nanoseconds - about ±292 years */ }
 
 impl Duration {
-    const ZERO: Duration = Duration { ns: 0 };
-    const MAX: Duration = Duration { ns: I64_MAX };
+    const ZERO: Duration;             // 0 ns
+    const MAX: Duration;              // I64_MAX ns
 
     // constructors
     fn ns(n: i64) -> Duration;

@@ -6,20 +6,10 @@
 
 가장 먼저 만나게 되는 것은 자식 프로세스의 청사진을 그리는 `Command` 구조체입니다. 실행할 프로그램, 인자, 환경 변수, 표준 입출력의 연결 방식 같은 모든 설정을 단계적으로 쌓아 올린 뒤에야 비로소 spawn 으로 옮겨 가게 됩니다.
 
+경로 매개변수는 tier 공통 [인자 규약](README.md#인자-규약) 을 따릅니다 (`Path` 는 `P: AsPath`).
+
 ```rok
-struct Command {
-    program: Path;
-    args: List<str>;
-    envs: Dict<str, str>;
-    env_clear: bool;
-    stdin: Stdio;
-    stdout: Stdio;
-    stderr: Stdio;
-    cwd: Path | none;
-    kill_on_drop: bool;       // using 으로 묶은 Child 가 해제될 때 kill
-    process_group: i32 | none;
-    // ...
-}
+struct Command { /* opaque: 프로그램, 인자, 환경, stream, cwd, 옵션 */ }
 
 impl Command {
     fn new(program: Path) -> Command;
@@ -35,7 +25,7 @@ impl Command {
     fn stdout(self, cfg: Stdio) -> Command;
     fn stderr(self, cfg: Stdio) -> Command;
 
-    fn kill_on_drop(self, on: bool) -> Command;
+    fn kill_on_drop(self, on: bool) -> Command;         // using 으로 묶은 Child 가 해제될 때 kill
     fn process_group(self, pgid: i32) -> Command;       // unix
 
     // 실행
@@ -84,9 +74,18 @@ impl Child {
     fn signal(self, sig: i32) throws (IoError);          // unix
 }
 
-impl ChildStdin { ... }                  // 파일 핸들 - impl Writer
-impl ChildStdout { ... }                 // 파일 핸들 - impl Reader
-impl ChildStderr { ... }                 // 파일 핸들 - impl Reader
+impl ChildStdin {                        // 자식 stdin pipe 의 쓰기 끝 - impl Writer
+    fn fd(self) -> RawFd;
+    fn close(self) throws (IoError);     // 자식은 입력 끝을 읽음
+}
+impl ChildStdout {                       // 자식 stdout pipe 의 읽기 끝 - impl Reader
+    fn fd(self) -> RawFd;
+    fn close(self) throws (IoError);
+}
+impl ChildStderr {                       // 자식 stderr pipe 의 읽기 끝 - impl Reader
+    fn fd(self) -> RawFd;
+    fn close(self) throws (IoError);
+}
 
 struct ExitStatus { /* opaque */ }
 
@@ -95,6 +94,7 @@ impl ExitStatus {
     fn code(self) -> i32 | none;        // none = signal terminated (unix)
     fn signal(self) -> i32 | none;       // unix
 }
+impl Display for ExitStatus { ... }      // "exit status: 1" / "signal: 9"
 ```
 
 종료 결과는 `ExitStatus` 라는 불투명 타입에 담긴다. `code()` 가 `none` 이라면 unix 환경에서 신호에 의해 종료되었다는 뜻이고, 그 신호 번호는 `signal()` 로 따로 꺼내 볼 수 있습니다.
@@ -160,6 +160,8 @@ using child = try Command::new("long_running")
 fn signal(sig: i32, handler: fn() + Send) throws (SignalError);
 fn kill(pid: u32, sig: i32) throws (IoError);
 fn raise(sig: i32) throws (IoError);
+fn id() -> u32;                          // 이 프로세스의 id (= env::pid())
+fn abort() -> !;                         // 비정상 종료 (SIGABRT); 아무것도 정리하지 않음
 
 struct SignalError {
     sig: i32;          // 설치하려던 신호

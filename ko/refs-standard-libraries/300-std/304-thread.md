@@ -23,24 +23,21 @@
 ```rok
 struct Thread { /* OS handle - 제네릭 아님 */ }
 struct JoinHandle<T> { /* join 결과 T */ }
-struct ThreadId { /* opaque */ }
+struct ThreadId { /* opaque */ }       // PartialEq 구현
 
 struct JoinError { code: i32; }          // OS join 에러 번호 (errno), JOIN_LOST, 또는 JOIN_TAKEN
 const JOIN_LOST: i32 = -1;               // 실패한 REPL 셀과 함께 끝난 스레드
 const JOIN_TAKEN: i32 = -2;              // 이미 join 또는 detach 됨
 // Display, Debug, Error 를 구현
 
-fn spawn<T: Send>(f: fn() -> T + Send) -> JoinHandle<T>;
+fn spawn<T: Send>(f: fn() -> T + Send) -> JoinHandle<T>;   // = try! Builder::new().spawn(f)
 
-struct Builder {
-    name: str | none;
-    stack_size: usize | none;
-}
+struct Builder { /* opaque: 이름, stack 크기 */ }
 
 impl Builder {
-    fn new() -> Builder;
+    fn new() -> Builder;                 // 이름 없음, 기본 stack
     fn name(self, name: str) -> Builder;
-    fn stack_size(self, size: usize) -> Builder;
+    fn stack_size(self, size: usize) -> Builder;   // 바이트 (기본 8 MiB)
     fn spawn<T: Send>(self, f: fn() -> T + Send) throws (IoError) -> JoinHandle<T>;
 }
 
@@ -48,6 +45,12 @@ impl<T> JoinHandle<T> {
     fn join(self) throws (JoinError) -> T;
     fn detach(self);                     // join 하지 않음 - 스레드는 끝까지 실행
     fn thread(self) -> Thread;
+}
+
+impl<T: Send> IntoFuture for JoinHandle<T> { ... }   // `await handle` 은 join 하고 T 를 냄
+
+impl ThreadId {
+    fn as_u64(self) -> u64;              // 런타임이 매긴 스레드 id
 }
 
 impl Thread {
@@ -62,6 +65,7 @@ fn yield_now();
 fn sleep(dur: Duration);
 fn park();                                     // unpark 될 때까지 block (깨운 이유 없이 돌아올 수 있음)
 fn park_timeout(dur: Duration);
+fn panicking() -> bool;                        // 항상 false: panic 은 그 전에 프로세스를 끝냄
 
 // thread-local storage
 fn local<T>(init: fn() -> T + Sync) -> ThreadLocal<T>;     // 각 스레드에서 처음 쓸 때 init 호출
@@ -74,6 +78,10 @@ impl<T> ThreadLocal<T> {
 ```
 
 `Thread::unpark` 는 그 스레드의 park 토큰을 세우고 깨웁니다. 토큰은 한 번의 `park` 가 소비합니다.
+
+`thread::spawn` 은 기본값의 `Builder::spawn` 을 `try!` 로 감싼 것입니다: `Builder::spawn` 이 throw 하는 경우 (target 에 스레드가 없거나 OS 가 새 스레드를 거부) `thread::spawn` 은 panic 합니다. 그 오류를 다루려면 `Builder::new().spawn(f)` 를 씁니다.
+
+`await handle` ([2.20.5](../200-core/220-future.md#2205-intofuture---await-가능한-값)) 은 task 안에서 스레드를 기다립니다: join 은 executor 의 blocking lane ([`task::spawn_blocking`](../200-core/218-task.md#2181-핵심-api)) 에서 돌므로 task 만 기다립니다. 결과는 `T` 이며, OS join 실패 (`JoinError`) 는 panic 하므로 그것을 다루려면 `join` 을 부릅니다.
 
 ### panic 과 `JoinError`
 
@@ -128,8 +136,8 @@ try thread::spawn(|| {
 
 | 항목            | linux/macos/windows   | wasm32-wasi / 브라우저    | wasm32-wasi-threads |
 |-----------------|-----------------------|---------------------------|---------------------|
-| `spawn`         | ✓                     | `Unsupported` 를 throw    | ✓                   |
-| `Builder`       | ✓                     | `Unsupported` 를 throw    | ✓                   |
+| `spawn`         | ✓                     | panic (`Builder::spawn` 의 `Unsupported`) | ✓     |
+| `Builder::spawn` | ✓                    | `Unsupported` 를 throw    | ✓                   |
 | `local`         | ✓                     | ✓ (스레드 하나)           | ✓                   |
 | `park`/`unpark` | futex / WaitOnAddress | ✓                         | ✓                   |
 

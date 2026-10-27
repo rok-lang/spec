@@ -23,24 +23,21 @@ The basic types and function signatures are as follows.
 ```rok
 struct Thread { /* OS handle - not generic */ }
 struct JoinHandle<T> { /* join result T */ }
-struct ThreadId { /* opaque */ }
+struct ThreadId { /* opaque */ }       // implements PartialEq
 
 struct JoinError { code: i32; }          // OS join error number (errno), JOIN_LOST or JOIN_TAKEN
 const JOIN_LOST: i32 = -1;               // the thread ended with a failed REPL cell
 const JOIN_TAKEN: i32 = -2;              // already joined or detached
 // implements Display, Debug and Error
 
-fn spawn<T: Send>(f: fn() -> T + Send) -> JoinHandle<T>;
+fn spawn<T: Send>(f: fn() -> T + Send) -> JoinHandle<T>;   // = try! Builder::new().spawn(f)
 
-struct Builder {
-    name: str | none;
-    stack_size: usize | none;
-}
+struct Builder { /* opaque: name, stack size */ }
 
 impl Builder {
-    fn new() -> Builder;
+    fn new() -> Builder;                 // no name, default stack
     fn name(self, name: str) -> Builder;
-    fn stack_size(self, size: usize) -> Builder;
+    fn stack_size(self, size: usize) -> Builder;   // bytes (default 8 MiB)
     fn spawn<T: Send>(self, f: fn() -> T + Send) throws (IoError) -> JoinHandle<T>;
 }
 
@@ -48,6 +45,12 @@ impl<T> JoinHandle<T> {
     fn join(self) throws (JoinError) -> T;
     fn detach(self);                     // does not join - the thread runs to completion
     fn thread(self) -> Thread;
+}
+
+impl<T: Send> IntoFuture for JoinHandle<T> { ... }   // `await handle` joins and yields T
+
+impl ThreadId {
+    fn as_u64(self) -> u64;              // the runtime's id of the thread
 }
 
 impl Thread {
@@ -62,6 +65,7 @@ fn yield_now();
 fn sleep(dur: Duration);
 fn park();                                     // blocks until unparked (may return without a reason)
 fn park_timeout(dur: Duration);
+fn panicking() -> bool;                        // always false: a panic ends the process first
 
 // thread-local storage
 fn local<T>(init: fn() -> T + Sync) -> ThreadLocal<T>;     // init is called on first use in each thread
@@ -74,6 +78,10 @@ impl<T> ThreadLocal<T> {
 ```
 
 `Thread::unpark` sets that thread's park token and wakes it. A token is consumed by one `park`.
+
+`thread::spawn` is `Builder::spawn` with defaults behind `try!`: where `Builder::spawn` throws (no threads on the target, or the OS refuses a new thread), `thread::spawn` panics. Use `Builder::new().spawn(f)` to handle the error.
+
+`await handle` ([2.20.5](../200-core/220-future.md#2205-intofuture---awaitable-values)) waits for the thread from inside a task: the join runs on the executor's blocking lane ([`task::spawn_blocking`](../200-core/218-task.md#2181-core-api)), so only the task waits. It yields `T`; an OS join failure (`JoinError`) panics, so call `join` to handle it.
 
 ### Panics and `JoinError`
 
@@ -128,8 +136,8 @@ Per-platform support:
 
 | Item            | linux/macos/windows   | wasm32-wasi / browser     | wasm32-wasi-threads |
 |-----------------|-----------------------|---------------------------|---------------------|
-| `spawn`         | ✓                     | throws `Unsupported`      | ✓                   |
-| `Builder`       | ✓                     | throws `Unsupported`      | ✓                   |
+| `spawn`         | ✓                     | panics (`Unsupported` from `Builder::spawn`) | ✓    |
+| `Builder::spawn` | ✓                    | throws `Unsupported`      | ✓                   |
 | `local`         | ✓                     | ✓ (one thread)            | ✓                   |
 | `park`/`unpark` | futex / WaitOnAddress | ✓                         | ✓                   |
 
