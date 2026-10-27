@@ -14,7 +14,7 @@ Rok 쪽 선언은 런타임 ABI `extern "rok"` ([5.9.2](../005-modules/509-exter
 | 분류                  | 의미                                                                         |
 |-----------------------|------------------------------------------------------------------------------|
 | `thread-safe`         | 다중 thread 가 동시에 호출해도 안전 (런타임이 내부 동기화)                   |
-| `caller-thread-only`  | 호출자 thread 의 컨텍스트에 묶임 - 다른 thread 가 그 호출자를 대신할 수 없음 |
+| `caller-thread-only`  | 호출자 thread 의 컨텍스트에 묶임. 다른 thread 가 그 호출자를 대신할 수 없음 |
 | `process-init`        | 프로세스 시작 시점, mt 진입 전 단 한 번                                      |
 | `process-shutdown`    | 프로세스 종료 시점, mt 종료 후 단 한 번                                      |
 | `per-thread-init`     | 각 worker thread 의 시작 시점에 그 thread 가 자기 자신에 대해 한 번          |
@@ -370,7 +370,7 @@ extern "rok" {
 ```
 extern "rok" {
     fn rok_thread_detach(handle: usize) -> i32;   // 끝나면 OS 자원 반환, 더 이상 join 불가. 0 이면 성공
-    fn rok_cpu_count() -> usize;                  // 온라인 CPU 수 (최소 1) - par 풀의 크기
+    fn rok_cpu_count() -> usize;                  // 온라인 CPU 수 (최소 1), par 풀의 크기
 }
 ```
 
@@ -594,7 +594,7 @@ thread '<name>' has overflowed its stack
 | `rok_timer_*`   | 타이머         |
 | `rok_panic`     | 진단           |
 
-이러한 접두사 규약을 통해 외부 라이브러리나 사용자 코드와의 심볼 충돌을 피합니다. 8.5.1 - 8.5.7 의 표가 규범적인 런타임 심볼이며, 런타임은 구현이 정하는 `rok_*` 심볼 (예: `rok_fmt_*`, `rok_os_*`, `rok_stdio_*`, `rok_static_init_*`) 을 더 내보낼 수 있습니다.
+이러한 접두사 규약을 통해 외부 라이브러리나 사용자 코드와의 심볼 충돌을 피합니다. 8.5.1 ~ 8.5.7 의 표가 규범적인 런타임 심볼이며, 런타임은 구현이 정하는 `rok_*` 심볼 (예: `rok_fmt_*`, `rok_os_*`, `rok_stdio_*`, `rok_static_init_*`) 을 더 내보낼 수 있습니다.
 
 ## 8.5.9. 함수 시그니처의 호환성
 

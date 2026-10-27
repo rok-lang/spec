@@ -236,7 +236,7 @@ variant 안의 필드들에 대해 반복할 때는 `@for_variant_fields` 를 �
 
 ```rok
 #[impl_attribute(my_wrap)] pub @attribute {
-    @accept(struct, enum)                    // struct, enum 만 받음 - union 거부
+    @accept(struct, enum)                    // struct, enum 만 받음; union 거부
     @item
 }
 
@@ -314,7 +314,7 @@ variant 안의 필드들에 대해 반복할 때는 `@for_variant_fields` 를 �
 #[impl_attribute(deprecated_warning)] pub @attribute {
     @item                                    // 원본 그대로
 }
-// 위는 attribute 가 사실상 no-op - 원본 그대로 통과
+// 위는 attribute 가 사실상 no-op. 원본 그대로 통과
 ```
 
 ### `@item.body`

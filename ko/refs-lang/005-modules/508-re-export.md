@@ -33,8 +33,8 @@ pub use deep::Item;             // Item 이 루트에서도 pub
 이렇게 하면 외부 패키지에서 두 가지 경로로 같은 항목에 접근할 수 있습니다.
 
 ```rok
-use my_pkg::deep::Item;          // 원래 경로 - OK
-use my_pkg::Item;                // 재내보내기 경로 - OK
+use my_pkg::deep::Item;          // 원래 경로: OK
+use my_pkg::Item;                // 재내보내기 경로: OK
 ```
 
 같은 항목이 두 경로로 보이게 됩니다.
@@ -53,7 +53,7 @@ mod core {
     }
 }
 
-// 루트 - 외부에 평탄하게
+// 루트: 외부에 평탄하게
 pub use core::geom::Point;
 pub use core::geom::distance;
 ```
@@ -103,7 +103,7 @@ mod inner {
     fn private_fn() { ... }      // private
 }
 
-pub use inner::private_fn;       // ERROR - private 을 pub 으로 못 노출
+pub use inner::private_fn;       // ERROR: private 을 pub 으로 못 노출
 ```
 
 다만 glob 재내보내기 (`pub use mod::*`, `pub use mod::**`) 는 동작이 다릅니다. 원본 가시성이 재내보내기 가시성보다 좁은 항목은 조용히 걸러지며 ERROR 가 아닙니다 ([5.8.12 glob 재내보내기](#5812-glob-재내보내기와-가시성)).
@@ -184,7 +184,7 @@ use my_pkg::prelude::*;
 ```rok
 mod a { pub use pkg::b::Item; }
 mod b { pub use pkg::a::Item; }
-// ERROR - 순환 의존
+// ERROR: 순환 의존
 ```
 
 이러한 순환은 ERROR 이며, 컴파일러가 검출합니다.

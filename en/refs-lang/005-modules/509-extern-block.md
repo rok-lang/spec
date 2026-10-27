@@ -135,7 +135,7 @@ extern "C" {
     fn qsort(base: Ptr<u8>, n: usize, size: usize, cmp: unsafe extern "C" fn(ConstPtr<u8>, ConstPtr<u8>) -> i32);
 }
 let f: unsafe extern "C" fn(ConstPtr<u8>, ConstPtr<u8>) -> i32 = cmp_i32;   // a C declaration's value is unsafe
-let g: extern "C" fn(ConstPtr<u8>, ConstPtr<u8>) -> i32 = cmp_i32;          // ERROR - safe position
+let g: extern "C" fn(ConstPtr<u8>, ConstPtr<u8>) -> i32 = cmp_i32;          // ERROR: safe position
 ```
 
 ### Name space of extern functions
@@ -197,7 +197,7 @@ An `extern "C" { ... }` block may appear only at module level. It cannot be plac
 
 ```rok
 fn f() {
-    extern "C" { ... }                     // ERROR - not inside a function
+    extern "C" { ... }                     // ERROR: not inside a function
 }
 ```
 
@@ -243,7 +243,7 @@ An `extern "ABI" fn` definition takes `"C"` or `"system"`; any other ABI string 
 ```rok
 #[export_name("on_event")]
 extern "C" fn on_event(code: i32) -> i32 { code }     // visible from C as on_event
-extern "C" fn bad(s: str) { }                          // ERROR - str cannot be used
+extern "C" fn bad(s: str) { }                          // ERROR: str cannot be used
 ```
 
 Calling external functions and exposing functions externally together form the two directions of FFI.

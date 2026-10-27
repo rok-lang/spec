@@ -33,8 +33,8 @@ pub use deep::Item;             // Item is pub at the root too
 External packages can then reach the same item through two paths.
 
 ```rok
-use my_pkg::deep::Item;          // original path - OK
-use my_pkg::Item;                // re-export path - OK
+use my_pkg::deep::Item;          // original path: OK
+use my_pkg::Item;                // re-export path: OK
 ```
 
 The same item is visible through two paths.
@@ -53,7 +53,7 @@ mod core {
     }
 }
 
-// root - flat for external users
+// root: flat for external users
 pub use core::geom::Point;
 pub use core::geom::distance;
 ```
@@ -103,7 +103,7 @@ mod inner {
     fn private_fn() { ... }      // private
 }
 
-pub use inner::private_fn;       // ERROR - cannot expose a private item as pub
+pub use inner::private_fn;       // ERROR: cannot expose a private item as pub
 ```
 
 Glob re-exports (`pub use mod::*`, `pub use mod::**`) behave differently: items whose original visibility is narrower than the re-export visibility are silently filtered out, and this is not an ERROR ([5.8.12 Glob re-exports](#5812-glob-re-exports-and-visibility)).
@@ -184,7 +184,7 @@ Cycles of re-exports pointing at each other are not allowed.
 ```rok
 mod a { pub use pkg::b::Item; }
 mod b { pub use pkg::a::Item; }
-// ERROR - circular dependency
+// ERROR: circular dependency
 ```
 
 Such a cycle is an ERROR, detected by the compiler.

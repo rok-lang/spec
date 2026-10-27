@@ -148,7 +148,7 @@ rokc test [path] [filter]
 
 `#[test]` 가 붙은 함수를 모아 테스트 실행 파일 (하네스) 을 빌드합니다. `#[test]` 는 `#[cfg(test)]` 를 함의하므로 ([6.2.5](../006-meta-system/602-built-in-attributes.md#625-test-테스트-함수-마커)) 테스트 함수는 일반 빌드에 들어가지 않습니다. 테스트는 `src/` (`#[cfg(test)]` 아래) 와 `tests/` 디렉토리 ([0.3.5](../000-meta/003-source-units.md#035-테스트와-벤치마크-디렉토리)) 양쪽에서 모읍니다. 테스트 빌드에서는 패키지의 진입점 대신 테스트를 고르는 진입점이 쓰입니다.
 
-`rokc` 는 하네스를 실행하지 않습니다. `--emit-harness <file>` 는 빌드된 실행 파일과 그 안의 테스트 - `rok test` 가 실행하는 매니페스트 - 를 `<file>` 에 씁니다. 주지 않으면 빌드된 실행 파일을 표준 에러에 알립니다. 하네스 실행 (테스트 선택, 아래의 프로세스 격리·병렬·보고) 은 `rok test` 러너 ([9.10](910-rok-frontend.md)) 가 맡습니다.
+`rokc` 는 하네스를 실행하지 않습니다. `--emit-harness <file>` 는 빌드된 실행 파일과 그 안의 테스트 (`rok test` 가 실행하는 매니페스트) 를 `<file>` 에 씁니다. 주지 않으면 빌드된 실행 파일을 표준 에러에 알립니다. 하네스 실행 (테스트 선택, 아래의 프로세스 격리·병렬·보고) 은 `rok test` 러너 ([9.10](910-rok-frontend.md)) 가 맡습니다.
 
 인자가 하나이고 존재하는 경로가 아니면 그것을 `filter` 로 봅니다. `filter` 는 모듈 경로를 포함한 테스트 이름 (`math::adds`) 에 맞춥니다.
 
@@ -205,7 +205,7 @@ fn parse_1kb(b: Bench) {
 }
 ```
 
-`b.iter(f)` 가 측정 전체 (보정, warm-up, 표본)를 수행하며, 결과는 black_box 처리됩니다. `black_box` ([`rok::core`](../../refs-standard-libraries/README.md)) 는 옵티마이저가 꿰뚫어 볼 수 없는 항등 함수로 - 측정 구간의 입력과 결과에 적용해 작업이 밖으로 끌려 나가거나 접히지 않게 합니다. `b.bytes(n)` / `b.items(n)` 은 처리량 열을 더합니다. `Bench`, `black_box`, 통계는 라이브러리 API 이고, 방법론은 [9.9.11](909-debug-tools.md#9911-벤치마크) 에 정의합니다.
+`b.iter(f)` 가 측정 전체 (보정, warm-up, 표본)를 수행하며, 결과는 black_box 처리됩니다. `black_box` ([`rok::core`](../../refs-standard-libraries/README.md)) 는 옵티마이저가 꿰뚫어 볼 수 없는 항등 함수입니다. 측정 구간의 입력과 결과에 적용해 작업이 밖으로 끌려 나가거나 접히지 않게 합니다. `b.bytes(n)` / `b.items(n)` 은 처리량 열을 더합니다. `Bench`, `black_box`, 통계는 라이브러리 API 이고, 방법론은 [9.9.11](909-debug-tools.md#9911-벤치마크) 에 정의합니다.
 
 - `--iters=N` 은 보정 대신 표본 하나의 호출 횟수를 고정합니다.
 - `--samples=N` 은 측정할 표본 수입니다 (기본 100).
@@ -337,7 +337,7 @@ rokc demangle <symbol>...
 `rokc rokhir-text` 는 미리 빌드한 라이브러리의 ROKHIR 을 텍스트로 출력합니다.
 
 ```
-rokc rokhir-text path/to/foo.rokhir      # 또는 libfoo.a - 옆의 foo.rokhir 를 읽음
+rokc rokhir-text path/to/foo.rokhir      # 또는 libfoo.a. 옆의 foo.rokhir 를 읽음
 ```
 
 header 필드, producer, meta 와 interface 파일들을 출력하며, 포맷은 [ROKHIR 포맷](904-rokhir-bytecode.md) 에 기술됩니다.

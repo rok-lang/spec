@@ -20,7 +20,7 @@ A package without dependencies builds by file conventions alone, without a manif
 | `fmt`, `clean`, `demangle`, `profdata`                            | Delegated to `rokc` without dependencies |
 | `jupyter`                                                         | Running the kernel (`--connection-file`) is delegated; `jupyter install [--env <name>]` installs the kernelspec ([9.8.3](908-jupyter-integration.md#983-kernelspec-installation)) |
 | `version`, `help`                                                 |                                         |
-| (none)                                                            | Same as `rok repl` - starts the REPL    |
+| (none)                                                            | Same as `rok repl`: starts the REPL     |
 
 A delegated subcommand runs the `rokc` subcommand of the same name. `rok` consumes only its own global options (`--env` / `--offline` / `--locked` / `--cwd`, anywhere before `--`), passes the remaining arguments through unchanged, and adds the following. For `test` and `bench`, `rok` has `rokc` build the harness (`--emit-harness`) rather than run it, then runs the harness itself ([9.1](901-rokc-cli.md)); the runner is not part of the compiler.
 
@@ -90,7 +90,7 @@ The manifest is a single ROKON value, a `Package { .. }` struct (the root name `
 Package {
     name: "geom",                    // string, optional
     version: "0.3.1",                // string, optional
-    toolchain: "0.4",                // string, optional - toolchain pin (9.10.6)
+    toolchain: "0.4",                // string, optional (toolchain pin, 9.10.6)
     description: "2D geometry",      // string, optional
     license: "MIT OR Apache-2.0",    // string, optional (SPDX expression)
     repository: "https://example.com/geom.git",   // string, optional
@@ -106,7 +106,7 @@ Package {
     },
     features: { "default": ["json"], "json": ["dep:json"], "tls": ["http/tls"], "full": ["json", "tls"] },
     native: { "zlib": "^1.3", "png": Dep::native(url: "vendor/png.rokon", sha256: "<64 hex>") },
-    lints_from: "..",                // string, optional - start from ../rok.rokon's lints
+    lints_from: "..",                // string, optional (starts from ../rok.rokon's lints)
     lints: { "dead_code": "allow", "nonstandard_style": "deny" },
 }
 ```

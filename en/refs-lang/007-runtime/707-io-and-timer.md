@@ -26,7 +26,7 @@ An I/O wait proceeds as follows:
 
 ```
 1. The task tries read on a non-blocking socket → WouldBlock.
-2. The task does await task::readable(fd) - (re)registers fd with the reactor and parks.
+2. The task does await task::readable(fd): (re)registers fd with the reactor and parks.
 3. The worker runs another task.
 4. When the reactor receives a readiness edge for fd, it unparks the task parked on that fd.
 5. Some worker takes that task and retries the read.
@@ -35,7 +35,7 @@ An I/O wait proceeds as follows:
 This flow combines with `await` in `async` `fn` (see [Async](../004-functions/412-async.md)). Registration is edge-triggered, so it is re-armed for every wait. The `task::readable(fd)` / `task::writable(fd)` futures check the fd once more after parking so as not to miss an edge that passed in the meantime. A woken task may find the fd not yet ready, so the caller retries the operation.
 
 ```rok
-fn readable(fd: i32) -> IoReady;     // rok::core::task - Future<Output = ()>
+fn readable(fd: i32) -> IoReady;     // rok::core::task, a Future<Output = ()>
 fn writable(fd: i32) -> IoReady;
 ```
 
@@ -91,7 +91,7 @@ The reactor thread's `loop` is:
 
 ```rok
 loop {
-    let events = io_driver.poll();                     // blocks - a native section for the GC
+    let events = io_driver.poll();                     // blocks; a native section for the GC
     for event in events {
         task::unpark(parking_key(event.fd, event.direction));
     }

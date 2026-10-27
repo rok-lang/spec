@@ -77,8 +77,8 @@ fn f(args) throws (E) -> T
 
 ```mlir
 !Throws_T_E = !llvm.struct<(i1, !Payload_T_E)>
-; 필드 0: is_err - 0 이면 성공, 1 이면 에러
-; 필드 1: payload - union(T, E). is_err 가 0 이면 T, 1 이면 E 로 해석
+; 필드 0: is_err (0 이면 성공, 1 이면 에러)
+; 필드 1: payload, union(T, E). is_err 가 0 이면 T, 1 이면 E 로 해석
 ```
 
 payload 는 `T` 와 `E` 가운데 큰 쪽의 크기와 정렬을 갖는 union 입니다. `T` 가 unit 이면 payload 는 `E` 만 담습니다. 에러 채널은 시그니처로 구분되므로 `T` 와 `E` 가 같은 타입이어도 문제가 없습니다. untyped `throws` (`throws (any Error)`) 의 `E` 는 [`any`](../002-types/202-any-slot.md) 와 같은 tag + payload 표현의 `any Error` 값입니다 ([8.8](808-lowering-types.md)).

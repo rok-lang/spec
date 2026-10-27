@@ -38,7 +38,7 @@ fn with_handler(...) { ... }
 fn with_handler(m: Mutex<i32>, body: fn()) { ... }
 
 with(m) { critical(); }
-// ⇒ pkg::with_handler(m) { critical(); }     - 핸들러 + 트레일링 클로저
+// ⇒ pkg::with_handler(m) { critical(); }     (핸들러 + 트레일링 클로저)
 ```
 
 이전에는 `name` 을 일반 식별자로 쓸 수 있었지만, 등록 후에는 키워드 토큰이 되어 버립니다. 따라서 `name` 을 선언이나 멤버의 이름으로 쓰면 컴파일 에러입니다. `let name`, `fn name`, `struct name`, `enum name`, `trait name`, `mod name`, `for name in`, `.name`, `::name`, `name:` (필드 / 인자 이름), `name::` 이 그 자리입니다. f-string 의 `{..}` 안에서도 같은 규칙으로 바뀝니다.
@@ -46,7 +46,7 @@ with(m) { critical(); }
 ## 6.6.4. 충돌 검사
 
 ```rok
-#[keyword("if")]                  // ERROR - 'if' 는 예약 키워드
+#[keyword("if")]                  // ERROR: 'if' 는 예약 키워드
 fn ... { ... }
 ```
 
@@ -105,7 +105,7 @@ package_b 도 #[keyword("with")] 등록    → 두 패키지를 한 빌드에 �
 pub(pkg) fn keyword_handler(...) { ... }
 
 #[keyword("with")]
-fn another_handler(...) { ... }     // 키워드 등록 - 패키지 전체에 적용
+fn another_handler(...) { ... }     // 키워드 등록: 패키지 전체에 적용
 ```
 
 핸들러를 외부에서 호출할 수 있는지는 가시성으로 결정되지만, 키워드 등록 자체는 컴파일 단위 전체에 영향을 미칩니다.

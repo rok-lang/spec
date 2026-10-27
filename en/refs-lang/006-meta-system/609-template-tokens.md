@@ -236,7 +236,7 @@ An `else` branch is expressed without a separate keyword, by an `@apply_if` with
 
 ```rok
 #[impl_attribute(my_wrap)] pub @attribute {
-    @accept(struct, enum)                    // accepts only struct, enum - rejects union
+    @accept(struct, enum)                    // accepts only struct, enum; rejects union
     @item
 }
 
@@ -314,7 +314,7 @@ The following tokens are used inside `#[impl_attribute(name)]`.
 #[impl_attribute(deprecated_warning)] pub @attribute {
     @item                                    // the original as is
 }
-// the attribute above is effectively a no-op - the original passes through unchanged
+// the attribute above is effectively a no-op; the original passes through unchanged
 ```
 
 ### `@item.body`
@@ -407,7 +407,7 @@ parse → cfg eval → meta expansion (fixed-point) → name resolution → type
 
 ### Hygiene
 
-Local names bound by a template - `let` / `for` bindings and closure parameters (including inside `{..}` of f-strings) - are renamed to non-colliding names at expansion. Template locals therefore neither hide nor capture names that come from the item (`@item.body`, `@item.params`, `let @field.name = ..`).
+Local names bound by a template (`let` / `for` bindings and closure parameters, including inside `{..}` of f-strings) are renamed to non-colliding names at expansion. Template locals therefore neither hide nor capture names that come from the item (`@item.body`, `@item.params`, `let @field.name = ..`).
 
 ```rok
 #[impl_derive(Foo)] pub @derive {

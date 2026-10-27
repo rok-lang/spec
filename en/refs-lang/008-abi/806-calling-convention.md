@@ -77,8 +77,8 @@ The ABI return type of this function is a `struct` of two fields:
 
 ```mlir
 !Throws_T_E = !llvm.struct<(i1, !Payload_T_E)>
-; field 0: is_err - 0 on success, 1 on error
-; field 1: payload - union(T, E). Read as T if is_err is 0, as E if 1
+; field 0: is_err (0 on success, 1 on error)
+; field 1: payload, a union(T, E). Read as T if is_err is 0, as E if 1
 ```
 
 The payload is a union with the size and alignment of the larger of `T` and `E`. If `T` is unit, the payload holds only `E`. The error channel is distinguished by the signature, so `T` and `E` may be the same type. For untyped `throws` (`throws (any Error)`), `E` is an `any Error` value in the same tag + payload representation as [`any`](../002-types/202-any-slot.md) ([8.8](808-lowering-types.md)).

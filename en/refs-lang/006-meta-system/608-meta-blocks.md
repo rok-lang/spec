@@ -9,7 +9,7 @@ A **meta definition** is a user-defined code generator. All of them are one mech
 | per-field derive attribute              | `#[impl_derive_attribute(T, a)] @derive {}` | `#[derive(T)]` + `#[a]` on fields | shape + field attributes      |
 | **macro**                               | `#[impl_macro(n)] @macro { (m) => {t} }` | `n!(..)` call      | the call's tokens (`@x: expr`, `@rep`)  |
 
-The first three generate code *from a type or item the author attaches them to*; the macro generates code *from what the caller writes*, the one need the others cannot serve ([6.8.12](#6812-the-macro-form)). They share the template engine, the `@` tokens, hygiene and the tooling guarantees below; this chapter and [6.9](609-template-tokens.md) note where the bound input differs. These four are Rok's entire metaprogramming surface - together they take the place of Rust's derive, attribute and function-like macros, without procedural code or raw token manipulation.
+The first three generate code *from a type or item the author attaches them to*; the macro generates code *from what the caller writes*, the one need the others cannot serve ([6.8.12](#6812-the-macro-form)). They share the template engine, the `@` tokens, hygiene and the tooling guarantees below; this chapter and [6.9](609-template-tokens.md) note where the bound input differs. These four are Rok's entire metaprogramming surface: together they take the place of Rust's derive, attribute and function-like macros, without procedural code or raw token manipulation.
 
 ```
 meta_block      ::= meta_attr visibility? meta_kind block
@@ -163,7 +163,7 @@ struct User {
 //   }
 ```
 
-This form takes two arguments - the Trait being derived and the attribute that marks per-field information - and branches inside the derive body by reading the fields' attribute information.
+This form takes two arguments: the Trait being derived and the attribute that marks per-field information. It branches inside the derive body by reading the fields' attribute information.
 
 ## 6.8.5. Body (template block)
 
@@ -210,7 +210,7 @@ If the result of template expansion produces an item carrying another derive or 
 #[impl_attribute(adds_helper)] pub @attribute {
     @item                                       // the original item as is
 
-    #[derive(MyHelper)]                          // new item - derive processed again
+    #[derive(MyHelper)]                          // new item: derive processed again
     struct Helper { ... }
 }
 ```
@@ -223,7 +223,7 @@ Circular expansion (A invokes B and B invokes A again) is detected by the compil
 
 ## 6.8.9. No token stream manipulation
 
-Every meta definition - the three attribute-triggered forms and the macro - generates code using template tokens only. Rok has no arbitrary token transformation facility like Rust's `syn` or `quote`, and no procedural form that runs code at compile time.
+Every meta definition (the three attribute-triggered forms and the macro) generates code using template tokens only. Rok has no arbitrary token transformation facility like Rust's `syn` or `quote`, and no procedural form that runs code at compile time.
 
 This restriction guarantees that the output of a meta definition is Rok code the compiler can understand, securing both tool friendliness and debuggability.
 
@@ -253,7 +253,7 @@ A `pub` meta block is visible throughout the build without `use` (6.8.6). Meta b
     impl MyHash for @Self { ... }
 }
 
-// another module - used without import
+// another module: used without import
 #[derive(MyHash)]
 struct Foo { ... }
 ```
@@ -265,7 +265,7 @@ The following are errors:
 
 ## 6.8.12. The macro form
 
-A **macro** is the call-triggered meta definition. Where a derive or attribute generates code from a type or item it is attached to, a macro is *invoked* like `name!(..)` and expands into code at that position - generating code from what the caller writes. It is the one need the attribute-triggered forms cannot serve: repeating or generating code driven by the call, not by a type's fields.
+A **macro** is the call-triggered meta definition. Where a derive or attribute generates code from a type or item it is attached to, a macro is *invoked* like `name!(..)` and expands into code at that position, generating code from what the caller writes. It is the one need the attribute-triggered forms cannot serve: repeating or generating code driven by the call, not by a type's fields.
 
 ### Definition
 
@@ -315,7 +315,7 @@ A matcher is a token pattern. Literal tokens must appear verbatim in the call; a
 
 ### Repetition
 
-`@rep` matches a sub-pattern zero or more times; `@for` - the same iterator as `@for_fields` ([6.9.3](609-template-tokens.md#693-field-iteration)), here over a captured sequence - transcribes once per element.
+`@rep` matches a sub-pattern zero or more times. `@for` transcribes once per element; it is the same iterator as `@for_fields` ([6.9.3](609-template-tokens.md#693-field-iteration)), here over a captured sequence.
 
 ```rok
 #[impl_macro(list)] pub @macro {
@@ -346,7 +346,7 @@ A name made by `@concat` is **recorded**: the compiler indexes each synthesized 
 
 ### The library's boilerplate
 
-The classic reason for a macro is repeating a definition across a fixed list the author writes - which no attribute-triggered form can do. It replaces the hand-copied per-type impls of [`rok::core::num`](../../refs-standard-libraries/200-core/README.md):
+The classic reason for a macro is repeating a definition across a fixed list the author writes, which no attribute-triggered form can do. It replaces the hand-copied per-type impls of [`rok::core::num`](../../refs-standard-libraries/200-core/README.md):
 
 ```rok
 #[impl_macro(nonzero_div)] pub @macro {
@@ -383,6 +383,6 @@ A macro keeps the guarantees of every meta definition ([6.8.9](#689-no-token-str
 
 ## 6.8.13. Summary
 
-These four forms - derive, attribute, per-field derive attribute, and the call-triggered macro - make up Rok's entire metaprogramming surface, over one template engine. They lack the expressiveness of procedural macros but cover the core use cases: derives, attributes, per-field attributes, and call-site generation, each hygienic and followable by the tools.
+These four forms (derive, attribute, per-field derive attribute and the call-triggered macro) make up Rok's entire metaprogramming surface, over one template engine. They lack the expressiveness of procedural macros but cover the core use cases: derives, attributes, per-field attributes, and call-site generation, each hygienic and followable by the tools.
 
-[Template tokens and expansion](609-template-tokens.md) defines the exact list of template tokens - for both the type-driven and the call-driven input - and the expansion mechanism.
+[Template tokens and expansion](609-template-tokens.md) defines the exact list of template tokens (for both the type-driven and the call-driven input) and the expansion mechanism.

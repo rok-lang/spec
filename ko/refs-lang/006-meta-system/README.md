@@ -22,12 +22,12 @@
 
 ```
 attribute
-  ├── plain attribute - hints / metadata for compiler / tools
-  └── magic - channel where the library binds to language meaning
+  ├── plain attribute: hints / metadata for compiler / tools
+  └── magic: channel where the library binds to language meaning
 
-meta definition - user-defined code generator, one template engine (6.8)
-  ├── derive / attribute / per-field  - triggered by #[..] on a type or item
-  └── macro                           - triggered by a call, name!(..)
+meta definition: user-defined code generator, one template engine (6.8)
+  ├── derive / attribute / per-field  (triggered by #[..] on a type or item)
+  └── macro                           (triggered by a call, name!(..))
       └── template token (@Self, @field, ..) + matcher (typed fragments)
 ```
 

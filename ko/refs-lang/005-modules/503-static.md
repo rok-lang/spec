@@ -38,10 +38,10 @@ static X: i32 = 42i32;             // 안정 메모리 주소 (program 수명)
 `static` 은 모듈 수준이나 블록 ([3.9.1](../003-expressions/309-block-expressions.md#391-형태)) 에 선언할 수 있으며, 트레잇이나 `impl` 에는 둘 수 없습니다 ([5.3.8](#538-메서드--트레잇과의-결합)).
 
 ```rok
-static APP_NAME: str = "rok";                          // 모듈 수준 - OK
+static APP_NAME: str = "rok";                          // 모듈 수준: OK
 
 fn f() -> i32 {
-    static CALLS: Atomic<i32> = Atomic::new(0i32);     // OK - slot 하나, 이 블록에서 보임
+    static CALLS: Atomic<i32> = Atomic::new(0i32);     // OK: slot 하나, 이 블록에서 보임
     CALLS.fetch_add(1i32)
 }
 ```
@@ -110,8 +110,8 @@ static _local: bool = false;
 
 ```rok
 impl Counter {
-    static GLOBAL: i32 = 0i32;     // ERROR - impl 안에 static 없음
-    const ZERO: i32 = 0i32;        // OK - 연관 const
+    static GLOBAL: i32 = 0i32;     // ERROR: impl 안에 static 없음
+    const ZERO: i32 = 0i32;        // OK: 연관 const
 }
 ```
 
@@ -120,7 +120,7 @@ impl Counter {
 초기값이 상수 식 ([5.2.4](502-const.md#524-상수-식과-평가기)) 이면 컴파일 타임에 초기화합니다. 그 밖의 초기값은 처음 쓸 때 한 번 초기화합니다 (지연 초기화). 지연 초기화는 스레드 안전하며, 동시에 접근한 스레드는 초기화가 끝날 때까지 기다립니다. 초기값의 함수가 `const fn` 일 필요는 없습니다 (`Mutex::new` 등).
 
 ```rok
-static PI: f64 = 3.14159f64;             // const - 컴파일 타임
+static PI: f64 = 3.14159f64;             // const: 컴파일 타임
 static START: Instant = Instant::now();   // 첫 접근 때 한 번 초기화
 static CACHE: Mutex<Dict<str, Data>> = Mutex::new(Dict::new());
 ```
@@ -131,7 +131,7 @@ static CACHE: Mutex<Dict<str, Data>> = Mutex::new(Dict::new());
 
 ```rok
 extern "C" {
-    static errno: i32;             // 외부 정의 - rok 에서 읽기만
+    static errno: i32;             // 외부 정의, rok 에서 읽기만
 }
 ```
 

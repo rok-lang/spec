@@ -36,7 +36,7 @@ Worker:
 ```
 Global injector:
   - receives tasks spawned from outside (e.g. extern callback).
-  - when a worker's local queue is empty - pull from global.
+  - when a worker's local queue is empty, pull from global.
 ```
 
 이 큐는 worker 풀 바깥에서 들어오는 task 의 진입점 역할을 맡고 있습니다.
@@ -48,7 +48,7 @@ worker 의 local deque 가 비어 있다면 다음과 같은 순서로 진행됩
 ```
 1. global injector 에서 pull 시도.
 2. 다른 worker 의 local deque 의 top 에서 steal 을 시도합니다. 대상은 worker 마다의 의사 난수 index 에서 시작해 round-robin 으로 돕니다.
-3. 모두 실패하면 - sleep / park (blocking sync).
+3. 모두 실패하면 sleep / park (blocking sync).
 ```
 
 steal 은 worker 를 최대 N-1 개까지 시도해 보고, 그래도 모두 비어 있으면 park 상태로 전환합니다.

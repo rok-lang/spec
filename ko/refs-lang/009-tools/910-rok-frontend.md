@@ -20,7 +20,7 @@
 | `fmt`, `clean`, `demangle`, `profdata`                            | 의존성 없이 `rokc` 에 위임              |
 | `jupyter`                                                         | 커널 실행 (`--connection-file`) 은 위임, `jupyter install [--env <name>]` 은 kernelspec 설치 ([9.8.3](908-jupyter-integration.md#983-kernelspec-설치)) |
 | `version`, `help`                                                 |                                         |
-| (없음)                                                            | `rok repl` 과 같음 - REPL 시작          |
+| (없음)                                                            | `rok repl` 과 같음: REPL 시작           |
 
 위임하는 서브명령은 같은 이름의 `rokc` 서브명령을 실행합니다. `rok` 는 자기 전역 옵션 (`--env` / `--offline` / `--locked` / `--cwd`, `--` 앞 어디든) 만 소비하고, 나머지 인자는 그대로 넘기며 다음을 더합니다. `test` 와 `bench` 는 `rok` 가 `rokc` 로 하네스를 빌드하게만 하고 (`--emit-harness`) 실행은 직접 하므로 ([9.1](901-rokc-cli.md)), 러너는 컴파일러에 속하지 않습니다.
 
@@ -90,7 +90,7 @@ hello/
 Package {
     name: "geom",                    // 문자열, 선택
     version: "0.3.1",                // 문자열, 선택
-    toolchain: "0.4",                // 문자열, 선택 - toolchain 고정 (9.10.6)
+    toolchain: "0.4",                // 문자열, 선택 (toolchain 고정, 9.10.6)
     description: "2D geometry",      // 문자열, 선택
     license: "MIT OR Apache-2.0",    // 문자열, 선택 (SPDX 식)
     repository: "https://example.com/geom.git",   // 문자열, 선택
@@ -106,7 +106,7 @@ Package {
     },
     features: { "default": ["json"], "json": ["dep:json"], "tls": ["http/tls"], "full": ["json", "tls"] },
     native: { "zlib": "^1.3", "png": Dep::native(url: "vendor/png.rokon", sha256: "<64 hex>") },
-    lints_from: "..",                // 문자열, 선택 - ../rok.rokon 의 lints 에서 시작
+    lints_from: "..",                // 문자열, 선택 (../rok.rokon 의 lints 에서 시작)
     lints: { "dead_code": "allow", "nonstandard_style": "deny" },
 }
 ```

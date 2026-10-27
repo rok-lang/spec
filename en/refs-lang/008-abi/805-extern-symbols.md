@@ -14,7 +14,7 @@ Each symbol definition carries a **Thread-safety** annotation. It is part of the
 | Class                 | Meaning                                                                      |
 |-----------------------|------------------------------------------------------------------------------|
 | `thread-safe`         | Safe to call concurrently from multiple threads (the runtime synchronizes internally) |
-| `caller-thread-only`  | Bound to the calling thread's context - another thread cannot act on behalf of that caller |
+| `caller-thread-only`  | Bound to the calling thread's context; another thread cannot act on behalf of that caller |
 | `process-init`        | Exactly once at process start, before entering mt                           |
 | `process-shutdown`    | Exactly once at process exit, after mt ends                                  |
 | `per-thread-init`     | Once at the start of each worker thread, by that thread for itself           |
@@ -370,7 +370,7 @@ extern "rok" {
 ```
 extern "rok" {
     fn rok_thread_detach(handle: usize) -> i32;   // OS resources are released when it ends; can no longer be joined. 0 on success
-    fn rok_cpu_count() -> usize;                  // number of online CPUs (at least 1) - size of the par pool
+    fn rok_cpu_count() -> usize;                  // number of online CPUs (at least 1); size of the par pool
 }
 ```
 
@@ -594,7 +594,7 @@ The area of each symbol prefix is summarized below.
 | `rok_timer_*`   | Timers         |
 | `rok_panic`     | Diagnostics    |
 
-This prefix convention avoids symbol collisions with external libraries and user code. The tables of 8.5.1 - 8.5.7 list the normative runtime symbols; the runtime may export further implementation-defined `rok_*` symbols (e.g. `rok_fmt_*`, `rok_os_*`, `rok_stdio_*`, `rok_static_init_*`).
+This prefix convention avoids symbol collisions with external libraries and user code. The tables of 8.5.1 through 8.5.7 list the normative runtime symbols; the runtime may export further implementation-defined `rok_*` symbols (e.g. `rok_fmt_*`, `rok_os_*`, `rok_stdio_*`, `rok_static_init_*`).
 
 ## 8.5.9. Compatibility of function signatures
 

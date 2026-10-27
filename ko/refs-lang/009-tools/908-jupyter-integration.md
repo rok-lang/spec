@@ -29,7 +29,7 @@ rok jupyter --connection-file <path>        # 의존성을 해소한 뒤 rokc ju
 |-------------|------------------------------------------------------------|
 | `shell`     | 요청 (execute, kernel_info, complete, is_complete 등)      |
 | `iopub`     | 출력과 상태 broadcast (status, stream, execute_result 등) |
-| `stdin`     | 쓰지 않음 - 입력 요청을 보내지 않음 (stdin 은 `/dev/null`) |
+| `stdin`     | 쓰지 않음: 입력 요청을 보내지 않음 (stdin 은 `/dev/null`) |
 | `control`   | interrupt, shutdown                                        |
 | `heartbeat` | 받은 것을 그대로 돌려보냄 (echo)                           |
 

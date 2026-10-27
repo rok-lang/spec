@@ -26,7 +26,7 @@ I/O 대기는 다음과 같은 흐름으로 진행됩니다.
 
 ```
 1. task 가 non-blocking 소켓에 read 를 시도 → WouldBlock.
-2. task 가 await task::readable(fd) - fd 를 reactor 에 (다시) 등록하고 park.
+2. task 가 await task::readable(fd): fd 를 reactor 에 (다시) 등록하고 park.
 3. worker 는 다른 task 를 실행.
 4. reactor 가 fd 의 readiness edge 를 받으면 그 fd 에 park 한 task 를 unpark.
 5. 어떤 worker 가 그 task 를 꺼내 read 를 다시 시도.
@@ -35,7 +35,7 @@ I/O 대기는 다음과 같은 흐름으로 진행됩니다.
 이 흐름은 `async` `fn` 의 `await` 와 결합됩니다 ([비동기](../004-functions/412-async.md) 참고). 등록은 edge-triggered 이므로 대기마다 다시 겁니다. `task::readable(fd)` / `task::writable(fd)` future 는 park 한 뒤 fd 를 한 번 더 확인해 그사이 지나간 edge 를 놓치지 않습니다. 깨어났는데 아직 준비되지 않았을 수 있으므로 호출자는 연산을 다시 시도합니다.
 
 ```rok
-fn readable(fd: i32) -> IoReady;     // rok::core::task - Future<Output = ()>
+fn readable(fd: i32) -> IoReady;     // rok::core::task, Future<Output = ()>
 fn writable(fd: i32) -> IoReady;
 ```
 
@@ -91,7 +91,7 @@ reactor thread 의 `loop` 는 다음과 같습니다.
 
 ```rok
 loop {
-    let events = io_driver.poll();                     // 막힘 - GC 에는 native 구간
+    let events = io_driver.poll();                     // 막힘. GC 에는 native 구간
     for event in events {
         task::unpark(parking_key(event.fd, event.direction));
     }

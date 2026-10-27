@@ -3,8 +3,8 @@
 표준 라이브러리는 두 단계의 리플렉션 트레잇을 제공합니다. 바로 `Reflect` 와 `Inspect` 입니다.
 
 ```
-Reflect    자동 구현 - 모든 타입이 공짜로 들고 있는 얕은 메타정보
-Inspect    opt-in via #[derive(Inspect)] - 풍부한 필드/메서드 명세
+Reflect    자동 구현: 모든 타입이 공짜로 들고 있는 얕은 메타정보
+Inspect    opt-in via #[derive(Inspect)]: 풍부한 필드/메서드 명세
 ```
 
 이렇게 두 단계로 나눈 이유는 binary 크기를 컨트롤하면서도 `any` 슬롯이나 합 타입, REPL 자동 출력처럼 꼭 필요한 기능은 모든 타입에 공짜로 제공하고 싶었기 때문입니다.
@@ -15,12 +15,12 @@ Inspect    opt-in via #[derive(Inspect)] - 풍부한 필드/메서드 명세
 
 ```rok
 trait Reflect {
-    // 정적 - 타입에 직접 호출
+    // 정적: 타입에 직접 호출
     fn type_name() -> str;
     fn size() -> usize;
     fn align() -> usize;
 
-    // 인스턴스 - any 슬롯 / 합 타입에서 런타임 dispatch
+    // 인스턴스: any 슬롯 / 합 타입에서 런타임 dispatch
     fn type_name_of(self) -> str;
     fn size_of(self) -> usize;
 }
@@ -35,7 +35,7 @@ let x: any = 42i32;
 x.type_name_of() == "i32"        // 런타임 type tag 검사
 
 let v: i32 | f64 = pick();
-v.type_name_of()                  // "i32" 또는 "f64" - 합 타입 variant 검사
+v.type_name_of()                  // "i32" 또는 "f64" (합 타입 variant 검사)
 ```
 
 자동 구현이라 사용자 코드를 따로 작성할 필요는 없습니다. 컴파일러가 모든 타입의 `type_name`, `size`, `align` 정보를 이미 알고 있어서, 비용 0 으로 합성합니다.
@@ -116,11 +116,11 @@ Config { host: "h", port: 80 }
 다른 언어들이 `typeof` 나 `sizeof` 같은 키워드로 노출하는 introspection 을, Rok 에서는 트레잇 메서드로만 제공합니다.
 
 ```rok
-// rok - 메서드 호출
+// rok: 메서드 호출
 T::size()
 x.type_name_of()
 
-// 다른 언어 - 키워드
+// 다른 언어: 키워드
 sizeof(T)        // C / C++
 typeof(x)        // JS / TS
 ```

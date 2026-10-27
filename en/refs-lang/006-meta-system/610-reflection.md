@@ -3,8 +3,8 @@
 The standard library provides two levels of reflection traits: `Reflect` and `Inspect`.
 
 ```
-Reflect    automatic - shallow metadata every type carries for free
-Inspect    opt-in via #[derive(Inspect)] - rich field/method description
+Reflect    automatic: shallow metadata every type carries for free
+Inspect    opt-in via #[derive(Inspect)]: rich field/method description
 ```
 
 The split into two levels controls binary size while still giving every type, for free, what is essential for `any` slots, sum types, and REPL auto-printing.
@@ -15,12 +15,12 @@ The split into two levels controls binary size while still giving every type, fo
 
 ```rok
 trait Reflect {
-    // static - called directly on the type
+    // static: called directly on the type
     fn type_name() -> str;
     fn size() -> usize;
     fn align() -> usize;
 
-    // instance - runtime dispatch on any slots / sum types
+    // instance: runtime dispatch on any slots / sum types
     fn type_name_of(self) -> str;
     fn size_of(self) -> usize;
 }
@@ -35,7 +35,7 @@ let x: any = 42i32;
 x.type_name_of() == "i32"        // runtime type tag check
 
 let v: i32 | f64 = pick();
-v.type_name_of()                  // "i32" or "f64" - sum type variant check
+v.type_name_of()                  // "i32" or "f64" (sum type variant check)
 ```
 
 Being automatic, it requires no user code. The compiler already knows the `type_name`, `size`, and `align` of every type and synthesizes them at zero cost.
@@ -116,11 +116,11 @@ A bare expression uses `Display` and a trailing `?` uses `Debug`. A value withou
 Introspection that other languages expose through keywords such as `typeof` or `sizeof` is provided in Rok only as trait methods.
 
 ```rok
-// rok - method calls
+// rok: method calls
 T::size()
 x.type_name_of()
 
-// other languages - keywords
+// other languages: keywords
 sizeof(T)        // C / C++
 typeof(x)        // JS / TS
 ```
@@ -149,7 +149,7 @@ The compiler desugars type-test patterns (`v: T => ...`) into `Reflect` tag chec
 
 ## 6.10.6. Relation between the levels
 
-As the notation `Inspect: Reflect` shows, `Inspect` has `Reflect` as a supertrait. A type implementing `Inspect` therefore always implements `Reflect` too - trivially, since `Reflect` is automatic anyway.
+As the notation `Inspect: Reflect` shows, `Inspect` has `Reflect` as a supertrait. A type implementing `Inspect` therefore always implements `Reflect` too, trivially, since `Reflect` is automatic anyway.
 
 ```
 every type           Reflect          (automatic, zero cost)

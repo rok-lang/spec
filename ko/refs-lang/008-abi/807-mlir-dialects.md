@@ -28,7 +28,7 @@ rok 소스
 rok-hir
    ↓ (specialize / monomorphize, desugar)
 rok-mir
-   ↓ (lowering - 본 블록의 808 ~ 810)
+   ↓ (lowering: 본 블록의 808 ~ 810)
 표준 MLIR  (일반 코드는 7 개 다이얼렉트, 라이브러리는 추가 가능)
    ↓ (표준 패스, LLVM 다이얼렉트로 변환)
 LLVM IR

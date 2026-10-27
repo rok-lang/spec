@@ -7,7 +7,7 @@
 ```
 let_stmt    ::= "let" let_lhs (":" type_expr)? "=" expr ";"
 let_lhs     ::= identifier
-              | irrefutable_pattern    // tuple / struct destructure - 5.1.11 참조
+              | irrefutable_pattern    // tuple / struct destructure (5.1.11 참조)
 ```
 
 가장 흔히 쓰이는 형태는 단일 식별자입니다 (`let x = ...`). 좌변에 반증 불가능 패턴 (5.1.11) 을 두면 [분해 대입](../003-expressions/315-destructuring.md) 이 됩니다. `let-else` 형태 ([let-else](../003-expressions/316-let-else.md)) 는 별도의 문법으로 다루고 있습니다.
@@ -15,8 +15,8 @@ let_lhs     ::= identifier
 ```rok
 let x = 42i32;
 let y: i32 = 10i32;
-let z;                            // ERROR - 초기값 없음
-let z: i32;                        // ERROR - 초기값 없음
+let z;                            // ERROR: 초기값 없음
+let z: i32;                        // ERROR: 초기값 없음
 ```
 
 기본 구성은 `let` 다음에 이름을 적고, 필요하다면 `: 타입` 을 덧붙인 뒤, `=` 와 초기값을 차례로 씁니다. 이때 초기값은 반드시 함께 적어야 하며, 미초기화 상태의 변수는 도입하지 않습니다. 타입을 명시하면 그 타입의 정적 슬롯이 되고, 명시하지 않으면 초기값의 타입으로 추론된 정적 슬롯이 됩니다 (5.1.7). [`any` 슬롯](../002-types/202-any-slot.md) 은 `: any` 를 명시할 때만 생깁니다.
@@ -34,8 +34,8 @@ cache = compute();                  // 나중에 채움
 
 ```rok
 let counter: i32 = 0i32;
-counter = counter + 1i32;         // OK - 재할당
-counter = counter + 1i32;         // OK - 또 재할당
+counter = counter + 1i32;         // OK: 재할당
+counter = counter + 1i32;         // OK: 또 재할당
 ```
 
 선언된 적이 없는 이름에 `let` 없이 곧바로 대입하면 컴파일 에러가 발생합니다.
@@ -63,7 +63,7 @@ coutner = counter + 1i32;         // ERROR: 'coutner' not declared.
 
 ```rok
 let x = 1;
-let x: i32 = 5i32;                  // ERROR - 같은 스코프에 x 가 이미 있음
+let x: i32 = 5i32;                  // ERROR: 같은 스코프에 x 가 이미 있음
 ```
 
 변수의 슬롯 타입은 선언 시점에 고정되며, 같은 스코프 안에서는 바뀌지 않습니다.
@@ -92,7 +92,7 @@ if cond {
 ```rok
 let a = 1;
 {
-    let a: i32 = 42i32;            // 블록 로컬 a - 외부 a 와 다른 슬롯
+    let a: i32 = 42i32;            // 블록 로컬 a, 외부 a 와 다른 슬롯
     a = 10i32;                     // 블록 안 a 재할당 (외부 a 영향 없음)
 }
 // 여기서 a = 1 (외부 a 그대로)
@@ -122,25 +122,25 @@ let d = if cond { 1i32 } else { 2i32 };   // d: i32 (추론)
 ```rok
 let n = 1i32;
 n = 2i32;                          // OK
-n = "hi";                          // ERROR - n 은 i32
+n = "hi";                          // ERROR: n 은 i32
 ```
 
 초기값에서 타입이 다 정해지지 않으면 변수의 스코프 안 이후 쓰임 (값을 타입이 정해진 자리로 넘기는 쓰임) 에서 마저 추론합니다 ([2.10.2](../002-types/210-generics.md#타입-인자-추론)). 끝까지 정할 수 없으면 컴파일 에러가 되며, 이때는 타입을 명시해야 합니다.
 
 ```rok
-let x = none;                      // ERROR - 타입을 정할 수 없음
+let x = none;                      // ERROR: 타입을 정할 수 없음
 let x: Data | none = none;         // OK
 
-let xs = [];                       // 이후 쓰임이 없으면 ERROR - 원소 타입을 정할 수 없음
+let xs = [];                       // 이후 쓰임이 없으면 ERROR: 원소 타입을 정할 수 없음
 let xs: List<i32> = [];            // OK
 
-let y = return;                    // ERROR - 초기값이 발산만 함
+let y = return;                    // ERROR: 초기값이 발산만 함
 ```
 
 분기의 타입이 서로 다른 `if` / `match` 식으로는 타입을 추론하지 않습니다. 합 타입이 필요하면 슬롯에 명시합니다.
 
 ```rok
-let e = if cond { 1i32 } else { "hi" };          // ERROR - 분기 타입 불일치
+let e = if cond { 1i32 } else { "hi" };          // ERROR: 분기 타입 불일치
 let e: i32 | str = if cond { 1i32 } else { "hi" };   // OK
 ```
 
@@ -155,8 +155,8 @@ let a = 1, b = 2;                  // 채택 안 함
 C 식으로 콤마를 사용해 여러 변수를 한꺼번에 선언하는 형태는 도입하지 않습니다. 한 줄에 하나씩 적거나, [분해 대입](../003-expressions/315-destructuring.md) 의 튜플 분해를 활용하세요.
 
 ```rok
-let (a, b) = (1, 2);               // 분해 대입 - OK
-let a = 1; let b = 2;              // 두 줄로 - OK
+let (a, b) = (1, 2);               // 분해 대입: OK
+let a = 1; let b = 2;              // 두 줄로: OK
 ```
 
 ## 5.1.9. `let` 의 자리

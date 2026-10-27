@@ -148,7 +148,7 @@ rokc test [path] [filter]
 
 It collects functions marked `#[test]` and builds a test executable (the harness). `#[test]` implies `#[cfg(test)]` ([6.2.5](../006-meta-system/602-built-in-attributes.md#625-test-test-function-marker)), so test functions are not part of a normal build. Tests are collected both from `src/` (under `#[cfg(test)]`) and from the `tests/` directory ([0.3.5](../000-meta/003-source-units.md#035-test-and-benchmark-directories)). A test build uses an entry point that selects tests instead of the package's entry point.
 
-`rokc` does not run the harness. `--emit-harness <file>` writes the built executables and the tests in them - the manifest `rok test` runs - to `<file>`; without it the built executables are named on standard error. Running the harness (selecting tests, the process isolation, parallelism and reporting below) is the `rok test` runner ([9.10](910-rok-frontend.md)).
+`rokc` does not run the harness. `--emit-harness <file>` writes the built executables and the tests in them (the manifest `rok test` runs) to `<file>`; without it the built executables are named on standard error. Running the harness (selecting tests, the process isolation, parallelism and reporting below) is the `rok test` runner ([9.10](910-rok-frontend.md)).
 
 If there is a single argument and it is not an existing path, it is taken as `filter`. `filter` matches the test name including its module path (`math::adds`).
 
@@ -205,7 +205,7 @@ fn parse_1kb(b: Bench) {
 }
 ```
 
-`b.iter(f)` performs the whole measurement (calibrate, warm up, sample); its result is black-boxed. `black_box` ([`rok::core`](../../refs-standard-libraries/README.md)) is an identity the optimizer cannot see through - apply it to the inputs and result of the timed region so the work is neither hoisted out nor folded away. `b.bytes(n)` / `b.items(n)` add a throughput column. `Bench`, `black_box` and the statistics are library API; the method is defined in [9.9.11](909-debug-tools.md#9911-benchmarks).
+`b.iter(f)` performs the whole measurement (calibrate, warm up, sample); its result is black-boxed. `black_box` ([`rok::core`](../../refs-standard-libraries/README.md)) is an identity the optimizer cannot see through. Apply it to the inputs and result of the timed region so the work is neither hoisted out nor folded away. `b.bytes(n)` / `b.items(n)` add a throughput column. `Bench`, `black_box` and the statistics are library API; the method is defined in [9.9.11](909-debug-tools.md#9911-benchmarks).
 
 - `--iters=N` fixes the number of calls per sample instead of calibrating.
 - `--samples=N` is the number of samples measured (default 100).
@@ -337,7 +337,7 @@ For each symbol it prints a block in the [9.5.4](905-symbol-mangling.md) format,
 `rokc rokhir-text` prints the ROKHIR of a prebuilt library as text.
 
 ```
-rokc rokhir-text path/to/foo.rokhir      # or libfoo.a - reads the sibling foo.rokhir
+rokc rokhir-text path/to/foo.rokhir      # or libfoo.a; reads the sibling foo.rokhir
 ```
 
 It prints the header fields, producer, meta and interface files; the format is described in [ROKHIR format](904-rokhir-bytecode.md).

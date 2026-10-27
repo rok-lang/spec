@@ -38,10 +38,10 @@ static X: i32 = 42i32;             // stable memory address (program lifetime)
 `static` may be declared at module level or in a block ([3.9.1](../003-expressions/309-block-expressions.md#391-form)), not in a trait or an `impl` ([5.3.8](#538-combination-with-methods--traits)).
 
 ```rok
-static APP_NAME: str = "rok";                          // module level - OK
+static APP_NAME: str = "rok";                          // module level: OK
 
 fn f() -> i32 {
-    static CALLS: Atomic<i32> = Atomic::new(0i32);     // OK - one slot, visible in this block
+    static CALLS: Atomic<i32> = Atomic::new(0i32);     // OK: one slot, visible in this block
     CALLS.fetch_add(1i32)
 }
 ```
@@ -110,8 +110,8 @@ A `static` is a slot holding a value, not an item definer. It therefore does not
 
 ```rok
 impl Counter {
-    static GLOBAL: i32 = 0i32;     // ERROR - no static inside impl
-    const ZERO: i32 = 0i32;        // OK - associated const
+    static GLOBAL: i32 = 0i32;     // ERROR: no static inside impl
+    const ZERO: i32 = 0i32;        // OK: associated const
 }
 ```
 
@@ -120,7 +120,7 @@ impl Counter {
 If the initializer is a constant expression ([5.2.4](502-const.md#524-constant-expressions-and-the-evaluator)), it is initialized at compile time. Any other initializer is initialized once on first use (lazy initialization). Lazy initialization is thread-safe, and threads accessing concurrently wait until initialization finishes. Functions in the initializer need not be `const fn` (`Mutex::new`, etc.).
 
 ```rok
-static PI: f64 = 3.14159f64;             // const - compile time
+static PI: f64 = 3.14159f64;             // const: compile time
 static START: Instant = Instant::now();   // initialized once at first access
 static CACHE: Mutex<Dict<str, Data>> = Mutex::new(Dict::new());
 ```
@@ -131,7 +131,7 @@ A `static` in an `extern "C"` block, as shown above, references from Rok a globa
 
 ```rok
 extern "C" {
-    static errno: i32;             // externally defined - read-only from rok
+    static errno: i32;             // externally defined, read-only from rok
 }
 ```
 

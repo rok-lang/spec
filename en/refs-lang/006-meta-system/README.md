@@ -22,12 +22,12 @@ The meta-system has three levels:
 
 ```
 attribute
-  ├── plain attribute - hints / metadata for compiler / tools
-  └── magic - channel where the library binds to language meaning
+  ├── plain attribute: hints / metadata for compiler / tools
+  └── magic: channel where the library binds to language meaning
 
-meta definition - user-defined code generator, one template engine (6.8)
-  ├── derive / attribute / per-field  - triggered by #[..] on a type or item
-  └── macro                           - triggered by a call, name!(..)
+meta definition: user-defined code generator, one template engine (6.8)
+  ├── derive / attribute / per-field  (triggered by #[..] on a type or item)
+  └── macro                           (triggered by a call, name!(..))
       └── template token (@Self, @field, ..) + matcher (typed fragments)
 ```
 
@@ -82,7 +82,7 @@ A meta definition is a code generator. Three forms let users define their own de
 }
 ```
 
-There are four forms, all written the same way - `#[impl_<kind>(name)]`, a visibility, an `@` introducer, and a block: the attribute-triggered `#[impl_derive]`, `#[impl_attribute]`, and `#[impl_derive_attribute]`, and the call-triggered `#[impl_macro(name)] @macro { .. }` (invoked as `name!(..)`). Their bodies write code generation rules with template tokens such as `@Self`, `@field`, and `@for_fields`, and a macro adds a matcher of typed fragments (`@x: expr`). proc-macro-style token stream manipulation is not provided; template tokens alone give sufficient expressiveness. The full definition is in [meta definitions](608-meta-blocks.md).
+There are four forms: the attribute-triggered `#[impl_derive]`, `#[impl_attribute]`, and `#[impl_derive_attribute]`, and the call-triggered `#[impl_macro(name)] @macro { .. }` (invoked as `name!(..)`). All are written the same way: `#[impl_<kind>(name)]`, a visibility, an `@` introducer, and a block. Their bodies write code generation rules with template tokens such as `@Self`, `@field`, and `@for_fields`, and a macro adds a matcher of typed fragments (`@x: expr`). proc-macro-style token stream manipulation is not provided; template tokens alone give sufficient expressiveness. The full definition is in [meta definitions](608-meta-blocks.md).
 
 ## Core principles
 
@@ -90,7 +90,7 @@ Four core principles underpin the meta-system.
 
 ### 1. No token stream manipulation
 
-Rok has no procedural, token-manipulating macros like Rust's `syn` or `quote`. All user code generation - the attribute-triggered meta blocks and the call-triggered macro ([6.8.12](608-meta-blocks.md#6812-the-macro-form)) alike - is by pattern and template only: a matcher binds parts of the input, a template transcribes them. No step runs arbitrary code or rewrites a raw token stream.
+Rok has no procedural, token-manipulating macros like Rust's `syn` or `quote`. All user code generation, in the attribute-triggered meta blocks and the call-triggered macro ([6.8.12](608-meta-blocks.md#6812-the-macro-form)) alike, is by pattern and template only: a matcher binds parts of the input, a template transcribes them. No step runs arbitrary code or rewrites a raw token stream.
 
 The reason is to keep generated code in a state the compiler, formatter and language server can follow. Allowing arbitrary token transformations forces trade-offs: unpredictability, difficult debugging, and an explosion of the tooling surface. The macro adds call-site code generation (what the other forms cannot do) while staying inside this rule.
 

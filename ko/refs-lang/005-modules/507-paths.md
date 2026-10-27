@@ -41,7 +41,7 @@ type_arg_list   ::= type_expr ("," type_expr)* ","?
 
 ```rok
 // pkg::a::b 안에서
-helper();              // ERROR - helper 가 pkg::a 에 있어도 암묵 탐색 없음
+helper();              // ERROR: helper 가 pkg::a 에 있어도 암묵 탐색 없음
 sup::helper();         // OK
 ```
 
@@ -94,7 +94,7 @@ rok::std::fs::File
 ```rok
 foo::bar::baz                   // foo 가 현재 가시 이름이면 OK
 geom::Point                      // geom 모듈이 자식이거나 import 되어 있으면
-Point                            // 그냥 단일 이름 - 이름 해소가 자동
+Point                            // 단일 이름, 이름 해소가 자동
 ```
 
 첫 식별자가 현재 모듈에서 가시한 이름이라면 그대로 쓸 수 있습니다. 여기서 가시한 이름이란 자식 모듈이거나 `use` 로 가져온 항목을 의미합니다.
@@ -182,7 +182,7 @@ fn f() {
 
 ```rok
 let m = "foo";
-m::bar();                            // ERROR - 동적 모듈 참조 안 됨
+m::bar();                            // ERROR: 동적 모듈 참조 안 됨
 ```
 
 경로의 모듈 부분은 항상 정적이며 컴파일 타임에 결정됩니다. 런타임에 모듈을 변수로 받아 그 안의 함수를 호출하는 형태는 제공되지 않습니다.

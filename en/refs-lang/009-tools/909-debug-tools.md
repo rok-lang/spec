@@ -37,7 +37,7 @@ To select several steps at once, separate them with commas, as in `--emit=mlir,l
 ## 9.9.2. ROKHIR inspection
 
 ```
-rokc rokhir-text path/to/foo.rokhir      # or libfoo.a - reads the sibling foo.rokhir
+rokc rokhir-text path/to/foo.rokhir      # or libfoo.a; reads the sibling foo.rokhir
 ```
 
 This command prints the [ROKHIR](904-rokhir-bytecode.md) of a prebuilt library in human-readable form. After the version, producer and meta, each interface file follows as `--- <path>` and its text (source with concrete function bodies cut down to `;`).
@@ -384,7 +384,7 @@ The detailed LSP specification is outside this specification (the LSP standard +
 Information about a prebuilt library package can be viewed at once.
 
 ```
-rokc inspect path/to/libfoo.a        # or foo.rokhir - the sibling file is read too
+rokc inspect path/to/libfoo.a        # or foo.rokhir; the sibling file is read too
 ```
 
 This command shows information from the ROKHIR ([9.4](904-rokhir-bytecode.md)) and the [archive](../000-meta/007-glossary.md#archive) as follows.

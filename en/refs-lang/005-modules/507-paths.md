@@ -41,7 +41,7 @@ Functions, generic or not, share a single value name space. The nearest declarat
 
 ```rok
 // inside pkg::a::b
-helper();              // ERROR - no implicit search even if helper is in pkg::a
+helper();              // ERROR: no implicit search even if helper is in pkg::a
 sup::helper();         // OK
 ```
 
@@ -94,7 +94,7 @@ The three packages are separate archives the compiler links automatically at bui
 ```rok
 foo::bar::baz                   // OK if foo is a currently visible name
 geom::Point                      // if the geom module is a child or imported
-Point                            // just a single name - resolved automatically
+Point                            // a single name, resolved automatically
 ```
 
 If the first identifier is a name visible in the current module, it can be used as is. A visible name here means a child module or an item imported with `use`.
@@ -182,7 +182,7 @@ Path resolution happens in the compile-time name resolution phase and has no eff
 
 ```rok
 let m = "foo";
-m::bar();                            // ERROR - no dynamic module references
+m::bar();                            // ERROR: no dynamic module references
 ```
 
 The module part of a path is always static and determined at compile time. Receiving a module as a variable at runtime and calling functions in it is not provided.

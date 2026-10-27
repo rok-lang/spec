@@ -102,7 +102,7 @@ foo/
 
 ```rok
 // foo.rok (단일 파일 모듈, foo/ 없음)
-mod bar;            // ERROR - foo/ 가 없으므로 매핑할 자리가 없다
+mod bar;            // ERROR: foo/ 가 없으므로 매핑할 자리가 없다
 ```
 
 파일 매핑 서브모듈이 필요해진다면 같은 이름의 폴더 (`foo/`) 를 만들고 그 안에 서브모듈 파일을 두면 됩니다. 단일 파일 모듈을 폴더 모듈로 승격하는 비용은 폴더를 만들고 서브모듈 파일을 옮기는 정도뿐입니다.
@@ -188,7 +188,7 @@ mod geom {
 ```rok
 pub mod public_api;            // 외부 패키지에서 사용 가능
 pub(pkg) mod internal;          // 같은 패키지 내부만
-mod _private;                   // 모듈 비공개 - 같은 부모 모듈에서만
+mod _private;                   // 모듈 비공개: 같은 부모 모듈에서만
 ```
 
 자세한 의미는 [가시성](506-visibility.md) 에서 정의합니다.
@@ -209,7 +209,7 @@ child_mod::item                // 같은 모듈 안 (식별자로 충분)
 
 ```rok
 fn f() {
-    mod inner { ... }          // ERROR - 함수 안에서 모듈 선언 안 됨
+    mod inner { ... }          // ERROR: 함수 안에서 모듈 선언 안 됨
 }
 ```
 
@@ -243,5 +243,5 @@ foo/
 
 ```rok
 mod foo;
-mod foo;                        // ERROR - 중복
+mod foo;                        // ERROR: 중복
 ```

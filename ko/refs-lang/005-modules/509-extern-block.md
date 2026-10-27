@@ -135,7 +135,7 @@ extern "C" {
     fn qsort(base: Ptr<u8>, n: usize, size: usize, cmp: unsafe extern "C" fn(ConstPtr<u8>, ConstPtr<u8>) -> i32);
 }
 let f: unsafe extern "C" fn(ConstPtr<u8>, ConstPtr<u8>) -> i32 = cmp_i32;   // C 선언의 값은 unsafe
-let g: extern "C" fn(ConstPtr<u8>, ConstPtr<u8>) -> i32 = cmp_i32;          // ERROR - 안전한 자리
+let g: extern "C" fn(ConstPtr<u8>, ConstPtr<u8>) -> i32 = cmp_i32;          // ERROR: 안전한 자리
 ```
 
 ### extern 함수의 이름 공간
@@ -197,7 +197,7 @@ extern "C" {
 
 ```rok
 fn f() {
-    extern "C" { ... }                     // ERROR - 함수 안에서는 안 됨
+    extern "C" { ... }                     // ERROR: 함수 안에서는 안 됨
 }
 ```
 
@@ -243,7 +243,7 @@ extern "C" fn callback(arg: i32) -> i32 {
 ```rok
 #[export_name("on_event")]
 extern "C" fn on_event(code: i32) -> i32 { code }     // C 에서 on_event 로 보임
-extern "C" fn bad(s: str) { }                          // ERROR - str 은 쓸 수 없음
+extern "C" fn bad(s: str) { }                          // ERROR: str 은 쓸 수 없음
 ```
 
 외부 함수 호출과 외부 노출, 이 두 메커니즘이 함께 FFI 의 양방향을 이룹니다.

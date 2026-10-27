@@ -36,7 +36,7 @@ Besides each worker's local queue, there is a separate global injector queue.
 ```
 Global injector:
   - receives tasks spawned from outside (e.g. extern callback).
-  - when a worker's local queue is empty - pull from global.
+  - when a worker's local queue is empty, pull from global.
 ```
 
 This queue is the entry point for tasks arriving from outside the worker pool.
@@ -48,7 +48,7 @@ When a worker's local deque is empty, it proceeds in this order:
 ```
 1. Try to pull from the global injector.
 2. Try to steal from the top of another worker's local deque. Victims start at a per-worker pseudo-random index, then go round-robin.
-3. If all fail - sleep / park (blocking sync).
+3. If all fail, sleep / park (blocking sync).
 ```
 
 Steal tries up to N-1 workers; if all are empty, the worker switches to the parked state.

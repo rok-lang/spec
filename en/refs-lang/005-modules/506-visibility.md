@@ -1,6 +1,6 @@
 # 5.6. Visibility
 
-Giving each item - function, type, trait, module, `const`, `static` - a visibility controls how far it is exposed.
+Giving each item (function, type, trait, module, `const`, `static`) a visibility controls how far it is exposed.
 
 ```
 visibility      ::= "pub" ("(" reach ")")?
@@ -33,7 +33,7 @@ mod m {
 }
 
 let r = m::api();                   // OK
-let h = m::helper();                // ERROR - module-private
+let h = m::helper();                // ERROR: module-private
 ```
 
 A private `mod` is visible from the parent module that declared it and from that parent's submodules.
@@ -118,8 +118,8 @@ pub struct Counter {                // the struct itself is visible externally
         count: i32 = 0i32;          // the field is module-private (default)
 }
 
-let c = Counter { count: 0i32 };    // ERROR - private field, cannot construct directly from outside
-let c = Counter::new();             // OK - factory method (if any)
+let c = Counter { count: 0i32 };    // ERROR: private field, cannot construct directly from outside
+let c = Counter::new();             // OK: factory method (if any)
 ```
 
 This is the standard pattern for exposing a type while preventing direct instantiation (newtype, opaque type).
@@ -143,12 +143,12 @@ Variants have no separate visibility; they follow the visibility of the `enum`. 
 
 ```rok
 pub enum Shape {
-    Circle(f64),                    // pub - follows Shape
+    Circle(f64),                    // pub (follows Shape)
     Square(f64),
 }
 
 pub enum Bad {
-    pub A,                          // ERROR - no visibility on variants
+    pub A,                          // ERROR: no visibility on variants
 }
 ```
 
@@ -173,7 +173,7 @@ Imports via [`use`](505-use.md) also have a visibility.
 
 ```rok
 use foo::bar;                       // module-private (default)
-pub use foo::bar;                   // re-export - visible externally too
+pub use foo::bar;                   // re-export: visible externally too
 pub(pkg) use foo::bar;              // within the package only
 ```
 
@@ -209,6 +209,6 @@ For an item with insufficient visibility, the compiler diagnostic reports why it
 
 ```
 ERROR: 'foo::secret' is not visible from this module.
-       It is declared as private - only visible within 'foo'.
+       It is declared as private; only visible within 'foo'.
        To use it externally, add 'pub' or other visibility keyword.
 ```

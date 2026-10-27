@@ -27,7 +27,7 @@ trait Neg {
 }
 
 trait Degrees {
-    #[postfix("°", like = "?")]    // extension token - same level as postfix ?
+    #[postfix("°", like = "?")]    // extension token, same level as postfix ?
     fn degrees(self) -> f64;
 }
 ```
@@ -57,7 +57,7 @@ The arguments each attribute takes:
 ```rok
 #[infix("+")]
 #[prefix("-")]
-#[infix("⊕", like = "+")]      // new token - same level and associativity as +
+#[infix("⊕", like = "+")]      // new token, same level and associativity as +
 ```
 
 ## 6.7.3. Connection mechanism
@@ -188,7 +188,7 @@ All aliases attached to the same trait method must be tokens of the same level.
 ```rok
 trait Cmp {
     #[infix("<")]
-    #[infix("⊲", like = "+")]    // ERROR - < is level 4, + is level 7
+    #[infix("⊲", like = "+")]    // ERROR: < is level 4, + is level 7
     fn lt(self, rhs: Self) -> bool;
 }
 ```
@@ -201,7 +201,7 @@ This restriction stems from the assumption that aliases share the same meaning.
 
 ```rok
 fn my_add(a: i32, b: i32) -> i32 { a + b }
-#[infix("+++")]                              // ERROR - cannot attach to a free function
+#[infix("+++")]                              // ERROR: cannot attach to a free function
 fn my_concat(a: str, b: str) -> str { ... }
 ```
 
