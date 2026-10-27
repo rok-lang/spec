@@ -25,7 +25,7 @@ use rok::core::ops::{Add, Sub};
 
 > [!NOTE]
 > Rok 은 **별도 `rok::core::prelude` 모듈을 두지 않습니다**. `**` recursive glob 자체가
-> prelude 역할 - 추가 indirection 없습니다.
+> prelude 역할을 하며, 추가 indirection 은 없습니다.
 
 자세한 정책은 [0.2 import 정책](../000-meta/002-import.md) 에서 다룹니다.
 
@@ -90,7 +90,7 @@ Rok tier 의 설계는 다음 네 가지 축을 따릅니다.
 
 먼저 트레잇이 우선합니다. 모든 의미 결정은 트레잇 메서드 dispatch 로 이루어지며, `+` 연산은 `Add::add` 로, `[i]` 인덱싱은 `Index::index` 로 해소됩니다.
 
-그다음 변환은 명시적입니다. `i64 → i32` 같이 정보 손실이 발생할 수 있는 변환은 컴파일 또는 런타임 에러로 거부되며, saturate 나 wrap 같은 정책은 per-op 단위로 명시되어야 합니다 (refs-standard-libraries 0.x - 변환 정책).
+그다음 변환은 명시적입니다. `i64 → i32` 같이 정보 손실이 발생할 수 있는 변환은 컴파일 또는 런타임 에러로 거부되며, saturate 나 wrap 같은 정책은 per-op 단위로 명시되어야 합니다 (refs-standard-libraries 0.x, 변환 정책).
 
 또한 **GC 친화** 를 지향합니다. 컬렉션과 동시성 객체는 GC 로 관리되며, 외부 자원의 `drop` 은 `using` 블록에서만 호출됩니다.
 

@@ -16,7 +16,7 @@ trait Stream {
 }
 ```
 
-This is the async version of `Iterator::next`. The return value means: `Poll::Ready(v)` (`v: Item`) - the next element `v` is ready; `Poll::Ready(none)` - the end of the stream; `Poll::Pending` - no value is ready yet, and the stream is polled again when the Waker wakes it.
+This is the async version of `Iterator::next`. For the return value, `Poll::Ready(v)` (`v: Item`) means the next element `v` is ready; `Poll::Ready(none)` means the end of the stream; `Poll::Pending` means no value is ready yet, and the stream is polled again when the Waker wakes it.
 
 In short, it has the same meaning as `Iterator`'s `next() -> T | none`, the decisive difference being that it is **awaitable**.
 

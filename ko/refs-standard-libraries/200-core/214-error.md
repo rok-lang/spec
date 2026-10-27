@@ -7,7 +7,7 @@
 ## 2.14.1. 모델 개요 - 던지면 `throws`, 담아 두면 `Result`
 
 ```rok
-// (a) 던지기 - throws 와 try
+// (a) 던지기: throws 와 try
 fn parse_int(s: str) throws (ParseError) -> i32 {
     if !s.is_digit() { throw ParseError { input: s, pos: 0, reason: "not a digit" }; }
     s.to_i32()
@@ -18,7 +18,7 @@ let n = try parse_int("42") catch e: ParseError {
     0
 };
 
-// (b) 담아 두기 - Result
+// (b) 담아 두기: Result
 let results: List<Result<i32, ParseError>> =
     inputs.map(|s| Result::catching(|| try parse_int(s)));
 
@@ -76,7 +76,7 @@ impl<T, E> Result<T, E> {
     fn and_then<U>(self, f: fn(T) -> Result<U, E>) -> Result<U, E>;
     fn or_else<F>(self, g: fn(E) -> Result<T, F>) -> Result<T, F>;
 
-    fn get(self) throws (E) -> T;                       // Err 면 throw - 에러 흐름으로 되돌리기
+    fn get(self) throws (E) -> T;                       // Err 면 throw, 에러 흐름으로 되돌리기
     fn catching(f: fn() throws (E) -> T) -> Result<T, E>;   // 에러 흐름을 값으로 담기
 }
 ```
@@ -110,7 +110,7 @@ fn load(r: Result<Config, IoError>) throws (IoError) -> Config {
 ```rok
 trait Error: Display + Debug {
     fn source(self) -> any Error | none {
-        none                                  // default - chain 없음
+        none                                  // default: chain 없음
     }
 }
 ```
@@ -202,9 +202,9 @@ struct ZeroError;      // rok::core::num::niche
 다음 타입들은 Fatal 로 분류됩니다.
 
 ```rok
-struct StackOverflowError;     // Fatal - catch 불가
-struct OutOfMemoryError;       // Fatal - catch 불가
-struct InternalError;          // Fatal - 컴파일러 내부 버그
+struct StackOverflowError;     // Fatal: catch 불가
+struct OutOfMemoryError;       // Fatal: catch 불가
+struct InternalError;          // Fatal: 컴파일러 내부 버그
 ```
 
 Fatal 은 `throws` 의 에러가 아니므로 `catch` 로 잡을 수 없습니다. panic 과 마찬가지로 메시지를 stderr 에 출력하고 프로세스를 종료 코드 `101` 로 종료합니다 ([refs-lang 3.14.8](../../refs-lang/003-expressions/314-error-control-flow.md#3148-panic-과-fatal-에러)).
@@ -240,7 +240,7 @@ mod panic {                         // rok::core::panic
 
 컴파일러는 다음 자리에서 `panic_fn` 을 호출합니다. 어느 경우든 `catch` 로 잡을 수 없으며, `finally` 와 `Drop` 은 실행되지 않습니다.
 
-- `try!` 의 에러 경로 - 메시지는 에러 값의 `Display` (없으면 `Debug`)
+- `try!` 의 에러 경로: 메시지는 에러 값의 `Display` (없으면 `Debug`)
 - 0 으로 나누기, 정수 overflow, 경계 검사 실패
 - `Result::unwrap` 의 `Err` 같은 표준 라이브러리의 명시적 panic 호출
 
@@ -269,7 +269,7 @@ OOM 은 Fatal 에 해당하므로 catch 되지 않습니다.
 match (x: i32 | f64) {
     v: i32 => process_int(v),
     v: f64 => process_float(v),
-    // 컴파일러가 모든 variant 처리 확인 - unreachable 자리 없음
+    // 컴파일러가 모든 variant 처리 확인, unreachable 자리 없음
 }
 
 // 또는 명시.
@@ -311,10 +311,10 @@ assertion `left == right` failed[: msg]
 함수 시그니처에서 throw 동작은 다음 다섯 가지 형태로 표현됩니다.
 
 ```rok
-fn foo() -> T                      // non-throwing - 절대 throw 안 함
-fn foo() throws -> T               // untyped - throws (any Error)
-fn foo() throws (E) -> T           // typed single - E 만
-fn foo() throws (A | B | C) -> T   // typed sum - A | B | C 만
+fn foo() -> T                      // non-throwing: 절대 throw 안 함
+fn foo() throws -> T               // untyped: throws (any Error)
+fn foo() throws (E) -> T           // typed single: E 만
+fn foo() throws (A | B | C) -> T   // typed sum: A | B | C 만
 fn foo(f: fn() throws -> T) rethrows -> T   // f 가 던질 때만 던짐
 ```
 
@@ -407,11 +407,11 @@ if let n: i32 = r.ok() { use(n); }     // T | none 으로 추출
 | `ConversionError`    | ✓       | ✓             | ✓     | 기본 `TryFrom::Error`      |
 | `ZeroError`          | ✓       | ✓             | ✓     | `rok::core::num::niche` 에 있음 |
 | `IoError`            | ✓       | ✓             | ✓     | std tier (target-dep)      |
-| `StackOverflowError` | ✓       | ✓             | ✓     | Fatal - catch 불가         |
-| `OutOfMemoryError`   | ✓       | ✓             | ✓     | Fatal - catch 불가         |
-| `InternalError`      | ✓       | ✓             | ✓     | Fatal - 컴파일러 버그 시   |
+| `StackOverflowError` | ✓       | ✓             | ✓     | Fatal: catch 불가          |
+| `OutOfMemoryError`   | ✓       | ✓             | ✓     | Fatal: catch 불가          |
+| `InternalError`      | ✓       | ✓             | ✓     | Fatal: 컴파일러 버그 시    |
 | `Result<T, E>`       | ✗       | ✓ (T,E:Debug) | ✗     | 보관용 enum                |
-| `any Error`          | ✓       | ✓             | ✓     | 제약 붙은 any - chain 가능 |
+| `any Error`          | ✓       | ✓             | ✓     | 제약 붙은 any, chain 가능  |
 
 `Display` 는 사용자 친화적인 메시지를 제공하며, 예를 들어 `IndexError { index: 10, len: 3 }` 은 `"index 10 out of bounds (len 3)"` 처럼 표현됩니다. 반면 `Debug` 는 구조 그대로를 보여 줍니다. `any Error` 값은 런타임 태그로 실제 타입의 `Display` / `Debug` / `source` 를 호출합니다.
 
@@ -421,12 +421,12 @@ if let n: i32 = r.ok() { use(n); }     // T | none 으로 추출
 
 | 측면           | Rust           | Swift                   | Java            | Rok                                    |
 |----------------|----------------|-------------------------|-----------------|----------------------------------------|
-| 기본 모델      | `Result<T, E>` | `throws`                | `throws`        | `throws` - `Result` 는 보관용          |
+| 기본 모델      | `Result<T, E>` | `throws`                | `throws`        | `throws`, `Result` 는 보관용           |
 | 호출 지점 표시 | `?`            | `try`                   | **없음**        | `try` / `try?` / `try!`                |
 | typed throws   | **없음**       | `throws(E)` (단일 타입) | `throws E1, E2` | `throws (E)` / `throws (A \| B)`       |
 | `?` 연산자     | `Result?`      | optional chaining       | **없음**        | `T \| none` 전용                       |
-| Option 타입    | `Option<T>`    | `Optional<T>`           | `Optional<T>`   | **없음** - `T \| none` 사용            |
+| Option 타입    | `Option<T>`    | `Optional<T>`           | `Optional<T>`   | **없음**: `T \| none` 사용             |
 | 구현 방식      | 반환값         | 반환값 (에러 레지스터)  | 스택 unwinding  | 반환값 `{ is_err, payload }`           |
-| panic          | `panic!`       | `fatalError`            | `Error`         | `panic_fn` - catch 불가, 종료 코드 101 |
+| panic          | `panic!`       | `fatalError`            | `Error`         | `panic_fn`: catch 불가, 종료 코드 101  |
 
 Rok 의 가장 큰 차이점은 다음과 같이 세 가지로 정리됩니다. 첫째, `Option` 자체가 없으며 그 자리를 `T | none` sum type 이 대체하므로 타입을 한 개 줄일 수 있습니다. 둘째, 에러 전파는 `throws` 와 `try` 하나로 통일되고, `Result` 는 에러를 값으로 담아 두는 역할만 맡습니다. 셋째, typed sum throws 인 `throws (A | B | C)` 는 단일 타입만 받는 Swift 의 typed throws 보다 표현력이 더 높습니다.

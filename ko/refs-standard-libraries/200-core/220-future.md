@@ -139,9 +139,9 @@ Rok 의 정책은 다음과 같습니다.
 이렇게 색깔을 분리하는 이유는 **scheduler 협력** 을 보장하기 위함입니다. "이 자리는 suspend 가 가능하다" 는 정보가 명시되어야 컴파일러가 coroutine state machine 을 만들 수 있기 때문입니다.
 
 ```rok
-// sync fn 안에서 await 호출 - 컴파일 에러
+// sync fn 안에서 await 호출: 컴파일 에러
 fn sync_caller() {
-    let v = await some_future;       // ERROR - async 함수 안에서만 await 가능
+    let v = await some_future;       // ERROR: async 함수 안에서만 await 가능
 }
 
 async fn async_caller() {

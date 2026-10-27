@@ -46,7 +46,7 @@ counter += 5;       //→ 5 (counter is updated in place)
 counter += 3;       //→ 8
 
 let xs: List<i32> = [1, 2];
-xs += [3, 4];       //→ [1, 2, 3, 4]  (List's add_assign - efficient push)
+xs += [3, 4];       //→ [1, 2, 3, 4]  (List's add_assign: efficient push)
 ```
 
 ### `SubAssign` - `-=`
@@ -178,11 +178,11 @@ Every `*Assign` impl for primitive types carries `#[intrinsic("rok.OP_assign.TYP
 | `i*`, `u*`   | 6 arithmetic + 5 bitwise (11 traits)        | `rok.add_assign.i32`, `rok.shl_assign.u32`, ... |
 | `f32`, `f64` | 6 arithmetic only                           | `rok.add_assign.f64`, ...                       |
 | `bool`       | `BitAndAssign`/`BitOrAssign`/`BitXorAssign` | `rok.and_assign.bool`, ...                      |
-| `int`        | Arithmetic + bitwise                        | auto-promote logic - replaced by a new value (immutable) |
-| `float`      | Arithmetic                                  | (same as above - auto-promote)                  |
+| `int`        | Arithmetic + bitwise                        | auto-promote logic; replaced by a new value (immutable)  |
+| `float`      | Arithmetic                                  | (same as above: auto-promote)                   |
 | `List<T>`    | `AddAssign<T>`, `AddAssign<List<T>>`        | `xs += x` pushes `x`; `xs += ys` pushes every element of `ys`, in place |
-| `str`        | `AddAssign<str>`, `AddAssign<char>`         | `s = s + t` - replaced by a new str (str is immutable) |
-| `Dict<K,V>`  | `AddAssign<Dict<K,V>>` (`K: Hash`)          | merge in place - the right side's values win on shared keys |
+| `str`        | `AddAssign<str>`, `AddAssign<char>`         | `s = s + t`: replaced by a new str (str is immutable)  |
+| `Dict<K,V>`  | `AddAssign<Dict<K,V>>` (`K: Hash`)          | merge in place; the right side's values win on shared keys  |
 
 ```rok
 let xs: List<i32> = [1];
@@ -265,7 +265,7 @@ xs.dot_add_assign(ys);    // method call (broadcast in place)
 impl<T> List<T> {
     fn dot_add_assign(self, rhs: List<T>) where T: Add<Output = T>;
     // likewise dot_OP_assign for OP in add, sub, mul, div, rem, modulo,
-    // bitand, bitor, bitxor, shl, shr - each requiring T: OP<Output = T>
+    // bitand, bitor, bitxor, shl, shr; each requires T: OP<Output = T>
 }
 ```
 

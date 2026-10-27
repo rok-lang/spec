@@ -9,27 +9,27 @@ Because `use rok::core::**;` applies implicitly, `task::spawn`, `task::race`, `T
 The signatures of the core API:
 
 ```rok
-fn block_on<F: Future>(f: F) -> F::Output;              // sync entry point - attaches to the executor and runs f to completion
-fn block_on_try<T, E>(f: TryAsyncFuture<T, E>) throws (E) -> T;   // block_on for a throwing async body - its error is thrown here
+fn block_on<F: Future>(f: F) -> F::Output;              // sync entry point: attaches to the executor and runs f to completion
+fn block_on_try<T, E>(f: TryAsyncFuture<T, E>) throws (E) -> T;   // block_on for a throwing async body; its error is thrown here
 fn spawn<F: Future + Send>(f: F) -> Task<F::Output> where F::Output: Send;
-fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future - pinned to the current worker
+fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future, pinned to the current worker
 fn spawn_blocking<T: Send>(f: fn() -> T + Send) -> Blocking<T>;   // blocking work on an OS thread outside the executor
 fn workers() -> usize;                                  // pool size inside the executor, 1 outside
-fn cpu_count() -> usize;                                // number of online CPUs - the pool size
+fn cpu_count() -> usize;                                // number of online CPUs (the pool size)
 async fn race<T>(tasks: List<Task<T>>) -> T;            // result of the first task to complete
-fn select<F: Future>(futs: List<F>) -> SelectFuture<F>; // await - (index, result), does not spawn
-fn id() -> TaskId;                                      // id of the current task - panics outside a task
+fn select<F: Future>(futs: List<F>) -> SelectFuture<F>; // await: (index, result), does not spawn
+fn id() -> TaskId;                                      // id of the current task; panics outside a task
 fn try_id() -> TaskId | none;
 async fn join<T>(tasks: List<Task<T>>) -> List<T>;      // after all complete
 async fn timeout<T>(dur: Duration, task: Task<T>) throws (TimeoutError) -> T;   // throws in try await
 async fn sleep(dur: Duration);
 async fn sleep_until(when: Instant);
-async fn yield_now();                                   // await - yields once to other ready tasks
-fn registrations() -> usize;                            // diagnostic - parked wakers + pending timers of the running pool (implementation-defined)
-fn readable(fd: i32) -> IoReady;                       // await - until fd becomes readable (refs-lang 7.7.2)
+async fn yield_now();                                   // await: yields once to other ready tasks
+fn registrations() -> usize;                            // diagnostic: parked wakers + pending timers of the running pool (implementation-defined)
+fn readable(fd: i32) -> IoReady;                       // await: until fd becomes readable (refs-lang 7.7.2)
 fn writable(fd: i32) -> IoReady;
 fn wake_io(fd: i32);                                   // wakes the readable / writable waiters of fd (used after close / shutdown; low-level)
-fn park(key: usize, waker: Waker);                     // wakes waker at the next unpark(key) - low-level
+fn park(key: usize, waker: Waker);                     // low-level: wakes waker at the next unpark(key)
 fn unpark(key: usize);                                 // wakes every task parked on key
 ```
 
@@ -42,14 +42,14 @@ struct SelectFuture<F> { /* ... */ }
 impl<F: Future> Future for SelectFuture<F> { type Output = (usize, F::Output); ... }
 
 struct IoReady { /* ... */ }
-impl Future for IoReady { type Output = (); ... }   // may complete spuriously - retry the I/O in a loop
+impl Future for IoReady { type Output = (); ... }   // may complete spuriously; retry the I/O in a loop
 
-struct Join<T> { /* ... */ }                        // Task::join - awaited with try await
+struct Join<T> { /* ... */ }                        // Task::join, awaited with try await
 impl<T> Join<T> {
     fn poll(ref self, ref ctx: Context) throws (CancellationError) -> Poll<T>;
 }
 
-struct TimeoutError {}                              // task::timeout ran out - Display "timed out", Debug, Error
+struct TimeoutError {}                              // task::timeout ran out; Display "timed out", Debug, Error
 ```
 
 ### Example
@@ -104,11 +104,11 @@ let n = await task::spawn_blocking(|| heavy_checksum(path));
 
 ```rok
 let c = Cell::new(0);                      // Cell: !Send
-task::spawn(async { c.set(1); });          // ERROR - !Send capture
-task::spawn_local(async { c.set(1); });    // OK - pinned to the current worker
+task::spawn(async { c.set(1); });          // ERROR: !Send capture
+task::spawn_local(async { c.set(1); });    // OK: pinned to the current worker
 
 fn make() -> AsyncFuture<()> { let c = Cell::new(0); async { c.set(1); } }
-task::spawn(make());                       // ERROR - the frame of a future made by a helper is checked too
+task::spawn(make());                       // ERROR: the frame of a future made by a helper is checked too
 ```
 
 The same check applies wherever a closure is sent to another thread: `thread::spawn`, `thread::Builder::spawn`, `par`'s `Scope::spawn`, and `task::spawn_blocking`. If the closure holds a future whose frame is not `Send`, it is the error ``` `X` would move a future to another thread: ... ```.
@@ -162,10 +162,10 @@ struct Task<T> {
 }
 
 impl<T> Task<T> {
-    fn cancel(self);                      // requests cancellation - ends at the next await (2.18.4)
+    fn cancel(self);                      // requests cancellation; ends at the next await (2.18.4)
     fn is_cancelled(self) -> bool;
     fn is_finished(self) -> bool;
-    fn join(self) -> Join<T>;             // try await t.join() - CancellationError if cancelled without a result
+    fn join(self) -> Join<T>;             // try await t.join(): CancellationError if cancelled without a result
     fn id(self) -> TaskId;
 }
 
@@ -177,7 +177,7 @@ impl TaskId {
 
 struct CancellationError {}
 
-impl<T> Future for Task<T> {              // `await t` - suspend until completion
+impl<T> Future for Task<T> {              // `await t`: suspend until completion
     type Output = T;
     ...
 }
@@ -219,7 +219,7 @@ Cooperative cancellation is used as follows.
 ```rok
 let t = task::spawn(async { long_running() });
 // ... other work ...
-t.cancel();              // cooperative signal - the task ends at a cancellation point
+t.cancel();              // cooperative signal; the task ends at a cancellation point
 ```
 
 `cancel()` **requests** cancellation. The rules ([refs-lang 7.7.9](../../refs-lang/007-runtime/707-io-and-timer.md#779-cancellation)):

@@ -17,11 +17,11 @@ reflection 은 두 단계 트레잇으로 분리됩니다.
 
 ```rok
 trait Reflect {
-    fn type_name() -> str;        // 정적 - T::type_name()
+    fn type_name() -> str;        // 정적: T::type_name()
     fn size() -> usize;
     fn align() -> usize;
 
-    fn type_name_of(self) -> str; // 인스턴스 - x.type_name_of() (any / sum 도 OK)
+    fn type_name_of(self) -> str; // 인스턴스: x.type_name_of() (any / sum 도 OK)
     fn size_of(self) -> usize;
 }
 ```
@@ -38,18 +38,18 @@ trait Reflect {
 ### 정적 vs 인스턴스 차이
 
 ```rok
-i32::type_name();          //→ "i32"           (정적 - 컴파일 타임 결정)
+i32::type_name();          //→ "i32"           (정적, 컴파일 타임 결정)
 i32::size();               //→ 4
 i32::align();              //→ 4
 
 let x: i32 = 42;
-x.type_name_of();          //→ "i32"           (인스턴스 - 보통 정적과 같음)
+x.type_name_of();          //→ "i32"           (인스턴스, 보통 정적과 같음)
 
 let y: i32 | f64 = 42i32;
-y.type_name_of();          //→ "i32"           (런타임 dispatch - sum tag 검사)
+y.type_name_of();          //→ "i32"           (런타임 dispatch, sum tag 검사)
 
 let z: any = "hello";
-z.type_name_of();          //→ "str"           (런타임 - any slot dispatch)
+z.type_name_of();          //→ "str"           (런타임, any slot dispatch)
 ```
 
 `type_name_of` 는 런타임 dispatch 이므로, sum type 이나 any 의 경우 현재 들어 있는 변형의 이름을 반환합니다.
@@ -57,8 +57,8 @@ z.type_name_of();          //→ "str"           (런타임 - any slot dispatch)
 ### 글로벌 함수 없음
 
 ```rok
-typeof(x);                 // ERROR - 글로벌 typeof 없음
-sizeof(T);                 // ERROR - 글로벌 sizeof 없음
+typeof(x);                 // ERROR: 글로벌 typeof 없음
+sizeof(T);                 // ERROR: 글로벌 sizeof 없음
 ```
 
 대신 메서드로 일관되게 통일됩니다.
@@ -201,7 +201,7 @@ User { id: 1, name: "Alice" }
 
 | 항목             | 위치                                             | 메커니즘                      |
 |------------------|--------------------------------------------------|-------------------------------|
-| `Reflect` 자동   | 컴파일러 + `rok::core::reflect`                   | type info table - binary 부착 |
+| `Reflect` 자동   | 컴파일러 + `rok::core::reflect`                   | type info table, binary 부착  |
 | `Inspect` derive | `rok::core::reflect` + 메타 블록 `#[impl_derive]` | template token 기반 코드 생성 |
 | `MethodInfo`     | `rok::core::reflect`                              | 단순 struct                   |
 | `any` 타입       | 컴파일러 내장                                     | type tag + payload            |

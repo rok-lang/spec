@@ -10,10 +10,10 @@ The `rok::core::str` module provides the authoritative definitions of the string
 
 | Type     | Meaning                                            | Memory representation        | Mutability          |
 |----------|----------------------------------------------------|------------------------------|---------------------|
-| `str`    | UTF-8 string value                                 | `(ptr, len)` value - bytes are an immortal constant or a GC object | **immutable** |
+| `str`    | UTF-8 string value                                 | `(ptr, len)` value; bytes are an immortal constant or a GC object  | **immutable** |
 | `StrBuf` | growable UTF-8 buffer                              | GC heap object               | mutable             |
-| `char`   | Unicode scalar value (language built-in)           | 4B (u32)                     | (value - cannot change) |
-| `c_char` | C ABI 1-byte char (FFI primitive)                  | 1B (i8 or u8 - target-dependent) | (value)         |
+| `char`   | Unicode scalar value (language built-in)           | 4B (u32)                     | (value, cannot change)  |
+| `c_char` | C ABI 1-byte char (FFI primitive)                  | 1B (i8 or u8, target-dependent)  | (value)         |
 
 ### Rust / Python / Rok model comparison
 
@@ -71,7 +71,7 @@ impl str {
     fn trim_start(self) -> str;
     fn trim_end(self) -> str;
 
-    fn to_lowercase(self) -> str;           // new str (full Unicode mapping - 1:N, including context rules)
+    fn to_lowercase(self) -> str;           // new str (full Unicode mapping: 1:N, including context rules)
     fn to_uppercase(self) -> str;
     fn replace(self, from: str, to: str) -> str;   // empty from matches at every char boundary: "ab".replace("", "-") == "-a-b-"
 
@@ -89,7 +89,7 @@ impl Sliceable<Range<usize>> for str { type Output = str; }   // shares bytes
 Use `StrBuf` to build a string piece by piece.
 
 ```rok
-struct StrBuf { /* GC heap handle - len / capacity / bytes */ }
+struct StrBuf { /* GC heap handle: len / capacity / bytes */ }
 
 impl StrBuf {
     fn new() -> StrBuf;                     // capacity 16
@@ -139,8 +139,8 @@ A `"hello"` literal lowers to a `str` value pointing to constant bytes in the im
 | `PartialOrd`                | ✓                              | lexicographic by byte                      |
 | `Ord`                       | ✓                              |                                            |
 | `Hash`                      | ✓                              |                                            |
-| `IntoIterator`              | **none**                       | explicit `.chars()` - avoids byte vs char ambiguity |
-| `Add<str>` (`s + t`)        | ✓ → str (concat - new str)     |                                            |
+| `IntoIterator`              | **none**                       | explicit `.chars()`; avoids byte vs char ambiguity  |
+| `Add<str>` (`s + t`)        | ✓ → str (concat, new str)      |                                            |
 | `AddAssign<str>` (`s += t`) | ✓ → `s = s + t` (replaced by a new str) |                                   |
 | `FromIterator<char>`        | ✓                              | `(chars).collect::<str>()`                 |
 | `FromIterator<str>`         | ✓                              | `(strs).collect::<str>()`                  |
@@ -152,12 +152,12 @@ A `"hello"` literal lowers to a `str` value pointing to constant bytes in the im
 
 ```rok
 let s: str = "hello, 세계!";
-s.len();                       //→ 14  (byte length - "hello, " 7 + Korean 3 bytes × 2 + "!" 1)
+s.len();                       //→ 14  (byte length: "hello, " 7 + Korean 3 bytes × 2 + "!" 1)
 s.chars().count();             //→ 10  (char count)
 s.char_count();                //→ 10  (same, without an iterator)
 
 let s2 = s[7:13];              //→ "세계"  (byte boundary OK)
-let s3 = s[8:9];               // panic - byte in the middle of a UTF-8 sequence
+let s3 = s[8:9];               // panic: byte in the middle of a UTF-8 sequence
 let s4 = s[7:100];             //→ "세계!" (end clamped to the length)
 let s5 = s[-1:];               //→ "!"
 ```
@@ -168,7 +168,7 @@ The bounds of `str` / `StrBuf` are byte offsets. Bounds are first clamped as in 
 
 ```rok
 let s: str = "hello";
-let c = s[0];                  // ERROR - `Index<usize>` is not defined
+let c = s[0];                  // ERROR: `Index<usize>` is not defined
                                //         reason: byte vs char ambiguity + UTF-8 safety
 ```
 
@@ -202,7 +202,7 @@ e.len_utf8();                        //→ 4
 ```rok
 impl char {
     fn from_u32(n: u32) -> char | none;                  // none for a surrogate / out of range
-    unsafe fn from_u32_unchecked(n: u32) -> char;        // no check - the caller guarantees a scalar value
+    unsafe fn from_u32_unchecked(n: u32) -> char;        // no check; the caller guarantees a scalar value
     fn from_digit(d: u32, radix: u32) -> char;           // panics if d >= radix or radix is outside 2..=36
     fn to_digit(self, radix: u32) throws (ValueError) -> u32;
     fn is_digit(self, radix: u32) -> bool;
@@ -239,14 +239,14 @@ The Unicode property and case tables are UCD 18.0.0.
 ### Conversion
 
 ```rok
-char::from_u32(0x41);                //→ 'A' (char | none - none for a surrogate)
+char::from_u32(0x41);                //→ 'A' (char | none; none for a surrogate)
 char::from_digit(5, 10);             //→ '5'
 
 let n: u32 = c as u32;               //→ 65 (lossless)
-let c2: char = n as char;            //→ ERROR - only u8 can `as char`
+let c2: char = n as char;            //→ ERROR: only u8 can `as char`
 let b: u8 = 0x41;
 let c4: char = b as char;            //→ 'A' (a u8 is always a scalar value)
-let c3 = try char::try_from(n);      //→ char (TryFrom<u32> - via from_u32, OverflowError if none)
+let c3 = try char::try_from(n);      //→ char (TryFrom<u32>: via from_u32, OverflowError if none)
 ```
 
 ### Trait implementations
@@ -269,7 +269,7 @@ extern "C" {
 ### Literals
 
 ```rok
-let c: c_char = c'A';        //→ 65 (i8/u8 - target-dependent)
+let c: c_char = c'A';        //→ 65 (i8/u8, target-dependent)
 let n: c_char = c'\n';       //→ 10
 ```
 

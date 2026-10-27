@@ -10,10 +10,10 @@ Rok separates conversions into four kinds by **intent**. The user must state whi
 
 | Kind         | Method                              | Meaning                                    | On failure                  |
 |--------------|-------------------------------------|--------------------------------------------|-----------------------------|
-| **lossless** | `.into::<T>()`                      | zero information loss - always succeeds    | compile / runtime error     |
-| **fallible** | `.try_into::<T>()`                  | may lose information - caller handles it   | throws the target's `TryFrom::Error` |
+| **lossless** | `.into::<T>()`                      | zero information loss; always succeeds     | compile / runtime error     |
+| **fallible** | `.try_into::<T>()`                  | may lose information; caller handles it    | throws the target's `TryFrom::Error` |
 | **saturate** | `.saturating_into::<T>()`           | out of range clamps to i32::MAX / MIN      | explicit saturate (user's choice) |
-| **bit**      | `.wrapping_into::<T>()` or `as T`   | bit reinterpretation - modular arithmetic / bit pattern | explicit wrap (user's choice) |
+| **bit**      | `.wrapping_into::<T>()` or `as T`   | bit reinterpretation: modular arithmetic / bit pattern  | explicit wrap (user's choice) |
 
 Each kind's method name states the intent by itself. Writing `.into()` means **lossless** intent; writing `.saturating_into()` means **saturate** intent. The compiler does not guess the meaning.
 
@@ -61,15 +61,15 @@ impl<S> Into for S {
 A convertibility bound is written on the `From` side. There is no bound `T: Into<U>`.
 
 ```rok
-fn widen<T, U: From<T>>(x: T) -> U { x.into() }      // OK - U: From<T>
-fn widen2<T: Into<U>, U>(x: T) -> U { x.into() }     // ERROR - Into takes no type argument
+fn widen<T, U: From<T>>(x: T) -> U { x.into() }      // OK (U: From<T>)
+fn widen2<T: Into<U>, U>(x: T) -> U { x.into() }     // ERROR: Into takes no type argument
 ```
 
 ### Example
 
 ```rok
 let n: i32 = 42;
-let big: i64 = n.into();         // i32::into::<i64>() automatically - uses From<i32> for i64
+let big: i64 = n.into();         // i32::into::<i64>() automatically, using From<i32> for i64
 let big_typed: i64 = (42i32).into();
 ```
 
@@ -93,7 +93,7 @@ Attempting a combination for which `From<U> for T` is not implemented is a compi
 
 ```rok
 let big: i64 = 1000;
-let small: i32 = big.into();   // compile error - no From<i64> for i32
+let small: i32 = big.into();   // compile error: no From<i64> for i32
                                 //   (not lossless)
 ```
 
@@ -202,7 +202,7 @@ let f2: f32 = 3.14f64 as f32;     // 3.14 → f32 (IEEE 754 narrowing)
 
 | Conversion                                         | Meaning                                            |
 |----------------------------------------------------|----------------------------------------------------|
-| integer → integer of the same width (signed/unsigned) | same bit pattern - only the sign interpretation changes |
+| integer → integer of the same width (signed/unsigned) | same bit pattern; only the sign interpretation changes  |
 | narrow integer → wide integer                      | sign-extend (signed) or zero-extend (unsigned)     |
 | wide integer → narrow integer                      | truncation (low bits only)                         |
 | integer → floating-point                           | to IEEE 754 representation (may lose precision)    |
@@ -220,7 +220,7 @@ let f2: f32 = 3.14f64 as f32;     // 3.14 → f32 (IEEE 754 narrowing)
 ```rok
 struct Vec3 { x: f64; y: f64; z: f64; }
 let v = Vec3 { x: 1.0, y: 2.0, z: 3.0 };
-let s: str = v as str;     // compile error - `as` rejects user structs
+let s: str = v as str;     // compile error: `as` rejects user structs
 ```
 
 Conversion between user types must be stated with the `From` / `Into` traits.
@@ -230,10 +230,10 @@ Conversion between user types must be stated with the `From` / `Into` traits.
 For an annotated literal, a compile-time range check and a lossless conversion apply together.
 
 ```rok
-let x: i32 = 42;             // OK - 42 is in i32 range
-let y: i32 = 9999999999;     // compile error - literal outside i32 range
-let z: f32 = 3.14;           // OK - round to nearest f32
-let w: u8 = 256;             // compile error - 256 ∉ u8 0..=255
+let x: i32 = 42;             // OK: 42 is in i32 range
+let y: i32 = 9999999999;     // compile error: literal outside i32 range
+let z: f32 = 3.14;           // OK: round to nearest f32
+let w: u8 = 256;             // compile error: 256 ∉ u8 0..=255
 ```
 
 The rule for selecting an impl from a literal, as in `T::from(1)` / `1.into()`, follows [refs-lang 3.1.3](../../refs-lang/003-expressions/301-operator-dispatch.md#selecting-an-impl). This mechanism works because the literal is a value known at compile time. Converting a runtime value requires one of `from`, `into`, `try_into` or `as` to be written explicitly.
@@ -349,13 +349,13 @@ Auto-From for arithmetic results ([refs-lang 2.14](../../refs-lang/002-types/214
 ```rok
 let a: i32 = 5;
 let b: i32 = 3;
-let c: i32 = a + b;          // OK - i32 + i32 = i32
+let c: i32 = a + b;          // OK: i32 + i32 = i32
 
 let big: i32 = a + b * 1000000;
 // → OK if a + b * 1000000 is within i32 range; otherwise (debug=panic / release=wrap)
 // no silent saturate / silent promote
 
-let auto: i64 = a + b;       // compile error - no silent promotion of an i32 result to i64
+let auto: i64 = a + b;       // compile error: no silent promotion of an i32 result to i64
 let auto: i64 = (a + b) as i64;  // explicit conversion OK
 let auto: i64 = (a + b).into();  // explicit From<i32> for i64 (lossless)
 ```
@@ -364,11 +364,11 @@ let auto: i64 = (a + b).into();  // explicit From<i32> for i64 (lossless)
 
 | Language | Conversion model                                         | Difference from Rok                                                               |
 |----------|----------------------------------------------------------|-----------------------------------------------------------------------------------|
-| Rust     | `From`/`Into` lossless, `as` wrap, `try_into` Result     | closest to Rok - Rok adds explicit `saturating_into`/`wrapping_into` methods      |
-| Swift    | all integer conversions trap by default, `.init(clamping:)` opt-in | Rok rejects trapping - debug=panic + release=wrap (fixed-width arithmetic), conversions are explicit |
+| Rust     | `From`/`Into` lossless, `as` wrap, `try_into` Result     | closest to Rok; Rok adds explicit `saturating_into`/`wrapping_into` methods       |
+| Swift    | all integer conversions trap by default, `.init(clamping:)` opt-in | Rok rejects trapping: debug=panic + release=wrap (fixed-width arithmetic), conversions are explicit  |
 | Julia    | `Int32(big)` traps, `convert` function family            | Rok unifies on trait methods (`from`/`into`)                                      |
-| Python   | `int(x)`/`float(x)` functions - always arbitrary precision | Rok's `int` / `float` share the spirit; fixed primitives are a separate world   |
-| C        | implicit conversion (`int` → `long` automatically)       | Rok explicitly rejects it - blocks silent type mixing                             |
+| Python   | `int(x)`/`float(x)` functions, always arbitrary precision  | Rok's `int` / `float` share the spirit; fixed primitives are a separate world   |
+| C        | implicit conversion (`int` → `long` automatically)       | Rok explicitly rejects it, blocking silent type mixing                            |
 
 From this comparison, Rok's key design decisions are: reject silent information loss (influenced by Rust); force expression of intent by making the four kinds (`into`, `try_into`, `saturating_into`, `as`) explicit; allow auto-From only in literal context and require explicit conversion for runtime values; and separate the auto-promotion of `int` / `float` from fixed primitives, a decision influenced by Python and Smalltalk.
 
@@ -376,7 +376,7 @@ From this comparison, Rok's key design decisions are: reject silent information 
 
 | Trait               | lang slot              | Standard library location |
 |---------------------|------------------------|---------------------------|
-| `From<U>`           | (none - derivable)     | standard library          |
+| `From<U>`           | (none, derivable)      | standard library          |
 | `Into`              | (blanket impl)         | standard library          |
 | `TryFrom<U>`        | (none)                 | standard library          |
 | `TryInto`           | (blanket impl)         | standard library          |

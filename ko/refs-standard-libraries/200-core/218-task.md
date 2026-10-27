@@ -9,27 +9,27 @@
 핵심 API 의 시그니처는 다음과 같습니다.
 
 ```rok
-fn block_on<F: Future>(f: F) -> F::Output;              // sync 진입점 - executor 에 붙어 f 를 끝까지 실행
-fn block_on_try<T, E>(f: TryAsyncFuture<T, E>) throws (E) -> T;   // throw 하는 async body 용 block_on - 그 에러를 여기서 throw
+fn block_on<F: Future>(f: F) -> F::Output;              // sync 진입점: executor 에 붙어 f 를 끝까지 실행
+fn block_on_try<T, E>(f: TryAsyncFuture<T, E>) throws (E) -> T;   // throw 하는 async body 용 block_on. 그 에러를 여기서 throw
 fn spawn<F: Future + Send>(f: F) -> Task<F::Output> where F::Output: Send;
-fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future - 현재 worker 에 고정
+fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future, 현재 worker 에 고정
 fn spawn_blocking<T: Send>(f: fn() -> T + Send) -> Blocking<T>;   // blocking 작업을 executor 밖 OS 스레드에서
 fn workers() -> usize;                                  // executor 안에서는 pool 크기, 밖에서는 1
-fn cpu_count() -> usize;                                // 온라인 CPU 수 - pool 크기
+fn cpu_count() -> usize;                                // 온라인 CPU 수 (pool 크기)
 async fn race<T>(tasks: List<Task<T>>) -> T;            // 첫 완료 task 결과
-fn select<F: Future>(futs: List<F>) -> SelectFuture<F>; // await - (index, 결과), spawn 하지 않음
-fn id() -> TaskId;                                      // 현재 task 의 id - task 밖이면 panic
+fn select<F: Future>(futs: List<F>) -> SelectFuture<F>; // await: (index, 결과), spawn 하지 않음
+fn id() -> TaskId;                                      // 현재 task 의 id, task 밖이면 panic
 fn try_id() -> TaskId | none;
 async fn join<T>(tasks: List<Task<T>>) -> List<T>;      // 모두 완료 후
 async fn timeout<T>(dur: Duration, task: Task<T>) throws (TimeoutError) -> T;   // try await 에서 던짐
 async fn sleep(dur: Duration);
 async fn sleep_until(when: Instant);
-async fn yield_now();                                   // await - 다른 ready task 에 한 번 양보
-fn registrations() -> usize;                            // 진단용 - 실행 중 pool 의 park 한 waker + 대기 timer 수 (구현이 정함)
-fn readable(fd: i32) -> IoReady;                       // await - fd 가 읽기 가능해질 때까지 (refs-lang 7.7.2)
+async fn yield_now();                                   // await: 다른 ready task 에 한 번 양보
+fn registrations() -> usize;                            // 진단용: 실행 중 pool 의 park 한 waker + 대기 timer 수 (구현이 정함)
+fn readable(fd: i32) -> IoReady;                       // await: fd 가 읽기 가능해질 때까지 (refs-lang 7.7.2)
 fn writable(fd: i32) -> IoReady;
 fn wake_io(fd: i32);                                   // fd 의 readable / writable 대기자를 깨움 (close / shutdown 뒤에 씀; 저수준)
-fn park(key: usize, waker: Waker);                     // 다음 unpark(key) 때 waker 를 깨움 - 저수준
+fn park(key: usize, waker: Waker);                     // 저수준: 다음 unpark(key) 때 waker 를 깨움
 fn unpark(key: usize);                                 // key 에 park 된 task 를 모두 깨움
 ```
 
@@ -42,14 +42,14 @@ struct SelectFuture<F> { /* ... */ }
 impl<F: Future> Future for SelectFuture<F> { type Output = (usize, F::Output); ... }
 
 struct IoReady { /* ... */ }
-impl Future for IoReady { type Output = (); ... }   // 이유 없이 완료될 수 있음 - I/O 를 루프에서 재시도
+impl Future for IoReady { type Output = (); ... }   // 이유 없이 완료될 수 있음. I/O 를 루프에서 재시도
 
-struct Join<T> { /* ... */ }                        // Task::join - try await 로 기다림
+struct Join<T> { /* ... */ }                        // Task::join, try await 로 기다림
 impl<T> Join<T> {
     fn poll(ref self, ref ctx: Context) throws (CancellationError) -> Poll<T>;
 }
 
-struct TimeoutError {}                              // task::timeout 시간 초과 - Display "timed out", Debug, Error
+struct TimeoutError {}                              // task::timeout 시간 초과; Display "timed out", Debug, Error
 ```
 
 ### 사용 예
@@ -106,11 +106,11 @@ let n = await task::spawn_blocking(|| heavy_checksum(path));
 
 ```rok
 let c = Cell::new(0);                      // Cell: !Send
-task::spawn(async { c.set(1); });          // ERROR - !Send 캡처
-task::spawn_local(async { c.set(1); });    // OK - 현재 worker 에 고정
+task::spawn(async { c.set(1); });          // ERROR: !Send 캡처
+task::spawn_local(async { c.set(1); });    // OK: 현재 worker 에 고정
 
 fn make() -> AsyncFuture<()> { let c = Cell::new(0); async { c.set(1); } }
-task::spawn(make());                       // ERROR - helper 가 만든 future 의 frame 도 검사
+task::spawn(make());                       // ERROR: helper 가 만든 future 의 frame 도 검사
 ```
 
 같은 검사가 다른 스레드로 클로저를 보내는 자리에도 적용됩니다: `thread::spawn`, `thread::Builder::spawn`, `par` 의 `Scope::spawn`, `task::spawn_blocking`. 클로저가 `Send` 가 아닌 frame 의 future 를 들고 있으면 ``` `X` would move a future to another thread: ... ``` 에러입니다.
@@ -164,10 +164,10 @@ struct Task<T> {
 }
 
 impl<T> Task<T> {
-    fn cancel(self);                      // 취소 요청 - 다음 await 에서 끝남 (2.18.4)
+    fn cancel(self);                      // 취소 요청, 다음 await 에서 끝남 (2.18.4)
     fn is_cancelled(self) -> bool;
     fn is_finished(self) -> bool;
-    fn join(self) -> Join<T>;             // try await t.join() - 결과 없이 취소됐으면 CancellationError
+    fn join(self) -> Join<T>;             // try await t.join(): 결과 없이 취소됐으면 CancellationError
     fn id(self) -> TaskId;
 }
 
@@ -179,7 +179,7 @@ impl TaskId {
 
 struct CancellationError {}
 
-impl<T> Future for Task<T> {              // `await t` - 완료까지 suspend
+impl<T> Future for Task<T> {              // `await t`: 완료까지 suspend
     type Output = T;
     ...
 }
@@ -221,7 +221,7 @@ Worker 0 ─┐      Worker 1 ─┐    ...    Worker N-1 ─┐
 ```rok
 let t = task::spawn(async { long_running() });
 // ... 다른 일 ...
-t.cancel();              // 협력적 신호 - task 가 cancellation point 에서 종료
+t.cancel();              // 협력적 신호. task 가 cancellation point 에서 종료
 ```
 
 `cancel()` 은 취소를 **요청** 합니다. 규칙은 다음과 같습니다 ([refs-lang 7.7.9](../../refs-lang/007-runtime/707-io-and-timer.md#779-cancellation)).

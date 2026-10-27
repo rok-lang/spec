@@ -33,12 +33,12 @@ silent wrap 되어 황당한 결과를 내는 일이 없습니다.
 접미사 없는 리터럴 (`42`, `3.14`) 은 기대 타입이 없으면 **`i32` / `f64`** 가 됩니다. auto-promote 세계는 `int` / `float` 를 적은 자리에서만 쓰입니다.
 
 ```rok
-let total: int = 0;               // int (auto-promote) - 명시
+let total: int = 0;               // int (auto-promote), 명시
 for x in xs { total = total + x; }
-// total 이 i32 범위 넘어가도 자동 promote - silent overflow 없음
+// total 이 i32 범위 넘어가도 자동 promote, silent overflow 없음
 
 let n = 0;                        // i32 (기대 타입 없음)
-let perf_critical: i64 = 0;       // i64 - 기대 타입을 따름
+let perf_critical: i64 = 0;       // i64: 기대 타입을 따름
 ```
 
 ## 2.1.2. `int` - 무한 정밀도 정수
@@ -108,11 +108,11 @@ big = big * 1000;
 big = big * 1000;
 big = big * 1000;
 big = big * 1000;
-// big = 10^18 - i64 범위 거의 끝
+// big = 10^18, i64 범위 거의 끝
 big = big * 1000;
-// big = 10^21 - i64 범위 밖, BigInt promote
+// big = 10^21, i64 범위 밖, BigInt promote
 big = big * big;
-// big = 10^42 - 더 큰 BigInt, 정확
+// big = 10^42, 더 큰 BigInt, 정확
 ```
 
 산술 트레잇 ([2.3 ops](203-ops.md)) 의 `Add`, `Sub`, `Mul`, `Div`, `Rem` 이
@@ -229,7 +229,7 @@ impl Float {
 
 | 부류                       | 구성원                                                                                                | 등록 방식                              |
 |----------------------------|-------------------------------------------------------------------------------------------------------|----------------------------------------|
-| **16 언어 기본값**         | `i8`/`i16`/`i32`/`i64`, `u8`/`u16`/`u32`/`u64`, `isize`/`usize`, `f32`/`f64`, `bool`, `char`, `c_char`, `str` | 언어가 직접 인식 - `#[keyword]` 불필요 |
+| **16 언어 기본값**         | `i8`/`i16`/`i32`/`i64`, `u8`/`u16`/`u32`/`u64`, `isize`/`usize`, `f32`/`f64`, `bool`, `char`, `c_char`, `str` | 언어가 직접 인식, `#[keyword]` 불필요  |
 | **2 표준 라이브러리 추가** | `int`, `float`                                                                                | `#[keyword(...)]` 등록                 |
 
 언어 기본값은 컴파일러 (lexer/parser) 가 직접 인식하는 토큰이라서, 표준 라이브러리가
@@ -473,7 +473,7 @@ impl f64 {
 | `3.14f64` | `f64`                                             |
 | `'A'`     | `char`                                            |
 | `c'A'`    | `c_char` (primitive)                              |
-| `0xFF`    | 10 진과 같음 - 기대 타입, 없으면 `i32`             |
+| `0xFF`    | 10 진과 같음: 기대 타입, 없으면 `i32`              |
 | `0xFFi32` | `i32`                                             |
 
 ### 기대 타입과 범위 검사
@@ -484,9 +484,9 @@ impl f64 {
 let x: i32 = 42;            // i32
 let y: i32 = 9999999999;    // 컴파일 에러 (i32 범위 밖)
 let z: f32 = 3.14;          // f32
-let f: f64 = 1;             // f64 - 정수 리터럴은 실수 슬롯에 들어감
+let f: f64 = 1;             // f64: 정수 리터럴은 실수 슬롯에 들어감
 let w: u8 = 256;            // 컴파일 에러 (256 ∉ u8 range 0..=255)
-let i: i32 = 1.5;           // 컴파일 에러 - 실수 리터럴은 정수 슬롯 불가
+let i: i32 = 1.5;           // 컴파일 에러: 실수 리터럴은 정수 슬롯 불가
 let big: int = 9999999999;  // int
 ```
 
@@ -532,7 +532,7 @@ let wider: i64 = (a as i64) + (b as i64);   // i64
 ```rok
 let a: int = 5;       // int
 let b: i32 = 3;       // i32
-let c = a + b;        // 컴파일 에러 - type mismatch
+let c = a + b;        // 컴파일 에러: type mismatch
 ```
 
 이 경우 명시 변환이 강제됩니다.

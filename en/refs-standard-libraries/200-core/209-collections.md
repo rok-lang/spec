@@ -37,11 +37,11 @@ The literal query syntax means: `{...} % sep *` is zero or more repetitions sepa
 ### Resolving the Dict / Set ambiguity
 
 ```rok
-{"a": 1}      // Dict - `:` pattern
-{1, 2}        // Set - values only
-{1,}          // Set (single element - trailing comma)
-{1}           // always a block - even when the slot is a Set
-{ x = 1 }     // block expression - the token after `{` is statement-like
+{"a": 1}      // Dict: `:` pattern
+{1, 2}        // Set: values only
+{1,}          // Set (single element, trailing comma)
+{1}           // always a block, even when the slot is a Set
+{ x = 1 }     // block expression: the token after `{` is statement-like
 ```
 
 The parser decides from the contents alone: the `expr ":"` form is a Dict, a comma makes it a Set, and anything else is a block. The type of the receiving slot is not used in the decision.
@@ -92,7 +92,7 @@ impl<T> List<T> {
     fn truncate(self, len: usize);              // keeps the first len elements; no change if fewer
     fn drain(self, r: Range<usize>) -> List<T>; // removes and returns r's elements in order; panics if r is reversed or ends past len()
 
-    fn get(self, idx: usize) -> T | none;       // safe - out-of-bounds → none
+    fn get(self, idx: usize) -> T | none;       // safe: out-of-bounds → none
     fn set(self, idx: usize, x: T) throws (IndexError);   // xs[idx] = x panics instead
     fn first(self) -> T | none;
     fn last(self) -> T | none;
@@ -226,7 +226,7 @@ for w in words {
 ```rok
 let d: Dict<str, i32> = {"a": 1, "b": 2};
 d["a"];                   //→ 1
-d["c"];                   //→ panic (IndexError - key missing)
+d["c"];                   //→ panic (IndexError: key missing)
 d.get("c");               //→ none
 
 d.insert("c", 3);
@@ -454,8 +454,8 @@ impl Slice<u8> {
     fn find<B: AsBytes>(self, needle: B) -> usize | none;   // offset of the first occurrence; an empty needle is at 0
 }
 
-impl<T> Index<usize> for Slice<T> { ... }               // s[i] - panics when out of range
-impl<T> Sliceable<Range<usize>> for Slice<T> { ... }    // s[a:b] - a view of a view; the range is clamped to the length
+impl<T> Index<usize> for Slice<T> { ... }               // s[i]: panics when out of range
+impl<T> Sliceable<Range<usize>> for Slice<T> { ... }    // s[a:b]: a view of a view; the range is clamped to the length
 impl<T> IntoIterator for Slice<T> { ... }
 impl<T: PartialEq> PartialEq for Slice<T> { ... }
 impl<T: Debug> Debug for Slice<T> { ... }
@@ -484,7 +484,7 @@ let s3: Slice<i32> = xs[..];            //→ view of all
 s1.len();                               //→ 3
 let t: i32 = s1.iter().sum();           //→ 9
 xs[2] = 30;
-s1[1];                                  //→ 30 - the list's element write is visible
+s1[1];                                  //→ 30 (the list's element write is visible)
 
 let owned: List<i32> = s1.to_list();    //→ [2, 30, 4] (new List)
 ```
@@ -533,7 +533,7 @@ Every container implements `IntoIterator`.
 | `Set<T>`            | `T`                 | **nondeterministic**              |
 | `OrderedDict<K, V>` | `(K, V)`            | insertion order                   |
 | `OrderedSet<T>`     | `T`                 | insertion order                   |
-| `Tuple<T...>`       | **not implemented** | (heterogeneous - no Iterator meaning) |
+| `Tuple<T...>`       | **not implemented** | (heterogeneous, no Iterator meaning)  |
 | `Slice<T>`          | `T`                 | view order (stride applied)       |
 
 `FromIterator<T>` determines which container `collect::<C>()` builds.
@@ -570,7 +570,7 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 | Literals        | `vec![...]` (macro)  | `[...]` `{...}` `(...)`    | `[...]` `{...}` `(...)` (`#[literal]`) |
 | Ordered map     | `BTreeMap` (sorted map) | **default dict**        | separate `OrderedDict`                 |
 
-Rok differs most in these ways. First, all 6 collections have first-class literal syntax, so no macro such as `vec![]` is used. Second, insertion order of `Dict` / `Set` is not guaranteed - unlike Python 3.7+ - so `OrderedDict` must be used explicitly when order matters. Third, `Slice<T>` is a view with a stride, so even an expression like `xs[::2]` is zero-copy.
+Rok differs most in these ways. First, all 6 collections have first-class literal syntax, so no macro such as `vec![]` is used. Second, insertion order of `Dict` / `Set` is not guaranteed (unlike Python 3.7+), so `OrderedDict` must be used explicitly when order matters. Third, `Slice<T>` is a view with a stride, so even an expression like `xs[::2]` is zero-copy.
 
 ## 2.9.12. `GcBuf<T>` - raw GC buffer
 

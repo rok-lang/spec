@@ -28,7 +28,7 @@ struct Atomic<T> {
     // internal: a one-element cell driven by per-T LLVM atomic ops
 }
 
-trait AtomicPrimitive { /* marker - i8/i16/i32/i64/isize, u8/u16/u32/u64/usize, bool, Ptr<T> */ }
+trait AtomicPrimitive { /* marker: i8/i16/i32/i64/isize, u8/u16/u32/u64/usize, bool, Ptr<T> */ }
 
 impl<T: AtomicPrimitive + PartialEq> Atomic<T> {
     const fn new(value: T) -> Atomic<T>;
@@ -39,11 +39,11 @@ impl<T: AtomicPrimitive + PartialEq> Atomic<T> {
     fn compare_exchange(
         self, current: T, new: T,
         success: AtomicOrdering, failure: AtomicOrdering,
-    ) -> Result<T, T>;                  // the failure result is a value too - not an error
+    ) -> Result<T, T>;                  // the failure result is a value too, not an error
     fn compare_exchange_weak(
         self, current: T, new: T,
         success: AtomicOrdering, failure: AtomicOrdering,
-    ) -> Result<T, T>;                  // the failure result is a value too - not an error
+    ) -> Result<T, T>;                  // the failure result is a value too, not an error
 
     // integers only
     fn fetch_add(self, value: T, ordering: AtomicOrdering = SeqCst) -> T;
@@ -69,11 +69,11 @@ Atomic operations come in five memory-ordering strengths, with the following mea
 
 ```rok
 enum AtomicOrdering {
-    Relaxed,        // no synchronization - counters etc.
+    Relaxed,        // no synchronization (counters etc.)
     Acquire,        // synchronization guaranteed after the load
     Release,        // synchronization guaranteed before the store
     AcqRel,         // both directions for RMW
-    SeqCst,         // global sequential consistency (default - safe)
+    SeqCst,         // global sequential consistency (default, safe)
 }
 ```
 
@@ -104,7 +104,7 @@ fn store_max(cell: Atomic<i64>, x: i64) {
         if cur >= x { break; }
         match cell.compare_exchange(cur, x, AcqRel, Acquire) {
             Ok(_)       => break,
-            Err(actual) => cur = actual,          // another task got there first - retry with its value
+            Err(actual) => cur = actual,          // another task got there first; retry with its value
         }
     }
 }
@@ -126,7 +126,7 @@ impl<T> Mutex<T> {
     unsafe fn new_unshared(value: T) -> Mutex<T>;   // new without the hand-off copy
 
     fn lock(self) -> MutexGuard<T>;            // blocks the thread
-    fn lock_async(self) -> LockFuture<T>;      // await m.lock_async() - suspends only the task (Future<Output = MutexGuard<T>>)
+    fn lock_async(self) -> LockFuture<T>;      // await m.lock_async(): suspends only the task (Future<Output = MutexGuard<T>>)
     fn try_lock(self) -> MutexGuard<T> | none; // non-blocking
 }
 
@@ -208,7 +208,7 @@ impl<T> RwLock<T> {
     fn try_read(self) -> RwLockReadGuard<T> | none;
     fn try_write(self) -> RwLockWriteGuard<T> | none;
 
-    fn read_async(self) -> ReadFuture<T>;       // await l.read_async() - suspends only the task
+    fn read_async(self) -> ReadFuture<T>;       // await l.read_async(): suspends only the task
     fn write_async(self) -> WriteFuture<T>;
 }
 ```
@@ -249,7 +249,7 @@ struct Condvar { /* ... */ }
 impl Condvar {
     const fn new() -> Condvar;
     fn wait<T>(self, guard: MutexGuard<T>) -> MutexGuard<T>;   // releases the lock and waits, relocks on wakeup
-    fn wait_async<T>(self, guard: MutexGuard<T>) -> CondvarWait<T>;   // g = await cv.wait_async(g) - suspends only the task
+    fn wait_async<T>(self, guard: MutexGuard<T>) -> CondvarWait<T>;   // g = await cv.wait_async(g): suspends only the task
     fn notify_one(self);
     fn notify_all(self);
 }
@@ -314,8 +314,8 @@ let c: Cell<i32> = Cell::new(0);
 c.set(42);
 let v = c.get();          //→ 42
 
-// sharing across tasks - compile error (Cell has no Send / Sync)
-task::spawn(async { c.set(100) });       // ERROR - Cell is not cross-task safe
+// sharing across tasks: compile error (Cell has no Send / Sync)
+task::spawn(async { c.set(100) });       // ERROR: Cell is not cross-task safe
 ```
 
 ### `Send` / `Sync` markers
@@ -324,10 +324,10 @@ task::spawn(async { c.set(100) });       // ERROR - Cell is not cross-task safe
 
 - `Atomic<T>`: Send + Sync
 - `Mutex<T>`: Send + Sync when `T: Send`
-- `RwLock<T>`: Send when `T: Send`; Sync when `T: Send + Sync` - its readers share the value at once, so an `RwLock` of a collection (`!Sync`) cannot be shared between threads; use `Mutex<T>`.
-- `MutexGuard<T>`, `RwLockReadGuard<T>`, `RwLockWriteGuard<T>`: Send, `!Sync` - a guard is good only inside its `using` block
+- `RwLock<T>`: Send when `T: Send`; Sync when `T: Send + Sync`. Its readers share the value at once, so an `RwLock` of a collection (`!Sync`) cannot be shared between threads; use `Mutex<T>`.
+- `MutexGuard<T>`, `RwLockReadGuard<T>`, `RwLockWriteGuard<T>`: Send, `!Sync`. A guard is good only inside its `using` block
 - `Frozen<T>`: Sync when `T: Send` (2.16.4b)
-- `Cell<T>`: neither (single-task only) - the `task::spawn` above is an error because the `async` block captures the `Cell` and is therefore not `Send`
+- `Cell<T>`: neither (single-task only). The `task::spawn` above is an error because the `async` block captures the `Cell` and is therefore not `Send`
 
 ## 2.16.6. Module mapping
 

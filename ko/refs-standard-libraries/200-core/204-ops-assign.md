@@ -46,7 +46,7 @@ counter += 5;       //→ 5 (counter 가 in-place 갱신)
 counter += 3;       //→ 8
 
 let xs: List<i32> = [1, 2];
-xs += [3, 4];       //→ [1, 2, 3, 4]  (List 의 add_assign - push 효율)
+xs += [3, 4];       //→ [1, 2, 3, 4]  (List 의 add_assign: push 효율)
 ```
 
 ### `SubAssign` - `-=`
@@ -178,11 +178,11 @@ primitive 타입의 `*Assign` impl 에는 모두 `#[intrinsic("rok.OP_assign.TYP
 | `i*`, `u*`   | 산술 6 개 + 비트 5 개 (11 트레잇)           | `rok.add_assign.i32`, `rok.shl_assign.u32`, ... |
 | `f32`, `f64` | 산술 6 개만                                 | `rok.add_assign.f64`, ...                       |
 | `bool`       | `BitAndAssign`/`BitOrAssign`/`BitXorAssign` | `rok.and_assign.bool`, ...                      |
-| `int`        | 산술 + 비트                                 | auto-promote 로직 - 새 값으로 교체 (불변)       |
-| `float`      | 산술                                        | (위와 동일 - auto-promote)                      |
+| `int`        | 산술 + 비트                                 | auto-promote 로직, 새 값으로 교체 (불변)        |
+| `float`      | 산술                                        | (위와 동일: auto-promote)                       |
 | `List<T>`    | `AddAssign<T>`, `AddAssign<List<T>>`        | `xs += x` 는 `x` 를 push; `xs += ys` 는 `ys` 의 모든 원소를 제자리에서 push |
-| `str`        | `AddAssign<str>`, `AddAssign<char>`         | `s = s + t` - 새 str 로 교체 (str 은 불변)      |
-| `Dict<K,V>`  | `AddAssign<Dict<K,V>>` (`K: Hash`)          | 제자리 merge - 겹치는 키는 오른쪽 값이 이김     |
+| `str`        | `AddAssign<str>`, `AddAssign<char>`         | `s = s + t`: 새 str 로 교체 (str 은 불변)       |
+| `Dict<K,V>`  | `AddAssign<Dict<K,V>>` (`K: Hash`)          | 제자리 merge, 겹치는 키는 오른쪽 값이 이김      |
 
 ```rok
 let xs: List<i32> = [1];
@@ -264,7 +264,7 @@ xs.dot_add_assign(ys);    // 메서드 호출 (broadcast in-place)
 ```rok
 impl<T> List<T> {
     fn dot_add_assign(self, rhs: List<T>) where T: Add<Output = T>;
-    // dot_OP_assign 도 같음 - OP 는 add, sub, mul, div, rem, modulo,
+    // dot_OP_assign 도 같음. OP 는 add, sub, mul, div, rem, modulo,
     // bitand, bitor, bitxor, shl, shr 이며 각각 T: OP<Output = T> 필요
 }
 ```

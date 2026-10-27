@@ -37,11 +37,11 @@ struct Tuple { /* ... */ }
 ### Dict / Set 모호성 해결
 
 ```rok
-{"a": 1}      // Dict - `:` 패턴
-{1, 2}        // Set - 값만
-{1,}          // Set (단일 원소 - 후행 콤마)
-{1}           // 항상 block - 슬롯이 Set 이어도 마찬가지
-{ x = 1 }     // block expression - `{` 다음 토큰이 statement-like
+{"a": 1}      // Dict: `:` 패턴
+{1, 2}        // Set: 값만
+{1,}          // Set (단일 원소, 후행 콤마)
+{1}           // 항상 block. 슬롯이 Set 이어도 마찬가지
+{ x = 1 }     // block expression: `{` 다음 토큰이 statement-like
 ```
 
 parser 가 내용만 보고 결정합니다. `expr ":"` 형태이면 Dict, 콤마가 있으면 Set, 그 밖에는 block 입니다. 받는 슬롯의 타입은 판정에 쓰지 않습니다.
@@ -92,7 +92,7 @@ impl<T> List<T> {
     fn truncate(self, len: usize);              // 앞의 len 개만 남김; 더 적으면 그대로
     fn drain(self, r: Range<usize>) -> List<T>; // r 의 원소를 순서대로 빼서 돌려줌; r 이 거꾸로이거나 len() 을 넘어 끝나면 panic
 
-    fn get(self, idx: usize) -> T | none;       // safe - out-of-bounds → none
+    fn get(self, idx: usize) -> T | none;       // safe: out-of-bounds → none
     fn set(self, idx: usize, x: T) throws (IndexError);   // xs[idx] = x panics instead
     fn first(self) -> T | none;
     fn last(self) -> T | none;
@@ -226,7 +226,7 @@ for w in words {
 ```rok
 let d: Dict<str, i32> = {"a": 1, "b": 2};
 d["a"];                   //→ 1
-d["c"];                   //→ panic (IndexError - 키 없음)
+d["c"];                   //→ panic (IndexError: 키 없음)
 d.get("c");               //→ none
 
 d.insert("c", 3);
@@ -454,8 +454,8 @@ impl Slice<u8> {
     fn find<B: AsBytes>(self, needle: B) -> usize | none;   // 처음 나타나는 offset; 빈 needle 은 0
 }
 
-impl<T> Index<usize> for Slice<T> { ... }               // s[i] - 범위 밖이면 panic
-impl<T> Sliceable<Range<usize>> for Slice<T> { ... }    // s[a:b] - view 의 view, 범위는 길이에 맞춰 잘라 맞춤
+impl<T> Index<usize> for Slice<T> { ... }               // s[i]: 범위 밖이면 panic
+impl<T> Sliceable<Range<usize>> for Slice<T> { ... }    // s[a:b]: view 의 view, 범위는 길이에 맞춰 잘라 맞춤
 impl<T> IntoIterator for Slice<T> { ... }
 impl<T: PartialEq> PartialEq for Slice<T> { ... }
 impl<T: Debug> Debug for Slice<T> { ... }
@@ -484,7 +484,7 @@ let s3: Slice<i32> = xs[..];            //→ view of all
 s1.len();                               //→ 3
 let t: i32 = s1.iter().sum();           //→ 9
 xs[2] = 30;
-s1[1];                                  //→ 30 - 리스트의 원소 쓰기가 보임
+s1[1];                                  //→ 30 (리스트의 원소 쓰기가 보임)
 
 let owned: List<i32> = s1.to_list();    //→ [2, 30, 4] (새 List)
 ```
@@ -533,7 +533,7 @@ sum(..[4, 5]);               //→ 9 (리스트 spread)
 | `Set<T>`            | `T`               | **비결정**                        |
 | `OrderedDict<K, V>` | `(K, V)`          | insertion order                   |
 | `OrderedSet<T>`     | `T`               | insertion order                   |
-| `Tuple<T...>`       | **구현하지 않음** | (heterogeneous - Iterator 의미 X) |
+| `Tuple<T...>`       | **구현하지 않음** | (heterogeneous, Iterator 의미 X)  |
 | `Slice<T>`          | `T`               | view 순서 (stride 적용)           |
 
 또한 `FromIterator<T>` 는 `collect::<C>()` 가 어떤 컨테이너를 만들지 결정합니다.

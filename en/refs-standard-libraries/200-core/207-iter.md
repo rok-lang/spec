@@ -61,7 +61,7 @@ The only method a user must implement for `Iterator` is `next(ref self)`. All ot
 impl Iterator {
     fn next(ref self) -> Item | none;       // user-defined
 
-    // transforming adapters - lazy
+    // transforming adapters (lazy)
     fn map<U>(self, f: fn(Item) -> U) -> Map<Self, U>;
     fn filter(self, pred: fn(Item) -> bool) -> Filter<Self>;
     fn enumerate(self) -> Enumerate<Self>;        // (index, item) pairs
@@ -75,7 +75,7 @@ impl Iterator {
     fn flat_map<U: IntoIterator>(self, f: fn(Item) -> U) -> FlatMap<Self, U>;
     fn peekable(self) -> Peekable<Self>;          // peek at the next element
 
-    // terminal methods - eager
+    // terminal methods (eager)
     fn count(self) -> usize;
     fn sum(self) -> Item where Item: Add<Output = Item> + Zero;     // 0 if empty
     fn product(self) -> Item where Item: Mul<Output = Item> + One;  // 1 if empty
@@ -107,9 +107,9 @@ These methods fall into two groups. Transforming adapters such as `map`, `filter
 ```rok
 let xs = [1, 2, 3, 4, 5];
 let r = xs.into_iter()
-    .map(|x| x * 2)            // lazy - nothing computed yet
+    .map(|x| x * 2)            // lazy: nothing computed yet
     .filter(|x| x > 4)         // lazy
-    .sum();                    // eager - stepping happens here
+    .sum();                    // eager: stepping happens here
 //→ 6 + 8 + 10 = 24
 ```
 
@@ -221,9 +221,9 @@ trait Step: PartialOrd + Clone {
 
 The methods mean:
 
-- `forward_checked(self, n)` - returns the value `n` steps forward from `self`, or `none` if it exceeds the type's range.
-- `backward_checked(self, n)` - the value moved backward; likewise `none` if out of range.
-- `steps_between(start, end)` - computes how many steps lie from `start` to `end`, returning `none` when that is not representable (e.g. negative, overflow).
+- `forward_checked(self, n)`: returns the value `n` steps forward from `self`, or `none` if it exceeds the type's range.
+- `backward_checked(self, n)`: the value moved backward; likewise `none` if out of range.
+- `steps_between(start, end)`: computes how many steps lie from `start` to `end`, returning `none` when that is not representable (e.g. negative, overflow).
 
 ### Why it is separate from the arithmetic traits
 
@@ -244,7 +244,7 @@ The standard library implements `Step` only for integer primitives and `char`.
 | `int`                | **no**   | no standard library impl                             |
 | `char`               | **yes**  | steps by codepoint, skipping surrogates (`0xD800..=0xDFFF`) |
 | `bool`               | **no**   | no standard library impl                             |
-| `f32`, `f64`         | **no**   | `Range<f64>` rejected - ambiguous meaning            |
+| `f32`, `f64`         | **no**   | `Range<f64>` rejected: ambiguous meaning             |
 | `float`              | **no**   | (same as above)                                      |
 
 User-defined types may add `impl Step for MyType` freely, which immediately enables `Range<MyType>`.
@@ -361,7 +361,7 @@ struct RangeFull;
 
 ```rok
 let xs = [1, 2, 3, 4, 5];
-let s = xs[..3];          //→ [1, 2, 3]  (Slice - the Slice trait of 2.3 ops)
+let s = xs[..3];          //→ [1, 2, 3]  (Slice: the Slice trait of 2.3 ops)
 ```
 
 ## 2.7.5. `FromIterator<T>` - dispatch of `collect`
@@ -381,7 +381,7 @@ let v: List<i32> = (0..5).collect();
 // = List::from_iter((0..5).into_iter())
 ```
 
-Every collection - `List`, `Dict`, `Set`, `str`, etc. - implements `FromIterator`.
+Every collection (`List`, `Dict`, `Set`, `str`, etc.) implements `FromIterator`.
 
 ## 2.7.6. IntoIterator impls per collection
 
@@ -394,7 +394,7 @@ How each collection implements `IntoIterator`:
 | `OrderedDict<K, V>` | `(K, V)`    | Insertion order                           |
 | `Set<T>`            | `T`         | Iteration order **not guaranteed**        |
 | `OrderedSet<T>`     | `T`         | Insertion order                           |
-| `Tuple<A, B, C>`    | (special)   | **Creates no iterator** - use pattern matching |
+| `Tuple<A, B, C>`    | (special)   | **Creates no iterator**; use pattern matching  |
 | `Range<T>`          | `T`         | From start to end-1                       |
 | `Slice<T>`          | `T`         | From the start of the view to its end     |
 
@@ -409,7 +409,7 @@ When order must be guaranteed, use `OrderedDict<K, V>` or `OrderedSet<T>`, which
 An infinite iterator, such as `RangeFrom` or a user-defined one, combined directly with an eager method loops forever.
 
 ```rok
-(0..).count();         // infinite loop - count runs to the end
+(0..).count();         // infinite loop: count runs to the end
 (0..).sum();           // infinite loop
 ```
 
@@ -447,7 +447,7 @@ The iterators of `List<T>` and `Slice<T>`, and the following types, must impleme
 
 - `Range<T>`, `RangeInclusive<T>`
 - `Rev<I>` (when `I` is bidirectional), `Map<I, U>`, `Filter<I>`, `Chain<A, B>` (when the component iterators are bidirectional)
-- `Enumerate<I>`, `Zip<A, B>`, `Take<I>`, `Skip<I>`, `StepBy<I>` - when the component iterators are `DoubleEndedIterator + ExactSizeIterator`, because counting from the back needs the length.
+- `Enumerate<I>`, `Zip<A, B>`, `Take<I>`, `Skip<I>`, `StepBy<I>`: when the component iterators are `DoubleEndedIterator + ExactSizeIterator`, because counting from the back needs the length.
 
 `Dict<K, V>` and `Set<T>`, being unordered, do not implement it.
 

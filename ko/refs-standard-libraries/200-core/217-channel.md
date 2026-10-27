@@ -44,7 +44,7 @@ struct Receiver<T> { /* ... */ }
 impl<T> Sender<T> {
     fn send(self, value: T) throws (SendError<T>);
     fn try_send(self, value: T) throws (TrySendError<T>);
-    fn send_async(self, value: T) -> SendFuture<T>;   // try await tx.send_async(v) - task 만 중단, throws (SendError<T>)
+    fn send_async(self, value: T) -> SendFuture<T>;   // try await tx.send_async(v): task 만 중단, throws (SendError<T>)
     fn clone(self) -> Sender<T>;             // 다중 sender
     fn close(self);                          // 이 sender 를 닫음
 }
@@ -52,16 +52,16 @@ impl<T> Sender<T> {
 impl<T> Receiver<T> {
     fn recv(self) -> T | none;               // none = 모든 sender 가 close
     fn try_recv(self) -> T | none;           // none = 비어있음 또는 closed
-    fn recv_async(self) -> RecvFuture<T>;    // await rx.recv_async() - task 만 중단, Output = T | none
+    fn recv_async(self) -> RecvFuture<T>;    // await rx.recv_async(): task 만 중단, Output = T | none
     fn iter(self) -> ChannelIter<T>;         // for x in rx { ... }
 }
 
-impl<T> Stream for Receiver<T> {         // for await v in rx - task 만 중단
+impl<T> Stream for Receiver<T> {         // for await v in rx: task 만 중단
     type Item = T;
     ...
 }
 
-impl<T> IntoIterator for Receiver<T> {   // for x in rx - 모든 sender 가 close 되면 끝
+impl<T> IntoIterator for Receiver<T> {   // for x in rx: 모든 sender 가 close 되면 끝
     type Item = T;
     type IntoIter = ChannelIter<T>;
 }
@@ -105,7 +105,7 @@ let v1 = rx.recv();
 let v2 = rx.recv();
 ```
 
-반면 `Receiver<T>` 는 Clone 을 구현하지 않으므로 single consumer 로 동작합니다. 이는 mpsc - multi producer single consumer - 모델을 의미합니다. 만약 multi-consumer 가 필요한 상황이라면 별도의 fan-out task 를 두어 분배하는 방식을 택하면 됩니다.
+반면 `Receiver<T>` 는 Clone 을 구현하지 않으므로 single consumer 로 동작합니다. 이는 mpsc (multi producer single consumer) 모델을 의미합니다. 만약 multi-consumer 가 필요한 상황이라면 별도의 fan-out task 를 두어 분배하는 방식을 택하면 됩니다.
 
 ## 2.17.5. `for` / `Stream` 통합
 

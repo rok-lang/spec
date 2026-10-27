@@ -17,11 +17,11 @@ The split into automatic and opt-in controls binary size. If every struct carrie
 
 ```rok
 trait Reflect {
-    fn type_name() -> str;        // static - T::type_name()
+    fn type_name() -> str;        // static: T::type_name()
     fn size() -> usize;
     fn align() -> usize;
 
-    fn type_name_of(self) -> str; // instance - x.type_name_of() (any / sum also OK)
+    fn type_name_of(self) -> str; // instance: x.type_name_of() (any / sum also OK)
     fn size_of(self) -> usize;
 }
 ```
@@ -38,18 +38,18 @@ The compiler provides `Reflect` for every type; there is no impl in source.
 ### Static vs instance
 
 ```rok
-i32::type_name();          //→ "i32"           (static - decided at compile time)
+i32::type_name();          //→ "i32"           (static, decided at compile time)
 i32::size();               //→ 4
 i32::align();              //→ 4
 
 let x: i32 = 42;
-x.type_name_of();          //→ "i32"           (instance - usually the same as static)
+x.type_name_of();          //→ "i32"           (instance, usually the same as static)
 
 let y: i32 | f64 = 42i32;
-y.type_name_of();          //→ "i32"           (runtime dispatch - checks the sum tag)
+y.type_name_of();          //→ "i32"           (runtime dispatch, checks the sum tag)
 
 let z: any = "hello";
-z.type_name_of();          //→ "str"           (runtime - any slot dispatch)
+z.type_name_of();          //→ "str"           (runtime, any slot dispatch)
 ```
 
 `type_name_of` is a runtime dispatch, so for a sum type or `any` it returns the name of the variant currently held.
@@ -57,8 +57,8 @@ z.type_name_of();          //→ "str"           (runtime - any slot dispatch)
 ### No global functions
 
 ```rok
-typeof(x);                 // ERROR - no global typeof
-sizeof(T);                 // ERROR - no global sizeof
+typeof(x);                 // ERROR: no global typeof
+sizeof(T);                 // ERROR: no global sizeof
 ```
 
 Instead, everything is uniformly a method.
@@ -201,7 +201,7 @@ A bare expression uses `Display` and a trailing `?` uses `Debug`. A value withou
 
 | Item               | Location                                          | Mechanism                         |
 |--------------------|---------------------------------------------------|-----------------------------------|
-| `Reflect` (automatic) | compiler + `rok::core::reflect`                | type info table - attached to the binary |
+| `Reflect` (automatic) | compiler + `rok::core::reflect`                | type info table, attached to the binary  |
 | `Inspect` derive   | `rok::core::reflect` + meta block `#[impl_derive]` | code generation from template tokens |
 | `MethodInfo`       | `rok::core::reflect`                              | plain struct                      |
 | `any` type         | compiler built-in                                 | type tag + payload                |

@@ -61,7 +61,7 @@ for x in xs {
 impl Iterator {
     fn next(ref self) -> Item | none;       // 사용자 정의
 
-    // 변환 어댑터 - lazy
+    // 변환 어댑터 (lazy)
     fn map<U>(self, f: fn(Item) -> U) -> Map<Self, U>;
     fn filter(self, pred: fn(Item) -> bool) -> Filter<Self>;
     fn enumerate(self) -> Enumerate<Self>;        // (index, item) 쌍
@@ -75,7 +75,7 @@ impl Iterator {
     fn flat_map<U: IntoIterator>(self, f: fn(Item) -> U) -> FlatMap<Self, U>;
     fn peekable(self) -> Peekable<Self>;          // 다음 원소 미리 보기
 
-    // 종결 메서드 - eager
+    // 종결 메서드 (eager)
     fn count(self) -> usize;
     fn sum(self) -> Item where Item: Add<Output = Item> + Zero;     // 비면 0
     fn product(self) -> Item where Item: Mul<Output = Item> + One;  // 비면 1
@@ -107,9 +107,9 @@ impl Iterator {
 ```rok
 let xs = [1, 2, 3, 4, 5];
 let r = xs.into_iter()
-    .map(|x| x * 2)            // lazy - 아직 계산 안 함
+    .map(|x| x * 2)            // lazy: 아직 계산 안 함
     .filter(|x| x > 4)         // lazy
-    .sum();                    // eager - 여기서 단계 진행
+    .sum();                    // eager: 여기서 단계 진행
 //→ 6 + 8 + 10 = 24
 ```
 
@@ -221,9 +221,9 @@ trait Step: PartialOrd + Clone {
 
 각 메서드의 의미는 다음과 같습니다.
 
-- `forward_checked(self, n)` - `self` 에서 `n` 만큼 앞으로 이동한 값을 반환하며, 타입 범위를 넘으면 `none` 을 돌려줍니다.
-- `backward_checked(self, n)` - 뒤로 이동한 값. 마찬가지로 범위를 넘으면 `none`.
-- `steps_between(start, end)` - `start` 에서 `end` 까지 몇 칸인지 계산하며, 표현 불가일 때 `none` 을 돌려줍니다 (예: 음수, overflow).
+- `forward_checked(self, n)`: `self` 에서 `n` 만큼 앞으로 이동한 값을 반환하며, 타입 범위를 넘으면 `none` 을 돌려줍니다.
+- `backward_checked(self, n)`: 뒤로 이동한 값. 마찬가지로 범위를 넘으면 `none`.
+- `steps_between(start, end)`: `start` 에서 `end` 까지 몇 칸인지 계산하며, 표현 불가일 때 `none` 을 돌려줍니다 (예: 음수, overflow).
 
 ### 산술 트레잇과 분리한 이유
 
@@ -244,7 +244,7 @@ trait Step: PartialOrd + Clone {
 | `int`                | **없음** | 표준 라이브러리 impl 없음                            |
 | `char`               | **있음** | codepoint 진행, surrogate (`0xD800..=0xDFFF`) 건너뜀 |
 | `bool`               | **없음** | 표준 라이브러리 impl 없음                            |
-| `f32`, `f64`         | **없음** | `Range<f64>` 거부 - 의미 모호                        |
+| `f32`, `f64`         | **없음** | `Range<f64>` 거부: 의미 모호                         |
 | `float`              | **없음** | (위와 동일)                                          |
 
 사용자 정의 타입은 `impl Step for MyType` 로 자유롭게 추가할 수 있으며, `Range<MyType>` 이 즉시 가능해집니다.
@@ -361,7 +361,7 @@ struct RangeFull;
 
 ```rok
 let xs = [1, 2, 3, 4, 5];
-let s = xs[..3];          //→ [1, 2, 3]  (Slice - 2.3 ops 의 Slice 트레잇)
+let s = xs[..3];          //→ [1, 2, 3]  (Slice: 2.3 ops 의 Slice 트레잇)
 ```
 
 ## 2.7.5. `FromIterator<T>` - `collect` 의 dispatch
@@ -394,7 +394,7 @@ let v: List<i32> = (0..5).collect();
 | `OrderedDict<K, V>` | `(K, V)`    | 삽입 순서                                 |
 | `Set<T>`            | `T`         | 순회 순서 **보장 안 됨**                  |
 | `OrderedSet<T>`     | `T`         | 삽입 순서                                 |
-| `Tuple<A, B, C>`    | (특수)      | iterator **만들지 않음** - 패턴 매칭 사용 |
+| `Tuple<A, B, C>`    | (특수)      | iterator **만들지 않음**, 패턴 매칭 사용  |
 | `Range<T>`          | `T`         | start 부터 end-1 까지                     |
 | `Slice<T>`          | `T`         | view 의 시작부터 끝까지                   |
 
@@ -409,7 +409,7 @@ let v: List<i32> = (0..5).collect();
 `RangeFrom` 이나 사용자 정의로 만든 무한 iterator 는 eager 메서드와 직접 결합할 경우 무한 루프에 빠지게 됩니다.
 
 ```rok
-(0..).count();         // 무한 루프 - count 가 끝까지 진행
+(0..).count();         // 무한 루프: count 가 끝까지 진행
 (0..).sum();           // 무한 루프
 ```
 
@@ -447,7 +447,7 @@ trait DoubleEndedIterator: Iterator {
 
 - `Range<T>`, `RangeInclusive<T>`
 - `Rev<I>` (`I` 가 양방향일 때), `Map<I, U>`, `Filter<I>`, `Chain<A, B>` (구성 iterator 가 양방향일 때)
-- `Enumerate<I>`, `Zip<A, B>`, `Take<I>`, `Skip<I>`, `StepBy<I>` - 구성 iterator 가 `DoubleEndedIterator + ExactSizeIterator` 일 때. 뒤에서 세려면 길이가 필요하기 때문입니다.
+- `Enumerate<I>`, `Zip<A, B>`, `Take<I>`, `Skip<I>`, `StepBy<I>`: 구성 iterator 가 `DoubleEndedIterator + ExactSizeIterator` 일 때. 뒤에서 세려면 길이가 필요하기 때문입니다.
 
 반면 `Dict<K, V>` 와 `Set<T>` 는 순서가 없으므로 impl 하지 않습니다.
 

@@ -44,7 +44,7 @@ struct Receiver<T> { /* ... */ }
 impl<T> Sender<T> {
     fn send(self, value: T) throws (SendError<T>);
     fn try_send(self, value: T) throws (TrySendError<T>);
-    fn send_async(self, value: T) -> SendFuture<T>;   // try await tx.send_async(v) - suspends only the task, throws (SendError<T>)
+    fn send_async(self, value: T) -> SendFuture<T>;   // try await tx.send_async(v): suspends only the task, throws (SendError<T>)
     fn clone(self) -> Sender<T>;             // multiple senders
     fn close(self);                          // closes this sender
 }
@@ -52,16 +52,16 @@ impl<T> Sender<T> {
 impl<T> Receiver<T> {
     fn recv(self) -> T | none;               // none = every sender closed
     fn try_recv(self) -> T | none;           // none = empty or closed
-    fn recv_async(self) -> RecvFuture<T>;    // await rx.recv_async() - suspends only the task, Output = T | none
+    fn recv_async(self) -> RecvFuture<T>;    // await rx.recv_async(): suspends only the task, Output = T | none
     fn iter(self) -> ChannelIter<T>;         // for x in rx { ... }
 }
 
-impl<T> Stream for Receiver<T> {         // for await v in rx - suspends only the task
+impl<T> Stream for Receiver<T> {         // for await v in rx: suspends only the task
     type Item = T;
     ...
 }
 
-impl<T> IntoIterator for Receiver<T> {   // for x in rx - ends when every sender is closed
+impl<T> IntoIterator for Receiver<T> {   // for x in rx: ends when every sender is closed
     type Item = T;
     type IntoIter = ChannelIter<T>;
 }
@@ -105,7 +105,7 @@ let v1 = rx.recv();
 let v2 = rx.recv();
 ```
 
-`Receiver<T>` does not implement Clone, so it acts as a single consumer. This is the mpsc - multi producer single consumer - model. If multiple consumers are needed, use a separate fan-out task that distributes the messages.
+`Receiver<T>` does not implement Clone, so it acts as a single consumer. This is the mpsc (multi producer single consumer) model. If multiple consumers are needed, use a separate fan-out task that distributes the messages.
 
 ## 2.17.5. `for` / `Stream` integration
 

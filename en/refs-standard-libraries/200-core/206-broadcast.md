@@ -13,11 +13,11 @@ In NumPy and MATLAB, the **silent ambiguity** of `*` meaning element-wise on arr
 Rok's policy, by contrast, is clear.
 
 ```rok
-m * n       // user-defined Mul - matrix multiplication, dot product, etc.
-m .* n      // element-wise (Hadamard product) - always broadcast
+m * n       // user-defined Mul: matrix multiplication, dot product, etc.
+m .* n      // element-wise (Hadamard product), always broadcast
 ```
 
-The dot prefix (`.`) acts as a visual signal stating element-wise intent, and the compiler enforces it. In any container - List, Vec, Matrix, etc. - `.+` consistently dispatches to `DotAdd::dot_add`.
+The dot prefix (`.`) acts as a visual signal stating element-wise intent, and the compiler enforces it. In any container (List, Vec, Matrix, etc.), `.+` consistently dispatches to `DotAdd::dot_add`.
 
 ## 2.6.2. 19 traits - operator mapping
 
@@ -153,11 +153,11 @@ A length mismatch panics at runtime. If the sizes are known at compile time, it 
 ```rok
 let x: [i32; 3] = [1, 2, 3];
 let y: [i32; 4] = [1, 2, 3, 4];
-let z = x .+ y;          // ERROR (compile - fixed sizes differ)
+let z = x .+ y;          // ERROR (compile: fixed sizes differ)
 
 let p: List<i32> = [1, 2, 3];
 let q: List<i32> = [1, 2];
-let r = p .+ q;          // panic at runtime - length mismatch
+let r = p .+ q;          // panic at runtime: length mismatch
 ```
 
 ### Scalar broadcast
@@ -196,8 +196,8 @@ Remainder dot operators apply the meaning of ordinary `%` / `%%` element-wise.
 let a: List<i32> = [-7, 5, -3, 8];
 let b: List<i32> = [3, 3, 3, 3];
 
-a .% b;                  //→ [-1, 2, 0, 2]   (Rem - sign follows the left operand)
-a .%% b;                 //→ [2, 2, 0, 2]    (Modulo - always in [0, 3))
+a .% b;                  //→ [-1, 2, 0, 2]   (Rem: sign follows the left operand)
+a .%% b;                 //→ [2, 2, 0, 2]    (Modulo: always in [0, 3))
 ```
 
 ### Logical dot - `.&&` and `.||`
@@ -211,7 +211,7 @@ let q: List<bool> = [true, true, false, false];
 p .&& q;                 //→ [true, false, false, false]
 p .|| q;                 //→ [true, true, true, false]
 
-// combining comparison results - the most common use
+// combining comparison results: the most common use
 let xs: List<i32> = [1, 5, 3, 8];
 (xs .>= 2) .&& (xs .< 6);  //→ [false, true, true, false]
 ```
@@ -278,8 +278,8 @@ Dot trait impls map onto container types as follows.
 | Container        | DotAdd   | DotMul   | DotEq       | Notes                                   |
 |------------------|----------|----------|-------------|-----------------------------------------|
 | `List<T>`        | T:Add    | T:Mul    | T:PartialEq | element-wise, lengths must match        |
-| `[T; N]` (fixed) | T:Add    | T:Mul    | T:PartialEq | fixed N - compile time                  |
-| `Slice<T>`       | T:Add    | T:Mul    | T:PartialEq | view - element-wise                     |
+| `[T; N]` (fixed) | T:Add    | T:Mul    | T:PartialEq | fixed N, compile time                   |
+| `Slice<T>`       | T:Add    | T:Mul    | T:PartialEq | view, element-wise                      |
 | `i32`/`f64`/etc. | **none** | **none** | **none**    | scalars use ordinary `+`/`*`/`==`       |
 | `T \| none`       | (operator) | (operator) | (operator) | option propagation (`none .+ x = none`) |
 

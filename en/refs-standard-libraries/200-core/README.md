@@ -25,7 +25,7 @@ use rok::core::ops::{Add, Sub};
 
 > [!NOTE]
 > Rok has **no separate `rok::core::prelude` module**. The `**` recursive glob itself serves
-> as the prelude - no extra indirection.
+> as the prelude, with no extra indirection.
 
 The full policy is covered in [0.2 Import policy](../000-meta/002-import.md).
 
@@ -90,7 +90,7 @@ The design of the Rok tier follows four axes.
 
 First, traits come first. Every semantic decision is made by trait method dispatch: `+` resolves to `Add::add`, and `[i]` indexing resolves to `Index::index`.
 
-Second, conversions are explicit. A conversion that may lose information, such as `i64 → i32`, is rejected with a compile or runtime error, and policies such as saturate or wrap must be stated per operation (refs-standard-libraries 0.x - conversion policy).
+Second, conversions are explicit. A conversion that may lose information, such as `i64 → i32`, is rejected with a compile or runtime error, and policies such as saturate or wrap must be stated per operation (refs-standard-libraries 0.x, conversion policy).
 
 Third, the tier aims to be **GC-friendly**. Collections and concurrency objects are managed by the GC, and `drop` of external resources is called only in `using` blocks.
 

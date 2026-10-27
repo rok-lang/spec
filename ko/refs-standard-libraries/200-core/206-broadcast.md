@@ -13,8 +13,8 @@ NumPy 나 MATLAB 에서 `*` 가 배열에서는 element-wise 로, 행렬에서�
 이에 비해 Rok 의 정책은 다음과 같이 명확합니다.
 
 ```rok
-m * n       // 사용자 정의 Mul - matrix multiplication, dot product, etc.
-m .* n      // element-wise (Hadamard product) - 항상 broadcast
+m * n       // 사용자 정의 Mul: matrix multiplication, dot product, etc.
+m .* n      // element-wise (Hadamard product), 항상 broadcast
 ```
 
 dot 접두사(`.`) 가 시각적인 신호 역할을 하여 element-wise 의도를 명시하며, 컴파일러가 이를 강제합니다. 즉 List/Vec/Matrix 등 어떤 컨테이너에서든 `.+` 는 일관되게 `DotAdd::dot_add` 로 dispatch 됩니다.
@@ -153,11 +153,11 @@ let f = b ./ a;          //→ [10, 10, 10]
 ```rok
 let x: [i32; 3] = [1, 2, 3];
 let y: [i32; 4] = [1, 2, 3, 4];
-let z = x .+ y;          // ERROR (컴파일 - 고정 size 다름)
+let z = x .+ y;          // ERROR (컴파일: 고정 size 다름)
 
 let p: List<i32> = [1, 2, 3];
 let q: List<i32> = [1, 2];
-let r = p .+ q;          // panic at runtime - length mismatch
+let r = p .+ q;          // panic at runtime: length mismatch
 ```
 
 ### scalar broadcast
@@ -196,8 +196,8 @@ a .< 4;                  //→ [true, false, true]   (scalar broadcast)
 let a: List<i32> = [-7, 5, -3, 8];
 let b: List<i32> = [3, 3, 3, 3];
 
-a .% b;                  //→ [-1, 2, 0, 2]   (Rem - 부호는 좌측 따름)
-a .%% b;                 //→ [2, 2, 0, 2]    (Modulo - 항상 [0, 3))
+a .% b;                  //→ [-1, 2, 0, 2]   (Rem: 부호는 좌측 따름)
+a .%% b;                 //→ [2, 2, 0, 2]    (Modulo: 항상 [0, 3))
 ```
 
 ### 논리 dot - `.&&` 와 `.||`
@@ -211,7 +211,7 @@ let q: List<bool> = [true, true, false, false];
 p .&& q;                 //→ [true, false, false, false]
 p .|| q;                 //→ [true, true, true, false]
 
-// 비교 결과를 결합하는 패턴 - 가장 흔한 사용
+// 비교 결과를 결합하는 패턴: 가장 흔한 사용
 let xs: List<i32> = [1, 5, 3, 8];
 (xs .>= 2) .&& (xs .< 6);  //→ [false, true, true, false]
 ```
@@ -278,8 +278,8 @@ let result = elementwise(a, b, |x, y| sin(x) + cos(y) * 2.0);
 | 컨테이너         | DotAdd   | DotMul   | DotEq       | 비고                                    |
 |------------------|----------|----------|-------------|-----------------------------------------|
 | `List<T>`        | T:Add    | T:Mul    | T:PartialEq | element-wise, 길이 일치                 |
-| `[T; N]` (고정)  | T:Add    | T:Mul    | T:PartialEq | 고정 N - 컴파일 타임                    |
-| `Slice<T>`       | T:Add    | T:Mul    | T:PartialEq | view - element-wise                     |
+| `[T; N]` (고정)  | T:Add    | T:Mul    | T:PartialEq | 고정 N, 컴파일 타임                     |
+| `Slice<T>`       | T:Add    | T:Mul    | T:PartialEq | view, element-wise                      |
 | `i32`/`f64`/etc. | **없음** | **없음** | **없음**    | 스칼라끼리는 일반 `+`/`*`/`==` 사용     |
 | `T \| none`       | (연산자) | (연산자) | (연산자)    | option propagation (`none .+ x = none`) |
 

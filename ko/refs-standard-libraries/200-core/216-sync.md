@@ -28,7 +28,7 @@ struct Atomic<T> {
     // 내부: T 별 LLVM atomic 연산으로 다루는 원소 하나짜리 cell
 }
 
-trait AtomicPrimitive { /* marker - i8/i16/i32/i64/isize, u8/u16/u32/u64/usize, bool, Ptr<T> */ }
+trait AtomicPrimitive { /* marker: i8/i16/i32/i64/isize, u8/u16/u32/u64/usize, bool, Ptr<T> */ }
 
 impl<T: AtomicPrimitive + PartialEq> Atomic<T> {
     const fn new(value: T) -> Atomic<T>;
@@ -39,11 +39,11 @@ impl<T: AtomicPrimitive + PartialEq> Atomic<T> {
     fn compare_exchange(
         self, current: T, new: T,
         success: AtomicOrdering, failure: AtomicOrdering,
-    ) -> Result<T, T>;                  // 실패 결과도 값 - 에러가 아님
+    ) -> Result<T, T>;                  // 실패 결과도 값, 에러가 아님
     fn compare_exchange_weak(
         self, current: T, new: T,
         success: AtomicOrdering, failure: AtomicOrdering,
-    ) -> Result<T, T>;                  // 실패 결과도 값 - 에러가 아님
+    ) -> Result<T, T>;                  // 실패 결과도 값, 에러가 아님
 
     // 정수 전용
     fn fetch_add(self, value: T, ordering: AtomicOrdering = SeqCst) -> T;
@@ -69,11 +69,11 @@ impl Atomic<i32> {
 
 ```rok
 enum AtomicOrdering {
-    Relaxed,        // 동기화 없음 - counter 등
+    Relaxed,        // 동기화 없음 (counter 등)
     Acquire,        // load 후 동기화 보장
     Release,        // store 전 동기화 보장
     AcqRel,         // RMW 시 양방향
-    SeqCst,         // 전역 순차 일관성 (default - 안전)
+    SeqCst,         // 전역 순차 일관성 (default, 안전)
 }
 ```
 
@@ -104,7 +104,7 @@ fn store_max(cell: Atomic<i64>, x: i64) {
         if cur >= x { break; }
         match cell.compare_exchange(cur, x, AcqRel, Acquire) {
             Ok(_)       => break,
-            Err(actual) => cur = actual,          // 다른 task 가 먼저 - 그 값으로 재시도
+            Err(actual) => cur = actual,          // 다른 task 가 먼저. 그 값으로 재시도
         }
     }
 }
@@ -126,7 +126,7 @@ impl<T> Mutex<T> {
     unsafe fn new_unshared(value: T) -> Mutex<T>;   // 넘김 복사 없는 new
 
     fn lock(self) -> MutexGuard<T>;            // 스레드를 block
-    fn lock_async(self) -> LockFuture<T>;      // await m.lock_async() - task 만 중단 (Future<Output = MutexGuard<T>>)
+    fn lock_async(self) -> LockFuture<T>;      // await m.lock_async(): task 만 중단 (Future<Output = MutexGuard<T>>)
     fn try_lock(self) -> MutexGuard<T> | none; // non-blocking
 }
 
@@ -208,7 +208,7 @@ impl<T> RwLock<T> {
     fn try_read(self) -> RwLockReadGuard<T> | none;
     fn try_write(self) -> RwLockWriteGuard<T> | none;
 
-    fn read_async(self) -> ReadFuture<T>;       // await l.read_async() - task 만 중단
+    fn read_async(self) -> ReadFuture<T>;       // await l.read_async(): task 만 중단
     fn write_async(self) -> WriteFuture<T>;
 }
 ```
@@ -249,7 +249,7 @@ struct Condvar { /* ... */ }
 impl Condvar {
     const fn new() -> Condvar;
     fn wait<T>(self, guard: MutexGuard<T>) -> MutexGuard<T>;   // 잠금을 풀고 대기, 깨면 다시 잠금
-    fn wait_async<T>(self, guard: MutexGuard<T>) -> CondvarWait<T>;   // g = await cv.wait_async(g) - task 만 중단
+    fn wait_async<T>(self, guard: MutexGuard<T>) -> CondvarWait<T>;   // g = await cv.wait_async(g): task 만 중단
     fn notify_one(self);
     fn notify_all(self);
 }
@@ -314,8 +314,8 @@ let c: Cell<i32> = Cell::new(0);
 c.set(42);
 let v = c.get();          //→ 42
 
-// task 간 공유 - 컴파일 에러 (Cell 은 Send / Sync 가 정의되지 않음)
-task::spawn(async { c.set(100) });       // ERROR - Cell 은 cross-task 안전 X
+// task 간 공유: 컴파일 에러 (Cell 은 Send / Sync 가 정의되지 않음)
+task::spawn(async { c.set(100) });       // ERROR: Cell 은 cross-task 안전 X
 ```
 
 ### `Send` / `Sync` 마커
@@ -324,10 +324,10 @@ task::spawn(async { c.set(100) });       // ERROR - Cell 은 cross-task 안전 X
 
 - `Atomic<T>`: Send + Sync
 - `Mutex<T>`: `T: Send` 이면 Send + Sync
-- `RwLock<T>`: `T: Send` 이면 Send, `T: Send + Sync` 이면 Sync - 여러 reader 가 값을 동시에 공유하므로, 컬렉션 (`!Sync`) 의 `RwLock` 은 스레드 사이에서 공유할 수 없습니다. `Mutex<T>` 를 씁니다.
-- `MutexGuard<T>`, `RwLockReadGuard<T>`, `RwLockWriteGuard<T>`: Send, `!Sync` - guard 는 자기 `using` 블록 안에서만 씁니다
+- `RwLock<T>`: `T: Send` 이면 Send, `T: Send + Sync` 이면 Sync. 여러 reader 가 값을 동시에 공유하므로, 컬렉션 (`!Sync`) 의 `RwLock` 은 스레드 사이에서 공유할 수 없습니다. `Mutex<T>` 를 씁니다.
+- `MutexGuard<T>`, `RwLockReadGuard<T>`, `RwLockWriteGuard<T>`: Send, `!Sync`. guard 는 자기 `using` 블록 안에서만 씁니다
 - `Frozen<T>`: `T: Send` 이면 Sync (2.16.4b)
-- `Cell<T>`: 없음 (single-task only) - 위 `task::spawn` 이 에러인 이유는 `async` 블록이 `Cell` 을 캡처해 `Send` 가 아니기 때문입니다
+- `Cell<T>`: 없음 (single-task only). 위 `task::spawn` 이 에러인 이유는 `async` 블록이 `Cell` 을 캡처해 `Send` 가 아니기 때문입니다
 
 ## 2.16.6. 모듈 매핑
 

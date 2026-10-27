@@ -33,12 +33,12 @@ arithmetic](203-ops.md)).
 An unsuffixed literal (`42`, `3.14`) is **`i32` / `f64`** when there is no expected type. The auto-promote world is used only where `int` / `float` is written out.
 
 ```rok
-let total: int = 0;               // int (auto-promote) - explicit
+let total: int = 0;               // int (auto-promote), explicit
 for x in xs { total = total + x; }
-// total is auto-promoted even past the i32 range - no silent overflow
+// total is auto-promoted even past the i32 range; no silent overflow
 
 let n = 0;                        // i32 (no expected type)
-let perf_critical: i64 = 0;       // i64 - follows the expected type
+let perf_critical: i64 = 0;       // i64: follows the expected type
 ```
 
 ## 2.1.2. `int` - arbitrary-precision integer
@@ -108,11 +108,11 @@ big = big * 1000;
 big = big * 1000;
 big = big * 1000;
 big = big * 1000;
-// big = 10^18 - near the end of the i64 range
+// big = 10^18, near the end of the i64 range
 big = big * 1000;
-// big = 10^21 - outside the i64 range, promoted to BigInt
+// big = 10^21, outside the i64 range, promoted to BigInt
 big = big * big;
-// big = 10^42 - a larger BigInt, exact
+// big = 10^42, a larger BigInt, exact
 ```
 
 All of the arithmetic traits ([2.3 ops](203-ops.md)) `Add`, `Sub`, `Mul`, `Div`, `Rem` are
@@ -227,7 +227,7 @@ The numeric / boolean / character types of this chapter fall into **two groups**
 
 | Group                                | Members                                                                                               | Registration                                       |
 |--------------------------------------|-------------------------------------------------------------------------------------------------------|----------------------------------------------------|
-| **16 language built-ins**            | `i8`/`i16`/`i32`/`i64`, `u8`/`u16`/`u32`/`u64`, `isize`/`usize`, `f32`/`f64`, `bool`, `char`, `c_char`, `str` | Recognized by the language - no `#[keyword]` needed |
+| **16 language built-ins**            | `i8`/`i16`/`i32`/`i64`, `u8`/`u16`/`u32`/`u64`, `isize`/`usize`, `f32`/`f64`, `bool`, `char`, `c_char`, `str` | Recognized by the language; no `#[keyword]` needed  |
 | **2 standard library additions**     | `int`, `float`                                                                                | Registered with `#[keyword(...)]`                  |
 
 Language built-ins are tokens the compiler (lexer/parser) recognizes directly, so the standard library
@@ -469,7 +469,7 @@ The rules of [refs-lang 1.6 Numeric literals](../../refs-lang/001-lexical/106-nu
 | `3.14f64` | `f64`                                                   |
 | `'A'`     | `char`                                                  |
 | `c'A'`    | `c_char` (primitive)                                    |
-| `0xFF`    | Same as decimal - expected type, else `i32`             |
+| `0xFF`    | Same as decimal: expected type, else `i32`              |
 | `0xFFi32` | `i32`                                                   |
 
 ### Expected type and range checking
@@ -480,9 +480,9 @@ Ranges are checked at compile time.
 let x: i32 = 42;            // i32
 let y: i32 = 9999999999;    // compile error (outside the i32 range)
 let z: f32 = 3.14;          // f32
-let f: f64 = 1;             // f64 - an integer literal fits a floating-point slot
+let f: f64 = 1;             // f64: an integer literal fits a floating-point slot
 let w: u8 = 256;            // compile error (256 ∉ u8 range 0..=255)
-let i: i32 = 1.5;           // compile error - a floating-point literal cannot fill an integer slot
+let i: i32 = 1.5;           // compile error: a floating-point literal cannot fill an integer slot
 let big: int = 9999999999;  // int
 ```
 
@@ -528,7 +528,7 @@ let wider: i64 = (a as i64) + (b as i64);   // i64
 ```rok
 let a: int = 5;       // int
 let b: i32 = 3;       // i32
-let c = a + b;        // compile error - type mismatch
+let c = a + b;        // compile error: type mismatch
 ```
 
 An explicit conversion is required here.

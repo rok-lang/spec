@@ -10,7 +10,7 @@ Rok 의 런타임은 [Immix + Sticky Mark-Bit Generational GC](../../refs-lang/0
 
 | 측면              | Rust (no GC)            | Rok (GC)                                        |
 |-------------------|-------------------------|-------------------------------------------------|
-| 메모리 회수       | `Drop` 가 책임          | GC 가 자동 - `Drop` **하지 않음**               |
+| 메모리 회수       | `Drop` 가 책임          | GC 가 자동, `Drop` **하지 않음**                |
 | `Drop::drop` 의미 | 자원 해제 + 메모리 free | **외부 자원 정리만** (file handle, socket, ...) |
 | 호출 시점         | 결정론적 (scope exit)   | **`using` 블록을 빠져나갈 때만** (GC 수집과 무관) |
 | 누락 시 영향      | 자원 누수 + 메모리 누수 | 자원 누수만 (메모리는 GC 가 결국 회수)          |
@@ -103,7 +103,7 @@ derive 가 합성하는 본문은 모든 필드의 `Clone::clone` 을 호출한 
 
 ```rok
 trait Copy: Clone {
-    // marker - 메서드 없음
+    // marker: 메서드 없음
 }
 ```
 
@@ -116,8 +116,8 @@ Rok 에서는 모든 값이 값으로 복사됩니다. 컬렉션이나 GC 객체
 | `i*`, `u*`, `f*`                 | ✓           | ✓                | 원시 숫자                            |
 | `bool`, `char`, `c_char`         | ✓           | ✓                |                                      |
 | `str`                            | ✓           | ✓                | 불변 `(ptr, len)` 값                 |
-| `int`, `float`                   | ✓           | ✓                | 불변 값 - heap 의 BigInt 도 공유만   |
-| `List<T>`, `Dict<K,V>`, `Set<T>` | ✓ (T:Clone) | ✗                | 핸들 복사는 공유 - 독립 사본 아님    |
+| `int`, `float`                   | ✓           | ✓                | 불변 값, heap 의 BigInt 도 공유만    |
+| `List<T>`, `Dict<K,V>`, `Set<T>` | ✓ (T:Clone) | ✗                | 핸들 복사는 공유, 독립 사본 아님     |
 | 튜플                             | ✓ (모두)    | ✓ (모두 Copy 시) | 컴포넌트별                           |
 | `Range<T>`                       | ✓ (T:Clone) | ✓ (T:Copy)       | start/end 둘 다 Copy 시              |
 | 사용자 struct / enum             | derive      | derive           | 모든 필드 같은 트레잇 구현 시        |
@@ -161,7 +161,7 @@ fn process(path: str) throws (IoError) {
 
 {
     let f = try! File::open("data.txt");
-}   // ← 자동 drop 없음 - f 는 GC 가 회수하지만 File::drop 은 불리지 않음
+}   // ← 자동 drop 없음: f 는 GC 가 회수하지만 File::drop 은 불리지 않음
 ```
 
 `Drop` 을 구현하지 않은 타입을 `using` 으로 묶으면 `Drop` 이 필요하다는 컴파일 에러가 납니다.
@@ -200,7 +200,7 @@ impl Drop for File { ... }
 
 ```rok
 let f = File::open(path);
-f.drop();                    // ERROR - Drop::drop 직접 호출 금지
+f.drop();                    // ERROR: Drop::drop 직접 호출 금지
 ```
 
 따라서 조기에 자원을 닫고 싶다면 `File::close()` 처럼 별도의 메서드를 노출하는 쪽이 옳습니다.
@@ -212,7 +212,7 @@ f.drop();                    // ERROR - Drop::drop 직접 호출 금지
 ```rok
 impl Drop for X {
     fn drop(ref self) {
-        if some_cond { throw "oops" }    // ERROR - drop 은 throws 가 아님
+        if some_cond { throw "oops" }    // ERROR: drop 은 throws 가 아님
     }
 }
 ```
@@ -243,7 +243,7 @@ impl Drop for Container {
 
 | slot          | 부착 항목                 | 자동 호출 시점                           |
 |---------------|---------------------------|------------------------------------------|
-| `clone_trait` | `Clone` 트레잇            | 없음 - `#[derive(Clone)]` 확장에서 사용  |
+| `clone_trait` | `Clone` 트레잇            | 없음, `#[derive(Clone)]` 확장에서 사용   |
 | `drop_method` | `Drop::drop` 메서드       | `using` 바인딩 해제 시 (drop glue 포함)  |
 | `send_trait`  | `Send` 트레잇 (2.13.9)    | 자동 구현, 스레드 경계 검사              |
 | `sync_trait`  | `Sync` 트레잇 (2.13.9)    | 자동 구현, 스레드 경계 검사              |

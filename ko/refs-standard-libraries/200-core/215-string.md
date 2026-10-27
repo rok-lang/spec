@@ -10,10 +10,10 @@
 
 | 타입     | 의미                                               | 메모리 표현                  | mutability          |
 |----------|----------------------------------------------------|------------------------------|---------------------|
-| `str`    | UTF-8 문자열 값                                    | `(ptr, len)` 값 - 바이트는 immortal 상수 또는 GC 객체 | **불변**  |
+| `str`    | UTF-8 문자열 값                                    | `(ptr, len)` 값, 바이트는 immortal 상수 또는 GC 객체  | **불변**  |
 | `StrBuf` | 늘어나는 UTF-8 buffer                              | GC heap 객체                 | 가변                |
-| `char`   | Unicode scalar value (언어 기본값)                  | 4B (u32)                     | (값 - 변경 X)       |
-| `c_char` | C ABI 1-byte char (FFI primitive)                  | 1B (i8 또는 u8 - target dep) | (값)                |
+| `char`   | Unicode scalar value (언어 기본값)                  | 4B (u32)                     | (값, 변경 X)        |
+| `c_char` | C ABI 1-byte char (FFI primitive)                  | 1B (i8 또는 u8, target dep)  | (값)                |
 
 ### Rust / Python / Rok 모델 비교
 
@@ -71,7 +71,7 @@ impl str {
     fn trim_start(self) -> str;
     fn trim_end(self) -> str;
 
-    fn to_lowercase(self) -> str;           // 새 str (Unicode 전체 매핑 - 1:N, 문맥 규칙 포함)
+    fn to_lowercase(self) -> str;           // 새 str (Unicode 전체 매핑: 1:N, 문맥 규칙 포함)
     fn to_uppercase(self) -> str;
     fn replace(self, from: str, to: str) -> str;   // 빈 from 은 모든 char 경계에서 맞음: "ab".replace("", "-") == "-a-b-"
 
@@ -89,7 +89,7 @@ impl Sliceable<Range<usize>> for str { type Output = str; }   // 바이트 공�
 문자열을 조금씩 만들어 갈 때는 `StrBuf` 를 씁니다.
 
 ```rok
-struct StrBuf { /* GC heap 핸들 - len / capacity / bytes */ }
+struct StrBuf { /* GC heap 핸들: len / capacity / bytes */ }
 
 impl StrBuf {
     fn new() -> StrBuf;                     // capacity 16
@@ -139,8 +139,8 @@ let s: str = "hello";        // immortal 상수 바이트를 가리키는 str
 | `PartialOrd`                | ✓                              | lexicographic byte                         |
 | `Ord`                       | ✓                              |                                            |
 | `Hash`                      | ✓                              |                                            |
-| `IntoIterator`              | **없음**                       | `.chars()` 명시 - byte vs char 모호성 회피 |
-| `Add<str>` (`s + t`)        | ✓ → str (concat - 새 str)      |                                            |
+| `IntoIterator`              | **없음**                       | `.chars()` 명시, byte vs char 모호성 회피  |
+| `Add<str>` (`s + t`)        | ✓ → str (concat, 새 str)       |                                            |
 | `AddAssign<str>` (`s += t`) | ✓ → `s = s + t` (새 str 로 교체) |                                          |
 | `FromIterator<char>`        | ✓                              | `(chars).collect::<str>()`                 |
 | `FromIterator<str>`         | ✓                              | `(strs).collect::<str>()`                  |
@@ -152,12 +152,12 @@ let s: str = "hello";        // immortal 상수 바이트를 가리키는 str
 
 ```rok
 let s: str = "hello, 세계!";
-s.len();                       //→ 14  (byte 길이 - "hello, " 7 + 한국어 3바이트 × 2 + "!" 1)
+s.len();                       //→ 14  (byte 길이: "hello, " 7 + 한국어 3바이트 × 2 + "!" 1)
 s.chars().count();             //→ 10  (char 개수)
 s.char_count();                //→ 10  (같은 값, iterator 없이)
 
 let s2 = s[7:13];              //→ "세계"  (byte boundary OK)
-let s3 = s[8:9];               // panic - UTF-8 sequence 중간 byte
+let s3 = s[8:9];               // panic: UTF-8 sequence 중간 byte
 let s4 = s[7:100];             //→ "세계!" (끝은 길이로 잘라 맞춤)
 let s5 = s[-1:];               //→ "!"
 ```
@@ -168,7 +168,7 @@ let s5 = s[-1:];               //→ "!"
 
 ```rok
 let s: str = "hello";
-let c = s[0];                  // ERROR - `Index<usize>` 정의 안 함
+let c = s[0];                  // ERROR: `Index<usize>` 정의 안 함
                                //         이유: byte vs char 모호 + UTF-8 안전성
 ```
 
@@ -202,7 +202,7 @@ e.len_utf8();                        //→ 4
 ```rok
 impl char {
     fn from_u32(n: u32) -> char | none;                  // surrogate / 범위 밖이면 none
-    unsafe fn from_u32_unchecked(n: u32) -> char;        // 검사 없음 - 호출자가 scalar value 를 보장
+    unsafe fn from_u32_unchecked(n: u32) -> char;        // 검사 없음, 호출자가 scalar value 를 보장
     fn from_digit(d: u32, radix: u32) -> char;           // d >= radix 나 radix 가 2..=36 밖이면 panic
     fn to_digit(self, radix: u32) throws (ValueError) -> u32;
     fn is_digit(self, radix: u32) -> bool;
@@ -239,14 +239,14 @@ Unicode 속성과 대소문자 표는 UCD 18.0.0 입니다.
 ### 변환
 
 ```rok
-char::from_u32(0x41);                //→ 'A' (char | none - surrogate 는 none)
+char::from_u32(0x41);                //→ 'A' (char | none; surrogate 는 none)
 char::from_digit(5, 10);             //→ '5'
 
 let n: u32 = c as u32;               //→ 65 (lossless)
-let c2: char = n as char;            //→ ERROR - u8 만 `as char` 가능
+let c2: char = n as char;            //→ ERROR: u8 만 `as char` 가능
 let b: u8 = 0x41;
 let c4: char = b as char;            //→ 'A' (u8 은 늘 scalar value)
-let c3 = try char::try_from(n);      //→ char (TryFrom<u32> - from_u32 를 써서, none 이면 OverflowError)
+let c3 = try char::try_from(n);      //→ char (TryFrom<u32>: from_u32 를 써서, none 이면 OverflowError)
 ```
 
 ### 트레잇 구현
@@ -269,7 +269,7 @@ extern "C" {
 ### 리터럴
 
 ```rok
-let c: c_char = c'A';        //→ 65 (i8/u8 - target dep)
+let c: c_char = c'A';        //→ 65 (i8/u8, target dep)
 let n: c_char = c'\n';       //→ 10
 ```
 

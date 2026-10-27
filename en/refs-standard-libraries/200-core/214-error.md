@@ -7,7 +7,7 @@ This chapter defines three of the 48 lang slots: `panic_fn` / `oom_fn` / `unreac
 ## 2.14.1. Model overview - `throws` to throw, `Result` to hold
 
 ```rok
-// (a) throwing - throws and try
+// (a) throwing: throws and try
 fn parse_int(s: str) throws (ParseError) -> i32 {
     if !s.is_digit() { throw ParseError { input: s, pos: 0, reason: "not a digit" }; }
     s.to_i32()
@@ -18,7 +18,7 @@ let n = try parse_int("42") catch e: ParseError {
     0
 };
 
-// (b) holding - Result
+// (b) holding: Result
 let results: List<Result<i32, ParseError>> =
     inputs.map(|s| Result::catching(|| try parse_int(s)));
 
@@ -76,7 +76,7 @@ impl<T, E> Result<T, E> {
     fn and_then<U>(self, f: fn(T) -> Result<U, E>) -> Result<U, E>;
     fn or_else<F>(self, g: fn(E) -> Result<T, F>) -> Result<T, F>;
 
-    fn get(self) throws (E) -> T;                       // throws on Err - back into the error flow
+    fn get(self) throws (E) -> T;                       // throws on Err, back into the error flow
     fn catching(f: fn() throws (E) -> T) -> Result<T, E>;   // captures the error flow as a value
 }
 ```
@@ -110,7 +110,7 @@ The surface of every error type is defined by the `Error` trait.
 ```rok
 trait Error: Display + Debug {
     fn source(self) -> any Error | none {
-        none                                  // default - no chain
+        none                                  // default: no chain
     }
 }
 ```
@@ -202,9 +202,9 @@ Each type implements `Error + Display + Debug`, and its `Display` body provides 
 The following types are classified as Fatal.
 
 ```rok
-struct StackOverflowError;     // Fatal - cannot be caught
-struct OutOfMemoryError;       // Fatal - cannot be caught
-struct InternalError;          // Fatal - compiler-internal bug
+struct StackOverflowError;     // Fatal: cannot be caught
+struct OutOfMemoryError;       // Fatal: cannot be caught
+struct InternalError;          // Fatal: compiler-internal bug
 ```
 
 A Fatal error is not a `throws` error and cannot be caught with `catch`. Like a panic, it prints a message to stderr and ends the process with exit code `101` ([refs-lang 3.14.8](../../refs-lang/003-expressions/314-error-control-flow.md#3148-panics-and-fatal-errors)).
@@ -240,7 +240,7 @@ Each function has return type `-> !` (never) and never returns normally. `panic`
 
 The compiler calls `panic_fn` in the following places. In every case the panic cannot be caught with `catch`, and `finally` and `Drop` do not run.
 
-- The error path of `try!` - the message is the error value's `Display` (or `Debug` if there is none)
+- The error path of `try!`: the message is the error value's `Display` (or `Debug` if there is none)
 - Division by zero, integer overflow, bounds check failure
 - Explicit panic calls in the standard library, such as `Result::unwrap` on `Err`
 
@@ -269,7 +269,7 @@ OOM is Fatal and is not caught.
 match (x: i32 | f64) {
     v: i32 => process_int(v),
     v: f64 => process_float(v),
-    // the compiler confirms every variant is handled - no unreachable position
+    // the compiler confirms every variant is handled; no unreachable position
 }
 
 // or explicitly.
@@ -311,10 +311,10 @@ The syntax is governed by [refs-lang 3.14 Error control flow](../../refs-lang/00
 Throwing behavior in a function signature takes one of five forms.
 
 ```rok
-fn foo() -> T                      // non-throwing - never throws
-fn foo() throws -> T               // untyped - throws (any Error)
-fn foo() throws (E) -> T           // typed single - only E
-fn foo() throws (A | B | C) -> T   // typed sum - only A | B | C
+fn foo() -> T                      // non-throwing: never throws
+fn foo() throws -> T               // untyped: throws (any Error)
+fn foo() throws (E) -> T           // typed single: only E
+fn foo() throws (A | B | C) -> T   // typed sum: only A | B | C
 fn foo(f: fn() throws -> T) rethrows -> T   // throws only when f throws
 ```
 
@@ -407,11 +407,11 @@ The traits each error type implements:
 | `ConversionError`    | ✓       | ✓             | ✓     | default `TryFrom::Error`       |
 | `ZeroError`          | ✓       | ✓             | ✓     | in `rok::core::num::niche`     |
 | `IoError`            | ✓       | ✓             | ✓     | std tier (target-dependent)    |
-| `StackOverflowError` | ✓       | ✓             | ✓     | Fatal - cannot be caught       |
-| `OutOfMemoryError`   | ✓       | ✓             | ✓     | Fatal - cannot be caught       |
-| `InternalError`      | ✓       | ✓             | ✓     | Fatal - on a compiler bug      |
+| `StackOverflowError` | ✓       | ✓             | ✓     | Fatal: cannot be caught        |
+| `OutOfMemoryError`   | ✓       | ✓             | ✓     | Fatal: cannot be caught        |
+| `InternalError`      | ✓       | ✓             | ✓     | Fatal: on a compiler bug       |
 | `Result<T, E>`       | ✗       | ✓ (T,E:Debug) | ✗     | enum for holding               |
-| `any Error`          | ✓       | ✓             | ✓     | constrained any - can chain    |
+| `any Error`          | ✓       | ✓             | ✓     | constrained any, can chain     |
 
 `Display` provides a user-friendly message; for example, `IndexError { index: 10, len: 3 }` reads `"index 10 out of bounds (len 3)"`. `Debug` shows the structure as is. An `any Error` value calls the `Display` / `Debug` / `source` of its actual type through the runtime tag.
 
@@ -421,12 +421,12 @@ Compared with other major languages, Rok's error model sits as follows.
 
 | Aspect           | Rust           | Swift                     | Java            | Rok                                       |
 |------------------|----------------|---------------------------|-----------------|-------------------------------------------|
-| Base model       | `Result<T, E>` | `throws`                  | `throws`        | `throws` - `Result` is for holding        |
+| Base model       | `Result<T, E>` | `throws`                  | `throws`        | `throws`; `Result` is for holding         |
 | Call-site marker | `?`            | `try`                     | **none**        | `try` / `try?` / `try!`                   |
 | typed throws     | **none**       | `throws(E)` (single type) | `throws E1, E2` | `throws (E)` / `throws (A \| B)`          |
 | `?` operator     | `Result?`      | optional chaining         | **none**        | only for `T \| none`                      |
-| Option type      | `Option<T>`    | `Optional<T>`             | `Optional<T>`   | **none** - uses `T \| none`               |
+| Option type      | `Option<T>`    | `Optional<T>`             | `Optional<T>`   | **none**: uses `T \| none`                |
 | Implementation   | return value   | return value (error register) | stack unwinding | return value `{ is_err, payload }`    |
-| panic            | `panic!`       | `fatalError`              | `Error`         | `panic_fn` - cannot be caught, exit code 101 |
+| panic            | `panic!`       | `fatalError`              | `Error`         | `panic_fn`: cannot be caught, exit code 101  |
 
 Rok differs in three main ways. First, there is no `Option`; the sum type `T | none` takes its place, removing one type. Second, error propagation is unified under `throws` and `try`, and `Result` serves only to hold errors as values. Third, the typed sum throws `throws (A | B | C)` is more expressive than Swift's typed throws, which accepts only a single type.

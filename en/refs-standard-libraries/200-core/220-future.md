@@ -139,9 +139,9 @@ Rok's policy:
 The colors are separated to guarantee **scheduler cooperation**. The compiler can build a coroutine state machine only if "this position can suspend" is stated explicitly.
 
 ```rok
-// await inside a sync fn - compile error
+// await inside a sync fn: compile error
 fn sync_caller() {
-    let v = await some_future;       // ERROR - await is allowed only inside an async function
+    let v = await some_future;       // ERROR: await is allowed only inside an async function
 }
 
 async fn async_caller() {
