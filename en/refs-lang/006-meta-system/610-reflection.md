@@ -92,7 +92,7 @@ c.set_field("xxx", 1)              // false (no such field)
 
 ## 6.10.3. REPL / Jupyter auto-printing
 
-When the REPL prints a bare last expression it uses `Display`; a trailing `?` uses `Debug`; `:type` uses `Reflect.type_name_of` ([9.7.7](../009-tools/907-jit-cells.md#977-visualization--output)).
+When the REPL prints a bare last expression it uses `Display`; a trailing `?` uses `Debug`; `:type` prints the expression's static type, found by type checking without running it ([9.7.7](../009-tools/907-jit-cells.md#977-visualization--output)).
 
 ```
 > let x = 42i32;
@@ -109,7 +109,7 @@ Config
 Config { host: "h", port: 80 }
 ```
 
-A bare expression uses `Display`, a trailing `?` uses `Debug`, and a value with neither prints only its type name. This behavior is used by REPL and Jupyter cell sessions ([9.7](../009-tools/907-jit-cells.md)).
+A bare expression uses `Display` and a trailing `?` uses `Debug`. A value without the requested trait (`Display` for a bare expression, `Debug` for a trailing `?`) prints only its type name. This behavior is used by REPL and Jupyter cell sessions ([9.7](../009-tools/907-jit-cells.md)).
 
 ## 6.10.4. No global `typeof` / `sizeof` functions
 

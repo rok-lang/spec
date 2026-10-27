@@ -78,11 +78,13 @@ Options:
 - `--target=<target>` selects the target platform: a built-in name such as the 15 Tier 1 targets of [Platform targets](../000-meta/006-platform-targets.md), or a `<name>.rokon` target specification file ([0.6.5](../000-meta/006-platform-targets.md#065-target-specifications)). Any target can be built from any host ([0.2.4](../000-meta/002-pipeline.md#024-backends)).
 - `-L <dir>` adds a library search directory for `#[link]` ([5.9.9](../005-modules/509-extern-block.md#599-linklibname-naming-the-library)), searched before `LIBRARY_PATH`. May be repeated.
 - `-l [static=|dylib=]<name>` links the library `<name>` (searched like `#[link]`), and `--native-runtime <file>` names a shared library to ship beside the executable ([9.2.14](902-aot-pipeline.md#9214-linking-for-executables)). Both may be repeated; `rok` passes them for native packages ([9.10.4b](910-rok-frontend.md#9104b-native-packages)).
-- `-o` / `--out=<path>` selects the output location.
+- `-o` / `--out=<path>` (also `--output`) selects the output location.
+- `--keep` keeps the build's temporary directory (objects and other intermediate files) instead of removing it, and names it on standard error (`rokc: kept temporaries in <dir>`).
 - `--cfg <flag>` / `--cfg <key>=<value>` sets a cfg flag for [conditional compilation](../006-meta-system/603-cfg.md). May be repeated.
 - `--emit=<kind>[,<kind>..]` writes intermediate output (`ast`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expanded`) to `target/<profile>/build/<name>.<ext>` ([9.9.1](909-debug-tools.md#991-intermediate-output---emit)). Several kinds may be given at once separated by commas; in that case `-o` cannot be used. With `--emit`, no executable or archive is produced.
 - `--load-mlir-plugin <path|name>` loads an MLIR dialect plugin, `--load-mlir-pass-plugin <path|name>` loads a pass plugin (both into `rokc`'s MLIR; built against the same pinned LLVM, on Windows linked against `rokc.exe`'s import library), and `--mlir-pass <pass>` runs that pass before conversion to the LLVM dialect ([rok::bare::mlir::plugin](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-loading)). All may be repeated, and `rok` passes them through unchanged.
 - `-g` adds debug information to a `release` profile build: DWARF, or CodeView in a PDB for Windows targets ([9.9.6](909-debug-tools.md#996-debugger-integration-gdb--lldb)). A `debug` profile build always has it.
+- `-C <option>` may also be written `--codegen <option>`.
 - `-C overflow-checks[=yes|no]` turns overflow checks (panic) for fixed-width integer arithmetic on or off. The default is on only at `-O0`. An omitted value means `yes`. Operations on constant operands that cannot overflow skip the check.
 - `-C backend=native|llvm` overrides the backend the optimization level selects ([9.2.10](902-aot-pipeline.md#9210-backend-selection)).
 - `-C target-cpu=<cpu>|native` targets that CPU instead of the triple's baseline ([0.6.4](../000-meta/006-platform-targets.md#064-simd)); `native` is the CPU of the build machine. `-C target-feature=+f1,-f2,..` turns individual features (`+avx2`, ...) on or off. The resulting binary may not run on CPUs without them. With the native backend (`-O0`) the options are noted (a warning) and code is built for the baseline. `native` is accepted only when the target is the host platform.
@@ -239,10 +241,10 @@ REPL commands (`:type`, `:reset`, `:add`, `:help`, `:quit`) and debugging aids a
 `rokc jupyter` provides the kernel mode invoked by Jupyter.
 
 ```
-rokc jupyter [--connection-file <path>]
+rokc jupyter --connection-file <path>
 ```
 
-This command is the kernel mode invoked by Jupyter, so users do not run it directly. `--connection-file` takes the path of the ZMQ connection file provided by Jupyter, and build options such as `--extern` are accepted as well. The kernel runs on the same cell session as the REPL ([9.7.0](907-jit-cells.md#970-rules-of-the-cell-session)). To run with dependencies resolved, use `rok jupyter --connection-file <path>` ([9.10](910-rok-frontend.md)). Integration details are defined in [Jupyter integration](908-jupyter-integration.md).
+This command is the kernel mode invoked by Jupyter, so users do not run it directly. `--connection-file` is required (without it, a usage error) and takes the path of the ZMQ connection file provided by Jupyter. Build options such as `--extern` are accepted as well. The kernel runs on the same cell session as the REPL ([9.7.0](907-jit-cells.md#970-rules-of-the-cell-session)). To run with dependencies resolved, use `rok jupyter --connection-file <path>` ([9.10](910-rok-frontend.md)). Integration details are defined in [Jupyter integration](908-jupyter-integration.md).
 
 The kernel is registered by `rok jupyter install [--env <name>]` ([9.8.3](908-jupyter-integration.md#983-kernelspec-installation)).
 
@@ -318,7 +320,7 @@ This mode is designed to be invoked from LSP clients such as VS Code, Vim and Em
 rokc bindgen <header> [--target <t>] [-o <file>] [-- <clang args>]
 ```
 
-Writes the declarations of [std 1.7.6](../../refs-standard-libraries/100-bare/107-ffi.md#176-automatic-binding-generation) for `<header>` to standard output (or to `-o <file>`). Without the toolchain's libclang ([9.2.19](902-aot-pipeline.md#9219-installation-layout)) it is an error (exit 1) naming where it looked.
+Writes the declarations of [std 1.7.6](../../refs-standard-libraries/100-bare/107-ffi.md#176-automatic-binding-generation) for `<header>` to standard output (or to `-o <file>`). libclang is looked for in the toolchain's `lib/` ([9.2.19](902-aot-pipeline.md#9219-installation-layout)), then in `libclang-<version>/lib/` under the LLVM cache: `ROK_LLVM_CACHE` if set, otherwise `$XDG_CACHE_HOME/rok` or `~/.cache/rok` (`%LOCALAPPDATA%\rok` on Windows). If neither has it, it is an error (exit 1) naming where it looked.
 
 ### `rokc demangle`: symbol demangle
 
@@ -465,6 +467,9 @@ The environment variables that affect `rokc` are:
 | `ROKC_VERBOSE`    | Equivalent to `--verbose`                                                                |
 | `ROK_TIME_PASSES` | Per-pass wall time on stderr when `1` ([9.9.5](909-debug-tools.md#rok_time_passes)) |
 | `LLVM_PROFILE_FILE` | Read by instrumented programs (`-C profile-generate`): the raw profile path |
+| `ROK_MLIR_PLUGIN_PATH` | Directories (separated like `PATH`) searched for a `--load-mlir-plugin` / `--load-mlir-pass-plugin` given as a bare name |
+| `ROK_LLVM_CACHE` | Cache directory `rokc bindgen` searches for libclang (9.1.3) |
+| `ROK_ENV_LIBS`  | Set by `rok` when it runs a script from an environment: the comma-separated libraries installed there. A script that uses one of them without declaring it gets a hint naming it |
 | `ROKC_TARGET_DIR` | Location of `target/` (default: inside the package)                                      |
 | `ROKC_INCREMENTAL` | Where the front end keeps the package's parses and lowered bodies (default `target/<profile>/incremental/`; `0`: nowhere); the library's collected items are kept in `lib/rok-cache/library/` ([9.2.16](902-aot-pipeline.md#9216-incremental-build)) |
 | `ROKC_INCR_VERIFY` | `1`: lower every body again and fail on a difference ([9.2.16](902-aot-pipeline.md#9216-incremental-build)) |

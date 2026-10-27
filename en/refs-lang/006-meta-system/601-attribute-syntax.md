@@ -43,7 +43,7 @@ mod m {
 }
 ```
 
-Inner attributes appear at the start of a module, file, or function body. The outer/inner distinction follows the same pattern as `///` (outer doc comment) and `//!` (inner doc comment) in [lexical structure](../001-lexical/102-lexical-structure.md).
+Inner attributes appear only at the start of a file or of a `mod { .. }` body. They are not accepted in a function body; put an outer attribute on the function instead. The outer/inner distinction follows the same pattern as `///` (outer doc comment) and `//!` (inner doc comment) in [lexical structure](../001-lexical/102-lexical-structure.md).
 
 ## 6.1.2. Body forms
 

@@ -88,7 +88,8 @@ The kernelspec is `kernels/rok/kernel.json` under the directory below. Installed
 
 1. `$JUPYTER_DATA_DIR` if set
 2. `~/Library/Jupyter` on macOS
-3. Otherwise `$XDG_DATA_HOME/jupyter`, or `~/.local/share/jupyter` if unset
+3. `%APPDATA%\jupyter` on Windows
+4. Otherwise `$XDG_DATA_HOME/jupyter`, or `~/.local/share/jupyter` if unset
 
 `kernel.json` runs the `rok` proxy ([9.10.6](910-rok-frontend.md#9106-toolchain)) and records the `ROK_HOME` and `PATH` at installation time in `env`.
 

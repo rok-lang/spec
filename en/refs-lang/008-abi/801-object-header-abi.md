@@ -55,7 +55,7 @@ bit  1  : STICKY     (sticky mark-bit, old generation)
 bit  2  : PINNED     (must not move, FFI)
 bit  3  : FORWARDED  (after evacuation; gc_word is the new location)
 bit  4  : LARGE      (LOS object; gc_word is the size)
-bit  5  : IMMORTAL   (never collected)
+bit  5  : reserved   (unused)
 bit  6 ~ 31 : reserved / GC implementation-defined
 ```
 
@@ -70,6 +70,10 @@ The following bits are used from the implementation-reserved range ([7.4.2](../0
 | 10   | `SATB`     | Set while the barrier records this object's references during concurrent mark. Competing stores wait until it is cleared ([7.5.3](../007-runtime/705-concurrent-collection.md#753-satb-barrier)) |
 | 11   | `SCANNED`  | This object has been scanned in concurrent mark |
 | 12   | `WIPE`     | A secret buffer (`rok_gc_secret_new`, [8.5.1](805-extern-symbols.md#rok_gc_secret_new--rok_gc_secret_wipe)). The sweep that frees it zeroes its payload first. Never cleared |
+| 13 ~ 28 | `VISIT_STAMP` | Used by a `par` visit ([stdlib 2.19.1](../../refs-standard-libraries/200-core/219-par.md#2191-core-api)): a 16-bit epoch of the last visit that reached the object. The collector keeps these bits |
+| 29   | `VISIT_OTHERS` | `par` visit: reached by more than one item, each through slices |
+| 30   | `VISIT_SLICED` | `par` visit: reached only through slices so far |
+| 31   | `VISIT_CUR` | `par` visit: reached by the item being visited |
 
 ### Atomicity requirements
 

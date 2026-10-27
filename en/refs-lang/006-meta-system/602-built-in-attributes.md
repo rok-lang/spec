@@ -9,7 +9,7 @@ repr_attr       ::= "#" "[" "repr" "(" repr_arg ("," repr_arg)* ")" "]"
 repr_arg        ::= "C" | "transparent" | "packed" | "align" "(" int_lit ")"
                   | identifier                          // primitive int repr
 inline_attr     ::= "#" "[" "inline" ("(" ("always" | "never") ")")? "]"
-deprecated_attr ::= "#" "[" "deprecated" ("(" string_lit ")")? "]"
+deprecated_attr ::= "#" "[" "deprecated" ("(" string_lit ")" | "=" string_lit)? "]"
 ```
 
 ## 6.2.1. `#[derive(...)]` automatic trait implementation
@@ -62,7 +62,7 @@ enum Status { ... }
 | Argument                    | Meaning                                                                                              |
 |-----------------------------|------------------------------------------------------------------------------------------------------|
 | `C`                         | C [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) layout: declaration order, natural alignment. Same as the default `struct` layout |
-| `transparent`               | Exactly one non-zero-size field. Same representation as that field, and crosses the C ABI as it      |
+| `transparent`               | Exactly one field, and no other `repr` argument. Same representation as that field, and crosses the C ABI as it |
 | `packed`                    | Packs tightly, ignoring alignment ([FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) only). Cannot hold GC references; exclusive with `align(N)` |
 | `align(N)`                  | Forces a minimum alignment of N bytes                                                                |
 | `u8` to `u64` / `i8` to `i64` | The tag type of an `enum`. Widths other than 32 bits only for field-less enums; enums with data accept `i32` / `u32` |
@@ -156,7 +156,7 @@ fn old_api() { ... }
 fn old_api2() { ... }
 ```
 
-Using an item marked `#[deprecated]` produces a warning, not an error. A message given with `= "..."` is included in the warning.
+A use of a function marked `#[deprecated]` produces a warning (lint `deprecated`), not an error. A message given with `= "..."` is included in the warning. The attribute is accepted on any item, but only functions produce the warning.
 
 ## 6.2.8. `#[doc = "..."]` doc comment form
 
@@ -277,3 +277,18 @@ Standard library functions that panic on invalid input (`panic`, `unreachable`, 
 The attributes above are built-in attributes recognized directly by the compiler and tools; they need no user definition through meta blocks.
 
 Magic attributes such as `#[lang]` and `#[literal]` are bound to the meaning of the language itself and are defined in separate documents.
+
+### Other built-in attributes
+
+The compiler also recognizes the following attributes. Each is specified where its feature is.
+
+| Attribute                      | Placement                     | Meaning |
+|--------------------------------|-------------------------------|---------|
+| `#[path("file.rok")]`          | `mod name;`                   | Loads the module from that file instead of `name.rok` ([5.4.6](../005-modules/504-modules.md#546-custom-paths-path)) |
+| `#![no_implicit_rok]`          | file (inner)                  | Turns off the implicit `use rok::core::**;` for that file ([stdlib 0.2.5](../../refs-standard-libraries/000-meta/002-import.md#025-opting-out---no_implicit_rok)) |
+| `#[export_name("sym")]`        | function                      | Exports the function under the unmangled symbol `sym` (a wasm export of that name on wasm32); a root for unreachable-function elimination ([9.5.8](../009-tools/905-symbol-mangling.md)) |
+| `#[no_mangle]`                 | function                      | Exempts the function from the naming and unused-function lints. It does not change the symbol; use `#[export_name]` for that |
+| `#[wit::export]`               | function, `pub struct`        | Implements a WIT export: a function, or a resource ([stdlib 1.8](../../refs-standard-libraries/100-bare/108-wit.md)) |
+| `#[niche(..)]`                 | newtype struct                | Declares values the type never holds, used as the niche of `T \| none` ([2.7.4](../002-types/207-niche-optimization.md#274-opt-in-niches-niche)) |
+| `#[intrinsic("rok.OP.TYPE")]`  | standard library only         | Binds a function or method to a compiler operation; an error in user code ([stdlib 0.3](../../refs-standard-libraries/000-meta/003-intrinsics.md)) |
+| `#[no_safepoint]`              | `extern "rok"` block          | Toolchain-internal: the block's functions neither allocate nor block, so calls to them are not safepoints; an error on other blocks ([5.9.2](../005-modules/509-extern-block.md#592-abi-specifiers)) |

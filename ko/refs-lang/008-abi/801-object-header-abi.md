@@ -55,7 +55,7 @@ bit  1  : STICKY     (sticky mark-bit, old generation)
 bit  2  : PINNED     (FFI 이동 금지)
 bit  3  : FORWARDED  (evacuate 후. gc_word 가 새 위치)
 bit  4  : LARGE      (LOS 객체. gc_word 가 size)
-bit  5  : IMMORTAL   (수집 안 함)
+bit  5  : 예약       (쓰지 않음)
 bit  6 ~ 31 : 예약 / GC 구현 결정
 ```
 
@@ -70,6 +70,10 @@ bit  6 ~ 31 : 예약 / GC 구현 결정
 | 10   | `SATB`     | 동시 mark 중 barrier 가 이 객체의 참조를 기록하는 동안 켬. 경쟁하는 store 는 꺼질 때까지 기다림 ([7.5.3](../007-runtime/705-concurrent-collection.md#753-satb-barrier)) |
 | 11   | `SCANNED`  | 동시 mark 에서 이 객체를 훑었음 |
 | 12   | `WIPE`     | 비밀 buffer (`rok_gc_secret_new`, [8.5.1](805-extern-symbols.md#rok_gc_secret_new--rok_gc_secret_wipe)). 그것을 해제하는 sweep 은 먼저 payload 를 0 으로 지움. 결코 지우지 않음 |
+| 13 ~ 28 | `VISIT_STAMP` | `par` visit ([stdlib 2.19.1](../../refs-standard-libraries/200-core/219-par.md#2191-핵심-api)) 가 씀: 객체에 닿은 마지막 visit 의 16 비트 epoch. 수집기는 이 비트를 보존함 |
+| 29   | `VISIT_OTHERS` | `par` visit: 둘 이상의 item 이 각각 slice 를 거쳐 닿음 |
+| 30   | `VISIT_SLICED` | `par` visit: 지금까지 slice 를 거쳐서만 닿음 |
+| 31   | `VISIT_CUR` | `par` visit: 지금 방문 중인 item 이 닿음 |
 
 ### atomic 요구
 

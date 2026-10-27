@@ -220,6 +220,19 @@ extern "rok" {
 }
 ```
 
+### `rok_nosp_enter` / `rok_nosp_leave`
+
+`#[no_safepoint]` 런타임 함수 호출을 감싸는 검사용 bracket 입니다 ([8.4.10](804-safepoint.md#8410-native-호출)). debug 빌드의 rokc 만 냅니다. **Thread-safety: `caller-thread-only`**.
+
+```
+extern "rok" {
+    fn rok_nosp_enter();                  // 이 스레드의 no_safepoint 깊이를 올림 (8.3.1)
+    fn rok_nosp_leave();                  // 내림
+}
+```
+
+깊이가 0 이 아닌 동안 스레드가 수집을 위해 멈추려 하면, debug 런타임은 fatal 에러로 프로세스를 끝냅니다. release 런타임에서는 두 함수 모두 아무것도 하지 않습니다.
+
 ### `rok_thread_init` / `rok_thread_shutdown`
 
 worker thread 의 lifecycle 을 담당합니다. **Thread-safety: `rok_thread_init` 은 `per-thread-init`, `rok_thread_shutdown` 은 `per-thread-shutdown`**.
@@ -389,15 +402,33 @@ extern "rok" {
 표준 라이브러리 `rok::std` (fs, io, env, process) 를 뒷받침하는 내부 심볼입니다. ABI 안정 대상이 아니며 바뀔 수 있으므로 사용자 코드는 직접 부르지 않습니다.
 
 ```
-rok_os_strerror  rok_os_open      rok_os_close     rok_os_read      rok_os_read_all
-rok_os_write     rok_os_write_all rok_os_fsync     rok_os_ftruncate rok_os_lseek
-rok_os_dup       rok_os_fchmod    rok_os_flock     rok_os_copy_fd   rok_os_stat
-rok_os_mkdir     rok_os_unlink    rok_os_rename    rok_os_link      rok_os_opendir
-rok_os_readdir   rok_os_closedir  rok_os_getcwd    rok_os_chdir     rok_os_realpath
-rok_os_stdin_line rok_os_stdin_read rok_os_flush_stdout
-rok_os_argc      rok_os_arg       rok_os_env_at    rok_os_getenv    rok_os_setenv
-rok_os_spawn     rok_os_waitpid   rok_os_kill      rok_os_getpid    rok_os_getppid
-rok_os_abort
+rok_os_errno_kind     rok_os_strerror       rok_os_open           rok_os_close
+rok_os_read           rok_os_write          rok_os_poll_read      rok_os_fsync
+rok_os_ftruncate      rok_os_lseek          rok_os_dup            rok_os_fchmod
+rok_os_mmap           rok_os_munmap         rok_os_mmap_copy      rok_os_flock
+rok_os_copy_fd        rok_os_clone          rok_os_stat           rok_os_mkdir
+rok_os_unlink         rok_os_rename         rok_os_link           rok_os_opendir
+rok_os_readdir        rok_os_closedir       rok_os_getcwd         rok_os_chdir
+rok_os_realpath       rok_os_current_exe    rok_os_argc           rok_os_arg
+rok_os_env_at         rok_os_getenv         rok_os_setenv         rok_os_spawn
+rok_os_waitpid        rok_os_signal_install rok_os_raise          rok_os_kill
+rok_os_pidfd_open     rok_os_pidfd_signal   rok_os_getpid         rok_os_getppid
+rok_os_abort          rok_os_random         rok_os_trust_roots
+```
+
+### `rok_stdio_*` / `rok_stdin_read` - 표준 스트림 (내부, 변경 가능)
+
+`print` / `eprint` 와 표준 입력을 뒷받침하는 내부 심볼입니다. ABI 안정성 대상이 아니며 바뀔 수 있습니다. 바이트 영역은 `GcBuf<u8>` 의 `(buf, off, len)` 이며, 실패는 `-errno` 로 돌려줍니다.
+
+```
+extern "rok" {
+    fn rok_stdio_write(fd: i32, s: str, newline: i32) -> i32;                       // s (newline != 0 이면 이어서 "\n") 를 fd 1 또는 2 로; 0 또는 -errno
+    unsafe fn rok_stdio_write_buf(fd: i32, buf: Ptr<u8>, off: usize, len: usize) -> i32;   // buf 의 off 부터 len 바이트를 fd 1 또는 2 로
+    fn rok_stdio_flush() -> i32;                                                     // stdout 버퍼를 내보냄; 0 또는 -errno
+    unsafe fn rok_stdin_read(buf: Ptr<u8>, off: usize, len: usize, delim: i32) -> isize;
+        // stdin 에서 최대 len 바이트를 buf 의 off 위치로 읽고, 첫 delim 바이트 뒤에서 멈춤 (delim < 0: 멈추지 않음);
+        // 읽은 수 (입력 끝이면 0) 또는 -errno
+}
 ```
 
 ### `rok_deque_*` - work-stealing deque
@@ -443,8 +474,10 @@ extern "rok" {
 ```
 extern "rok" {
     fn rok_io_poller() -> i32;                    // 프로세스의 kqueue / epoll fd (처음 부를 때 생성)
-    fn rok_io_watch(fd: i32) -> i32;              // fd 를 읽기 / 쓰기 edge-triggered 로 등록 (다시 걸어도 무해), 0 또는 -errno
+    fn rok_io_watch(fd: i32, interest: u32) -> i32;   // fd 를 edge-triggered 로 등록 (다시 걸어도 무해); interest 1 읽기, 2 쓰기; 0 또는 -errno
     fn rok_io_poll(out: Ptr<u8>, max: usize) -> i32;   // 변화가 올 때까지 막힘 (GC 에는 park), 사건 수 또는 -errno
+    fn rok_io_armed() -> i32;                     // WASI 전용: 걸린 watch 가 있으면 1
+    fn rok_io_wait(out: Ptr<u8>, max: usize, timeout_ns: i64) -> i32;   // WASI 전용: 시간 제한이 있는 rok_io_poll (< 0: 제한 없음); 0 = 시간 초과
 }
 ```
 
@@ -455,13 +488,16 @@ extern "rok" {
 표준 라이브러리 `rok::std::net` ([stdlib 3.2](../../refs-standard-libraries/300-std/302-net.md)) 을 뒷받침하는 내부 심볼입니다. ABI 안정 대상이 아니며 바뀔 수 있으므로 사용자 코드는 직접 부르지 않습니다. 소켓은 늘 non-blocking 으로 만들어지며, 실패는 `-errno` 로 돌려줍니다.
 
 ```
-rok_net_socket     rok_net_bind       rok_net_listen     rok_net_connect
-rok_net_sock_error rok_net_accept     rok_net_addr       rok_net_send
-rok_net_send_to    rok_net_recv_from  rok_net_shutdown   rok_net_setopt
-rok_net_multicast_v4 rok_net_wait     rok_net_resolve    rok_net_gai_strerror
+rok_net_socket        rok_net_bind          rok_net_listen        rok_net_connect
+rok_net_sock_error    rok_net_accept        rok_net_addr          rok_net_listeners
+rok_net_send          rok_net_recv          rok_net_send_to       rok_net_recv_from
+rok_net_shutdown      rok_net_setopt        rok_net_multicast_v4  rok_net_wait
+rok_net_resolve       rok_net_unix          rok_net_unix_pair     rok_net_unix_path
+rok_net_send_fd       rok_net_recv_fd       rok_net_sendfile      rok_net_send_zerocopy
+rok_net_splice
 ```
 
-`rok_net_wait` 는 blocking 호출이 준비를 기다리는 `poll(2)` 이며 (GC 에는 native 구간), `rok_net_resolve` 는 `getaddrinfo` 입니다.
+`rok_net_wait` 는 blocking 호출이 준비를 기다리는 `poll(2)` 이며 (GC 에는 native 구간), `rok_net_resolve` 는 `getaddrinfo` 입니다. 그 실패 코드 `e` 는 `-(100000 + |e|)` 로 돌려주며, `rok_os_strerror` 와 `rok_os_errno_kind` 는 이 값을 errno 처럼 받습니다. `rok_net_unix*`, `rok_net_send_fd` / `rok_net_recv_fd`, `rok_net_sendfile`, `rok_net_send_zerocopy`, `rok_net_splice` 는 Windows 에서 export 하지 않습니다.
 
 ## 8.5.6. 에러 전달 (심볼 없음)
 
@@ -612,15 +648,9 @@ cont:
 extern "rok" {
     // 메모리
     fn rok_free(ptr: Ptr<u8>);                             // null 무시
-    fn rok_load_i32(ptr: ConstPtr<i32>) -> i32;
-    fn rok_load_i64(ptr: ConstPtr<i64>) -> i64;
-    fn rok_load_f64(ptr: ConstPtr<f64>) -> f64;
-    fn rok_store_i32(ptr: Ptr<i32>, val: i32);
-    fn rok_store_i64(ptr: Ptr<i64>, val: i64);
-    fn rok_store_f64(ptr: Ptr<f64>, val: f64);
 
     // C 문자열
-    fn rok_str_len(s: ConstPtr<u8>) -> usize;              // null → 0
+    fn rok_cstr_len(s: ConstPtr<u8>) -> usize;             // strlen; null → 0
 
     // GC
     fn rok_gc_collect_young();                             // minor 수집을 강제

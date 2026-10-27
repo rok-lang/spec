@@ -15,6 +15,8 @@
 | macOS (x86_64 / aarch64) | System V / AAPCS64 |
 | Windows x86_64           | MS x64             |
 | Windows aarch64          | AAPCS64 (MS 변형)  |
+| Windows i686             | MS x86 (cdecl)     |
+| Linux riscv64            | RISC-V LP64D       |
 | WASM                     | clang 의 WebAssembly C ABI |
 
 LLVM 백엔드는 스칼라 인자의 레지스터 배치를 처리하지만, 집계 (struct / 튜플 / 배열) 를 C 경계에서 어떻게 넘길지 분류하는 일은 하지 않습니다. 그 분류는 **프론트엔드 (rokc) 의 일** 이며, rokc 는 clang 과 같은 규칙으로 분류한 결과를 LLVM 에 넘깁니다 (8.6.3). 본 사양은 그 밖에 변형되거나 추가되는 사항만 정의합니다. WebAssembly C ABI 에서 스칼라 하나로 된 집계는 그 스칼라로 넘기고, 그 밖의 집계는 호출자 사본의 포인터로 넘기며 (결과는 `sret`), 런타임 `str` 인자는 참조로 넘깁니다.
@@ -30,6 +32,7 @@ LLVM 백엔드는 스칼라 인자의 레지스터 배치를 처리하지만, �
 | aarch64        | x0 ~ x7                    | x0, x1      |
 | i686           | (스택만)                   | eax, edx    |
 | armv7          | r0 ~ r3                    | r0, r1      |
+| riscv64        | a0 ~ a7                    | a0, a1      |
 
 부동소수점이나 벡터 값의 경우에도 각 ABI 가 정한 표준 레지스터 (xmm0-7, vN, sN 등) 를 그대로 따르고 있습니다.
 
@@ -42,6 +45,10 @@ C 경계 (`extern "C"` 선언과 정의) 에서 집계를 값으로 넘길 때, 
 | AAPCS64 (Linux / Apple / Windows arm64)   | HFA (원소 1 ~ 4 개의 같은 부동소수) 는 `[n x f32]` / `[n x f64]`. 그 밖의 16 바이트 이하 집계는 `i64` / `[2 x i64]` (8 바이트 이하 반환값은 `iN`). 더 크면 인자는 호출자 사본의 포인터, 반환은 `sret` |
 | System V x86_64                           | eightbyte 마다 INTEGER / SSE 로 분류해 정수 / SSE 레지스터에. 레지스터가 모자라면 집계 전체를 `byval`. 16 바이트 초과는 인자 `byval`, 반환 `sret` |
 | Windows x64                               | 크기 1 / 2 / 4 / 8 바이트 집계는 `iN`. 그 밖은 인자는 참조 (호출자 사본의 포인터), 반환은 `sret` |
+| System V i386 / Windows x86 (i686)       | 집계 인자는 스택에 `byval` (4 바이트 정렬). 반환: Windows 에서 1 / 2 / 4 / 8 바이트 집계는 `iN`, 그 밖의 집계 반환 (System V 에서는 모두) 은 `sret` |
+| AAPCS hard-float (armv7)                  | HFA 는 `[n x f32]` / `[n x f64]`. 그 밖의 64 바이트 이하 집계는 `[n x i32]` (정렬 4 이하) 또는 `[n x i64]`, 더 크면 `byval`. 반환: HFA 는 부동소수 레지스터, 4 바이트 이하 집계는 `i8` / `i16` / `i32`, 그 밖은 `sret` |
+| WebAssembly (wasm32)                      | 스칼라 하나로 된 집계는 그 스칼라. 그 밖의 집계 인자는 호출자 사본의 포인터, 반환은 `sret` |
+| RISC-V LP64D (riscv64)                    | 부동소수 하나, 부동소수 둘, 또는 부동소수와 8 바이트 이하 정수로 된 struct (union 없음) 는 레지스터가 남는 동안 필드별로 부동소수 / 정수 레지스터에. 그 밖에 8 바이트 이하 집계는 `i64`, 16 바이트 이하는 `[2 x i64]` (16 바이트 정렬이면 `i128`), 더 큰 인자는 호출자 사본의 포인터. 반환은 종류마다 레지스터 두 개로 같은 규칙을 따르며, 더 크면 `sret` |
 | 그 밖의 타깃                              | C 경계를 넘는 집계 값 전달은 컴파일 에러                                                  |
 
 - 좁은 정수 매개변수와 반환값 (`i8` / `i16` / `u8` / `u16` / `bool` / `c_char`) 의 `signext` / `zeroext` 는 플랫폼 C ABI 를 따릅니다. x86_64 SysV 와 Apple arm64 는 `i8` / `i16` / `bool` 을 확장하고, Linux AAPCS64 는 확장하지 않으며, Windows x64 는 `bool` 만 확장합니다.

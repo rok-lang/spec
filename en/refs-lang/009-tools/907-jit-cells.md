@@ -11,7 +11,7 @@ The cell session obeys the following rules. The implementation is the [9.6 JIT e
 3. **Items persist and may be redefined.** Items such as `fn` / `struct` / `impl` persist. If the same item is defined again, the new definition is used from the next cell. Even code compiled before the redefinition uses the new definition when a later cell reaches it again (a `g` calling a redefined `f` calls the new `f`). Redefining a `static` restarts its state. A binding whose type was redefined can no longer be used; an attempt to use it is reported with a note.
 4. **Identity of `any`.** The type tag of `any` is the same across all cells of a session. An `any` value stored in an earlier cell can be extracted in a later cell with `is` / patterns.
 5. **Failed cells.** A cell that panics, terminates the process or dies leaves no partial effect on the bindings. The session continues from the state before that cell. External effects that already happened (I/O etc.) are not undone. Threads from earlier cells: after a failed cell the session keeps only the threads that are back where they were (Windows) or none of them (fork hosts). The runtime restarts its own executor threads; joining a user thread that is gone reports it lost (`JoinError` code `JOIN_LOST`, [stdlib 3.4](../../refs-standard-libraries/300-std/304-thread.md)). The session is saved at a quiet moment: no task is mid-poll and no blocking job is mid-run (the host waits for them before the cell; interrupting the wait cancels the cell), so tasks and jobs are never lost. Locks that a thread that is gone held while blocked are released.
-6. **Display.** An expression cell prints its value with `Display`; a trailing `?` prints the `Debug` form; a value with neither prints only its type (9.7.7).
+6. **Display.** An expression cell prints its value with `Display`; a trailing `?` prints the `Debug` form. A value without the requested trait (`Display` for a bare expression, `Debug` for a trailing `?`) prints only its type name (9.7.7).
 
 The following bindings and effects are not supported.
 
@@ -24,14 +24,14 @@ The following bindings and effects are not supported.
 A REPL line or a Jupyter cell is processed differently depending on its content.
 
 ```
-1. expression                → evaluate + store last_value + print
+1. expression                → evaluate + store in hidden binding + print
 2. statement (let / call)    → execute (return value is unit)
 3. definition (fn / struct)  → add to the session's items
 4. import (use / mod)        → update the session's visible names
 5. meta / attribute          → handle as appropriate
 ```
 
-All five follow the same cell processing flow; only the final output differs. An expression cell prints its value (`Display`); a `let` cell prints nothing. A divergent expression cell ([4.3.7](../004-functions/403-return.md#437-divergent-functions); `panic(..)`, `exit(..)`, `throw`) runs as a statement.
+All five follow the same cell processing flow; only the final output differs. An expression cell's value is kept in a hidden binding that user code cannot name. An expression cell prints its value (`Display`); a `let` cell prints nothing. A divergent expression cell ([4.3.7](../004-functions/403-return.md#437-divergent-functions); `panic(..)`, `exit(..)`, `throw`) runs as a statement.
 
 > [!IMPORTANT]
 > In terms of language semantics, a sequence of cells is equivalent to appending top-level statements and items to the end of an implicit `main.rok` ([4.16.10](../004-functions/416-entry-point.md#41610-relationship-to-jit--repl)). A cell's `let` is a local variable of the implicit `main`, so it is visible to statements of later cells but not inside the bodies of `fn`s declared in cells. The global storage of 9.7.3 below is an implementation technique for keeping local variables alive across cell boundaries and does not change this visibility rule. Same-name re-`let` at cell top level (9.7.3), cell re-execution (9.7.4) and automatic display of the last expression value (9.7.7) are session operations that exist only on the interactive surfaces.
@@ -49,6 +49,8 @@ All five follow the same cell processing flow; only the final output differs. An
 
 Each step is transactional; on failure it rolls back to the previous state.
 
+Every cell runs with `/dev/null` (`NUL` on Windows) as its standard input, so a cell that reads stdin sees end of input. The REPL host sets `ROK_GC_CONCURRENT=off` before the runtime starts, whatever the user's environment says: a concurrent marking thread would not be part of a snapshot, so full collections in a session mark without it ([7.5](../007-runtime/705-concurrent-collection.md)).
+
 ## 9.7.3. Top-level variable storage
 
 Variables must be shared between REPL and Jupyter cells, so top-level variables must stay alive for as long as the session lasts.
@@ -61,14 +63,14 @@ Variables must be shared between REPL and Jupyter cells, so top-level variables 
 ### Storage form
 
 ```
-untyped (let x = 42)        → global of {tag:u32, payload:i64}
-typed (let x: i32 = 42i32)  → global of that type
+let x = 42                  → global of the inferred type (i32)
+let x: i64 = 42             → global of the written type (i64)
 heap payload                → register GC root
                              (compiler-emitted shadow stack frame,
                               linked into rokr shadow stack chain)
 ```
 
-Each top-level variable is stored as a global in the host, and when a later cell references the same variable it is found through that global's address.
+Each top-level variable is stored in the host as an exported global of its type, written or inferred. When a later cell references the same variable it is found through that global's address.
 
 ### GC root registration
 
@@ -149,7 +151,7 @@ Within a session the host reuses functions it has already compiled (9.6.4). Ther
 hi
 ```
 
-The last expression's value is printed with `Display`. A trailing `?` (as in `xs?`) prints the `Debug` form instead, and `:type xs` prints the type alone. A value without the requested trait -- `Display` for a bare expression, `Debug` for `?` -- prints only its type name. A `let` cell prints nothing.
+The last expression's value is printed with `Display`. A trailing `?` (as in `xs?`) prints the `Debug` form instead, and `:type xs` prints the type alone. A value without the requested trait (`Display` for a bare expression, `Debug` for `?`) prints only its type name. A `let` cell prints nothing.
 
 ```
 > let xs = [1, 2, 3];
@@ -161,11 +163,7 @@ List<i32>
 
 ### Jupyter output
 
-The result of each cell is exposed through Jupyter's display protocol.
-
-- Simple values are represented as strings.
-- Collections are represented as tables or JSON.
-- Images and graphs are exposed by libraries through hooks such as `Display::display_jupyter`.
+The result of each cell is sent as an `execute_result` with a single `text/plain` entry, the same text the REPL prints. No other MIME types are produced.
 
 Jupyter integration details are defined in [Jupyter integration](908-jupyter-integration.md).
 
@@ -212,4 +210,4 @@ The last expression of the cell is the cell's result; everything else is treated
 
 ## 9.7.11. Next
 
-[Jupyter integration](908-jupyter-integration.md) defines the Jupyter kernel integration (local ZMQ and in-browser WASM).
+[Jupyter integration](908-jupyter-integration.md) defines the Jupyter kernel integration over local ZMQ.

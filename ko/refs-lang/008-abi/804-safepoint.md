@@ -142,6 +142,7 @@ C 나 blocking 런타임 호출 안의 스레드는 safepoint 에 닿을 수 없
 - 컴파일러는 모든 `extern "C"` 호출을 감쌉니다. 호출 동안 `PARKED`, 뒤에 `RUNNING`, 그다음 yield flag 를 봅니다. 호출자의 인자 루트는 그 shadow-stack frame 에 남습니다. fast path 는 inline 이고, `rok_enter_native` / `rok_leave_native` 가 slow path 입니다 ([8.5.2](805-extern-symbols.md#852-runtime-영역)).
 - 모든 `extern "C" fn` 정의는 `rok_native_reenter` 로 시작해 `rok_native_resume` 로 끝나며, C callback 이 mutator 로 돕니다.
 - 런타임은 자기의 blocking 호출 (I/O 대기, `rok_sync_wait`, join, sleep) 을 같은 방식으로 감싸며, GC 객체에는 닿지 않고 호출자의 frame 이 살려 두는 buffer 에만 닿는 긴 계산 (`int` 의 곱셈, 나눗셈, gcd kernel) 도 그렇게 감쌉니다. 그것들의 `extern "rok"` 선언은 `#[no_safepoint]` ([5.9.2](../005-modules/509-extern-block.md#592-abi-명시)) 가 아니므로, 그 호출은 safepoint 이며 buffer 는 root 됩니다.
+- `#[no_safepoint]` 런타임 함수 호출은 감싸지 않습니다. debug 빌드의 rokc 는 그 호출을 `rok_nosp_enter()` / `rok_nosp_leave()` ([8.5.2](805-extern-symbols.md#852-runtime-영역)) 로 감싸 스레드의 `no_safepoint` 깊이 ([8.3.1](803-tls-slots.md#831-tls-슬롯-구조)) 를 올리고 내립니다. 깊이가 0 이 아닌 동안 스레드가 수집을 위해 멈추려 하면 debug 런타임은 fatal 에러로 실패합니다. release rokc 는 두 호출 모두 내지 않습니다.
 - `rok_*` 심볼 ([8.5](805-extern-symbols.md), 런타임의 예약 접두사) 의 `extern "C"` 선언을 통한 호출은 감싸지 않습니다: 런타임 함수는 mutator 로 실행됩니다.
 
 ```

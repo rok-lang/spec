@@ -78,11 +78,13 @@ rokc build [path]
 - `--target=<target>` 은 타깃 플랫폼을 지정합니다: [플랫폼 타깃](../000-meta/006-platform-targets.md) 의 15 개 Tier 1 같은 내장 이름, 또는 `<name>.rokon` 타깃 명세 파일 ([0.6.5](../000-meta/006-platform-targets.md#065-타깃-명세)). 어느 host 에서나 어느 대상이든 빌드할 수 있습니다 ([0.2.4](../000-meta/002-pipeline.md#024-backends)).
 - `-L <dir>` 은 `#[link]` 의 라이브러리 검색 디렉토리를 더합니다 ([5.9.9](../005-modules/509-extern-block.md#599-linklibname-라이브러리-명시)). `LIBRARY_PATH` 보다 먼저 찾습니다. 여러 번 쓸 수 있습니다.
 - `-l [static=|dylib=]<name>` 은 라이브러리 `<name>` 을 링크하며 (`#[link]` 처럼 찾음), `--native-runtime <file>` 은 실행 파일 옆에 둘 공유 라이브러리를 지정합니다 ([9.2.14](902-aot-pipeline.md#9214-링킹-실행-파일의-경우)). 둘 다 여러 번 쓸 수 있으며, `rok` 가 native 패키지에 대해 넘깁니다 ([9.10.4b](910-rok-frontend.md#9104b-native-패키지)).
-- `-o` / `--out=<path>` 는 출력 위치를 지정합니다.
+- `-o` / `--out=<path>` (`--output` 도 같음) 는 출력 위치를 지정합니다.
+- `--keep` 은 빌드의 임시 디렉터리 (object 와 그 밖의 중간 파일) 를 지우지 않고 남기며, 그 경로를 표준 에러에 알립니다 (`rokc: kept temporaries in <dir>`).
 - `--cfg <flag>` / `--cfg <key>=<value>` 는 [조건부 컴파일](../006-meta-system/603-cfg.md) 의 cfg flag 를 설정합니다. 여러 번 쓸 수 있습니다.
 - `--emit=<kind>[,<kind>..]` 는 중간 산출물 (`ast`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expanded`) 을 `target/<profile>/build/<name>.<ext>` 에 씁니다 ([9.9.1](909-debug-tools.md#991-중간-산출물-출력---emit)). 쉼표로 여러 종류를 한 번에 지정하며, 이때는 `-o` 를 함께 쓸 수 없습니다. `--emit` 이 있으면 실행 파일이나 archive 는 만들지 않습니다.
 - `--load-mlir-plugin <path|name>` 은 MLIR 다이얼렉트 plugin 을, `--load-mlir-pass-plugin <path|name>` 은 패스 plugin 을 (둘 다 `rokc` 의 MLIR 에, 같은 고정 LLVM 으로 빌드하고 Windows 에서는 `rokc.exe` 의 import library 에 링크한 것을) 로드하고, `--mlir-pass <pass>` 는 LLVM 다이얼렉트로 변환하기 전에 그 패스를 실행합니다 ([rok::bare::mlir::plugin](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-로드)). 모두 여러 번 쓸 수 있으며, `rok` 도 그대로 넘깁니다.
 - `-g` 는 `release` profile 빌드에 디버그 정보를 더합니다: DWARF, Windows 대상에서는 PDB 의 CodeView ([9.9.6](909-debug-tools.md#996-디버거-통합-gdb--lldb)). `debug` profile 빌드에는 항상 있습니다.
+- `-C <option>` 은 `--codegen <option>` 으로도 쓸 수 있습니다.
 - `-C overflow-checks[=yes|no]` 는 고정 폭 정수 산술의 overflow 검사 (panic) 를 켜거나 끕니다. 기본값은 `-O0` 에서만 켬입니다. 값을 생략하면 `yes` 입니다. overflow 가 일어날 수 없는 상수 피연산자 연산은 검사를 생략합니다.
 - `-C backend=native|llvm` 은 최적화 수준이 고른 backend 를 바꿉니다 ([9.2.10](902-aot-pipeline.md#9210-backend-선택)).
 - `-C target-cpu=<cpu>|native` 는 triple 의 baseline 대신 그 CPU 를 대상으로 합니다 ([0.6.4](../000-meta/006-platform-targets.md#064-simd)). `native` 는 빌드하는 기계의 CPU 입니다. `-C target-feature=+f1,-f2,..` 는 개별 기능 (`+avx2` 등) 을 켜거나 끕니다. 그렇게 만든 바이너리는 그 기능이 없는 CPU 에서 돌지 않을 수 있습니다. native backend (`-O0`) 에서는 이 옵션을 경고로 알리고 baseline 용으로 빌드합니다. `native` 는 target 이 host 플랫폼일 때만 받습니다.
@@ -239,10 +241,10 @@ REPL 명령 (`:type`, `:reset`, `:add`, `:help`, `:quit`) 과 디버그 수단�
 `rokc jupyter` 는 Jupyter 가 호출하는 커널 모드를 제공합니다.
 
 ```
-rokc jupyter [--connection-file <path>]
+rokc jupyter --connection-file <path>
 ```
 
-이 명령은 Jupyter 가 호출하는 커널 모드이므로 사용자가 직접 실행하지는 않습니다. `--connection-file` 은 Jupyter 가 제공하는 ZMQ 연결 정보 파일의 경로를 받으며, `--extern` 같은 빌드 옵션도 함께 받습니다. 커널은 REPL 과 같은 셀 세션 ([9.7.0](907-jit-cells.md#970-셀-세션의-규칙)) 위에서 동작합니다. 의존성을 해소해 실행하려면 `rok jupyter --connection-file <path>` ([9.10](910-rok-frontend.md)) 를 씁니다. 자세한 통합 내용은 [Jupyter 통합](908-jupyter-integration.md) 에서 정의합니다.
+이 명령은 Jupyter 가 호출하는 커널 모드이므로 사용자가 직접 실행하지는 않습니다. `--connection-file` 은 필수이며 (없으면 사용법 에러) Jupyter 가 제공하는 ZMQ 연결 정보 파일의 경로를 받습니다. `--extern` 같은 빌드 옵션도 함께 받습니다. 커널은 REPL 과 같은 셀 세션 ([9.7.0](907-jit-cells.md#970-셀-세션의-규칙)) 위에서 동작합니다. 의존성을 해소해 실행하려면 `rok jupyter --connection-file <path>` ([9.10](910-rok-frontend.md)) 를 씁니다. 자세한 통합 내용은 [Jupyter 통합](908-jupyter-integration.md) 에서 정의합니다.
 
 커널 등록은 `rok jupyter install [--env <name>]` 이 합니다 ([9.8.3](908-jupyter-integration.md#983-kernelspec-설치)).
 
@@ -318,7 +320,7 @@ rokc lsp
 rokc bindgen <header> [--target <t>] [-o <file>] [-- <clang args>]
 ```
 
-`<header>` 에 대한 [std 1.7.6](../../refs-standard-libraries/100-bare/107-ffi.md#176-자동-binding-생성) 의 선언을 표준 출력 (또는 `-o <file>`) 에 씁니다. toolchain 의 libclang ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)) 이 없으면 찾아본 곳을 알리는 에러 (exit 1) 입니다.
+`<header>` 에 대한 [std 1.7.6](../../refs-standard-libraries/100-bare/107-ffi.md#176-자동-binding-생성) 의 선언을 표준 출력 (또는 `-o <file>`) 에 씁니다. libclang 은 toolchain 의 `lib/` ([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)) 에서 찾고, 다음으로 LLVM cache 의 `libclang-<version>/lib/` 에서 찾습니다. LLVM cache 는 `ROK_LLVM_CACHE` 가 있으면 그것, 없으면 `$XDG_CACHE_HOME/rok` 또는 `~/.cache/rok` (Windows 에서는 `%LOCALAPPDATA%\rok`) 입니다. 둘 다 없으면 찾아본 곳을 알리는 에러 (exit 1) 입니다.
 
 ### `rokc demangle`: 심볼 demangle
 
@@ -465,6 +467,9 @@ rokc --cwd=examples/hello run
 | `ROKC_VERBOSE`    | `--verbose` 와 동일                                                                      |
 | `ROK_TIME_PASSES` | `1` 이면 패스별 실제 시간을 stderr 에 출력 ([9.9.5](909-debug-tools.md#rok_time_passes)) |
 | `LLVM_PROFILE_FILE` | 계측된 프로그램 (`-C profile-generate`) 이 읽음: raw profile 경로 |
+| `ROK_MLIR_PLUGIN_PATH` | 이름만 준 `--load-mlir-plugin` / `--load-mlir-pass-plugin` 을 찾는 디렉터리들 (`PATH` 처럼 구분) |
+| `ROK_LLVM_CACHE` | `rokc bindgen` 이 libclang 을 찾는 cache 디렉터리 (9.1.3) |
+| `ROK_ENV_LIBS`  | `rok` 가 환경에서 스크립트를 실행할 때 설정: 그 환경에 설치된 라이브러리들 (쉼표로 구분). 스크립트가 그중 하나를 선언 없이 쓰면 그 이름을 알리는 hint 를 받음 |
 | `ROKC_TARGET_DIR` | `target/` 의 위치 (기본은 패키지 안)                                                     |
 | `ROKC_INCREMENTAL` | front end 가 패키지의 파싱과 lowering 한 본체를 두는 곳 (기본 `target/<profile>/incremental/`, `0`: 두지 않음). 라이브러리의 모은 항목은 `lib/rok-cache/library/` 에 둠 ([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |
 | `ROKC_INCR_VERIFY` | `1`: 모든 본체를 다시 lowering 하고 다르면 실패 ([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |

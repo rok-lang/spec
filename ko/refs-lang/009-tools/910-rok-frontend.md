@@ -428,7 +428,7 @@ rok toolchain clean                        # 기본값을 제외한 설치된 �
 
 - 릴리스 archive 는 `rok-<version>-<triple>.tar.gz` (Windows 는 `.zip`) 이며, 안은 toolchain 레이아웃입니다. Windows 가 아니면 같은 파일을 담은 `rok-<version>-<triple>.tar.xz` 도 옆에 있습니다. 각 archive 옆에 `<archive>.sha256` 이 있습니다: archive 의 SHA-256 을 hex 로 적고, 그 뒤에 파일 이름이 올 수 있습니다 (sha256sum 형식).
 - `install.sh`, `install.ps1`, `rok toolchain install --from <url>` 은 같은 곳에서 `<url>.sha256` 을 받아, SHA-256 이 다른 archive 를 거부합니다. `.sha256` 이 없으면 에러입니다. 경로로 준 archive 는 `<path>.sha256` 이 있을 때 그것과 대조합니다. 서명은 정의하지 않으며, 출처는 HTTPS 가 보증합니다.
-- `install.sh` (<https://rok-lang.org/install.sh>) 는 archive 나 `rok-lang` 조직의 GitHub release 에서 `$ROK_HOME` 에 설치합니다. tar 가 읽을 수 있고 (macOS, 또는 `PATH` 에 `xz`) 릴리스에 있으면 `.tar.xz` 를, 아니면 `.tar.gz` 를 받습니다. `rok toolchain install` 은 `.tar.gz` 를 받습니다.
+- `install.sh` (<https://rok-lang.org/install.sh>) 는 archive 나 `rok-lang` 조직의 GitHub release 에서 `$ROK_HOME` 에 설치합니다. tar 가 읽을 수 있고 (macOS, 또는 `PATH` 에 `xz`) 릴리스에 있으면 `.tar.xz` 를, 아니면 `.tar.gz` 를 받습니다. `rok toolchain install` 은 `.tar.gz` (Windows 에서는 `.zip`) 를 받습니다.
 - 릴리스는 `$ROK_DIST` (기본값 `https://github.com/rok-lang/rok/releases`) 에서 제공됩니다: `<dist>/download/v<version>/<archive>` 와 그 `.sha256`, 그리고 최신 릴리스의 버전을 담은 `<dist>/latest/download/rok-version`.
 
 ## 9.10.7. 단일 파일 스크립트의 inline 매니페스트

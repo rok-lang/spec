@@ -15,6 +15,8 @@ Every function declared as an [Extern "C" symbol](805-extern-symbols.md) uses th
 | macOS (x86_64 / aarch64) | System V / AAPCS64 |
 | Windows x86_64           | MS x64             |
 | Windows aarch64          | AAPCS64 (MS variant) |
+| Windows i686             | MS x86 (cdecl)     |
+| Linux riscv64            | RISC-V LP64D       |
 | WASM                     | clang's WebAssembly C ABI |
 
 The LLVM backend handles register assignment of scalar arguments, but it does not classify how aggregates (struct / tuple / array) are passed across the C boundary. That classification is **the frontend's (rokc's) job**; rokc classifies by the same rules as clang and hands the result to LLVM (8.6.3). This specification defines only the remaining variations and additions. Under the WebAssembly C ABI an aggregate with a single scalar is passed as that scalar, and any other aggregate by pointer to a caller copy (results through `sret`); runtime `str` arguments are passed by reference.
@@ -30,6 +32,7 @@ The default argument and return registers defined by each ABI are used as is.
 | aarch64        | x0 ~ x7                    | x0, x1      |
 | i686           | (stack only)               | eax, edx    |
 | armv7          | r0 ~ r3                    | r0, r1      |
+| riscv64        | a0 ~ a7                    | a0, a1      |
 
 Floating-point and vector values likewise use the standard registers defined by each ABI (xmm0-7, vN, sN, etc.).
 
@@ -42,6 +45,10 @@ When an aggregate is passed by value across the C boundary (`extern "C"` declara
 | AAPCS64 (Linux / Apple / Windows arm64)   | An HFA (1 ~ 4 elements of the same floating-point type) becomes `[n x f32]` / `[n x f64]`. Other aggregates of 16 bytes or less become `i64` / `[2 x i64]` (return values of 8 bytes or less become `iN`). Larger ones: arguments are passed as a pointer to a caller copy, returns use `sret` |
 | System V x86_64                           | Each eightbyte is classified INTEGER / SSE and placed in integer / SSE registers. If registers run out, the whole aggregate is passed `byval`. Above 16 bytes: arguments `byval`, returns `sret` |
 | Windows x64                               | Aggregates of size 1 / 2 / 4 / 8 bytes become `iN`. Others: arguments by reference (pointer to a caller copy), returns `sret` |
+| System V i386 / Windows x86 (i686)       | Aggregate arguments are passed `byval` on the stack (4-byte aligned). Results: on Windows an aggregate of 1 / 2 / 4 / 8 bytes becomes `iN`; any other aggregate result (every one on System V) uses `sret` |
+| AAPCS hard-float (armv7)                  | An HFA becomes `[n x f32]` / `[n x f64]`. Other aggregates of 64 bytes or less become `[n x i32]` (alignment 4 or less) or `[n x i64]`; larger ones are passed `byval`. Results: an HFA in floating-point registers, an aggregate of 4 bytes or less as `i8` / `i16` / `i32`, others `sret` |
+| WebAssembly (wasm32)                      | An aggregate with a single scalar becomes that scalar. Any other aggregate argument is passed as a pointer to a caller copy, and a result uses `sret` |
+| RISC-V LP64D (riscv64)                    | A struct (no union) of one float, two floats, or a float and an integer of 8 bytes or less goes in floating-point / integer registers as its fields while enough are free. Otherwise an aggregate of 8 bytes or less becomes `i64`, of 16 bytes or less `[2 x i64]` (`i128` if 16-byte aligned), and a larger argument is passed as a pointer to a caller copy. Results follow the same rule with two registers of each kind; larger ones use `sret` |
 | Other targets                             | Passing an aggregate value across the C boundary is a compile error                       |
 
 - `signext` / `zeroext` on narrow integer parameters and returns (`i8` / `i16` / `u8` / `u16` / `bool` / `c_char`) follow the platform C ABI: x86_64 SysV and Apple arm64 extend `i8` / `i16` / `bool`; Linux AAPCS64 extends none; Windows x64 extends only `bool`.

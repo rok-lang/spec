@@ -291,10 +291,12 @@ An unset or empty variable has its default. A value outside those listed prints 
 
 | Aid                  | Effect                                                               |
 |----------------------|----------------------------------------------------------------------|
-| `:type <expr>`       | Prints the type of the expression (without running it)               |
+| `<expr>?`            | Evaluates the expression and prints its `Debug` form ([9.7.7](907-jit-cells.md#977-visualization--output)) |
+| `:type <expr>`, `:t` | Prints the static type of the expression (without running it)        |
 | `:reset`             | Resets the session to its initial state (the `use` of a library path is inserted again) |
 | `:add <dep> ..`      | Adds dependencies (`rok install` into the current environment, or `rok add` in a package's session) and attaches them to the session ([9.10.5](910-rok-frontend.md#9105-environments)) |
-| `:help`, `:quit`     | Help, quit                                                           |
+| `:help`, `:h`        | Help                                                                 |
+| `:quit`, `:q`, `:exit` | Quit (end of input also quits)                                     |
 | `ROK_REPL_TIME=1`    | Per cell, per-stage timing and the number of newly compiled functions / functions reused from earlier cells ([9.6.4](906-jit-engine.md#964-reuse-of-library-code)) |
 
 To see a cell's MLIR / LLVM IR, put the same code in `main.rok` and use `rokc build --emit=mlir,llvmir` (9.9.1).
@@ -366,7 +368,7 @@ CI can apply different handling per code (retry, notification, etc.).
 
 ## 9.9.13. LSP server
 
-`rokc` provides an LSP (Language Server Protocol) mode. The same server is also provided as the standalone binary `rokls` (= `rok lsp`). It communicates over stdio and provides diagnostics, hover (including members), go-to-definition (returning the range of the defining name), references, rename, document symbols, member / path completion and formatting. References and rename are buffer-local.
+`rokc` provides an LSP (Language Server Protocol) mode. The same server is also provided as the standalone binary `rokls` (= `rok lsp`). It communicates over stdio and provides diagnostics, hover (including members), go-to-definition (returning the range of the defining name), references, rename, document symbols, member / path completion, formatting and semantic tokens (macro calls, user-defined keywords, literal suffixes, operators and attributes, which the static grammar cannot recognize). References and rename are buffer-local.
 
 ```
 rokc lsp

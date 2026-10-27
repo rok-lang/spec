@@ -9,7 +9,7 @@ repr_attr       ::= "#" "[" "repr" "(" repr_arg ("," repr_arg)* ")" "]"
 repr_arg        ::= "C" | "transparent" | "packed" | "align" "(" int_lit ")"
                   | identifier                          // primitive int repr
 inline_attr     ::= "#" "[" "inline" ("(" ("always" | "never") ")")? "]"
-deprecated_attr ::= "#" "[" "deprecated" ("(" string_lit ")")? "]"
+deprecated_attr ::= "#" "[" "deprecated" ("(" string_lit ")" | "=" string_lit)? "]"
 ```
 
 ## 6.2.1. `#[derive(...)]` 자동 트레잇 구현
@@ -62,7 +62,7 @@ enum Status { ... }
 | 인자                        | 의미                                                                                                 |
 |-----------------------------|------------------------------------------------------------------------------------------------------|
 | `C`                         | C [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 레이아웃: 선언 순서, 자연 정렬. 기본 `struct` 레이아웃과 같음 |
-| `transparent`               | 크기가 0 이 아닌 필드 정확히 하나. 그 필드와 같은 표현이며 C ABI 를 그 필드로 건넘                  |
+| `transparent`               | 필드 정확히 하나, 다른 `repr` 인자 없음. 그 필드와 같은 표현이며 C ABI 를 그 필드로 건넘             |
 | `packed`                    | 정렬을 무시하고 빽빽이 묶음 ([FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) 한정). GC 참조를 담을 수 없고 `align(N)` 과 함께 쓸 수 없음 |
 | `align(N)`                  | 최소 정렬을 N 바이트로 강제                                                                          |
 | `u8` ~ `u64` / `i8` ~ `i64` | `enum` 의 tag 타입. 32 비트가 아닌 폭은 필드 없는 enum 만; 데이터 enum 은 `i32` / `u32` |
@@ -156,7 +156,7 @@ fn old_api() { ... }
 fn old_api2() { ... }
 ```
 
-`#[deprecated]` 가 부착된 항목이 사용되면 경고가 발생하지만, 에러로 이어지지는 않습니다. `= "..."` 형태로 메시지를 함께 적어 두면 그 내용이 경고에 포함되어 표시됩니다.
+`#[deprecated]` 가 부착된 함수가 사용되면 경고 (lint `deprecated`) 가 발생하지만, 에러로 이어지지는 않습니다. `= "..."` 형태로 메시지를 함께 적어 두면 그 내용이 경고에 포함되어 표시됩니다. 이 속성은 어느 항목에나 붙일 수 있지만, 경고는 함수에서만 발생합니다.
 
 ## 6.2.8. `#[doc = "..."]` 문서 주석 형태
 
@@ -277,3 +277,18 @@ fn expect_positive(n: i32) -> i32 {
 지금까지 살펴본 속성들은 컴파일러와 도구가 직접 인식하는 내장 속성이며, 메타 블록을 통한 사용자 정의는 따로 필요하지 않습니다.
 
 `#[lang]`, `#[literal]` 같은 매직 속성은 언어의 의미 자체와 결합되어 있으므로, 별도의 문서에서 정의해 두었습니다.
+
+### 그 밖의 내장 속성
+
+컴파일러는 다음 속성도 인식합니다. 각각은 해당 기능을 다루는 곳에서 정의합니다.
+
+| 속성                           | 붙는 곳                       | 의미 |
+|--------------------------------|-------------------------------|------|
+| `#[path("file.rok")]`          | `mod name;`                   | `name.rok` 대신 그 파일에서 모듈을 읽음 ([5.4.6](../005-modules/504-modules.md#546-사용자-정의-경로-path)) |
+| `#![no_implicit_rok]`          | 파일 (내부)                   | 그 파일의 묵시적 `use rok::core::**;` 를 끔 ([stdlib 0.2.5](../../refs-standard-libraries/000-meta/002-import.md#025-묵시-무시---no_implicit_rok)) |
+| `#[export_name("sym")]`        | 함수                          | 함수를 맹글링하지 않은 심볼 `sym` 으로 export 함 (wasm32 에서는 그 이름의 wasm export). 도달 불가 함수 제거의 root ([9.5.8](../009-tools/905-symbol-mangling.md)) |
+| `#[no_mangle]`                 | 함수                          | 함수를 이름 lint 와 미사용 함수 lint 에서 뺌. 심볼은 바꾸지 않으며, 심볼 이름은 `#[export_name]` 으로 정함 |
+| `#[wit::export]`               | 함수, `pub struct`            | WIT export 를 구현함: 함수 또는 resource ([stdlib 1.8](../../refs-standard-libraries/100-bare/108-wit.md)) |
+| `#[niche(..)]`                 | newtype struct                | 타입이 갖지 않는 값을 선언하며, 그 값이 `T \| none` 의 niche 가 됨 ([2.7.4](../002-types/207-niche-optimization.md#274-opt-in-niche-niche)) |
+| `#[intrinsic("rok.OP.TYPE")]`  | 표준 라이브러리 전용          | 함수나 메서드를 컴파일러 연산에 묶음. 사용자 코드에서는 에러 ([stdlib 0.3](../../refs-standard-libraries/000-meta/003-intrinsics.md)) |
+| `#[no_safepoint]`              | `extern "rok"` 블록           | toolchain 내부용: 블록의 함수는 할당도 block 도 하지 않으므로 그 호출은 safepoint 가 아님. 다른 블록에서는 에러 ([5.9.2](../005-modules/509-extern-block.md#592-abi-명시)) |

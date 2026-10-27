@@ -291,10 +291,12 @@ rokc build --release -C profile-use=app.profdata  #    profile 로 다시 빌드
 
 | 수단                 | 효과                                                                 |
 |----------------------|----------------------------------------------------------------------|
-| `:type <식>`         | 식의 타입을 출력 (실행하지 않음)                                     |
+| `<식>?`              | 식을 평가하고 `Debug` 형태로 출력 ([9.7.7](907-jit-cells.md#977-시각화--출력)) |
+| `:type <식>`, `:t`   | 식의 정적 타입을 출력 (실행하지 않음)                                |
 | `:reset`             | 세션을 처음 상태로 (라이브러리 경로의 `use` 는 다시 넣음)               |
 | `:add <dep> ..`      | 의존성을 추가하고 (현재 환경으로 `rok install`, 패키지의 세션에서는 `rok add`) 세션에 붙임 ([9.10.5](910-rok-frontend.md#9105-환경)) |
-| `:help`, `:quit`     | 도움말, 종료                                                         |
+| `:help`, `:h`        | 도움말                                                               |
+| `:quit`, `:q`, `:exit` | 종료 (입력이 끝나도 종료)                                          |
 | `ROK_REPL_TIME=1`    | 셀마다 단계별 시간과, 새로 컴파일한 함수 / 앞 셀에서 재사용한 함수 수 ([9.6.4](906-jit-engine.md#964-라이브러리-코드의-재사용)) |
 
 셀의 MLIR / LLVM IR 을 보려면 같은 코드를 `main.rok` 로 두고 `rokc build --emit=mlir,llvmir` 을 씁니다 (9.9.1).
@@ -366,7 +368,7 @@ CI 가 코드별로 다른 처리 (재시도, 알림 등) 를 적용할 수 있�
 
 ## 9.9.13. LSP 서버
 
-`rokc` 는 LSP (Language Server Protocol) 모드를 제공합니다. 같은 서버를 독립 바이너리 `rokls` (= `rok lsp`) 로도 제공합니다. stdio 로 통신하며, 진단, hover (멤버 포함), go-to-definition (정의하는 이름의 범위를 돌려줌), references, rename, 문서 심볼, 멤버 / 경로 완성, 포맷을 제공합니다. references 와 rename 은 버퍼 안에서만 동작합니다.
+`rokc` 는 LSP (Language Server Protocol) 모드를 제공합니다. 같은 서버를 독립 바이너리 `rokls` (= `rok lsp`) 로도 제공합니다. stdio 로 통신하며, 진단, hover (멤버 포함), go-to-definition (정의하는 이름의 범위를 돌려줌), references, rename, 문서 심볼, 멤버 / 경로 완성, 포맷, semantic token (정적 문법이 알아볼 수 없는 매크로 호출과 사용자 정의 키워드, 리터럴 접미사, 연산자, 속성) 을 제공합니다. references 와 rename 은 버퍼 안에서만 동작합니다.
 
 ```
 rokc lsp

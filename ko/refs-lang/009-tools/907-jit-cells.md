@@ -11,7 +11,7 @@
 3. **항목 유지와 재정의.** `fn` / `struct` / `impl` 등 항목은 유지됩니다. 같은 항목을 다시 정의하면 다음 셀부터 새 정의가 쓰입니다. 재정의 전에 컴파일된 코드도 이후 셀이 다시 닿으면 새 정의를 씁니다 (재정의된 `f` 를 부르는 `g` 는 새 `f` 를 부름). `static` 을 다시 정의하면 그 상태는 새로 시작합니다. 타입이 재정의된 바인딩은 더 이상 쓸 수 없으며, 쓰려 하면 그 사실을 note 로 알려 줍니다.
 4. **`any` 의 정체성.** `any` 의 타입 tag 는 한 세션의 모든 셀에서 같습니다. 앞 셀에서 넣은 `any` 값을 뒤 셀에서 `is` / 패턴으로 꺼낼 수 있습니다.
 5. **실패한 셀.** panic 하거나 프로세스를 끝내거나 죽은 셀은 바인딩에 부분 효과를 남기지 않습니다. 세션은 그 셀 이전의 상태로 계속됩니다. 이미 일어난 외부 효과 (I/O 등) 는 되돌리지 않습니다. 이전 셀의 스레드: 실패한 셀 뒤에 세션은 원래 자리로 돌아온 스레드만 (Windows), 또는 아무것도 (fork host) 남기지 않습니다. 런타임은 자기 executor 스레드를 다시 시작하며, 사라진 사용자 스레드를 join 하면 잃었다고 보고합니다 (`JoinError` 코드 `JOIN_LOST`, [stdlib 3.4](../../refs-standard-libraries/300-std/304-thread.md)). 세션은 조용한 순간에 저장합니다: poll 중인 task 도, 실행 중인 blocking job 도 없을 때입니다 (host 는 셀 전에 그것들을 기다리며, 그 기다림을 인터럽트하면 셀이 취소됨). 그래서 task 와 job 을 잃는 일은 없습니다. 사라진 스레드가 block 중에 가진 lock 은 해제됩니다.
-6. **표시.** 식 셀은 값을 `Display` 로 출력하고, 뒤에 `?` 를 붙이면 `Debug` 로, 둘 다 없으면 타입만 출력합니다 (9.7.7).
+6. **표시.** 식 셀은 값을 `Display` 로 출력하고, 뒤에 `?` 를 붙이면 `Debug` 로 출력합니다. 요청한 트레잇 (평범한 식엔 `Display`, 뒤에 `?` 를 붙이면 `Debug`) 이 없는 값은 타입 이름만 출력합니다 (9.7.7).
 
 다음 바인딩과 효과는 다룰 수 없습니다.
 
@@ -24,14 +24,14 @@
 REPL 의 한 줄과 Jupyter 의 한 셀은 그 내용에 따라 처리 방식이 달라집니다.
 
 ```
-1. expression                → evaluate + store last_value + print
+1. expression                → evaluate + store in hidden binding + print
 2. statement (let / call)    → execute (return value is unit)
 3. definition (fn / struct)  → add to the session's items
 4. import (use / mod)        → update the session's visible names
 5. meta / attribute          → handle as appropriate
 ```
 
-다섯 가지 모두 같은 cell 처리 흐름을 따르며, 마지막 출력만 달라집니다. 식 셀은 값을 (`Display` 로) 출력하고, `let` 셀은 아무것도 출력하지 않습니다. divergent 식 셀 (`panic(..)`, `exit(..)`, `throw`) 은 문으로 실행합니다.
+다섯 가지 모두 같은 cell 처리 흐름을 따르며, 마지막 출력만 달라집니다. 식 셀의 값은 사용자 코드가 이름으로 부를 수 없는 숨은 바인딩에 둡니다. 식 셀은 값을 (`Display` 로) 출력하고, `let` 셀은 아무것도 출력하지 않습니다. divergent 식 셀 ([4.3.7](../004-functions/403-return.md#437-divergent-함수); `panic(..)`, `exit(..)`, `throw`) 은 문으로 실행합니다.
 
 > [!IMPORTANT]
 > 언어 의미론의 관점에서 셀의 연속은 암묵 `main.rok` 의 끝에 top-level 문과 항목을 덧붙이는 것과 같습니다 ([4.16.10](../004-functions/416-entry-point.md#41610-jit--repl-과의-관계)). 셀의 `let` 은 암묵 `main` 의 지역 변수이므로 이후 셀의 문에서는 보이지만, 셀에서 선언한 `fn` 본체에서는 보이지 않습니다. 아래 9.7.3 의 global 저장은 셀 경계를 넘어 지역 변수를 유지하기 위한 구현 방식이며, 이 가시성 규칙을 바꾸지 않습니다. 셀 최상위의 같은 이름 재 `let` (9.7.3), 셀 재실행 (9.7.4), 마지막 식 값의 자동 표시 (9.7.7) 는 세션 조작으로서 대화형 표면에만 있습니다.
@@ -49,6 +49,8 @@ REPL 의 한 줄과 Jupyter 의 한 셀은 그 내용에 따라 처리 방식이
 
 각 단계는 transactional 하게 동작하며, 실패하면 직전 상태로 롤백됩니다.
 
+모든 셀은 `/dev/null` (Windows 에서는 `NUL`) 을 표준 입력으로 받아 실행하므로, stdin 을 읽는 셀은 입력의 끝을 봅니다. REPL host 는 사용자 환경과 상관없이 런타임을 시작하기 전에 `ROK_GC_CONCURRENT=off` 로 설정합니다. 동시 mark 스레드는 스냅샷에 들어가지 않으므로, 세션의 full 수집은 그 스레드 없이 mark 합니다 ([7.5](../007-runtime/705-concurrent-collection.md)).
+
 ## 9.7.3. Top-level 변수 저장
 
 REPL 과 Jupyter 의 셀 사이에서 변수가 공유되어야 하므로, top-level 변수는 세션이 유지되는 동안 계속 살아 있어야 합니다.
@@ -61,14 +63,14 @@ REPL 과 Jupyter 의 셀 사이에서 변수가 공유되어야 하므로, top-l
 ### 저장 형태
 
 ```
-untyped (let x = 42)        → global of {tag:u32, payload:i64}
-typed (let x: i32 = 42i32)  → global of that type
+let x = 42                  → global of the inferred type (i32)
+let x: i64 = 42             → global of the written type (i64)
 heap payload                → register GC root
                              (compiler-emitted shadow stack frame,
                               linked into rokr shadow stack chain)
 ```
 
-각 top-level 변수는 host 의 global 로 저장되며, 다음 cell 이 같은 변수를 참조할 때 그 global 주소를 통해 찾아갑니다.
+각 top-level 변수는 host 에 그 타입 (적었거나 추론한 타입) 의 export 된 global 로 저장됩니다. 다음 cell 이 같은 변수를 참조할 때는 그 global 주소를 통해 찾아갑니다.
 
 ### GC root 등록
 
@@ -161,11 +163,7 @@ List<i32>
 
 ### Jupyter 출력
 
-각 cell 의 결과를 Jupyter 의 display protocol 을 통해 노출합니다.
-
-- 단순 값은 문자열로 표현됩니다.
-- 컬렉션은 표 또는 JSON 으로 표현됩니다.
-- 이미지나 그래프는 라이브러리가 `Display::display_jupyter` 와 같은 hook 을 통해 노출합니다.
+각 cell 의 결과는 `text/plain` 항목 하나만 담은 `execute_result` 로 보내며, 그 내용은 REPL 이 출력하는 텍스트와 같습니다. 다른 MIME 타입은 만들지 않습니다.
 
 자세한 Jupyter 통합 내용은 [Jupyter 통합](908-jupyter-integration.md) 에서 정의합니다.
 
@@ -212,4 +210,4 @@ cell 의 마지막 식이 곧 cell 의 결과가 되며, 그 외의 부분은 �
 
 ## 9.7.11. 다음
 
-[Jupyter 통합](908-jupyter-integration.md) 에서는 Jupyter 커널 통합 (로컬 ZMQ 와 브라우저 WASM) 을 정의합니다.
+[Jupyter 통합](908-jupyter-integration.md) 에서는 로컬 ZMQ 위의 Jupyter 커널 통합을 정의합니다.

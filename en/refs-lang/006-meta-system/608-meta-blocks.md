@@ -303,7 +303,7 @@ A macro is called as `name!( .. )`, `name![ .. ]` or `name!{ .. }`; the delimite
 
 ### Matchers and fragments
 
-A matcher is a token pattern. Literal tokens must appear verbatim in the call; a **metavariable** `@name: <fragment>` captures a part of the call for the template. The fragment fixes how much is parsed and as what: `expr`, `stmt`, `block`, `ty`, `pat`, `path`, `ident`, `literal`, `item`, or `tt` (one raw token tree). A fragment is parsed as that grammar into a real syntax node, so the argument of `@e: expr` has a type, is checked, and the language server resolves names inside it ([6.8.12](#tooling-and-hygiene)); `tt` alone is unparsed, for a DSL that is not Rok grammar, and even then stays balanced.
+A matcher is a token pattern. Literal tokens must appear verbatim in the call; a **metavariable** `@name: <fragment>` captures a part of the call for the template. The fragment fixes how many tokens are captured: `ident` takes one identifier, `literal` one literal token, and `tt` one token tree (a token or a balanced group). `expr`, `stmt`, `block`, `ty`, `pat`, `path` and `item` take the non-empty run of tokens up to the next literal token of the matcher at bracket depth 0 (or to the end of the call). Every fragment is captured as raw tokens and is not parsed when matched; the whole expansion is parsed after transcription, so an argument that is not valid where the template puts it is a syntax error in the expansion, reported at the call.
 
 ```rok
 #[impl_macro(clamp)] pub @macro {
@@ -365,7 +365,7 @@ nonzero_div!(i8, i16, i32, i64, u8, u16, u32, u64);
 
 ### Recursion
 
-A template may call macros, including itself; expansion repeats until no macro call remains. It is bounded: a depth over the limit (256) is a compile error naming the call, so a non-terminating macro fails rather than hangs. Mutual recursion counts against the same depth and, as for the attribute forms, a cycle is reported with its path ([6.8.8](#688-fixed-point-expansion)).
+A template may call other macros; their calls expand in turn. A macro may not call itself: a call of a macro inside its own expansion, directly or through other macros, is rejected at once with a compile error naming the call (`` `name!` expands too deeply or cyclically ``). Nested expansion of distinct macros is bounded at 256 levels with the same error. To repeat over a list, use `@rep` / `@for` instead of recursion.
 
 ### Built-in `!`-forms are reserved
 
@@ -377,7 +377,7 @@ A macro keeps the guarantees of every meta definition ([6.8.9](#689-no-token-str
 
 - **Hygiene** is automatic: a name the template introduces is fresh and cannot capture or be captured by the call site, while a name passed in through a metavariable resolves at the call site.
 - **Spans**: every expanded token carries the span of the call, so a diagnostic points at the call with the expansion shown as a note.
-- **Resolution**: because fragments are parsed as real nodes and synthesized names are indexed, hover, go-to-definition and find-references work through a macro - into its arguments and onto the items it generates.
+- **Resolution**: the expansion is parsed as ordinary code and synthesized names are indexed, so hover, go-to-definition and find-references reach the items a macro generates.
 - **Expansion on request**: the language server can expand a call in place ([9.9.13](../009-tools/909-debug-tools.md)).
 - **Formatting**: the formatter formats a call's arguments when they are Rok fragments, and leaves a raw `tt` DSL as written within its balanced delimiters.
 

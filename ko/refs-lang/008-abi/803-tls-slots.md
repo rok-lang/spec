@@ -28,7 +28,7 @@ TLS 슬롯은 런타임이 정의하고 export 하는 하나의 `thread_local` �
 **impl-defined 슬롯**: 런타임은 스케줄링, 통계, 프로파일링, 디버깅 등을 위한 thread-local 상태를 ABI 슬롯 뒤나 다른 곳에 더 둘 수 있습니다. 컴파일러와 외부 패키지는 이것을 참조해서는 안 됩니다.
 
 > [!NOTE]
-> Rok 의 런타임은 `task_lane` 을 10p+16, `static_inits` 를 11p+16, `held_locks` (이 스레드가 가진 lock. 세션 host 에서 사라진 스레드가 block 중에 가진 lock 은 해제됨) 를 12p+16 에 둡니다.
+> Rok 의 런타임은 `no_safepoint` 를 10p+10 (`u8`, debug rokc 가 `rok_nosp_enter` / `rok_nosp_leave` 로 감싸는 `#[no_safepoint]` 호출의 깊이, [8.4.10](804-safepoint.md#8410-native-호출)), `task_lane` 을 10p+16, `static_inits` 를 11p+16, `held_locks` (이 스레드가 가진 lock. 세션 host 에서 사라진 스레드가 block 중에 가진 lock 은 해제됨) 를 12p+16, `thread_name` 을 13p+16 (`{ptr, len}`, 보고에 쓰는 스레드 이름. 이름이 없으면 null) 에 둡니다. 블록은 15p+16 바이트입니다.
 
 ## 8.3.2. 접근 메커니즘
 

@@ -28,7 +28,7 @@ The **ABI contract** is the block symbol `rok_tls` and each slot's offset, type 
 **Implementation-defined slots**: the runtime may keep further thread-local state, after the ABI slots or elsewhere, for scheduling, statistics, profiling, debugging and so on. The compiler and external packages must not reference it.
 
 > [!NOTE]
-> Rok's runtime places `task_lane` at 10p+16, `static_inits` at 11p+16 and `held_locks` (the locks this thread holds; in a session host, locks a thread that is gone held while blocked are released) at 12p+16.
+> Rok's runtime places `no_safepoint` at 10p+10 (`u8`, the depth of `#[no_safepoint]` calls a debug rokc brackets with `rok_nosp_enter` / `rok_nosp_leave`, [8.4.10](804-safepoint.md#8410-native-calls)), `task_lane` at 10p+16, `static_inits` at 11p+16, `held_locks` (the locks this thread holds; in a session host, locks a thread that is gone held while blocked are released) at 12p+16 and `thread_name` at 13p+16 (`{ptr, len}`, the thread's name in reports; null when unnamed). The block is 15p+16 bytes.
 
 ## 8.3.2. Access mechanism
 
