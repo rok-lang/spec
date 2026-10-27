@@ -70,7 +70,7 @@ let Ok(data) = parse(input) else {
 {
     let v: T = compute() else { return; };
     // 여기서 v 가시
-    use(v);
+    consume(v);
 }
 // 여기서는 v 가시 안 됨 (스코프 종료)
 ```
@@ -110,14 +110,14 @@ if v <= 0 { return; }
 ```rok
 // let-else
 let v: T = compute() else { return; };       // compute(): T | none
-use(v);
+consume(v);
 
 // match 등가
 let v = match compute() {
     v: T => v,
     none => return,
 };
-use(v);
+consume(v);
 ```
 
 두 코드는 같은 의미를 표현합니다. 그중 `let-else` 는 주된 흐름이 평탄하여 가독성이 더 높을 때 선택하면 좋습니다.

@@ -16,7 +16,7 @@ This saving is central to memory efficiency in scientific and data code (inspire
 
 ## 2.7.2. Automatic niches
 
-The bits of `none` are implementation-defined. A sum `T | none` consisting of one term plus `none` has the size of `T` if `T` has a niche, and `none` is represented by that niche value. Zero-filled storage reads as `none`.
+The bits of `none` are implementation-defined. A sum `T | none` consisting of one term plus `none` has the size of `T` if `T` has a niche, and `none` is represented by that niche value. The niche value is stored as all zero bits: when it is not 0, the term is stored with its niche scalar XOR the niche value, which is never zero. Zero-filled storage therefore reads as `none` for every niche sum.
 
 | Type                                       | Niche value                           |
 |--------------------------------------------|---------------------------------------|
@@ -25,9 +25,11 @@ The bits of `none` are implementation-defined. A sum `T | none` consisting of on
 | Field-less `enum`, `enum` with no GC references in payloads | first unused tag     |
 | `extern "C" fn(..) -> R`                   | null                                  |
 | `Ptr<T>` / `ConstPtr<T>` / `ManyPtr<T>`    | null (`#[niche(0)]`)                  |
-| Multi-field `struct` / tuple               | niche of the first field that has one |
+| Single-field `struct` / tuple              | niche of the field                    |
+| Multi-field `struct` / tuple               | niche of the first field that has one, skipping `bool` and floating-point niches |
 
 - An `enum` whose payloads hold GC references has no niche.
+- A non-zero niche on a `bool` or floating-point scalar (`bool`, or a `#[niche(NAN)]` float wrapper) passes only through single-field wrappers. A multi-field aggregate skips such a field, so `(i64, bool) | none` has a tag while `(i64, char) | none` uses the `char` niche.
 - When the niche value is 0 (null pointer, `extern "C" fn`, `NonZero`), the term's bits are unchanged, so such a `T | none` passes across the C ABI as-is as a nullable value ([5.9.4](../005-modules/509-extern-block.md#nullable-c-function-pointers-extern-c-fn---r--none)).
 - A sum with two or more terms besides `none` has a tag.
 

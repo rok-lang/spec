@@ -33,7 +33,7 @@ struct Tagged<T, const TAG: u32> { value: T; }
 
 ## 2.11.3. Allowed types
 
-The type of a `const` parameter is one of the integer types (`i8` - `i64`, `u8` - `u64`, `usize`, `isize`), `bool`, or `char`.
+The type of a `const` parameter is one of the integer types (`i8` - `i128`, `u8` - `u128`, `usize`, `isize`), `bool`, `char`, or `c_char`.
 
 Floating-point types, sum types and user-defined structs cannot be `const` parameters. Floating-point types are excluded because of nondeterminism in their bit representation, and user-defined types because of consistency problems with equality comparison.
 
@@ -48,6 +48,15 @@ let arr = replicate::<f64, 8>(0.0f64);
 ```
 
 The argument must be evaluable at compile time. Allowed are literals, `const` variables, `const` function calls, other `const` parameters, and simple arithmetic combinations of these. A runtime variable cannot be used as a `const` argument; doing so is a compile error.
+
+In a generic argument list, a bare argument is a literal, a negated literal (`-1`) or a name (`N`, a `const` variable). Anything else, arithmetic included, is wrapped in braces:
+
+```rok
+fn grow<const N: usize>(b: Buf<N>) -> Buf<{ N + 1 }> { ... }
+let b: Buf<{ 2 * 8 }> = ...;
+```
+
+An array length (`[T; M * N]`) is already an expression position and takes no braces.
 
 ## 2.11.5. Arithmetic in `const` expressions
 

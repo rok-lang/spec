@@ -103,7 +103,7 @@ The condition position of `if` can also combine with pattern matching.
 
 ```rok
 if let v: User = compute() {       // compute(): User | none
-    use(v);
+    consume(v);
 } else {
     fallback();
 }

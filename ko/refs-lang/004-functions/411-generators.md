@@ -50,7 +50,7 @@ yield fn count_up_to(n: i32) -> i32 {
 
 ```rok
 let it = count_up_to(5i32);       // it: `GenIter<i32>`
-for x in it { print(x); }         // 0 1 2 3 4
+for x in it { print(f"{x} "); }   // 0 1 2 3 4
 ```
 
 ## 4.11.4. 인라인 `yield` 블록: 값

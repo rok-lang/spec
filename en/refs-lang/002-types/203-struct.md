@@ -81,7 +81,7 @@ struct Config {
 }
 ```
 
-Default values are constrained as follows. Only `const` expressions are allowed: literals, `const` variables, and `const` function calls. `const` expressions are defined in [`const`](../005-modules/502-const.md). Expressions that require a runtime call, such as the current time or a random number, cannot be used; such code is a compile error. Referring to another field of the same struct is also forbidden. A default is evaluated only when the field is omitted at instance creation, and it is evaluated for each instance. Because evaluation is deterministic, the compiler may apply caching optimizations.
+Default values are constrained as follows. Only `const` expressions are allowed: literals, `const` variables, `const` function calls, and `List` / `Dict` literals of such values (`[]`, `[1, 2]`, `{"a": 1}`). A collection default is checked at compile time and built fresh for each instance, so instances never share it. `const` expressions are defined in [`const`](../005-modules/502-const.md). Expressions that require a runtime call, such as the current time or a random number, cannot be used; such code is a compile error. Referring to another field of the same struct is also forbidden. A default is evaluated only when the field is omitted at instance creation, and it is evaluated for each instance. Because evaluation is deterministic, the compiler may apply caching optimizations.
 
 These constraints ensure determinism, predictable cost, and SemVer safety. If runtime initialization is needed, use a separate factory function, i.e. the `fn new() -> T` pattern. Names in a field default are resolved in the scope of the module that declares the struct, not where the value is built.
 

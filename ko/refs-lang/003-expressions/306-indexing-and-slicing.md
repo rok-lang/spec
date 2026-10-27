@@ -4,9 +4,8 @@
 
 ```
 index_expr      ::= primary "[" expr ("," expr)* "]"
-slice_expr      ::= primary "[" slice_arg ("," slice_arg)* "]"
-slice_arg       ::= expr
-                  | expr? ":" expr? (":" expr?)?
+slice_expr      ::= primary "[" slice_arg "]"          // no "," (3.6.3)
+slice_arg       ::= expr? ":" expr? (":" expr?)?
 ```
 
 ## 3.6.1. 인덱싱: `arr[i]`

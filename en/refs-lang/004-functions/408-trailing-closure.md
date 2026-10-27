@@ -43,7 +43,7 @@ let opened = with_file(path) |f| {
     let data = f.read();
     process(data)
 };
-pairs.for_each |k, v| { print(k, v) };
+pairs.for_each |k, v| { print(f"{k} {v}") };
 ```
 
 The pipes (`|...|`) go outside the parentheses, directly before the body. The body is always a block: always `|x| { body }`, never a one-line `|x| body`.

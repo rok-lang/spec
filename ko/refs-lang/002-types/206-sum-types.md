@@ -197,7 +197,7 @@ T | none
 ```rok
 let xs: List<i32 | none> = [1, none, 3];
 
-for x in xs { print(x); }        // 1, none, 3 - 저장된 none 도 원소
+for x in xs { print(f"{x:?}"); }  // 1, none, 3 - 저장된 none 도 원소
 
 match xs.get(1) {                // get: (i32 | none) | none - 두 층
     none => print("범위 밖"),     // 바깥 none: 원소 없음

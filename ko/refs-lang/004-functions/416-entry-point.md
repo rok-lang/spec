@@ -96,7 +96,7 @@ fn main() throws {          // 암묵 main 의 형태 - 4.16.4 참고
 진입점이 끝나는 방식에 따라 프로세스 종료 코드가 정해집니다.
 
 - **정상 종료**: 4.16.3 의 표대로 `0` 또는 반환된 `i32`.
-- **미처리 예외**: `throws` main 에서 에러가 진입점 밖으로 전파되면, 런타임은 예외 값을 표준 에러 (stderr) 에 출력하고 종료 코드 **`1`** 로 종료합니다. 출력 형식은 값이 [`Display`](../../refs-standard-libraries/200-core/210-fmt.md) 를 구현하면 `Display`, 아니면 `Debug`, 둘 다 없으면 타입 이름입니다 ([`Error`](../../refs-standard-libraries/200-core/214-error.md) 트레잇은 `Display` 를 요구하므로 일반적인 에러 타입은 `Display` 로 출력됩니다). 다음 줄에 에러가 `main` 을 떠난 위치를 `  --> path:line:col` 로 씁니다.
+- **미처리 예외**: `throws` main 에서 에러가 진입점 밖으로 전파되면, 런타임은 ``error: `main` returned an uncaught error: `` 뒤에 예외 값을 붙여 표준 에러 (stderr) 에 출력하고 종료 코드 **`1`** 로 종료합니다. 출력 형식은 값이 [`Display`](../../refs-standard-libraries/200-core/210-fmt.md) 를 구현하면 `Display`, 아니면 `Debug`, 둘 다 없으면 타입 이름입니다 ([`Error`](../../refs-standard-libraries/200-core/214-error.md) 트레잇은 `Display` 를 요구하므로 일반적인 에러 타입은 `Display` 로 출력됩니다). 다음 줄에 에러가 `main` 을 떠난 위치를 `  --> path:line:col` 로 씁니다.
 - **panic**: panic 과 fatal 에러는 `catch` 로 잡히지 않으며, 런타임은 메시지를 표준 에러에 출력하고 종료 코드 **`101`** 로 종료합니다 ([4.14.13](414-throws.md#41413-panic-과-fatal-에러)).
 - **명시 종료**: [`rok::std::env::exit(code)`](../../refs-standard-libraries/300-std/306-env.md) 는 어느 지점에서든 즉시 프로세스를 종료합니다. 이 경로는 `finally` 와 `Drop` 을 실행하지 않습니다.
 
@@ -155,8 +155,9 @@ Rok 에는 진입점을 지정하는 속성 (예: `#[main]`) 이 **없습니다*
 
 REPL 의 입력과 Jupyter 의 셀 ([JIT 셀](../009-tools/907-jit-cells.md)) 은 **암묵 `main.rok` 의 끝에 top-level 문과 항목을 차례로 덧붙이는 것** 과 같은 의미를 가집니다. 셀의 `let` 은 암묵 `main` 의 지역 변수로서 이후 셀에서 보이고, 셀의 `fn` / `struct` 는 모듈 항목이 됩니다. 4.16.2 의 규칙도 그대로 적용되므로, 셀에서 선언한 `fn` 의 본체는 이전 셀의 top-level `let` 을 참조할 수 없습니다 (클로저 캡처는 가능합니다).
 
-이 등가성 덕분에 [0.1.1](../000-meta/001-execution-modes.md#의미론은-같습니다) 의 "JIT 와 AOT 는 같은 의미론을 공유한다" 는 원칙이 진입점에서도 성립합니다. 노트북의 셀을 순서대로 이어 붙인 파일은 같은 결과를 내는 `main.rok` 가 됩니다. 다만 다음 세 가지는 대화형 세션에만 있는 **세션 조작** 이며, 언어 의미론의 확장이 아닙니다.
+이 등가성 덕분에 [0.1.1](../000-meta/001-execution-modes.md#의미론은-같습니다) 의 "JIT 와 AOT 는 같은 의미론을 공유한다" 는 원칙이 진입점에서도 성립합니다. 노트북의 셀을 순서대로 이어 붙인 파일은 같은 결과를 내는 `main.rok` 가 됩니다. 다만 다음 네 가지는 대화형 세션에만 있는 **세션 조작** 이며, 언어 의미론의 확장이 아닙니다.
 
 - 셀 최상위에서 같은 이름의 재 `let` 선언 ([9.7.3](../009-tools/907-jit-cells.md#같은-이름의-재선언)). 새 바인딩을 만듭니다.
 - 셀의 삭제와 재실행 ([9.7.4](../009-tools/907-jit-cells.md#974-undo--셀-재실행)).
 - 종결자 없는 마지막 식의 값 자동 표시 ([9.7.7](../009-tools/907-jit-cells.md#977-시각화--출력)). 파일에서는 이 식에 `;` 를 붙인 것과 같습니다.
+- 그 마지막 식 뒤의 `?` (`xs?`). `Debug` 형태로 표시합니다 ([9.7.7](../009-tools/907-jit-cells.md#977-시각화--출력)). 파일에서 뒤에 붙은 `?` 는 [`?` 연산자](../003-expressions/314-error-control-flow.md#31410--연산자---none-조기-반환) 입니다.

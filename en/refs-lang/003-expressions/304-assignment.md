@@ -1,16 +1,17 @@
 # 3.4. Assignment and compound assignment
 
-Assignment (`=`) and compound assignment (`+=`, `-=`, etc.) are expressions that update the value of a variable, a field, or an indexed place. The grammar is:
+Assignment (`=`) and compound assignment (`+=`, `-=`, etc.) update the value of a variable, a field, or an indexed place. Both are statements; a simple assignment may also stand in expression position in the forms of 3.4.5, while a compound assignment may not. The grammar is:
 
 ```
-assign_expr     ::= lvalue assign_op expr
-assign_op       ::= "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|="
+assign_stmt     ::= lvalue "=" expr ";"
+compound_stmt   ::= lvalue compound_op expr ";"
+assign_expr     ::= lvalue "=" expr                    // in parentheses or an arm body (3.4.5)
+compound_op     ::= "+=" | "-=" | "*=" | "/=" | "%=" | "%%=" | "&=" | "|="
                   | "^=" | "<<=" | ">>="
 lvalue          ::= identifier
                   | lvalue "." identifier
                   | lvalue "." int_lit                 // tuple position
                   | lvalue "[" expr "]"                // index
-                  | lvalue "[" range_expr "]"          // slice
 ```
 
 ## 3.4.1. Simple assignment
@@ -23,7 +24,7 @@ obj.field = expr;
 arr[i] = expr;
 ```
 
-The left-hand side (lvalue) is a reassignable place, the right-hand side (rvalue) is any expression, and the result value has the unit type (`()`). Assignment itself is an expression, but because its result is unit it is normally used as a statement. As a result, patterns like C's `if (x = read())`, which are rarely needed, are blocked by the unit result.
+The left-hand side (lvalue) is a reassignable place, the right-hand side (rvalue) is any expression, and the result value has the unit type (`()`). Assignment is normally a statement; where it stands in expression position (3.4.5) its result is unit. As a result, patterns like C's `if (x = read())`, which are rarely needed, are blocked by the unit result.
 
 ### Kinds of lvalue
 
@@ -35,9 +36,8 @@ The forms allowed on the left-hand side and their meanings:
 | field access     | `obj.field = ...` | writes the value to the object's field           |
 | tuple position   | `pair.0 = ...`    | writes the value to a position of a tuple `struct` / tuple |
 | indexing         | `arr[i] = ...`    | writes the value to the indexed place            |
-| slicing          | `arr[1:3] = ...`  | writes the value to the slice region             |
 
-Indexing and slicing assignments desugar to the write traits of [indexing and slicing](306-indexing-and-slicing.md).
+Indexing assignment desugars to the write traits of [indexing and slicing](306-indexing-and-slicing.md). A slice is not an lvalue: `arr[1:3] = other;` is rejected ([3.6](306-indexing-and-slicing.md)).
 
 ### Places that cannot be lvalues
 
@@ -47,6 +47,7 @@ The following cannot be lvalues.
 1 = 2;                    // a literal is not an lvalue
 foo() = 2;                // a call result is generally not an lvalue
 (x + 1) = 2;              // an arithmetic result is not an lvalue
+(a, b) = (b, a);          // a tuple is not an lvalue; write let (a, b) = (b, a);
 ```
 
 Whether something can be an lvalue is checked at compile time and determined by form (shape) alone. No runtime check is performed.
@@ -64,7 +65,7 @@ Creating a new variable requires `let`; writing again to an existing variable's 
 
 ```
 counter = counter + 1;     // OK if counter is declared
-coutner = ...;             // ERROR: 'coutner' not declared. Did you mean 'counter'?
+coutner = ...;             // ERROR: `coutner` is not declared; a variable is created only by `let`
 ```
 
 This rule blocks the trap of a typo silently creating a new variable (a common bug in Julia and Python).
@@ -80,7 +81,7 @@ x *= 2;
 arr[i] += 1;
 ```
 
-All compound assignment tokens of [punctuation and operator tokens](../001-lexical/110-punctuation-and-operator-tokens.md) (`+=`, `-=`, `*=`, `/=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`) follow the same pattern.
+All compound assignment tokens of [punctuation and operator tokens](../001-lexical/110-punctuation-and-operator-tokens.md) (`+=`, `-=`, `*=`, `/=`, `%=`, `%%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`) follow the same pattern. A compound assignment is a statement and ends with `;`; it has no value and cannot appear in expression position (`let y = (x += 1);` does not parse).
 
 ### Desugaring and lvalue evaluation
 
@@ -142,11 +143,9 @@ Because the result of an assignment is unit, `b = c = 1` evaluates to unit and t
 c = 1; b = 1; a = 1;
 ```
 
-or use destructuring assignment.
-
 ## 3.4.5. Assignment inside an expression
 
-Assignment is an expression with a unit result, so it can be placed in expression position, but there is little value in doing so.
+A simple assignment can be placed in expression position, where its result is unit, but there is little value in doing so.
 
 ```rok
 let x = (y = 1);           // x = unit (nearly meaningless)
@@ -154,4 +153,4 @@ let x = (y = 1);           // x = unit (nearly meaningless)
 
 This pattern is discouraged, and tools or linters may warn about it.
 
-Outside statement position, an assignment is written in parentheses `(y = 1)` or as a match arm body. An unparenthesized `let x = y = 1;` is not supported.
+Outside statement position, an assignment is written in parentheses `(y = 1)` or as a match arm body. An unparenthesized `let x = y = 1;` is not supported. Compound assignment has no expression form.

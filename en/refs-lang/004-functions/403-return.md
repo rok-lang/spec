@@ -110,7 +110,7 @@ fn loop_forever() {
 }
 ```
 
-The return type of such a function can hold no value. The standard library provides a diverging type for this position (corresponding to Rust's `!` or `Never`); its exact name is defined in the library specification.
+The return type of such a function can hold no value. It is written `!` (never), as in `fn fail() -> ! { ... }`.
 
 A call to a divergent function is compatible with any type, like a divergent block in [block expressions](../003-expressions/309-block-expressions.md).
 

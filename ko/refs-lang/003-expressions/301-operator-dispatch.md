@@ -73,11 +73,10 @@ let b: str = "hi";
 let c = a + b;          // ERROR: Add 의 (i32, str) impl 없음
 ```
 
-이때 진단은 어떤 트레잇이 빠져 있는지를 명시합니다.
+이때 진단은 연산자와 두 피연산자의 타입을 밝힙니다.
 
 ```
-ERROR: cannot apply '+' to 'i32' and 'str'
-       (no impl Add<str> for i32)
+error: operator `+` cannot be applied to `i32` and `str`
 ```
 
 ## 3.1.5. 단항, 이항, 후위

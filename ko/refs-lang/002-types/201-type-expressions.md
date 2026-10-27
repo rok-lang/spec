@@ -17,13 +17,25 @@ base_type   ::= path_type
               | tuple_type
               | array_type
               | any_type
+              | self_type
+              | qualified_type
+              | macro_type
+              | "none"                          // none 타입 (2.6)
+              | "!"                             // never (4.3.7)
               | "(" type_expr ")"               // 그룹
+self_type   ::= "Self" ("::" identifier ("::" identifier)* type_args?)?   // Self, Self::Item
+qualified_type ::= "<" type_expr "as" trait_ref ">" "::" identifier       // 2.13.4
+macro_type  ::= identifier "!" ( "(" token* ")" | "[" token* "]" | "{" token* "}" )   // 6.8.12
 any_type    ::= "any" ( trait_ref | "(" trait_ref ("+" trait_ref)* ")" )?
 trait_ref   ::= identifier ("::" identifier)* trait_args?
 trait_args  ::= "<" trait_arg ("," trait_arg)* ","? ">"
-trait_arg   ::= type_expr | identifier "=" type_expr
+trait_arg   ::= type_expr | identifier "=" type_expr | const_arg
 path_type   ::= identifier ("::" identifier)* type_args?
-type_args   ::= "<" type_expr ("," type_expr)* ","? ">"
+type_args   ::= "<" trait_arg ("," trait_arg)* ","? ">"
+const_arg   ::= literal                         // 정수, 문자, true / false
+              | "-" literal
+              | "{" expr "}"                    // 2.11.4
+              | string_lit                      // 예: MLIR op 이름
 fn_type     ::= "unsafe"? ("extern" string_lit)? "fn" "( (type_expr ("," type_expr)*)? ")" ("throws" ("(" type_expr ")")?)? ("->" unary_type)? fn_bound*
 fn_bound    ::= "+" ("Send" | "Sync")
 tuple_type  ::= "(" ")"
@@ -47,6 +59,11 @@ array_type  ::= "[" type_expr ";" const_expr "]"
 | 튜플 타입     | `(i32, str)`, `(i32,)`                      |
 | 배열 타입     | `[T; N]` (고정 크기)                        |
 | 동적 슬롯     | `any`, `any Error`, `any (Display + Hash)`  |
+| `none` / never | `none`, `!`                                |
+| `Self` 와 그 항목 | `Self`, `Self::Item`                     |
+| 한정 경로     | `<T as Iterator>::Item`                     |
+| 매크로 호출   | `name!(..)`, 타입으로 펼쳐짐 ([6.8.12](../006-meta-system/608-meta-blocks.md#6812-macro-형태)) |
+| const 인자    | `Buf<16>`, `Buf<-1>`, `Buf<{ N + 1 }>`      |
 
 각 형태의 정확한 의미는 아래에서 차례로 정의합니다.
 

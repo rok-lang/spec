@@ -127,7 +127,7 @@ my_pkg/
         └── parser.rok                parsing::parser
 ```
 
-The root module is always in folder form: `src/` is its folder, and `lib.rok` (library) or `main.rok` (executable) is its body file. `mod foo;` in the root maps to `src/foo.rok`; a `foo.rok` beside `src/` is never a module. `#[path(..)]` (5.4.6) stays relative to the declaring file.
+The root module is always in folder form: `src/` is its folder, and `lib.rok` (library) or `main.rok` (executable) is its body file. `mod foo;` in the root maps to `src/foo.rok`; a `foo.rok` beside `src/` is never a module. `#[path(..)]` (5.4.6) resolves from the folder where the submodule's file would normally be: `src/` for a `mod` in the root, `src/parsing/` for a `mod` inside `parsing.rok`.
 
 ## 5.4.5. Inline modules: defined within the body
 

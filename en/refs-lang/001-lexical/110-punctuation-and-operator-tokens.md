@@ -159,6 +159,6 @@ Once such a sequence is registered, the lexer cuts it out as a single token. The
 
 ## 1.10.5. What is not tokenized
 
-The following elements are not tokens but parts of larger units. The `f` of `f"..."` is the format string prefix of [String literals](107-string-literals.md). The `r` of `r"..."` and the `r#` of `r#"..."#` are raw string prefixes. The `c` of `c'...'` is the C-compatible character prefix of [Character literals](108-character-literals.md). Type suffixes attached to numeric literals also belong here; see [Numeric literals](106-numeric-literals.md) for details.
+The following elements are not tokens but parts of larger units. The `f` of `f"..."` is the format string prefix of [String literals](107-string-literals.md). The `r` of `r"..."` and the `r#` of `r#"..."#` are raw string prefixes. The `b` of `b"..."` is the byte string prefix. The `c` of `c'...'` is the C-compatible character prefix of [Character literals](108-character-literals.md). Type suffixes attached to numeric literals also belong here; see [Numeric literals](106-numeric-literals.md) for details.
 
 These do not appear in the token table of this document, and in their positions they are not tokenized as identifiers or ordinary tokens either.

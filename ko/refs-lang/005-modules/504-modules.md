@@ -127,7 +127,7 @@ my_pkg/
         └── parser.rok                parsing::parser
 ```
 
-루트 모듈은 항상 폴더 형태이며, `src/` 가 그 폴더가 되고 `lib.rok` (라이브러리) 또는 `main.rok` (실행) 이 본체 파일이 됩니다. 루트의 `mod foo;` 는 `src/foo.rok` 에 대응하며, `src/` 옆의 `foo.rok` 는 결코 모듈이 아닙니다. `#[path(..)]` (5.4.6) 는 여전히 선언한 파일 기준입니다.
+루트 모듈은 항상 폴더 형태이며, `src/` 가 그 폴더가 되고 `lib.rok` (라이브러리) 또는 `main.rok` (실행) 이 본체 파일이 됩니다. 루트의 `mod foo;` 는 `src/foo.rok` 에 대응하며, `src/` 옆의 `foo.rok` 는 결코 모듈이 아닙니다. `#[path(..)]` (5.4.6) 는 하위 모듈 파일이 원래 놓일 폴더를 기준으로 해소됩니다. 루트의 `mod` 는 `src/`, `parsing.rok` 안의 `mod` 는 `src/parsing/` 입니다.
 
 ## 5.4.5. 인라인 모듈: 본체 안에 정의
 

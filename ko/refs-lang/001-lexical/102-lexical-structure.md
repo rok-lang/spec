@@ -8,9 +8,12 @@ token           ::= identifier
                   | numeric_lit
                   | string_lit
                   | byte_string_lit
+                  | fstring_tokens                // f"..." / f"""...""", see 1.2.1
                   | char_lit
                   | sentinel_lit                  // true | false | none
+                  | label                         // 'name
                   | punctuation
+label           ::= "'" identifier                // no closing quote
 whitespace      ::= space_char+
                   | line_comment
                   | block_comment
@@ -33,7 +36,12 @@ line_terminator ::= U+000A | U+000D U+000A? | U+000D
 | 문자열 리터럴          | `"hello"`, `r"raw\n"`, `f"x = {x}"`, `b"bytes"` |
 | 문자 리터럴            | `'A'`, `c'A'`                       |
 | 진리값 / 센티넬 리터럴 | `true`, `false`, `none`             |
+| 레이블                 | `'outer`                            |
 | 연산자 / 구두점        | `+`, `==`, `..`, `[`, `;`           |
+
+레이블은 `'` 뒤에 식별자가 오고 닫는 따옴표가 없는 형태입니다 (`'outer`). `break` / `continue` 가 가리킬 루프나 블록에 이름을 붙입니다 ([3.13](../003-expressions/313-loop-expressions.md)). 닫는 따옴표가 있는 `'A'` 는 문자 리터럴입니다.
+
+형식 문자열은 토큰 하나가 아니라 토큰 묶음입니다. `f"` (또는 `f"""`) 가 열고, 리터럴 텍스트 조각과 구멍이 번갈아 오며, 닫는 `"` (또는 `"""`) 가 끝냅니다. 구멍은 `{` 토큰, 그 안 식의 일반 토큰들, 선택적인 `:` 와 형식 지정 텍스트 (중첩 `{...}` 이나 `${...}` 구멍을 담을 수 있음), 그리고 `}` 토큰으로 이루어집니다 ([1.7.3](107-string-literals.md#173-형식-문자열)).
 
 각 종류의 정확한 형식 규칙은 이어지는 문서들에서 차례로 정의하겠습니다.
 

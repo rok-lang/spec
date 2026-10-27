@@ -98,7 +98,7 @@ A suffix after a literal specifies which concrete type the literal evaluates to.
 
 The suffix format follows these rules. A suffix is attached immediately after the last character of the literal without whitespace and consists only of identifier characters (`XID_Continue`). Lexically it is kept as part of one token: the lexer groups the numeric body and the suffix string into a single token.
 
-Numeric type name suffixes (`i8` `i16` `i32` `i64` `isize` `u8` `u16` `u32` `u64` `usize` `f32` `f64`) are defined by the language and set the literal's type to that type. The `f32` / `f64` suffixes may also be attached to integer forms (`1f64`). Other suffixes (`2i`, etc.) are interpreted by handlers registered by the standard libraries or users through [`#[literal(...)]` magic](../006-meta-system/605-literal-magic.md).
+Numeric type name suffixes (`i8` `i16` `i32` `i64` `i128` `isize` `u8` `u16` `u32` `u64` `u128` `usize` `c_char` `f32` `f64`) are defined by the language and set the literal's type to that type. The `f32` / `f64` suffixes may also be attached to integer forms (`1f64`). Other suffixes (`2i`, etc.) are interpreted by handlers registered by the standard libraries or users through [`#[literal(...)]` magic](../006-meta-system/605-literal-magic.md).
 
 ## 1.6.3. Unsuffixed literals
 
@@ -106,6 +106,7 @@ The type of an unsuffixed literal (`42`, `3.14`) is determined by the expected t
 
 - Integer literal: if the expected type is an integer or floating-point type, it is that type. With no expected type, it is `i32`.
 - Floating-point literal: if the expected type is a floating-point type, it is that type. With no expected type, it is `f64`. It cannot appear where an integer type is expected.
+- The arbitrary-precision std types `int` and `float` also count: an integer literal may take `int` or `float`, and a floating-point literal may take `float`. These types hold any value, so no range check applies.
 - In a binary operation, if the type of one operand is statically fixed, that type becomes the expected type for the literal side.
 - When an integer literal is placed where a floating-point type is expected and that floating-point type cannot represent the value exactly, it is a compile error (`let f: f32 = 16777217;`).
 - If the expected type is a sum type with an integer type member, an integer literal takes that integer type (the `1` in `let v: i64 | f64 = 1;` is `i64`).

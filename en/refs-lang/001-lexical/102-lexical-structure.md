@@ -8,9 +8,12 @@ token           ::= identifier
                   | numeric_lit
                   | string_lit
                   | byte_string_lit
+                  | fstring_tokens                // f"..." / f"""...""", see 1.2.1
                   | char_lit
                   | sentinel_lit                  // true | false | none
+                  | label                         // 'name
                   | punctuation
+label           ::= "'" identifier                // no closing quote
 whitespace      ::= space_char+
                   | line_comment
                   | block_comment
@@ -33,7 +36,12 @@ The compiler's lexical analyzer (the **lexer**) reads a source file and produces
 | String literal               | `"hello"`, `r"raw\n"`, `f"x = {x}"`, `b"bytes"` |
 | Character literal            | `'A'`, `c'A'`                       |
 | Boolean / sentinel literal   | `true`, `false`, `none`             |
+| Label                        | `'outer`                            |
 | Operator / punctuation       | `+`, `==`, `..`, `[`, `;`           |
+
+A label is `'` followed by an identifier with no closing quote (`'outer`); it names a loop or block for `break` / `continue` ([3.13](../003-expressions/313-loop-expressions.md)). `'A'`, which has a closing quote, is a character literal instead.
+
+A format string is not one token but a token family. `f"` (or `f"""`) opens it, literal text runs alternate with holes, and the closing `"` (or `"""`) ends it. A hole is a `{` token, the ordinary tokens of its expression, an optional `:` with format spec text (which may hold nested `{...}` or `${...}` holes), and a `}` token ([1.7.3](107-string-literals.md#173-format-strings)).
 
 The exact format rules for each kind are defined in turn in the following documents.
 

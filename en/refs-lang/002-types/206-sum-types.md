@@ -197,7 +197,7 @@ So `List<i32 | none>` iterates over stored `none`s as elements, and `get` / `pop
 ```rok
 let xs: List<i32 | none> = [1, none, 3];
 
-for x in xs { print(x); }        // 1, none, 3 - stored none is also an element
+for x in xs { print(f"{x:?}"); }  // 1, none, 3 - stored none is also an element
 
 match xs.get(1) {                // get: (i32 | none) | none - two layers
     none => print("out of range"),     // outer none: no element

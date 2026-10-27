@@ -71,7 +71,7 @@ To return a value, use `loop { ... break v; ... }`.
 
 ```rok
 while let v: T = compute() {     // compute(): T | none
-    use(v);
+    consume(v);
 }
 ```
 

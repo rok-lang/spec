@@ -43,7 +43,7 @@ let opened = with_file(path) |f| {
     let data = f.read();
     process(data)
 };
-pairs.for_each |k, v| { print(k, v) };
+pairs.for_each |k, v| { print(f"{k} {v}") };
 ```
 
 파이프 (`|...|`) 는 괄호 밖, 본체 직전에 위치합니다. 본체는 항상 블록이어서 `|x| body` 같은 한 줄 형태가 아니라 언제나 `|x| { body }` 형태로 적습니다.

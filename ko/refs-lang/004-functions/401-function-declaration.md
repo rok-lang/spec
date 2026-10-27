@@ -227,7 +227,7 @@ let it: TryGenIter<str, IoError> = lines("a.txt");
 
 ### 클로저와 블록 형태
 
-`async` 와 `yield` 의 클로저 / 블록 형태에서도 같은 순서 규칙이 적용됩니다. 예를 들어 Stream 을 만드는 클로저는 항상 `async yield ||` 로 적으며, `yield async ||` 는 syntax error 입니다. 자세한 클로저 / 블록 형태는 각 modifier 문서를 참고합니다.
+`async` 와 `yield` 의 클로저 / 블록 형태에서도 같은 순서 규칙이 적용됩니다. 예를 들어 Stream 을 만드는 클로저는 항상 `async yield ||` 로 적으며, `yield async ||` 는 클로저 형태가 아닙니다. `async ||` 클로저에 `yield` 를 적용한 것으로 읽히며 타입 에러로 거부됩니다. 자세한 클로저 / 블록 형태는 각 modifier 문서를 참고합니다.
 
 ## 4.1.12. 매개변수 / 반환 / 본체 사이의 평가 순서
 

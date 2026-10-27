@@ -28,11 +28,11 @@ The caller of a function in this tier is responsible for safety, and the path it
 
 ### `rok::core` (foundation)
 
-`rok::core` is the most frequently used safe library; every module of the foundation lives here (e.g. `rok::core::vec`, `rok::core::iter`, `rok::core::ops`). It must be available identically on every build target this specification guarantees. Its contents are very broad: numeric, character and string types and their methods, and collections (lists, maps, sets, tuples). It has the trait definitions for arithmetic, comparison, logical and bitwise operators, and also provides iterators, streams and futures. Concurrency primitives (atomic, mutex, channel) and the API surface for tasks and parallel execution also belong to this tier. Finally, it covers formatting, display, debug, reflection and inspection.
+`rok::core` is the most frequently used safe library; every module of the foundation lives here (e.g. `rok::core::collections`, `rok::core::iter`, `rok::core::ops`). It must be available identically on every build target this specification guarantees. Its contents are very broad: numeric, character and string types and their methods, and collections (lists, maps, sets, tuples). It has the trait definitions for arithmetic, comparison, logical and bitwise operators, and also provides iterators, streams and futures. Concurrency primitives (atomic, mutex, channel) and the API surface for tasks and parallel execution also belong to this tier. Finally, it covers formatting, display, debug, reflection and inspection.
 
 Acceleration domains such as tensors / automatic differentiation / SIMD / GPU are not part of `rok::core`; external libraries implement them directly on top of `rok::bare::mlir`. The standard libraries are responsible only for the surface semantics of ordinary code and leave the acceleration domain to decisions at the library layer.
 
-The items of `rok::core` are made visible by the compiler implicitly applying `use rok::core::**;` at the start of every Rok source. That is, `rok::core::vec::Vec` can be written simply as `Vec`. There is no separate prelude module; the implicit recursive glob itself plays that role.
+The items of `rok::core` are made visible by the compiler implicitly applying `use rok::core::**;` at the start of every Rok source. That is, `rok::core::collections::List` can be written simply as `List`. There is no separate prelude module; the implicit recursive glob itself plays that role.
 
 Items of `rok::core` are `pub` by default. The surface exposed to external packages is exactly the automatically visible surface, so no separate step is needed.
 

@@ -35,7 +35,7 @@ c'\x7F'
 
 This form consists of the `c` prefix and a pair of single quotes; escape sequences follow the table in [String literals](107-string-literals.md) as is. The value of the contents must lie within `U+0000`-`U+00FF`; exceeding this range is a lexical error. For example, `c'세'` is an error, because `'세'` is `U+C138` and cannot fit in one byte. When filling the one-byte range by writing characters directly, only ASCII characters are possible because the source is UTF-8; non-ASCII one-byte values (`U+0080`-`U+00FF`) must be written with a `\xHH` or `\u{H...}` escape.
 
-This form evaluates to a library type compatible with the 8-bit character type of the foreign function interface ([FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface)). The exact type name is defined in the type system specification.
+This form evaluates to the primitive type `c_char`, the 8-bit character type of the foreign function interface ([FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface)).
 
 ## 1.8.2. Why the two kinds are separate
 

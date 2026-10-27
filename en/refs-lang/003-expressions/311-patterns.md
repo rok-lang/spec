@@ -165,7 +165,7 @@ An or-pattern combines several subpatterns with `|`; the whole matches if any su
 
 ```rok
 match v {
-    Ok(x) | OkAlt(x) => use(x),     // both variants bind the same name x with the same type
+    Ok(x) | OkAlt(x) => consume(x), // both variants bind the same name x with the same type
 }
 ```
 

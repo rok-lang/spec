@@ -71,7 +71,7 @@ let x = while cond { ... };     // x: unit
 
 ```rok
 while let v: T = compute() {     // compute(): T | none
-    use(v);
+    consume(v);
 }
 ```
 

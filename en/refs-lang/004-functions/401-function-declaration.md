@@ -227,7 +227,7 @@ let it: TryGenIter<str, IoError> = lines("a.txt");
 
 ### Closure and block forms
 
-The same ordering rule applies to the closure / block forms of `async` and `yield`. For example, a closure that produces a Stream is always written `async yield ||`; `yield async ||` is a syntax error. See each modifier's document for the closure / block forms.
+The same ordering rule applies to the closure / block forms of `async` and `yield`. For example, a closure that produces a Stream is always written `async yield ||`; `yield async ||` is not a closure form: it reads as `yield` applied to an `async ||` closure and is rejected as a type error. See each modifier's document for the closure / block forms.
 
 ## 4.1.12. Evaluation order of parameters, return and body
 

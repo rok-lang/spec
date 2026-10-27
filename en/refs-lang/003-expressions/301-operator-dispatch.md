@@ -73,11 +73,10 @@ let b: str = "hi";
 let c = a + b;          // ERROR: no Add impl for (i32, str)
 ```
 
-The diagnostic states which trait is missing.
+The diagnostic names the operator and both operand types.
 
 ```
-ERROR: cannot apply '+' to 'i32' and 'str'
-       (no impl Add<str> for i32)
+error: operator `+` cannot be applied to `i32` and `str`
 ```
 
 ## 3.1.5. Unary, binary, postfix

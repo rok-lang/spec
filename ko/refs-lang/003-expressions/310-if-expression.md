@@ -103,7 +103,7 @@ let x: i32 = if cond {
 
 ```rok
 if let v: User = compute() {       // compute(): User | none
-    use(v);
+    consume(v);
 } else {
     fallback();
 }

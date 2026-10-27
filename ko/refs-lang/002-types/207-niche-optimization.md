@@ -16,7 +16,7 @@ let p: Ptr<u8> | none      // 64-bit 포인터 + none
 
 ## 2.7.2. 자동 niche
 
-`none` 의 비트는 구현이 정합니다. 항 하나와 `none` 만으로 된 합 `T | none` 은 `T` 에 niche 가 있으면 `T` 의 크기이며, `none` 은 그 niche 값으로 표현됩니다. 0 으로 채운 저장소는 `none` 으로 읽힙니다.
+`none` 의 비트는 구현이 정합니다. 항 하나와 `none` 만으로 된 합 `T | none` 은 `T` 에 niche 가 있으면 `T` 의 크기이며, `none` 은 그 niche 값으로 표현됩니다. niche 값은 모든 비트가 0 인 형태로 저장됩니다. niche 값이 0 이 아니면 항은 niche 스칼라를 niche 값과 XOR 한 형태로 저장되며, 그 결과는 0 이 되지 않습니다. 따라서 모든 niche 합에서 0 으로 채운 저장소는 `none` 으로 읽힙니다.
 
 | 타입                                       | niche 값                              |
 |--------------------------------------------|---------------------------------------|
@@ -25,9 +25,11 @@ let p: Ptr<u8> | none      // 64-bit 포인터 + none
 | 필드 없는 `enum`, payload 에 GC 참조가 없는 `enum` | 쓰지 않는 첫 tag                |
 | `extern "C" fn(..) -> R`                   | null                                  |
 | `Ptr<T>` / `ConstPtr<T>` / `ManyPtr<T>`    | null (`#[niche(0)]`)                  |
-| 여러 필드의 `struct` / 튜플                | niche 가 있는 첫 필드의 niche          |
+| 필드 하나의 `struct` / 튜플                | 그 필드의 niche                       |
+| 여러 필드의 `struct` / 튜플                | niche 가 있는 첫 필드의 niche (`bool` 과 부동소수 niche 는 건너뜀) |
 
 - payload 에 GC 참조를 담는 `enum` 은 niche 가 없습니다.
+- `bool` 이나 부동소수 스칼라의 0 이 아닌 niche (`bool`, 또는 `#[niche(NAN)]` 부동소수 wrapper) 는 필드 하나짜리 wrapper 를 통해서만 전달됩니다. 여러 필드의 aggregate 는 그런 필드를 건너뛰므로, `(i64, bool) | none` 은 태그를 두고 `(i64, char) | none` 은 `char` 의 niche 를 씁니다.
 - niche 값이 0 이면 (null 포인터, `extern "C" fn`, `NonZero`) 항의 비트는 그대로이므로, 그런 `T | none` 은 C ABI 를 그대로 nullable 값으로 건넙니다 ([5.9.4](../005-modules/509-extern-block.md#nullable-c-함수-포인터-extern-c-fn---r--none)).
 - `none` 말고 항이 둘 이상인 합은 태그를 둡니다.
 

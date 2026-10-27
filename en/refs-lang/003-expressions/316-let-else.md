@@ -70,7 +70,7 @@ On a successful match, the pattern's binding variables are introduced into the s
 {
     let v: T = compute() else { return; };
     // v is visible here
-    use(v);
+    consume(v);
 }
 // v is not visible here (scope ended)
 ```
@@ -110,14 +110,14 @@ Any of these, and any form the compiler classifies as divergent, is allowed.
 ```rok
 // let-else
 let v: T = compute() else { return; };       // compute(): T | none
-use(v);
+consume(v);
 
 // match equivalent
 let v = match compute() {
     v: T => v,
     none => return,
 };
-use(v);
+consume(v);
 ```
 
 The two express the same meaning. Choose `let-else` when its flat main flow is more readable.

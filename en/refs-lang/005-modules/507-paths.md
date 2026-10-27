@@ -71,7 +71,7 @@ sup::sup::ancestor_item
 ## 5.7.4. `rok::`: the standard library virtual namespace
 
 ```rok
-rok::core::vec::Vec
+rok::core::collections::List
 rok::core::iter::Iterator
 rok::bare::ptr::Ptr
 rok::std::fs::File

@@ -17,13 +17,25 @@ base_type   ::= path_type
               | tuple_type
               | array_type
               | any_type
+              | self_type
+              | qualified_type
+              | macro_type
+              | "none"                          // the none type (2.6)
+              | "!"                             // never (4.3.7)
               | "(" type_expr ")"               // grouping
+self_type   ::= "Self" ("::" identifier ("::" identifier)* type_args?)?   // Self, Self::Item
+qualified_type ::= "<" type_expr "as" trait_ref ">" "::" identifier       // 2.13.4
+macro_type  ::= identifier "!" ( "(" token* ")" | "[" token* "]" | "{" token* "}" )   // 6.8.12
 any_type    ::= "any" ( trait_ref | "(" trait_ref ("+" trait_ref)* ")" )?
 trait_ref   ::= identifier ("::" identifier)* trait_args?
 trait_args  ::= "<" trait_arg ("," trait_arg)* ","? ">"
-trait_arg   ::= type_expr | identifier "=" type_expr
+trait_arg   ::= type_expr | identifier "=" type_expr | const_arg
 path_type   ::= identifier ("::" identifier)* type_args?
-type_args   ::= "<" type_expr ("," type_expr)* ","? ">"
+type_args   ::= "<" trait_arg ("," trait_arg)* ","? ">"
+const_arg   ::= literal                         // int, char, true / false
+              | "-" literal
+              | "{" expr "}"                    // 2.11.4
+              | string_lit                      // e.g. an MLIR op name
 fn_type     ::= "unsafe"? ("extern" string_lit)? "fn" "( (type_expr ("," type_expr)*)? ")" ("throws" ("(" type_expr ")")?)? ("->" unary_type)? fn_bound*
 fn_bound    ::= "+" ("Send" | "Sync")
 tuple_type  ::= "(" ")"
@@ -47,6 +59,11 @@ The forms are summarized below.
 | Tuple type        | `(i32, str)`, `(i32,)`                      |
 | Array type        | `[T; N]` (fixed size)                       |
 | Dynamic slot      | `any`, `any Error`, `any (Display + Hash)`  |
+| `none` / never    | `none`, `!`                                 |
+| `Self` and its items | `Self`, `Self::Item`                     |
+| Qualified path    | `<T as Iterator>::Item`                     |
+| Macro call        | `name!(..)`, expands to a type ([6.8.12](../006-meta-system/608-meta-blocks.md#6812-the-macro-form)) |
+| Const argument    | `Buf<16>`, `Buf<-1>`, `Buf<{ N + 1 }>`      |
 
 The exact meaning of each form is defined in turn below.
 

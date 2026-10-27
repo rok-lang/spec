@@ -71,7 +71,7 @@ sup::sup::ancestor_item
 ## 5.7.4. `rok::`: 표준 라이브러리 가상 네임스페이스
 
 ```rok
-rok::core::vec::Vec
+rok::core::collections::List
 rok::core::iter::Iterator
 rok::bare::ptr::Ptr
 rok::std::fs::File
