@@ -23,9 +23,9 @@
 ```
 rok::bare   (base, runtime extern "C" 만 의존)
   ↓
-rok::core   (foundation, 안전, 모든 target - uses rok::bare internally)
+rok::core   (foundation, 안전, 모든 target; uses rok::bare internally)
   ↓
-rok::std   (target-dep - uses rok::core + rok::bare)
+rok::std   (target-dep; uses rok::core + rok::bare)
 ```
 
 즉 `rok::bare` 는 가장 아래에서 원시 능력만을 노출하고, `rok::core` 는 그 위에서 안전한 foundation 을 모든 target 에 동일하게 제공합니다. 한편 `rok::std` 는 `rok::core` 위에 호스트 의존 기능을 얹어 일반적인 응용 프로그램이 기대하는 표면을 완성합니다. 일상적인 코드는 `rok::core` 만으로 충분하고, OS 자원이 필요해지는 순간 `rok::std` 로 손을 뻗으며, 추상의 경계를 직접 넘어야 할 때만 `rok::bare` 를 명시적으로 import 합니다. 자세한 의존성 규칙은 [0.1 tier 모델](000-meta/001-tier-model.md) 에서 다룹니다.
@@ -144,8 +144,8 @@ rg "fn into" spec/ko/refs-standard-libraries/
 
 | 사양                    | prefix           | 이유                                                   |
 |-------------------------|------------------|--------------------------------------------------------|
-| refs-lang               | 한 자리 (`002-`) | 10 장 (0~9) 이 모두 같은 권위 - flat 모양              |
-| refs-standard-libraries | 세 자리 (`200-`) | 3 tier × N 모듈 - tier 가 cross-reference 의 핵심 정보 |
+| refs-lang               | 한 자리 (`002-`) | 10 장 (0~9) 이 모두 같은 권위, flat 모양               |
+| refs-standard-libraries | 세 자리 (`200-`) | 3 tier × N 모듈, tier 가 cross-reference 의 핵심 정보  |
 
 구체적인 파일 이름 규칙은 다음과 같습니다. tier 디렉토리는 100 단위의 prefix 를 갖고, 그 안의 모듈 파일은 tier 한 자리와 모듈 두 자리를 합친 세 자리 prefix 로 시작합니다.
 

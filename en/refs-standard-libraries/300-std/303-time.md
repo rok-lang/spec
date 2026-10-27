@@ -18,7 +18,7 @@ The internal representation of `Duration` is `i64` ns. The `u128` that Rust adop
 ## 3.3.2. `Instant` - monotonic clock
 
 ```rok
-struct Instant { /* opaque - CLOCK_MONOTONIC / QueryPerformanceCounter */ }
+struct Instant { /* opaque (CLOCK_MONOTONIC / QueryPerformanceCounter) */ }
 
 impl Instant {
     fn now() -> Instant;
@@ -28,12 +28,12 @@ impl Instant {
     fn checked_duration_since(self, earlier: Instant) -> Duration | none;
     fn saturating_duration_since(self, earlier: Instant) -> Duration;
 
-    // arithmetic - returns none on failure (avoids Rust's silent saturating-on-overflow)
+    // arithmetic: returns none on failure (avoids Rust's silent saturating-on-overflow)
     fn checked_add(self, dur: Duration) -> Instant | none;
     fn checked_sub(self, dur: Duration) -> Instant | none;
 }
 
-// ordinary arithmetic - on overflow: panic with overflow checks on, saturate with them off (3.3.5)
+// ordinary arithmetic; on overflow, panic with overflow checks on, saturate with them off (3.3.5)
 impl Add<Duration> for Instant { type Output = Instant; ... }
 impl Sub<Instant> for Instant { type Output = Duration; ... }
 impl Sub<Duration> for Instant { type Output = Instant; ... }
@@ -55,7 +55,7 @@ log(f"computation took {elapsed:?}");
 ## 3.3.3. `SystemTime` - wall clock
 
 ```rok
-struct SystemTime { /* opaque - CLOCK_REALTIME / GetSystemTimeAsFileTime */ }
+struct SystemTime { /* opaque (CLOCK_REALTIME / GetSystemTimeAsFileTime) */ }
 
 impl SystemTime {
     fn now() -> SystemTime;
@@ -75,7 +75,7 @@ const UNIX_EPOCH: SystemTime;     // 1970-01-01 00:00:00 UTC
 impl SystemTime {
     fn from_unix(secs: i64, nanos: u32) -> SystemTime;
     fn unix_seconds(self) throws (SystemTimeError) -> i64;
-    fn unix_nanos(self) throws (SystemTimeError) -> i64;   // rok has no i128 - i64 ns covers about ±292 years
+    fn unix_nanos(self) throws (SystemTimeError) -> i64;   // rok has no i128; i64 ns covers about ±292 years
 }
 
 impl Add<Duration> for SystemTime { type Output = SystemTime; ... }
@@ -125,7 +125,7 @@ This difference is decisive when a mobile or laptop app must measure "real elaps
 ## 3.3.5. `Duration`
 
 ```rok
-struct Duration { /* opaque: i64 nanoseconds - about ±292 years */ }
+struct Duration { /* opaque: i64 nanoseconds (about ±292 years) */ }
 
 impl Duration {
     const ZERO: Duration;             // 0 ns

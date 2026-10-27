@@ -48,7 +48,7 @@ impl Path {
     fn ends_with(self, suffix: Path) -> bool;
     fn normalize(self) -> Path;             // resolve "." / ".." (lexical)
 
-    // OS interaction (convenience - fs::* internally)
+    // OS interaction (convenience; fs::* internally)
     fn exists(self) -> bool;
     fn is_file(self) -> bool;
     fn is_dir(self) -> bool;
@@ -172,7 +172,7 @@ try Path::from("/a/b/../c").canonicalize();       //→ absolute path with symli
 ```rok
 let dir: Dir = try Dir::root().open_dir("data");
 let f = try dir.open(Path::from("config.toml"));
-                                          // Path is relative to dir - escape rejected
+                                          // Path is relative to dir; escape rejected
 ```
 
 The capability model is covered in detail in [3.1 fs](301-fs.md).

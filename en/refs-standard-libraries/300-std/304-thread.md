@@ -21,7 +21,7 @@ In short, tasks come first wherever they are light and expressive enough, and dr
 The basic types and function signatures are as follows.
 
 ```rok
-struct Thread { /* OS handle - not generic */ }
+struct Thread { /* OS handle, not generic */ }
 struct JoinHandle<T> { /* join result T */ }
 struct ThreadId { /* opaque */ }       // implements PartialEq
 
@@ -43,7 +43,7 @@ impl Builder {
 
 impl<T> JoinHandle<T> {
     fn join(self) throws (JoinError) -> T;
-    fn detach(self);                     // does not join - the thread runs to completion
+    fn detach(self);                     // does not join; the thread runs to completion
     fn thread(self) -> Thread;
 }
 

@@ -12,7 +12,7 @@ Upward, it depends on `rok` and `unsafe`. Downward, user code stands in the depe
 
 ## User import policy
 
-The implicit `use rok::core::**;` does not include std items - `rok::std::*` requires a separate explicit import. Because availability differs by target, the design makes users express platform dependencies **explicitly**.
+The implicit `use rok::core::**;` does not include std items; `rok::std::*` requires a separate explicit import. Because availability differs by target, the design makes users express platform dependencies **explicitly**.
 
 ```rok
 use rok::std::fs;
@@ -52,14 +52,14 @@ A read buffer is a `List<u8>` whose length is set up in advance: `read(buf)` fil
 std I/O functions are sync and block the calling OS thread. To give up the worker while waiting inside a task, `await` the `*_async` method of the same operation ([3.2.0](302-net.md#320-common-rules)). With stackless coroutines an ordinary function cannot suspend a task, so a sync call never becomes async on its own.
 
 ```rok
-// blocking - on an OS thread (thread::spawn) or outside a task
+// blocking: on an OS thread (thread::spawn) or outside a task
 fn fetch(addr: str) throws (IoError) -> List<u8> {
     using conn = try net::tcp_connect(addr) {
         try conn.read_to_end()
     }
 }
 
-// async - suspends only the task
+// async: suspends only the task
 async fn fetch_async(addr: str) throws (IoError) -> List<u8> {
     using conn = try await net::tcp_connect_async(addr) {
         try await conn.read_to_end_async()
@@ -105,14 +105,14 @@ Follows the pre-opened directory handle model of WASI Preview 2. Every fs op goe
 ```rok
 use rok::std::fs::{Dir, File};
 
-let root: Dir = Dir::root();                  // capability - at process start
+let root: Dir = Dir::root();                  // capability, at process start
 let data_dir: Dir = try root.open_dir("data"); // sub-cap
 
 let f: File = try data_dir.open("config.toml");
 let bytes = try f.read_to_end();
 ```
 
-The model has three advantages. First, it avoids TOCTOU - `open` after `open_dir` is race-free. Second, sandboxing comes naturally - pass only a **narrow Dir** to a child task. Third, it is WASI-compatible - the same code works on native and WASI.
+The model has three advantages. First, it avoids TOCTOU: `open` after `open_dir` is race-free. Second, sandboxing comes naturally: pass only a **narrow Dir** to a child task. Third, it is WASI-compatible: the same code works on native and WASI.
 
 For convenience, `fs::open(absolute_path)` is also allowed. Internally it expands to `Dir::root().open(...)`.
 

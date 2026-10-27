@@ -18,7 +18,7 @@
 ## 3.3.2. `Instant` - 단조 시계
 
 ```rok
-struct Instant { /* opaque - CLOCK_MONOTONIC / QueryPerformanceCounter */ }
+struct Instant { /* opaque (CLOCK_MONOTONIC / QueryPerformanceCounter) */ }
 
 impl Instant {
     fn now() -> Instant;
@@ -28,12 +28,12 @@ impl Instant {
     fn checked_duration_since(self, earlier: Instant) -> Duration | none;
     fn saturating_duration_since(self, earlier: Instant) -> Duration;
 
-    // 산술 - 실패 시 none 반환 (Rust 의 saturating-on-overflow silent 회피)
+    // 산술: 실패 시 none 반환 (Rust 의 saturating-on-overflow silent 회피)
     fn checked_add(self, dur: Duration) -> Instant | none;
     fn checked_sub(self, dur: Duration) -> Instant | none;
 }
 
-// 일반 산술 - overflow 시 overflow 검사가 켜져 있으면 panic, 꺼져 있으면 saturate (3.3.5)
+// 일반 산술. overflow 시 overflow 검사가 켜져 있으면 panic, 꺼져 있으면 saturate (3.3.5)
 impl Add<Duration> for Instant { type Output = Instant; ... }
 impl Sub<Instant> for Instant { type Output = Duration; ... }
 impl Sub<Duration> for Instant { type Output = Instant; ... }
@@ -55,7 +55,7 @@ log(f"computation took {elapsed:?}");
 ## 3.3.3. `SystemTime` - 벽시계
 
 ```rok
-struct SystemTime { /* opaque - CLOCK_REALTIME / GetSystemTimeAsFileTime */ }
+struct SystemTime { /* opaque (CLOCK_REALTIME / GetSystemTimeAsFileTime) */ }
 
 impl SystemTime {
     fn now() -> SystemTime;
@@ -75,7 +75,7 @@ const UNIX_EPOCH: SystemTime;     // 1970-01-01 00:00:00 UTC
 impl SystemTime {
     fn from_unix(secs: i64, nanos: u32) -> SystemTime;
     fn unix_seconds(self) throws (SystemTimeError) -> i64;
-    fn unix_nanos(self) throws (SystemTimeError) -> i64;   // rok 에 i128 이 없음 - i64 ns 는 약 ±292 년
+    fn unix_nanos(self) throws (SystemTimeError) -> i64;   // rok 에 i128 이 없음. i64 ns 는 약 ±292 년
 }
 
 impl Add<Duration> for SystemTime { type Output = SystemTime; ... }
@@ -125,7 +125,7 @@ impl BootTime {
 ## 3.3.5. `Duration`
 
 ```rok
-struct Duration { /* opaque: i64 nanosecond - 약 ±292년 */ }
+struct Duration { /* opaque: i64 nanosecond (약 ±292년) */ }
 
 impl Duration {
     const ZERO: Duration;             // 0 ns

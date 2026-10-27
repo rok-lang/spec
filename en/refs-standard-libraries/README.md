@@ -23,9 +23,9 @@ The standard libraries are not a single flat plane but are divided into three la
 ```
 rok::bare   (base, depends only on runtime extern "C")
   ↓
-rok::core   (foundation, safe, all targets - uses rok::bare internally)
+rok::core   (foundation, safe, all targets; uses rok::bare internally)
   ↓
-rok::std   (target-dep - uses rok::core + rok::bare)
+rok::std   (target-dep; uses rok::core + rok::bare)
 ```
 
 `rok::bare` exposes only raw capabilities at the bottom, and `rok::core` provides a safe foundation on top of it, identically on every target. `rok::std` adds host-dependent features on top of `rok::core`, completing the surface an ordinary application expects. Everyday code needs only `rok::core`; it reaches for `rok::std` the moment OS resources are needed, and imports `rok::bare` explicitly only when it must cross an abstraction boundary directly. The detailed dependency rules are covered in [0.1 Tier model](000-meta/001-tier-model.md).
@@ -144,8 +144,8 @@ This document follows a different directory convention from `refs-lang`, because
 
 | Specification           | Prefix                 | Reason                                                          |
 |-------------------------|------------------------|-----------------------------------------------------------------|
-| refs-lang               | One digit (`002-`)     | 10 chapters (0-9), all with equal authority - flat shape        |
-| refs-standard-libraries | Three digits (`200-`)  | 3 tiers × N modules - the tier is key cross-reference information |
+| refs-lang               | One digit (`002-`)     | 10 chapters (0-9), all with equal authority; flat shape         |
+| refs-standard-libraries | Three digits (`200-`)  | 3 tiers × N modules; the tier is key cross-reference information |
 
 The concrete file naming rules are as follows. Tier directories have prefixes in units of 100, and module files within them start with a three-digit prefix combining one tier digit and two module digits.
 

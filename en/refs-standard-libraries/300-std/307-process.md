@@ -4,7 +4,7 @@ The `rok::std::process` module spawns child processes and handles signals. Its b
 
 ## 3.7.1. `Command` builder
 
-The first thing you meet is the `Command` struct, the blueprint of a child process. All settings - the program to run, arguments, environment variables, how standard I/O is connected - are built up step by step before moving on to spawn.
+The first thing you meet is the `Command` struct, the blueprint of a child process. All settings (the program to run, arguments, environment variables, how standard I/O is connected) are built up step by step before spawning.
 
 Path parameters follow the tier-wide [argument conventions](README.md#argument-conventions) (`Path` is `P: AsPath`).
 
@@ -37,7 +37,7 @@ impl Command {
 enum Stdio {
     Inherit,                   // parent's fd as is (default)
     Null,                      // /dev/null
-    Piped,                     // pipe - readable/writable from Child
+    Piped,                     // pipe, readable/writable from Child
     File(File),                // explicit fd
 }
 
@@ -67,22 +67,22 @@ impl Child {
     fn wait(self) throws (IoError) -> ExitStatus;
     fn try_wait(self) throws (IoError) -> ExitStatus | none;
 
-    // pidfd (Linux only) - race-free signal
+    // pidfd (Linux only): race-free signal
     #[cfg(target_os = "linux")]
     fn pidfd(self) throws (IoError) -> RawFd;
 
     fn signal(self, sig: i32) throws (IoError);          // unix
 }
 
-impl ChildStdin {                        // write end of the child's stdin pipe - impl Writer
+impl ChildStdin {                        // write end of the child's stdin pipe; impl Writer
     fn fd(self) -> RawFd;
     fn close(self) throws (IoError);     // the child reads end of input
 }
-impl ChildStdout {                       // read end of the child's stdout pipe - impl Reader
+impl ChildStdout {                       // read end of the child's stdout pipe; impl Reader
     fn fd(self) -> RawFd;
     fn close(self) throws (IoError);
 }
-impl ChildStderr {                       // read end of the child's stderr pipe - impl Reader
+impl ChildStderr {                       // read end of the child's stderr pipe; impl Reader
     fn fd(self) -> RawFd;
     fn close(self) throws (IoError);
 }
@@ -127,7 +127,7 @@ try stdin.write_all(input_bytes);
 let result = try stdout.read_to_end();
 try child.wait();
 
-// kill_on_drop - prevents process leaks
+// kill_on_drop prevents process leaks
 using child = try Command::new("long_running")
         .kill_on_drop(true)
         .spawn() {

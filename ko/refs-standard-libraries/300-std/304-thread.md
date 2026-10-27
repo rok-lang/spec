@@ -21,7 +21,7 @@
 기본 타입과 함수 시그니처는 아래와 같습니다.
 
 ```rok
-struct Thread { /* OS handle - 제네릭 아님 */ }
+struct Thread { /* OS handle, 제네릭 아님 */ }
 struct JoinHandle<T> { /* join 결과 T */ }
 struct ThreadId { /* opaque */ }       // PartialEq 구현
 
@@ -43,7 +43,7 @@ impl Builder {
 
 impl<T> JoinHandle<T> {
     fn join(self) throws (JoinError) -> T;
-    fn detach(self);                     // join 하지 않음 - 스레드는 끝까지 실행
+    fn detach(self);                     // join 하지 않음. 스레드는 끝까지 실행
     fn thread(self) -> Thread;
 }
 

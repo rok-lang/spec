@@ -12,7 +12,7 @@ spec 본체는 `spec/ko/refs-standard-libraries/300-std/` 아래 둡니다.
 
 ## 사용자 import 정책
 
-묵시 `use rok::core::**;` 는 std 항목을 포함하지 않습니다 - `rok::std::*` 는 별도 명시 import 를 강제합니다. target 별 가용성 차이가 있기 때문에, 사용자가 **명시적으로** 플랫폼 의존성을 표현하도록 설계했습니다.
+묵시 `use rok::core::**;` 는 std 항목을 포함하지 않습니다. `rok::std::*` 는 별도 명시 import 를 강제합니다. target 별 가용성 차이가 있기 때문에, 사용자가 **명시적으로** 플랫폼 의존성을 표현하도록 설계했습니다.
 
 ```rok
 use rok::std::fs;
@@ -52,14 +52,14 @@ use rok::std::thread::Builder;
 std 의 I/O 함수는 sync 이며 호출한 OS 스레드를 막습니다. task 안에서 기다리는 동안 worker 를 내주려면 같은 연산의 `*_async` 메서드를 `await` 합니다 ([3.2.0](302-net.md#320-공통-규칙)). stackless 코루틴에서는 보통 함수가 task 를 중단시킬 수 없으므로, sync 호출이 저절로 async 가 되지는 않습니다.
 
 ```rok
-// blocking - OS 스레드 (thread::spawn) 나 task 밖에서
+// blocking: OS 스레드 (thread::spawn) 나 task 밖에서
 fn fetch(addr: str) throws (IoError) -> List<u8> {
     using conn = try net::tcp_connect(addr) {
         try conn.read_to_end()
     }
 }
 
-// async - task 만 중단
+// async: task 만 중단
 async fn fetch_async(addr: str) throws (IoError) -> List<u8> {
     using conn = try await net::tcp_connect_async(addr) {
         try await conn.read_to_end_async()
@@ -96,7 +96,7 @@ let resp = try tls_conn.read_to_end();
 
 스택은 `rok::core::crypto` ([2.21](../200-core/221-crypto.md)) 위에 Rok 로 작성한 자체 구현이며, OS 나 서드파티 TLS 라이브러리는 쓰지 않습니다 ([3.2.5](302-net.md#325-tls-13---nettls)).
 
-반면 HTTP/1, HTTP/2, HTTP/3 (QUIC) 은 **std 외부** 에 둡니다 - 별도 `rok/http` 패키지로 분리합니다. Go `net/http` 의 **1.0 frozen** 사례에서 얻은 학습입니다.
+반면 HTTP/1, HTTP/2, HTTP/3 (QUIC) 은 **std 외부** 에 두고, 별도 `rok/http` 패키지로 분리합니다. Go `net/http` 의 **1.0 frozen** 사례에서 얻은 학습입니다.
 
 ### 4. Capability-based fs - Dir 핸들
 
@@ -105,14 +105,14 @@ WASI Preview 2 의 pre-opened directory handle 모델을 따릅니다. 모든 fs
 ```rok
 use rok::std::fs::{Dir, File};
 
-let root: Dir = Dir::root();                  // capability - process 시작 시
+let root: Dir = Dir::root();                  // capability, process 시작 시
 let data_dir: Dir = try root.open_dir("data"); // sub-cap
 
 let f: File = try data_dir.open("config.toml");
 let bytes = try f.read_to_end();
 ```
 
-이 모델의 장점은 세 가집니다. 첫째, TOCTOU 를 회피합니다 - `open_dir` 후 `open` 이 race-free 다. 둘째, 샌드박스가 자연스럽습니다 - 자식 task 에 **좁은 Dir** 만 전달하면 됩니다. 셋째, WASI 와 호환됩니다 - 같은 코드가 native 와 WASI 양쪽에서 동작합니다.
+이 모델의 장점은 세 가집니다. 첫째, TOCTOU 를 회피합니다. `open_dir` 후 `open` 이 race-free 다. 둘째, 샌드박스가 자연스럽습니다. 자식 task 에 **좁은 Dir** 만 전달하면 됩니다. 셋째, WASI 와 호환됩니다. 같은 코드가 native 와 WASI 양쪽에서 동작합니다.
 
 편의 차원에서 `fs::open(absolute_path)` 도 가능하게 합니다. 내부적으로는 `Dir::root().open(...)` 으로 풀린다.
 

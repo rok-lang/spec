@@ -48,7 +48,7 @@ impl Path {
     fn ends_with(self, suffix: Path) -> bool;
     fn normalize(self) -> Path;             // resolve "." / ".." (lexical)
 
-    // OS 상호작용 (편의 - 내부적으로 fs::*)
+    // OS 상호작용 (편의, 내부적으로 fs::*)
     fn exists(self) -> bool;
     fn is_file(self) -> bool;
     fn is_dir(self) -> bool;
@@ -172,7 +172,7 @@ try Path::from("/a/b/../c").canonicalize();       //→ symlink 해석된 절대
 ```rok
 let dir: Dir = try Dir::root().open_dir("data");
 let f = try dir.open(Path::from("config.toml"));
-                                          // Path 가 dir 에 상대적 - escape 거부
+                                          // Path 가 dir 에 상대적, escape 거부
 ```
 
 자세한 capability 모델은 [3.1 fs](301-fs.md) 에서 다룹니다.

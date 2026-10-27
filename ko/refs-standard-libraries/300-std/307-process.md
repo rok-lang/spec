@@ -37,7 +37,7 @@ impl Command {
 enum Stdio {
     Inherit,                   // 부모 fd 그대로 (default)
     Null,                      // /dev/null
-    Piped,                     // pipe - Child 에서 읽기/쓰기 가능
+    Piped,                     // pipe, Child 에서 읽기/쓰기 가능
     File(File),                // 명시 fd
 }
 
@@ -67,22 +67,22 @@ impl Child {
     fn wait(self) throws (IoError) -> ExitStatus;
     fn try_wait(self) throws (IoError) -> ExitStatus | none;
 
-    // pidfd (Linux only) - race-free signal
+    // pidfd (Linux only): race-free signal
     #[cfg(target_os = "linux")]
     fn pidfd(self) throws (IoError) -> RawFd;
 
     fn signal(self, sig: i32) throws (IoError);          // unix
 }
 
-impl ChildStdin {                        // 자식 stdin pipe 의 쓰기 끝 - impl Writer
+impl ChildStdin {                        // 자식 stdin pipe 의 쓰기 끝, impl Writer
     fn fd(self) -> RawFd;
     fn close(self) throws (IoError);     // 자식은 입력 끝을 읽음
 }
-impl ChildStdout {                       // 자식 stdout pipe 의 읽기 끝 - impl Reader
+impl ChildStdout {                       // 자식 stdout pipe 의 읽기 끝, impl Reader
     fn fd(self) -> RawFd;
     fn close(self) throws (IoError);
 }
-impl ChildStderr {                       // 자식 stderr pipe 의 읽기 끝 - impl Reader
+impl ChildStderr {                       // 자식 stderr pipe 의 읽기 끝, impl Reader
     fn fd(self) -> RawFd;
     fn close(self) throws (IoError);
 }
@@ -127,7 +127,7 @@ try stdin.write_all(input_bytes);
 let result = try stdout.read_to_end();
 try child.wait();
 
-// kill_on_drop - process leak 방지
+// kill_on_drop 으로 process leak 방지
 using child = try Command::new("long_running")
         .kill_on_drop(true)
         .spawn() {
