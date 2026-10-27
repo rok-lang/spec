@@ -10,6 +10,7 @@
 
 ```rok
 fn block_on<F: Future>(f: F) -> F::Output;              // sync 진입점 - executor 에 붙어 f 를 끝까지 실행
+fn block_on_try<T, E>(f: TryAsyncFuture<T, E>) throws (E) -> T;   // throw 하는 async body 용 block_on - 그 에러를 여기서 throw
 fn spawn<F: Future + Send>(f: F) -> Task<F::Output> where F::Output: Send;
 fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future - 현재 worker 에 고정
 fn spawn_blocking<T: Send>(f: fn() -> T + Send) -> Blocking<T>;   // blocking 작업을 executor 밖 OS 스레드에서
@@ -28,9 +29,28 @@ fn registrations() -> usize;                            // 진단용 - 실행 �
 fn readable(fd: i32) -> IoReady;                       // await - fd 가 읽기 가능해질 때까지 (refs-lang 7.7.2)
 fn writable(fd: i32) -> IoReady;
 fn wake_io(fd: i32);                                   // fd 의 readable / writable 대기자를 깨움 (close / shutdown 뒤에 씀; 저수준)
+fn park(key: usize, waker: Waker);                     // 다음 unpark(key) 때 waker 를 깨움 - 저수준
+fn unpark(key: usize);                                 // key 에 park 된 task 를 모두 깨움
 ```
 
-`sleep` 과 `timeout` 은 첫 poll 부터 시간을 잽니다.
+`sleep` 과 `timeout` 은 첫 poll 부터 시간을 잽니다. `park` / `unpark` 는 [2.16](216-sync.md) 의 lock 들이 쓰는 대기 큐입니다. 손으로 쓴 `Future` 는 자신이 고른 key 에 `ctx.waker()` ([2.20](220-future.md)) 를 park 하고 `Pending` 을 돌려주며, 상태를 바꾸는 쪽이 같은 key 로 `unpark` 를 부릅니다. park 된 항목은 그 task 가 끝날 때에도 지워집니다.
+
+이 함수들이 돌려주는 future 와 에러는 다음과 같습니다.
+
+```rok
+struct SelectFuture<F> { /* ... */ }
+impl<F: Future> Future for SelectFuture<F> { type Output = (usize, F::Output); ... }
+
+struct IoReady { /* ... */ }
+impl Future for IoReady { type Output = (); ... }   // 이유 없이 완료될 수 있음 - I/O 를 루프에서 재시도
+
+struct Join<T> { /* ... */ }                        // Task::join - try await 로 기다림
+impl<T> Join<T> {
+    fn poll(ref self, ref ctx: Context) throws (CancellationError) -> Poll<T>;
+}
+
+struct TimeoutError {}                              // task::timeout 시간 초과 - Display "timed out", Debug, Error
+```
 
 ### 사용 예
 
@@ -191,6 +211,8 @@ Worker 0 ─┐      Worker 1 ─┐    ...    Worker N-1 ─┐
 이 구조의 주요 특성을 정리하면, 우선 로컬 큐는 lock-free Chase-Lev deque 이며, 소유 worker 와 도둑 모두 가장 오래된 task 부터 꺼냅니다 (스스로를 다시 깨우는 task 가 다른 task 를 굶기지 않도록, [refs-lang 7.6.2](../../refs-lang/007-runtime/706-scheduler.md#762-work-stealing-구조)). 바쁜 worker 는 task 32 개마다 기한이 지난 timer 를 처리합니다. I/O Driver 는 프로세스당 reactor thread 하나가 epoll / kqueue 를 edge-triggered 로 기다리며 (io_uring / IOCP 는 향후, [refs-lang 7.7](../../refs-lang/007-runtime/707-io-and-timer.md)), Timer 구조는 구현이 정합니다 (binary heap 또는 timing wheel, [refs-lang 7.7.4](../../refs-lang/007-runtime/707-io-and-timer.md#774-타이머-구조)).
 
 표준 라이브러리 측의 권위는 API 시그니처에 한정되며, 알고리듬 본문은 spec 외부의 runtime 및 표준 라이브러리 body 영역에 속한다는 점에 유의해야 합니다.
+
+`rok::core::task` 는 runtime hook 도 내보냅니다. `TaskRef`, `Pool`, `Worker`, `wake_task`, `cancel_requested`, `unwinding`, 그리고 `host_enter` / `host_leave` / `host_run` (WebAssembly component 의 event loop 진입점) 입니다. 이들은 컴파일러와 runtime 을 위해 공개되어 있을 뿐 runtime 내부용이며, 안정된 API 가 아닙니다.
 
 ## 2.18.4. 협력적 취소 - `Task::cancel`
 

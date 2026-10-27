@@ -50,14 +50,25 @@ struct Int { ... }  // 내부 표현: small-int 또는 BigInt
 
 impl Int {
     fn new() -> int;              // 0 으로 초기화
+    fn from_i32(n: i32) -> int;
     fn from_i64(n: i64) -> int;
     fn from_u64(n: u64) -> int;
     fn parse_radix(s: str, radix: u32) -> int | none;  // 진법 파싱 (10 진은 FromStr)
+    fn to_str_radix(self, radix: u32) -> str;   // 진법 2..=36, 소문자 숫자, 음수면 `-` 가 앞; 그 밖의 진법은 panic
 
     fn to_i32(self) -> i32 | none;  // 범위 안이면 값, 밖이면 none
     fn to_i64(self) -> i64 | none;
-    fn to_f64(self) -> f64;        // 항상 가능 (정밀도 손실 가능)
+    fn to_u64(self) -> u64 | none;  // 음수이거나 u64::MAX 를 넘으면 none
+    fn to_f64(self) -> f64;        // 가장 가까운 f64, 동률은 짝수 쪽; f64::MAX 를 넘으면 ±inf
 
+    fn is_zero(self) -> bool;
+    fn is_negative(self) -> bool;
+    fn is_positive(self) -> bool;               // 0 이면 false
+    fn signum(self) -> int;                     // -1, 0 또는 1
+    fn abs(self) -> int;
+    fn bit_length(self) -> u64;                 // 앞쪽 0 을 뺀 |self| 의 비트 수; 0 이면 0
+
+    fn div_rem(self, rhs: int) -> (int, int);   // (self / rhs, self % rhs), 버림; rhs == 0 이면 panic
     fn pow(self, exp: u32) -> int;              // exp: 고정 폭 정수처럼 u32
     fn isqrt(self) -> int;                      // floor(sqrt(self)); self < 0 이면 panic
     fn checked_isqrt(self) -> int | none;       // self < 0 이면 none
@@ -134,11 +145,21 @@ promote 이후에는 느려질 수밖에 없습니다. 그리고 FFI 의 경우 
 struct Float { ... }  // 내부: f64 또는 BigFloat (지수가 f64 밖일 때)
 
 impl Float {
+    fn from_f32(x: f32) -> float;
     fn from_f64(x: f64) -> float;
+    fn from_int(n: int) -> float;                  // 가장 가까운 float, 동률은 짝수 쪽
     fn try_parse(s: str) -> float | none;          // FromStr 도 구현
 
     fn to_f32(self) -> f32 | none;     // 유한 값이 f32 범위 밖일 때만 none
-    fn to_f64(self) -> f64;
+    fn to_f64(self) -> f64;            // 가장 가까운 f64; f64::MAX 를 넘으면 ±inf, subnormal 아래면 ±0
+    fn to_int(self) -> int | none;     // 0 쪽으로 버림; NaN / ±inf 면 none
+
+    fn is_nan(self) -> bool;
+    fn is_infinite(self) -> bool;
+    fn is_finite(self) -> bool;
+    fn is_zero(self) -> bool;
+    fn is_sign_negative(self) -> bool;
+    fn abs(self) -> float;
     ...
 }
 ```
@@ -223,21 +244,19 @@ impl Float {
 ### 언어 기본값 primitive 의 표준 라이브러리 형태
 
 ```rok
-struct i32 { ... }        // 사용자 직접 사용 (소문자 식별자가 곧 타입)
-struct f64 { ... }
-struct bool { ... }
-struct c_char { ... }
-struct str { ... }
-// ... 나머지 11 종 동형
+impl i32 { ... }              // 고유 상수와 메서드 (아래)
+impl Add for i32 { ... }      // 트레잇 impl: Add, PartialOrd, Display, Clone, ...
+impl PartialEq for c_char { ... }
 ```
 
-표준 라이브러리는 impl 블록만 부착하여 트레잇 (`Add`, `Display`, `Clone`, ...) 을
-구현합니다. 타입 인식 자체는 컴파일러가 책임집니다.
+표준 라이브러리는 언어 기본 primitive 에 대해 struct 를 선언하지 않습니다. 고유 메서드와
+트레잇 (`Add`, `Display`, `Clone`, ...) 을 위한 `impl` 블록만 부착합니다. 타입 인식 자체는
+컴파일러가 책임집니다.
 
 ### 산술 / 비교 트레잇 impl
 
 각 primitive 가 [2.3 ops](203-ops.md), [2.4 ops-assign](204-ops-assign.md),
-[2.5 cmp](205-cmp.md) 의 트레잇을 구현합니다. 모든 impl 에는
+[2.5 cmp](205-cmp.md) 의 트레잇을 구현합니다. 모든 연산자 메서드와 `PartialEq` / `PartialOrd` 메서드에는
 `#[intrinsic("rok.OP.TYPE")]` 가 부착되어 컴파일러 백엔드 PrimOp 와 직결
 됩니다.
 
@@ -249,76 +268,173 @@ struct str { ... }
 impl i32 {
     const MIN: i32 = -2147483648;
     const MAX: i32 = 2147483647;
+    const BITS: u32 = 32;
+
+    fn pow(self, exp: u32) -> i32;                // overflow 는 산술을 따름 (debug panic, release wrap)
     fn abs(self) -> i32;
-    fn pow(self, exp: u32) -> i32;
+    fn unsigned_abs(self) -> u32;                 // overflow 없는 |self| (i32::MIN 이면 2^31)
+    fn abs_diff(self, rhs: i32) -> u32;
+    fn signum(self) -> i32;                       // -1, 0 또는 1
+    fn is_positive(self) -> bool;
+    fn is_negative(self) -> bool;
+    fn div_euclid(self, rhs: i32) -> i32;         // rem_euclid >= 0 이 되는 몫
+    fn rem_euclid(self, rhs: i32) -> i32;         // 0..rhs.abs() 안
+    fn isqrt(self) -> i32;                        // floor(sqrt(self)); self < 0 이면 panic
+    fn checked_isqrt(self) -> i32 | none;         // self < 0 이면 none
+    fn ilog2(self) -> u32;                        // floor(log2(self)); self > 0 이 아니면 panic
+    fn ilog10(self) -> u32;
+    fn ilog(self, base: i32) -> u32;              // self > 0 이고 base >= 2 가 아니면 panic
+    fn checked_ilog2(self) -> u32 | none;
+    fn checked_ilog10(self) -> u32 | none;
+    fn checked_ilog(self, base: i32) -> u32 | none;
+
+    // 비트
     fn count_ones(self) -> u32;
+    fn count_zeros(self) -> u32;
     fn leading_zeros(self) -> u32;
     fn trailing_zeros(self) -> u32;
+    fn leading_ones(self) -> u32;
+    fn trailing_ones(self) -> u32;
     fn rotate_left(self, n: u32) -> i32;
     fn rotate_right(self, n: u32) -> i32;
+
+    // 바이트 순서
     fn swap_bytes(self) -> i32;
+    fn to_be(self) -> i32;                        // 네이티브 순서에서 big-endian 으로
+    fn to_le(self) -> i32;
+    fn from_be(x: i32) -> i32;
+    fn from_le(x: i32) -> i32;
     fn to_le_bytes(self) -> [u8; 4];
     fn to_be_bytes(self) -> [u8; 4];
+    fn to_ne_bytes(self) -> [u8; 4];              // 네이티브 순서
     fn from_le_bytes(bytes: [u8; 4]) -> i32;
     fn from_be_bytes(bytes: [u8; 4]) -> i32;
+    fn from_ne_bytes(bytes: [u8; 4]) -> i32;
 
     // overflow 명시 변형
     fn checked_add(self, rhs: i32) -> i32 | none;
     fn checked_sub(self, rhs: i32) -> i32 | none;
     fn checked_mul(self, rhs: i32) -> i32 | none;
-    fn checked_div(self, rhs: i32) -> i32 | none;
+    fn checked_div(self, rhs: i32) -> i32 | none; // rhs == 0 과 MIN / -1 이면 none
     fn checked_rem(self, rhs: i32) -> i32 | none;
     fn checked_neg(self) -> i32 | none;
-    fn checked_shl(self, n: u32) -> i32 | none;
+    fn checked_shl(self, n: u32) -> i32 | none;   // n >= BITS 이면 none
     fn checked_shr(self, n: u32) -> i32 | none;
+    fn checked_pow(self, exp: u32) -> i32 | none;
+    fn checked_abs(self) -> i32 | none;
 
     fn saturating_add(self, rhs: i32) -> i32;     // i32::MAX 또는 MIN 으로 clamp
     fn saturating_sub(self, rhs: i32) -> i32;
     fn saturating_mul(self, rhs: i32) -> i32;
+    fn saturating_neg(self) -> i32;
+    fn saturating_pow(self, exp: u32) -> i32;
+    fn saturating_abs(self) -> i32;
 
     fn wrapping_add(self, rhs: i32) -> i32;       // 모듈러 산술
     fn wrapping_sub(self, rhs: i32) -> i32;
     fn wrapping_mul(self, rhs: i32) -> i32;
+    fn wrapping_div(self, rhs: i32) -> i32;       // MIN / -1 은 MIN; rhs == 0 은 여전히 panic
+    fn wrapping_rem(self, rhs: i32) -> i32;       // MIN % -1 은 0
     fn wrapping_neg(self) -> i32;
-    fn wrapping_shl(self, n: u32) -> i32;
+    fn wrapping_shl(self, n: u32) -> i32;         // n % BITS 만큼 shift
     fn wrapping_shr(self, n: u32) -> i32;
+    fn wrapping_pow(self, exp: u32) -> i32;
+    fn wrapping_abs(self) -> i32;
+
+    // wrap 된 결과와 overflow 여부
+    fn overflowing_add(self, rhs: i32) -> (i32, bool);
+    fn overflowing_sub(self, rhs: i32) -> (i32, bool);
+    fn overflowing_mul(self, rhs: i32) -> (i32, bool);
+    fn overflowing_div(self, rhs: i32) -> (i32, bool);
+    fn overflowing_rem(self, rhs: i32) -> (i32, bool);
+    fn overflowing_neg(self) -> (i32, bool);
+    fn overflowing_shl(self, n: u32) -> (i32, bool);  // n >= BITS 이면 true
+    fn overflowing_shr(self, n: u32) -> (i32, bool);
+    fn overflowing_pow(self, exp: u32) -> (i32, bool);
 }
 ```
 
-unsigned, 부동소수, isize 도 비슷한 패턴으로 구성되며, 각 타입에 적합한
-메서드만 노출됩니다.
+`i8`, `i16`, `i64`, `isize` 는 각자의 폭으로 같은 집합을 가집니다. unsigned 타입
+(`u8`..`u64`, `usize`) 은 부호 관련 메서드 (`abs`, `unsigned_abs`, `signum`, `is_positive`,
+`is_negative`, `checked_isqrt`, `checked_abs`, `saturating_neg`, `saturating_abs`,
+`wrapping_abs`) 를 뺀 같은 집합을 가지며, `abs_diff` 는 같은 타입을 반환하고 `checked_neg` 는
+0 이 아닌 모든 값에서 `none` 입니다. 대신 2 의 거듭제곱 메서드가 추가됩니다.
+
+```rok
+impl u32 {
+    fn is_power_of_two(self) -> bool;
+    fn next_power_of_two(self) -> u32;                 // self 이상인 가장 작은 2 의 거듭제곱; overflow 면 panic
+    fn checked_next_power_of_two(self) -> u32 | none;
+}
+```
 
 정수의 최솟값 / 최댓값은 함수가 아니라 연관 상수 `i32::MIN` / `i32::MAX` 입니다. 인자 없는 고유 메서드 `min()` / `max()` 를 두면 같은 이름의 `Ord::min` / `Ord::max` (`a.min(b)`) 를 가리기 때문입니다.
 
-부동소수 (`f32`, `f64`) 의 경우 추가 메서드가 다음과 같이 제공됩니다.
+부동소수 (`f32`, `f64`) 는 다음 상수와 메서드를 제공합니다 (`f32` 는 `f64` 자리에 `f32`,
+비트에 `u32` 를 쓴 같은 집합입니다).
 
 ```rok
 impl f64 {
+    const EPSILON: f64;          // 2^-52, 1.0 과 그다음 f64 사이의 간격
+    const MAX: f64;              // 가장 큰 유한 값
+    const MIN: f64;              // -MAX
+    const MIN_POSITIVE: f64;     // 가장 작은 양의 normal 값
+    const NAN: f64;
+    const INFINITY: f64;
+    const NEG_INFINITY: f64;
+    const PI: f64;
+    const TAU: f64;              // 2π
+    const E: f64;
+    const FRAC_PI_2: f64;        // π/2
+    const FRAC_PI_4: f64;        // π/4
+    const FRAC_1_PI: f64;        // 1/π
+    const SQRT_2: f64;
+    const FRAC_1_SQRT_2: f64;
+    const LN_2: f64;
+    const LN_10: f64;
+    const LOG2_E: f64;
+    const LOG10_E: f64;
+
     fn nan() -> f64;             // f64::NAN
     fn infinity() -> f64;        // f64::INFINITY
     fn neg_infinity() -> f64;
-    fn epsilon() -> f64;         // 2^-52
+    fn epsilon() -> f64;         // f64::EPSILON
 
     fn is_nan(self) -> bool;
     fn is_infinite(self) -> bool;
     fn is_finite(self) -> bool;
+    fn is_normal(self) -> bool;  // 0, subnormal, 무한대, NaN 이 모두 아님
     fn is_sign_positive(self) -> bool;
     fn is_sign_negative(self) -> bool;
 
     fn floor(self) -> f64;
     fn ceil(self) -> f64;
-    fn round(self) -> f64;
+    fn round(self) -> f64;       // 절반은 0 에서 먼 쪽으로
     fn trunc(self) -> f64;
     fn fract(self) -> f64;       // self - self.trunc()
 
     fn abs(self) -> f64;
-    fn signum(self) -> f64;      // 양수 1.0, 음수 -1.0, ±0.0 이면 그 0, NaN 이면 NaN
+    fn signum(self) -> f64;      // 양수면 1.0, 음수면 -1.0, ±0.0 이면 그 0, NaN 이면 NaN
+    fn copysign(self, sign: f64) -> f64;
+    fn recip(self) -> f64;       // 1.0 / self
+    fn min(self, other: f64) -> f64;     // NaN 피연산자는 숫자에 짐
+    fn max(self, other: f64) -> f64;
+    fn clamp(self, lo: f64, hi: f64) -> f64;   // NaN 은 NaN 그대로
+    fn div_euclid(self, rhs: f64) -> f64;
+    fn rem_euclid(self, rhs: f64) -> f64;
+    fn mul_add(self, a: f64, b: f64) -> f64;   // 반올림 한 번으로 self * a + b
 
-    fn sqrt(self) -> f64;
+    fn sqrt(self) -> f64;        // Sqrt 트레잇 (2.3)
     fn cbrt(self) -> f64;
+    fn hypot(self, other: f64) -> f64;   // overflow 없는 sqrt(self² + other²)
     fn pow(self, exp: f64) -> f64;
+    fn powf(self, exp: f64) -> f64;      // = pow
+    fn powi(self, n: i32) -> f64;
     fn exp(self) -> f64;
+    fn exp2(self) -> f64;
+    fn exp_m1(self) -> f64;      // e^self - 1, 0 근처에서 정확
     fn ln(self) -> f64;
+    fn ln_1p(self) -> f64;       // ln(1 + self), 0 근처에서 정확
     fn log(self, base: f64) -> f64;
     fn log2(self) -> f64;
     fn log10(self) -> f64;
@@ -328,12 +444,17 @@ impl f64 {
     fn asin(self) -> f64;
     fn acos(self) -> f64;
     fn atan(self) -> f64;
-    fn atan2(self, other: f64) -> f64;
+    fn atan2(self, other: f64) -> f64;   // 점 (other, self) 의 각
     fn sinh(self) -> f64;
     fn cosh(self) -> f64;
     fn tanh(self) -> f64;
+    fn asinh(self) -> f64;
+    fn acosh(self) -> f64;
+    fn atanh(self) -> f64;
+    fn to_degrees(self) -> f64;
+    fn to_radians(self) -> f64;
 
-    fn to_bits(self) -> u64;     // bit pattern
+    fn to_bits(self) -> u64;     // 비트 패턴
     fn from_bits(bits: u64) -> f64;
 }
 ```
@@ -452,30 +573,13 @@ opt-in niche 가 필요한 경우에는 [2.2 non-zero](202-non-zero.md) 의
 
 ## 2.1.9. lang slot 매핑
 
-언어 기본값 16 종은 소문자 struct 이름을 사용합니다. 컴파일러가 직접
-인식하므로 `#[keyword]` 가 필요하지 않습니다.
+언어 기본값 16 종 (`i8`..`i64`, `u8`..`u64`, `isize`, `usize`, `f32`, `f64`, `bool`,
+`c_char`, `char`, `str`) 은 컴파일러가 이름으로 인식합니다. 이들에 lang slot 을 묶는 표준
+라이브러리 항목은 없고 struct 도 선언되지 않습니다. 라이브러리는 `impl` 블록만 추가하므로
+(2.1.4) `#[keyword]` 나 `#[lang]` 이 필요하지 않습니다.
 
-| primitive | lang slot    | struct 이름 | 등록      |
-|-----------|--------------|-------------|-----------|
-| `i8`      | `i8_type`    | `i8`        | 언어 기본 |
-| `i16`     | `i16_type`   | `i16`       | 언어 기본 |
-| `i32`     | `i32_type`   | `i32`       | 언어 기본 |
-| `i64`     | `i64_type`   | `i64`       | 언어 기본 |
-| `u8`      | `u8_type`    | `u8`        | 언어 기본 |
-| `u16`     | `u16_type`   | `u16`       | 언어 기본 |
-| `u32`     | `u32_type`   | `u32`       | 언어 기본 |
-| `u64`     | `u64_type`   | `u64`       | 언어 기본 |
-| `isize`   | `isize_type` | `isize`     | 언어 기본 |
-| `usize`   | `usize_type` | `usize`     | 언어 기본 |
-| `f32`     | `f32_type`   | `f32`       | 언어 기본 |
-| `f64`     | `f64_type`   | `f64`       | 언어 기본 |
-| `bool`    | `bool_type`  | `bool`      | 언어 기본 |
-| `c_char`  | `cchar_type` | `c_char`    | 언어 기본 |
-| `char`    | `char_type`  | `char`      | 언어 기본 |
-| `str`     | `str_type`   | `str`       | 언어 기본 |
-
-표준 라이브러리가 추가하는 3 종은 PascalCase struct 와 `#[keyword(...)]` 로
-등록됩니다.
+표준 라이브러리가 추가하는 2 종은 `#[keyword(...)]` 로 등록되고 `#[lang(...)]` 으로
+lang slot 에 묶이는 PascalCase struct 입니다.
 
 | primitive | lang slot    | struct 이름 | 등록                  |
 |-----------|--------------|-------------|-----------------------|

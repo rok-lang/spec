@@ -41,7 +41,7 @@ impl<T: NicheInt> NonZero<T> {
 | `NonZero<T> + - / NonZero<T>` | `T`                                             |
 | `T / NonZero<T>`            | `T`. 0 으로 나누기가 없음                         |
 
-`TryFrom<T>` 는 0 이면 `ZeroError` 를 던집니다. `From<NonZero<T>> for T` 는 lossless 입니다.
+`TryFrom<T>` 는 0 이면 `ZeroError` 를 던집니다. `ZeroError` 는 이 모듈에 정의된 unit struct (`rok::core::num::niche::ZeroError`) 이며 `Error` 를 구현합니다 ([2.14.4](214-error.md#2144-내장-에러-타입)). `From<NonZero<T>> for T` 는 lossless 입니다.
 
 ```rok
 let n: NonZero<i32> = NonZero::new(42) ?? panic("zero");

@@ -4,6 +4,8 @@
 
 이 장에서는 19 개의 broadcast 트레잇과 함수 broadcast desugar 규칙을 함께 정의합니다.
 
+트레잇 자체는 `rok::core::ops` 에 선언되며, `rok::core::ops::broadcast` 가 이들을 한 경로로 re-export 합니다. 여기에 [2.3.10](203-ops.md#2310-unicode-수학-연산자-트레잇) 의 `⋅` 내적 트레잇 `Dot` 도 함께 re-export 됩니다. `Dot` 은 19 개 broadcast 트레잇에 속하지 않습니다. `a ⋅ b` 는 원소별로 동작하지 않고 두 피연산자를 하나의 값으로 줄이며 (`fn dot(self, rhs: Rhs) -> Output`), 표준 라이브러리는 어떤 타입에도 이를 구현하지 않습니다.
+
 ## 2.6.1. 동기 - 왜 별도 dot 연산자인가요
 
 NumPy 나 MATLAB 에서 `*` 가 배열에서는 element-wise 로, 행렬에서는 곱셈으로 의미가 바뀌는 **silent ambiguity** 는 흔히 버그의 원인이 되어 왔습니다(PEP 465 의 `@` 도입 동기 역시 같은 맥락입니다).

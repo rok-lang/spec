@@ -116,7 +116,7 @@ trait Stream {
 }
 ```
 
-반환 타입은 [2.7 iter](207-iter.md) 의 어댑터처럼 이름 있는 구체 struct 이며, `rok::core::stream` 모듈에 있습니다 (`stream::Map<S, U>`, `stream::Filter<S>`, ...). `Map<Self, U>` 는 `Stream<Item = U>` 를, 나머지는 `Stream<Item = Item>` 을 구현합니다.
+반환 타입은 [2.7 iter](207-iter.md) 의 어댑터처럼 이름 있는 구체 struct 이며, `rok::core::stream` 모듈에 있습니다 (`stream::Map<S, U>`, `stream::Filter<S>`, ...). `Map<Self, U>` 는 `Stream<Item = U>` 를, `Buffered<Self>` / `BufferUnordered<Self>` 는 `Stream<Item = Item::Output>` 을 구현하며 (future 자체가 아니라 future 의 결과를 내보냄), 나머지는 `Stream<Item = Item>` 을 구현합니다.
 
 > [!NOTE]
 > `stream::Map` / `Filter` / `Take` / `Skip` / `Zip` 은 `iter::Map` 등과 이름이 같습니다. 묵시 `use rok::core::**;` 아래에서 맨 이름 `Map` 은 모호하므로 ([refs-lang 5.5.6](../../refs-lang/005-modules/505-use.md)) 타입을 적어야 할 때는 `stream::Map` 처럼 경로를 쓰거나 명시 `use` 로 가져옵니다.
@@ -199,14 +199,14 @@ impl<T, E> TryAsyncStream<T, E> {
 
 ## 2.8.9. 모듈 매핑
 
-각 항목이 자리 잡는 모듈은 다음 표에 정리됩니다.
+모든 항목은 `rok::core::stream` (`Receiver<T>` 는 `rok::core::channel`) 에 정의되며, 아래 하위 모듈은 그것을 더 좁은 경로로 다시 내보냅니다.
 
 | 항목                          | 모듈                            | 형태                         |
 |-------------------------------|---------------------------------|------------------------------|
 | `Stream`                      | `rok::core::stream::stream`      | poll-based                   |
 | `IntoStream`                  | `rok::core::stream::into_stream` |                              |
 | `Receiver<T>`                 | `rok::core::channel::receiver`   | `Stream<Item = T>` 구현      |
-| `Stream::map`/`filter`/`take` | `rok::core::stream::adapter`     | adapter struct (`Stream` 구현) |
+| `Map`/`Filter`/`Take`/`Skip`/`Throttle`/`Buffered`/`BufferUnordered` | `rok::core::stream::adapter` | adapter struct (`Stream` 구현) |
 | `merge`/`zip`/`select`        | `rok::core::stream::combinator`  | `Merge`/`Zip`/`Select` struct |
 
 ## 2.8.10. `Stream` lang slot 여부

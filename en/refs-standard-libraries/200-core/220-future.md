@@ -18,6 +18,11 @@ enum Poll<T> {
     Ready(T),
     Pending,
 }
+
+impl<T> Poll<T> {
+    const fn is_ready(self) -> bool;        // Ready(_)
+    const fn is_pending(self) -> bool;      // Pending
+}
 ```
 
 `poll(ctx)` has two outcomes. `Ready(v)` means the result is ready and `v` is returned as is; `Pending` means there is no result yet, and the future is polled again when the waker in `ctx` wakes it.
@@ -29,8 +34,11 @@ This model is isomorphic to Rust's `Future` and `rok::core::task::Poll`, and com
 `Context` and `Waker` form the communication channel between poll and the scheduler.
 
 ```rok
-struct Context {
-    waker: Waker;
+struct Context { /* ... */ }         // fields are private
+
+impl Context {
+    const fn from_waker(waker: Waker) -> Context;   // a context whose waker is waker
+    const fn waker(self) -> Waker;                  // the waker to register before returning Pending
 }
 
 struct Waker {
@@ -44,6 +52,8 @@ impl Waker {
 ```
 
 When `poll` returns `Pending`, a Waker is registered internally; when an event (I/O or timer) later occurs, the waker is called and the task is scheduled again. Most users never handle `Waker` directly, because `await` takes care of this automatically.
+
+The `waker` field is private to the library: a hand-written `poll` reads it with `ctx.waker()`, keeps a clone, and calls `wake` when it can make progress. `Context::from_waker` builds a context from a waker already in hand, to poll an inner future by hand under the same waker. A `Waker` itself is made only by the executor.
 
 ## 2.20.3. `await expr` desugaring
 

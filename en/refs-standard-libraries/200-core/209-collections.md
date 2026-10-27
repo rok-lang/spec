@@ -93,6 +93,7 @@ impl<T> List<T> {
     fn drain(self, r: Range<usize>) -> List<T>; // removes and returns r's elements in order; panics if r is reversed or ends past len()
 
     fn get(self, idx: usize) -> T | none;       // safe - out-of-bounds → none
+    fn set(self, idx: usize, x: T) throws (IndexError);   // xs[idx] = x panics instead
     fn first(self) -> T | none;
     fn last(self) -> T | none;
 
@@ -145,7 +146,9 @@ let total: i32 = ys.into_iter().sum();   //→ 60
 | `IntoIterator`        | Always              | `for x in xs`                   |
 | `FromIterator<T>`     | Always              | `(0..5).collect::<List<i32>>()` |
 | `Index<usize>`        | Always              | `xs[i]`                         |
-| `IndexSet<usize, T>`  | Always              | `xs[i] = v`                     |
+| `IndexSet<usize>`     | Always (`Value = T`) | `xs[i] = v`                    |
+| `AddAssign<T>`        | Always              | `xs += x` pushes `x`            |
+| `AddAssign<List<T>>`  | Always              | `xs += ys` appends every element of `ys` |
 | `Sliceable<Range<usize>>` | Always          | `xs[1:3]`                       |
 | `Display`             | **No**              | **Manual output recommended**   |
 | `Debug`               | `T: Debug`          | `f"{xs:?}"` → `[1, 2, 3]`       |
@@ -247,6 +250,8 @@ impl<K: Hash + Eq, V> Index<K> for Dict<K, V> {
 
 The `d[k]` notation assumes the key is present; use `.get(k)` when safe access is needed.
 
+`d += e` (`AddAssign<Dict<K, V>>`) inserts every entry of `e` into `d` in place; on a shared key the value from `e` wins.
+
 ### Lazy views
 
 `keys` / `values` / `entries` are lazy views onto the current table, not copies. Modifying the dict during iteration gives unspecified results (elements may be missed or seen twice), but memory safety is preserved.
@@ -255,7 +260,7 @@ The `d[k]` notation assumes the key is present; use `.get(k)` when safe access i
 
 ```rok
 struct Set<T: Hash + Eq> {
-    // internal: Dict<T, ()>
+    // internal: Dict<T, bool>
 }
 ```
 
@@ -279,6 +284,9 @@ impl<T: Hash + Eq> Set<T> {
     fn is_subset(self, other: Set<T>) -> bool;
     fn is_superset(self, other: Set<T>) -> bool;
     fn is_disjoint(self, other: Set<T>) -> bool;
+
+    fn iter(self) -> KeysIter<T, bool>;
+    fn to_list(self) -> List<T>;
 }
 ```
 
@@ -327,11 +335,13 @@ impl<T> Deque<T> {
     fn with_capacity(cap: usize) -> Deque<T>;
     fn len(self) -> usize;
     fn is_empty(self) -> bool;
+    fn capacity(self) -> usize;
     fn push_back(self, x: T);
     fn push_front(self, x: T);
     fn pop_front(self) -> T | none;
     fn pop_back(self) -> T | none;
     fn get(self, i: usize) -> T | none;
+    fn set(self, i: usize, x: T) throws (IndexError);
     fn front(self) -> T | none;
     fn back(self) -> T | none;
     fn clear(self);
@@ -339,7 +349,7 @@ impl<T> Deque<T> {
 }
 ```
 
-It implements `d[i]` / `d[i] = v` (panics when out of range), `IntoIterator`, `Default` and `Debug`.
+`set` throws `IndexError` when `i` is out of range. `capacity` is the number of elements the ring buffer holds before it grows. It implements `d[i]` / `d[i] = v` (panics when out of range), `IntoIterator`, `Default` and `Debug`.
 
 ## 2.9.5b. `BinaryHeap<T>` - priority queue
 
@@ -451,7 +461,15 @@ impl<T: PartialEq> PartialEq for Slice<T> { ... }
 impl<T: Debug> Debug for Slice<T> { ... }
 ```
 
-A byte string passes as the needle of `find` (its `Slice<u8>` rule, [refs-lang 1.7.5](../../refs-lang/001-lexical/107-string-literals.md#175-byte-strings)).
+The needle of `find` is any `AsBytes` type, defined in `rok::core::collections::slice`:
+
+```rok
+trait AsBytes {
+    fn byte_slice(self) -> Slice<u8>;      // the bytes as a view, no copy
+}
+```
+
+It is implemented for `str` (its UTF-8 bytes), `List<u8>`, `Slice<u8>` and `[u8; N]`, so a byte string passes as the needle (its `Slice<u8>` rule, [refs-lang 1.7.5](../../refs-lang/001-lexical/107-string-literals.md#175-byte-strings)). `std::io` re-exports `AsBytes`.
 
 `Slice` is read-only (no `IndexSet`). Negative indices count from the end ([refs-lang 3.6.1](../../refs-lang/003-expressions/306-indexing-and-slicing.md#361-indexing-arri)).
 
@@ -464,7 +482,7 @@ let s2: Slice<i32> = xs[::2];           //→ view of [1, 3, 5]
 let s3: Slice<i32> = xs[..];            //→ view of all
 
 s1.len();                               //→ 3
-s1.iter().sum::<i32>();                 //→ 9
+let t: i32 = s1.iter().sum();           //→ 9
 xs[2] = 30;
 s1[1];                                  //→ 30 - the list's element write is visible
 
@@ -492,13 +510,13 @@ sum(..[4, 5]);               //→ 9 (list spread)
 
 The traits of [2.3 ops](203-ops.md) define the meaning of `[]`, `[i] = v` and `[a:b]` on containers.
 
-| Container    | `Index<I>`                     | `IndexSet<I, V>`          | `Sliceable<R>`                          |
+| Container    | `Index<I>`                     | `IndexSet<I>`             | `Sliceable<R>`                          |
 |--------------|--------------------------------|---------------------------|-----------------------------------------|
-| `List<T>`    | `Index<usize>` → T             | `IndexSet<usize, T>`      | `Sliceable<Range<usize>>` → `Slice<T>`  |
-| `Dict<K, V>` | `Index<K>` → V                 | `IndexSet<K, V>`          | **none**                                |
+| `List<T>`    | `Index<usize>` → T             | `IndexSet<usize>` (Value = T) | `Sliceable<Range<usize>>` → `Slice<T>`  |
+| `Dict<K, V>` | `Index<K>` → V                 | `IndexSet<K>` (Value = V) | **none**                                |
 | `Set<T>`     | **none**                       | **none**                  | **none**                                |
 | `Tuple<...>` | **compiler-direct** (`.0`/.1)  | **compiler-direct**       | **none**                                |
-| `[T; N]`     | `Index<usize>` → T             | `IndexSet<usize, T>`      | `Sliceable<Range<usize>>` → `Slice<T>` (copy) |
+| `[T; N]`     | `Index<usize>` → T             | `IndexSet<usize>` (Value = T) | `Sliceable<Range<usize>>` → `Slice<T>` (copy) |
 | `Slice<T>`   | `Index<usize>` → T             | **none** (read-only view) | `Sliceable<Range<usize>>` → `Slice<T>`  |
 | `str`        | **none** (direct byte access rejected) | **none**          | `Sliceable<Range<usize>>` → `str` (copy, UTF-8 boundary check) |
 
@@ -532,7 +550,7 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 |---------------|------------------------------------------|-------------------------------------|
 | `List<T>`     | `rok::core::collections::list`            | inspired by Rust `Vec`              |
 | `Dict<K, V>`  | `rok::core::collections::dict`            | open addressing                     |
-| `Set<T>`      | `rok::core::collections::set`             | on top of `Dict<T, ()>`             |
+| `Set<T>`      | `rok::core::collections::set`             | on top of `Dict<T, bool>`           |
 | `OrderedDict` | `rok::core::collections::ordered_dict`    | linked-hash or indices              |
 | `OrderedSet`  | `rok::core::collections::ordered_set`     | (same as above)                     |
 | `Deque<T>`    | `rok::core::collections::deque`           | ring buffer                         |

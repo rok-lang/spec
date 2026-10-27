@@ -1,6 +1,6 @@
 # 2.13. marker - `Clone` / `Copy` / `Drop`
 
-값을 복제하고, 더 이상 필요 없어진 자원을 정리하는 일은 어떤 언어에서도 피할 수 없는 주제입니다. `rok::core::marker` 모듈은 이 두 가지 관심사를 세 트레잇으로 묶어 표현합니다. 먼저 `Clone` 은 값의 독립적인 사본을 만드는 방법을 정의하고, 그다음 `Copy` 는 단순한 비트 복사로 충분한 타입임을 알리는 표지를 제공하며, 또한 `Drop` 은 scope 를 떠나는 순간 실행해야 하는 정리 코드를 정의합니다. 이 밖에 `none` 리터럴의 타입인 zero-sized marker 타입 `NoneSentinel` 도 이 모듈에 둡니다 (2.13.8).
+값을 복제하고, 더 이상 필요 없어진 자원을 정리하는 일은 어떤 언어에서도 피할 수 없는 주제입니다. `rok::core::marker` 모듈은 이 두 가지 관심사를 세 트레잇으로 묶어 표현합니다. 먼저 `Clone` 은 값의 독립적인 사본을 만드는 방법을 정의하고, 그다음 `Copy` 는 단순한 비트 복사로 충분한 타입임을 알리는 표지를 제공하며, 또한 `Drop` 은 scope 를 떠나는 순간 실행해야 하는 정리 코드를 정의합니다. 이 밖에 `none` 리터럴 타입의 라이브러리 이름인 `NoneSentinel` (2.13.8) 과, 스레드 사이로 넘기는 값을 감싸는 `Handoff` (2.13.9) 도 이 모듈에 둡니다.
 
 Rok 이 GC 를 채택했다는 사실은 이 트레잇들의 의미에 직접적인 영향을 줍니다. 메모리 회수는 GC 가 책임지므로 `Drop` 은 더 이상 메모리 해제와 얽히지 않습니다. 따라서 `Drop` 은 파일 핸들이나 소켓처럼 언어 외부에 존재하는 자원을 정리하는 finalize 작업에 한정됩니다. 이러한 차이가 Rok 의 marker 트레잇을 Rust 와도, Java/Python 과도 다른 자리에 놓이게 합니다.
 
@@ -239,13 +239,12 @@ impl Drop for Container {
 
 ## 2.13.5. lang slot 매핑
 
-이 모듈이 컴파일러와 연결되는 지점은 다섯 개의 lang slot 입니다. 각각의 자동 호출 시점은 앞서 살펴본 정책 그대로입니다.
+이 모듈이 컴파일러와 연결되는 지점은 네 개의 lang slot 입니다. 각각의 자동 호출 시점은 앞서 살펴본 정책 그대로입니다.
 
 | slot          | 부착 항목                 | 자동 호출 시점                           |
 |---------------|---------------------------|------------------------------------------|
 | `clone_trait` | `Clone` 트레잇            | 없음 - `#[derive(Clone)]` 확장에서 사용  |
 | `drop_method` | `Drop::drop` 메서드       | `using` 바인딩 해제 시 (drop glue 포함)  |
-| `none_type`   | `NoneSentinel` 타입 (2.13.8) | `none` 리터럴 lower                   |
 | `send_trait`  | `Send` 트레잇 (2.13.9)    | 자동 구현, 스레드 경계 검사              |
 | `sync_trait`  | `Sync` 트레잇 (2.13.9)    | 자동 구현, 스레드 경계 검사              |
 
@@ -287,15 +286,13 @@ Rok 이 두드러지는 지점은 결국 GC 와 결정론적 `Drop` 의 공존�
 
 ## 2.13.8. `NoneSentinel` - `none` 리터럴의 타입
 
-[refs-lang 1.9.2](../../refs-lang/001-lexical/109-other-literals.md) 의 `none` 리터럴은 값이 하나뿐인 zero-sized 타입 `NoneSentinel` 로 lower 됩니다. 이 타입은 `rok::core::marker` 에 정의되며, `none_type` lang slot 에 부착됩니다.
+[refs-lang 1.9.2](../../refs-lang/001-lexical/109-other-literals.md) 의 `none` 리터럴은 컴파일러에 내장된 `none` 타입, 곧 값이 하나뿐인 zero-sized 타입을 가집니다. `rok::core::marker` 는 타입 별칭으로 이 타입에 `NoneSentinel` 이라는 라이브러리 이름을 붙일 뿐이며, lang slot 은 관여하지 않습니다.
 
 ```rok
-#[lang("none_type")]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-struct NoneSentinel;
+pub type NoneSentinel = none;
 ```
 
-사용자는 이 이름을 직접 쓸 일이 거의 없습니다. `T | none` 같은 합 타입 표기 ([refs-lang 2.6](../../refs-lang/002-types/206-sum-types.md)) 에서 `none` 자리가 곧 `NoneSentinel` 변형이며, `none` 리터럴과 `none` 타입 표기는 모두 이 슬롯을 통해 같은 타입으로 해소됩니다.
+사용자는 이 이름을 직접 쓸 일이 거의 없습니다. `T | none` 같은 합 타입 표기 ([refs-lang 2.6](../../refs-lang/002-types/206-sum-types.md)) 에서 `none` 자리가 곧 이 타입이며, `none` 리터럴, `none` 타입 표기, `NoneSentinel` 은 모두 같은 내장 타입을 가리킵니다.
 
 ## 2.13.9. `Send` / `Sync` - 스레드 경계 marker
 
@@ -349,6 +346,40 @@ impl<T> !Sync for CPtr<T> { }
 ```
 
 스레드나 task 로 값을 넘기는 API (`thread::spawn`, `task::spawn`, `par::*`, `channel`) 는 이 두 트레잇으로 인자를 제한합니다. 동기화 primitive 의 정책은 [2.16 sync](216-sync.md) 를 따릅니다.
+
+### `Handoff<T>` 와 hand-off 장치
+
+```rok
+pub struct Handoff<T> { value: T; }
+
+impl<T> Handoff<T> {
+    pub const unsafe fn new(value: T) -> Handoff<T>;
+    pub const fn get(self) -> T;
+}
+
+unsafe impl<T: Send> Send for Handoff<T> {}
+unsafe impl<T: Send> Sync for Handoff<T> {}
+
+pub fn hand_over<T>(x: T) -> T;
+```
+
+`Handoff<T>` 는 두 스레드가 동시에 쓰지 못하게 막는 외부 프로토콜(join, lock, 채널 hand-off) 아래에서 값을 스레드 사이로 옮깁니다. `T` 가 `Send` 이면 `T` 가 `Sync` 가 아니어도(컬렉션) `Send + Sync` 입니다. `new` 는 `unsafe` 이며, 호출자가 두 스레드가 그 값이나 그 핸들의 다른 사본을 동시에 쓰지 않음을 보장합니다. `new` 는 사본을 만들지 않으며(위 참고), `get` 은 감싼 값을 돌려줍니다.
+
+`hand_over(x)` 는 hand-off 가 새 소유자에게 주는 값을 돌려줍니다. `x` 가 닿는 모든 컬렉션을 복사한 `x` 이며, 닿는 컬렉션이 없으면 `x` 그대로입니다.
+
+`Transfer` 와 `Memo` 는 hand-off 사본이 다른 모듈의 표준 컬렉션에 닿을 수 있도록 공개되어 있을 뿐입니다.
+
+```rok
+pub trait Transfer {
+    fn transfer_copy(self, m: Memo) -> Self;
+    fn transfer_keep(self, m: Memo) -> Self;
+    fn transfer_visit(self, m: Memo) -> Self;
+}
+
+pub struct Memo { /* 비공개 필드 */ }
+```
+
+컴파일러는 정해진 표준 핸들 타입 목록에 대해서만 `Transfer` 를 호출하며, 그 밖의 타입에 둔 impl 은 무시됩니다. `Memo` 는 한 번의 hand-off 가 만든 사본을 원본 객체별로, 그리고 아직 고쳐야 할 복사된 버퍼를 기록합니다. `Memo` 의 메서드와 그 옆의 `transfer*` intrinsic 은 `pub(pkg)` 로, 라이브러리 내부용이며 안정 API 가 아닙니다.
 
 ## 2.13.10. `Default` - 기본값
 

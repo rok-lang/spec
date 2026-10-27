@@ -2,7 +2,7 @@
 
 The `rok::core::str` module provides the authoritative definitions of the string and character types. Rok follows a **UTF-8 first** policy: every in-process string is handled as UTF-8, and `c_char` is used only at FFI boundaries.
 
-This chapter defines three of the 48 lang slots. First, `str_type` is bound to `rok::core::str::str`, a lowercase struct that is a language built-in. Second, `char_type` is the built-in `char`, whose methods this chapter defines. Third, `cchar_type` is bound to `rok::core::str::c_char`, likewise a language built-in.
+`str`, `char` and `c_char` are primitive types built into the compiler, not structs. The compiler leaves their lang slots (`str_type`, `char_type`, `cchar_type`) unattached ([0.4](../000-meta/004-lang-slot-table.md)); this module defines their methods and trait impls.
 
 ## 2.15.1. String model - immutable `str` and mutable `StrBuf`
 
@@ -12,7 +12,7 @@ This chapter defines three of the 48 lang slots. First, `str_type` is bound to `
 |----------|----------------------------------------------------|------------------------------|---------------------|
 | `str`    | UTF-8 string value                                 | `(ptr, len)` value - bytes are an immortal constant or a GC object | **immutable** |
 | `StrBuf` | growable UTF-8 buffer                              | GC heap object               | mutable             |
-| `char`   | Unicode scalar value (PascalCase struct + keyword) | 4B (u32)                     | (value - cannot change) |
+| `char`   | Unicode scalar value (language built-in)           | 4B (u32)                     | (value - cannot change) |
 | `c_char` | C ABI 1-byte char (FFI primitive)                  | 1B (i8 or u8 - target-dependent) | (value)         |
 
 ### Rust / Python / Rok model comparison
@@ -29,15 +29,7 @@ Rok's `str` is close to Python's immutable `str` in needing no lifetime tracking
 
 ## 2.15.2. `str` - immutable UTF-8 string
 
-```rok
-#[lang("str_type")]
-struct str {
-    ptr: ConstPtr<u8>;
-    len: usize;            // byte length (NOT char count)
-}
-```
-
-`str` is a language built-in recognized directly by the compiler, so it needs no `#[keyword]`. The lowercase struct name is the same as the type notation in user code.
+`str` is a primitive type built into the compiler, so it needs no declaration, struct or `#[keyword]`. Its value is a `(ptr, len)` pair: the address of its bytes and their length in bytes (not the char count).
 
 `str` is a `(ptr, len)` pair passed by value, and the bytes it points to never change. Every operation that modifies a string returns a new `str`.
 
@@ -45,10 +37,12 @@ struct str {
 
 ```rok
 impl str {
+    fn new() -> str;                        // ""
     fn from_utf8(bytes: List<u8> | Slice<u8>) throws (Utf8Error) -> str;
     fn from_utf8_lossy(bytes: List<u8> | Slice<u8>) -> str;   // each ill-formed sequence → U+FFFD
 
     fn len(self) -> usize;                  // byte length
+    fn char_count(self) -> usize;           // number of chars, same as chars().count()
     fn is_empty(self) -> bool;
     fn as_bytes(self) -> Slice<u8>;         // read-only view without copying
     fn byte(self, i: usize) -> u8;          // O(1), panics when out of range
@@ -82,11 +76,10 @@ impl str {
     fn replace(self, from: str, to: str) -> str;   // empty from matches at every char boundary: "ab".replace("", "-") == "-a-b-"
 
     fn parse<T: FromStr>(self) throws (T::Err) -> T;
-
-    // UTF-8-safe slicing - validates byte boundaries
-    // (the s[a:b] desugaring dispatches to this method)
-    fn slice(self, range: Range<usize>) -> str;        // same as s[a:b], shares bytes
 }
+
+// UTF-8-safe slicing: s[a:b] dispatches here and validates byte boundaries
+impl Sliceable<Range<usize>> for str { type Output = str; }   // shares bytes
 ```
 
 `as_ptr` returns a pointer to the string's bytes in place. The GC does not move the string, and the pointer stays valid, while a variable holding the `str` is in scope in a function where a pointer value can appear: a variable's or an expression's type names a `rok::bare::ptr` type, also as a type argument (`List<ConstPtr<u8>>`) or in a function type. In a generator or `async` body this holds across `yield` / `await`. Elsewhere a variable holds the string only up to its last use, and a string reachable only through another object may be moved by the GC: it is not pinned ([stdlib 1.6](../100-bare/106-gc-pin.md)). To keep the bytes in place longer, pin the string ([1.6.6](../100-bare/106-gc-pin.md#166-extraction-methods)).
@@ -96,19 +89,26 @@ impl str {
 Use `StrBuf` to build a string piece by piece.
 
 ```rok
-struct StrBuf { /* GC heap - ptr / len / capacity */ }
+struct StrBuf { /* GC heap handle - len / capacity / bytes */ }
 
 impl StrBuf {
-    fn new() -> StrBuf;
+    fn new() -> StrBuf;                     // capacity 16
+    fn with_capacity(cap: usize) -> StrBuf;
+    fn len(self) -> usize;                  // byte length
+    fn is_empty(self) -> bool;
+    fn capacity(self) -> usize;             // in bytes
+    fn clear(self);                         // length 0, capacity kept
+    fn reserve(self, additional: usize);    // room for `additional` more bytes (grows by doubling)
     fn push(self, c: char);                 // appends one char (UTF-8 encoded)
     unsafe fn push_byte(self, b: u8);       // caller keeps the contents UTF-8; the safe byte path is str::from_utf8
     fn push_str(self, s: str);
-    fn capacity(self) -> usize;
-    fn to_str(self) -> str;                 // immutable str of the current contents
+    fn to_str(self) -> str;                 // immutable copy of the current contents
 }
+
+impl !Sync for StrBuf {}
 ```
 
-Like a collection, `StrBuf` is a reference handle, so its methods take `self` ([2.9](209-collections.md)).
+Like a collection, `StrBuf` is a reference handle, so its methods take `self` ([2.9](209-collections.md)); copies of the handle share one buffer, so it is not `Sync` ([2.13.9](213-marker.md#2139-send--sync---thread-boundary-markers)). It displays as its contents.
 
 ```rok
 let buf = StrBuf::new();
@@ -154,6 +154,7 @@ A `"hello"` literal lowers to a `str` value pointing to constant bytes in the im
 let s: str = "hello, 세계!";
 s.len();                       //→ 14  (byte length - "hello, " 7 + Korean 3 bytes × 2 + "!" 1)
 s.chars().count();             //→ 10  (char count)
+s.char_count();                //→ 10  (same, without an iterator)
 
 let s2 = s[7:13];              //→ "세계"  (byte boundary OK)
 let s3 = s[8:9];               // panic - byte in the middle of a UTF-8 sequence
@@ -254,14 +255,7 @@ let c3 = try char::try_from(n);      //→ char (TryFrom<u32> - via from_u32, Ov
 
 ## 2.15.5. `c_char` - C ABI 1-byte (language built-in)
 
-```rok
-#[lang("cchar_type")]
-struct c_char {
-    value: i8 or u8;     // target-dependent (signedness differs by OS / arch)
-}
-```
-
-`c_char` is an FFI primitive that is a language built-in, a lowercase struct recognized directly by the compiler.
+`c_char` is an FFI primitive built into the compiler, not a struct. It is one byte; whether it is signed (`i8`) or unsigned (`u8`) depends on the target (OS / arch). This module compares, orders and hashes it as its byte (`c as u8`).
 
 It is ABI-compatible with C's `char`; note that it is a raw byte, not a UTF-8 encoding unit. Its use is FFI only:
 
@@ -292,7 +286,7 @@ Comparing the two types makes the difference clear.
 | Range        | 0..=0x10FFFF (excluding surrogates) | 0..=255 or -128..=127         |
 | Multibyte    | a single char covers both BMP / SMP | a multibyte char = byte sequence |
 | Literal      | `'A'`                               | `c'A'`                        |
-| Registration | standard library addition (`#[keyword]`) | language built-in         |
+| Registration | language built-in                   | language built-in             |
 | Used for     | general string processing           | FFI / byte-level processing   |
 
 Standard library functions therefore use **`char` first** as a rule, and `c_char` only at explicit FFI boundaries.
@@ -316,8 +310,16 @@ let s: str = try str::from_utf8(bytes);
 
 let invalid: List<u8> = [0xFF, 0xFE];
 let s: str = try str::from_utf8(invalid);
-                                          //→ throw Utf8Error { ... }
+                                          //→ throw Utf8Error { valid_up_to: 0 }
 ```
+
+```rok
+struct Utf8Error {
+    pub valid_up_to: usize;   // length of the valid UTF-8 prefix, in bytes
+}
+```
+
+`Utf8Error` implements `Error`; its `Display` is `invalid UTF-8 at byte {valid_up_to}`.
 
 `str::from_utf8_lossy(bytes)` never throws: each maximal subpart of an ill-formed sequence (Unicode §3.9, U+FFFD Substitution of Maximal Subparts; the WHATWG UTF-8 decoder's behavior) becomes one U+FFFD.
 
@@ -351,14 +353,14 @@ let c: Color = try "red".parse();
 
 How the types are registered and where they are implemented:
 
-| Type     | struct name          | Registration         | Implementation   |
-|----------|----------------------|----------------------|------------------|
-| `str`    | `str` (lowercase)    | language built-in     | standard library |
-| `StrBuf` | `StrBuf`             | ordinary type        | standard library |
-| `c_char` | `c_char` (lowercase) | language built-in     | standard library |
-| `char`   | `char` (built-in)    | language built-in    | compiler (methods: standard library) |
+| Type     | Registration      | Implementation                       |
+|----------|-------------------|--------------------------------------|
+| `str`    | language built-in | compiler (methods: standard library) |
+| `StrBuf` | ordinary struct   | standard library                     |
+| `c_char` | language built-in | compiler (methods: standard library) |
+| `char`   | language built-in | compiler (methods: standard library) |
 
-As for intrinsics, some `str` method bodies and some `char` methods carry `#[intrinsic("rok.str.*")]` or `#[intrinsic("rok.char.*")]`.
+The `str` and `char` method bodies call runtime helpers declared as `extern "rok"` functions in `rok::core::rt`: `rok_str_*` (length, comparison, search, slicing, case mapping, trimming, parsing) and `rok_char_*` (Unicode properties and case) ([refs-lang 8.5](../../refs-lang/008-abi/805-extern-symbols.md#string-helpers)). They carry no `#[intrinsic]` attribute.
 
 ## 2.15.9. Comparison with other languages
 
@@ -369,7 +371,7 @@ As for intrinsics, some `str` method bodies and some `char` methods carry `#[int
 | Encoding        | UTF-8             | unspecified (implementation-dependent) | UTF-16   | UTF-8                              |
 | char            | `char` (4B)       | `str` (single-char)     | `char` (2B = code unit) | `char` (4B Unicode scalar)         |
 | FFI byte        | `c_char` / `u8`   | `bytes`                 | `byte`                  | `c_char` (1B, target-dependent)    |
-| Meaning of len  | byte len          | char count              | UTF-16 code unit        | byte len (explicit `.chars().count()`) |
+| Meaning of len  | byte len          | char count              | UTF-16 code unit        | byte len (explicit `.char_count()`)    |
 | index `s[i]`    | **none**          | char (Python str)       | UTF-16 code unit        | **none** (explicit chars/bytes)    |
 
-`str` is an immutable `(ptr, len)` value, and the mutable buffer is split off as `StrBuf`; with a GC, no lifetime distinction is needed, unlike Rust. `len()` means **byte length**, matching Rust; the char count is obtained separately with `chars().count()`. By **not providing** `s[i]`, Rok matches Rust and avoids byte vs char ambiguity. Defining `char` as a 4B Unicode scalar avoids the surrogate pitfalls caused by Java's 2B UTF-16 code units. Finally, `c_char` is a separate type, keeping a clear ABI distinction from `char`.
+`str` is an immutable `(ptr, len)` value, and the mutable buffer is split off as `StrBuf`; with a GC, no lifetime distinction is needed, unlike Rust. `len()` means **byte length**, matching Rust; the char count is obtained separately with `char_count()` (or `chars().count()`). By **not providing** `s[i]`, Rok matches Rust and avoids byte vs char ambiguity. Defining `char` as a 4B Unicode scalar avoids the surrogate pitfalls caused by Java's 2B UTF-16 code units. Finally, `c_char` is a separate type, keeping a clear ABI distinction from `char`.

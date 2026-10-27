@@ -4,6 +4,8 @@ The `rok::core::ops::broadcast` module is the trait authority for Julia-style do
 
 This chapter defines the 19 broadcast traits together with the desugaring rules for function broadcast.
 
+The traits themselves are declared in `rok::core::ops`; `rok::core::ops::broadcast` re-exports them under one path. It also re-exports `Dot`, the `⋅` dot-product trait of [2.3.10](203-ops.md#2310-unicode-math-operator-traits). `Dot` is not one of the 19 broadcast traits: `a ⋅ b` reduces two operands to one value (`fn dot(self, rhs: Rhs) -> Output`) instead of working element-wise, and the standard library implements it for no type.
+
 ## 2.6.1. Motivation - why separate dot operators
 
 In NumPy and MATLAB, the **silent ambiguity** of `*` meaning element-wise on arrays but multiplication on matrices has long been a source of bugs (the same concern motivated the introduction of `@` in PEP 465).

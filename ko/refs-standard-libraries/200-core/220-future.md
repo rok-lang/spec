@@ -18,6 +18,11 @@ enum Poll<T> {
     Ready(T),
     Pending,
 }
+
+impl<T> Poll<T> {
+    const fn is_ready(self) -> bool;        // Ready(_) 이면 true
+    const fn is_pending(self) -> bool;      // Pending 이면 true
+}
 ```
 
 `poll(ctx)` 의 동작은 두 가지 결과로 갈립니다. `Ready(v)` 가 반환되면 결과가 준비된 상태이며 `v` 가 그대로 반환되고, `Pending` 이 반환되면 아직 결과가 없는 상태이므로 `ctx` 의 waker 가 깨워 줄 때 다시 poll 됩니다.
@@ -29,8 +34,11 @@ enum Poll<T> {
 `Context` 와 `Waker` 는 poll 과 scheduler 사이의 통신 채널을 형성합니다.
 
 ```rok
-struct Context {
-    waker: Waker;
+struct Context { /* ... */ }         // 필드는 비공개
+
+impl Context {
+    const fn from_waker(waker: Waker) -> Context;   // waker 를 waker 로 갖는 context
+    const fn waker(self) -> Waker;                  // Pending 을 돌려주기 전에 등록할 waker
 }
 
 struct Waker {
@@ -44,6 +52,8 @@ impl Waker {
 ```
 
 `poll` 이 `Pending` 을 반환할 때 내부적으로 Waker 가 등록되며, 이후 이벤트 (I/O 또는 timer) 가 발생하면 waker 가 호출되어 task 가 다시 schedule 됩니다. 다만 대부분의 사용자는 `Waker` 를 직접 다루지 않습니다. `await` 가 이 과정을 자동으로 처리해 주기 때문입니다.
+
+`waker` 필드는 라이브러리 내부 전용입니다. 손으로 쓴 `poll` 은 `ctx.waker()` 로 waker 를 읽어 clone 을 보관해 두고, 진행할 수 있게 되면 `wake` 를 부릅니다. `Context::from_waker` 는 이미 가진 waker 로 context 를 만들어, 안쪽 future 를 같은 waker 로 직접 poll 할 때 씁니다. `Waker` 자체는 executor 만 만듭니다.
 
 ## 2.20.3. `await expr` desugar
 

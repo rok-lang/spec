@@ -116,7 +116,7 @@ trait Stream {
 }
 ```
 
-As with the adapters of [2.7 iter](207-iter.md), the return types are named concrete structs, located in the `rok::core::stream` module (`stream::Map<S, U>`, `stream::Filter<S>`, ...). `Map<Self, U>` implements `Stream<Item = U>`; the rest implement `Stream<Item = Item>`.
+As with the adapters of [2.7 iter](207-iter.md), the return types are named concrete structs, located in the `rok::core::stream` module (`stream::Map<S, U>`, `stream::Filter<S>`, ...). `Map<Self, U>` implements `Stream<Item = U>`, and `Buffered<Self>` / `BufferUnordered<Self>` implement `Stream<Item = Item::Output>` (they yield the futures' outputs, not the futures); the rest implement `Stream<Item = Item>`.
 
 > [!NOTE]
 > `stream::Map` / `Filter` / `Take` / `Skip` / `Zip` share their names with `iter::Map` and the like. Under the implicit `use rok::core::**;` the bare name `Map` is ambiguous ([refs-lang 5.5.6](../../refs-lang/005-modules/505-use.md)), so when the type must be written, use a path such as `stream::Map` or import it with an explicit `use`.
@@ -199,14 +199,14 @@ The adapters of `AsyncStream<T>` (`map`, `filter`, `collect`, etc.) are the defa
 
 ## 2.8.9. Module mapping
 
-The module of each item:
+Every item is defined in `rok::core::stream` (or `rok::core::channel` for `Receiver<T>`); the submodules below re-export it under a narrower path.
 
 | Item                          | Module                           | Form                         |
 |-------------------------------|----------------------------------|------------------------------|
 | `Stream`                      | `rok::core::stream::stream`      | poll-based                   |
 | `IntoStream`                  | `rok::core::stream::into_stream` |                              |
 | `Receiver<T>`                 | `rok::core::channel::receiver`   | implements `Stream<Item = T>` |
-| `Stream::map`/`filter`/`take` | `rok::core::stream::adapter`     | adapter structs (implementing `Stream`) |
+| `Map`/`Filter`/`Take`/`Skip`/`Throttle`/`Buffered`/`BufferUnordered` | `rok::core::stream::adapter` | adapter structs (implementing `Stream`) |
 | `merge`/`zip`/`select`        | `rok::core::stream::combinator`  | `Merge`/`Zip`/`Select` structs |
 
 ## 2.8.10. Whether `Stream` has a lang slot

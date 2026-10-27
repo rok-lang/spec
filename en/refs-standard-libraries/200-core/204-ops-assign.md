@@ -180,9 +180,21 @@ Every `*Assign` impl for primitive types carries `#[intrinsic("rok.OP_assign.TYP
 | `bool`       | `BitAndAssign`/`BitOrAssign`/`BitXorAssign` | `rok.and_assign.bool`, ...                      |
 | `int`        | Arithmetic + bitwise                        | auto-promote logic - replaced by a new value (immutable) |
 | `float`      | Arithmetic                                  | (same as above - auto-promote)                  |
-| `List<T>`    | `AddAssign<List<T>>`, `AddAssign<T>`        | push                                            |
+| `List<T>`    | `AddAssign<T>`, `AddAssign<List<T>>`        | `xs += x` pushes `x`; `xs += ys` pushes every element of `ys`, in place |
 | `str`        | `AddAssign<str>`, `AddAssign<char>`         | `s = s + t` - replaced by a new str (str is immutable) |
-| `Dict<K,V>`  | `AddAssign<Dict<K,V>>`                      | merge - overwrites existing keys                |
+| `Dict<K,V>`  | `AddAssign<Dict<K,V>>` (`K: Hash`)          | merge in place - the right side's values win on shared keys |
+
+```rok
+let xs: List<i32> = [1];
+xs += 2;              //→ [1, 2]
+xs += [3, 4];         //→ [1, 2, 3, 4]
+
+let s = "ab";
+s += 'c';             //→ "abc"
+
+let d: Dict<str, i32> = {"a": 1, "b": 2};
+d += {"b": 20, "c": 3};   //→ {"a": 1, "b": 20, "c": 3}
+```
 
 `a op= b` calls `XxxAssign::xxx_assign` (`AddAssign::add_assign`, ...) when the left type implements it; otherwise it is `a = a op b`.
 

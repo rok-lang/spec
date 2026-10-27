@@ -1,6 +1,6 @@
 # 2.14. error - 에러 트레잇 / 타입
 
-`rok::core::error` / `rok::core::panic` 모듈은 에러 처리 권위를 제공합니다. Rok 의 에러 모델은 하나입니다. 에러를 던질 수 있는 함수는 시그니처에 `throws` 를 적고, 호출하는 쪽은 그 호출을 `try` 로 표시합니다 ([refs-lang 4.14](../../refs-lang/004-functions/414-throws.md)). `Result<T, E>` 는 에러를 **값으로 담아 두기** 위한 평범한 enum 이며, 에러를 전파하는 수단이 아닙니다.
+`rok::core::error` / `rok::core::panic` 모듈은 에러 처리 권위를 제공합니다 (`ZeroError` 는 `NonZero` 옆, `rok::core::num::niche` 에 있습니다). Rok 의 에러 모델은 하나입니다. 에러를 던질 수 있는 함수는 시그니처에 `throws` 를 적고, 호출하는 쪽은 그 호출을 `try` 로 표시합니다 ([refs-lang 4.14](../../refs-lang/004-functions/414-throws.md)). `Result<T, E>` 는 에러를 **값으로 담아 두기** 위한 평범한 enum 이며, 에러를 전파하는 수단이 아닙니다.
 
 이 장은 48 개의 lang slot 가운데 `panic_fn` / `oom_fn` / `unreachable_fn` 세 개를 정의합니다.
 
@@ -150,7 +150,7 @@ let cfg = try parse_config(text) catch e: ParseError {
 
 ## 2.14.4. 내장 에러 타입
 
-표준 라이브러리가 기본으로 제공하는 에러 타입은 다음과 같이 정의됩니다.
+표준 라이브러리가 기본으로 제공하는 에러 타입은 다음과 같이 정의됩니다. 필드는 모두 `pub` 입니다.
 
 ```rok
 struct TypeError {
@@ -182,7 +182,7 @@ struct ConversionError {
     msg: str;
 }
 
-struct ZeroError;
+struct ZeroError;      // rok::core::num::niche
 ```
 
 각 타입은 `Error + Display + Debug` 를 구현하며, `Display` 본문은 사람이 읽기 친화적인 메시지를 제공합니다. 각 에러가 던져지는 자리는 다음 표와 같습니다.
@@ -216,8 +216,9 @@ Fatal 은 `throws` 의 에러가 아니므로 `catch` 로 잡을 수 없습니�
 ```rok
 mod panic {                         // rok::core::panic
     #[lang("panic_fn")]
+    #[track_caller]
     fn panic(msg: str) -> ! {
-        rok_panic_str(msg)           // stderr 출력 후 종료 코드 101
+        rok_panic_at(msg)            // 호출 위치와 함께 stderr 출력 후 종료 코드 101
     }
 
     #[lang("oom_fn")]
@@ -226,13 +227,14 @@ mod panic {                         // rok::core::panic
     }
 
     #[lang("unreachable_fn")]
+    #[track_caller]
     fn unreachable() -> ! {
-        // match exhaustive arm 의 unreachable 자리
+        rok_panic_at("internal error: entered unreachable code")
     }
 }
 ```
 
-각 함수는 `-> !` (never) 를 반환 타입으로 가지며, 절대 정상 return 하지 않습니다.
+각 함수는 `-> !` (never) 를 반환 타입으로 가지며, 절대 정상 return 하지 않습니다. `panic` 과 `unreachable` 은 `#[track_caller]` 이므로, 보고되는 위치는 `#[track_caller]` 사슬 밖의 첫 호출자입니다.
 
 ### panic 이 일어나는 자리
 
@@ -402,6 +404,8 @@ if let n: i32 = r.ok() { use(n); }     // T | none 으로 추출
 | `IndexError`         | ✓       | ✓             | ✓     |                            |
 | `OverflowError`      | ✓       | ✓             | ✓     | checked 변환의 범위 초과   |
 | `ParseError`         | ✓       | ✓             | ✓     |                            |
+| `ConversionError`    | ✓       | ✓             | ✓     | 기본 `TryFrom::Error`      |
+| `ZeroError`          | ✓       | ✓             | ✓     | `rok::core::num::niche` 에 있음 |
 | `IoError`            | ✓       | ✓             | ✓     | std tier (target-dep)      |
 | `StackOverflowError` | ✓       | ✓             | ✓     | Fatal - catch 불가         |
 | `OutOfMemoryError`   | ✓       | ✓             | ✓     | Fatal - catch 불가         |

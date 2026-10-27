@@ -24,13 +24,13 @@ use rok::core::sync::{Atomic, Mutex, RwLock, Once, Condvar, Cell};
 가장 가벼운 primitive 인 `Atomic<T>` 부터 살펴봅니다. 내부적으로는 T 별 LLVM atomic 연산으로 구현되며, 다음과 같은 형태를 갖춥니다.
 
 ```rok
-struct Atomic<T: AtomicPrimitive> {
-    // 내부: AtomicU32 / AtomicU64 / AtomicPtr 등 (T 별 LLVM atomic ops)
+struct Atomic<T> {
+    // 내부: T 별 LLVM atomic 연산으로 다루는 원소 하나짜리 cell
 }
 
-trait AtomicPrimitive { /* marker - i32/i64/u32/u64/usize/isize/bool/Ptr */ }
+trait AtomicPrimitive { /* marker - i8/i16/i32/i64/isize, u8/u16/u32/u64/usize, bool, Ptr<T> */ }
 
-impl<T: AtomicPrimitive> Atomic<T> {
+impl<T: AtomicPrimitive + PartialEq> Atomic<T> {
     const fn new(value: T) -> Atomic<T>;
 
     fn load(self, ordering: AtomicOrdering = SeqCst) -> T;
@@ -60,6 +60,8 @@ impl Atomic<i32> {
 ```
 
 `wait` 는 이유 없이 돌아올 수 있으므로 호출자가 조건을 다시 확인합니다 (futex 의미).
+
+`load` 와 `compare_exchange` / `compare_exchange_weak` 의 `failure` ordering 은 load ordering 입니다. 이 자리에 `Release` 나 `AcqRel` 을 주면 panic 합니다. 이 구현에서 `compare_exchange_weak` 는 이유 없이 실패하지 않으며 `compare_exchange` 와 똑같이 동작합니다. `compare_exchange` 가 이전 값을 `current` 와 비교하므로 `PartialEq` 가 필요하며, `Ptr<T>` 는 주소로 비교합니다.
 
 ### `AtomicOrdering`
 
@@ -93,23 +95,22 @@ let v = COUNTER.load(SeqCst);     //→ 2
 
 ### CAS (compare-and-swap)
 
-좀 더 복잡한 lock-free 자료 구조는 compare-and-swap 루프 위에서 구성합니다. 다음은 lock-free 스택의 push 예시입니다.
+atomic 이 직접 제공하지 않는 갱신은 compare-and-swap 루프 위에서 구성합니다. 다음은 지금까지 저장된 값 중 가장 큰 값을 유지하는 예시입니다.
 
 ```rok
-fn lock_free_push(stack: Atomic<List<T> | none>, x: T) {
+fn store_max(cell: Atomic<i64>, x: i64) {
+    let cur = cell.load(Acquire);
     loop {
-        let cur = stack.load(Acquire);
-        let new = match cur {
-            v: List<T> => v.with_appended(x),
-            none       => [x],
-        };
-        match stack.compare_exchange(cur, new, AcqRel, Acquire) {
-            Ok(_)  => break,
-            Err(_) => continue,                   // 다른 task 가 먼저 - 재시도
+        if cur >= x { break; }
+        match cell.compare_exchange(cur, x, AcqRel, Acquire) {
+            Ok(_)       => break,
+            Err(actual) => cur = actual,          // 다른 task 가 먼저 - 그 값으로 재시도
         }
     }
 }
 ```
+
+원소 타입은 `AtomicPrimitive` 여야 합니다. `List<T>` 같은 컬렉션은 `Atomic` 에 담을 수 없으며, 공유 컬렉션은 `Mutex<T>` (2.16.3) 에 둡니다.
 
 ## 2.16.3. `Mutex<T>` - 배타적 잠금
 
@@ -144,6 +145,8 @@ impl<T> MutexGuard<T> {
 }
 ```
 
+guard 는 자신이 보호하는 값의 메서드를 전달하지 않습니다. `MutexGuard<List<i32>>` 에 `g.push(1)` 을 쓰면 에러입니다. 값에는 `get`, `set`, `update` 로 접근합니다.
+
 ### 사용 예
 
 가드를 `using` 으로 묶으면 블록을 빠져나갈 때 `drop` 되어 잠금이 해제됩니다. `using` 없이 받은 가드는 자동으로 풀리지 않으므로 반드시 `using` 으로 묶습니다. 가드는 호출, 메서드 호출, `await` 에서 받습니다. 받은 가드는 바인딩 (`let`, 패턴, `using`) 을 초기화하거나, 변수에 대입하거나, 호출자에게 넘기는 (`return`, 함수의 값) 데에만 쓸 수 있습니다. 함수에 넘기거나, 그 위에서 메서드를 부르거나, 필드나 컬렉션에 저장하거나, 버리면 컴파일 에러입니다. `using` 으로 묶은 가드는 함수에 넘길 수 있으며, `using` 없이 묶은 가드는 넘긴다고 해서 해제되지 않습니다. `using` 으로 해제되지 않는 일반 `let` (또는 `if let`) 으로 가드를 묶거나, `lock` 이 돌려준 가드를 버리면 컴파일 에러입니다.
@@ -166,7 +169,7 @@ deadlock 을 피하고 싶을 때는 blocking 대신 `try_lock` 으로 비차단
 
 ```rok
 match STATE.try_lock() {
-    v: MutexGuard<...> => using g = v { g.push(1); },
+    v: MutexGuard<List<i32>> => using g = v { g.update(|xs| { xs.push(1); xs }); },
     none => { log("locked, skip"); },
 }
 ```
@@ -183,7 +186,7 @@ Rok 의 Mutex 는 Rust 의 PoisonError 모델과 다릅니다. panic 이 발생�
 ```rok
 using g = MUTEX.lock() {
     try unsafe_op(g) catch e {
-        g.reset_to_known_good_state();
+        g.set(known_good_state());
         throw e;
     };
 }
@@ -220,7 +223,7 @@ using c = CONFIG.read() {        // 다른 reader 와 동시 OK
 }   // ← read guard drop, lock 해제
 
 using w = CONFIG.write() {       // 잠시 모든 reader 차단
-    w.reload_from_file();
+    w.set(Config::load_from_file());
 }
 ```
 
@@ -239,6 +242,7 @@ struct Once { /* ... */ }
 impl Once {
     const fn new() -> Once;
     fn call_once(self, f: fn());          // 처음 한 번만 f 실행, 동시 호출자는 끝날 때까지 대기
+    fn is_completed(self) -> bool;        // call_once 가 한 번 끝났으면 true
 }
 
 struct Condvar { /* ... */ }

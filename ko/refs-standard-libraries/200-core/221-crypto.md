@@ -72,7 +72,7 @@ struct Aead {
     fn new(alg: AeadAlgorithm, key: Bytes) throws (ValueError) -> Aead;
     fn algorithm(self) -> AeadAlgorithm;
     fn seal(self, nonce: Bytes, aad: Bytes, plaintext: Bytes) throws (ValueError) -> List<u8>;   // ciphertext ‖ 16-byte tag
-    fn open(self, nonce: Bytes, aad: Bytes, sealed: Bytes) throws (ValueError) -> List<u8> | none;  // none: 인증 실패
+    fn open(self, nonce: Bytes, aad: Bytes, ciphertext_and_tag: Bytes) throws (ValueError) -> List<u8> | none;  // none: 인증 실패
     fn wipe(self);                                  // 키 자료를 0 으로 덮어씀
 }
 impl Drop for Aead;

@@ -93,6 +93,7 @@ impl<T> List<T> {
     fn drain(self, r: Range<usize>) -> List<T>; // r 의 원소를 순서대로 빼서 돌려줌; r 이 거꾸로이거나 len() 을 넘어 끝나면 panic
 
     fn get(self, idx: usize) -> T | none;       // safe - out-of-bounds → none
+    fn set(self, idx: usize, x: T) throws (IndexError);   // xs[idx] = x panics instead
     fn first(self) -> T | none;
     fn last(self) -> T | none;
 
@@ -145,7 +146,9 @@ let total: i32 = ys.into_iter().sum();   //→ 60
 | `IntoIterator`        | 항상                | `for x in xs`                   |
 | `FromIterator<T>`     | 항상                | `(0..5).collect::<List<i32>>()` |
 | `Index<usize>`        | 항상                | `xs[i]`                         |
-| `IndexSet<usize, T>`  | 항상                | `xs[i] = v`                     |
+| `IndexSet<usize>`     | 항상 (`Value = T`)  | `xs[i] = v`                     |
+| `AddAssign<T>`        | 항상                | `xs += x` 는 `x` 를 push        |
+| `AddAssign<List<T>>`  | 항상                | `xs += ys` 는 `ys` 의 모든 원소를 덧붙임 |
 | `Sliceable<Range<usize>>` | 항상            | `xs[1:3]`                       |
 | `Display`             | **아님**            | **수동 출력 권장**              |
 | `Debug`               | `T: Debug`          | `f"{xs:?}"` → `[1, 2, 3]`       |
@@ -247,6 +250,8 @@ impl<K: Hash + Eq, V> Index<K> for Dict<K, V> {
 
 `d[k]` 표기는 키의 존재가 보장됨을 가정하므로, 안전한 접근이 필요할 때는 `.get(k)` 를 사용합니다.
 
+`d += e` (`AddAssign<Dict<K, V>>`) 는 `e` 의 모든 항목을 `d` 에 제자리에서 삽입합니다. 키가 겹치면 `e` 의 값이 남습니다.
+
 ### lazy view
 
 `keys` / `values` / `entries` 는 사본이 아니라 현재 table 을 그대로 보는 lazy view 입니다. 순회 도중 dict 를 바꾸면 결과는 정해지지 않지만 (원소를 빠뜨리거나 두 번 볼 수 있음), 메모리 안전성은 지켜집니다.
@@ -255,7 +260,7 @@ impl<K: Hash + Eq, V> Index<K> for Dict<K, V> {
 
 ```rok
 struct Set<T: Hash + Eq> {
-    // 내부: Dict<T, ()>
+    // 내부: Dict<T, bool>
 }
 ```
 
@@ -279,6 +284,9 @@ impl<T: Hash + Eq> Set<T> {
     fn is_subset(self, other: Set<T>) -> bool;
     fn is_superset(self, other: Set<T>) -> bool;
     fn is_disjoint(self, other: Set<T>) -> bool;
+
+    fn iter(self) -> KeysIter<T, bool>;
+    fn to_list(self) -> List<T>;
 }
 ```
 
@@ -327,11 +335,13 @@ impl<T> Deque<T> {
     fn with_capacity(cap: usize) -> Deque<T>;
     fn len(self) -> usize;
     fn is_empty(self) -> bool;
+    fn capacity(self) -> usize;
     fn push_back(self, x: T);
     fn push_front(self, x: T);
     fn pop_front(self) -> T | none;
     fn pop_back(self) -> T | none;
     fn get(self, i: usize) -> T | none;
+    fn set(self, i: usize, x: T) throws (IndexError);
     fn front(self) -> T | none;
     fn back(self) -> T | none;
     fn clear(self);
@@ -339,7 +349,7 @@ impl<T> Deque<T> {
 }
 ```
 
-`d[i]` / `d[i] = v` (범위 밖이면 panic), `IntoIterator`, `Default`, `Debug` 를 구현합니다.
+`set` 은 `i` 가 범위 밖이면 `IndexError` 를 던집니다. `capacity` 는 ring buffer 가 커지기 전까지 담을 수 있는 원소 수입니다. `d[i]` / `d[i] = v` (범위 밖이면 panic), `IntoIterator`, `Default`, `Debug` 를 구현합니다.
 
 ## 2.9.5b. `BinaryHeap<T>` - 우선순위 큐
 
@@ -451,7 +461,15 @@ impl<T: PartialEq> PartialEq for Slice<T> { ... }
 impl<T: Debug> Debug for Slice<T> { ... }
 ```
 
-바이트 문자열은 `find` 의 needle 로 넘길 수 있습니다 (그 `Slice<u8>` 규칙, [refs-lang 1.7.5](../../refs-lang/001-lexical/107-string-literals.md#175-바이트-문자열)).
+`find` 의 needle 은 `rok::core::collections::slice` 에 정의된 `AsBytes` 타입이면 무엇이든 됩니다.
+
+```rok
+trait AsBytes {
+    fn byte_slice(self) -> Slice<u8>;      // 바이트를 복사 없이 view 로
+}
+```
+
+`str` (UTF-8 바이트), `List<u8>`, `Slice<u8>`, `[u8; N]` 이 구현하므로 바이트 문자열도 needle 로 넘길 수 있습니다 (그 `Slice<u8>` 규칙, [refs-lang 1.7.5](../../refs-lang/001-lexical/107-string-literals.md#175-바이트-문자열)). `std::io` 는 `AsBytes` 를 다시 내보냅니다.
 
 `Slice` 는 읽기 전용입니다 (`IndexSet` 없음). 음수 인덱스는 끝에서부터 셉니다 ([refs-lang 3.6.1](../../refs-lang/003-expressions/306-indexing-and-slicing.md#361-인덱싱-arri)).
 
@@ -464,7 +482,7 @@ let s2: Slice<i32> = xs[::2];           //→ view of [1, 3, 5]
 let s3: Slice<i32> = xs[..];            //→ view of all
 
 s1.len();                               //→ 3
-s1.iter().sum::<i32>();                 //→ 9
+let t: i32 = s1.iter().sum();           //→ 9
 xs[2] = 30;
 s1[1];                                  //→ 30 - 리스트의 원소 쓰기가 보임
 
@@ -492,13 +510,13 @@ sum(..[4, 5]);               //→ 9 (리스트 spread)
 
 [2.3 ops](203-ops.md) 의 트레잇이 컨테이너의 `[]`, `[i] = v`, `[a:b]` 의 의미를 정의합니다.
 
-| 컨테이너     | `Index<I>`                     | `IndexSet<I, V>`          | `Sliceable<R>`                          |
+| 컨테이너     | `Index<I>`                     | `IndexSet<I>`             | `Sliceable<R>`                          |
 |--------------|--------------------------------|---------------------------|-----------------------------------------|
-| `List<T>`    | `Index<usize>` → T             | `IndexSet<usize, T>`      | `Sliceable<Range<usize>>` → `Slice<T>`  |
-| `Dict<K, V>` | `Index<K>` → V                 | `IndexSet<K, V>`          | **없음**                                |
+| `List<T>`    | `Index<usize>` → T             | `IndexSet<usize>` (Value = T) | `Sliceable<Range<usize>>` → `Slice<T>`  |
+| `Dict<K, V>` | `Index<K>` → V                 | `IndexSet<K>` (Value = V) | **없음**                                |
 | `Set<T>`     | **없음**                       | **없음**                  | **없음**                                |
 | `Tuple<...>` | **컴파일러 직접** (`.0`/.1)    | **컴파일러 직접**         | **없음**                                |
-| `[T; N]`     | `Index<usize>` → T             | `IndexSet<usize, T>`      | `Sliceable<Range<usize>>` → `Slice<T>` (사본) |
+| `[T; N]`     | `Index<usize>` → T             | `IndexSet<usize>` (Value = T) | `Sliceable<Range<usize>>` → `Slice<T>` (사본) |
 | `Slice<T>`   | `Index<usize>` → T             | **없음** (read-only view) | `Sliceable<Range<usize>>` → `Slice<T>`  |
 | `str`        | **없음** (직접 byte 접근 거부) | **없음**                  | `Sliceable<Range<usize>>` → `str` (사본, UTF-8 경계 검사) |
 
@@ -532,7 +550,7 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 |---------------|------------------------------------------|-------------------------------------|
 | `List<T>`     | `rok::core::collections::list`            | Rust `Vec` 영감                     |
 | `Dict<K, V>`  | `rok::core::collections::dict`            | open addressing                     |
-| `Set<T>`      | `rok::core::collections::set`             | `Dict<T, ()>` 위                    |
+| `Set<T>`      | `rok::core::collections::set`             | `Dict<T, bool>` 위                  |
 | `OrderedDict` | `rok::core::collections::ordered_dict`    | linked-hash 또는 indices            |
 | `OrderedSet`  | `rok::core::collections::ordered_set`     | (위와 동일)                         |
 | `Deque<T>`    | `rok::core::collections::deque`           | ring buffer                         |

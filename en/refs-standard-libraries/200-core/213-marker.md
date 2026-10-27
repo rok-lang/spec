@@ -1,6 +1,6 @@
 # 2.13. marker - `Clone` / `Copy` / `Drop`
 
-Duplicating values and cleaning up resources that are no longer needed are unavoidable concerns in any language. The `rok::core::marker` module expresses these two concerns with three traits. `Clone` defines how to make an independent copy of a value; `Copy` is a marker stating that a plain bit copy suffices for a type; and `Drop` defines cleanup code that must run when a value leaves scope. The module also holds `NoneSentinel`, the zero-sized marker type of the `none` literal (2.13.8).
+Duplicating values and cleaning up resources that are no longer needed are unavoidable concerns in any language. The `rok::core::marker` module expresses these two concerns with three traits. `Clone` defines how to make an independent copy of a value; `Copy` is a marker stating that a plain bit copy suffices for a type; and `Drop` defines cleanup code that must run when a value leaves scope. The module also holds `NoneSentinel`, the library name of the `none` literal's type (2.13.8), and `Handoff`, a wrapper for values handed between threads (2.13.9).
 
 Rok's use of a GC directly affects the meaning of these traits. The GC is responsible for reclaiming memory, so `Drop` is not tied to memory deallocation. `Drop` is limited to finalization work that cleans up resources living outside the language, such as file handles and sockets. This places Rok's marker traits apart from both Rust and Java/Python.
 
@@ -239,13 +239,12 @@ impl Drop for Container {
 
 ## 2.13.5. lang slot mapping
 
-This module connects to the compiler through five lang slots. The automatic call points follow the policies described above.
+This module connects to the compiler through four lang slots. The automatic call points follow the policies described above.
 
 | slot          | Attached to                  | Automatic call point                       |
 |---------------|------------------------------|--------------------------------------------|
 | `clone_trait` | `Clone` trait                | none - used in the `#[derive(Clone)]` expansion |
 | `drop_method` | `Drop::drop` method          | release of a `using` binding (and drop glue) |
-| `none_type`   | `NoneSentinel` type (2.13.8) | lowering of the `none` literal             |
 | `send_trait`  | `Send` trait (2.13.9)        | implemented automatically, thread-boundary checks |
 | `sync_trait`  | `Sync` trait (2.13.9)        | implemented automatically, thread-boundary checks |
 
@@ -287,15 +286,13 @@ This model avoids both the nondeterminism of Java/Python finalizers and the cost
 
 ## 2.13.8. `NoneSentinel` - the type of the `none` literal
 
-The `none` literal of [refs-lang 1.9.2](../../refs-lang/001-lexical/109-other-literals.md) lowers to `NoneSentinel`, a zero-sized type with a single value. This type is defined in `rok::core::marker` and attached to the `none_type` lang slot.
+The `none` literal of [refs-lang 1.9.2](../../refs-lang/001-lexical/109-other-literals.md) has the compiler's built-in `none` type, a zero-sized type with a single value. `rok::core::marker` gives that type its library name `NoneSentinel` with a type alias; no lang slot is involved.
 
 ```rok
-#[lang("none_type")]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-struct NoneSentinel;
+pub type NoneSentinel = none;
 ```
 
-Users rarely write this name directly. In sum type notation such as `T | none` ([refs-lang 2.6](../../refs-lang/002-types/206-sum-types.md)), the `none` position is the `NoneSentinel` variant; both the `none` literal and the `none` type notation resolve to this same type through the slot.
+Users rarely write this name directly. In sum type notation such as `T | none` ([refs-lang 2.6](../../refs-lang/002-types/206-sum-types.md)), the `none` position is this type; the `none` literal, the `none` type notation and `NoneSentinel` all name the same built-in type.
 
 ## 2.13.9. `Send` / `Sync` - thread-boundary markers
 
@@ -349,6 +346,40 @@ impl<T> !Sync for CPtr<T> { }
 ```
 
 APIs that pass values to threads or tasks (`thread::spawn`, `task::spawn`, `par::*`, `channel`) constrain their arguments with these two traits. The policy for synchronization primitives follows [2.16 sync](216-sync.md).
+
+### `Handoff<T>` and the hand-off machinery
+
+```rok
+pub struct Handoff<T> { value: T; }
+
+impl<T> Handoff<T> {
+    pub const unsafe fn new(value: T) -> Handoff<T>;
+    pub const fn get(self) -> T;
+}
+
+unsafe impl<T: Send> Send for Handoff<T> {}
+unsafe impl<T: Send> Sync for Handoff<T> {}
+
+pub fn hand_over<T>(x: T) -> T;
+```
+
+`Handoff<T>` carries a value between threads under an outside protocol (a join, a lock, a channel hand-off) that keeps any two threads from using it at once. It is `Send + Sync` whenever `T` is `Send`, even when `T` is not `Sync` (a collection). `new` is `unsafe`: the caller guarantees that no two threads use the value, or another copy of its handle, at the same time. `new` makes no copy (see above); `get` returns the wrapped value.
+
+`hand_over(x)` returns what a hand-off gives the new owner: `x` with a copy of every collection it reaches, or `x` itself when it reaches none.
+
+`Transfer` and `Memo` are public only so that the hand-off copy can reach the standard collections in other modules.
+
+```rok
+pub trait Transfer {
+    fn transfer_copy(self, m: Memo) -> Self;
+    fn transfer_keep(self, m: Memo) -> Self;
+    fn transfer_visit(self, m: Memo) -> Self;
+}
+
+pub struct Memo { /* private fields */ }
+```
+
+The compiler calls `Transfer` only for its fixed list of standard handle types; an impl on any other type is ignored. `Memo` records the copies one hand-off has made, by original object, and the copied buffers still to fix. Its methods and the `transfer*` intrinsics beside it are `pub(pkg)`: they are internal to the library and not a stable API.
 
 ## 2.13.10. `Default` - default values
 

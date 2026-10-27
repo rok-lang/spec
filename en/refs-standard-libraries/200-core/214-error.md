@@ -1,6 +1,6 @@
 # 2.14. error - Error traits / types
 
-The `rok::core::error` / `rok::core::panic` modules provide the authority for error handling. Rok has a single error model. A function that can throw an error writes `throws` in its signature, and the caller marks the call with `try` ([refs-lang 4.14](../../refs-lang/004-functions/414-throws.md)). `Result<T, E>` is an ordinary enum for **holding an error as a value**; it is not a means of propagating errors.
+The `rok::core::error` / `rok::core::panic` modules provide the authority for error handling (`ZeroError` lives beside `NonZero` in `rok::core::num::niche`). Rok has a single error model. A function that can throw an error writes `throws` in its signature, and the caller marks the call with `try` ([refs-lang 4.14](../../refs-lang/004-functions/414-throws.md)). `Result<T, E>` is an ordinary enum for **holding an error as a value**; it is not a means of propagating errors.
 
 This chapter defines three of the 48 lang slots: `panic_fn` / `oom_fn` / `unreachable_fn`.
 
@@ -150,7 +150,7 @@ let cfg = try parse_config(text) catch e: ParseError {
 
 ## 2.14.4. Built-in error types
 
-The error types the standard library provides by default are defined as follows.
+The error types the standard library provides by default are defined as follows. Their fields are `pub`.
 
 ```rok
 struct TypeError {
@@ -182,7 +182,7 @@ struct ConversionError {
     msg: str;
 }
 
-struct ZeroError;
+struct ZeroError;      // rok::core::num::niche
 ```
 
 Each type implements `Error + Display + Debug`, and its `Display` body provides a human-friendly message. Where each error is thrown:
@@ -216,8 +216,9 @@ At the bottom of the error model are hook functions that the compiler calls dire
 ```rok
 mod panic {                         // rok::core::panic
     #[lang("panic_fn")]
+    #[track_caller]
     fn panic(msg: str) -> ! {
-        rok_panic_str(msg)           // prints to stderr, then exit code 101
+        rok_panic_at(msg)            // prints to stderr with the caller's location, then exit code 101
     }
 
     #[lang("oom_fn")]
@@ -226,13 +227,14 @@ mod panic {                         // rok::core::panic
     }
 
     #[lang("unreachable_fn")]
+    #[track_caller]
     fn unreachable() -> ! {
-        // the unreachable position of an exhaustive match arm
+        rok_panic_at("internal error: entered unreachable code")
     }
 }
 ```
 
-Each function has return type `-> !` (never) and never returns normally.
+Each function has return type `-> !` (never) and never returns normally. `panic` and `unreachable` are `#[track_caller]`: the reported location is the first caller outside a `#[track_caller]` chain.
 
 ### Where panics occur
 
@@ -402,6 +404,8 @@ The traits each error type implements:
 | `IndexError`         | ✓       | ✓             | ✓     |                                |
 | `OverflowError`      | ✓       | ✓             | ✓     | range exceeded in a checked conversion |
 | `ParseError`         | ✓       | ✓             | ✓     |                                |
+| `ConversionError`    | ✓       | ✓             | ✓     | default `TryFrom::Error`       |
+| `ZeroError`          | ✓       | ✓             | ✓     | in `rok::core::num::niche`     |
 | `IoError`            | ✓       | ✓             | ✓     | std tier (target-dependent)    |
 | `StackOverflowError` | ✓       | ✓             | ✓     | Fatal - cannot be caught       |
 | `OutOfMemoryError`   | ✓       | ✓             | ✓     | Fatal - cannot be caught       |

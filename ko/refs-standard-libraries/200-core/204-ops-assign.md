@@ -180,9 +180,21 @@ primitive 타입의 `*Assign` impl 에는 모두 `#[intrinsic("rok.OP_assign.TYP
 | `bool`       | `BitAndAssign`/`BitOrAssign`/`BitXorAssign` | `rok.and_assign.bool`, ...                      |
 | `int`        | 산술 + 비트                                 | auto-promote 로직 - 새 값으로 교체 (불변)       |
 | `float`      | 산술                                        | (위와 동일 - auto-promote)                      |
-| `List<T>`    | `AddAssign<List<T>>`, `AddAssign<T>`        | push                                            |
+| `List<T>`    | `AddAssign<T>`, `AddAssign<List<T>>`        | `xs += x` 는 `x` 를 push; `xs += ys` 는 `ys` 의 모든 원소를 제자리에서 push |
 | `str`        | `AddAssign<str>`, `AddAssign<char>`         | `s = s + t` - 새 str 로 교체 (str 은 불변)      |
-| `Dict<K,V>`  | `AddAssign<Dict<K,V>>`                      | merge - 기존 키 덮어씀                          |
+| `Dict<K,V>`  | `AddAssign<Dict<K,V>>` (`K: Hash`)          | 제자리 merge - 겹치는 키는 오른쪽 값이 이김     |
+
+```rok
+let xs: List<i32> = [1];
+xs += 2;              //→ [1, 2]
+xs += [3, 4];         //→ [1, 2, 3, 4]
+
+let s = "ab";
+s += 'c';             //→ "abc"
+
+let d: Dict<str, i32> = {"a": 1, "b": 2};
+d += {"b": 20, "c": 3};   //→ {"a": 1, "b": 20, "c": 3}
+```
 
 `a op= b` 는 왼쪽 타입이 `XxxAssign` 을 구현하면 `XxxAssign::xxx_assign` (`AddAssign::add_assign` 등) 을 부르고, 아니면 `a = a op b` 입니다.
 

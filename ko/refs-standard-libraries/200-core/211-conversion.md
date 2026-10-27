@@ -279,10 +279,10 @@ unsigned 에서 같거나 더 좁은 signed 로의 변환 (예를 들어 u32 →
 |-----------|-----|-------------------------|
 | `i8`      | ✓   | ✓                       |
 | `i16`     | ✓   | ✓                       |
-| `i32`     |     | ✓ (precision 손실 가능) |
-| `i64`     |     | (precision 손실)        |
+| `i32`     |     | ✓                       |
+| `i64`     |     | (`From` 없음: precision 손실) |
 
-f32 는 24-bit mantissa, f64 는 53-bit mantissa 이므로 그 비트 폭 안에서만 lossless 가 성립합니다.
+f32 는 24-bit mantissa, f64 는 53-bit mantissa 이므로 그 비트 폭 안에서만 lossless 가 성립합니다. unsigned 정수에서 부동소수 타입으로 가는 `From` impl 은 없으므로 `as` 를 씁니다.
 
 ### 부동소수 사이
 

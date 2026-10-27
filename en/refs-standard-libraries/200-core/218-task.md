@@ -10,6 +10,7 @@ The signatures of the core API:
 
 ```rok
 fn block_on<F: Future>(f: F) -> F::Output;              // sync entry point - attaches to the executor and runs f to completion
+fn block_on_try<T, E>(f: TryAsyncFuture<T, E>) throws (E) -> T;   // block_on for a throwing async body - its error is thrown here
 fn spawn<F: Future + Send>(f: F) -> Task<F::Output> where F::Output: Send;
 fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future - pinned to the current worker
 fn spawn_blocking<T: Send>(f: fn() -> T + Send) -> Blocking<T>;   // blocking work on an OS thread outside the executor
@@ -28,9 +29,28 @@ fn registrations() -> usize;                            // diagnostic - parked w
 fn readable(fd: i32) -> IoReady;                       // await - until fd becomes readable (refs-lang 7.7.2)
 fn writable(fd: i32) -> IoReady;
 fn wake_io(fd: i32);                                   // wakes the readable / writable waiters of fd (used after close / shutdown; low-level)
+fn park(key: usize, waker: Waker);                     // wakes waker at the next unpark(key) - low-level
+fn unpark(key: usize);                                 // wakes every task parked on key
 ```
 
-`sleep` and `timeout` measure their duration from the first poll.
+`sleep` and `timeout` measure their duration from the first poll. `park` / `unpark` are the wait queue the locks of [2.16](216-sync.md) are built on: a hand-written `Future` parks `ctx.waker()` ([2.20](220-future.md)) on a key of its choosing, returns `Pending`, and whoever changes the state calls `unpark` with the same key. A parked entry is also removed when its task finishes.
+
+The futures and the error these functions return:
+
+```rok
+struct SelectFuture<F> { /* ... */ }
+impl<F: Future> Future for SelectFuture<F> { type Output = (usize, F::Output); ... }
+
+struct IoReady { /* ... */ }
+impl Future for IoReady { type Output = (); ... }   // may complete spuriously - retry the I/O in a loop
+
+struct Join<T> { /* ... */ }                        // Task::join - awaited with try await
+impl<T> Join<T> {
+    fn poll(ref self, ref ctx: Context) throws (CancellationError) -> Poll<T>;
+}
+
+struct TimeoutError {}                              // task::timeout ran out - Display "timed out", Debug, Error
+```
 
 ### Example
 
@@ -189,6 +209,8 @@ Worker 0 ─┐      Worker 1 ─┐    ...    Worker N-1 ─┐
 Key properties of this structure: the local queue is a lock-free Chase-Lev deque, and both the owning worker and thieves take the oldest task first (so a task that keeps re-waking itself does not starve the others, [refs-lang 7.6.2](../../refs-lang/007-runtime/706-scheduler.md#762-work-stealing-structure)). A busy worker processes expired timers every 32 tasks. For the I/O driver, one reactor thread per process waits on epoll / kqueue edge-triggered (io_uring / IOCP are future work, [refs-lang 7.7](../../refs-lang/007-runtime/707-io-and-timer.md)); the timer structure is implementation-defined (binary heap or timing wheel, [refs-lang 7.7.4](../../refs-lang/007-runtime/707-io-and-timer.md#774-timer-structure)).
 
 Note that the standard library's authority is limited to the API signatures; the algorithm bodies belong to the runtime and standard library body, outside the spec.
+
+`rok::core::task` also exports runtime hooks: `TaskRef`, `Pool`, `Worker`, `wake_task`, `cancel_requested`, `unwinding`, and `host_enter` / `host_leave` / `host_run` (the event-loop entry for WebAssembly components). They are public for the compiler and the runtime, are internal to the runtime, and are not a stable API.
 
 ## 2.18.4. Cooperative cancellation - `Task::cancel`
 

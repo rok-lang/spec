@@ -195,7 +195,7 @@ List<i32>
 User { id: 1, name: "Alice" }
 ```
 
-A bare expression uses `Display`, a trailing `?` uses `Debug`, and a value with neither prints only its type name.
+A bare expression uses `Display` and a trailing `?` uses `Debug`. A value without the requested trait (`Display` for a bare expression, `Debug` for a trailing `?`) prints only its type name.
 
 ## 2.12.5. Module mapping
 

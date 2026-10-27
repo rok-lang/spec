@@ -50,14 +50,25 @@ struct Int { ... }  // internal representation: small-int or BigInt
 
 impl Int {
     fn new() -> int;              // initialized to 0
+    fn from_i32(n: i32) -> int;
     fn from_i64(n: i64) -> int;
     fn from_u64(n: u64) -> int;
     fn parse_radix(s: str, radix: u32) -> int | none;  // radix parsing (base 10 is FromStr)
+    fn to_str_radix(self, radix: u32) -> str;   // radix 2..=36, lowercase digits, `-` first; panics on another radix
 
     fn to_i32(self) -> i32 | none;  // the value if in range, none otherwise
     fn to_i64(self) -> i64 | none;
-    fn to_f64(self) -> f64;        // always succeeds (may lose precision)
+    fn to_u64(self) -> u64 | none;  // none if negative or past u64::MAX
+    fn to_f64(self) -> f64;        // nearest f64, ties to even; ±inf past f64::MAX
 
+    fn is_zero(self) -> bool;
+    fn is_negative(self) -> bool;
+    fn is_positive(self) -> bool;               // false for 0
+    fn signum(self) -> int;                     // -1, 0 or 1
+    fn abs(self) -> int;
+    fn bit_length(self) -> u64;                 // bits of |self| without leading zeros; 0 for 0
+
+    fn div_rem(self, rhs: int) -> (int, int);   // (self / rhs, self % rhs), truncating; panics if rhs == 0
     fn pow(self, exp: u32) -> int;              // exp: u32 as for fixed-width integers
     fn isqrt(self) -> int;                      // floor(sqrt(self)); panics if self < 0
     fn checked_isqrt(self) -> int | none;       // none if self < 0
@@ -133,11 +144,21 @@ being passed.
 struct Float { ... }  // internal: f64 or BigFloat (when the exponent is outside f64)
 
 impl Float {
+    fn from_f32(x: f32) -> float;
     fn from_f64(x: f64) -> float;
+    fn from_int(n: int) -> float;                  // nearest float, ties to even
     fn try_parse(s: str) -> float | none;          // FromStr is implemented too
 
     fn to_f32(self) -> f32 | none;     // none only when a finite value is outside the f32 range
-    fn to_f64(self) -> f64;
+    fn to_f64(self) -> f64;            // nearest f64; ±inf past f64::MAX, ±0 below the subnormals
+    fn to_int(self) -> int | none;     // truncated toward zero; none for NaN / ±inf
+
+    fn is_nan(self) -> bool;
+    fn is_infinite(self) -> bool;
+    fn is_finite(self) -> bool;
+    fn is_zero(self) -> bool;
+    fn is_sign_negative(self) -> bool;
+    fn abs(self) -> float;
     ...
 }
 ```
@@ -220,21 +241,19 @@ The `#[keyword]` attribute is attached to the `Int` / `Float` definitions in thi
 ### Standard library form of the built-in primitives
 
 ```rok
-struct i32 { ... }        // used directly by users (the lowercase identifier is the type)
-struct f64 { ... }
-struct bool { ... }
-struct c_char { ... }
-struct str { ... }
-// ... the remaining 11 have the same shape
+impl i32 { ... }              // inherent constants and methods (below)
+impl Add for i32 { ... }      // trait impls: Add, PartialOrd, Display, Clone, ...
+impl PartialEq for c_char { ... }
 ```
 
-The standard library only attaches impl blocks to implement traits (`Add`, `Display`, `Clone`, ...).
-Recognizing the type itself is the compiler's responsibility.
+The standard library declares no struct for a built-in primitive. It only attaches `impl` blocks
+for inherent methods and traits (`Add`, `Display`, `Clone`, ...). Recognizing the type itself is the
+compiler's responsibility.
 
 ### Arithmetic / comparison trait impls
 
 Each primitive implements the traits of [2.3 ops](203-ops.md), [2.4 ops-assign](204-ops-assign.md) and
-[2.5 cmp](205-cmp.md). Every impl carries
+[2.5 cmp](205-cmp.md). Every operator method and every `PartialEq` / `PartialOrd` method carries
 `#[intrinsic("rok.OP.TYPE")]`, which binds it directly to a compiler backend PrimOp.
 
 ### Methods (per primitive)
@@ -245,76 +264,173 @@ Each integer / floating-point type exposes the following methods (the example is
 impl i32 {
     const MIN: i32 = -2147483648;
     const MAX: i32 = 2147483647;
+    const BITS: u32 = 32;
+
+    fn pow(self, exp: u32) -> i32;                // overflow follows the arithmetic (debug panic, release wrap)
     fn abs(self) -> i32;
-    fn pow(self, exp: u32) -> i32;
+    fn unsigned_abs(self) -> u32;                 // |self| without overflow (i32::MIN gives 2^31)
+    fn abs_diff(self, rhs: i32) -> u32;
+    fn signum(self) -> i32;                       // -1, 0 or 1
+    fn is_positive(self) -> bool;
+    fn is_negative(self) -> bool;
+    fn div_euclid(self, rhs: i32) -> i32;         // the quotient for which rem_euclid >= 0
+    fn rem_euclid(self, rhs: i32) -> i32;         // in 0..rhs.abs()
+    fn isqrt(self) -> i32;                        // floor(sqrt(self)); panics if self < 0
+    fn checked_isqrt(self) -> i32 | none;         // none if self < 0
+    fn ilog2(self) -> u32;                        // floor(log2(self)); panics unless self > 0
+    fn ilog10(self) -> u32;
+    fn ilog(self, base: i32) -> u32;              // panics unless self > 0 and base >= 2
+    fn checked_ilog2(self) -> u32 | none;
+    fn checked_ilog10(self) -> u32 | none;
+    fn checked_ilog(self, base: i32) -> u32 | none;
+
+    // bits
     fn count_ones(self) -> u32;
+    fn count_zeros(self) -> u32;
     fn leading_zeros(self) -> u32;
     fn trailing_zeros(self) -> u32;
+    fn leading_ones(self) -> u32;
+    fn trailing_ones(self) -> u32;
     fn rotate_left(self, n: u32) -> i32;
     fn rotate_right(self, n: u32) -> i32;
+
+    // byte order
     fn swap_bytes(self) -> i32;
+    fn to_be(self) -> i32;                        // big-endian from native order
+    fn to_le(self) -> i32;
+    fn from_be(x: i32) -> i32;
+    fn from_le(x: i32) -> i32;
     fn to_le_bytes(self) -> [u8; 4];
     fn to_be_bytes(self) -> [u8; 4];
+    fn to_ne_bytes(self) -> [u8; 4];              // native order
     fn from_le_bytes(bytes: [u8; 4]) -> i32;
     fn from_be_bytes(bytes: [u8; 4]) -> i32;
+    fn from_ne_bytes(bytes: [u8; 4]) -> i32;
 
     // explicit-overflow variants
     fn checked_add(self, rhs: i32) -> i32 | none;
     fn checked_sub(self, rhs: i32) -> i32 | none;
     fn checked_mul(self, rhs: i32) -> i32 | none;
-    fn checked_div(self, rhs: i32) -> i32 | none;
+    fn checked_div(self, rhs: i32) -> i32 | none; // none for rhs == 0 and for MIN / -1
     fn checked_rem(self, rhs: i32) -> i32 | none;
     fn checked_neg(self) -> i32 | none;
-    fn checked_shl(self, n: u32) -> i32 | none;
+    fn checked_shl(self, n: u32) -> i32 | none;   // none if n >= BITS
     fn checked_shr(self, n: u32) -> i32 | none;
+    fn checked_pow(self, exp: u32) -> i32 | none;
+    fn checked_abs(self) -> i32 | none;
 
     fn saturating_add(self, rhs: i32) -> i32;     // clamp to i32::MAX or MIN
     fn saturating_sub(self, rhs: i32) -> i32;
     fn saturating_mul(self, rhs: i32) -> i32;
+    fn saturating_neg(self) -> i32;
+    fn saturating_pow(self, exp: u32) -> i32;
+    fn saturating_abs(self) -> i32;
 
     fn wrapping_add(self, rhs: i32) -> i32;       // modular arithmetic
     fn wrapping_sub(self, rhs: i32) -> i32;
     fn wrapping_mul(self, rhs: i32) -> i32;
+    fn wrapping_div(self, rhs: i32) -> i32;       // MIN / -1 is MIN; rhs == 0 still panics
+    fn wrapping_rem(self, rhs: i32) -> i32;       // MIN % -1 is 0
     fn wrapping_neg(self) -> i32;
-    fn wrapping_shl(self, n: u32) -> i32;
+    fn wrapping_shl(self, n: u32) -> i32;         // shift by n % BITS
     fn wrapping_shr(self, n: u32) -> i32;
+    fn wrapping_pow(self, exp: u32) -> i32;
+    fn wrapping_abs(self) -> i32;
+
+    // the wrapped result and whether it overflowed
+    fn overflowing_add(self, rhs: i32) -> (i32, bool);
+    fn overflowing_sub(self, rhs: i32) -> (i32, bool);
+    fn overflowing_mul(self, rhs: i32) -> (i32, bool);
+    fn overflowing_div(self, rhs: i32) -> (i32, bool);
+    fn overflowing_rem(self, rhs: i32) -> (i32, bool);
+    fn overflowing_neg(self) -> (i32, bool);
+    fn overflowing_shl(self, n: u32) -> (i32, bool);  // true if n >= BITS
+    fn overflowing_shr(self, n: u32) -> (i32, bool);
+    fn overflowing_pow(self, exp: u32) -> (i32, bool);
 }
 ```
 
-Unsigned, floating-point and isize types follow a similar pattern, each exposing only the
-methods appropriate to it.
+`i8`, `i16`, `i64` and `isize` have the same set with their own width. The unsigned types
+(`u8`..`u64`, `usize`) have the same set except the sign-related methods (`abs`, `unsigned_abs`,
+`signum`, `is_positive`, `is_negative`, `checked_isqrt`, `checked_abs`, `saturating_neg`,
+`saturating_abs`, `wrapping_abs`); `abs_diff` returns the same type, and `checked_neg` is `none`
+for every value but 0. They add powers of two.
+
+```rok
+impl u32 {
+    fn is_power_of_two(self) -> bool;
+    fn next_power_of_two(self) -> u32;                 // smallest power of two >= self; panics on overflow
+    fn checked_next_power_of_two(self) -> u32 | none;
+}
+```
 
 The minimum / maximum of an integer type are the associated constants `i32::MIN` / `i32::MAX`, not functions. An argument-less inherent method `min()` / `max()` would shadow `Ord::min` / `Ord::max` (`a.min(b)`) of the same name.
 
-Floating-point types (`f32`, `f64`) provide these additional methods.
+Floating-point types (`f32`, `f64`) provide these constants and methods (`f32` has the same set
+with `f32` in place of `f64` and `u32` bits).
 
 ```rok
 impl f64 {
+    const EPSILON: f64;          // 2^-52, the gap between 1.0 and the next f64
+    const MAX: f64;              // largest finite value
+    const MIN: f64;              // -MAX
+    const MIN_POSITIVE: f64;     // smallest positive normal value
+    const NAN: f64;
+    const INFINITY: f64;
+    const NEG_INFINITY: f64;
+    const PI: f64;
+    const TAU: f64;              // 2π
+    const E: f64;
+    const FRAC_PI_2: f64;        // π/2
+    const FRAC_PI_4: f64;        // π/4
+    const FRAC_1_PI: f64;        // 1/π
+    const SQRT_2: f64;
+    const FRAC_1_SQRT_2: f64;
+    const LN_2: f64;
+    const LN_10: f64;
+    const LOG2_E: f64;
+    const LOG10_E: f64;
+
     fn nan() -> f64;             // f64::NAN
     fn infinity() -> f64;        // f64::INFINITY
     fn neg_infinity() -> f64;
-    fn epsilon() -> f64;         // 2^-52
+    fn epsilon() -> f64;         // f64::EPSILON
 
     fn is_nan(self) -> bool;
     fn is_infinite(self) -> bool;
     fn is_finite(self) -> bool;
+    fn is_normal(self) -> bool;  // neither zero, subnormal, infinite nor NaN
     fn is_sign_positive(self) -> bool;
     fn is_sign_negative(self) -> bool;
 
     fn floor(self) -> f64;
     fn ceil(self) -> f64;
-    fn round(self) -> f64;
+    fn round(self) -> f64;       // halves away from zero
     fn trunc(self) -> f64;
     fn fract(self) -> f64;       // self - self.trunc()
 
     fn abs(self) -> f64;
     fn signum(self) -> f64;      // 1.0 if positive, -1.0 if negative, that zero if ±0.0, NaN if NaN
+    fn copysign(self, sign: f64) -> f64;
+    fn recip(self) -> f64;       // 1.0 / self
+    fn min(self, other: f64) -> f64;     // a NaN operand loses to a number
+    fn max(self, other: f64) -> f64;
+    fn clamp(self, lo: f64, hi: f64) -> f64;   // NaN stays NaN
+    fn div_euclid(self, rhs: f64) -> f64;
+    fn rem_euclid(self, rhs: f64) -> f64;
+    fn mul_add(self, a: f64, b: f64) -> f64;   // self * a + b with one rounding
 
-    fn sqrt(self) -> f64;
+    fn sqrt(self) -> f64;        // the Sqrt trait (2.3)
     fn cbrt(self) -> f64;
+    fn hypot(self, other: f64) -> f64;   // sqrt(self² + other²) without overflow
     fn pow(self, exp: f64) -> f64;
+    fn powf(self, exp: f64) -> f64;      // = pow
+    fn powi(self, n: i32) -> f64;
     fn exp(self) -> f64;
+    fn exp2(self) -> f64;
+    fn exp_m1(self) -> f64;      // e^self - 1, exact near zero
     fn ln(self) -> f64;
+    fn ln_1p(self) -> f64;       // ln(1 + self), exact near zero
     fn log(self, base: f64) -> f64;
     fn log2(self) -> f64;
     fn log10(self) -> f64;
@@ -324,10 +440,15 @@ impl f64 {
     fn asin(self) -> f64;
     fn acos(self) -> f64;
     fn atan(self) -> f64;
-    fn atan2(self, other: f64) -> f64;
+    fn atan2(self, other: f64) -> f64;   // angle of the point (other, self)
     fn sinh(self) -> f64;
     fn cosh(self) -> f64;
     fn tanh(self) -> f64;
+    fn asinh(self) -> f64;
+    fn acosh(self) -> f64;
+    fn atanh(self) -> f64;
+    fn to_degrees(self) -> f64;
+    fn to_radians(self) -> f64;
 
     fn to_bits(self) -> u64;     // bit pattern
     fn from_bits(bits: u64) -> f64;
@@ -448,29 +569,12 @@ When an opt-in niche is needed, use the
 
 ## 2.1.9. lang slot mapping
 
-The 16 language built-ins use lowercase struct names. The compiler recognizes them
-directly, so no `#[keyword]` is needed.
+The 16 language built-ins (`i8`..`i64`, `u8`..`u64`, `isize`, `usize`, `f32`, `f64`, `bool`,
+`c_char`, `char`, `str`) are recognized by the compiler by name. No standard library item binds a
+lang slot for them and no struct is declared for them; the library adds only `impl` blocks
+(2.1.4), so no `#[keyword]` or `#[lang]` is needed.
 
-| primitive | lang slot    | struct name | Registration     |
-|-----------|--------------|-------------|------------------|
-| `i8`      | `i8_type`    | `i8`        | Language built-in |
-| `i16`     | `i16_type`   | `i16`       | Language built-in |
-| `i32`     | `i32_type`   | `i32`       | Language built-in |
-| `i64`     | `i64_type`   | `i64`       | Language built-in |
-| `u8`      | `u8_type`    | `u8`        | Language built-in |
-| `u16`     | `u16_type`   | `u16`       | Language built-in |
-| `u32`     | `u32_type`   | `u32`       | Language built-in |
-| `u64`     | `u64_type`   | `u64`       | Language built-in |
-| `isize`   | `isize_type` | `isize`     | Language built-in |
-| `usize`   | `usize_type` | `usize`     | Language built-in |
-| `f32`     | `f32_type`   | `f32`       | Language built-in |
-| `f64`     | `f64_type`   | `f64`       | Language built-in |
-| `bool`    | `bool_type`  | `bool`      | Language built-in |
-| `c_char`  | `cchar_type` | `c_char`    | Language built-in |
-| `char`    | `char_type`  | `char`      | Language built-in |
-| `str`     | `str_type`   | `str`       | Language built-in |
-
-The 3 types added by the standard library are registered as PascalCase structs with `#[keyword(...)]`.
+The 2 types added by the standard library are PascalCase structs registered with `#[keyword(...)]` and bound to their lang slots with `#[lang(...)]`.
 
 | primitive | lang slot    | struct name | Registration          |
 |-----------|--------------|-------------|-----------------------|

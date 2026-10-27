@@ -279,10 +279,10 @@ A conversion from unsigned to a signed type of the same or smaller width (e.g. u
 |-----------|-----|-----------------------------|
 | `i8`      | ✓   | ✓                           |
 | `i16`     | ✓   | ✓                           |
-| `i32`     |     | ✓ (may lose precision)      |
-| `i64`     |     | (loses precision)           |
+| `i32`     |     | ✓                           |
+| `i64`     |     | (no `From`: loses precision) |
 
-f32 has a 24-bit mantissa and f64 a 53-bit mantissa, so losslessness holds only within that bit width.
+f32 has a 24-bit mantissa and f64 a 53-bit mantissa, so losslessness holds only within that bit width. The unsigned integers have no `From` impl into a floating-point type; use `as`.
 
 ### Between floating-point types
 

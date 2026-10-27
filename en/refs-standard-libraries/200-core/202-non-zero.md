@@ -41,7 +41,7 @@ Only integer types are accepted. Floating-point types use `NonNan` / `Finite`.
 | `NonZero<T> + - / NonZero<T>` | `T`                                             |
 | `T / NonZero<T>`            | `T`. No division by zero                          |
 
-`TryFrom<T>` throws `ZeroError` on 0. `From<NonZero<T>> for T` is lossless.
+`TryFrom<T>` throws `ZeroError` on 0. `ZeroError` is a unit struct defined in this module (`rok::core::num::niche::ZeroError`) and implements `Error` ([2.14.4](214-error.md#2144-built-in-error-types)). `From<NonZero<T>> for T` is lossless.
 
 ```rok
 let n: NonZero<i32> = NonZero::new(42) ?? panic("zero");

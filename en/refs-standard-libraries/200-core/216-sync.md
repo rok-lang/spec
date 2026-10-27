@@ -24,13 +24,13 @@ Each of the four primitives covers a different concurrency scenario. The followi
 `Atomic<T>` is the lightest primitive. Internally it is implemented with per-T LLVM atomic operations and has the following shape.
 
 ```rok
-struct Atomic<T: AtomicPrimitive> {
-    // internal: AtomicU32 / AtomicU64 / AtomicPtr etc. (per-T LLVM atomic ops)
+struct Atomic<T> {
+    // internal: a one-element cell driven by per-T LLVM atomic ops
 }
 
-trait AtomicPrimitive { /* marker - i32/i64/u32/u64/usize/isize/bool/Ptr */ }
+trait AtomicPrimitive { /* marker - i8/i16/i32/i64/isize, u8/u16/u32/u64/usize, bool, Ptr<T> */ }
 
-impl<T: AtomicPrimitive> Atomic<T> {
+impl<T: AtomicPrimitive + PartialEq> Atomic<T> {
     const fn new(value: T) -> Atomic<T>;
 
     fn load(self, ordering: AtomicOrdering = SeqCst) -> T;
@@ -60,6 +60,8 @@ impl Atomic<i32> {
 ```
 
 `wait` may return spuriously, so the caller re-checks the condition (futex semantics).
+
+`load` and the `failure` ordering of `compare_exchange` / `compare_exchange_weak` are load orderings: passing `Release` or `AcqRel` there panics. `compare_exchange_weak` never fails spuriously in this implementation; it behaves as `compare_exchange`. `PartialEq` is required because `compare_exchange` compares the old value with `current`; `Ptr<T>` compares by address.
 
 ### `AtomicOrdering`
 
@@ -93,23 +95,22 @@ let v = COUNTER.load(SeqCst);     //→ 2
 
 ### CAS (compare-and-swap)
 
-More complex lock-free data structures are built on compare-and-swap loops. The following is the push of a lock-free stack.
+Updates that atomics do not offer directly are built on compare-and-swap loops. The following keeps the largest value ever stored.
 
 ```rok
-fn lock_free_push(stack: Atomic<List<T> | none>, x: T) {
+fn store_max(cell: Atomic<i64>, x: i64) {
+    let cur = cell.load(Acquire);
     loop {
-        let cur = stack.load(Acquire);
-        let new = match cur {
-            v: List<T> => v.with_appended(x),
-            none       => [x],
-        };
-        match stack.compare_exchange(cur, new, AcqRel, Acquire) {
-            Ok(_)  => break,
-            Err(_) => continue,                   // another task got there first - retry
+        if cur >= x { break; }
+        match cell.compare_exchange(cur, x, AcqRel, Acquire) {
+            Ok(_)       => break,
+            Err(actual) => cur = actual,          // another task got there first - retry with its value
         }
     }
 }
 ```
+
+The element type must be an `AtomicPrimitive`: a collection such as `List<T>` cannot be held in an `Atomic`. Shared collections go in a `Mutex<T>` (2.16.3).
 
 ## 2.16.3. `Mutex<T>` - exclusive lock
 
@@ -144,6 +145,8 @@ impl<T> MutexGuard<T> {
 }
 ```
 
+A guard does not forward the methods of the value it protects: `g.push(1)` on a `MutexGuard<List<i32>>` is an error. Reach the value through `get`, `set` and `update`.
+
 ### Example
 
 A guard bound with `using` is `drop`ped on leaving the block, releasing the lock. A guard received without `using` is not released automatically, so it must always be bound with `using`. A guard is received from a call, a method call or `await`. A received guard may only initialize a binding (`let`, a pattern, `using`), be assigned to a variable, or be handed to the caller (`return`, the function's value). Passing it to a function, calling a method on it, storing it in a field or a collection, or discarding it is a compile error. A guard bound with `using` may be passed to functions; a guard bound without `using` is not released by passing it on. Binding a guard with a plain `let` (or `if let`) that is never released by `using`, or discarding a guard returned by `lock`, is a compile error.
@@ -166,7 +169,7 @@ To avoid deadlock, a non-blocking attempt can be made with `try_lock` instead of
 
 ```rok
 match STATE.try_lock() {
-    v: MutexGuard<...> => using g = v { g.push(1); },
+    v: MutexGuard<List<i32>> => using g = v { g.update(|xs| { xs.push(1); xs }); },
     none => { log("locked, skip"); },
 }
 ```
@@ -183,7 +186,7 @@ Where consistency really must be restored before leaving with an error, handle i
 ```rok
 using g = MUTEX.lock() {
     try unsafe_op(g) catch e {
-        g.reset_to_known_good_state();
+        g.set(known_good_state());
         throw e;
     };
 }
@@ -220,7 +223,7 @@ using c = CONFIG.read() {        // concurrent with other readers OK
 }   // ← read guard drop, lock released
 
 using w = CONFIG.write() {       // briefly blocks all readers
-    w.reload_from_file();
+    w.set(Config::load_from_file());
 }
 ```
 
@@ -239,6 +242,7 @@ struct Once { /* ... */ }
 impl Once {
     const fn new() -> Once;
     fn call_once(self, f: fn());          // runs f only the first time; concurrent callers wait until it finishes
+    fn is_completed(self) -> bool;        // true once a call_once has finished
 }
 
 struct Condvar { /* ... */ }
