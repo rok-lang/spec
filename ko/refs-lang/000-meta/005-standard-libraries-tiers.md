@@ -22,7 +22,7 @@
 
 ### `rok::bare`
 
-`rok::bare` 는 저수준이며 위험한 영역입니다. 컴파일러가 안전성을 보증할 수 없는 동작이 이곳에 모이게 되는데, 대표적으로 다음과 같은 항목들이 포함됩니다. 우선 원시 포인터 형태(raw pointer 추상) 가 있고, 임의 비트 캐스팅(`transmute` 류) 도 여기에 속합니다. 또한 핀(pinning) 과 volatile 메모리 접근, 그리고 C [ABI](007-glossary.md#abi-application-binary-interface) 호환 메모리 할당의 원형 역시 `rok::bare` 의 영역입니다. MLIR 다이얼렉트 직접 호출 (`rok::bare::mlir`) 과 사용자 정의 다이얼렉트 plugin 등록 (`rok::bare::mlir::plugin`) 도 이 계층에 자리하여, 외부 텐서 / SIMD / GPU 라이브러리가 가속 영역에 접근하는 통로로 쓰입니다.
+`rok::bare` 는 저수준이며 위험한 영역입니다. 컴파일러가 안전성을 보증할 수 없는 동작이 이곳에 모이게 되는데, 대표적으로 다음과 같은 항목들이 포함됩니다. 우선 원시 포인터 형태(raw pointer 추상) 가 있고, 임의 비트 캐스팅(`transmute` 류) 도 여기에 속합니다. 또한 핀(pinning) 과 volatile 메모리 접근, 그리고 C [ABI](007-glossary.md#abi-application-binary-interface) 호환 메모리 할당의 원형 역시 `rok::bare` 의 영역입니다. MLIR 다이얼렉트 직접 호출 (`rok::bare::mlir`) 과 컴파일러의 사용자 정의 다이얼렉트 plugin 로드 ([stdlib 1.10](../../refs-standard-libraries/100-bare/110-mlir-plugin.md)) 도 이 계층에 자리하여, 외부 텐서 / SIMD / GPU 라이브러리가 가속 영역에 접근하는 통로로 쓰입니다.
 
 이 계층의 함수를 호출하는 쪽이 안전성을 책임지게 되며, 경로 자체가 그 사실을 분명하게 알려 줍니다.
 

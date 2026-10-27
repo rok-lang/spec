@@ -29,7 +29,7 @@ Three WebAssembly targets are supported, covering browser-based and server-side 
 | Target                   | Notes                            |
 |--------------------------|----------------------------------|
 | `wasm32-unknown-unknown` | Browser environment; `target_os = "none"` ([6.3.2](../006-meta-system/603-cfg.md)) |
-| `wasm32-wasi`            | Server-side WASM: a WASI preview 2 component. `wasi:sockets` networking; no threads (`thread::spawn` throws `Unsupported`) |
+| `wasm32-wasi`            | Server-side WASM: a WASI preview 2 component. `wasi:sockets` networking; no threads (`thread::spawn` panics; `thread::Builder::spawn` throws `Unsupported`) |
 | `wasm32-wasi-threads`    | Server-side WASM with threads: a WASI preview 1 core module using wasi-threads (shared memory). Networking only on listeners the host passes in; connect / bind / DNS throw `Unsupported` |
 
 > [!NOTE]

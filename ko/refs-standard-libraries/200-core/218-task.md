@@ -279,23 +279,53 @@ let r = t.join();              // OS-level 동기 대기
 시간 표현을 위한 `Duration` 과 `Instant` 는 다음과 같이 정의됩니다.
 
 ```rok
-struct Duration { /* ns 단위 i64 */ }
-struct Instant { /* monotonic clock */ }
+struct Duration { /* i64 나노초, 비공개 */ }
+struct Instant { /* 단조 시계, 비공개 */ }
 
 impl Duration {
-    fn ns(n: i64) -> Duration;
-    fn us(n: i64) -> Duration;
-    fn ms(n: i64) -> Duration;
-    fn sec(n: i64) -> Duration;
-    fn min(n: i64) -> Duration;
-    fn hours(n: i64) -> Duration;
+    const fn ns(n: i64) -> Duration;
+    const fn us(n: i64) -> Duration;
+    const fn ms(n: i64) -> Duration;
+    const fn sec(n: i64) -> Duration;
+    const fn min(n: i64) -> Duration;
+    const fn hours(n: i64) -> Duration;
+    const fn days(n: i64) -> Duration;
+    const fn from_secs_f64(s: f64) -> Duration;
+    const ZERO: Duration;
+    const MAX: Duration;
+
+    const fn as_ns(self) -> i64;
+    const fn as_us(self) -> i64;
+    const fn as_ms(self) -> i64;
+    const fn as_secs(self) -> i64;
+    const fn as_secs_f64(self) -> f64;
+    const fn subsec_ns(self) -> u32;
+    const fn subsec_us(self) -> u32;
+    const fn subsec_ms(self) -> u32;
+
+    const fn checked_add(self, rhs: Duration) -> Duration | none;
+    const fn checked_sub(self, rhs: Duration) -> Duration | none;
+    const fn checked_mul(self, factor: i64) -> Duration | none;
+    const fn checked_div(self, divisor: i64) -> Duration | none;
+    const fn saturating_add(self, rhs: Duration) -> Duration;
+    const fn saturating_sub(self, rhs: Duration) -> Duration;
+    const fn saturating_mul(self, factor: i64) -> Duration;
 }
+// Add, Sub (Duration); Mul<i64>, Div<i64>; Mul<Duration> for f64; Display, Debug
 
 impl Instant {
     fn now() -> Instant;
     fn elapsed(self) -> Duration;
+    const fn duration_since(self, earlier: Instant) -> Duration;
+    const fn checked_duration_since(self, earlier: Instant) -> Duration | none;
+    const fn saturating_duration_since(self, earlier: Instant) -> Duration;
+    const fn checked_add(self, d: Duration) -> Instant | none;
+    const fn checked_sub(self, d: Duration) -> Instant | none;
 }
+// Add<Duration>, Sub<Duration>, Sub<Instant> -> Duration
 ```
+
+overflow 시 `ns`..`days` 와 `+` `-` `*` 연산자는 debug 빌드에서 panic, 그 외에는 포화(saturate)합니다. `checked_*` / `saturating_*` 형태로 명시적으로 고를 수 있습니다. `Duration` 은 부호가 있으므로 `earlier` 가 더 나중이면 `duration_since` 는 음수 duration 을 돌려주고, `checked_duration_since` 는 `none`, `saturating_duration_since` 는 `Duration::ZERO` 를 돌려줍니다.
 
 이를 활용하여 `await task::sleep(Duration::ms(100))` 또는 `await task::sleep_until(t)` 와 같이 호출하면 정확한 monotonic time 을 보장받을 수 있습니다. 두 타입은 `rok::core::task::time` 에 있으며 (2.18.7), `rok::std::time` 이 이를 다시 내보냅니다.
 

@@ -63,7 +63,7 @@ Low-level / dangerous area. Explicit import required.
 - 1.7. [FFI - `extern "C"` / `CStr` / `CString`](100-bare/107-ffi.md)
 - 1.8. [WASM Component Model (`ffi.wit`)](100-bare/108-wit.md)
 - 1.9. [`rok::bare::mlir` - direct access to MLIR dialects](100-bare/109-mlir.md)
-- 1.10. [`rok::bare::mlir::plugin` - registering user-defined dialects](100-bare/110-mlir-plugin.md)
+- 1.10. [MLIR dialect plugins - loading user-defined dialects into `rokc`](100-bare/110-mlir-plugin.md)
 
 ### 2. Rok - [200-core/](200-core/README.md)
 

@@ -17,6 +17,9 @@ The Immix mark-region GC of [refs-lang 7.3 GC algorithm](../../refs-lang/007-run
 For managed code (`GcPtr<T>`), the GC traces roots and updates every ptr automatically. A raw `Ptr<T>`, however, is invisible to the GC, so it is not updated and becomes a **stale ptr**.
 
 ```rok
+use rok::bare::gc;
+use rok::bare::ptr::Ptr;
+
 let xs: List<i32> = [1, 2, 3];                 // GcPtr (updated automatically)
 let raw: Ptr<i32> = Ptr::dangling();
 using pin = gc::pin(xs) {

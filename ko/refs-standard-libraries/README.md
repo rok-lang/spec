@@ -63,7 +63,7 @@ rok::std   (target-dep - uses rok::core + rok::bare)
 - 1.7. [FFI - `extern "C"` / `CStr` / `CString`](100-bare/107-ffi.md)
 - 1.8. [WASM Component Model (`ffi.wit`)](100-bare/108-wit.md)
 - 1.9. [`rok::bare::mlir` - MLIR 다이얼렉트 직접 접근](100-bare/109-mlir.md)
-- 1.10. [`rok::bare::mlir::plugin` - 사용자 정의 다이얼렉트 등록](100-bare/110-mlir-plugin.md)
+- 1.10. [MLIR 다이얼렉트 plugin - 사용자 정의 다이얼렉트를 `rokc` 에 로드](100-bare/110-mlir-plugin.md)
 
 ### 2. Rok - [200-core/](200-core/README.md)
 

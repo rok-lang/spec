@@ -32,8 +32,8 @@ trait Add<Rhs = Self> {
 #[lang("iterator_trait")]
 trait Iterator { ... }
 
-#[lang("none_type")]
-struct NoneSentinel;               // 'none' 리터럴이 평가되는 타입
+#[lang("display_trait")]
+trait Display { ... }              // 기본 f"{x}" 포맷
 ```
 
 `#[lang("slot_name")]` 의 형태로 작성하며, 인자로 슬롯 이름을 문자열 리터럴로 받습니다. 트레잇, 타입, 함수, `const`, `static` 같은 항목에 부착할 수 있습니다.

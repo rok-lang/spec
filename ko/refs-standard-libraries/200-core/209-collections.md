@@ -7,7 +7,7 @@
 | 컬렉션              | 리터럴 문법                | 의미                          |
 |---------------------|----------------------------|-------------------------------|
 | `List<T>`           | `[1, 2, 3]`                | 동적 배열 (insertion order)   |
-| `Dict<K, V>`        | `{"a": 1, "b": 2}`         | hash map (HashMap, 순서 없음) |
+| `Dict<K, V>`        | `{"a": 1, "b": 2}`         | hash map (순서 없음) |
 | `Set<T>`            | `{1, 2, 3}`                | hash set (순서 없음)          |
 | `OrderedDict<K, V>` | `OrderedDict::from([...])` | insertion-order 보존 dict     |
 | `OrderedSet<T>`     | `OrderedSet::from([...])`  | insertion-order 보존 set      |

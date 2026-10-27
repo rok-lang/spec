@@ -82,7 +82,7 @@ rokc build [path]
 - `--keep` 은 빌드의 임시 디렉터리 (object 와 그 밖의 중간 파일) 를 지우지 않고 남기며, 그 경로를 표준 에러에 알립니다 (`rokc: kept temporaries in <dir>`).
 - `--cfg <flag>` / `--cfg <key>=<value>` 는 [조건부 컴파일](../006-meta-system/603-cfg.md) 의 cfg flag 를 설정합니다. 여러 번 쓸 수 있습니다.
 - `--emit=<kind>[,<kind>..]` 는 중간 산출물 (`ast`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expanded`) 을 `target/<profile>/build/<name>.<ext>` 에 씁니다 ([9.9.1](909-debug-tools.md#991-중간-산출물-출력---emit)). 쉼표로 여러 종류를 한 번에 지정하며, 이때는 `-o` 를 함께 쓸 수 없습니다. `--emit` 이 있으면 실행 파일이나 archive 는 만들지 않습니다.
-- `--load-mlir-plugin <path|name>` 은 MLIR 다이얼렉트 plugin 을, `--load-mlir-pass-plugin <path|name>` 은 패스 plugin 을 (둘 다 `rokc` 의 MLIR 에, 같은 고정 LLVM 으로 빌드하고 Windows 에서는 `rokc.exe` 의 import library 에 링크한 것을) 로드하고, `--mlir-pass <pass>` 는 LLVM 다이얼렉트로 변환하기 전에 그 패스를 실행합니다 ([rok::bare::mlir::plugin](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-로드)). 모두 여러 번 쓸 수 있으며, `rok` 도 그대로 넘깁니다.
+- `--load-mlir-plugin <path|name>` 은 MLIR 다이얼렉트 plugin 을, `--load-mlir-pass-plugin <path|name>` 은 패스 plugin 을 (둘 다 `rokc` 의 MLIR 에, 같은 고정 LLVM 으로 빌드하고 Windows 에서는 `rokc.exe` 의 import library 에 링크한 것을) 로드하고, `--mlir-pass <pass>` 는 LLVM 다이얼렉트로 변환하기 전에 그 패스를 실행합니다 ([stdlib 1.10](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-로드)). 모두 여러 번 쓸 수 있으며, `rok` 도 그대로 넘깁니다.
 - `-g` 는 `release` profile 빌드에 디버그 정보를 더합니다: DWARF, Windows 대상에서는 PDB 의 CodeView ([9.9.6](909-debug-tools.md#996-디버거-통합-gdb--lldb)). `debug` profile 빌드에는 항상 있습니다.
 - `-C <option>` 은 `--codegen <option>` 으로도 쓸 수 있습니다.
 - `-C overflow-checks[=yes|no]` 는 고정 폭 정수 산술의 overflow 검사 (panic) 를 켜거나 끕니다. 기본값은 `-O0` 에서만 켬입니다. 값을 생략하면 `yes` 입니다. overflow 가 일어날 수 없는 상수 피연산자 연산은 검사를 생략합니다.

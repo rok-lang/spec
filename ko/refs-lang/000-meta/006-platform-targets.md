@@ -29,7 +29,7 @@ Rok 은 LLVM 이 코드 생성을 지원하는 플랫폼이라면 어느 host �
 | 타깃                     | 비고                             |
 |--------------------------|----------------------------------|
 | `wasm32-unknown-unknown` | 브라우저 환경. `target_os = "none"` ([6.3.2](../006-meta-system/603-cfg.md)) |
-| `wasm32-wasi`            | 서버사이드 WASM: WASI preview 2 component. `wasi:sockets` 네트워크, 스레드 없음 (`thread::spawn` 은 `Unsupported` 를 throw) |
+| `wasm32-wasi`            | 서버사이드 WASM: WASI preview 2 component. `wasi:sockets` 네트워크, 스레드 없음 (`thread::spawn` 은 panic, `thread::Builder::spawn` 은 `Unsupported` 를 throw) |
 | `wasm32-wasi-threads`    | 스레드가 있는 서버사이드 WASM: wasi-threads 를 쓰는 WASI preview 1 core module (공유 메모리). 네트워크는 host 가 넘긴 listener 에서만, connect / bind / DNS 는 `Unsupported` 를 throw |
 
 > [!NOTE]

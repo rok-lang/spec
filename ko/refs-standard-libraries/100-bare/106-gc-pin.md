@@ -24,6 +24,9 @@ managed code (`GcPtr<T>`) 의 경우 GC 가 root 를 추적하면서 모든 ptr 
 빠지고, 결과적으로 **stale ptr** 이 되어버립니다.
 
 ```rok
+use rok::bare::gc;
+use rok::bare::ptr::Ptr;
+
 let xs: List<i32> = [1, 2, 3];                 // GcPtr (자동 갱신)
 let raw: Ptr<i32> = Ptr::dangling();
 using pin = gc::pin(xs) {

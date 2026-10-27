@@ -22,7 +22,7 @@ All three tiers live under the virtual namespace `rok::` ([5.7.4 rok::](../005-m
 
 ### `rok::bare`
 
-`rok::bare` is the low-level, dangerous area. Behavior whose safety the compiler cannot guarantee gathers here; representative items include raw pointer forms (the raw pointer abstraction) and arbitrary bit casts (`transmute`-like). Pinning, volatile memory access, and the primitives of C [ABI](007-glossary.md#abi-application-binary-interface)-compatible memory allocation are also part of `rok::bare`. Direct calls into MLIR dialects (`rok::bare::mlir`) and registration of user-defined dialect plugins (`rok::bare::mlir::plugin`) also live in this tier and serve as the channel through which external tensor / SIMD / GPU libraries reach the acceleration domain.
+`rok::bare` is the low-level, dangerous area. Behavior whose safety the compiler cannot guarantee gathers here; representative items include raw pointer forms (the raw pointer abstraction) and arbitrary bit casts (`transmute`-like). Pinning, volatile memory access, and the primitives of C [ABI](007-glossary.md#abi-application-binary-interface)-compatible memory allocation are also part of `rok::bare`. Direct calls into MLIR dialects (`rok::bare::mlir`) and the compiler's loading of user-defined dialect plugins ([stdlib 1.10](../../refs-standard-libraries/100-bare/110-mlir-plugin.md)) also live in this tier and serve as the channel through which external tensor / SIMD / GPU libraries reach the acceleration domain.
 
 The caller of a function in this tier is responsible for safety, and the path itself makes that fact clear.
 

@@ -32,8 +32,8 @@ trait Add<Rhs = Self> {
 #[lang("iterator_trait")]
 trait Iterator { ... }
 
-#[lang("none_type")]
-struct NoneSentinel;               // the type the 'none' literal evaluates to
+#[lang("display_trait")]
+trait Display { ... }              // the default f"{x}" format
 ```
 
 It is written `#[lang("slot_name")]`, taking the slot name as a string literal argument. It can be attached to items such as traits, types, functions, `const`, and `static`.

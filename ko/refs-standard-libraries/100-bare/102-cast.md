@@ -92,9 +92,11 @@ fn const_cast<T>(p: ConstPtr<T>) -> Ptr<T>;
 말 그대로 const 를 벗겨내는 함수입니다. 매우 위험한 이유는 명확합니다. 원본이 read-only 영역(immortal const) 일 경우, 그 자리에 write 하면 곧장 segfault 가 납니다.
 
 ```rok
+use rok::bare::ptr::{Ptr, ConstPtr, const_cast};
+
 let s: str = "hello";              // immortal const
 let p: ConstPtr<u8> = s.as_ptr();
-let m: Ptr<u8> = rok::bare::const_cast(p);
+let m: Ptr<u8> = const_cast(p);
 unsafe { m.write(72u8) };          // 'H': SEGFAULT - immortal const 쓰기
 ```
 

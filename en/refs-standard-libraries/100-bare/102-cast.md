@@ -92,9 +92,11 @@ fn const_cast<T>(p: ConstPtr<T>) -> Ptr<T>;
 This function strips const. The danger is obvious: if the original lives in a read-only region (immortal const), writing there segfaults immediately.
 
 ```rok
+use rok::bare::ptr::{Ptr, ConstPtr, const_cast};
+
 let s: str = "hello";              // immortal const
 let p: ConstPtr<u8> = s.as_ptr();
-let m: Ptr<u8> = rok::bare::const_cast(p);
+let m: Ptr<u8> = const_cast(p);
 unsafe { m.write(72u8) };          // 'H': SEGFAULT - write to immortal const
 ```
 

@@ -309,7 +309,7 @@ let s: str = try str::from_utf8(bytes);
                                           //→ "hello"
 
 let invalid: List<u8> = [0xFF, 0xFE];
-let s: str = try str::from_utf8(invalid);
+let t: str = try str::from_utf8(invalid);
                                           //→ throw Utf8Error { valid_up_to: 0 }
 ```
 

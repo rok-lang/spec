@@ -7,7 +7,7 @@ This chapter defines the authoritative signatures of the following 6 collections
 | Collection          | Literal syntax             | Meaning                         |
 |---------------------|----------------------------|---------------------------------|
 | `List<T>`           | `[1, 2, 3]`                | Dynamic array (insertion order) |
-| `Dict<K, V>`        | `{"a": 1, "b": 2}`         | Hash map (HashMap, unordered)   |
+| `Dict<K, V>`        | `{"a": 1, "b": 2}`         | Hash map (unordered)   |
 | `Set<T>`            | `{1, 2, 3}`                | Hash set (unordered)            |
 | `OrderedDict<K, V>` | `OrderedDict::from([...])` | Insertion-order-preserving dict |
 | `OrderedSet<T>`     | `OrderedSet::from([...])`  | Insertion-order-preserving set  |
