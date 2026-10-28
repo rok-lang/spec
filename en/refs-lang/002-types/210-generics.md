@@ -127,6 +127,13 @@ where
 
 The `where` keyword goes between the parameter declarations and the body, followed by comma-separated bounds. Constraints on associated types can also be written here (e.g. `T::Output: Foo`).
 
+A type parameter that appears in an associated-type binding (`I: Iterator<Item = (A, B)>`, or `Self: Iterator<Item = (A, B)>` in a `where` clause) is inferred from that associated type of the argument, or of the receiver for `Self`. The binding's type may be structured: `(A, B)`, `(A, List<B>)` and `fn(A) -> B` bind each parameter they contain. If the associated type has another form, the call is an error that says what the items must look like: ``` `unzip` needs `Item` of the form `(A, B)`, but `ListIter<i32>` has `Item = i32` ```.
+
+```rok
+fn unzip2<I: Iterator<Item = (A, B)>, A, B>(it: I) -> (List<A>, List<B>) { ... }
+unzip2([(1, "a"), (2, "b")].iter());   // A = i32, B = str
+```
+
 A type alias's `where` clause ([2.6.9](206-sum-types.md#269-combining-with-type-aliases)) holds at each use of the alias; a type parameter meets it through the bounds in scope at that use.
 
 ## 2.10.5. Defaults

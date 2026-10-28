@@ -127,6 +127,13 @@ where
 
 매개변수 선언과 본체 사이에 `where` 키워드를 두고, 그 뒤에 콤마로 구분된 바운드를 나열합니다. 또한 연관 타입에 대한 제약도 이 자리에서 함께 적을 수 있습니다 (예: `T::Output: Foo`).
 
+연관 타입 바인딩에 나오는 타입 매개변수 (`I: Iterator<Item = (A, B)>`, 또는 `where` 절의 `Self: Iterator<Item = (A, B)>`) 는 인자의 그 연관 타입에서, `Self` 이면 수신자의 것에서 추론합니다. 바인딩의 타입은 구조를 가질 수 있습니다: `(A, B)`, `(A, List<B>)`, `fn(A) -> B` 는 담긴 매개변수를 각각 정합니다. 연관 타입이 다른 형태이면 그 호출은 항목이 어떤 모양이어야 하는지 알리는 에러입니다: ``` `unzip` needs `Item` of the form `(A, B)`, but `ListIter<i32>` has `Item = i32` ```.
+
+```rok
+fn unzip2<I: Iterator<Item = (A, B)>, A, B>(it: I) -> (List<A>, List<B>) { ... }
+unzip2([(1, "a"), (2, "b")].iter());   // A = i32, B = str
+```
+
 타입 별칭의 `where` 절 ([2.6.9](206-sum-types.md#269-type-alias-와-결합)) 은 별칭을 쓰는 자리마다 성립해야 하며, 타입 매개변수는 그 자리의 범위에 있는 bound 로 그것을 만족합니다.
 
 ## 2.10.5. 기본값 (default)

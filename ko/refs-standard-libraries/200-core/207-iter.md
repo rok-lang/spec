@@ -74,6 +74,13 @@ impl Iterator {
     fn flatten(self) -> Flatten<Self> where Item: IntoIterator;
     fn flat_map<U: IntoIterator>(self, f: fn(Item) -> U) -> FlatMap<Self, U>;
     fn peekable(self) -> Peekable<Self>;          // 다음 원소 미리 보기
+    fn take_while(self, pred: fn(Item) -> bool) -> TakeWhile<Self>;
+    fn skip_while(self, pred: fn(Item) -> bool) -> SkipWhile<Self>;
+    fn scan<S>(self, init: S, f: fn(S, Item) -> S) -> Scan<Self, S>;   // Item = S
+    fn inspect(self, f: fn(Item)) -> InspectIter<Self>;    // f 가 각 원소를 봄
+    fn cycle(self) -> Cycle<Self>;                // 끝없이 반복
+    fn chunks(self, size: usize) -> Chunks<Self>;     // Item = List<Item>
+    fn windows(self, size: usize) -> Windows<Self>;   // Item = List<Item>
 
     fn exact_len(self) -> usize | none;           // 진행 없이 아는 길이, 모르면 none
 
@@ -82,6 +89,10 @@ impl Iterator {
     fn sum(self) -> Item where Item: Add<Output = Item> + Zero;     // 비면 0
     fn product(self) -> Item where Item: Mul<Output = Item> + One;  // 비면 1
     fn fold<B>(self, init: B, f: fn(B, Item) -> B) -> B;
+    fn try_fold<B, E>(self, init: B, f: fn(B, Item) throws (E) -> B) throws (E) -> B;
+    fn try_for_each<E>(self, f: fn(Item) throws (E)) throws (E);
+    fn partition(self, pred: fn(Item) -> bool) -> (List<Item>, List<Item>);
+    fn unzip<A, B>(self) -> (List<A>, List<B>) where Self: Iterator<Item = (A, B)>;
     fn reduce(self, f: fn(Item, Item) -> Item) -> Item | none;
     fn any(self, pred: fn(Item) -> bool) -> bool;
     fn all(self, pred: fn(Item) -> bool) -> bool;
@@ -101,6 +112,25 @@ impl Iterator {
 ### `sum` / `product` 와 `Zero` / `One`
 
 `sum` 은 `Zero::zero()` 에서 시작해 `+` 로 누적하고, `product` 는 `One::one()` 에서 시작해 `*` 로 누적합니다. 따라서 빈 iterator 의 합은 0, 곱은 1 입니다. `Zero` / `One` 은 `rok::core::num` 의 트레잇입니다 ([2.1](201-numbers.md)).
+
+### 멈춤, 누적 상태, 묶음
+
+- `take_while(pred)` 는 `pred` 가 처음 거부하는 원소 전까지 내놓습니다. 그 원소는 안쪽 iterator 에서 꺼내져 버려지고, 그 뒤로는 아무것도 꺼내지 않으므로 멈춘 지점 뒤의 side effect 는 실행되지 않습니다. `skip_while(pred)` 는 `pred` 가 처음 거부하는 원소 전까지 버리고, 그 원소부터 이후 원소를 검사 없이 모두 내놓습니다.
+- `scan(init, f)` 는 누적 상태를 내놓습니다: `f(init, x0)`, 그다음 그 값과 `x1` 의 `f`, 이런 식입니다. 단계마다 값을 내놓는 `fold` 이므로 안쪽 iterator 와 같은 개수를 내놓습니다.
+- `inspect(f)` 는 각 원소를 `f` 에 넘긴 뒤 그대로 내놓습니다.
+- `cycle()` 은 다 돌 때마다 `cycle` 이 받은 iterator 의 복사본에서 다시 시작하므로, iterator 가 비어 있지 않으면 끝이 없고 비어 있으면 아무것도 내놓지 않습니다. 제너레이터의 복사본은 한 위치를 공유하므로 (2.7.10a) 제너레이터를 cycle 해도 반복되지 않습니다.
+- `chunks(size)` 는 `size` 개씩 순서대로 묶은 리스트를 내놓고, 원소가 모자라면 마지막 것이 더 짧습니다. `windows(size)` 는 연속한 `size` 개를 하나씩 밀면서 리스트로 내놓고, 원소가 `size` 개보다 적으면 아무것도 내놓지 않습니다. 둘 다 `size` 가 0 이면 panic 입니다. `List` 와 `Slice` 에는 view 를 내놓는 자체 `chunks` / `windows` 가 있습니다 ([2.9.7](209-collections.md#297-slicet---view)).
+- `try_fold` 와 `try_for_each` 는 throw 하는 `f` 를 받습니다: 첫 에러에서 루프가 멈추고, 이후 원소는 방문하지 않으며, 그 에러를 호출자에게 throw 합니다.
+- `partition(pred)` 는 `pred` 가 받아들인 원소와 나머지를 두 리스트로, 각각 순서대로 돌려줍니다. `unzip()` 은 쌍 `(A, B)` 의 iterator 를 `List<A>` 와 `List<B>` 로 나눕니다. 원소는 쌍이어야 합니다: `A` 와 `B` 는 `Item = (A, B)` 에서 추론되며, 다른 형태의 원소는 호출 지점에서 에러입니다.
+
+```rok
+let xs = [1, 2, 3, 4];
+let small: List<i32> = xs.iter().take_while(|x| x < 3).collect();   //→ [1, 2]
+let sums: List<i32> = xs.iter().scan(0, |acc, x| acc + x).collect(); //→ [1, 3, 6, 10]
+let pairs: List<List<i32>> = xs.iter().windows(2).collect();        //→ [[1, 2], [2, 3], [3, 4]]
+let (even, odd) = xs.iter().partition(|x| x % 2 == 0);              //→ [2, 4], [1, 3]
+let (ns, ss) = [(1, "a"), (2, "b")].iter().unzip();                 //→ [1, 2], ["a", "b"]
+```
 
 ### lazy vs eager
 
@@ -448,7 +478,7 @@ trait DoubleEndedIterator: Iterator {
 `List<T>`, `Slice<T>` 의 iterator 와 다음 타입은 반드시 이 트레잇을 impl 합니다.
 
 - `Range<T>`, `RangeInclusive<T>`
-- `Rev<I>` (`I` 가 양방향일 때), `Map<I, U>`, `Filter<I>`, `Chain<A, B>` (구성 iterator 가 양방향일 때)
+- `Rev<I>` (`I` 가 양방향일 때), `Map<I, U>`, `Filter<I>`, `Chain<A, B>`, `InspectIter<I>` (구성 iterator 가 양방향일 때)
 - `Enumerate<I>`, `Zip<A, B>`, `Take<I>`, `Skip<I>`, `StepBy<I>`: 구성 iterator 가 `DoubleEndedIterator + ExactSizeIterator` 일 때. 뒤에서 세려면 길이가 필요하기 때문입니다.
 
 반면 `Dict<K, V>` 와 `Set<T>` 는 순서가 없으므로 impl 하지 않습니다.
@@ -467,7 +497,7 @@ trait ExactSizeIterator: Iterator {
 }
 ```
 
-`len()` 은 남은 원소 수입니다. `Iterator::exact_len()` 은 진행 없이 그 수를 알 때 그 수를, 아니면 `none` (기본) 을 돌려줍니다. 표준 라이브러리의 `ExactSizeIterator` 타입과, 그 위에 쌓은 아래 목록의 어댑터는 `len()` 을 돌려줍니다. 기본 `count()` 는 `exact_len()` 이 `none` 이 아니면 그 값을 돌려주므로, `count()` 는 `map` 의 함수를 부르지 않습니다: `xs.iter().map(f).take(3).count()` 는 `f` 를 한 번도 부르지 않습니다. `Filter` 나 `(0..).take(100)` 처럼 길이를 모르는 iterator 는 진행합니다. `List`, `Slice`, `Range` 의 iterator 와 구성 iterator 가 모두 `ExactSizeIterator` 인 `Enumerate`, `Zip`, `Take`, `Skip`, `StepBy`, `Rev`, `Map` 이 이 트레잇을 impl 합니다.
+`len()` 은 남은 원소 수입니다. `Iterator::exact_len()` 은 진행 없이 그 수를 알 때 그 수를, 아니면 `none` (기본) 을 돌려줍니다. 표준 라이브러리의 `ExactSizeIterator` 타입과, 그 위에 쌓은 아래 목록의 어댑터는 `len()` 을 돌려줍니다. 기본 `count()` 는 `exact_len()` 이 `none` 이 아니면 그 값을 돌려주므로, `count()` 는 `map` 의 함수를 부르지 않습니다: `xs.iter().map(f).take(3).count()` 는 `f` 를 한 번도 부르지 않습니다. `scan` 과 `inspect` 의 함수도 마찬가지입니다. `Filter`, `TakeWhile`, `SkipWhile`, `(0..).take(100)` 처럼 길이를 모르는 iterator 는 진행합니다. `List`, `Slice`, `Range` 의 iterator, `List` 와 `Slice` 의 `windows` / `chunks` view, 그리고 구성 iterator 가 모두 `ExactSizeIterator` 인 `Enumerate`, `Zip`, `Take`, `Skip`, `StepBy`, `Rev`, `Map`, `Scan`, `InspectIter`, `Chunks` 가 이 트레잇을 impl 합니다. `Windows` 는 길이를 아는 iterator 위에서 `exact_len` 을 가지고, `Cycle` 은 iterator 가 비어 있을 때만 (0) 가집니다.
 
 ## 2.7.10a. `GenIter<T>` / `TryGenIter<T, E>` - 제너레이터의 값
 

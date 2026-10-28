@@ -50,7 +50,23 @@ The parser decides from the contents alone: the `expr ":"` form is a Dict, a com
 
 `[1, 2, 3]` is `List<T>` when there is no expected type. A fixed-size array `[T; N]` is created only when the expected type is written as `[T; N]`, as in `let a: [i32; 3] = [1, 2, 3];`. Fixed arrays are built directly by the compiler without going through a handler.
 
-A fixed array implements `Clone` / `Copy` / `Default` / `Debug` / `PartialEq` / `Eq` / `PartialOrd` / `Ord` / `Hash` when its element does, and has `len()` and `is_empty()`. Ordering is lexicographic, so comparison operators (`==`, `<`, etc.) can be used directly.
+A fixed array implements `Clone` / `Copy` / `Default` / `Debug` / `PartialEq` / `Eq` / `PartialOrd` / `Ord` / `Hash` when its element does. Ordering is lexicographic, so comparison operators (`==`, `<`, etc.) can be used directly. Its methods:
+
+```rok
+impl<T, const N: usize> [T; N] {
+    fn len(self) -> usize;                       // N
+    fn is_empty(self) -> bool;
+    fn iter(self) -> SliceIter<T>;               // over a copy (arrays are values)
+    fn first(self) -> T | none;
+    fn last(self) -> T | none;
+    fn map<U>(self, f: fn(T) -> U) -> [U; N];    // a new array
+    fn fill(ref self, x: T);                     // in place
+}
+
+impl<T: PartialEq, const N: usize> [T; N] {
+    fn contains(self, x: T) -> bool;
+}
+```
 
 ```rok
 let a: [i32; 3] = [1, 2, 3];
@@ -96,16 +112,32 @@ impl<T> List<T> {
     fn set(self, idx: usize, x: T) throws (IndexError);   // xs[idx] = x panics instead
     fn first(self) -> T | none;
     fn last(self) -> T | none;
+    fn swap(self, i: usize, j: usize);          // panics when either is out of bounds
+    fn fill(self, x: T);                         // every element becomes x
 
     fn extend<I: IntoIterator<Item = T>>(self, iter: I);
+    fn retain(self, keep: fn(T) -> bool);        // in place, order kept
     fn sort(self) where T: Ord;                  // ascending, stable
     fn sort_by(self, cmp: fn(T, T) -> Ordering); // stable
     fn reserve(self, additional: usize);
     fn shrink_to_fit(self);
     fn reverse(self);                            // in place
 
+    fn split_at(self, mid: usize) -> (Slice<T>, Slice<T>);   // views of [0, mid) and [mid, len); mid > len panics
+    fn windows(self, size: usize) -> SliceWindows<T>;   // self[:].windows(size)
+    fn chunks(self, size: usize) -> SliceChunks<T>;     // self[:].chunks(size)
+
     fn iter(self) -> ListIter<T>;
     fn into_iter(self) -> ListIntoIter<T>;
+}
+
+impl<T: PartialEq> List<T> {
+    fn contains(self, x: T) -> bool;
+    fn dedup(self);                              // drops each element equal to the one before it
+}
+
+impl<T: Ord> List<T> {
+    fn binary_search(self, x: T) -> usize | none;   // ascending list: an index of x, O(log n)
 }
 ```
 
@@ -137,6 +169,12 @@ for x in ys {
 }
 
 let total: i32 = ys.into_iter().sum();   //→ 60
+
+let zs: List<i32> = [3, 1, 1, 2, 2, 4];
+zs.dedup();                                  //→ [3, 1, 2, 4]
+zs.retain(|x| x != 3);                       //→ [1, 2, 4]
+zs.binary_search(4);                         //→ 2
+let (a, b) = zs.split_at(1);                 //→ views of [1] and [2, 4]
 ```
 
 ### Trait implementations
@@ -193,6 +231,8 @@ impl<K: Hash + Eq, V> Dict<K, V> {
     fn get(self, k: K) -> V | none;
     fn contains_key(self, k: K) -> bool;
     fn clear(self);
+    fn retain(self, keep: fn(K, V) -> bool);      // in place
+    fn extend<I: IntoIterator<Item = (K, V)>>(self, pairs: I);   // a later pair's value wins
 
     fn keys(self) -> KeysIter<K, V>;
     fn values(self) -> ValuesIter<K, V>;
@@ -279,6 +319,8 @@ impl<T: Hash + Eq> Set<T> {
     fn remove(self, x: T) -> bool;
     fn contains(self, x: T) -> bool;
     fn clear(self);
+    fn retain(self, keep: fn(T) -> bool);         // in place
+    fn extend<I: IntoIterator<Item = T>>(self, items: I);
 
     fn union(self, other: Set<T>) -> Set<T>;
     fn intersection(self, other: Set<T>) -> Set<T>;
@@ -318,8 +360,8 @@ struct OrderedSet<T: Hash + Eq> { /* ... */ }
 
 They suit situations that need order preservation, such as config, JSON-like structures and reproducible output; the indices vector holding the order adds slight overhead.
 
-- `OrderedDict` has `new` / `with_capacity` / `from` / `len` / `is_empty` / `insert` / `get` / `contains_key` / `remove` / `clear` / `keys` / `values` / `entries`, plus `d[k]` and `d[k] = v`. `keys` / `values` / `entries` iterate in insertion order. `insert` on an existing key changes only the value; the order is unchanged.
-- `OrderedSet` has `new` / `from` / `len` / `is_empty` / `insert` / `remove` / `contains` / `clear` / `iter` / `to_list` and the set operations `union` / `intersection` / `difference` / `symmetric_difference` / `is_subset` / `is_superset` / `is_disjoint`. The result of a set operation follows the order of the left operand first.
+- `OrderedDict` has `new` / `with_capacity` / `from` / `len` / `is_empty` / `insert` / `get` / `contains_key` / `remove` / `clear` / `retain` / `extend` / `keys` / `values` / `entries`, plus `d[k]` and `d[k] = v`. `keys` / `values` / `entries` iterate in insertion order. `insert` on an existing key changes only the value; the order is unchanged. `retain` keeps the survivors' order; `extend` inserts its pairs in order.
+- `OrderedSet` has `new` / `from` / `len` / `is_empty` / `insert` / `remove` / `contains` / `clear` / `retain` / `extend` / `iter` / `to_list` and the set operations `union` / `intersection` / `difference` / `symmetric_difference` / `is_subset` / `is_superset` / `is_disjoint`. The result of a set operation follows the order of the left operand first.
 - Both implement `Default`, `Clone`, `IntoIterator`, `FromIterator`, `PartialEq` / `Eq` and `Hash` (order-independent, as for `Dict` / `Set`) and `Debug`, so either can be a `Set` element or a `Dict` key.
 - `d += e` on an `OrderedDict` merges `e` in place (its values win; new keys go last); `s += x` on an `OrderedSet` inserts `x`.
 
@@ -457,8 +499,15 @@ impl<T> Slice<T> {
     fn first(self) -> T | none;
     fn last(self) -> T | none;
     fn step(self, k: isize) -> Slice<T>;     // every k-th; from the end if k < 0. k == 0 panics
+    fn split_at(self, mid: usize) -> (Slice<T>, Slice<T>);   // [0, mid) and [mid, len); mid > len panics
+    fn windows(self, size: usize) -> SliceWindows<T>;   // overlapping views of size elements; size == 0 panics
+    fn chunks(self, size: usize) -> SliceChunks<T>;     // views of size elements, the last shorter; size == 0 panics
     fn iter(self) -> SliceIter<T>;
     fn to_list(self) -> List<T>;             // allocates a new List
+}
+
+impl<T: PartialEq> Slice<T> {
+    fn contains(self, x: T) -> bool;
 }
 
 impl Slice<u8> {
@@ -471,6 +520,8 @@ impl<T> IntoIterator for Slice<T> { ... }
 impl<T: PartialEq> PartialEq for Slice<T> { ... }
 impl<T: Debug> Debug for Slice<T> { ... }
 ```
+
+`SliceWindows<T>` and `SliceChunks<T>` are `ExactSizeIterator`s with `Item = Slice<T>`: each window or chunk is a view of the same buffer, not a copy. `Iterator::windows` / `chunks` ([2.7.1](207-iter.md#271-iterator---stepping)) collect lists instead, for iterators that have no buffer.
 
 The needle of `find` is any `AsBytes` type, defined in `rok::core::collections::slice`:
 

@@ -74,6 +74,13 @@ impl Iterator {
     fn flatten(self) -> Flatten<Self> where Item: IntoIterator;
     fn flat_map<U: IntoIterator>(self, f: fn(Item) -> U) -> FlatMap<Self, U>;
     fn peekable(self) -> Peekable<Self>;          // peek at the next element
+    fn take_while(self, pred: fn(Item) -> bool) -> TakeWhile<Self>;
+    fn skip_while(self, pred: fn(Item) -> bool) -> SkipWhile<Self>;
+    fn scan<S>(self, init: S, f: fn(S, Item) -> S) -> Scan<Self, S>;   // Item = S
+    fn inspect(self, f: fn(Item)) -> InspectIter<Self>;    // f sees each item
+    fn cycle(self) -> Cycle<Self>;                // endless repeat
+    fn chunks(self, size: usize) -> Chunks<Self>;     // Item = List<Item>
+    fn windows(self, size: usize) -> Windows<Self>;   // Item = List<Item>
 
     fn exact_len(self) -> usize | none;           // length without stepping, else none
 
@@ -82,6 +89,10 @@ impl Iterator {
     fn sum(self) -> Item where Item: Add<Output = Item> + Zero;     // 0 if empty
     fn product(self) -> Item where Item: Mul<Output = Item> + One;  // 1 if empty
     fn fold<B>(self, init: B, f: fn(B, Item) -> B) -> B;
+    fn try_fold<B, E>(self, init: B, f: fn(B, Item) throws (E) -> B) throws (E) -> B;
+    fn try_for_each<E>(self, f: fn(Item) throws (E)) throws (E);
+    fn partition(self, pred: fn(Item) -> bool) -> (List<Item>, List<Item>);
+    fn unzip<A, B>(self) -> (List<A>, List<B>) where Self: Iterator<Item = (A, B)>;
     fn reduce(self, f: fn(Item, Item) -> Item) -> Item | none;
     fn any(self, pred: fn(Item) -> bool) -> bool;
     fn all(self, pred: fn(Item) -> bool) -> bool;
@@ -101,6 +112,25 @@ impl Iterator {
 ### `sum` / `product` and `Zero` / `One`
 
 `sum` starts from `Zero::zero()` and accumulates with `+`; `product` starts from `One::one()` and accumulates with `*`. The sum of an empty iterator is therefore 0 and its product is 1. `Zero` / `One` are traits of `rok::core::num` ([2.1](201-numbers.md)).
+
+### Stopping, running state, groups
+
+- `take_while(pred)` yields items until `pred` first rejects one. That item is taken from the inner iterator and dropped; nothing after it is taken, so side effects past the stop do not run. `skip_while(pred)` drops items until `pred` first rejects one, then yields that one and every later item unchecked.
+- `scan(init, f)` yields the running state: `f(init, x0)`, then `f` of that and `x1`, and so on. It is `fold` that yields every step, so it yields as many items as the inner iterator.
+- `inspect(f)` passes each item to `f` and yields it unchanged.
+- `cycle()` restarts from a copy of the iterator as `cycle` received it whenever it runs out, so it is endless unless the iterator is empty, in which case it yields nothing. A generator's copies share one position (2.7.10a), so cycling one does not repeat it.
+- `chunks(size)` yields lists of `size` items in order, the last one shorter when the items run out. `windows(size)` yields lists of `size` consecutive items sliding by one, and nothing when there are fewer than `size` items. A `size` of 0 panics for both. `List` and `Slice` have their own `chunks` / `windows` that yield views ([2.9.7](209-collections.md#297-slicet---view)).
+- `try_fold` and `try_for_each` take a throwing `f`: the first error stops the loop, no later item is visited, and the error is thrown to the caller.
+- `partition(pred)` returns the items `pred` accepts and the rest, as two lists, each in order. `unzip()` splits an iterator of pairs `(A, B)` into a `List<A>` and a `List<B>`. Its items must be pairs: `A` and `B` are inferred from `Item = (A, B)`, and items of any other form are an error at the call.
+
+```rok
+let xs = [1, 2, 3, 4];
+let small: List<i32> = xs.iter().take_while(|x| x < 3).collect();   //→ [1, 2]
+let sums: List<i32> = xs.iter().scan(0, |acc, x| acc + x).collect(); //→ [1, 3, 6, 10]
+let pairs: List<List<i32>> = xs.iter().windows(2).collect();        //→ [[1, 2], [2, 3], [3, 4]]
+let (even, odd) = xs.iter().partition(|x| x % 2 == 0);              //→ [2, 4], [1, 3]
+let (ns, ss) = [(1, "a"), (2, "b")].iter().unzip();                 //→ [1, 2], ["a", "b"]
+```
 
 ### Lazy vs eager
 
@@ -448,7 +478,7 @@ This trait represents iterators that can step from the back; the `rev()` adapter
 The iterators of `List<T>` and `Slice<T>`, and the following types, must implement this trait.
 
 - `Range<T>`, `RangeInclusive<T>`
-- `Rev<I>` (when `I` is bidirectional), `Map<I, U>`, `Filter<I>`, `Chain<A, B>` (when the component iterators are bidirectional)
+- `Rev<I>` (when `I` is bidirectional), `Map<I, U>`, `Filter<I>`, `Chain<A, B>`, `InspectIter<I>` (when the component iterators are bidirectional)
 - `Enumerate<I>`, `Zip<A, B>`, `Take<I>`, `Skip<I>`, `StepBy<I>`: when the component iterators are `DoubleEndedIterator + ExactSizeIterator`, because counting from the back needs the length.
 
 `Dict<K, V>` and `Set<T>`, being unordered, do not implement it.
@@ -467,7 +497,7 @@ trait ExactSizeIterator: Iterator {
 }
 ```
 
-`len()` is the number of remaining elements. `Iterator::exact_len()` returns that number when it is known without stepping and `none` otherwise (the default); the standard-library `ExactSizeIterator` types return their `len()`, as do the adapters listed below when built on them. The default `count()` returns `exact_len()` when it is not `none`, so `count()` does not call `map`'s function: `xs.iter().map(f).take(3).count()` calls `f` zero times. An iterator of unknown length, such as `Filter` or `(0..).take(100)`, is stepped. The iterators of `List`, `Slice` and `Range`, and `Enumerate`, `Zip`, `Take`, `Skip`, `StepBy`, `Rev`, `Map` when their component iterators are all `ExactSizeIterator`, implement this trait.
+`len()` is the number of remaining elements. `Iterator::exact_len()` returns that number when it is known without stepping and `none` otherwise (the default); the standard-library `ExactSizeIterator` types return their `len()`, as do the adapters listed below when built on them. The default `count()` returns `exact_len()` when it is not `none`, so `count()` does not call `map`'s function: `xs.iter().map(f).take(3).count()` calls `f` zero times. The same holds for `scan`'s and `inspect`'s functions. An iterator of unknown length, such as `Filter`, `TakeWhile`, `SkipWhile` or `(0..).take(100)`, is stepped. The iterators of `List`, `Slice` and `Range`, the `windows` / `chunks` views of `List` and `Slice`, and `Enumerate`, `Zip`, `Take`, `Skip`, `StepBy`, `Rev`, `Map`, `Scan`, `InspectIter`, `Chunks` when their component iterators are all `ExactSizeIterator`, implement this trait. `Windows` has an `exact_len` over an exact-size iterator, and `Cycle` has one (0) only when its iterator is empty.
 
 ## 2.7.10a. `GenIter<T>` / `TryGenIter<T, E>` - the value of a generator
 

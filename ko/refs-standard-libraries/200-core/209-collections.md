@@ -50,7 +50,23 @@ parser 가 내용만 보고 결정합니다. `expr ":"` 형태이면 Dict, 콤�
 
 `[1, 2, 3]` 은 기대 타입이 없으면 `List<T>` 입니다. 고정 크기 배열 `[T; N]` 은 `let a: [i32; 3] = [1, 2, 3];` 처럼 기대 타입을 `[T; N]` 으로 적었을 때만 만들어집니다. 고정 배열은 컴파일러가 직접 만들며 핸들러를 거치지 않습니다.
 
-고정 배열은 원소가 구현하면 `Clone` / `Copy` / `Default` / `Debug` / `PartialEq` / `Eq` / `PartialOrd` / `Ord` / `Hash` 를 구현하고, `len()` 과 `is_empty()` 를 가집니다. 순서 비교는 사전식이므로 비교 연산자 (`==`, `<` 등) 를 바로 쓸 수 있습니다.
+고정 배열은 원소가 구현하면 `Clone` / `Copy` / `Default` / `Debug` / `PartialEq` / `Eq` / `PartialOrd` / `Ord` / `Hash` 를 구현합니다. 순서 비교는 사전식이므로 비교 연산자 (`==`, `<` 등) 를 바로 쓸 수 있습니다. 메서드는 다음과 같습니다.
+
+```rok
+impl<T, const N: usize> [T; N] {
+    fn len(self) -> usize;                       // N
+    fn is_empty(self) -> bool;
+    fn iter(self) -> SliceIter<T>;               // 복사본 위에서 (배열은 값)
+    fn first(self) -> T | none;
+    fn last(self) -> T | none;
+    fn map<U>(self, f: fn(T) -> U) -> [U; N];    // 새 배열
+    fn fill(ref self, x: T);                     // 제자리
+}
+
+impl<T: PartialEq, const N: usize> [T; N] {
+    fn contains(self, x: T) -> bool;
+}
+```
 
 ```rok
 let a: [i32; 3] = [1, 2, 3];
@@ -96,16 +112,32 @@ impl<T> List<T> {
     fn set(self, idx: usize, x: T) throws (IndexError);   // xs[idx] = x panics instead
     fn first(self) -> T | none;
     fn last(self) -> T | none;
+    fn swap(self, i: usize, j: usize);          // 둘 중 하나라도 범위 밖이면 panic
+    fn fill(self, x: T);                         // 모든 원소가 x 가 됨
 
     fn extend<I: IntoIterator<Item = T>>(self, iter: I);
+    fn retain(self, keep: fn(T) -> bool);        // 제자리, 순서 유지
     fn sort(self) where T: Ord;                  // 오름차순, stable
     fn sort_by(self, cmp: fn(T, T) -> Ordering); // stable
     fn reserve(self, additional: usize);
     fn shrink_to_fit(self);
     fn reverse(self);                            // 제자리
 
+    fn split_at(self, mid: usize) -> (Slice<T>, Slice<T>);   // [0, mid) 와 [mid, len) 의 view; mid > len 이면 panic
+    fn windows(self, size: usize) -> SliceWindows<T>;   // self[:].windows(size)
+    fn chunks(self, size: usize) -> SliceChunks<T>;     // self[:].chunks(size)
+
     fn iter(self) -> ListIter<T>;
     fn into_iter(self) -> ListIntoIter<T>;
+}
+
+impl<T: PartialEq> List<T> {
+    fn contains(self, x: T) -> bool;
+    fn dedup(self);                              // 바로 앞 원소와 같은 원소를 버림
+}
+
+impl<T: Ord> List<T> {
+    fn binary_search(self, x: T) -> usize | none;   // 오름차순 리스트에서 x 의 인덱스, O(log n)
 }
 ```
 
@@ -137,6 +169,12 @@ for x in ys {
 }
 
 let total: i32 = ys.into_iter().sum();   //→ 60
+
+let zs: List<i32> = [3, 1, 1, 2, 2, 4];
+zs.dedup();                                  //→ [3, 1, 2, 4]
+zs.retain(|x| x != 3);                       //→ [1, 2, 4]
+zs.binary_search(4);                         //→ 2
+let (a, b) = zs.split_at(1);                 //→ [1] 과 [2, 4] 의 view
 ```
 
 ### 트레잇 구현
@@ -193,6 +231,8 @@ impl<K: Hash + Eq, V> Dict<K, V> {
     fn get(self, k: K) -> V | none;
     fn contains_key(self, k: K) -> bool;
     fn clear(self);
+    fn retain(self, keep: fn(K, V) -> bool);      // 제자리
+    fn extend<I: IntoIterator<Item = (K, V)>>(self, pairs: I);   // 뒤의 쌍의 값이 이김
 
     fn keys(self) -> KeysIter<K, V>;
     fn values(self) -> ValuesIter<K, V>;
@@ -279,6 +319,8 @@ impl<T: Hash + Eq> Set<T> {
     fn remove(self, x: T) -> bool;
     fn contains(self, x: T) -> bool;
     fn clear(self);
+    fn retain(self, keep: fn(T) -> bool);         // 제자리
+    fn extend<I: IntoIterator<Item = T>>(self, items: I);
 
     fn union(self, other: Set<T>) -> Set<T>;
     fn intersection(self, other: Set<T>) -> Set<T>;
@@ -318,8 +360,8 @@ struct OrderedSet<T: Hash + Eq> { /* ... */ }
 
 config, JSON-like 구조, 출력 reproducibility 처럼 순서 보존이 필요한 상황에서 사용하면 적합하며, 순서를 담는 indices vector 때문에 약간의 오버헤드가 발생합니다.
 
-- `OrderedDict` 는 `new` / `with_capacity` / `from` / `len` / `is_empty` / `insert` / `get` / `contains_key` / `remove` / `clear` / `keys` / `values` / `entries` 와 `d[k]`, `d[k] = v` 를 가집니다. `keys` / `values` / `entries` 는 삽입 순서로 돕니다. 이미 있는 키에 `insert` 하면 값만 바뀌고 순서는 그대로입니다.
-- `OrderedSet` 은 `new` / `from` / `len` / `is_empty` / `insert` / `remove` / `contains` / `clear` / `iter` / `to_list` 와 집합 연산 `union` / `intersection` / `difference` / `symmetric_difference` / `is_subset` / `is_superset` / `is_disjoint` 를 가집니다. 집합 연산의 결과는 왼쪽 피연산자의 순서를 먼저 따릅니다.
+- `OrderedDict` 는 `new` / `with_capacity` / `from` / `len` / `is_empty` / `insert` / `get` / `contains_key` / `remove` / `clear` / `retain` / `extend` / `keys` / `values` / `entries` 와 `d[k]`, `d[k] = v` 를 가집니다. `keys` / `values` / `entries` 는 삽입 순서로 돕니다. 이미 있는 키에 `insert` 하면 값만 바뀌고 순서는 그대로입니다. `retain` 은 남는 항목의 순서를 지키고, `extend` 는 쌍을 순서대로 삽입합니다.
+- `OrderedSet` 은 `new` / `from` / `len` / `is_empty` / `insert` / `remove` / `contains` / `clear` / `retain` / `extend` / `iter` / `to_list` 와 집합 연산 `union` / `intersection` / `difference` / `symmetric_difference` / `is_subset` / `is_superset` / `is_disjoint` 를 가집니다. 집합 연산의 결과는 왼쪽 피연산자의 순서를 먼저 따릅니다.
 - 둘 다 `Default`, `Clone`, `IntoIterator`, `FromIterator`, `PartialEq` / `Eq` 와 `Hash` (`Dict` / `Set` 처럼 순서 무관), `Debug` 를 구현하므로 `Set` 원소나 `Dict` 키가 될 수 있습니다.
 - `OrderedDict` 의 `d += e` 는 `e` 를 제자리에서 merge 합니다 (`e` 의 값이 남고 새 키는 맨 뒤로). `OrderedSet` 의 `s += x` 는 `x` 를 삽입합니다.
 
@@ -457,8 +499,15 @@ impl<T> Slice<T> {
     fn first(self) -> T | none;
     fn last(self) -> T | none;
     fn step(self, k: isize) -> Slice<T>;     // k 번째마다, k < 0 이면 끝에서부터. k == 0 은 panic
+    fn split_at(self, mid: usize) -> (Slice<T>, Slice<T>);   // [0, mid) 와 [mid, len); mid > len 이면 panic
+    fn windows(self, size: usize) -> SliceWindows<T>;   // size 개씩 겹치는 view; size == 0 은 panic
+    fn chunks(self, size: usize) -> SliceChunks<T>;     // size 개씩의 view, 마지막은 더 짧음; size == 0 은 panic
     fn iter(self) -> SliceIter<T>;
     fn to_list(self) -> List<T>;             // 새 List 할당
+}
+
+impl<T: PartialEq> Slice<T> {
+    fn contains(self, x: T) -> bool;
 }
 
 impl Slice<u8> {
@@ -471,6 +520,8 @@ impl<T> IntoIterator for Slice<T> { ... }
 impl<T: PartialEq> PartialEq for Slice<T> { ... }
 impl<T: Debug> Debug for Slice<T> { ... }
 ```
+
+`SliceWindows<T>` 와 `SliceChunks<T>` 는 `Item = Slice<T>` 인 `ExactSizeIterator` 입니다: 각 window 와 chunk 는 복사가 아니라 같은 버퍼의 view 입니다. `Iterator::windows` / `chunks` ([2.7.1](207-iter.md#271-iterator---단계-진행)) 는 버퍼가 없는 iterator 를 위해 대신 리스트로 모읍니다.
 
 `find` 의 needle 은 `rok::core::collections::slice` 에 정의된 `AsBytes` 타입이면 무엇이든 됩니다.
 
