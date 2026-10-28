@@ -18,8 +18,11 @@ This decision has three motivations. First, explicitness: the capture mode is cl
 
 ```
 capture_list    ::= "[" capture_item ("," capture_item)* ","? "]"
-capture_item    ::= "ref" identifier | identifier
+capture_item    ::= "ref" capture_name | capture_name
+capture_name    ::= identifier | "self"
 ```
+
+`self` names a method's receiver. `[ref self]` is allowed only in a `ref self` method, where it shares the receiver ([4.7.4](407-ref-keyword.md#474-closure-capture-lists)); a by-value `self` is captured by value.
 
 ## 4.6.2. Reference capture: the `[ref x]` capture list
 

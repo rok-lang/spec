@@ -80,6 +80,17 @@ let inc = [ref count] || { count = count + 1 };
 
 Following the `ref` capture defined in [Capture Semantics](406-capture-semantics.md), `ref` variables in a capture list are held in a shared cell (boxing). The outer scope and the closure read and write the same cell, so the closure may outlive the variable's scope.
 
+A `ref` parameter, `ref self` included, is captured the same way (`[ref n]`, `[ref self]`). The function body and the closure share the parameter's one cell, so writes made through the closure are part of the parameter's final value and are written back to the caller ([4.7.2](#472-function-parameters)). A write the closure makes after the call has ended does not reach the caller.
+
+```rok
+fn bump(ref c: Counter) {
+    let add = [ref c] |x: i32| { c.count = c.count + x; };
+    add(5);
+}
+let c = Counter { count: 1 };
+bump(ref c);                      // c.count = 6
+```
+
 ## 4.7.5. Exception for method receivers
 
 Methods in [`impl`](../002-types/209-impl.md) may have a `ref self` parameter.

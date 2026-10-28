@@ -80,6 +80,17 @@ let inc = [ref count] || { count = count + 1 };
 
 [캡처 의미론](406-capture-semantics.md) 에서 정의된 `ref` 캡처에 따라, 캡처 리스트의 `ref` 변수는 공유 셀에 담깁니다 (boxing). 바깥 스코프와 클로저가 같은 셀을 읽고 쓰므로, 클로저가 변수의 스코프보다 오래 살아도 됩니다.
 
+`ref` 매개변수도 (`ref self` 포함) 같은 방식으로 캡처합니다 (`[ref n]`, `[ref self]`). 함수 본체와 클로저가 매개변수의 셀 하나를 공유하므로, 클로저를 통한 쓰기도 매개변수의 최종 값에 들어가 호출자에게 다시 쓰입니다 ([4.7.2](#472-함수-매개변수)). 호출이 끝난 뒤에 클로저가 쓴 값은 호출자에게 닿지 않습니다.
+
+```rok
+fn bump(ref c: Counter) {
+    let add = [ref c] |x: i32| { c.count = c.count + x; };
+    add(5);
+}
+let c = Counter { count: 1 };
+bump(ref c);                      // c.count = 6
+```
+
 ## 4.7.5. 메서드 receiver 의 예외
 
 [`impl`](../002-types/209-impl.md) 의 메서드는 `ref self` 매개변수를 가질 수 있습니다.

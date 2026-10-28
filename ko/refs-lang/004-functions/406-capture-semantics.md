@@ -18,8 +18,11 @@ f();                               // 1 (f 는 0 을 가짐)
 
 ```
 capture_list    ::= "[" capture_item ("," capture_item)* ","? "]"
-capture_item    ::= "ref" identifier | identifier
+capture_item    ::= "ref" capture_name | capture_name
+capture_name    ::= identifier | "self"
 ```
+
+`self` 는 메서드의 receiver 를 가리킵니다. `[ref self]` 는 `ref self` 메서드에서만 쓸 수 있고, receiver 를 공유합니다 ([4.7.4](407-ref-keyword.md#474-클로저-캡처-리스트)). 값으로 받은 `self` 는 값으로 캡처합니다.
 
 ## 4.6.2. 참조 캡처: `[ref x]` 캡처 리스트
 
