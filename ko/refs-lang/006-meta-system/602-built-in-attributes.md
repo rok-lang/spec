@@ -178,6 +178,16 @@ fn f() { ... }
 
 내부 형태인 `#![doc]` 또한 `//!` 와 동일한 효과를 냅니다.
 
+### `#[doc(hidden)]`
+
+```rok
+/// dict spread 가 검사하는 것 (lowering 된 코드가 호출).
+#[doc(hidden)]
+pub const fn spread_misfit<V>(d: Dict<str, V>, key: str, why: str) { .. }
+```
+
+`#[doc(hidden)]` 은 공개 항목을 API 문서 (`rokc doc`) 와 language server 의 자동 완성에서 뺍니다. 컴파일러가 만든 코드가 부를 수 있도록 `pub` 일 뿐인 항목을 위한 것이며, 항목은 여전히 공개이고 컴파일과 이름 해석도 그대로입니다. 모듈에 붙이면 그 안의 모든 것을 숨깁니다. 항목의 문서 주석과 함께 둘 수 있고, 문서 주석은 hover 에 계속 쓰입니다. 그 밖의 `#[doc(..)]` 형태는 에러입니다: `#[doc = ".."]` 또는 `#[doc(hidden)]` 로 씁니다.
+
 ## 6.2.9. `#[allow(...)]` / `#[deny(...)]` / `#[warn(...)]` 린트 제어
 
 ```rok

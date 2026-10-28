@@ -178,6 +178,16 @@ fn f() { ... }
 
 The inner form `#![doc]` likewise has the same effect as `//!`.
 
+### `#[doc(hidden)]`
+
+```rok
+/// What a dict spread checks (lowered code calls it).
+#[doc(hidden)]
+pub const fn spread_misfit<V>(d: Dict<str, V>, key: str, why: str) { .. }
+```
+
+`#[doc(hidden)]` keeps a public item out of the API docs (`rokc doc`) and out of the language server's completion. It is for items that are `pub` only so code the compiler generates can call them; the item is still public and compiles and resolves as before. On a module it hides everything inside. It may stand beside the item's doc comment, which still serves hover. Any other `#[doc(..)]` form is an error: write `#[doc = ".."]` or `#[doc(hidden)]`.
+
 ## 6.2.9. `#[allow(...)]` / `#[deny(...)]` / `#[warn(...)]` lint control
 
 ```rok
