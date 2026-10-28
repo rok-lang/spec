@@ -94,6 +94,12 @@ Package {
     description: "2D geometry",      // 문자열, 선택
     license: "MIT OR Apache-2.0",    // 문자열, 선택 (SPDX 식)
     repository: "https://example.com/geom.git",   // 문자열, 선택
+    authors: ["Ann Lee <ann@example.com>"],       // 문자열 목록, 선택
+    homepage: "https://example.com/geom",         // 문자열, 선택
+    documentation: "https://example.com/geom/doc",   // 문자열, 선택
+    readme: "README.md",             // 문자열, 선택 (rok.rokon 기준 경로)
+    keywords: ["geometry", "math"],  // 문자열 목록, 선택 (많아야 5 개)
+    publish: true,                   // bool, 선택 (false: `rok publish` 가 거부)
     deps: {                          // 패키지 이름 (문자열) -> Dep
         "util": Dep::path("../util"),
         "parser": Dep::git("https://example.com/parser.git", tag: "v1.2"),
@@ -121,6 +127,7 @@ Package {
 - `native` 는 native 패키지 이름 (자기 이름 공간: 패키지와 native 패키지는 같은 이름을 쓸 수 있음) 을 `Dep::native("req"[, registry: "url"])`, 요구 문자열, 또는 `Dep::native(url: "<url 또는 매니페스트 기준 경로>", sha256: "<64 자리 hex>")` 에 대응시킵니다 (9.10.4b). `deps` / `dev_deps` 의 `Dep::native` 는 에러입니다. 그래프의 모든 패키지의 native 의존이 실행 파일에 링크됩니다 (`dev_deps` 로만 닿는 것은 test / bench 에서만).
 - `lints` 는 lint 수준을 정합니다 (lint 나 그룹 이름 → `"allow"` | `"warn"` | `"deny"`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). `rok` 이 실행하는 모든 `rokc` 명령의 CLI 플래그 앞에 붙은 것처럼 다뤄지므로, CLI `-A/-W/-D` 와 코드의 속성이 이를 덮습니다.
 - `lints_from` 은 시작 lint 수준을 주는 `rok.rokon` 이 있는 디렉토리를 가리킵니다 (이 매니페스트의 디렉토리 기준 상대 경로, 또는 절대 경로). 그 매니페스트의 `lints` 를 그 자신의 `lints_from` 사슬 뒤에 먼저 적용하고, 이 매니페스트의 `lints` 가 그 뒤에 오므로, 여기 항목이 사슬의 같은 lint 나 그룹을 덮습니다 (모든 항목은 이 순서로 `-A`/`-W`/`-D` 로 넘어가며 뒤의 플래그가 이깁니다). 빌드하거나 검사하는 패키지 (와 환경의 매니페스트) 에만 적용되며, 의존 패키지의 매니페스트는 lint 에 쓰지 않습니다. 디렉토리가 없거나, `rok.rokon` 이 없거나, 사슬이 이미 지난 매니페스트로 돌아오면 (순환) 에러입니다. `rok env import` 는 상대 `lints_from` 을 절대 경로로 바꿔 씁니다. 스크립트의 `//! ```rokon` 블록에서는 쓸 수 없습니다.
+- 패키지 메타데이터: `authors` 는 `"Name <email>"` 문자열이며, `rok new` / `rok init` 은 채우지 않습니다. `keywords` 는 많아야 5 개입니다. `authors` 나 `keywords` 의 빈 항목은 에러입니다. `readme` 는 매니페스트의 디렉토리 기준의, 패키지 안의 경로이며 (절대 경로나 `..` 로 패키지를 벗어나는 경로는 에러), 없으면 `README.md` 가 있을 때 그것이 readme 입니다. `rok publish` 는 readme 파일이 있는지 검사하고, `publish: false` 인 패키지는 거부합니다 (9.10.4a).
 - 에러: 모르는 필드 / `Dep` 종류 / 이름 있는 인자, 중복, 9.10.4c 의 규칙을 어기는 `features`, 규칙에 맞지 않는 패키지 이름, ROKON 이 아닌 문법, `Package { .. }` 하나가 아닌 것, 뒤에 남은 토큰. 진단은 `file:line:col` 과 caret 으로 위치를 보여 줍니다.
 
 | 의존성 출처 | 형태                                                         | `rok.lock` 에 고정  |
@@ -252,7 +259,8 @@ Stone { name: "json", vers: "1.4.2", deps: [{ name: "util", req: "^0.3", kind: "
 - `deps` 의 `kind` 는 `"normal"`, `"dev"`, `"native"` 중 하나이며, `registry` 는 선택입니다.
 - feature 가 있는 stone 은 `deps` 뒤에 `features: { "<name>": ["<entry>", ..] }` 를 가지며, 9.10.4c 처럼 검사합니다. `normal` 의존은 `optional: true`, `features: [..]`, `default_features: false` 를 가질 수 있습니다 (기본값이 아닐 때만 적음). `dev` / `native` 의존은 optional 일 수 없고, native 의존에는 feature 가 없습니다. `rok publish` 가 `rok.rokon` 에서 이것들을 적고, 해소는 항목에서 읽습니다. checkout 한 뒤 항목의 `features` 는 그 commit 의 stone 의 `rok.rokon` 의 것과 같아야 하며 (순서 무관), 그렇지 않으면 에러입니다.
 - `native/<shard path>` 는 native 패키지를 한 줄에 `Native { .. }` 하나씩 담습니다 ([9.10.4b](#9104b-native-패키지)).
-- 매니페스트의 `description`, `license`, `repository` 는 선택인 뒤쪽 필드로 들어갑니다.
+- 매니페스트의 `description`, `license`, `repository` 는 선택인 뒤쪽 필드로 들어갑니다. 다른 패키지 메타데이터 (`authors`, `homepage`, `documentation`, `keywords`) 는 아직 항목에 들어가지 않습니다.
+- 읽는 쪽은 index 줄 (`Stone`, 그 `deps` 항목, `Native`, `Artifact`) 의 모르는 필드를 건너뜁니다. 그래서 새 `rok` 이 필드를 더해도 옛 `rok` 에서 패키지가 가려지지 않습니다. 자기 `Native { .. }` 파일 (`Dep::native(url:)`, `rok publish --native`) 은 여전히 거부합니다.
 - 패키지는 `source` 저장소의 루트에 있습니다. `cksum` 은 그 커밋의 git tree hash 이며, checkout 뒤에 검증합니다.
 
 ### 해소
@@ -274,7 +282,7 @@ rok yank [--native] --vers <version> [--undo] [--index <checkout>] [name]   # --
 ```
 
 - `search` 는 index 에서 이름으로 찾아, 찾은 것마다 한 줄 `<name> <newest version> - <description>` 을 출력합니다 (항목에 description 이 없으면 그 부분은 생략). index 조회는 `-` / `_` 어느 쪽 철자든 받습니다.
-- `publish` 는 기본이 dry run 입니다. 깨끗한 work tree, 저장소 루트의 패키지, 그리고 `src/lib.rok`, `src/main.rok`, 또는 둘 다를 요구합니다. `src/main.rok` 만 있는 stone 은 프로그램입니다: `rok install` 이 그것을 빌드하며, 의존 패키지가 될 수 없습니다. path / git 의 normal 의존은 거부하고, path / git 의 dev 의존은 뺍니다. 같은 버전과, `-` / `_` 와 대소문자를 같게 본 이름의 충돌을 검사합니다. 다른 철자가 이미 가진 이름은 거부합니다. `--index` 없는 dry run 은 항목만 출력하고, `--index` 가 있으면 그 checkout 에 대해서도 검사합니다. 항목의 source 는 설정된 그대로의 (`insteadOf` 재작성 전) git remote `origin` url 이며, `https://` 여야 합니다. `http://127.0.0.1` 과 `http://localhost` 만 예외입니다.
+- `publish` 는 기본이 dry run 입니다. `publish: false` 인 패키지는 지울 줄을 알려 주는 에러로 거부합니다. readme (9.10.3) 는 있어야 합니다. 깨끗한 work tree, 저장소 루트의 패키지, 그리고 `src/lib.rok`, `src/main.rok`, 또는 둘 다를 요구합니다. `src/main.rok` 만 있는 stone 은 프로그램입니다: `rok install` 이 그것을 빌드하며, 의존 패키지가 될 수 없습니다. path / git 의 normal 의존은 거부하고, path / git 의 dev 의존은 뺍니다. 같은 버전과, `-` / `_` 와 대소문자를 같게 본 이름의 충돌을 검사합니다. 다른 철자가 이미 가진 이름은 거부합니다. `--index` 없는 dry run 은 항목만 출력하고, `--index` 가 있으면 그 checkout 에 대해서도 검사합니다. 항목의 source 는 설정된 그대로의 (`insteadOf` 재작성 전) git remote `origin` url 이며, `https://` 여야 합니다. `http://127.0.0.1` 과 `http://localhost` 만 예외입니다.
 - `--commit` 이면 `publish` 는 항목을 더합니다: `--index` 가 있으면 그 checkout 에 "Publish <name> <vers>" 커밋으로 (push 하지 않음), 없으면 설정된 index ("Which index") 의 registry API 로 더하며, API 가 그것을 index 에 넣습니다. 클라이언트는 index 저장소에 직접 쓰지 않습니다.
 - `yank` 는 그 버전의 `yanked` 를 켭니다 (`--undo` 면 끕니다): `--index` 가 있으면 그 checkout 의 커밋으로, 없으면 registry API 로.
 - registry API 는 index 의 `config.rokon` 의 `api` 에 있습니다. 요청은 `Authorization: Bearer <token>` 을 실으며, body 는 한 줄 ROKON (`application/rokon; charset=utf-8`) 입니다:
@@ -404,7 +412,7 @@ rok uninstall [--native] <name>..
 
 1. 명령줄의 `+<version>` (`rok +0.4 build`)
 2. 환경 변수 `ROK_TOOLCHAIN`
-3. 매니페스트의 `toolchain: "X"` (가장 가까운 `rok.rokon`)
+3. 매니페스트의 `toolchain: "X"` (가장 가까운 `rok.rokon`. proxy 는 이 필드만 읽으므로, 모르는 필드가 있어도 고정은 유지됨)
 4. 기본 (`$ROK_HOME/config.rokon` 의 `Config { registry, toolchain }`)
 
 버전 접두는 그 아래 버전과 맞습니다 (`0.3` 은 `0.3.*` 의 가장 높은 것). 맞는 toolchain 이 없으면 `rok toolchain install` 을 안내하는 에러입니다.

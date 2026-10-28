@@ -94,6 +94,12 @@ Package {
     description: "2D geometry",      // string, optional
     license: "MIT OR Apache-2.0",    // string, optional (SPDX expression)
     repository: "https://example.com/geom.git",   // string, optional
+    authors: ["Ann Lee <ann@example.com>"],       // list of strings, optional
+    homepage: "https://example.com/geom",         // string, optional
+    documentation: "https://example.com/geom/doc",   // string, optional
+    readme: "README.md",             // string, optional (path relative to rok.rokon)
+    keywords: ["geometry", "math"],  // list of strings, optional (at most 5)
+    publish: true,                   // bool, optional (false: `rok publish` refuses)
     deps: {                          // package name (string) -> Dep
         "util": Dep::path("../util"),
         "parser": Dep::git("https://example.com/parser.git", tag: "v1.2"),
@@ -121,6 +127,7 @@ Package {
 - `native` maps native package names (their own namespace: a package and a native package may share a name) to `Dep::native("req"[, registry: "url"])`, a requirement string, or `Dep::native(url: "<url or path relative to the manifest>", sha256: "<64 hex digits>")` (9.10.4b). `Dep::native` in `deps` / `dev_deps` is an error. Native dependencies of every package in the graph are linked into executables (those reached only through `dev_deps`, only for test / bench).
 - `lints` sets lint levels (lint or group name → `"allow"` | `"warn"` | `"deny"`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)). They are treated as if prepended to the CLI flags of every `rokc` command `rok` runs, so CLI `-A/-W/-D` and attributes in code override them.
 - `lints_from` names a directory (relative to this manifest's directory, or absolute) whose `rok.rokon` supplies starting lint levels. That manifest's `lints`, after its own `lints_from` chain, are applied first, and this manifest's `lints` follow, so an entry here overrides the same lint or group from the chain (all entries are passed as `-A`/`-W`/`-D` in this order; later flags win). It applies only to the package being built or checked (and to an environment's manifest); dependencies' manifests are never consulted for lints. It is an error if the directory does not exist, contains no `rok.rokon`, or if the chain returns to a manifest already in it (a cycle). `rok env import` rewrites a relative `lints_from` as an absolute path. A script's `//! ```rokon` block may not use it.
+- Package metadata: `authors` are `"Name <email>"` strings, and `rok new` / `rok init` do not fill them. `keywords` holds at most 5 entries. An empty entry of `authors` or `keywords` is an error. `readme` is a path inside the package, relative to the manifest's directory (an absolute path, or one whose `..` leaves the package, is an error); without it, `README.md` is the readme when present. `rok publish` checks that the readme file exists, and refuses a package with `publish: false` (9.10.4a).
 - Errors: unknown fields / `Dep` kinds / named arguments, duplicates, `features` that break the rules of 9.10.4c, package names violating the rules, syntax that is not ROKON, anything other than a single `Package { .. }`, trailing tokens. Diagnostics show the location with `file:line:col` and a caret.
 
 | Dependency source | Form                                                         | Pinned in `rok.lock` |
@@ -252,7 +259,8 @@ Stone { name: "json", vers: "1.4.2", deps: [{ name: "util", req: "^0.3", kind: "
 - The `kind` in `deps` is `"normal"`, `"dev"` or `"native"`; `registry` is optional.
 - A stone with features has `features: { "<name>": ["<entry>", ..] }` after `deps`, checked as in 9.10.4c. A `normal` dependency may have `optional: true`, `features: [..]` and `default_features: false` (written only when not the default); `dev` / `native` ones may not be optional, and native ones have no features. `rok publish` writes them from `rok.rokon`; resolution reads them from the entry. After checkout the entry's `features` must equal those of the stone's `rok.rokon` at that commit (in any order); otherwise it is an error.
 - `native/<shard path>` holds native packages, one `Native { .. }` per line ([9.10.4b](#9104b-native-packages)).
-- `description`, `license` and `repository` from the manifest appear as optional trailing fields.
+- `description`, `license` and `repository` from the manifest appear as optional trailing fields. The other package metadata (`authors`, `homepage`, `documentation`, `keywords`) is not in the entry yet.
+- Readers skip fields they do not know in an index line (`Stone`, its `deps` entries, `Native`, `Artifact`), so a newer `rok` can add fields without hiding a package from an older one. A `Native { .. }` file of one's own (`Dep::native(url:)`, `rok publish --native`) still rejects them.
 - The package is at the root of the `source` repository. `cksum` is the git tree hash of that commit, verified after checkout.
 
 ### Resolution
@@ -274,7 +282,7 @@ rok yank [--native] --vers <version> [--undo] [--index <checkout>] [name]   # na
 ```
 
 - `search` searches the index by name and prints one line per match: `<name> <newest version> - <description>` (the description part omitted when the entry has none). Index lookups accept either spelling, `-` or `_`.
-- `publish` is a dry run by default. It requires a clean work tree, the package at the repository root, and a `src/lib.rok`, a `src/main.rok` or both. A stone with only `src/main.rok` is a program: `rok install` builds it, and it cannot be a dependency. Normal path / git dependencies are rejected, and path / git dev dependencies are dropped. It checks for conflicts with the same version and with names equal under `-` / `_` and case folding. A name already owned under a different spelling is rejected. A dry run without `--index` only prints the entry; with `--index` it is also checked against that checkout. The entry's source is the url of git remote `origin` as configured (before `insteadOf` rewrites); it must be `https://`, except `http://127.0.0.1` and `http://localhost`.
+- `publish` is a dry run by default. A package with `publish: false` is refused, with an error naming the line to remove. The readme (9.10.3) must exist. It requires a clean work tree, the package at the repository root, and a `src/lib.rok`, a `src/main.rok` or both. A stone with only `src/main.rok` is a program: `rok install` builds it, and it cannot be a dependency. Normal path / git dependencies are rejected, and path / git dev dependencies are dropped. It checks for conflicts with the same version and with names equal under `-` / `_` and case folding. A name already owned under a different spelling is rejected. A dry run without `--index` only prints the entry; with `--index` it is also checked against that checkout. The entry's source is the url of git remote `origin` as configured (before `insteadOf` rewrites); it must be `https://`, except `http://127.0.0.1` and `http://localhost`.
 - With `--commit`, `publish` adds the entry: with `--index`, as a commit "Publish <name> <vers>" in that checkout (not pushed); without it, through the registry API of the configured index ("Which index"), which adds it to the index. The client never writes to the index repository itself.
 - `yank` sets (or with `--undo` clears) `yanked` for that version: with `--index`, as a commit in that checkout; otherwise through the registry API.
 - The registry API is at `api` of the index's `config.rokon`. Requests carry `Authorization: Bearer <token>`, and bodies are single-line ROKON (`application/rokon; charset=utf-8`):
@@ -404,7 +412,7 @@ rok uninstall [--native] <name>..
 
 1. `+<version>` on the command line (`rok +0.4 build`)
 2. The environment variable `ROK_TOOLCHAIN`
-3. `toolchain: "X"` in the manifest (the nearest `rok.rokon`)
+3. `toolchain: "X"` in the manifest (the nearest `rok.rokon`; the proxy reads only this field, so fields it does not know keep the pin)
 4. The default (`Config { registry, toolchain }` in `$ROK_HOME/config.rokon`)
 
 A version prefix matches versions under it (`0.3` is the highest `0.3.*`). If no toolchain matches, it is an error suggesting `rok toolchain install`.
