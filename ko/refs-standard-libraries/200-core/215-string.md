@@ -55,6 +55,10 @@ impl str {
     fn lines(self) -> LinesIter;            // 끝의 \r 제거, 마지막 빈 줄은 내지 않음
     fn split(self, sep: str) -> SplitIter;  // 빈 조각도 유지 ("a,,b" → "a", "", "b")
     fn split_whitespace(self) -> SplitWhitespaceIter;   // Unicode White_Space 로 나눔 (trim 과 같은 집합)
+    fn splitn(self, n: usize, sep: str) -> SplitNIter;    // 최대 n 조각, 마지막은 나누지 않은 나머지
+    fn rsplit(self, sep: str) -> RSplitIter;              // split 의 조각을 끝에서부터
+    fn rsplitn(self, n: usize, sep: str) -> RSplitNIter;  // 끝에서부터 최대 n 조각
+    fn match_indices(self, pat: str) -> MatchIndicesIter; // (byte offset, 일치한 str), 겹치지 않음
 
     fn starts_with(self, pat: str) -> bool;
     fn ends_with(self, pat: str) -> bool;
@@ -70,6 +74,9 @@ impl str {
     fn trim(self) -> str;                   // Unicode White_Space 를 뗌
     fn trim_start(self) -> str;
     fn trim_end(self) -> str;
+    fn trim_matches(self, pat: str) -> str;           // 앞뒤에서 반복되는 pat 을 모두 뗌
+    fn trim_start_matches(self, pat: str) -> str;
+    fn trim_end_matches(self, pat: str) -> str;
 
     fn to_lowercase(self) -> str;           // 새 str (Unicode 전체 매핑: 1:N, 문맥 규칙 포함)
     fn to_uppercase(self) -> str;
@@ -80,6 +87,15 @@ impl str {
 
 // UTF-8 안전 slicing: s[a:b] 가 여기로 dispatch 되며 byte boundary 를 검증
 impl Sliceable<Range<usize>> for str { type Output = str; }   // 바이트 공유
+```
+
+`splitn` 과 `rsplitn` 은 최대 `n` 개의 조각을 냅니다. 마지막 조각은 나누지 않은 문자열의 나머지이며, `n == 0` 이면 아무것도 내지 않습니다. `rsplitn` 은 끝에서부터 찾으므로 `"a.b.c".rsplitn(2, ".")` 는 `"c"`, 그다음 `"a.b"` 를 냅니다. `split` 처럼 빈 `sep` 은 문자열 전체를 한 조각으로 냅니다. `match_indices` 는 일치할 때마다 `(usize, str)` 쌍을 왼쪽에서 오른쪽으로 냅니다. 일치한 뒤에는 그 다음부터 다시 찾으므로 `"aaaaa".match_indices("aa")` 는 offset 0 과 2 를 냅니다. 빈 `pat` 은 아무것과도 일치하지 않습니다. `trim_matches` 는 양 끝에서 `pat` 의 온전한 반복을 뗍니다 (`"--x--".trim_matches("-") == "x"`, `"aaa".trim_matches("aa") == "a"`). 빈 `pat` 이면 문자열은 그대로입니다.
+
+```rok
+"key=a=b".splitn(2, "=");               //→ "key", "a=b"
+"x.tar.gz".rsplitn(2, ".");             //→ "gz", "x.tar"
+"ab-ab".match_indices("ab");            //→ (0, "ab"), (3, "ab")
+"--x--".trim_start_matches("-");        //→ "x--"
 ```
 
 `as_ptr` 는 문자열 바이트가 있는 자리를 가리키는 포인터를 돌려줍니다. 포인터 값이 나올 수 있는 함수 (변수나 식의 타입이 `rok::bare::ptr` 타입을 이름에 담는 함수: 타입 인자 (`List<ConstPtr<u8>>`) 나 함수 타입 안이어도 됩니다) 에서 그 `str` 을 담은 변수가 scope 안에 있는 동안, GC 는 문자열을 옮기지 않고 포인터는 유효합니다. generator 나 `async` 본문에서는 `yield` / `await` 를 지나서도 그렇습니다. 그 밖에서는 변수가 문자열을 마지막 사용까지만 붙들며, 다른 객체를 통해서만 닿는 문자열은 GC 가 옮길 수 있고 pin 되지 않습니다 ([stdlib 1.6](../100-bare/106-gc-pin.md)). 바이트를 더 오래 그 자리에 두려면 문자열을 pin 합니다 ([1.6.6](../100-bare/106-gc-pin.md#166-추출-메서드)).
@@ -176,7 +192,7 @@ let c = s[0];                  // ERROR: `Index<usize>` 정의 안 함
 
 ### 부분 문자열은 복사하지 않음
 
-`str` `s` 에 대한 `s[a:b]`, `lines`, `split*`, `split_whitespace`, `split_once`, `trim*`, `strip_*` 의 결과는 원래 바이트를 공유하는 `str` 이며 O(1) 입니다 ([refs-lang 8.8.1](../../refs-lang/008-abi/808-lowering-types.md#881-원시-정수--부동소수)). 그래서 작은 조각이 큰 원본을 살려 둡니다. 떼어 내는 API 는 없습니다. `as_bytes()` 도 복사 없는 읽기 전용 `Slice<u8>` view 입니다. `StrBuf` 의 slice 는 그 범위의 사본을 담은 새 `str` 이며 O(b − a) 입니다: `str` 은 불변이므로 아직 바뀔 수 있는 buffer 를 공유할 수 없습니다.
+`str` `s` 에 대한 `s[a:b]`, `lines`, `split*`, `rsplit*`, `split_whitespace`, `split_once`, `match_indices`, `trim*`, `strip_*` 의 결과는 원래 바이트를 공유하는 `str` 이며 O(1) 입니다 ([refs-lang 8.8.1](../../refs-lang/008-abi/808-lowering-types.md#881-원시-정수--부동소수)). 그래서 작은 조각이 큰 원본을 살려 둡니다. 떼어 내는 API 는 없습니다. `as_bytes()` 도 복사 없는 읽기 전용 `Slice<u8>` view 입니다. `StrBuf` 의 slice 는 그 범위의 사본을 담은 새 `str` 이며 O(b − a) 입니다: `str` 은 불변이므로 아직 바뀔 수 있는 buffer 를 공유할 수 없습니다.
 
 ## 2.15.4. `char` - Unicode scalar value
 

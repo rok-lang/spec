@@ -90,6 +90,7 @@ rok::std   (target-dep; uses rok::core + rok::bare)
 - 2.19. [`par::` API](200-core/219-par.md)
 - 2.20. [`Future` / `await` 통합](200-core/220-future.md)
 - 2.21. [`crypto::` - 해시, MAC, AEAD, 키 교환, 서명](200-core/221-crypto.md)
+- 2.22. [`encoding::` - hex 와 base64](200-core/222-encoding.md)
 
 > [!NOTE]
 > 텐서 / 자동 미분 / SIMD / GPU 등 과학 컴퓨팅 / AI 영역은 표준 라이브러리에 포함되지 않고 외부 라이브러리로 분리됩니다. 외부 라이브러리는 [`rok::bare::mlir`](100-bare/109-mlir.md) 모듈을 통해 MLIR 다이얼렉트에 직접 접근할 수 있습니다.

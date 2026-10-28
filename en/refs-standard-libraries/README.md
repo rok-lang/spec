@@ -90,6 +90,7 @@ Safe area. All targets. `use rok::core::**;` applied implicitly (no separate pre
 - 2.19. [`par::` API](200-core/219-par.md)
 - 2.20. [`Future` / `await` integration](200-core/220-future.md)
 - 2.21. [`crypto::` - hashes, MACs, AEADs, key exchange, signatures](200-core/221-crypto.md)
+- 2.22. [`encoding::` - hex and base64](200-core/222-encoding.md)
 
 > [!NOTE]
 > Scientific computing / AI areas such as tensors / automatic differentiation / SIMD / GPU are not part of the standard libraries and are split out into external libraries. External libraries can access MLIR dialects directly through the [`rok::bare::mlir`](100-bare/109-mlir.md) module.

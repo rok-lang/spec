@@ -55,6 +55,10 @@ impl str {
     fn lines(self) -> LinesIter;            // strips a trailing \r, does not yield a final empty line
     fn split(self, sep: str) -> SplitIter;  // keeps empty pieces ("a,,b" → "a", "", "b")
     fn split_whitespace(self) -> SplitWhitespaceIter;   // splits on Unicode White_Space (same set as trim)
+    fn splitn(self, n: usize, sep: str) -> SplitNIter;    // at most n pieces; the last is the unsplit rest
+    fn rsplit(self, sep: str) -> RSplitIter;              // split's pieces, last first
+    fn rsplitn(self, n: usize, sep: str) -> RSplitNIter;  // at most n pieces from the end, last first
+    fn match_indices(self, pat: str) -> MatchIndicesIter; // (byte offset, match), non-overlapping
 
     fn starts_with(self, pat: str) -> bool;
     fn ends_with(self, pat: str) -> bool;
@@ -70,6 +74,9 @@ impl str {
     fn trim(self) -> str;                   // strips Unicode White_Space
     fn trim_start(self) -> str;
     fn trim_end(self) -> str;
+    fn trim_matches(self, pat: str) -> str;           // strips every leading and trailing repeat of pat
+    fn trim_start_matches(self, pat: str) -> str;
+    fn trim_end_matches(self, pat: str) -> str;
 
     fn to_lowercase(self) -> str;           // new str (full Unicode mapping: 1:N, including context rules)
     fn to_uppercase(self) -> str;
@@ -80,6 +87,15 @@ impl str {
 
 // UTF-8-safe slicing: s[a:b] dispatches here and validates byte boundaries
 impl Sliceable<Range<usize>> for str { type Output = str; }   // shares bytes
+```
+
+`splitn` and `rsplitn` yield at most `n` pieces; the last piece is the rest of the string, unsplit, and `n == 0` yields nothing. `rsplitn` searches from the end, so `"a.b.c".rsplitn(2, ".")` yields `"c"`, then `"a.b"`. Like `split`, an empty `sep` yields the whole string as one piece. `match_indices` yields a `(usize, str)` pair for each match, left to right; after a match the search resumes past it, so `"aaaaa".match_indices("aa")` yields offsets 0 and 2. An empty `pat` matches nothing. `trim_matches` removes whole repeats of `pat` from both ends (`"--x--".trim_matches("-") == "x"`, `"aaa".trim_matches("aa") == "a"`); an empty `pat` leaves the string unchanged.
+
+```rok
+"key=a=b".splitn(2, "=");               //→ "key", "a=b"
+"x.tar.gz".rsplitn(2, ".");             //→ "gz", "x.tar"
+"ab-ab".match_indices("ab");            //→ (0, "ab"), (3, "ab")
+"--x--".trim_start_matches("-");        //→ "x--"
 ```
 
 `as_ptr` returns a pointer to the string's bytes in place. The GC does not move the string, and the pointer stays valid, while a variable holding the `str` is in scope in a function where a pointer value can appear: a variable's or an expression's type names a `rok::bare::ptr` type, also as a type argument (`List<ConstPtr<u8>>`) or in a function type. In a generator or `async` body this holds across `yield` / `await`. Elsewhere a variable holds the string only up to its last use, and a string reachable only through another object may be moved by the GC: it is not pinned ([stdlib 1.6](../100-bare/106-gc-pin.md)). To keep the bytes in place longer, pin the string ([1.6.6](../100-bare/106-gc-pin.md#166-extraction-methods)).
@@ -176,7 +192,7 @@ The intent must be stated explicitly, as in `s.chars().next()` or `s.byte(0)`.
 
 ### Substrings are not copied
 
-For a `str` `s`, the results of `s[a:b]`, `lines`, `split*`, `split_whitespace`, `split_once`, `trim*` and `strip_*` are `str` values sharing the original bytes, in O(1) ([refs-lang 8.8.1](../../refs-lang/008-abi/808-lowering-types.md#881-primitive-integers--floating-point)). A small piece therefore keeps a large original alive. There is no API to detach it. `as_bytes()` is likewise a read-only `Slice<u8>` view without copying. A slice of a `StrBuf` is a new `str` holding a copy of the range, O(b − a): `str` is immutable, so it cannot share a buffer that may still change.
+For a `str` `s`, the results of `s[a:b]`, `lines`, `split*`, `rsplit*`, `split_whitespace`, `split_once`, `match_indices`, `trim*` and `strip_*` are `str` values sharing the original bytes, in O(1) ([refs-lang 8.8.1](../../refs-lang/008-abi/808-lowering-types.md#881-primitive-integers--floating-point)). A small piece therefore keeps a large original alive. There is no API to detach it. `as_bytes()` is likewise a read-only `Slice<u8>` view without copying. A slice of a `StrBuf` is a new `str` holding a copy of the range, O(b − a): `str` is immutable, so it cannot share a buffer that may still change.
 
 ## 2.15.4. `char` - Unicode scalar value
 

@@ -81,6 +81,10 @@ The modules provided by the Rok tier, grouped by area:
 
 - [2.21. `crypto::` - hashes, MACs, AEADs, key exchange, signatures](221-crypto.md)
 
+### Encoding
+
+- [2.22. `encoding::` - hex and base64](222-encoding.md)
+
 > [!NOTE]
 > Scientific computing areas such as tensors, automatic differentiation, SIMD and GPU are not part of the Rok tier; they are split out into **external libraries**. External libraries can access MLIR dialects directly through the [`rok::bare::mlir`](../100-bare/) module.
 
