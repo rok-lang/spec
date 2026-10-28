@@ -9,7 +9,7 @@ reflection 은 두 단계 트레잇으로 분리됩니다.
 | 트레잇    | 자동 구현 / opt-in            | 제공 항목                         | 사용 자리                                        |
 |-----------|-------------------------------|-----------------------------------|--------------------------------------------------|
 | `Reflect` | **자동** (모든 타입)          | type_name / size / align          | 묵시 `rok::**` 으로 사용 가능 (드물게 사용)      |
-| `Inspect` | opt-in (`#[derive(Inspect)]`) | field_names / get_field / methods | 묵시 `rok::**` 으로 trait 사용 가능, derive 명시 |
+| `Inspect` | opt-in (`#[derive(Inspect)]`) | field_names / fields / variant_name / get_field / methods | 묵시 `rok::**` 으로 trait 사용 가능, derive 명시 |
 
 자동과 opt-in 으로 분리한 이유는 바이너리 크기를 통제하기 위함입니다. 모든 struct 가 field reflection 메타데이터를 포함하면 binary 가 커지므로, opt-in 방식을 통해 필요한 타입에만 메타데이터를 생성하도록 하였습니다.
 
@@ -80,6 +80,18 @@ trait Inspect: Reflect {
     fn get_field(self, name: str) -> any | none;            // 비공개 필드도
     fn set_field(ref self, name: str, value: any) -> bool;  // 성공 여부
     fn methods() -> List<MethodInfo>;
+
+    // 기본 본문이 있으며, enum 에서는 derive 가 덮어씁니다.
+    fn fields() -> List<FieldInfo>;          // fields_of::<Self>()
+    fn variant_names() -> List<str>;         // struct 는 빈 목록
+    fn variant_name(self) -> str;            // struct: self.type_name_of()
+    fn field_names_of(self) -> List<str>;    // self 가 지닌 필드
+}
+
+struct FieldInfo {
+    name: str;                 // 튜플 필드는 "0", "1", ..
+    type_name: str;            // 인스턴스화된 타입: Box<f64> 의 `v: T` 는 f64
+    is_pub: bool;              // 그냥 `pub` 인 필드만 true
 }
 
 struct MethodInfo {
@@ -94,7 +106,11 @@ struct MethodInfo {
 - `get_field` 는 그 필드의 값을 `any` 로 돌려주며, 없는 이름이면 `none` 입니다. 비공개 필드도 꺼낼 수 있습니다.
 - `set_field` 는 값이 그 필드의 타입과 **정확히 같을 때**, 또는 정수가 다른 정수 타입이어도 **손실 없이 들어갈 때** (`u.set_field("id", 42)` 가 `u64` 필드에) 대입하고 `true` 를 돌려줍니다. 그 밖에는 대입하지 않고 `false` 입니다. 다른 변환 (예: `i32` → `f64`) 은 없습니다.
 - `methods()` 는 그 타입의 **고유 메서드만** (트레잇 메서드 제외) 이름순으로 돌려줍니다. 제네릭 `impl` 의 메서드는 타입을 적힌 그대로 (`T`) 보여 줍니다.
-- `enum` 에 derive 하면 필드는 없고 (`field_names()` 는 빈 목록, `get_field` 는 `none`, `set_field` 는 `false`), `methods()` 만 의미가 있습니다.
+- `fields()` 는 모든 필드를 선언 순서대로, 타입 이름과 `pub` 여부와 함께 돌려줍니다. **비공개 필드도 나옵니다**: `get_field` 와 마찬가지로 `Inspect` 를 derive 하는 것이 타입 작성자의 동의입니다. 타입 이름은 인스턴스화된 것이며 (`Box<f64>` 는 `v: f64`, `items: List<f64>`), `type_name` 처럼 모듈 경로가 없습니다. `rok::core::reflect::fields_of<T: Inspect>() -> List<FieldInfo>` 는 같은 목록을 돌려주는 함수입니다.
+- `enum` 은 타입 수준의 필드가 없습니다 (`field_names()` 와 `fields()` 는 빈 목록). `variant_names()` 는 variant 를 선언 순서대로 돌려줍니다. 값에서 `variant_name()` 은 지금 지닌 variant (`"Circle"`), `field_names_of()` 는 그 variant 의 필드 (튜플 variant 는 `"0"`, `"1"`, 이름 있는 variant 는 그 이름) 이며, `get_field` 로 읽을 수 있습니다. variant 의 payload 는 `Inspect` 로는 읽기 전용입니다: enum 의 `set_field` 는 `false` 입니다.
+- struct 에서 `variant_names()` 는 빈 목록, `variant_name()` 은 그 타입 이름 (`type_name_of()`), `field_names_of()` 는 그 필드입니다.
+- `fields()`, `variant_names()`, `variant_name()`, `field_names_of()` 는 기본 본문이 있으므로, 손으로 쓰는 `impl Inspect` 는 앞의 네 메서드만 쓰면 됩니다.
+- derive 하지 않은 타입에서 `Inspect` 메서드를 부르면 오류이며, 도움말이 무엇을 쓸지 알려 줍니다: ``add `#[derive(Inspect)]` to `Point` ``.
 
 ### derive 예
 
@@ -112,6 +128,16 @@ User::field_names();       //→ ["id", "name", "email"]
 u.get_field("name");       //→ any("Alice")
 u.set_field("id", 42);     //→ true
 u.id;                      //→ 42
+User::fields()[0].type_name; //→ "u64"
+
+#[derive(Inspect)]
+enum Shape { Circle(f64), Rect { w: f64; h: f64; } }
+
+let s = Shape::Rect { w: 2.0, h: 3.0 };
+Shape::variant_names();    //→ ["Circle", "Rect"]
+s.variant_name();          //→ "Rect"
+s.field_names_of();        //→ ["w", "h"]
+s.get_field("w");          //→ any(2.0)
 ```
 
 ### 메타 블록 활용
@@ -133,7 +159,18 @@ pub @derive {
         fn get_field(self, name: str) -> any | none {
             @if_struct {
                 @for_fields {
-                    if name == @field.name.as_str() { return self.@field; }
+                    if name == @field.name.as_str() { let held: any = self.@field; return held; }
+                }
+            }
+            @if_enum {
+                match self {
+                    @for_variants {
+                        @variant.pattern => {
+                            @for_fields {
+                                if name == @field.name.as_str() { let held: any = @field; return held; }
+                            }
+                        },
+                    }
                 }
             }
             return none;
@@ -156,6 +193,15 @@ pub @derive {
         fn methods() -> List<rok::core::reflect::MethodInfo> {
             return rok::core::reflect::methods_of::<@Self>();
         }
+
+        @if_enum {
+            fn variant_name(self) -> str {
+                return match self {
+                    @for_variants { @variant.pattern => @variant.name.as_str(), }
+                };
+            }
+            // variant_names() and field_names_of(self) likewise, per variant
+        }
     }
 }
 ```
@@ -168,9 +214,9 @@ pub @derive {
 
 ```rok
 fn dump_struct<T: Inspect>(x: T) {
-    for name in T::field_names() {
-        if let v: any = x.get_field(name) {
-            println(f"{name} = {v.type_name_of()}: {v:?}");
+    for f in T::fields() {
+        if let v: any = x.get_field(f.name) {
+            println(f"{f.name}: {f.type_name} ({v.type_name_of()})");
         }
     }
 }
@@ -204,6 +250,7 @@ User { id: 1, name: "Alice" }
 | `Reflect` 자동   | 컴파일러 + `rok::core::reflect`                   | type info table, binary 부착  |
 | `Inspect` derive | `rok::core::reflect` + 메타 블록 `#[impl_derive]` | template token 기반 코드 생성 |
 | `MethodInfo`     | `rok::core::reflect`                              | 단순 struct                   |
+| `FieldInfo`, `fields_of` | `rok::core::reflect`                      | 컴파일러 필드 테이블 (인스턴스화된 타입) |
 | `any` 타입       | 컴파일러 내장                                     | type tag + payload            |
 
 ## 2.12.6. 다른 언어와의 비교

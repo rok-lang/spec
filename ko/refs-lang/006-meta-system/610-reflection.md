@@ -57,6 +57,18 @@ trait Inspect: Reflect {
     fn get_field(self, name: str) -> any | none;            // 비공개 필드도
     fn set_field(ref self, name: str, value: any) -> bool;  // 성공 여부
     fn methods() -> List<MethodInfo>;
+
+    // 기본 본문이 있으며, enum 에서는 derive 가 덮어씁니다.
+    fn fields() -> List<FieldInfo>;          // fields_of::<Self>()
+    fn variant_names() -> List<str>;         // struct 는 빈 목록
+    fn variant_name(self) -> str;            // struct: self.type_name_of()
+    fn field_names_of(self) -> List<str>;    // self 가 지닌 필드
+}
+
+struct FieldInfo {
+    name: str;                 // 튜플 필드는 "0", "1", ..
+    type_name: str;            // 인스턴스화된 타입: Box<f64> 의 `v: T` 는 f64
+    is_pub: bool;              // 그냥 `pub` 인 필드만 true
 }
 
 struct MethodInfo {
@@ -71,7 +83,11 @@ struct MethodInfo {
 - `get_field` 는 그 필드의 값을 `any` 로 돌려주며, 없는 이름이면 `none` 입니다. 비공개 필드도 꺼낼 수 있습니다.
 - `set_field` 는 값이 그 필드의 타입과 **정확히 같을 때**, 또는 정수가 다른 정수 타입이어도 **손실 없이 들어갈 때** (`u.set_field("id", 42)` 가 `u64` 필드에) 대입하고 `true` 를 돌려줍니다. 그 밖에는 대입하지 않고 `false` 입니다. 다른 변환 (예: `i32` → `f64`) 은 없습니다.
 - `methods()` 는 그 타입의 **고유 메서드만** (트레잇 메서드 제외) 이름순으로 돌려줍니다. 제네릭 `impl` 의 메서드는 타입을 적힌 그대로 (`T`) 보여 줍니다.
-- `enum` 에 derive 하면 필드는 없고 (`field_names()` 는 빈 목록, `get_field` 는 `none`, `set_field` 는 `false`), `methods()` 만 의미가 있습니다.
+- `fields()` 는 모든 필드를 선언 순서대로, 타입 이름과 `pub` 여부와 함께 돌려줍니다. **비공개 필드도 나옵니다**: `get_field` 와 마찬가지로 `Inspect` 를 derive 하는 것이 타입 작성자의 동의입니다. 타입 이름은 인스턴스화된 것이며 (`Box<f64>` 는 `v: f64`, `items: List<f64>`), `type_name` 처럼 모듈 경로가 없습니다. `rok::core::reflect::fields_of<T: Inspect>() -> List<FieldInfo>` 는 같은 목록을 돌려주는 함수입니다.
+- `enum` 은 타입 수준의 필드가 없습니다 (`field_names()` 와 `fields()` 는 빈 목록). `variant_names()` 는 variant 를 선언 순서대로 돌려줍니다. 값에서 `variant_name()` 은 지금 지닌 variant (`"Circle"`), `field_names_of()` 는 그 variant 의 필드 (튜플 variant 는 `"0"`, `"1"`, 이름 있는 variant 는 그 이름) 이며, `get_field` 로 읽을 수 있습니다. variant 의 payload 는 `Inspect` 로는 읽기 전용입니다: enum 의 `set_field` 는 `false` 입니다.
+- struct 에서 `variant_names()` 는 빈 목록, `variant_name()` 은 그 타입 이름 (`type_name_of()`), `field_names_of()` 는 그 필드입니다.
+- `fields()`, `variant_names()`, `variant_name()`, `field_names_of()` 는 기본 본문이 있으므로, 손으로 쓰는 `impl Inspect` 는 앞의 네 메서드만 쓰면 됩니다.
+- derive 하지 않은 타입에서 `Inspect` 메서드를 부르면 오류이며, 도움말이 무엇을 쓸지 알려 줍니다: ``add `#[derive(Inspect)]` to `Point` ``.
 
 사용 예시는 다음과 같습니다.
 
@@ -84,6 +100,7 @@ Config::field_names()              // ["host", "port"]
 c.get_field("port")                // any 안의 8080
 c.set_field("port", 9090)          // true (성공)
 c.set_field("xxx", 1)              // false (없는 필드)
+Config::fields()[1].type_name      // "i32"
 ```
 
 `Inspect` 는 메타데이터를 binary 에 저장해야 하기 때문에 opt-in 으로 두었습니다. 모든 타입에 자동으로 부착하면 binary 크기 부담이 너무 커지기 때문입니다.

@@ -9,7 +9,7 @@ Reflection is split into two levels of traits.
 | Trait     | Automatic / opt-in            | Provides                          | Where used                                         |
 |-----------|-------------------------------|-----------------------------------|----------------------------------------------------|
 | `Reflect` | **automatic** (every type)    | type_name / size / align          | available through the implicit `rok::**` (rarely used) |
-| `Inspect` | opt-in (`#[derive(Inspect)]`) | field_names / get_field / methods | trait available through the implicit `rok::**`, derive is explicit |
+| `Inspect` | opt-in (`#[derive(Inspect)]`) | field_names / fields / variant_name / get_field / methods | trait available through the implicit `rok::**`, derive is explicit |
 
 The split into automatic and opt-in controls binary size. If every struct carried field reflection metadata, the binary would grow; the opt-in scheme generates the metadata only for the types that need it.
 
@@ -80,6 +80,18 @@ trait Inspect: Reflect {
     fn get_field(self, name: str) -> any | none;            // private fields too
     fn set_field(ref self, name: str, value: any) -> bool;  // whether it succeeded
     fn methods() -> List<MethodInfo>;
+
+    // Default bodies; the derive overrides them for an enum.
+    fn fields() -> List<FieldInfo>;          // fields_of::<Self>()
+    fn variant_names() -> List<str>;         // empty for a struct
+    fn variant_name(self) -> str;            // a struct: self.type_name_of()
+    fn field_names_of(self) -> List<str>;    // the fields self holds
+}
+
+struct FieldInfo {
+    name: str;                 // "0", "1", .. for a tuple field
+    type_name: str;            // instantiated: f64 for `v: T` in Box<f64>
+    is_pub: bool;              // true only for a plain `pub` field
 }
 
 struct MethodInfo {
@@ -94,7 +106,11 @@ struct MethodInfo {
 - `get_field` returns the field's value as `any`, or `none` for an unknown name. Private fields can be read too.
 - `set_field` assigns and returns `true` when the value's type is **exactly the same** as the field's type, or when an integer of a different integer type **fits without loss** (`u.set_field("id", 42)` into a `u64` field). Otherwise it does not assign and returns `false`. There are no other conversions (e.g. `i32` → `f64`).
 - `methods()` returns **only the type's inherent methods** (excluding trait methods), sorted by name. Methods of a generic `impl` show the types as written (`T`).
-- Derived on an `enum`, there are no fields (`field_names()` is an empty list, `get_field` is `none`, `set_field` is `false`); only `methods()` is meaningful.
+- `fields()` lists every field in declaration order with its type name and whether it is `pub`. **Private fields are listed too**: deriving `Inspect` is the type author's consent, the same as for `get_field`. The type name is the instantiated one (`Box<f64>` reports `v: f64`, `items: List<f64>`), with no module path, as `type_name` writes it. `rok::core::reflect::fields_of<T: Inspect>() -> List<FieldInfo>` is the same list as a function.
+- An `enum` has no fields at the type level (`field_names()` and `fields()` are empty lists). `variant_names()` lists its variants in declaration order. On a value, `variant_name()` is the variant it holds (`"Circle"`), `field_names_of()` that variant's fields (`"0"`, `"1"` for a tuple variant, the names for a named one), and `get_field` reads them. A variant's payload is read-only through `Inspect`: `set_field` on an enum is `false`.
+- On a struct, `variant_names()` is an empty list, `variant_name()` is its type name (`type_name_of()`), and `field_names_of()` is its fields.
+- `fields()`, `variant_names()`, `variant_name()` and `field_names_of()` have default bodies, so a hand-written `impl Inspect` needs only the first four methods.
+- Calling an `Inspect` method on a type without the derive is an error whose help says what to write: ``add `#[derive(Inspect)]` to `Point` ``.
 
 ### Derive example
 
@@ -112,6 +128,16 @@ User::field_names();       //→ ["id", "name", "email"]
 u.get_field("name");       //→ any("Alice")
 u.set_field("id", 42);     //→ true
 u.id;                      //→ 42
+User::fields()[0].type_name; //→ "u64"
+
+#[derive(Inspect)]
+enum Shape { Circle(f64), Rect { w: f64; h: f64; } }
+
+let s = Shape::Rect { w: 2.0, h: 3.0 };
+Shape::variant_names();    //→ ["Circle", "Rect"]
+s.variant_name();          //→ "Rect"
+s.field_names_of();        //→ ["w", "h"]
+s.get_field("w");          //→ any(2.0)
 ```
 
 ### Using meta blocks
@@ -133,7 +159,18 @@ pub @derive {
         fn get_field(self, name: str) -> any | none {
             @if_struct {
                 @for_fields {
-                    if name == @field.name.as_str() { return self.@field; }
+                    if name == @field.name.as_str() { let held: any = self.@field; return held; }
+                }
+            }
+            @if_enum {
+                match self {
+                    @for_variants {
+                        @variant.pattern => {
+                            @for_fields {
+                                if name == @field.name.as_str() { let held: any = @field; return held; }
+                            }
+                        },
+                    }
                 }
             }
             return none;
@@ -156,6 +193,15 @@ pub @derive {
         fn methods() -> List<rok::core::reflect::MethodInfo> {
             return rok::core::reflect::methods_of::<@Self>();
         }
+
+        @if_enum {
+            fn variant_name(self) -> str {
+                return match self {
+                    @for_variants { @variant.pattern => @variant.name.as_str(), }
+                };
+            }
+            // variant_names() and field_names_of(self) likewise, per variant
+        }
     }
 }
 ```
@@ -168,9 +214,9 @@ For meta block details see [refs-lang 6.8 Meta blocks](../../refs-lang/006-meta-
 
 ```rok
 fn dump_struct<T: Inspect>(x: T) {
-    for name in T::field_names() {
-        if let v: any = x.get_field(name) {
-            println(f"{name} = {v.type_name_of()}: {v:?}");
+    for f in T::fields() {
+        if let v: any = x.get_field(f.name) {
+            println(f"{f.name}: {f.type_name} ({v.type_name_of()})");
         }
     }
 }
@@ -204,6 +250,7 @@ A bare expression uses `Display` and a trailing `?` uses `Debug`. A value withou
 | `Reflect` (automatic) | compiler + `rok::core::reflect`                | type info table, attached to the binary  |
 | `Inspect` derive   | `rok::core::reflect` + meta block `#[impl_derive]` | code generation from template tokens |
 | `MethodInfo`       | `rok::core::reflect`                              | plain struct                      |
+| `FieldInfo`, `fields_of` | `rok::core::reflect`                        | compiler field table (instantiated types) |
 | `any` type         | compiler built-in                                 | type tag + payload                |
 
 ## 2.12.6. Comparison with other languages
