@@ -192,6 +192,7 @@ impl<K: Hash + Eq, V> Dict<K, V> {
     fn remove(self, k: K) -> V | none;
     fn get(self, k: K) -> V | none;
     fn contains_key(self, k: K) -> bool;
+    fn clear(self);
 
     fn keys(self) -> KeysIter<K, V>;
     fn values(self) -> ValuesIter<K, V>;
@@ -252,6 +253,8 @@ impl<K: Hash + Eq, V> Index<K> for Dict<K, V> {
 
 `d += e` (`AddAssign<Dict<K, V>>`) 는 `e` 의 모든 항목을 `d` 에 제자리에서 삽입합니다. 키가 겹치면 `e` 의 값이 남습니다.
 
+`Dict::from(pairs)` (`From<List<(K, V)>>`) 는 쌍의 리스트로 dict 를 만듭니다. 키가 겹치면 뒤의 값이 남습니다.
+
 ### lazy view
 
 `keys` / `values` / `entries` 는 사본이 아니라 현재 table 을 그대로 보는 lazy view 입니다. 순회 도중 dict 를 바꾸면 결과는 정해지지 않지만 (원소를 빠뜨리거나 두 번 볼 수 있음), 메모리 안전성은 지켜집니다.
@@ -275,6 +278,7 @@ impl<T: Hash + Eq> Set<T> {
     fn insert(self, x: T) -> bool;        // true if 새로 들어감
     fn remove(self, x: T) -> bool;
     fn contains(self, x: T) -> bool;
+    fn clear(self);
 
     fn union(self, other: Set<T>) -> Set<T>;
     fn intersection(self, other: Set<T>) -> Set<T>;
@@ -301,6 +305,8 @@ let u = a.union(b);       //→ {1, 2, 3, 4}
 let i = a.intersection(b);//→ {2, 3}
 ```
 
+`Set::from(xs)` (`From<List<T>>`) 는 리스트로 set 을 만들며 중복은 버립니다. `s += x` (`AddAssign<T>`) 는 `x` 를 삽입합니다.
+
 ## 2.9.5. `OrderedDict<K, V>` / `OrderedSet<T>` - insertion-order
 
 이들은 `Dict` / `Set` 와 동일한 API 를 제공하면서도 **insertion-order 를 보존**한다는 점이 특징이며, Python 3.7+ 의 `dict` 나 Java 의 LinkedHashMap 과 동등한 의미를 가집니다.
@@ -313,8 +319,9 @@ struct OrderedSet<T: Hash + Eq> { /* ... */ }
 config, JSON-like 구조, 출력 reproducibility 처럼 순서 보존이 필요한 상황에서 사용하면 적합하며, 순서를 담는 indices vector 때문에 약간의 오버헤드가 발생합니다.
 
 - `OrderedDict` 는 `new` / `with_capacity` / `from` / `len` / `is_empty` / `insert` / `get` / `contains_key` / `remove` / `clear` / `keys` / `values` / `entries` 와 `d[k]`, `d[k] = v` 를 가집니다. `keys` / `values` / `entries` 는 삽입 순서로 돕니다. 이미 있는 키에 `insert` 하면 값만 바뀌고 순서는 그대로입니다.
-- `OrderedSet` 은 `new` / `from` / `len` / `is_empty` / `insert` / `remove` / `contains` / `iter` / `to_list` 와 집합 연산 `union` / `intersection` / `difference` / `symmetric_difference` / `is_subset` / `is_superset` / `is_disjoint` 를 가집니다. 집합 연산의 결과는 왼쪽 피연산자의 순서를 먼저 따릅니다.
-- 둘 다 `Default`, `Clone`, `IntoIterator`, `FromIterator`, `PartialEq` (순서 무관), `Debug` 를 구현합니다.
+- `OrderedSet` 은 `new` / `from` / `len` / `is_empty` / `insert` / `remove` / `contains` / `clear` / `iter` / `to_list` 와 집합 연산 `union` / `intersection` / `difference` / `symmetric_difference` / `is_subset` / `is_superset` / `is_disjoint` 를 가집니다. 집합 연산의 결과는 왼쪽 피연산자의 순서를 먼저 따릅니다.
+- 둘 다 `Default`, `Clone`, `IntoIterator`, `FromIterator`, `PartialEq` / `Eq` 와 `Hash` (`Dict` / `Set` 처럼 순서 무관), `Debug` 를 구현하므로 `Set` 원소나 `Dict` 키가 될 수 있습니다.
+- `OrderedDict` 의 `d += e` 는 `e` 를 제자리에서 merge 합니다 (`e` 의 값이 남고 새 키는 맨 뒤로). `OrderedSet` 의 `s += x` 는 `x` 를 삽입합니다.
 
 ### 생성
 
@@ -349,7 +356,7 @@ impl<T> Deque<T> {
 }
 ```
 
-`set` 은 `i` 가 범위 밖이면 `IndexError` 를 던집니다. `capacity` 는 ring buffer 가 커지기 전까지 담을 수 있는 원소 수입니다. `d[i]` / `d[i] = v` (범위 밖이면 panic), `IntoIterator`, `Default`, `Debug` 를 구현합니다.
+`set` 은 `i` 가 범위 밖이면 `IndexError` 를 던집니다. `capacity` 는 ring buffer 가 커지기 전까지 담을 수 있는 원소 수입니다. `d[i]` / `d[i] = v` (범위 밖이면 panic), `IntoIterator`, `FromIterator` (앞에서 뒤로), `Default`, `Clone` (`T: Clone`), `PartialEq` / `Eq` (앞에서 뒤로 원소별), `Debug` 를 구현합니다. `d += x` (`AddAssign<T>`) 는 `x` 를 뒤에 push 합니다.
 
 ## 2.9.5b. `BinaryHeap<T>` - 우선순위 큐
 
@@ -369,6 +376,10 @@ impl<T> BinaryHeap<T> {
     fn iter(self) -> ListIter<T>;              // 순서 없음
 }
 ```
+
+`retain` 은 제자리에서 걸러 낸 뒤 heap 순서를 되돌리며 O(n) 입니다. `IntoIterator` (`iter` 처럼 순서 없음), `Debug` (저장 순서, top 이 먼저), `Clone` (`T: Clone`, 사본도 `by` 의 순서를 유지) 을 구현하고, `T: Ord` 이면 `Default` 와 `FromIterator` 가 `new` 처럼 max-heap 을 만듭니다.
+
+heap 은 `Send` 가 아닙니다. 순서가 `+ Send` 없는 `fn` 이기 때문입니다. 원소를 다른 스레드로 넘기려면 `List` 로 보내고 받는 쪽에서 `collect()` 로 `BinaryHeap` 을 만듭니다.
 
 ## 2.9.6. `Tuple<...>` - 고정 heterogeneous
 
@@ -533,6 +544,8 @@ sum(..[4, 5]);               //→ 9 (리스트 spread)
 | `Set<T>`            | `T`               | **비결정**                        |
 | `OrderedDict<K, V>` | `(K, V)`          | insertion order                   |
 | `OrderedSet<T>`     | `T`               | insertion order                   |
+| `Deque<T>`          | `T`               | 앞 → 뒤                           |
+| `BinaryHeap<T>`     | `T`               | **순서 없음** (pop 순서 아님)     |
 | `Tuple<T...>`       | **구현하지 않음** | (heterogeneous, Iterator 의미 X)  |
 | `Slice<T>`          | `T`               | view 순서 (stride 적용)           |
 

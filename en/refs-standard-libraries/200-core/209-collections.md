@@ -192,6 +192,7 @@ impl<K: Hash + Eq, V> Dict<K, V> {
     fn remove(self, k: K) -> V | none;
     fn get(self, k: K) -> V | none;
     fn contains_key(self, k: K) -> bool;
+    fn clear(self);
 
     fn keys(self) -> KeysIter<K, V>;
     fn values(self) -> ValuesIter<K, V>;
@@ -252,6 +253,8 @@ The `d[k]` notation assumes the key is present; use `.get(k)` when safe access i
 
 `d += e` (`AddAssign<Dict<K, V>>`) inserts every entry of `e` into `d` in place; on a shared key the value from `e` wins.
 
+`Dict::from(pairs)` (`From<List<(K, V)>>`) builds a dict from a list of pairs; on a repeated key the later value wins.
+
 ### Lazy views
 
 `keys` / `values` / `entries` are lazy views onto the current table, not copies. Modifying the dict during iteration gives unspecified results (elements may be missed or seen twice), but memory safety is preserved.
@@ -275,6 +278,7 @@ impl<T: Hash + Eq> Set<T> {
     fn insert(self, x: T) -> bool;        // true if newly inserted
     fn remove(self, x: T) -> bool;
     fn contains(self, x: T) -> bool;
+    fn clear(self);
 
     fn union(self, other: Set<T>) -> Set<T>;
     fn intersection(self, other: Set<T>) -> Set<T>;
@@ -301,6 +305,8 @@ let u = a.union(b);       //→ {1, 2, 3, 4}
 let i = a.intersection(b);//→ {2, 3}
 ```
 
+`Set::from(xs)` (`From<List<T>>`) builds a set from a list, dropping duplicates. `s += x` (`AddAssign<T>`) inserts `x`.
+
 ## 2.9.5. `OrderedDict<K, V>` / `OrderedSet<T>` - insertion order
 
 These provide the same API as `Dict` / `Set` but **preserve insertion order**, equivalent in meaning to Python 3.7+ `dict` or Java's LinkedHashMap.
@@ -313,8 +319,9 @@ struct OrderedSet<T: Hash + Eq> { /* ... */ }
 They suit situations that need order preservation, such as config, JSON-like structures and reproducible output; the indices vector holding the order adds slight overhead.
 
 - `OrderedDict` has `new` / `with_capacity` / `from` / `len` / `is_empty` / `insert` / `get` / `contains_key` / `remove` / `clear` / `keys` / `values` / `entries`, plus `d[k]` and `d[k] = v`. `keys` / `values` / `entries` iterate in insertion order. `insert` on an existing key changes only the value; the order is unchanged.
-- `OrderedSet` has `new` / `from` / `len` / `is_empty` / `insert` / `remove` / `contains` / `iter` / `to_list` and the set operations `union` / `intersection` / `difference` / `symmetric_difference` / `is_subset` / `is_superset` / `is_disjoint`. The result of a set operation follows the order of the left operand first.
-- Both implement `Default`, `Clone`, `IntoIterator`, `FromIterator`, `PartialEq` (order-independent) and `Debug`.
+- `OrderedSet` has `new` / `from` / `len` / `is_empty` / `insert` / `remove` / `contains` / `clear` / `iter` / `to_list` and the set operations `union` / `intersection` / `difference` / `symmetric_difference` / `is_subset` / `is_superset` / `is_disjoint`. The result of a set operation follows the order of the left operand first.
+- Both implement `Default`, `Clone`, `IntoIterator`, `FromIterator`, `PartialEq` / `Eq` and `Hash` (order-independent, as for `Dict` / `Set`) and `Debug`, so either can be a `Set` element or a `Dict` key.
+- `d += e` on an `OrderedDict` merges `e` in place (its values win; new keys go last); `s += x` on an `OrderedSet` inserts `x`.
 
 ### Construction
 
@@ -349,7 +356,7 @@ impl<T> Deque<T> {
 }
 ```
 
-`set` throws `IndexError` when `i` is out of range. `capacity` is the number of elements the ring buffer holds before it grows. It implements `d[i]` / `d[i] = v` (panics when out of range), `IntoIterator`, `Default` and `Debug`.
+`set` throws `IndexError` when `i` is out of range. `capacity` is the number of elements the ring buffer holds before it grows. It implements `d[i]` / `d[i] = v` (panics when out of range), `IntoIterator`, `FromIterator` (front to back), `Default`, `Clone` (`T: Clone`), `PartialEq` / `Eq` (element-wise, front to back) and `Debug`. `d += x` (`AddAssign<T>`) pushes `x` at the back.
 
 ## 2.9.5b. `BinaryHeap<T>` - priority queue
 
@@ -369,6 +376,10 @@ impl<T> BinaryHeap<T> {
     fn iter(self) -> ListIter<T>;              // unordered
 }
 ```
+
+`retain` filters in place and restores the heap order, O(n). It implements `IntoIterator` (unordered, as `iter`), `Debug` (storage order, the top first) and `Clone` (`T: Clone`; the copy keeps the order of `by`); with `T: Ord`, `Default` and `FromIterator` build a max-heap, as `new`.
+
+A heap is not `Send`: its order is a `fn` without `+ Send`. To hand the items to another thread, send them as a `List` and `collect()` a `BinaryHeap` on the receiving side.
 
 ## 2.9.6. `Tuple<...>` - fixed heterogeneous
 
@@ -533,6 +544,8 @@ Every container implements `IntoIterator`.
 | `Set<T>`            | `T`                 | **nondeterministic**              |
 | `OrderedDict<K, V>` | `(K, V)`            | insertion order                   |
 | `OrderedSet<T>`     | `T`                 | insertion order                   |
+| `Deque<T>`          | `T`                 | front → back                      |
+| `BinaryHeap<T>`     | `T`                 | **unordered** (not pop order)     |
 | `Tuple<T...>`       | **not implemented** | (heterogeneous, no Iterator meaning)  |
 | `Slice<T>`          | `T`                 | view order (stride applied)       |
 

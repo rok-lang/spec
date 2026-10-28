@@ -25,11 +25,9 @@ pointer 와 type 사이의 변환은 오직 **named function** 형태로만 존�
 
 ```rok
 fn ptr_cast<U, T>(p: Ptr<T>) -> Ptr<U>;
-fn ptr_cast<U, T>(p: ConstPtr<T>) -> ConstPtr<U>;
-fn ptr_cast<U, T>(p: ManyPtr<T>) -> ManyPtr<U>;
 ```
 
-이 함수는 address 와 provenance 를 그대로 보존하면서 type tag 만 바꾼다. 따라서 **alignment 책임은 호출자** 가 집니다.
+이 함수는 address 와 provenance 를 그대로 보존하면서 type tag 만 바꾼다. 따라서 **alignment 책임은 호출자** 가 집니다. 인자는 `Ptr` 뿐입니다 (Rok 에는 오버로딩이 없습니다). `ConstPtr` 와 `ManyPtr` 는 각자의 `cast` 메서드로 같은 변환을 합니다 ([1.1](101-ptr.md)): `p.cast::<U>()`.
 
 ```rok
 let p: Ptr<u32> = ...;        // 4-byte aligned

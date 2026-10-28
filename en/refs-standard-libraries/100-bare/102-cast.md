@@ -25,11 +25,9 @@ The compiler rejects the `as` keyword on pointers, so users necessarily use name
 
 ```rok
 fn ptr_cast<U, T>(p: Ptr<T>) -> Ptr<U>;
-fn ptr_cast<U, T>(p: ConstPtr<T>) -> ConstPtr<U>;
-fn ptr_cast<U, T>(p: ManyPtr<T>) -> ManyPtr<U>;
 ```
 
-This function keeps address and provenance intact and changes only the type tag. **Alignment is therefore the caller's responsibility.**
+This function keeps address and provenance intact and changes only the type tag. **Alignment is therefore the caller's responsibility.** It takes `Ptr` only (Rok has no overloading); `ConstPtr` and `ManyPtr` retype the same way with their own `cast` method ([1.1](101-ptr.md)): `p.cast::<U>()`.
 
 ```rok
 let p: Ptr<u32> = ...;        // 4-byte aligned

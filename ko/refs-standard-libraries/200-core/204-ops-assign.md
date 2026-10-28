@@ -183,6 +183,9 @@ primitive 타입의 `*Assign` impl 에는 모두 `#[intrinsic("rok.OP_assign.TYP
 | `List<T>`    | `AddAssign<T>`, `AddAssign<List<T>>`        | `xs += x` 는 `x` 를 push; `xs += ys` 는 `ys` 의 모든 원소를 제자리에서 push |
 | `str`        | `AddAssign<str>`, `AddAssign<char>`         | `s = s + t`: 새 str 로 교체 (str 은 불변)       |
 | `Dict<K,V>`  | `AddAssign<Dict<K,V>>` (`K: Hash`)          | 제자리 merge, 겹치는 키는 오른쪽 값이 이김      |
+| `OrderedDict<K,V>` | `AddAssign<OrderedDict<K,V>>` (`K: Hash`) | `Dict` 와 같음, 새 키는 맨 뒤로            |
+| `Set<T>`, `OrderedSet<T>` | `AddAssign<T>` (`T: Hash`)   | `s += x` 는 `x` 를 삽입                         |
+| `Deque<T>`   | `AddAssign<T>`                              | `q += x` 는 `x` 를 뒤에 push                    |
 
 ```rok
 let xs: List<i32> = [1];

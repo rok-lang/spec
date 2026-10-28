@@ -132,7 +132,7 @@ spread 에는 다음 규칙이 적용됩니다.
 
 - 튜플 spread 는 컴파일 타임에 길이와 타입을 검증합니다.
 - 고정 매개변수로의 `List` / `Slice` spread 는 다음 인자 앞까지의 자리를 채우며, 길이는 런타임에 검사합니다. 배열 spread 는 그 길이만큼 채웁니다.
-- Dict spread 는 named 인자로 변환됩니다. 각 키는 달리 채워지지 않은 매개변수의 이름이어야 하며 (런타임에 검사), 값은 그 매개변수의 타입이어야 합니다.
+- Dict spread 는 named 인자로 변환됩니다. 각 키는 달리 채워지지 않은 매개변수의 이름이어야 하며 (런타임에 검사), 값은 그 매개변수의 타입이어야 합니다. Dict 의 값 타입 `V` 가 맞지 않는 기본값 매개변수는 기본값을 받으며, 그 이름의 키는 런타임에 panic 합니다.
 - variadic 자리에는 튜플, `List`, `Slice`, 배열 spread 를 일반 인자와 섞어 넘길 수 있습니다 (`f(a, ..xs, b)`). variadic 매개변수를 그대로 다른 variadic 에 넘길 수도 있습니다 (`fn f(xs: ...i32) { g(..xs) }`).
 - 컬렉션이 아닌 값을 spread 하면 에러입니다 ("needs a tuple, a List, a Slice or an array").
 - 원소 타입 `T` 가 제네릭으로 열려 있는 variadic 을 인자 없이 부르면 `T` 를 정할 수 없으므로 타입 표기가 필요합니다.
@@ -142,7 +142,8 @@ spread 에는 다음 규칙이 적용됩니다.
 ```rok
 // fn train(lr: f64, momentum: f64, epochs: i32 = 10)
 let opts = {"lr": 0.01, "momentum": 0.9};   // Dict<str, f64>
-train(..opts);                  // train(lr: 0.01, momentum: 0.9)
+train(..opts);                  // train(lr: 0.01, momentum: 0.9), epochs: 10
+// A key "epochs" in opts would panic: `f64` does not fit `epochs: i32`.
 ```
 
 또한 한 호출 안에서 spread 와 일반 인자를 자유롭게 혼합할 수 있습니다.

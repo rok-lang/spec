@@ -88,9 +88,10 @@ Initialization order among multiple `static` declarations:
 
 - Within the same module, declaration order.
 - Across modules, dependency order: if one `static`'s initializer references another `static`, the latter is initialized first.
-- A circular dependency is a compile error.
+- A cycle through direct references, where each initializer names the next `static` (`static A: i32 = B; static B: i32 = A;`), is a compile error.
+- A cycle through a function call is not checked at compile time; it panics at run time.
 
-The ordering check for `const` initializers is performed at compile time. Non-`const` initializers are initialized at first access. Initialization is thread-safe; the initializer runs exactly once, and other threads accessing concurrently wait until it finishes. An initializer that reads its own `static` panics.
+The ordering check for `const` initializers is performed at compile time. Non-`const` initializers are initialized at first access. Initialization is thread-safe; the initializer runs exactly once, and other threads accessing concurrently wait until it finishes. An initializer that reads its own `static`, through a call, panics.
 
 ## 5.3.7. Visibility
 

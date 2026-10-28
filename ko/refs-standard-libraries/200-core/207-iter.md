@@ -75,6 +75,8 @@ impl Iterator {
     fn flat_map<U: IntoIterator>(self, f: fn(Item) -> U) -> FlatMap<Self, U>;
     fn peekable(self) -> Peekable<Self>;          // 다음 원소 미리 보기
 
+    fn exact_len(self) -> usize | none;           // 진행 없이 아는 길이, 모르면 none
+
     // 종결 메서드 (eager)
     fn count(self) -> usize;
     fn sum(self) -> Item where Item: Add<Output = Item> + Zero;     // 비면 0
@@ -465,7 +467,7 @@ trait ExactSizeIterator: Iterator {
 }
 ```
 
-`len()` 은 남은 원소 수입니다. 표준 라이브러리의 `ExactSizeIterator` 타입은 `count()` 를 `len()` 으로 답하므로, `count()` 는 `Map` 의 함수를 부르지 않습니다. `List`, `Slice`, `Range` 의 iterator 와 구성 iterator 가 모두 `ExactSizeIterator` 인 `Enumerate`, `Zip`, `Take`, `Skip`, `StepBy`, `Rev`, `Map` 이 이 트레잇을 impl 합니다.
+`len()` 은 남은 원소 수입니다. `Iterator::exact_len()` 은 진행 없이 그 수를 알 때 그 수를, 아니면 `none` (기본) 을 돌려줍니다. 표준 라이브러리의 `ExactSizeIterator` 타입과, 그 위에 쌓은 아래 목록의 어댑터는 `len()` 을 돌려줍니다. 기본 `count()` 는 `exact_len()` 이 `none` 이 아니면 그 값을 돌려주므로, `count()` 는 `map` 의 함수를 부르지 않습니다: `xs.iter().map(f).take(3).count()` 는 `f` 를 한 번도 부르지 않습니다. `Filter` 나 `(0..).take(100)` 처럼 길이를 모르는 iterator 는 진행합니다. `List`, `Slice`, `Range` 의 iterator 와 구성 iterator 가 모두 `ExactSizeIterator` 인 `Enumerate`, `Zip`, `Take`, `Skip`, `StepBy`, `Rev`, `Map` 이 이 트레잇을 impl 합니다.
 
 ## 2.7.10a. `GenIter<T>` / `TryGenIter<T, E>` - 제너레이터의 값
 

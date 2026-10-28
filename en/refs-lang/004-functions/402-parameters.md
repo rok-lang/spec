@@ -132,7 +132,7 @@ The following rules apply to spread:
 
 - A tuple spread has its length and types checked at compile time.
 - A `List` / `Slice` spread into fixed parameters fills the slots up to the next argument, with a run-time length check. An array spread fills its length.
-- A Dict spread is converted to named arguments. Each key must name a parameter not filled otherwise (checked at run time), and its value must have that parameter's type.
+- A Dict spread is converted to named arguments. Each key must name a parameter not filled otherwise (checked at run time), and its value must have that parameter's type. A defaulted parameter that the Dict's value type `V` does not fit takes its default; a key naming it panics at run time.
 - In a variadic position, tuple, `List`, `Slice` and array spreads may be mixed with ordinary arguments (`f(a, ..xs, b)`). A variadic parameter may be passed as-is to another variadic (`fn f(xs: ...i32) { g(..xs) }`).
 - Spreading a non-collection value is an error ("needs a tuple, a List, a Slice or an array").
 - Calling a variadic whose element type `T` is an open generic with no arguments cannot determine `T`, so a type annotation is required.
@@ -142,7 +142,8 @@ The following rules apply to spread:
 ```rok
 // fn train(lr: f64, momentum: f64, epochs: i32 = 10)
 let opts = {"lr": 0.01, "momentum": 0.9};   // Dict<str, f64>
-train(..opts);                  // train(lr: 0.01, momentum: 0.9)
+train(..opts);                  // train(lr: 0.01, momentum: 0.9), epochs: 10
+// A key "epochs" in opts would panic: `f64` does not fit `epochs: i32`.
 ```
 
 Spreads and ordinary arguments may also be freely mixed within one call.

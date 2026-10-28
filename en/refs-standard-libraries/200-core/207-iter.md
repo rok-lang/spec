@@ -75,6 +75,8 @@ impl Iterator {
     fn flat_map<U: IntoIterator>(self, f: fn(Item) -> U) -> FlatMap<Self, U>;
     fn peekable(self) -> Peekable<Self>;          // peek at the next element
 
+    fn exact_len(self) -> usize | none;           // length without stepping, else none
+
     // terminal methods (eager)
     fn count(self) -> usize;
     fn sum(self) -> Item where Item: Add<Output = Item> + Zero;     // 0 if empty
@@ -465,7 +467,7 @@ trait ExactSizeIterator: Iterator {
 }
 ```
 
-`len()` is the number of remaining elements. Standard-library `ExactSizeIterator` types answer `count()` from `len()`, so `Map`'s function is not called by `count()`. The iterators of `List`, `Slice` and `Range`, and `Enumerate`, `Zip`, `Take`, `Skip`, `StepBy`, `Rev`, `Map` when their component iterators are all `ExactSizeIterator`, implement this trait.
+`len()` is the number of remaining elements. `Iterator::exact_len()` returns that number when it is known without stepping and `none` otherwise (the default); the standard-library `ExactSizeIterator` types return their `len()`, as do the adapters listed below when built on them. The default `count()` returns `exact_len()` when it is not `none`, so `count()` does not call `map`'s function: `xs.iter().map(f).take(3).count()` calls `f` zero times. An iterator of unknown length, such as `Filter` or `(0..).take(100)`, is stepped. The iterators of `List`, `Slice` and `Range`, and `Enumerate`, `Zip`, `Take`, `Skip`, `StepBy`, `Rev`, `Map` when their component iterators are all `ExactSizeIterator`, implement this trait.
 
 ## 2.7.10a. `GenIter<T>` / `TryGenIter<T, E>` - the value of a generator
 
