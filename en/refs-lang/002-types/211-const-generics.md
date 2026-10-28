@@ -33,7 +33,7 @@ struct Tagged<T, const TAG: u32> { value: T; }
 
 ## 2.11.3. Allowed types
 
-The type of a `const` parameter is one of the integer types (`i8` to `i128`, `u8` to `u128`, `usize`, `isize`), `bool`, `char`, or `c_char`.
+The type of a `const` parameter is one of the integer types (`i8` to `i64`, `u8` to `u64`, `usize`, `isize`), `bool`, `char`, or `c_char`.
 
 Floating-point types, sum types and user-defined structs cannot be `const` parameters. Floating-point types are excluded because of nondeterminism in their bit representation, and user-defined types because of consistency problems with equality comparison.
 

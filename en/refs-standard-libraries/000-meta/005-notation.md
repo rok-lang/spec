@@ -52,7 +52,7 @@ Arithmetic addition. Returns the sum of the two values.
 
 - `i32 + i32`: 2's complement wrap (debug=panic, release=wrap)
 - `f64 + f64`: IEEE 754 addition
-- `int + Int`: unbounded precision; promotes to BigInt when the result exceeds the i128 range
+- `int + Int`: unbounded precision; promotes to BigInt when the result exceeds the i64 range
 
 Overflow handling follows the fixed-width arithmetic rules of [2.1 Numeric types](../200-core/201-numbers.md).
 Saturating / checked / wrapping variants are exposed as separate methods (`saturating_add`, etc.).

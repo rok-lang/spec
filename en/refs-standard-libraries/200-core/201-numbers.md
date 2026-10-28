@@ -68,6 +68,22 @@ impl Int {
     fn abs(self) -> int;
     fn bit_length(self) -> u64;                 // bits of |self| without leading zeros; 0 for 0
 
+    // bits: two's complement, the sign bit repeated forever
+    fn count_ones(self) -> u64;                 // one bits of |self|
+    fn trailing_zeros(self) -> u64 | none;      // none for 0
+    fn bit(self, n: u64) -> bool;               // a negative number has every high bit set
+    fn set_bit(ref self, n: u64, value: bool);
+    fn is_power_of_two(self) -> bool;           // false for 0 and negatives
+    fn next_power_of_two(self) -> int;          // smallest power of two >= self; 1 for self <= 1
+    fn ilog2(self) -> u64;                      // floor(log2(self)); panics unless self > 0
+    fn checked_ilog2(self) -> u64 | none;
+
+    // bytes: signed is the shortest two's complement, else the magnitude
+    fn to_le_bytes(self, signed: bool = true) -> List<u8>;   // panics if !signed and self < 0
+    fn to_be_bytes(self, signed: bool = true) -> List<u8>;
+    fn from_le_bytes(bytes: List<u8> | Slice<u8>, signed: bool = true) -> int;   // no bytes is 0
+    fn from_be_bytes(bytes: List<u8> | Slice<u8>, signed: bool = true) -> int;
+
     fn div_rem(self, rhs: int) -> (int, int);   // (self / rhs, self % rhs), truncating; panics if rhs == 0
     fn pow(self, exp: u32) -> int;              // exp: u32 as for fixed-width integers
     fn isqrt(self) -> int;                      // floor(sqrt(self)); panics if self < 0
@@ -81,7 +97,7 @@ impl Int {
 }
 ```
 
-These follow the fixed-width integers' names and panics. `pow` takes a `u32` exponent: a larger one gives at least 2^32 bits for any base but 0 and ±1. `modpow` takes an `int` exponent, since its result stays below `|m|`; the result has the sign of `m`, like [`%%`](203-ops.md#modulo---floored-modulo-). A negative exponent is an error (no modular inverse).
+These follow the fixed-width integers' names and panics. Bit counts and indices are `u64`, like `bit_length`. The width-bound bit methods (`leading_zeros`, `rotate_left`, `swap_bytes`, ...) have no meaning without a width and are left out. `count_ones` counts `|self|` (Python's `bit_count`), since a negative number has infinitely many one bits. The bytes are as short as the value allows: `128` is `[128, 0]` signed and `[128]` unsigned, `-1` is `[255]`, zero is `[0]`. `pow` takes a `u32` exponent: a larger one gives at least 2^32 bits for any base but 0 and ±1. `modpow` takes an `int` exponent, since its result stays below `|m|`; the result has the sign of `m`, like [`%%`](203-ops.md#modulo---floored-modulo-). A negative exponent is an error (no modular inverse).
 
 `Int` is defined in `rok::core::num::bigint::Int` (`Float` in
 `rok::core::num::bigfloat::Float`). `#[keyword("int")]` registers the identifier `int` as a type keyword,
@@ -419,6 +435,10 @@ impl f64 {
     fn div_euclid(self, rhs: f64) -> f64;
     fn rem_euclid(self, rhs: f64) -> f64;
     fn mul_add(self, a: f64, b: f64) -> f64;   // self * a + b with one rounding
+    fn lerp(self, other: f64, t: f64) -> f64;  // self at t = 0, other at t = 1; exact at both, monotonic in t
+    fn next_after(self, toward: f64) -> f64;   // one step toward `toward` (C nextafter); toward if equal
+    fn next_up(self) -> f64;                   // least value > self; inf and NaN stay
+    fn next_down(self) -> f64;                 // greatest value < self
 
     fn sqrt(self) -> f64;        // the Sqrt trait (2.3)
     fn cbrt(self) -> f64;

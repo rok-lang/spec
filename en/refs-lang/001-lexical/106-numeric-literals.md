@@ -98,7 +98,7 @@ A suffix after a literal specifies which concrete type the literal evaluates to.
 
 The suffix format follows these rules. A suffix is attached immediately after the last character of the literal without whitespace and consists only of identifier characters (`XID_Continue`). Lexically it is kept as part of one token: the lexer groups the numeric body and the suffix string into a single token.
 
-Numeric type name suffixes (`i8` `i16` `i32` `i64` `i128` `isize` `u8` `u16` `u32` `u64` `u128` `usize` `c_char` `f32` `f64`) are defined by the language and set the literal's type to that type. The `f32` / `f64` suffixes may also be attached to integer forms (`1f64`). Other suffixes (`2i`, etc.) are interpreted by handlers registered by the standard libraries or users through [`#[literal(...)]` magic](../006-meta-system/605-literal-magic.md).
+Numeric type name suffixes (`i8` `i16` `i32` `i64` `isize` `u8` `u16` `u32` `u64` `usize` `c_char` `f32` `f64`) are defined by the language and set the literal's type to that type. `i128` / `u128` are reserved: Rok has no 128-bit integers (`int` holds any size), and a literal with either suffix is an error that names the 64-bit suffix or `int` to write instead. The `f32` / `f64` suffixes may also be attached to integer forms (`1f64`). Other suffixes (`2i`, etc.) are interpreted by handlers registered by the standard libraries or users through [`#[literal(...)]` magic](../006-meta-system/605-literal-magic.md).
 
 ## 1.6.3. Unsuffixed literals
 

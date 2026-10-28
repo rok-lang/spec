@@ -68,6 +68,22 @@ impl Int {
     fn abs(self) -> int;
     fn bit_length(self) -> u64;                 // 앞쪽 0 을 뺀 |self| 의 비트 수; 0 이면 0
 
+    // 비트: 부호 비트가 끝없이 반복되는 2 의 보수
+    fn count_ones(self) -> u64;                 // |self| 의 1 비트 수
+    fn trailing_zeros(self) -> u64 | none;      // 0 이면 none
+    fn bit(self, n: u64) -> bool;               // 음수는 위쪽 비트가 모두 1
+    fn set_bit(ref self, n: u64, value: bool);
+    fn is_power_of_two(self) -> bool;           // 0 과 음수는 false
+    fn next_power_of_two(self) -> int;          // self 이상인 가장 작은 2 의 거듭제곱; self <= 1 이면 1
+    fn ilog2(self) -> u64;                      // floor(log2(self)); self > 0 이 아니면 panic
+    fn checked_ilog2(self) -> u64 | none;
+
+    // 바이트: signed 면 가장 짧은 2 의 보수, 아니면 절댓값
+    fn to_le_bytes(self, signed: bool = true) -> List<u8>;   // !signed 이고 self < 0 이면 panic
+    fn to_be_bytes(self, signed: bool = true) -> List<u8>;
+    fn from_le_bytes(bytes: List<u8> | Slice<u8>, signed: bool = true) -> int;   // 바이트가 없으면 0
+    fn from_be_bytes(bytes: List<u8> | Slice<u8>, signed: bool = true) -> int;
+
     fn div_rem(self, rhs: int) -> (int, int);   // (self / rhs, self % rhs), 버림; rhs == 0 이면 panic
     fn pow(self, exp: u32) -> int;              // exp: 고정 폭 정수처럼 u32
     fn isqrt(self) -> int;                      // floor(sqrt(self)); self < 0 이면 panic
@@ -81,7 +97,7 @@ impl Int {
 }
 ```
 
-이것들은 고정 폭 정수의 이름과 panic 을 따릅니다. `pow` 는 `u32` 지수를 받습니다: 그보다 큰 지수는 0 과 ±1 을 뺀 모든 밑에서 적어도 2^32 bit 를 냅니다. `modpow` 는 결과가 `|m|` 보다 작게 머무르므로 `int` 지수를 받으며, 결과는 [`%%`](203-ops.md#modulo---floored-modulo-) 처럼 `m` 의 부호를 가집니다. 음수 지수는 에러입니다 (modular inverse 없음).
+이것들은 고정 폭 정수의 이름과 panic 을 따릅니다. 비트 수와 비트 위치는 `bit_length` 처럼 `u64` 입니다. 폭에 묶인 비트 메서드 (`leading_zeros`, `rotate_left`, `swap_bytes`, ...) 는 폭이 없으면 뜻이 없으므로 빠집니다. 음수는 1 비트가 끝없이 많으므로 `count_ones` 는 `|self|` 를 셉니다 (Python 의 `bit_count`). 바이트는 값이 허락하는 만큼 짧습니다: `128` 은 signed 로 `[128, 0]`, unsigned 로 `[128]`, `-1` 은 `[255]`, 0 은 `[0]` 입니다. `pow` 는 `u32` 지수를 받습니다: 그보다 큰 지수는 0 과 ±1 을 뺀 모든 밑에서 적어도 2^32 bit 를 냅니다. `modpow` 는 결과가 `|m|` 보다 작게 머무르므로 `int` 지수를 받으며, 결과는 [`%%`](203-ops.md#modulo---floored-modulo-) 처럼 `m` 의 부호를 가집니다. 음수 지수는 에러입니다 (modular inverse 없음).
 
 `Int` 는 `rok::core::num::bigint::Int` 에 정의됩니다 (`Float` 는
 `rok::core::num::bigfloat::Float`). `#[keyword("int")]` 가 식별자 `int` 를 타입 키워드로
@@ -423,6 +439,10 @@ impl f64 {
     fn div_euclid(self, rhs: f64) -> f64;
     fn rem_euclid(self, rhs: f64) -> f64;
     fn mul_add(self, a: f64, b: f64) -> f64;   // 반올림 한 번으로 self * a + b
+    fn lerp(self, other: f64, t: f64) -> f64;  // t = 0 이면 self, t = 1 이면 other; 양 끝에서 정확, t 에 단조
+    fn next_after(self, toward: f64) -> f64;   // `toward` 쪽으로 한 칸 (C nextafter); 같으면 toward
+    fn next_up(self) -> f64;                   // self 보다 큰 가장 작은 값; inf 와 NaN 은 그대로
+    fn next_down(self) -> f64;                 // self 보다 작은 가장 큰 값
 
     fn sqrt(self) -> f64;        // Sqrt 트레잇 (2.3)
     fn cbrt(self) -> f64;
