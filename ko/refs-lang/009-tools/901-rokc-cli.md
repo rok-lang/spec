@@ -516,7 +516,7 @@ error[E100]: cannot find value `count` in this scope
 
 [소스 파일](../001-lexical/101-source-files.md) 에서 정의한 파일 + 줄 + 컬럼 단위의 진단을 그대로 사용합니다.
 
-머리줄은 `<severity>[<code>]: <message>` 이고 `--> path:line:col` 이 주 위치입니다. 주 span 은 `^`, 보조 span 은 `-` 로 밑줄을 긋고, 다른 파일의 보조 span 은 `::: path:line:col` 로 시작합니다. 끝의 `= note:` 줄은 맥락을, `= help:` 줄은 고치는 방법을 덧붙입니다.
+머리줄은 `<severity>[<code>]: <message>` 이고 `--> path:line:col` 이 주 위치입니다. 주 span 은 `^`, 보조 span 은 `-` 로 밑줄을 긋고, 다른 파일의 보조 span 은 `::: path:line:col` 로 시작합니다. 끝의 `= note:` 줄은 맥락을, `= help:` 줄은 고치는 방법을 덧붙입니다. 메시지는 이 명세의 절을 인용하지 않으며, JSON 형식이 그것을 모아 줍니다 ([9.9.4](909-debug-tools.md#994-진단--에러-메시지)).
 
 ### 빌드 진행
 

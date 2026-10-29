@@ -97,6 +97,8 @@ This format uses the file + line + column diagnostic units of [Source files](../
 
 The header is `<severity>[<code>]: <message>` and `--> path:line:col` gives the primary location. The primary span is underlined with `^`, secondary spans with `-`; a secondary span in another file is introduced by `::: path:line:col`. Trailing `= note:` lines add context and `= help:` lines suggest a fix. For a name not found that an item elsewhere has, the help gives the `use` lines that bring it in (up to three: the package's own items first, then the standard library's, then the dependencies'), or the missing `pub` when the package's only such item is hidden (``add `use geo::Point;` ``; `` `geo::secret` has that name, but it is private to module `geo`: add `pub` to it ``).
 
+The primary span is the code at fault: for a value of the wrong type, the value, not the statement that holds it. Messages name library items as they are written (`List::sort`, `Send`, `print`, not `rok::core::marker::Send`). The human format leaves out citations of this specification (`(spec 3.12.5)`); the JSON format keeps them in the text and lists them in `spec`.
+
 ### JSON format (tool integration)
 
 For tool integration, output can also be produced as JSON.
@@ -108,7 +110,7 @@ rokc build --message-format=json
 Each diagnostic is one line of JSON object on stdout (the human format goes to stderr).
 
 ```json
-{"type":"error","code":"E200","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"..."}],"notes":["..."]}
+{"type":"error","code":"E200","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"..."}],"notes":["..."],"spec":["..."]}
 ```
 
 | Field      | Meaning                                                            |
@@ -119,6 +121,7 @@ Each diagnostic is one line of JSON object on stdout (the human format goes to s
 | `message`  | Message                                                            |
 | `spans`    | List of locations. The first element is the primary location (`is_primary: true`); the rest are secondary |
 | `notes`    | List of note strings; a help entry starts with `help: `            |
+| `spec`     | Sections the message and notes cite (`spec 3.12.5`), which the human format leaves out |
 
 A span has `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_primary` and `label`. A diagnostic that knows only the file and no position has just `{"file_name": .., "is_primary": true}`.
 

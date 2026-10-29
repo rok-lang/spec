@@ -97,6 +97,8 @@ error[E100]: cannot find value `count` in this scope
 
 머리줄은 `<severity>[<code>]: <message>` 이고 `--> path:line:col` 이 주 위치입니다. 주 span 은 `^`, 보조 span 은 `-` 로 밑줄을 긋고, 다른 파일의 보조 span 은 `::: path:line:col` 로 시작합니다. 끝의 `= note:` 줄은 맥락을, `= help:` 줄은 고치는 방법을 덧붙입니다. 찾지 못한 이름을 다른 곳의 항목이 가지고 있으면, help 는 그것을 들여오는 `use` 줄 (최대 셋: 패키지 자신의 항목 먼저, 그다음 표준 라이브러리, 그다음 의존 패키지) 이나, 패키지의 유일한 그런 항목이 가려져 있으면 빠진 `pub` 을 알립니다 (``add `use geo::Point;` ``; `` `geo::secret` has that name, but it is private to module `geo`: add `pub` to it ``).
 
+주 span 은 잘못된 코드입니다: 타입이 맞지 않는 값이면 그 값을 담은 문장이 아니라 값 자체입니다. 메시지는 라이브러리 항목을 코드에 쓰는 이름으로 부릅니다 (`rok::core::marker::Send` 가 아니라 `List::sort`, `Send`, `print`). 사람용 형식은 이 명세의 인용 (`(spec 3.12.5)`) 을 빼고, JSON 형식은 글에 그대로 두고 `spec` 에 모아 줍니다.
+
 ### JSON 형식 (도구 통합)
 
 도구 통합을 위해 JSON 형식으로도 출력할 수 있습니다.
@@ -108,7 +110,7 @@ rokc build --message-format=json
 진단 하나가 stdout 의 한 줄 JSON 객체입니다 (사람용 형식은 stderr).
 
 ```json
-{"type":"error","code":"E200","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"..."}],"notes":["..."]}
+{"type":"error","code":"E200","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"..."}],"notes":["..."],"spec":["..."]}
 ```
 
 | 필드       | 뜻                                                                 |
@@ -119,6 +121,7 @@ rokc build --message-format=json
 | `message`  | 메시지                                                             |
 | `spans`    | 위치 목록. 첫 원소가 주 위치 (`is_primary: true`), 나머지는 보조 위치 |
 | `notes`    | note 문자열 목록. help 항목은 `help: ` 로 시작                     |
+| `spec`     | 메시지와 note 가 인용하는 절 (`spec 3.12.5`). 사람용 형식에서는 빠짐 |
 
 span 은 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_primary`, `label` 을 가집니다. 위치 없이 파일만 아는 진단은 `{"file_name": .., "is_primary": true}` 만 둡니다.
 

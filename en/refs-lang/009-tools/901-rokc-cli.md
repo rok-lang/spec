@@ -516,7 +516,7 @@ error[E100]: cannot find value `count` in this scope
 
 Diagnostics use the file + line + column units defined in [Source files](../001-lexical/101-source-files.md).
 
-The header is `<severity>[<code>]: <message>` and `--> path:line:col` gives the primary location. The primary span is underlined with `^`, secondary spans with `-`; a secondary span in another file is introduced by `::: path:line:col`. Trailing `= note:` lines add context and `= help:` lines suggest a fix.
+The header is `<severity>[<code>]: <message>` and `--> path:line:col` gives the primary location. The primary span is underlined with `^`, secondary spans with `-`; a secondary span in another file is introduced by `::: path:line:col`. Trailing `= note:` lines add context and `= help:` lines suggest a fix. Messages cite no sections of this specification; the JSON format lists them ([9.9.4](909-debug-tools.md#994-diagnostics--error-messages)).
 
 ### Build progress
 
