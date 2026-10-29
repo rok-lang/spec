@@ -145,19 +145,19 @@ Within a session the host reuses functions it has already compiled (9.6.4). Ther
 ### REPL output
 
 ```
-> 1 + 2
+>>> 1 + 2
 3
-> "hi"
+>>> "hi"
 hi
 ```
 
 The last expression's value is printed with `Display`. A trailing `?` (as in `xs?`) prints the `Debug` form instead, and `:type xs` prints the type alone. A value without the requested trait (`Display` for a bare expression, `Debug` for `?`) prints only its type name. A `let` cell prints nothing.
 
 ```
-> let xs = [1, 2, 3];
-> xs
+>>> let xs = [1, 2, 3];
+>>> xs
 List<i32>
-> xs?
+>>> xs?
 [1, 2, 3]
 ```
 
@@ -172,15 +172,15 @@ Jupyter integration details are defined in [Jupyter integration](908-jupyter-int
 The REPL processes input in units of complete expressions or statements.
 
 ```
-> 1 + 2
+>>> 1 + 2
 3
-> let x =
+>>> let x =
 ... 42i32;          (continued input)
-> x
+>>> x
 42
 ```
 
-If an expression or block is not closed, the `...` prompt is shown and input continues. When standard input ends inside an incomplete cell, the cell is not run, an error is reported, and `rokc repl` exits with 1. A cell that fails does not change the exit code.
+The prompt is `>>>`, and `...` while a cell continues. A cell ends at the end of a line, decided on tokens: input continues with `...` while a bracket, string or block comment is still open, while the last token cannot end a statement (a binary operator, `.`, `,`, `=`, `->`, `|`, or a keyword such as `else` or `in`), or while the input ends in an item header without its body (`fn g(x: i32)` with `-> i32 { .. }` on the next line). Brackets in char literals, strings and comments do not count. Any other line ends the cell. When the cell's last top-level statement is a `let` or an assignment without `;` (as in `let x = 1` or `k += 2`), the `;` is supplied: the `let` binds as usual and the cell shows nothing. Other statements are not changed, and diagnostics quote the cell as typed. On a terminal each prompt starts on a fresh line, also after output that did not end with a newline; piped input gets no prompt. When standard input ends inside an incomplete cell, the cell is not run, an error is reported, and `rokc repl` exits with 1. A cell that fails does not change the exit code.
 
 ## 9.7.9. Input unit: Jupyter cell
 

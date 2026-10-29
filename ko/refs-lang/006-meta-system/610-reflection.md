@@ -112,17 +112,17 @@ Config::fields()[1].type_name      // "i32"
 REPL 은 평범한 마지막 식을 `Display` 로, 뒤에 `?` 를 붙이면 `Debug` 로, `:type` 은 식을 실행하지 않고 타입 검사로 얻은 정적 타입을 출력합니다 ([9.7.7](../009-tools/907-jit-cells.md#977-시각화--출력)).
 
 ```
-> let x = 42i32;
-> x
+>>> let x = 42i32;
+>>> x
 42
 
-> [1, 2, 3]
+>>> [1, 2, 3]
 List<i32>
 
-> Config { host: "h", port: 80 }
+>>> Config { host: "h", port: 80 }
 Config
 
-> Config { host: "h", port: 80 }?
+>>> Config { host: "h", port: 80 }?
 Config { host: "h", port: 80 }
 ```
 

@@ -227,17 +227,17 @@ fn dump_struct<T: Inspect>(x: T) {
 The REPL prints a bare last expression with `Display`, a trailing `?` with `Debug`, and `:type` with this chapter's `Reflect::type_name_of` ([2.10 fmt](210-fmt.md), [refs-lang 6.10.3](../../refs-lang/006-meta-system/610-reflection.md#6103-repl--jupyter-auto-printing)).
 
 ```
-> let x = 42i32;
-> x
+>>> let x = 42i32;
+>>> x
 42
 
-> [1, 2, 3]
+>>> [1, 2, 3]
 List<i32>
 
-> [1, 2, 3]?
+>>> [1, 2, 3]?
 [1, 2, 3]
 
-> User { id: 1, name: "Alice" }?
+>>> User { id: 1, name: "Alice" }?
 User { id: 1, name: "Alice" }
 ```
 

@@ -112,17 +112,17 @@ Config::fields()[1].type_name      // "i32"
 When the REPL prints a bare last expression it uses `Display`; a trailing `?` uses `Debug`; `:type` prints the expression's static type, found by type checking without running it ([9.7.7](../009-tools/907-jit-cells.md#977-visualization--output)).
 
 ```
-> let x = 42i32;
-> x
+>>> let x = 42i32;
+>>> x
 42
 
-> [1, 2, 3]
+>>> [1, 2, 3]
 List<i32>
 
-> Config { host: "h", port: 80 }
+>>> Config { host: "h", port: 80 }
 Config
 
-> Config { host: "h", port: 80 }?
+>>> Config { host: "h", port: 80 }?
 Config { host: "h", port: 80 }
 ```
 

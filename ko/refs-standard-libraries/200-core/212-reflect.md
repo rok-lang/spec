@@ -227,17 +227,17 @@ fn dump_struct<T: Inspect>(x: T) {
 REPL 은 평범한 마지막 식을 `Display` 로, 뒤에 `?` 를 붙이면 `Debug` 로, `:type` 은 이 장의 `Reflect::type_name_of` 로 출력합니다 ([2.10 fmt](210-fmt.md), [refs-lang 6.10.3](../../refs-lang/006-meta-system/610-reflection.md#6103-repl--jupyter-자동-출력)).
 
 ```
-> let x = 42i32;
-> x
+>>> let x = 42i32;
+>>> x
 42
 
-> [1, 2, 3]
+>>> [1, 2, 3]
 List<i32>
 
-> [1, 2, 3]?
+>>> [1, 2, 3]?
 [1, 2, 3]
 
-> User { id: 1, name: "Alice" }?
+>>> User { id: 1, name: "Alice" }?
 User { id: 1, name: "Alice" }
 ```
 
