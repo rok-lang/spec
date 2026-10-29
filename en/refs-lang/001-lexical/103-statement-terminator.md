@@ -58,6 +58,16 @@ match v { ... }.len();       // . continues
 
 A non-block-like expression appearing as a statement in the middle of a block requires `;`. Only the last expression of a block (the block's value) may appear without `;`.
 
+The last statement before `}` may omit its `;`; omitting it is the same as writing it. This covers `let` (of any pattern), assignment, compound assignment, `return`, `break`, `continue` and `throw`. The block's value is what it is with the `;`: unit, or divergent for `return` / `break` / `continue` / `throw`. A last expression without `;` is still the block's value, and a statement in the middle of a block still needs `;`.
+
+```rok
+while i < n { i += 1 }           // same as { i += 1; }
+if found { idx = k } else { idx = -1 }
+let f = [ref total] |v: i32| { total += v };
+let u = { let y = 1 };           // u is unit, as with { let y = 1; }
+let s = { let y = 1; y + 1 };    // s is 2: the last expression is the value
+```
+
 The grammar is defined by `stmt` in [Block expressions](../003-expressions/309-block-expressions.md#391-form).
 
 ## 1.3.5. Adjacency with other tokens

@@ -116,6 +116,7 @@ let b = { x; };         // b is unit
 An expression ending without a terminator becomes the block's value, whereas an expression ending with a terminator has its result discarded and the block's value is unit. This distinction is consistent with the rules of the [statement terminator](../001-lexical/103-statement-terminator.md).
 
 - A block-like statement without `;` in the middle of a block must have type `()`.
+- The last statement before `}` may omit its `;`, with the same meaning as writing it ([1.3.4](../001-lexical/103-statement-terminator.md#134-block-like-expression-statements)): `{ x += 1 }` and `{ let y = x }` have the unit value, like `{ x += 1; }` and `{ let y = x; }`.
 - `;;` is an empty statement.
 - A postfix operation (`.`, `?`, call, index) after a block-like expression continues the expression (`match v { .. }.len();`).
 

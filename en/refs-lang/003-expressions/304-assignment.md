@@ -81,7 +81,7 @@ x *= 2;
 arr[i] += 1;
 ```
 
-All compound assignment tokens of [punctuation and operator tokens](../001-lexical/110-punctuation-and-operator-tokens.md) (`+=`, `-=`, `*=`, `/=`, `%=`, `%%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`) follow the same pattern. A compound assignment is a statement and ends with `;`; it has no value and cannot appear in expression position (`let y = (x += 1);` does not parse).
+All compound assignment tokens of [punctuation and operator tokens](../001-lexical/110-punctuation-and-operator-tokens.md) (`+=`, `-=`, `*=`, `/=`, `%=`, `%%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`) follow the same pattern. A compound assignment is a statement and ends with `;` (optional before `}`, [1.3.4](../001-lexical/103-statement-terminator.md#134-block-like-expression-statements)); it has no value and cannot appear in expression position (`let y = (x += 1);` does not parse).
 
 ### Desugaring and lvalue evaluation
 

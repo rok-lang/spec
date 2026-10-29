@@ -58,6 +58,16 @@ match v { ... }.len();       // . 는 이어짐
 
 블록류가 아닌 식이 블록 중간에 문장으로 오면 `;` 가 필요합니다. `;` 없이 둘 수 있는 것은 블록의 마지막 식 (블록의 값) 뿐입니다.
 
+`}` 바로 앞의 마지막 문장은 `;` 를 생략할 수 있으며, 생략한 것은 적은 것과 같습니다. `let` (어떤 패턴이든), 대입, 복합 대입, `return`, `break`, `continue`, `throw` 가 여기에 해당합니다. 블록의 값은 `;` 를 적었을 때와 같습니다. 즉 unit 이고, `return` / `break` / `continue` / `throw` 이면 발산입니다. `;` 없는 마지막 식은 여전히 블록의 값이며, 블록 중간의 문장에는 여전히 `;` 가 필요합니다.
+
+```rok
+while i < n { i += 1 }           // { i += 1; } 과 같음
+if found { idx = k } else { idx = -1 }
+let f = [ref total] |v: i32| { total += v };
+let u = { let y = 1 };           // u 는 unit, { let y = 1; } 과 같음
+let s = { let y = 1; y + 1 };    // s 는 2: 마지막 식이 값
+```
+
 문법은 [블록 표현식](../003-expressions/309-block-expressions.md#391-형태) 의 `stmt` 에서 정의합니다.
 
 ## 1.3.5. 다른 토큰과의 결합
