@@ -16,6 +16,8 @@ A cell reads stdin through the client. When the `execute_request` has `allow_std
 
 A notebook cell is split into several REPL cells by the same rules the terminal REPL uses to split input, and they run in order. As in IPython, **only the last value** is displayed as the result. If a later part of a notebook cell fails, the effects of the earlier parts (the preceding REPL cells) remain.
 
+The REPL cells take their number in runtime locations (`<repl cell N>`, [9.7.5](907-jit-cells.md#locations)) from the execution count: a notebook cell that is one REPL cell is `N`, one that splits into several numbers them `N.1`, `N.2` and so on. A request that does not advance the count (`silent`, or `store_history: false`) numbers its REPL cells on after the last number under the current count.
+
 ## 9.8.2. Local native kernel: operation
 
 When the user selects "Rok" as the notebook's kernel, Jupyter runs the command of the kernelspec (9.8.3) as a separate process.

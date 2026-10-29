@@ -297,10 +297,10 @@ rokc build --release -C profile-use=app.profdata  #    profile 로 다시 빌드
 | `:doc <이름>`        | 이름의 시그니처와 문서 주석을 출력. Jupyter `inspect_request` 와 같은 텍스트 ([9.8.6](908-jupyter-integration.md#986-inspect_request-도움말)). 메서드는 `:doc xs.len` |
 | `:time <식>`         | 식을 셀로 평가하고 단계별 시간 (`ROK_REPL_TIME=1` 처럼) 과 합계를 stderr 에 출력 |
 | `:vars`              | 바인딩을 `name: type` 으로, 이어서 항목의 시그니처를 나열              |
-| `:load <file>`       | 실행 중인 세션에 프로그램을 로드 ([9.7.10](907-jit-cells.md#9710-프로그램-로드-repl-path)). 그 항목이 같은 이름 항목을 대신함 |
+| `:load <file>`       | 실행 중인 세션에 프로그램을 로드 ([9.7.10](907-jit-cells.md#9710-프로그램-로드-repl-path)). 그 항목이 같은 이름 항목을 대신함. `:save` 로 쓴 스크립트는 그 셀을 하나씩 다시 실행 |
 | `:reload`            | 마지막으로 로드한 프로그램을 다시 로드                               |
 | `:edit`              | `$VISUAL` 이나 `$EDITOR` (없으면 `vi`, Windows 는 `notepad`) 로 임시 파일을 열고, 그 내용을 셀로 실행. 셀이 실패하면 다음 `:edit` 에서 그 텍스트를 다시 엶 |
-| `:save <file>`       | 세션을 스크립트로 씀: 항목, 이어서 실행된 셀. 같은 타입으로 다시 선언한 이름은 대입으로, 다른 타입이면 파일 끝까지 이어지는 블록을 엶 ([5.1.4](../005-modules/501-variable-declaration.md#514-같은-스코프-내-재선언-금지)). `it` 은 이후 셀이 읽는 곳에서만 선언 |
+| `:save <file>`       | 세션을 스크립트로 씀: 항목, 이어서 실행된 셀. 같은 타입으로 다시 선언한 이름은 대입으로, 다른 타입이면 파일 끝까지 이어지는 블록을 엶 ([5.1.4](../005-modules/501-variable-declaration.md#514-같은-스코프-내-재선언-금지)). `it` 은 이후 셀이 읽는 곳에서만 선언. 첫 줄은 `// rok repl session (:save); :load replays it cell by cell` 이고 각 셀 앞에 `// :cell` 줄이 옴: 스크립트를 `:load` 하면 셀을 하나씩 다시 실행하므로 다시 선언한 이름은 마지막 바인딩을 유지하고, `rokc run` 은 프로그램으로 실행 |
 | `:opt [<level>]`     | 최적화 수준 (`-O` 처럼 `0`, `1`, `2`, `3`, `s`, `z`) 을 출력하거나 이후 셀에 설정 |
 | `:reset`             | 세션을 처음 상태로 (라이브러리 경로의 `use` 는 다시 넣음)               |
 | `:add <dep> ..`      | 의존성을 추가하고 (현재 환경으로 `rok install`, 패키지의 세션에서는 `rok add`) 세션에 붙임 ([9.10.5](910-rok-frontend.md#9105-환경)) |
