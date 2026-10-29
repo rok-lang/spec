@@ -228,14 +228,15 @@ rokc repl [path]
 
 - 기본 모드는 각 셀을 native backend 로 컴파일해 세션 동안 사는 JIT host 프로세스에 넘기고, host 가 그것을 로드해 한 번 실행합니다 ([9.6](906-jit-engine.md)). 바인딩, `static` 상태, `any` 값이 셀 사이에 이어집니다. 최상위에서 이름을 적을 수 없는 타입 (클로저, 비공개 타입 등) 의 바인딩은 만들 때 거부합니다.
 - 진단은 셀 자신의 텍스트 기준 `<repl>:line:col` 로, 앞 셀의 항목과 실행 중 위치는 `<repl cell N>:line:col` 로 표시합니다 ([9.7.5](907-jit-cells.md#975-에러-모드)).
-- 입력은 줄 편집과 history 를 지원하며, history 는 `$ROK_HOME/repl_history` 에 남습니다.
+- 터미널에서 입력은 줄 편집, Tab 자동 완성, 색, 셀 단위 history 를 지원하며 ([9.7.8](907-jit-cells.md#줄-편집)), history 는 `$ROK_HOME/repl_history` 에 남습니다.
+- 터미널에서는 세션이 toolchain 줄과 안내 한 줄로 시작하며 ([9.7.8](907-jit-cells.md#줄-편집)), `-q` 는 이를 생략합니다.
 - 경로가 없으면 빈 세션으로 시작합니다. 프로그램 경로 (단독 `.rok` 파일이나 `src/main.rok` 가 있는 패키지) 는 로드해 실행하며 (top-level 문은 셀로, `fn main` 은 진입점으로), 세션이 이어집니다 ([9.7.10](907-jit-cells.md#9710-프로그램-로드-repl-path)). 라이브러리 패키지 경로 (`src/lib.rok`) 는 의존성으로 붙이고 `use <name>::*;` 를 첫 셀로 넣으며, `:reset` 뒤에도 다시 넣습니다.
 - 패키지 안에서 경로 없이 시작하면 그 패키지를 로드하지 않습니다. 찾지 못한 이름을 그 패키지가 정의하면 ``load this package: `rok repl .` `` 힌트를 붙입니다.
 - 경로가 둘 이상이면 사용법 에러입니다. `-` 는 받지 않으며, 표준 입력은 셀 입력입니다.
 
 루트 파일이 둘 다 있는 패키지는 프로그램 경로이며, 그 라이브러리는 세션의 의존 패키지입니다. `rok` 와 `rok repl` ([9.10](910-rok-frontend.md)) 은 의존성을 붙여 같은 REPL 을 실행합니다.
 
-REPL 명령 (`:type`, `:doc`, `:time`, `:vars`, `:load`, `:reload`, `:edit`, `:save`, `:opt`, `:reset`, `:add`, `:help`, `:quit`, 그리고 단독 `exit` / `quit`) 과 디버그 수단은 [9.9.9](909-debug-tools.md#999-repl--jupyter-디버그) 에 있습니다.
+REPL 명령 (`:type`, `:doc`, `:time`, `:vars`, `:load`, `:reload`, `:edit`, `:save`, `:opt`, `:reset`, `:add`, `:help`, `:quit` / `:exit`, 그리고 단독 `exit` / `quit`) 과 디버그 수단은 [9.9.9](909-debug-tools.md#999-repl--jupyter-디버그) 에 있습니다.
 
 ### `rokc jupyter`: Jupyter 커널
 

@@ -60,10 +60,10 @@ The detailed format follows the Jupyter wire protocol standard. Every request is
 
 | Request                | Reply                                                                                  |
 |------------------------|----------------------------------------------------------------------------------------|
-| `kernel_info_request`  | `language_info` with name `rok`, mimetype `text/x-rok`, file_extension `.rok`, codemirror_mode and pygments_lexer `rust` (highlighting until front ends know Rok); `help_links` to the documentation (`https://docs.rok-lang.org/latest/`) and this REPL chapter; `protocol_version` `"5.3"` |
+| `kernel_info_request`  | `language_info` with name `rok`, mimetype `text/x-rok`, file_extension `.rok`, codemirror_mode and pygments_lexer `rust` (highlighting until front ends know Rok); `help_links` to the documentation (`https://docs.rok-lang.org/latest/`) and this REPL chapter; `banner` the REPL's toolchain line ([9.7.8](907-jit-cells.md#line-editing)); `protocol_version` `"5.3"` |
 | `execute_request`      | See "Execution" below                                                                  |
 | `is_complete_request`  | `complete` / `incomplete` decided by the REPL continuation rules; `indent` is four spaces per bracket still open |
-| `complete_request`     | Session names, members and keywords as candidates (9.8.5)                              |
+| `complete_request`     | The REPL's completion candidates (9.8.5)                                               |
 | `inspect_request`      | `found: true` with `text/plain` help for the name at the cursor (9.8.6), else `false`  |
 | `history_request`      | The cells executed by this kernel                                                      |
 | `comm_info_request`    | Empty list                                                                             |
@@ -123,7 +123,7 @@ After replying to a `shutdown_request` on the shell or control socket, the kerne
 
 ## 9.8.5. Code completion
 
-`complete_request` matches the fragment before the cursor against the session's bindings, items, module paths, members and keywords, and replies with `{ matches, cursor_start, cursor_end }`.
+`complete_request` matches the fragment before the cursor against the candidates of the terminal REPL's Tab completion ([9.7.8](907-jit-cells.md#line-editing)): the session's bindings and items, the core library's names, the names the session's `use` items import, and keywords; members after `.` and items after `::`. It replies with `{ matches, cursor_start, cursor_end }`.
 
 ## 9.8.6. inspect_request: help
 

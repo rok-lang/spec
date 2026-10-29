@@ -60,10 +60,10 @@ rok jupyter --connection-file <path>        # 의존성을 해소한 뒤 rokc ju
 
 | 요청                   | 응답                                                                                   |
 |------------------------|----------------------------------------------------------------------------------------|
-| `kernel_info_request`  | `language_info` 의 name `rok`, mimetype `text/x-rok`, file_extension `.rok`, codemirror_mode 와 pygments_lexer `rust` (프런트엔드가 Rok 를 알기 전까지의 하이라이팅), 문서 (`https://docs.rok-lang.org/latest/`) 와 이 REPL 장으로 가는 `help_links`, `protocol_version` `"5.3"` |
+| `kernel_info_request`  | `language_info` 의 name `rok`, mimetype `text/x-rok`, file_extension `.rok`, codemirror_mode 와 pygments_lexer `rust` (프런트엔드가 Rok 를 알기 전까지의 하이라이팅), 문서 (`https://docs.rok-lang.org/latest/`) 와 이 REPL 장으로 가는 `help_links`, REPL 의 toolchain 줄인 `banner` ([9.7.8](907-jit-cells.md#줄-편집)), `protocol_version` `"5.3"` |
 | `execute_request`      | 아래 "실행" 참조                                                                       |
 | `is_complete_request`  | REPL 의 이어 쓰기 규칙으로 `complete` / `incomplete` 판정, `indent` 는 아직 열린 괄호마다 공백 네 칸 |
-| `complete_request`     | 세션의 이름, 멤버, 키워드를 후보로 (9.8.5)                                             |
+| `complete_request`     | REPL 의 자동 완성 후보 (9.8.5)                                                         |
 | `inspect_request`      | 커서의 이름에 대한 `text/plain` 도움말과 `found: true` (9.8.6), 아니면 `false`         |
 | `history_request`      | 이 커널이 실행한 셀들                                                                  |
 | `comm_info_request`    | 빈 목록                                                                                |
@@ -123,7 +123,7 @@ shell 이나 control 소켓의 `shutdown_request` 에 응답한 뒤 세션을 �
 
 ## 9.8.5. 코드 자동 완성
 
-`complete_request` 는 커서 앞의 조각을 세션의 바인딩, 항목, 모듈 경로, 멤버, 키워드에 맞춰 `{ matches, cursor_start, cursor_end }` 로 응답합니다.
+`complete_request` 는 커서 앞의 조각을 터미널 REPL 의 Tab 자동 완성과 같은 후보 ([9.7.8](907-jit-cells.md#줄-편집)) 에 맞춥니다: 세션의 바인딩과 항목, core 라이브러리의 이름, 세션의 `use` 항목이 가져온 이름, 키워드이며, `.` 뒤에서는 멤버, `::` 뒤에서는 항목입니다. 응답은 `{ matches, cursor_start, cursor_end }` 입니다.
 
 ## 9.8.6. inspect_request: 도움말
 
