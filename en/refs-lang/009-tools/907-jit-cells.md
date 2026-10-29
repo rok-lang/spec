@@ -16,7 +16,7 @@ The cell session obeys the following rules. The implementation is the [9.6 JIT e
 The following bindings and effects are not supported.
 
 - Bindings of types that cannot be named at top level (closures, private types, etc.). They are rejected in the cell that creates them.
-- `exit()` inside a cell. That cell is treated as a failed cell (rule 5).
+- A call of `exit(..)` inside a cell. That cell is treated as a failed cell (rule 5). (`exit` or `quit` alone ends the session, [9.9.9](909-debug-tools.md#999-repl--jupyter-debugging).)
 - Threads spawned by a failed cell. They do not survive it (rule 5).
 
 ## 9.7.1. Kinds of cell
@@ -24,17 +24,19 @@ The following bindings and effects are not supported.
 A REPL line or a Jupyter cell is processed differently depending on its content.
 
 ```
-1. expression                → evaluate + store in hidden binding + print
+1. expression                → evaluate + bind as `it` + print
 2. statement (let / call)    → execute (return value is unit)
 3. definition (fn / struct)  → add to the session's items
 4. import (use / mod)        → update the session's visible names
 5. meta / attribute          → handle as appropriate
 ```
 
-All five follow the same cell processing flow; only the final output differs. An expression cell's value is kept in a hidden binding that user code cannot name. An expression cell prints its value (`Display`); a `let` cell prints nothing. A divergent expression cell ([4.3.7](../004-functions/403-return.md#437-divergent-functions); `panic(..)`, `exit(..)`, `throw`) runs as a statement.
+All five follow the same cell processing flow; only the final output differs. The value an expression cell shows is bound to `it` for later cells (9.7.7). An expression cell prints its value (`Display`); a `let` cell prints nothing. A divergent expression cell ([4.3.7](../004-functions/403-return.md#437-divergent-functions); `panic(..)`, `exit(..)`, `throw`) runs as a statement.
+
+A cell may `await` in a top-level statement, as the implicit `main` may ([4.16.5](../004-functions/416-entry-point.md#4165-async-main)): the cell then runs on the executor until it completes. Its `let` bindings and its value carry over to later cells like those of any other cell.
 
 > [!IMPORTANT]
-> In terms of language semantics, a sequence of cells is equivalent to appending top-level statements and items to the end of an implicit `main.rok` ([4.16.10](../004-functions/416-entry-point.md#41610-relationship-to-jit--repl)). A cell's `let` is a local variable of the implicit `main`, so it is visible to statements of later cells but not inside the bodies of `fn`s declared in cells. The global storage of 9.7.3 below is an implementation technique for keeping local variables alive across cell boundaries and does not change this visibility rule. Same-name re-`let` at cell top level (9.7.3), cell re-execution (9.7.4) and automatic display of the last expression value (9.7.7) are session operations that exist only on the interactive surfaces.
+> In terms of language semantics, a sequence of cells is equivalent to appending top-level statements and items to the end of an implicit `main.rok` ([4.16.10](../004-functions/416-entry-point.md#41610-relationship-to-jit--repl)). A cell's `let` is a local variable of the implicit `main`, so it is visible to statements of later cells but not inside the bodies of `fn`s declared in cells. The global storage of 9.7.3 below is an implementation technique for keeping local variables alive across cell boundaries and does not change this visibility rule. Same-name re-`let` at cell top level (9.7.3), cell re-execution (9.7.4), automatic display of the last expression value and its binding `it` (9.7.7) are session operations that exist only on the interactive surfaces.
 
 ## 9.7.2. Execution flow: in detail
 
@@ -161,6 +163,21 @@ List<i32>
 [1, 2, 3]
 ```
 
+### `it`: the last value shown
+
+The value an expression cell shows is bound to `it`, a top-level binding of the session like any other: later cells read and assign it, and `:vars` lists it. A cell that shows nothing (a statement, a unit value, a failed cell) leaves `it` as it was; so does a value whose type cannot be named at top level (9.7.0).
+
+```
+> 2 + 3
+5
+> it * 10
+50
+> it
+50
+```
+
+A name the user defines wins: once a cell binds `it` with `let`, or an item named `it` is defined, expression cells no longer bind it, until `:reset`. The same holds in a Jupyter session.
+
 ### Jupyter output
 
 The result of each cell is sent as an `execute_result` with a single `text/plain` entry, the same text the REPL prints. No other MIME types are produced.
@@ -180,7 +197,7 @@ The REPL processes input in units of complete expressions or statements.
 42
 ```
 
-The prompt is `>>>`, and `...` while a cell continues. A cell ends at the end of a line, decided on tokens: input continues with `...` while a bracket, string or block comment is still open, while the last token cannot end a statement (a binary operator, `.`, `,`, `=`, `->`, `|`, or a keyword such as `else` or `in`), or while the input ends in an item header without its body (`fn g(x: i32)` with `-> i32 { .. }` on the next line). Brackets in char literals, strings and comments do not count. Any other line ends the cell. When the cell's last top-level statement is a `let` or an assignment without `;` (as in `let x = 1` or `k += 2`), the `;` is supplied: the `let` binds as usual and the cell shows nothing. Other statements are not changed, and diagnostics quote the cell as typed. On a terminal each prompt starts on a fresh line, also after output that did not end with a newline; piped input gets no prompt. When standard input ends inside an incomplete cell, the cell is not run, an error is reported, and `rokc repl` exits with 1. A cell that fails does not change the exit code.
+The prompt is `>>>`, and `...` while a cell continues. A cell ends at the end of a line, decided on tokens: input continues with `...` while a bracket, string or block comment is still open, while the last token cannot end a statement (a binary operator, `.`, `,`, `=`, `->`, `|`, or a keyword such as `else` or `in`), or while the input ends in an item header without its body (`fn g(x: i32)` with `-> i32 { .. }` on the next line). Brackets in char literals, strings and comments do not count. Any other line ends the cell. A `///` doc comment line also continues the input: it belongs to the item on the lines after it. A line that starts with `:` is a command and ends at that line. When the cell's last top-level statement is a `let` or an assignment without `;` (as in `let x = 1` or `k += 2`), the `;` is supplied: the `let` binds as usual and the cell shows nothing. Other statements are not changed, and diagnostics quote the cell as typed. On a terminal each prompt starts on a fresh line, also after output that did not end with a newline; piped input gets no prompt. When standard input ends inside an incomplete cell, the cell is not run, an error is reported, and `rokc repl` exits with 1. A cell that fails does not change the exit code.
 
 ## 9.7.9. Input unit: Jupyter cell
 
@@ -207,6 +224,7 @@ The last expression of the cell is the cell's result; everything else is treated
 - **`fn main`.** A program with `fn main` runs `main` as the entry; `main` then leaves the session, so its locals are not visible.
 - **Locations.** Diagnostics and panics use the file's own locations.
 - **Input.** The program's stdin is `/dev/null`.
+- **`:load`, `:reload`.** `:load <file>` loads a program into the running session by the same rules; its items replace the session's items of the same name. `:reload` loads the last loaded program again ([9.9.9](909-debug-tools.md#999-repl--jupyter-debugging)).
 
 ## 9.7.11. Next
 

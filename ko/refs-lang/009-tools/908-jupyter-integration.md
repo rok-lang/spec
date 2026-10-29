@@ -6,7 +6,7 @@
 
 Jupyter 가 Rok 커널을 별도 프로세스로 실행하며, ZeroMQ 기반 Jupyter wire protocol 로 통신합니다. 커널은 `protocol_version` 을 `"5.3"` 으로 알립니다 (`jupyter_client` 가 기대하는 값, 5.3 이상의 클라이언트와 동작). 이 형태에서는 OS 자원, 즉 파일과 네트워크와 외부 프로세스를 모두 사용할 수 있습니다.
 
-커널은 터미널 REPL 과 **같은 셀 세션** 위에서 동작하며 [9.7.0](907-jit-cells.md#970-셀-세션의-규칙) 의 규칙을 따릅니다. 각 셀은 한 번만 실행되고, 바인딩과 항목은 이후 셀로 이어지며, 실패한 셀은 바인딩에 흔적을 남기지 않습니다. 커널의 엔진은 REPL 과 같은 [JIT 세션](906-jit-engine.md) 입니다.
+커널은 터미널 REPL 과 **같은 셀 세션** 위에서 동작하며 [9.7.0](907-jit-cells.md#970-셀-세션의-규칙) 의 규칙을 따릅니다. 각 셀은 한 번만 실행되고, 바인딩과 항목은 이후 셀로 이어지며, 실패한 셀은 바인딩에 흔적을 남기지 않습니다. 커널의 엔진은 REPL 과 같은 [JIT 세션](906-jit-engine.md) 이므로, top-level `await` 와 `it` 도 REPL 에서처럼 동작합니다 ([9.7.1](907-jit-cells.md#971-cell-의-종류), [9.7.7](907-jit-cells.md#977-시각화--출력)).
 
 ### 노트북 셀과 REPL 셀
 
@@ -22,6 +22,8 @@ rok jupyter --connection-file <path>        # 의존성을 해소한 뒤 rokc ju
 ```
 
 커널은 connection file 의 ZMQ port 와 key 를 읽고 다섯 소켓에 bind 해 listen 합니다. 다섯 소켓이 모두 연결을 받을 수 있게 되면, 출력 캡처를 시작하기 전에 stderr 에 `rokc jupyter: ready` 한 줄을 씁니다. 전송은 `tcp` 만 지원하며 (`ipc` 없음), CURVE 암호화는 쓰지 않습니다. 메시지는 connection file 의 key 로 HMAC 서명합니다.
+
+커널은 시작한 곳의 패키지 (현재 디렉토리, 또는 `src/main.rok` 나 `src/lib.rok` 가 있는 가장 가까운 상위 디렉토리) 를 `rokc repl .` 처럼 로드합니다 ([9.7.10](907-jit-cells.md#9710-프로그램-로드-repl-path)): 라이브러리 패키지는 의존성으로 붙이고 `use <name>::*;` 를 첫 셀로 넣으며, 프로그램 패키지는 로드해 실행합니다. 이는 출력 캡처를 시작한 뒤에 일어나며, 그동안 출력한 것은 처음 실행한 셀의 출력과 함께 보냅니다. 패키지 밖에서는 빈 세션으로 시작합니다.
 
 ### 소켓 채널
 

@@ -6,7 +6,7 @@ This section defines the Rok kernel of the [Jupyter surface](../000-meta/001-exe
 
 Jupyter runs the Rok kernel as a separate process and communicates over the ZeroMQ-based Jupyter wire protocol. The kernel announces `protocol_version` as `"5.3"` (the value `jupyter_client` expects; works with clients 5.3 and later). In this form all OS resources, i.e. files, network and external processes, are available.
 
-The kernel runs on **the same cell session** as the terminal REPL and follows the rules of [9.7.0](907-jit-cells.md#970-rules-of-the-cell-session): each cell runs exactly once, bindings and items carry over to later cells, and a failed cell leaves no trace in the bindings. The kernel's engine is the same [JIT session](906-jit-engine.md) as the REPL.
+The kernel runs on **the same cell session** as the terminal REPL and follows the rules of [9.7.0](907-jit-cells.md#970-rules-of-the-cell-session): each cell runs exactly once, bindings and items carry over to later cells, and a failed cell leaves no trace in the bindings. The kernel's engine is the same [JIT session](906-jit-engine.md) as the REPL: a top-level `await` and `it` work as there ([9.7.1](907-jit-cells.md#971-kinds-of-cell), [9.7.7](907-jit-cells.md#977-visualization--output)).
 
 ### Notebook cells and REPL cells
 
@@ -22,6 +22,8 @@ rok jupyter --connection-file <path>        # resolves dependencies, then runs r
 ```
 
 The kernel reads the ZMQ ports and key from the connection file, then binds and listens on its five sockets. Once all five accept connections, it writes the line `rokc jupyter: ready` to its stderr, before output capture starts. Only the `tcp` transport is supported (no `ipc`), and CURVE encryption is not used. Messages are HMAC-signed with the connection file's key.
+
+The kernel loads the package it starts in (the current directory or the nearest one above it with `src/main.rok` or `src/lib.rok`) as `rokc repl .` does ([9.7.10](907-jit-cells.md#9710-loading-a-program-repl-path)): a library package is a dependency with `use <name>::*;` as the first cell; a program package is loaded and run. This happens after output capture starts; what it prints is sent with the output of the first executed cell. Outside a package the session starts empty.
 
 ### Socket channels
 

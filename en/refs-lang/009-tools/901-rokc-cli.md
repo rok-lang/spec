@@ -230,11 +230,12 @@ This mode runs as a terminal interactive shell. Cell semantics follow the rules 
 - Diagnostics and panic locations name `<repl>:line:col` over the cell's own text.
 - Input has line editing and history; the history persists in `$ROK_HOME/repl_history`.
 - Without a path the session starts empty. A program path (a lone `.rok` file or a package with `src/main.rok`) is loaded and run, top-level statements as cells and `fn main` as the entry, and the session continues ([9.7.10](907-jit-cells.md#9710-loading-a-program-repl-path)). A library package path (`src/lib.rok`) is added as a dependency and `use <name>::*;` is the first cell, again after `:reset`.
+- Without a path inside a package, the package is not loaded. A name that is not found but that the package defines gets the hint ``load this package: `rok repl .` ``.
 - More than one path is a usage error. `-` is not accepted; standard input is the cell input.
 
 A package with both root files is a program path; its library is a dependency of the session. `rok` and `rok repl` ([9.10](910-rok-frontend.md)) run the same REPL with dependencies attached.
 
-REPL commands (`:type`, `:reset`, `:add`, `:help`, `:quit`) and debugging aids are in [9.9.9](909-debug-tools.md#999-repl--jupyter-debugging).
+REPL commands (`:type`, `:doc`, `:time`, `:vars`, `:load`, `:reload`, `:edit`, `:save`, `:opt`, `:reset`, `:add`, `:help`, `:quit`, and `exit` / `quit` alone) and debugging aids are in [9.9.9](909-debug-tools.md#999-repl--jupyter-debugging).
 
 ### `rokc jupyter`: Jupyter kernel
 
@@ -244,7 +245,7 @@ REPL commands (`:type`, `:reset`, `:add`, `:help`, `:quit`) and debugging aids a
 rokc jupyter --connection-file <path>
 ```
 
-This command is the kernel mode invoked by Jupyter, so users do not run it directly. `--connection-file` is required (without it, a usage error) and takes the path of the ZMQ connection file provided by Jupyter. Build options such as `--extern` are accepted as well. The kernel runs on the same cell session as the REPL ([9.7.0](907-jit-cells.md#970-rules-of-the-cell-session)). To run with dependencies resolved, use `rok jupyter --connection-file <path>` ([9.10](910-rok-frontend.md)). Integration details are defined in [Jupyter integration](908-jupyter-integration.md).
+This command is the kernel mode invoked by Jupyter, so users do not run it directly. `--connection-file` is required (without it, a usage error) and takes the path of the ZMQ connection file provided by Jupyter. Build options such as `--extern` are accepted as well. The kernel runs on the same cell session as the REPL ([9.7.0](907-jit-cells.md#970-rules-of-the-cell-session)) and loads the package it starts in as `rokc repl .` does ([9.8.2](908-jupyter-integration.md#982-local-native-kernel-operation)). To run with dependencies resolved, use `rok jupyter --connection-file <path>` ([9.10](910-rok-frontend.md)). Integration details are defined in [Jupyter integration](908-jupyter-integration.md).
 
 The kernel is registered by `rok jupyter install [--env <name>]` ([9.8.3](908-jupyter-integration.md#983-kernelspec-installation)).
 

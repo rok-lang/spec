@@ -292,11 +292,21 @@ An unset or empty variable has its default. A value outside those listed prints 
 | Aid                  | Effect                                                               |
 |----------------------|----------------------------------------------------------------------|
 | `<expr>?`            | Evaluates the expression and prints its `Debug` form ([9.7.7](907-jit-cells.md#977-visualization--output)) |
+| `it`                 | The last value an expression cell showed; a user's `it` wins ([9.7.7](907-jit-cells.md#977-visualization--output)) |
 | `:type <expr>`, `:t` | Prints the static type of the expression (without running it)        |
+| `:doc <name>`        | Prints the name's signature and doc comment, the text of a Jupyter `inspect_request` ([9.8.6](908-jupyter-integration.md#986-inspect_request-help)); a method as `:doc xs.len` |
+| `:time <expr>`       | Evaluates the expression as a cell and prints the time of each stage (as `ROK_REPL_TIME=1`) and the total on stderr |
+| `:vars`              | Lists the bindings as `name: type`, then the items' signatures       |
+| `:load <file>`       | Loads a program into the running session ([9.7.10](907-jit-cells.md#9710-loading-a-program-repl-path)); its items replace those of the same name |
+| `:reload`            | Loads the last loaded program again                                  |
+| `:edit`              | Opens `$VISUAL` or `$EDITOR` (else `vi`; `notepad` on Windows) on a scratch file, then runs what it holds as cells; after a failed cell the text opens again on the next `:edit` |
+| `:save <file>`       | Writes the session as a script: the items, then the cells that ran. A name declared again with the same type is assigned; with another type, it opens a block that lasts to the end of the file ([5.1.4](../005-modules/501-variable-declaration.md#514-no-redeclaration-in-the-same-scope)). `it` is declared only where a later cell reads it |
+| `:opt [<level>]`     | Prints, or sets for later cells, the optimization level (`0`, `1`, `2`, `3`, `s`, `z`, as `-O`) |
 | `:reset`             | Resets the session to its initial state (the `use` of a library path is inserted again) |
 | `:add <dep> ..`      | Adds dependencies (`rok install` into the current environment, or `rok add` in a package's session) and attaches them to the session ([9.10.5](910-rok-frontend.md#9105-environments)) |
-| `:help`, `:h`        | Help                                                                 |
+| `:help`, `:h`        | Lists every command and alias                                        |
 | `:quit`, `:q`, `:exit` | Quit (end of input also quits)                                     |
+| `exit`, `quit`, `exit()`, `quit()` | Alone in a cell, quit; unless the session defines the name (a binding, an item or a `use`), which wins |
 | `ROK_REPL_TIME=1`    | Per cell, per-stage timing and the number of newly compiled functions / functions reused from earlier cells ([9.6.4](906-jit-engine.md#964-reuse-of-library-code)) |
 
 To see a cell's MLIR / LLVM IR, put the same code in `main.rok` and use `rokc build --emit=mlir,llvmir` (9.9.1).

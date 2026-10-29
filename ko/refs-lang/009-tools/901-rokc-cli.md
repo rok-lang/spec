@@ -230,11 +230,12 @@ rokc repl [path]
 - 진단과 panic 위치는 셀 자신의 텍스트 기준 `<repl>:line:col` 로 표시합니다.
 - 입력은 줄 편집과 history 를 지원하며, history 는 `$ROK_HOME/repl_history` 에 남습니다.
 - 경로가 없으면 빈 세션으로 시작합니다. 프로그램 경로 (단독 `.rok` 파일이나 `src/main.rok` 가 있는 패키지) 는 로드해 실행하며 (top-level 문은 셀로, `fn main` 은 진입점으로), 세션이 이어집니다 ([9.7.10](907-jit-cells.md#9710-프로그램-로드-repl-path)). 라이브러리 패키지 경로 (`src/lib.rok`) 는 의존성으로 붙이고 `use <name>::*;` 를 첫 셀로 넣으며, `:reset` 뒤에도 다시 넣습니다.
+- 패키지 안에서 경로 없이 시작하면 그 패키지를 로드하지 않습니다. 찾지 못한 이름을 그 패키지가 정의하면 ``load this package: `rok repl .` `` 힌트를 붙입니다.
 - 경로가 둘 이상이면 사용법 에러입니다. `-` 는 받지 않으며, 표준 입력은 셀 입력입니다.
 
 루트 파일이 둘 다 있는 패키지는 프로그램 경로이며, 그 라이브러리는 세션의 의존 패키지입니다. `rok` 와 `rok repl` ([9.10](910-rok-frontend.md)) 은 의존성을 붙여 같은 REPL 을 실행합니다.
 
-REPL 명령 (`:type`, `:reset`, `:add`, `:help`, `:quit`) 과 디버그 수단은 [9.9.9](909-debug-tools.md#999-repl--jupyter-디버그) 에 있습니다.
+REPL 명령 (`:type`, `:doc`, `:time`, `:vars`, `:load`, `:reload`, `:edit`, `:save`, `:opt`, `:reset`, `:add`, `:help`, `:quit`, 그리고 단독 `exit` / `quit`) 과 디버그 수단은 [9.9.9](909-debug-tools.md#999-repl--jupyter-디버그) 에 있습니다.
 
 ### `rokc jupyter`: Jupyter 커널
 
@@ -244,7 +245,7 @@ REPL 명령 (`:type`, `:reset`, `:add`, `:help`, `:quit`) 과 디버그 수단�
 rokc jupyter --connection-file <path>
 ```
 
-이 명령은 Jupyter 가 호출하는 커널 모드이므로 사용자가 직접 실행하지는 않습니다. `--connection-file` 은 필수이며 (없으면 사용법 에러) Jupyter 가 제공하는 ZMQ 연결 정보 파일의 경로를 받습니다. `--extern` 같은 빌드 옵션도 함께 받습니다. 커널은 REPL 과 같은 셀 세션 ([9.7.0](907-jit-cells.md#970-셀-세션의-규칙)) 위에서 동작합니다. 의존성을 해소해 실행하려면 `rok jupyter --connection-file <path>` ([9.10](910-rok-frontend.md)) 를 씁니다. 자세한 통합 내용은 [Jupyter 통합](908-jupyter-integration.md) 에서 정의합니다.
+이 명령은 Jupyter 가 호출하는 커널 모드이므로 사용자가 직접 실행하지는 않습니다. `--connection-file` 은 필수이며 (없으면 사용법 에러) Jupyter 가 제공하는 ZMQ 연결 정보 파일의 경로를 받습니다. `--extern` 같은 빌드 옵션도 함께 받습니다. 커널은 REPL 과 같은 셀 세션 ([9.7.0](907-jit-cells.md#970-셀-세션의-규칙)) 위에서 동작하며, 시작한 곳의 패키지를 `rokc repl .` 처럼 로드합니다 ([9.8.2](908-jupyter-integration.md#982-로컬-네이티브-커널-동작)). 의존성을 해소해 실행하려면 `rok jupyter --connection-file <path>` ([9.10](910-rok-frontend.md)) 를 씁니다. 자세한 통합 내용은 [Jupyter 통합](908-jupyter-integration.md) 에서 정의합니다.
 
 커널 등록은 `rok jupyter install [--env <name>]` 이 합니다 ([9.8.3](908-jupyter-integration.md#983-kernelspec-설치)).
 
