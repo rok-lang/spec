@@ -51,7 +51,7 @@ A cell may `await` in a top-level statement, as the implicit `main` may ([4.16.5
 
 Each step is transactional; on failure it rolls back to the previous state.
 
-Every cell runs with `/dev/null` (`NUL` on Windows) as its standard input, so a cell that reads stdin sees end of input. The REPL host sets `ROK_GC_CONCURRENT=off` before the runtime starts, whatever the user's environment says: a concurrent marking thread would not be part of a snapshot, so full collections in a session mark without it ([7.5](../007-runtime/705-concurrent-collection.md)).
+A cell's standard input is the terminal when the REPL reads a terminal, and otherwise empty ([9.7.10](#9710-loading-a-program-repl-path)); a Jupyter cell reads through the client ([9.8.1](908-jupyter-integration.md#981-kernel)). A cell's standard output is flushed at each newline, also when it is not a terminal, so its output shows as it is written. The REPL host sets `ROK_GC_CONCURRENT=off` before the runtime starts, whatever the user's environment says: a concurrent marking thread would not be part of a snapshot, so full collections in a session mark without it ([7.5](../007-runtime/705-concurrent-collection.md)).
 
 ## 9.7.3. Top-level variable storage
 
@@ -249,7 +249,7 @@ The last expression of the cell is the cell's result; everything else is treated
 - **Unusable bindings.** A binding later cells cannot use (private or unnameable type) is dropped if no later statement names it; otherwise the statements through its last use run as one cell.
 - **`fn main`.** A program with `fn main` runs `main` as the entry; `main` then leaves the session, so its locals are not visible.
 - **Locations.** Diagnostics and panics use the file's own locations.
-- **Input.** The program's stdin is `/dev/null`.
+- **Input.** The program reads stdin as any cell does. On a terminal, a running cell reads the terminal (the controlling terminal; the console, `CONIN$`, on Windows); after the cell the line editor takes the terminal back in the mode it had before the cell. Piped input belongs to the REPL: a cell reads an empty stdin (`/dev/null`, `NUL` on Windows) and sees end of input at once, and the lines after it are still read as cells.
 - **`:load`, `:reload`.** `:load <file>` loads a program into the running session by the same rules; its items replace the session's items of the same name. `:reload` loads the last loaded program again ([9.9.9](909-debug-tools.md#999-repl--jupyter-debugging)).
 
 ## 9.7.11. Next

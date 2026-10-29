@@ -680,6 +680,10 @@ extern "rok" {
     fn rok_thread_lost(worker_id: u64) -> i32;             // 실패한 셀 뒤에 그 스레드가 사라졌으면 1
     fn rok_io_quiesce();                                   // Windows: 메모리를 되돌리기 전에 진행 중인 I/O 취소
     fn rok_watch_writes();                                 // Windows: heap 을 write-watch. 런타임 초기화 전에 호출
+    fn rok_stdio_line_buffered();                          // 터미널에서처럼 줄바꿈마다 stdout 을 flush
+    fn rok_set_stdin_hook(hook: extern "C" fn(Ptr<u8>, usize) -> isize | null);
+        // stdin 을 hook 으로 읽음 (null: fd 0): 읽은 수, 입력의 끝이면 0,
+        // 또는 -errno. 매 호출 전에 stdout 을 flush
     static rok_page_epoch: u64;                            // Windows: watch 하는 page 가 쓰기 없이 바뀌거나
                                                            //   watch 하는 block 이 해제되면 증가
 }

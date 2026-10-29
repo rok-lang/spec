@@ -680,6 +680,10 @@ extern "rok" {
     fn rok_thread_lost(worker_id: u64) -> i32;             // 1 if that thread was found gone after a failed cell
     fn rok_io_quiesce();                                   // Windows: cancel in-flight I/O before memory is put back
     fn rok_watch_writes();                                 // Windows: write-watch the heap; call before runtime init
+    fn rok_stdio_line_buffered();                          // flush stdout at each newline, as on a terminal
+    fn rok_set_stdin_hook(hook: extern "C" fn(Ptr<u8>, usize) -> isize | null);
+        // read stdin through hook (null: fd 0): the count, 0 at the end of
+        // input, or -errno; stdout is flushed before each call
     static rok_page_epoch: u64;                            // Windows: bumped when watched pages change without a write
                                                            //   or a watched block is released
 }

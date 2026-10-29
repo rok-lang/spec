@@ -8,6 +8,10 @@ Jupyter 가 Rok 커널을 별도 프로세스로 실행하며, ZeroMQ 기반 Jup
 
 커널은 터미널 REPL 과 **같은 셀 세션** 위에서 동작하며 [9.7.0](907-jit-cells.md#970-셀-세션의-규칙) 의 규칙을 따릅니다. 각 셀은 한 번만 실행되고, 바인딩과 항목은 이후 셀로 이어지며, 실패한 셀은 바인딩에 흔적을 남기지 않습니다. 커널의 엔진은 REPL 과 같은 [JIT 세션](906-jit-engine.md) 이므로, top-level `await` 와 `it` 도 REPL 에서처럼 동작합니다 ([9.7.1](907-jit-cells.md#971-cell-의-종류), [9.7.7](907-jit-cells.md#977-시각화--출력)).
 
+### 입력
+
+셀은 클라이언트를 거쳐 stdin 을 읽습니다. `execute_request` 에 `allow_stdin: true` 가 있으면, 런타임이 stdin 을 읽을 때마다 stdin 채널로 그 요청의 클라이언트에 `input_request` (`prompt` 는 빈 문자열, `password` 는 false) 를 보냅니다. 읽기 전에 셀이 쓴 것, 예를 들어 출력한 프롬프트는 먼저 `stream` 으로 보냅니다. `input_reply` 의 `value` 에 줄바꿈을 붙인 것이 그 읽기의 결과입니다. `allow_stdin` 이 없거나 `silent` 요청이면 읽기는 입력의 끝입니다. 셀이 응답을 기다리는 동안 인터럽트하면 셀이 끝납니다 (9.8.4).
+
 ### 노트북 셀과 REPL 셀
 
 노트북 셀 하나는 터미널 REPL 이 입력을 나누는 것과 같은 규칙으로 REPL 셀 여러 개로 나뉘어 차례로 실행됩니다. 결과로는 IPython 처럼 **마지막 값만** 표시합니다. 노트북 셀의 뒷부분이 실패하면, 앞부분 (앞선 REPL 셀) 의 효과는 그대로 남습니다.
@@ -31,7 +35,7 @@ rok jupyter --connection-file <path>        # 의존성을 해소한 뒤 rokc ju
 |-------------|------------------------------------------------------------|
 | `shell`     | 요청 (execute, kernel_info, complete, is_complete 등)      |
 | `iopub`     | 출력과 상태 broadcast (status, stream, execute_result 등) |
-| `stdin`     | 쓰지 않음: 입력 요청을 보내지 않음 (stdin 은 `/dev/null`) |
+| `stdin`     | stdin 을 읽는 셀의 `input_request` / `input_reply` (9.8.1) |
 | `control`   | interrupt, shutdown                                        |
 | `heartbeat` | 받은 것을 그대로 돌려보냄 (echo)                           |
 
@@ -56,9 +60,9 @@ rok jupyter --connection-file <path>        # 의존성을 해소한 뒤 rokc ju
 
 | 요청                   | 응답                                                                                   |
 |------------------------|----------------------------------------------------------------------------------------|
-| `kernel_info_request`  | `language_info` 의 name `rok`, mimetype `text/x-rok`, file_extension `.rok`, `protocol_version` `"5.3"` |
+| `kernel_info_request`  | `language_info` 의 name `rok`, mimetype `text/x-rok`, file_extension `.rok`, codemirror_mode 와 pygments_lexer `rust` (프런트엔드가 Rok 를 알기 전까지의 하이라이팅), 문서 (`https://docs.rok-lang.org/latest/`) 와 이 REPL 장으로 가는 `help_links`, `protocol_version` `"5.3"` |
 | `execute_request`      | 아래 "실행" 참조                                                                       |
-| `is_complete_request`  | REPL 의 이어 쓰기 규칙으로 `complete` / `incomplete` 판정                              |
+| `is_complete_request`  | REPL 의 이어 쓰기 규칙으로 `complete` / `incomplete` 판정, `indent` 는 아직 열린 괄호마다 공백 네 칸 |
 | `complete_request`     | 세션의 이름, 멤버, 키워드를 후보로 (9.8.5)                                             |
 | `inspect_request`      | 커서의 이름에 대한 `text/plain` 도움말과 `found: true` (9.8.6), 아니면 `false`         |
 | `history_request`      | 이 커널이 실행한 셀들                                                                  |
@@ -71,9 +75,9 @@ rok jupyter --connection-file <path>        # 의존성을 해소한 뒤 rokc ju
 `execute_request` 를 받으면 다음을 보냅니다.
 
 1. iopub `execute_input` (코드와 실행 번호).
-2. 셀이 **끝난 뒤** 그 출력: stdout / stderr 는 iopub `stream` 으로. 실행 중에 조금씩 보내지 않습니다.
+2. 셀의 출력을 **쓰는 대로**: 실행 중인 셀이 stdout / stderr 에 쓴 것은 커널이 읽는 대로 iopub `stream` (`stdout` / `stderr`) 으로 보냅니다. 둘은 서로 다른 파이프이므로, 한쪽의 조각은 순서를 지키고 양쪽의 조각은 읽은 순서로 갑니다. 실행 밖에서 쓴 출력 (진단, `:` 명령) 은 다음 실행 전이나 셀이 끝날 때 보냅니다.
 3. 값이 있으면 iopub `execute_result`: `text/plain` 에 REPL 과 같은 출력 (9.7.7).
-4. 실패하면 iopub `error`: `evalue` 는 stderr 의 첫 줄, `traceback` 은 stderr 의 줄들.
+4. 실패하면 iopub `error`: `evalue` 는 아직 보내지 않은 stderr (컴파일되지 않는 셀의 진단, 또는 실행이 어떻게 끝났는지의 보고) 의 첫 줄, `traceback` 은 그 줄들. panic 메시지처럼 셀 자신이 stderr 에 쓴 것은 그 전에 스트림으로 보냈습니다.
 5. shell `execute_reply` (`execution_count` 포함, 성공 / 실패 status).
 
 출력 MIME 은 `text/plain` 하나입니다.
@@ -93,7 +97,7 @@ kernelspec 은 다음 디렉토리 아래의 `kernels/rok/kernel.json` 입니다
 3. Windows 이면 `%APPDATA%\jupyter`
 4. 그 밖에는 `$XDG_DATA_HOME/jupyter`, 없으면 `~/.local/share/jupyter`
 
-`kernel.json` 은 `rok` proxy ([9.10.6](910-rok-frontend.md#9106-toolchain)) 를 실행하며, 설치 때의 `ROK_HOME` 과 `PATH` 를 `env` 에 기록합니다.
+그 옆에는 프런트엔드가 커널에 보여 줄 Rok 로고 `logo-32x32.png` 와 `logo-64x64.png` 가 있습니다. `kernel.json` 은 `rok` proxy ([9.10.6](910-rok-frontend.md#9106-toolchain)) 를 실행하며, 설치 때의 `ROK_HOME` 과 `PATH` 를 `env` 에 기록합니다.
 
 ```json
 {
@@ -111,7 +115,7 @@ kernelspec 은 다음 디렉토리 아래의 `kernels/rok/kernel.json` 입니다
 
 ### 인터럽트
 
-`interrupt_mode` 가 `"message"` 이므로 인터럽트는 control 소켓의 `interrupt_request` 로 옵니다. 실행 중인 셀을 끝내고, 세션은 그 셀 이전의 상태로 계속됩니다 (실패한 셀과 같음, [9.7.0](907-jit-cells.md#970-셀-세션의-규칙)). 아직 컴파일 중인 셀은 인터럽트할 수 없습니다.
+`interrupt_mode` 가 `"message"` 이므로 인터럽트는 control 소켓의 `interrupt_request` 로 옵니다. 실행 중인 셀을 끝내고, 세션은 그 셀 이전의 상태로 계속됩니다 (실패한 셀과 같음, [9.7.0](907-jit-cells.md#970-셀-세션의-규칙)). `input_reply` 를 기다리는 셀도 끝납니다. 아직 컴파일 중인 셀은 인터럽트할 수 없습니다.
 
 ### 종료 (kernel restart)
 
@@ -137,6 +141,7 @@ REPL 에서 작성한 코드는 그대로 Jupyter 셀로 옮길 수 있고, 반�
 |-------------|---------------|-----------------------|
 | 입력        | 한 줄 / 한 식 | 한 셀 (여러 줄)       |
 | 출력        | text only     | text (`text/plain`)   |
+| stdin       | 터미널, 파이프면 빈 입력 | `allow_stdin` 이면 `input_request` |
 | 상태 보존   | 종료 시 폐기  | 노트북 파일에 셀 보존 |
 
 ## 9.8.8. 보안 / 격리
