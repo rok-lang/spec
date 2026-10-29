@@ -161,7 +161,7 @@ xs.push(3);
 
 let ys: List<i32> = [10, 20, 30];
 ys[0];                    //→ 10  (Index trait)
-ys[100];                  //→ panic (IndexError)
+ys[100];                  //→ panic: index 100 out of bounds for length 3
 ys.get(100);              //→ none
 
 for x in ys {
@@ -203,6 +203,7 @@ let (a, b) = zs.split_at(1);                 //→ views of [1] and [2, 4]
 
 ### Capacity and removal - common rules
 
+- An index out of range panics naming the index and the length: `index 100 out of bounds for length 3`. `insert` / `remove` / `swap` name the method too (`List::remove index 5 out of bounds for length 3`).
 - A size that overflows in `reserve`, `with_capacity`, `repeat` or growth panics with "capacity overflow", at every optimization level.
 - Removing an element (`pop`, `remove`, `clear`, `truncate`, `drain`, ..) releases the reference: the GC no longer sees it through the collection.
 
@@ -267,7 +268,7 @@ for w in words {
 ```rok
 let d: Dict<str, i32> = {"a": 1, "b": 2};
 d["a"];                   //→ 1
-d["c"];                   //→ panic (IndexError: key missing)
+d["c"];                   //→ panic: key "c" not found; use `d.get(k)` to get `i32 | none`
 d.get("c");               //→ none
 
 d.insert("c", 3);
@@ -284,12 +285,12 @@ for (k, v) in d.entries() {
 impl<K: Hash + Eq, V> Index<K> for Dict<K, V> {
     type Output = V;
     fn index(self, k: K) -> V {
-        self.get(k) ?? panic("key not found")
+        self.get(k) ?? panic(f"key {k:?} not found; use `d.get(k)` to get `V | none`")
     }
 }
 ```
 
-The `d[k]` notation assumes the key is present; use `.get(k)` when safe access is needed.
+The `d[k]` notation assumes the key is present; use `.get(k)` when safe access is needed. The panic shows the key as `{k:?}` does, or as `<K>` (the type name) when `K` has no `Debug`, and `V` as the value type's name.
 
 `d += e` (`AddAssign<Dict<K, V>>`) inserts every entry of `e` into `d` in place; on a shared key the value from `e` wins.
 
@@ -398,7 +399,7 @@ impl<T> Deque<T> {
 }
 ```
 
-`set` throws `IndexError` when `i` is out of range. `capacity` is the number of elements the ring buffer holds before it grows. It implements `d[i]` / `d[i] = v` (panics when out of range), `IntoIterator`, `FromIterator` (front to back), `Default`, `Clone` (`T: Clone`), `PartialEq` / `Eq` (element-wise, front to back) and `Debug`. `d += x` (`AddAssign<T>`) pushes `x` at the back.
+`set` throws `IndexError` when `i` is out of range. `capacity` is the number of elements the ring buffer holds before it grows. It implements `d[i]` / `d[i] = v` (panics when out of range, as `List` does: `index 5 out of bounds for length 3`), `IntoIterator`, `FromIterator` (front to back), `Default`, `Clone` (`T: Clone`), `PartialEq` / `Eq` (element-wise, front to back) and `Debug`. `d += x` (`AddAssign<T>`) pushes `x` at the back.
 
 ## 2.9.5b. `BinaryHeap<T>` - priority queue
 
@@ -514,7 +515,7 @@ impl Slice<u8> {
     fn find<B: AsBytes>(self, needle: B) -> usize | none;   // offset of the first occurrence; an empty needle is at 0
 }
 
-impl<T> Index<usize> for Slice<T> { ... }               // s[i]: panics when out of range
+impl<T> Index<usize> for Slice<T> { ... }               // s[i]: panics when out of range (`slice index 5 out of bounds for length 3`)
 impl<T> Sliceable<Range<usize>> for Slice<T> { ... }    // s[a:b]: a view of a view; the range is clamped to the length
 impl<T> IntoIterator for Slice<T> { ... }
 impl<T: PartialEq> PartialEq for Slice<T> { ... }

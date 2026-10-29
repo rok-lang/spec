@@ -161,7 +161,7 @@ xs.push(3);
 
 let ys: List<i32> = [10, 20, 30];
 ys[0];                    //→ 10  (Index trait)
-ys[100];                  //→ panic (IndexError)
+ys[100];                  //→ panic: index 100 out of bounds for length 3
 ys.get(100);              //→ none
 
 for x in ys {
@@ -203,6 +203,7 @@ let (a, b) = zs.split_at(1);                 //→ [1] 과 [2, 4] 의 view
 
 ### 용량과 제거 - 공통 규칙
 
+- 범위 밖 인덱스는 인덱스와 길이를 담아 panic 합니다: `index 100 out of bounds for length 3`. `insert` / `remove` / `swap` 은 메서드 이름도 붙입니다 (`List::remove index 5 out of bounds for length 3`).
 - `reserve`, `with_capacity`, `repeat`, 확장에서 크기가 overflow 하면 최적화 수준과 무관하게 "capacity overflow" 로 panic 합니다.
 - 원소를 빼면 (`pop`, `remove`, `clear`, `truncate`, `drain` 등) 참조도 놓습니다. GC 는 그 컬렉션을 통해 더 이상 그 원소를 보지 않습니다.
 
@@ -267,7 +268,7 @@ for w in words {
 ```rok
 let d: Dict<str, i32> = {"a": 1, "b": 2};
 d["a"];                   //→ 1
-d["c"];                   //→ panic (IndexError: 키 없음)
+d["c"];                   //→ panic: key "c" not found; use `d.get(k)` to get `i32 | none`
 d.get("c");               //→ none
 
 d.insert("c", 3);
@@ -284,12 +285,12 @@ for (k, v) in d.entries() {
 impl<K: Hash + Eq, V> Index<K> for Dict<K, V> {
     type Output = V;
     fn index(self, k: K) -> V {
-        self.get(k) ?? panic("key not found")
+        self.get(k) ?? panic(f"key {k:?} not found; use `d.get(k)` to get `V | none`")
     }
 }
 ```
 
-`d[k]` 표기는 키의 존재가 보장됨을 가정하므로, 안전한 접근이 필요할 때는 `.get(k)` 를 사용합니다.
+`d[k]` 표기는 키의 존재가 보장됨을 가정하므로, 안전한 접근이 필요할 때는 `.get(k)` 를 사용합니다. panic 은 키를 `{k:?}` 처럼 보여 주고, `K` 에 `Debug` 가 없으면 `<K>` (타입 이름) 로 보여 줍니다. `V` 는 값 타입의 이름입니다.
 
 `d += e` (`AddAssign<Dict<K, V>>`) 는 `e` 의 모든 항목을 `d` 에 제자리에서 삽입합니다. 키가 겹치면 `e` 의 값이 남습니다.
 
@@ -398,7 +399,7 @@ impl<T> Deque<T> {
 }
 ```
 
-`set` 은 `i` 가 범위 밖이면 `IndexError` 를 던집니다. `capacity` 는 ring buffer 가 커지기 전까지 담을 수 있는 원소 수입니다. `d[i]` / `d[i] = v` (범위 밖이면 panic), `IntoIterator`, `FromIterator` (앞에서 뒤로), `Default`, `Clone` (`T: Clone`), `PartialEq` / `Eq` (앞에서 뒤로 원소별), `Debug` 를 구현합니다. `d += x` (`AddAssign<T>`) 는 `x` 를 뒤에 push 합니다.
+`set` 은 `i` 가 범위 밖이면 `IndexError` 를 던집니다. `capacity` 는 ring buffer 가 커지기 전까지 담을 수 있는 원소 수입니다. `d[i]` / `d[i] = v` (범위 밖이면 `List` 처럼 panic: `index 5 out of bounds for length 3`), `IntoIterator`, `FromIterator` (앞에서 뒤로), `Default`, `Clone` (`T: Clone`), `PartialEq` / `Eq` (앞에서 뒤로 원소별), `Debug` 를 구현합니다. `d += x` (`AddAssign<T>`) 는 `x` 를 뒤에 push 합니다.
 
 ## 2.9.5b. `BinaryHeap<T>` - 우선순위 큐
 
@@ -514,7 +515,7 @@ impl Slice<u8> {
     fn find<B: AsBytes>(self, needle: B) -> usize | none;   // 처음 나타나는 offset; 빈 needle 은 0
 }
 
-impl<T> Index<usize> for Slice<T> { ... }               // s[i]: 범위 밖이면 panic
+impl<T> Index<usize> for Slice<T> { ... }               // s[i]: 범위 밖이면 panic (`slice index 5 out of bounds for length 3`)
 impl<T> Sliceable<Range<usize>> for Slice<T> { ... }    // s[a:b]: view 의 view, 범위는 길이에 맞춰 잘라 맞춤
 impl<T> IntoIterator for Slice<T> { ... }
 impl<T: PartialEq> PartialEq for Slice<T> { ... }
