@@ -206,7 +206,7 @@ The default level of every lint is `warn`.
 
 | lint                     | Checks                                                              |
 |--------------------------|---------------------------------------------------------------------|
-| `unused_variables`       | Local variables or parameters that are never read                   |
+| `unused_variables`       | Local variables or parameters that are never read. A `ref` parameter that is assigned, or captured by `ref` (`[ref n]`), is used: the write reaches the caller |
 | `unused_imports`         | A `use` whose name the module never uses                            |
 | `dead_code`              | Non-`pub` functions nobody calls                                    |
 | `unreachable_code`       | Statements after `return` / `break` / `continue` / `throw` / `panic` |

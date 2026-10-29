@@ -206,7 +206,7 @@ fn strict_zone() { ... }
 
 | lint                     | 검사                                                               |
 |--------------------------|--------------------------------------------------------------------|
-| `unused_variables`       | 읽지 않는 지역 변수나 매개변수                                     |
+| `unused_variables`       | 읽지 않는 지역 변수나 매개변수. 대입하거나 `ref` 로 캡처한 (`[ref n]`) `ref` 매개변수는 사용한 것으로 봄: 그 쓰기가 호출자에게 닿음 |
 | `unused_imports`         | 모듈이 이름을 쓰지 않는 `use`                                      |
 | `dead_code`              | 아무도 부르지 않는 비 `pub` 함수                                   |
 | `unreachable_code`       | `return` / `break` / `continue` / `throw` / `panic` 뒤의 문장      |
