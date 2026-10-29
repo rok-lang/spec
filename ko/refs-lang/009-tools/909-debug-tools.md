@@ -390,6 +390,12 @@ rokls
 
 이 모드를 사용하면 VS Code, Vim, Emacs 등 LSP 클라이언트가 자동 완성, hover, go-to-definition, 진단 등을 받아옵니다. 내부적으로는 `rokc check` 의 점진적 결과를 활용합니다.
 
+- **자동 완성.** `x.` 뒤에서는 `x` 타입의 필드와 메서드입니다. 표준 라이브러리나 다른 패키지의 타입이면 `pub` 인 것만 내놓으며, `#[doc(hidden)]` 멤버와 연산자 트레잇 (`a + b`, `xs[i]` 처럼 쓰는 것) 의 메서드는 빼놓습니다. `a::` 뒤에서는 (`use a::b::` 안에서도) `a` 아래의 모듈과 항목입니다. 그 밖에서는 커서 위치에서 보이는 지역 변수, 버퍼의 항목, 경로 없이 쓸 수 있는 이름 (core 라이브러리의 이름과 `use` 항목이 가져온 이름), 키워드입니다. REPL 과 Jupyter 커널도 같은 엔진으로 완성합니다 ([9.7.8](907-jit-cells.md#978-입력-단위-repl-식별)).
+- **hover 와 정의.** 함수, 메서드, 필드 위의 hover 는 표준 라이브러리의 것도 포함해 시그니처와 그 문서 주석을 보여 줍니다. `x.name` 의 go-to-definition 은 `x` 의 타입에서 `name` 을 찾으며, 표준 라이브러리 항목이면 라이브러리 소스의 그 항목으로 갑니다.
+- **문서 심볼.** 심볼의 range 는 수식어 (`pub`, `const`, ..) 부터 닫는 `}` 나 `;` 까지 항목 전체를 덮고, selection range 는 이름입니다.
+- **진단 범위.** span 이 빈 진단은 그 위치의 토큰 위에, 줄 끝이면 그 앞의 토큰 위에 보고합니다.
+- **손으로 시작했을 때.** 터미널에서 시작하면 서버는 먼저 표준 에러에 ``rokls speaks the language server protocol on stdin; start it from an editor (see `rok help lsp`)`` 를 출력합니다. 클라이언트가 `initialize` 를 보내기 전에 입력이 끝나면 ``rokls: input ended before the editor sent `initialize` `` 를 출력하고 1 로 끝납니다. `initialize` 뒤에는 LSP 표준대로 `shutdown` 을 받았으면 0, 아니면 1 로 끝납니다.
+
 자세한 LSP 명세는 본 사양 외이며 (LSP 표준 + rokc 구현 결정), 별도로 정의됩니다.
 
 ## 9.9.14. 패키지 검사

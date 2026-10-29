@@ -390,6 +390,12 @@ rokls
 
 In this mode, LSP clients such as VS Code, Vim and Emacs receive completion, hover, go-to-definition, diagnostics and so on. Internally it uses the incremental results of `rokc check`.
 
+- **Completion.** After `x.`, the fields and methods of `x`'s type. Of a type from the standard library or another package only the `pub` ones are offered, without `#[doc(hidden)]` members and without the methods of operator traits (those written as `a + b`, `xs[i]` and so on). After `a::`, also in `use a::b::`, the modules and items under `a`. Elsewhere, the locals in scope at the cursor, the buffer's items, the names in scope without a path (the core library's and those the `use` items import) and keywords. The REPL and the Jupyter kernel complete with the same engine ([9.7.8](907-jit-cells.md#978-input-unit-repl-recognition)).
+- **Hover and definition.** Hover on a function, method or field, the standard library's included, shows its signature and then its doc comment. Go-to-definition on `x.name` looks `name` up in the type of `x`; on a standard library item it goes to the item in the library's source.
+- **Document symbols.** A symbol's range covers the whole item, from its modifiers (`pub`, `const`, ..) to its closing `}` or `;`; its selection range is the name.
+- **Diagnostic ranges.** A diagnostic whose span is empty is reported over the token at that position, or at the end of a line over the token before it.
+- **Started by hand.** On a terminal the server first prints ``rokls speaks the language server protocol on stdin; start it from an editor (see `rok help lsp`)`` to standard error. When the input ends before the client sends `initialize`, it prints ``rokls: input ended before the editor sent `initialize` `` and exits with 1. After `initialize` the exit code is 0 after `shutdown` and 1 otherwise, as the LSP standard says.
+
 The detailed LSP specification is outside this specification (the LSP standard + rokc implementation decisions) and is defined separately.
 
 ## 9.9.14. Package inspection
