@@ -45,7 +45,7 @@ rok --env sci       # = rok repl --env sci
 
 위임하는 명령의 경로는 옵션도 옵션의 값도 아닌 첫 인자이므로, 옵션이 그 앞에 와도 됩니다 (`rok run --release t.rok`).
 
-`rok completions <shell>` 은 `bash`, `zsh`, `fish`, `powershell` 의 자동완성 스크립트를 표준 출력에 냅니다. `rok help` (위임하는 서브명령은 `rokc` 의 도움말) 와 같은 명령 / 옵션 텍스트에서 만들므로 둘은 어긋나지 않습니다. 서브명령과 그 옵션, 설치된 toolchain 으로 `+<version>` 과 `toolchain default` / `toolchain remove` 의 인자, `env use` / `remove` / `shell` / `export` 와 `--env` 의 환경 이름, `--target` 의 값을 완성합니다. 이름은 완성할 때 `rok __complete toolchains` / `envs` (한 줄에 하나) 를 실행해 읽으므로 `$ROK_HOME` 을 따릅니다. `install.sh` 와 `install.ps1` 이 스크립트를 설치합니다 (9.10.6).
+`rok completions <shell>` 은 `bash`, `zsh`, `fish`, `powershell` 의 자동완성 스크립트를 표준 출력에 냅니다. `rok help` (위임하는 서브명령은 `rokc` 의 도움말) 와 같은 명령 / 옵션 텍스트에서 만들므로 둘은 어긋나지 않습니다. 서브명령과 그 옵션, 설치된 toolchain 으로 `+<version>` 과 `toolchain default` / `toolchain remove` 의 인자, `env use` / `remove` / `shell` / `export` 와 `--env` 의 환경 이름, `--target` 의 값을 완성합니다. 이름은 완성할 때 `rok __complete toolchains` / `envs` (한 줄에 하나) 를 실행해 읽으므로 `$ROK_HOME` 을 따릅니다. `install.sh` 와 `install.ps1` 이 스크립트를 설치하고, `rok toolchain default` / `update` 가 다시 씁니다 (9.10.6).
 
 `rok` 의 전역 옵션은 다음과 같습니다.
 
@@ -56,6 +56,7 @@ rok --env sci       # = rok repl --env sci
 | `--locked`       | `rok.lock` 을 바꿔야 하면 바꾸지 않고 에러 (CI 용)                |
 | `--cwd <dir>`    | 디렉토리를 바꾼 뒤 실행                                           |
 | `-q`, `--quiet`  | 출력을 줄임                                                       |
+| `-v`, `--verbose` | 출력을 늘림 (`rokc` 에도 넘김)                                   |
 
 환경 변수는 `ROK_HOME` (기본 `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6), `ROK_REGISTRY` (index) 와 `ROK_REGISTRY_TOKEN` (registry API 토큰) (9.10.4a), 그리고 `ROK_DIST` (릴리스 서버, 9.10.6) 입니다.
 
@@ -433,6 +434,7 @@ rok toolchain clean                        # 기본값을 제외한 설치된 �
 - `install` 은 `bin/rokc --version --verbose` 로 검증하며, 버전과 host 가 맞아야 합니다.
 - 처음 설치한 toolchain 이 기본이 되고, 이때 `bin/` proxy 를 만듭니다.
 - `rok toolchain update` 는 `$ROK_HOME` 아래의 기본 toolchain 을 교체합니다. 인자가 없으면 최신 릴리스를, 버전을 주면 그 버전을 설치합니다. 설치한 toolchain 이 기본값이 되고 `bin/` proxy 를 다시 씁니다. Windows 에서는 실행 중인 proxy 의 이름을 바꾼 뒤 그 사본으로 교체합니다. 릴리스 archive 를 받아 SHA-256 을 검증하고 (아래 배포), 따로 풀어 제자리로 옮긴 뒤 proxy 가 그것을 실행하는지 확인합니다. 실패하면 이전 기본값과 proxy 를 되돌리고 새 toolchain 을 지웁니다. 이전 toolchain 들은 설치된 채로 남습니다. 이미 설치된 버전은 다운로드 없이 기본값이 됩니다. `rok update` 는 `rok.lock` 을 다시 해소하고, `rok toolchain update` 는 toolchain 을 교체합니다 (9.10.4).
+- `rok toolchain default <version>` 이나 `rok toolchain update` 뒤에는 설치 스크립트가 쓴 자동완성 스크립트 (아래 배포) 를 새 기본 toolchain 의 `rok completions` / `rokc completions` 로 다시 씁니다. 있는 파일만 다시 쓰고 새로 만들지는 않으며, `completions` 가 없는 toolchain 이면 그대로 둡니다. 아무것도 출력하지 않고, `-v` 이면 다시 쓴 파일을 알려 줍니다.
 - `rok toolchain clean` 은 지금의 기본값을 제외한 설치된 모든 toolchain 을 지웁니다. `update` 가 남겨 둔 이전 버전을 정리하는 선택적(opt-in) 명령입니다. 프로젝트가 고정한 버전도 함께 지워지므로 빌드에 필요하면 다시 설치해야 하며, 기본 toolchain 이 없으면 에러입니다.
 
 ### 배포

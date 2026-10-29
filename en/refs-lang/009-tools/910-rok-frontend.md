@@ -45,7 +45,7 @@ rok --env sci       # = rok repl --env sci
 
 The path of a delegated command is its first argument that is neither an option nor an option's value, so options may come before it (`rok run --release t.rok`).
 
-`rok completions <shell>` prints a completion script for `bash`, `zsh`, `fish` or `powershell` on standard output. It is generated from the same command and option text as `rok help` (and, for the delegated subcommands, `rokc`'s), so the two agree. It completes subcommands and their options, `+<version>` and the argument of `toolchain default` / `toolchain remove` with the installed toolchains, the environment names of `env use` / `remove` / `shell` / `export` and `--env`, and the value of `--target`. The names are read when completing, by running `rok __complete toolchains` / `envs` (one per line), so they follow `$ROK_HOME`. `install.sh` and `install.ps1` install the scripts (9.10.6).
+`rok completions <shell>` prints a completion script for `bash`, `zsh`, `fish` or `powershell` on standard output. It is generated from the same command and option text as `rok help` (and, for the delegated subcommands, `rokc`'s), so the two agree. It completes subcommands and their options, `+<version>` and the argument of `toolchain default` / `toolchain remove` with the installed toolchains, the environment names of `env use` / `remove` / `shell` / `export` and `--env`, and the value of `--target`. The names are read when completing, by running `rok __complete toolchains` / `envs` (one per line), so they follow `$ROK_HOME`. `install.sh` and `install.ps1` install the scripts, and `rok toolchain default` / `update` rewrite them (9.10.6).
 
 The global options of `rok` are:
 
@@ -56,6 +56,7 @@ The global options of `rok` are:
 | `--locked`       | If `rok.lock` would need to change, do not change it and fail (for CI) |
 | `--cwd <dir>`    | Change directory before running                                   |
 | `-q`, `--quiet`  | Reduce output                                                     |
+| `-v`, `--verbose` | More output (also passed to `rokc`)                              |
 
 Environment variables are `ROK_HOME` (default `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6), `ROK_REGISTRY` (the index) and `ROK_REGISTRY_TOKEN` (the registry API token) (9.10.4a), and `ROK_DIST` (the release server, 9.10.6).
 
@@ -433,6 +434,7 @@ rok toolchain clean                        # remove every installed toolchain bu
 - `install` verifies with `bin/rokc --version --verbose`; the version and host must match.
 - The first installed toolchain becomes the default, and the `bin/` proxies are created at that point.
 - `rok toolchain update` replaces the default toolchain under `$ROK_HOME`. Without an argument it installs the latest release; with a version it installs that version. The installed toolchain becomes the default and the `bin/` proxies are rewritten; on Windows a running proxy is renamed before its copy replaces it. It downloads the release archive and verifies its SHA-256 (Distribution, below), unpacks it apart and moves it into place, then checks that the proxies run it; on failure the previous default and proxies are restored and the new toolchain is removed. Earlier toolchains stay installed. A version already installed is made the default without a download. `rok update` re-resolves `rok.lock`; `rok toolchain update` replaces the toolchain (9.10.4).
+- After `rok toolchain default <version>` or `rok toolchain update`, the completion scripts the installers wrote (Distribution, below) are rewritten from the new default toolchain's `rok completions` / `rokc completions`. Only files that exist are rewritten; none is created, and a toolchain without `completions` leaves them as they are. This prints nothing; `-v` names the files rewritten.
 - `rok toolchain clean` removes every installed toolchain except the current default, an opt-in tidy-up for the earlier versions that `update` leaves installed. A version a project pins is removed too, so reinstall it if a build needs it; with no default set it is an error.
 
 ### Distribution
