@@ -24,7 +24,8 @@ As grammar rules:
 cli_invocation  ::= "rokc" subcommand option* arg*
 subcommand      ::= "build" | "emit" | "run" | "test" | "bench" | "check"
                   | "fmt" | "lint" | "doc" | "repl" | "jupyter" | "lsp"
-                  | "clean" | "profdata" | "bindgen" | "demangle" | "rokhir-text" | "inspect" | "version" | "help"
+                  | "clean" | "profdata" | "bindgen" | "demangle" | "rokhir-text" | "inspect" | "completions"
+                  | "version" | "help"
 option          ::= "--" identifier ("=" value)?
                   | "-" letter
 ```
@@ -38,7 +39,7 @@ option          ::= "--" identifier ("=" value)?
 | Tools               | `fmt`, `lint`, `doc`, `lsp`, `profdata`, `bindgen`                |
 | Interactive         | `repl`, `jupyter`                                     |
 | Debug / diagnostic  | `demangle`, `rokhir-text`, `inspect`                    |
-| Other               | `version`, `help`                                     |
+| Other               | `completions`, `version`, `help`                      |
 
 ### Package selection (`path`)
 
@@ -405,6 +406,14 @@ rokc --print target-spec [--target=<target>]
 ### `rokc --print lldbinit`: lldb formatters
 
 Prints one line, `command script import '<path>'`, that loads the lldb formatters of this toolchain ([9.9.6](909-debug-tools.md#996-debugger-integration-gdb--lldb)): `<sysroot>/lib/rok/lldb/rok_lldb.py`.
+
+### `rokc completions`: shell completion
+
+```
+rokc completions bash|zsh|fish|powershell
+```
+
+Prints a completion script for that shell on stdout. It is generated from the same command and option text as `rokc help`, so the two agree: it completes subcommands, their options, `+<version>` with the installed toolchains (from `rok`, [9.10.6](910-rok-frontend.md#9106-toolchain)) and the value of `--target` with `--print target-list`. Any other shell, or no shell, is a usage error (exit code 2).
 
 ### `rokc help`: help
 

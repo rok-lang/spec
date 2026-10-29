@@ -13,6 +13,7 @@ A package without dependencies builds by file conventions alone, without a manif
 | `search`, `publish`, `yank`, `login`, `logout`                    | Stones (9.10.4a)                        |
 | `env`                                                             | Environments (9.10.5)                   |
 | `toolchain`                                                       | Toolchain (9.10.6)                      |
+| `completions <shell>`                                             | Shell completion script (below)         |
 | `install`, `uninstall`                                            | Libraries for the REPL / Jupyter, and executables (9.10.5a) |
 | `build`, `check`, `run`, `emit`                                   | Delegated to `rokc` with dependencies attached |
 | `test`, `bench`                                                   | `rokc` builds the harness with dependencies attached; `rok` runs it ([9.1](901-rokc-cli.md)) |
@@ -43,6 +44,8 @@ rok --env sci       # = rok repl --env sci
 `rok [options] <file> [args..]` runs a script: it is `rok run -q <file> -- args..`. Every argument after the file is passed to the program unchanged, and the exit code is the program's. The word is a file when it contains `/` (also `\` on Windows) or has the extension `.rok`; no subcommand does, so a subcommand is never taken for a file. Together with a shebang line ([1.2.3](../001-lexical/102-lexical-structure.md#shebang-line)), `./script.rok args` runs the script.
 
 The path of a delegated command is its first argument that is neither an option nor an option's value, so options may come before it (`rok run --release t.rok`).
+
+`rok completions <shell>` prints a completion script for `bash`, `zsh`, `fish` or `powershell` on standard output. It is generated from the same command and option text as `rok help` (and, for the delegated subcommands, `rokc`'s), so the two agree. It completes subcommands and their options, `+<version>` and the argument of `toolchain default` / `toolchain remove` with the installed toolchains, the environment names of `env use` / `remove` / `shell` / `export` and `--env`, and the value of `--target`. The names are read when completing, by running `rok __complete toolchains` / `envs` (one per line), so they follow `$ROK_HOME`. `install.sh` and `install.ps1` install the scripts (9.10.6).
 
 The global options of `rok` are:
 
@@ -437,6 +440,9 @@ rok toolchain clean                        # remove every installed toolchain bu
 - A release archive is `rok-<version>-<triple>.tar.gz` (Windows `.zip`), containing the toolchain layout; outside Windows a `rok-<version>-<triple>.tar.xz` with the same files sits beside it. Each archive has `<archive>.sha256` beside it: the archive's SHA-256 in hex, optionally followed by the file name (sha256sum format).
 - `install.sh`, `install.ps1` and `rok toolchain install --from <url>` download `<url>.sha256` from the same place and refuse an archive whose SHA-256 differs; a missing `.sha256` is an error. An archive given by path is checked against `<path>.sha256` when that file exists. Signatures are not defined; HTTPS vouches for the origin.
 - `install.sh` (<https://rok-lang.org/install.sh>) installs into `$ROK_HOME` from an archive or from GitHub releases of the `rok-lang` organization. It downloads the `.tar.xz` where tar can read it (macOS, or `xz` on `PATH`) and the release has one, else the `.tar.gz`. `rok toolchain install` downloads the `.tar.gz` (on Windows the `.zip`).
+- `install.sh` then sets up the shells, as rustup does. It writes `$ROK_HOME/env` (sh) and `$ROK_HOME/env.fish`, which put `$ROK_HOME/bin` first on `PATH` unless it is there already, and adds the guarded line `[ -f "$HOME/.rok/env" ] && . "$HOME/.rok/env"` (for that `$ROK_HOME`) once to each of `~/.profile`, `~/.bashrc`, `~/.bash_profile` and `~/.zshenv` that exists, and to the login shell's file, made if missing (bash: `~/.bashrc`, and `~/.profile` unless `~/.bash_profile` or `~/.bash_login` exists; zsh: `$ZDOTDIR/.zshenv`; other shells: `~/.profile`). Fish gets `~/.config/fish/conf.d/rok.fish` (under `$XDG_CONFIG_HOME` when set) when it is the login shell or its configuration directory exists. The completion scripts of `rok` and `rokc` go to `${XDG_DATA_HOME:-~/.local/share}/bash-completion/completions/`, `$ROK_HOME/zsh/` (which `env` adds to zsh's `fpath`) and, for fish, `~/.config/fish/completions/`. It names the files it changed; a new shell picks up the change, and running it again changes nothing. Without `$ROK_HOME` the guarded line does nothing.
+- `install.ps1` puts `$ROK_HOME\bin` first on the user's `Path` and writes `$ROK_HOME\completions\rok.ps1`, loaded by a guarded line in the PowerShell profile, added once.
+- `--no-modify-path` (`install.ps1 -NoModifyPath`), or `ROK_NO_MODIFY_PATH=1`, leaves the shell files, `Path` and the profile alone and prints what to add to `PATH`.
 - Releases are served from `$ROK_DIST` (default `https://github.com/rok-lang/rok/releases`): `<dist>/download/v<version>/<archive>` with its `.sha256`, and `<dist>/latest/download/rok-version` holding the latest release's version.
 
 ## 9.10.7. Inline manifest for single-file scripts

@@ -13,6 +13,7 @@
 | `search`, `publish`, `yank`, `login`, `logout`                    | stone (9.10.4a)                         |
 | `env`                                                             | 환경 (9.10.5)                           |
 | `toolchain`                                                       | toolchain (9.10.6)                      |
+| `completions <shell>`                                             | 셸 자동완성 스크립트 (아래)             |
 | `install`, `uninstall`                                            | REPL / Jupyter 용 라이브러리와 실행 파일 (9.10.5a) |
 | `build`, `check`, `run`, `emit`                                   | 의존성을 붙여 `rokc` 에 위임            |
 | `test`, `bench`                                                   | `rokc` 가 의존성을 붙여 하네스를 빌드하고, `rok` 가 실행 ([9.1](901-rokc-cli.md)) |
@@ -43,6 +44,8 @@ rok --env sci       # = rok repl --env sci
 `rok [options] <file> [args..]` 은 스크립트를 실행합니다: `rok run -q <file> -- args..` 와 같습니다. 파일 뒤의 모든 인자는 그대로 프로그램에 넘기며, 종료 코드는 프로그램의 것입니다. 그 단어는 `/` (Windows 에서는 `\` 도) 를 담거나 확장자가 `.rok` 이면 파일입니다. 그런 서브명령은 없으므로 서브명령을 파일로 오인하는 일은 없습니다. shebang 줄 ([1.2.3](../001-lexical/102-lexical-structure.md#shebang-줄)) 과 함께 쓰면 `./script.rok args` 가 스크립트를 실행합니다.
 
 위임하는 명령의 경로는 옵션도 옵션의 값도 아닌 첫 인자이므로, 옵션이 그 앞에 와도 됩니다 (`rok run --release t.rok`).
+
+`rok completions <shell>` 은 `bash`, `zsh`, `fish`, `powershell` 의 자동완성 스크립트를 표준 출력에 냅니다. `rok help` (위임하는 서브명령은 `rokc` 의 도움말) 와 같은 명령 / 옵션 텍스트에서 만들므로 둘은 어긋나지 않습니다. 서브명령과 그 옵션, 설치된 toolchain 으로 `+<version>` 과 `toolchain default` / `toolchain remove` 의 인자, `env use` / `remove` / `shell` / `export` 와 `--env` 의 환경 이름, `--target` 의 값을 완성합니다. 이름은 완성할 때 `rok __complete toolchains` / `envs` (한 줄에 하나) 를 실행해 읽으므로 `$ROK_HOME` 을 따릅니다. `install.sh` 와 `install.ps1` 이 스크립트를 설치합니다 (9.10.6).
 
 `rok` 의 전역 옵션은 다음과 같습니다.
 
@@ -437,6 +440,9 @@ rok toolchain clean                        # 기본값을 제외한 설치된 �
 - 릴리스 archive 는 `rok-<version>-<triple>.tar.gz` (Windows 는 `.zip`) 이며, 안은 toolchain 레이아웃입니다. Windows 가 아니면 같은 파일을 담은 `rok-<version>-<triple>.tar.xz` 도 옆에 있습니다. 각 archive 옆에 `<archive>.sha256` 이 있습니다: archive 의 SHA-256 을 hex 로 적고, 그 뒤에 파일 이름이 올 수 있습니다 (sha256sum 형식).
 - `install.sh`, `install.ps1`, `rok toolchain install --from <url>` 은 같은 곳에서 `<url>.sha256` 을 받아, SHA-256 이 다른 archive 를 거부합니다. `.sha256` 이 없으면 에러입니다. 경로로 준 archive 는 `<path>.sha256` 이 있을 때 그것과 대조합니다. 서명은 정의하지 않으며, 출처는 HTTPS 가 보증합니다.
 - `install.sh` (<https://rok-lang.org/install.sh>) 는 archive 나 `rok-lang` 조직의 GitHub release 에서 `$ROK_HOME` 에 설치합니다. tar 가 읽을 수 있고 (macOS, 또는 `PATH` 에 `xz`) 릴리스에 있으면 `.tar.xz` 를, 아니면 `.tar.gz` 를 받습니다. `rok toolchain install` 은 `.tar.gz` (Windows 에서는 `.zip`) 를 받습니다.
+- 이어서 `install.sh` 는 rustup 처럼 셸을 설정합니다. `$ROK_HOME/bin` 이 `PATH` 에 아직 없으면 맨 앞에 두는 `$ROK_HOME/env` (sh) 와 `$ROK_HOME/env.fish` 를 쓰고, 가드한 줄 `[ -f "$HOME/.rok/env" ] && . "$HOME/.rok/env"` (그 `$ROK_HOME` 의 것) 을 `~/.profile`, `~/.bashrc`, `~/.bash_profile`, `~/.zshenv` 중 있는 파일마다, 그리고 로그인 셸의 파일 (없으면 만듦; bash: `~/.bashrc`, 그리고 `~/.bash_profile` 이나 `~/.bash_login` 이 없으면 `~/.profile`; zsh: `$ZDOTDIR/.zshenv`; 그 밖의 셸: `~/.profile`) 에 한 번 더합니다. fish 가 로그인 셸이거나 그 설정 디렉토리가 있으면 `~/.config/fish/conf.d/rok.fish` (`$XDG_CONFIG_HOME` 이 있으면 그 아래) 를 씁니다. `rok` 과 `rokc` 의 자동완성 스크립트는 `${XDG_DATA_HOME:-~/.local/share}/bash-completion/completions/`, `$ROK_HOME/zsh/` (`env` 가 zsh 의 `fpath` 에 더함), fish 는 `~/.config/fish/completions/` 에 둡니다. 바꾼 파일을 알려 주며, 새 셸이 그 변경을 읽습니다. 다시 실행해도 바뀌는 것은 없습니다. `$ROK_HOME` 이 없으면 가드한 줄은 아무 일도 하지 않습니다.
+- `install.ps1` 은 `$ROK_HOME\bin` 을 사용자 `Path` 맨 앞에 두고, `$ROK_HOME\completions\rok.ps1` 을 써서 PowerShell 프로필의 가드한 줄 (한 번 더함) 로 읽게 합니다.
+- `--no-modify-path` (`install.ps1 -NoModifyPath`) 나 `ROK_NO_MODIFY_PATH=1` 은 셸 파일, `Path`, 프로필을 건드리지 않고 `PATH` 에 더할 것을 출력합니다.
 - 릴리스는 `$ROK_DIST` (기본값 `https://github.com/rok-lang/rok/releases`) 에서 제공됩니다: `<dist>/download/v<version>/<archive>` 와 그 `.sha256`, 그리고 최신 릴리스의 버전을 담은 `<dist>/latest/download/rok-version`.
 
 ## 9.10.7. 단일 파일 스크립트의 inline 매니페스트

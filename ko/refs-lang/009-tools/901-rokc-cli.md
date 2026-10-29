@@ -24,7 +24,8 @@ rokc <subcommand> [options] [args]
 cli_invocation  ::= "rokc" subcommand option* arg*
 subcommand      ::= "build" | "emit" | "run" | "test" | "bench" | "check"
                   | "fmt" | "lint" | "doc" | "repl" | "jupyter" | "lsp"
-                  | "clean" | "profdata" | "bindgen" | "demangle" | "rokhir-text" | "inspect" | "version" | "help"
+                  | "clean" | "profdata" | "bindgen" | "demangle" | "rokhir-text" | "inspect" | "completions"
+                  | "version" | "help"
 option          ::= "--" identifier ("=" value)?
                   | "-" letter
 ```
@@ -38,7 +39,7 @@ option          ::= "--" identifier ("=" value)?
 | 도구            | `fmt`, `lint`, `doc`, `lsp`, `profdata`, `bindgen`                |
 | 인터랙티브      | `repl`, `jupyter`                                     |
 | 디버그 / 진단   | `demangle`, `rokhir-text`, `inspect`                    |
-| 그 밖           | `version`, `help`                                     |
+| 그 밖           | `completions`, `version`, `help`                      |
 
 ### 패키지 지정 (`path`)
 
@@ -405,6 +406,14 @@ rokc --print target-spec [--target=<target>]
 ### `rokc --print lldbinit`: lldb formatter
 
 이 toolchain 의 lldb formatter ([9.9.6](909-debug-tools.md#996-디버거-통합-gdb--lldb)) 를 로드하는 한 줄 `command script import '<path>'` 을 출력합니다: `<sysroot>/lib/rok/lldb/rok_lldb.py`.
+
+### `rokc completions`: 셸 자동완성
+
+```
+rokc completions bash|zsh|fish|powershell
+```
+
+그 셸의 자동완성 스크립트를 stdout 에 출력합니다. `rokc help` 와 같은 명령 / 옵션 텍스트에서 만들므로 둘은 어긋나지 않습니다: 서브명령, 그 옵션, 설치된 toolchain 으로 `+<version>` (`rok` 에서, [9.10.6](910-rok-frontend.md#9106-toolchain)), `--print target-list` 로 `--target` 의 값을 완성합니다. 그 밖의 셸이거나 셸이 없으면 사용법 에러 (종료 코드 2) 입니다.
 
 ### `rokc help`: 도움말
 
