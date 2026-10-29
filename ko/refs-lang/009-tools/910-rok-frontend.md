@@ -23,7 +23,7 @@
 | `version`, `help`                                                 |                                         |
 | (없음)                                                            | `rok repl` 과 같음: REPL 시작           |
 
-위임하는 서브명령은 같은 이름의 `rokc` 서브명령을 실행합니다. `rok` 는 자기 전역 옵션 (`--env` / `--offline` / `--locked` / `--cwd`, `--` 앞 어디든) 만 소비하고, 나머지 인자는 그대로 넘기며 다음을 더합니다. `test` 와 `bench` 는 `rok` 가 `rokc` 로 하네스를 빌드하게만 하고 (`--emit-harness`) 실행은 직접 하므로 ([9.1](901-rokc-cli.md)), 러너는 컴파일러에 속하지 않습니다.
+위임하는 서브명령은 같은 이름의 `rokc` 서브명령을 실행합니다. `rok` 는 자기 전역 옵션 (`--env` / `--offline` / `--locked` / `--cwd` / `--color`, `--` 앞 어디든) 만 소비하고, 나머지 인자는 그대로 넘기며 다음을 더합니다. `test` 와 `bench` 는 `rok` 가 `rokc` 로 하네스를 빌드하게만 하고 (`--emit-harness`) 실행은 직접 하므로 ([9.1](901-rokc-cli.md)), 러너는 컴파일러에 속하지 않습니다.
 
 - 의존 패키지마다 `--extern name=<소스 디렉토리>`. `rok.lock` 을 따라 준비하며, 의존되는 쪽이 의존하는 쪽보다 앞입니다 (`rok deps` 가 출력하는 순서). 미리 빌드는 `rokc` 가 합니다 ([9.2.3](902-aot-pipeline.md#미리-빌드한-의존-패키지)).
 - 패키지 자신의 feature 는 `--cfg feature=<f>` 로, 각 의존 패키지의 feature 는 `--extern-feature <name>=<f>` 로 (9.10.4c). build / run / test / bench / check / lint / doc / emit / repl / lsp / jupyter / deps 의 feature 옵션 `--features <f,..>` (여러 번 가능, `<dep>/<f>` 도), `--all-features`, `--no-default-features` 는 `rok` 이 소비합니다 (`--` 앞).
@@ -57,8 +57,9 @@ rok --env sci       # = rok repl --env sci
 | `--cwd <dir>`    | 디렉토리를 바꾼 뒤 실행                                           |
 | `-q`, `--quiet`  | 출력을 줄임                                                       |
 | `-v`, `--verbose` | 출력을 늘림 (`rokc` 에도 넘김)                                   |
+| `--color <when>`, `--no-color` | `auto`, `always`, `never`: 색. `rokc` 와 같이 정함 ([9.1.5](901-rokc-cli.md#915-전역-옵션)). 실행하는 `rokc` 에 `--color=<when>` 으로 넘김 |
 
-환경 변수는 `ROK_HOME` (기본 `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6), `ROK_REGISTRY` (index) 와 `ROK_REGISTRY_TOKEN` (registry API 토큰) (9.10.4a), 그리고 `ROK_DIST` (릴리스 서버, 9.10.6) 입니다.
+환경 변수는 `ROK_HOME` (기본 `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6), `ROK_REGISTRY` (index) 와 `ROK_REGISTRY_TOKEN` (registry API 토큰) (9.10.4a), 그리고 `ROK_DIST` (릴리스 서버, 9.10.6) 입니다. `NO_COLOR`, `CLICOLOR_FORCE`, `COLORTERM`, `TERM` 은 `rokc` 와 같이 색을 정합니다 ([9.1.7](901-rokc-cli.md#917-환경-변수)).
 
 ## 9.10.2. `rok new` / `rok init`: 패키지 생성
 
@@ -378,7 +379,7 @@ rok yank --native --vers <version> [--undo] [--index <dir>] <name>
 
 ```
 rok env create <name>
-rok env list                      # 현재 환경에 * 표시
+rok env list                      # 현재 환경에 * 와 (active) 표시
 rok env remove <name>
 rok env use <name>                # 프로젝트 밖의 기본 환경을 바꿈
 rok env export <name> <dir>       # rok.rokon / rok.lock 을 <dir> 에 씀
@@ -422,7 +423,7 @@ rok uninstall [--native] <name>..
 버전 접두는 그 아래 버전과 맞습니다 (`0.3` 은 `0.3.*` 의 가장 높은 것). 맞는 toolchain 이 없으면 `rok toolchain install` 을 안내하는 에러입니다.
 
 ```
-rok toolchain list
+rok toolchain list                         # 기본 toolchain 에 * 와 (default) 표시
 rok toolchain install <version> --from <dir | archive | url>
 rok toolchain default [<version>]          # 인자 없으면 지금의 기본을 출력
 rok toolchain remove <version>
@@ -444,6 +445,7 @@ rok toolchain clean                        # 기본값을 제외한 설치된 �
 - `install.sh` (<https://rok-lang.org/install.sh>) 는 archive 나 `rok-lang` 조직의 GitHub release 에서 `$ROK_HOME` 에 설치합니다. tar 가 읽을 수 있고 (macOS, 또는 `PATH` 에 `xz`) 릴리스에 있으면 `.tar.xz` 를, 아니면 `.tar.gz` 를 받습니다. `rok toolchain install` 은 `.tar.gz` (Windows 에서는 `.zip`) 를 받습니다.
 - 이어서 `install.sh` 는 rustup 처럼 셸을 설정합니다. `$ROK_HOME/bin` 이 `PATH` 에 아직 없으면 맨 앞에 두는 `$ROK_HOME/env` (sh) 와 `$ROK_HOME/env.fish` 를 쓰고, 가드한 줄 `[ -f "$HOME/.rok/env" ] && . "$HOME/.rok/env"` (그 `$ROK_HOME` 의 것) 을 `~/.profile`, `~/.bashrc`, `~/.bash_profile`, `~/.zshenv` 중 있는 파일마다, 그리고 로그인 셸의 파일 (없으면 만듦; bash: `~/.bashrc`, 그리고 `~/.bash_profile` 이나 `~/.bash_login` 이 없으면 `~/.profile`; zsh: `$ZDOTDIR/.zshenv`; 그 밖의 셸: `~/.profile`) 에 한 번 더합니다. fish 가 로그인 셸이거나 그 설정 디렉토리가 있으면 `~/.config/fish/conf.d/rok.fish` (`$XDG_CONFIG_HOME` 이 있으면 그 아래) 를 씁니다. `rok` 과 `rokc` 의 자동완성 스크립트는 `${XDG_DATA_HOME:-~/.local/share}/bash-completion/completions/`, `$ROK_HOME/zsh/` (`env` 가 zsh 의 `fpath` 에 더함), fish 는 `~/.config/fish/completions/` 에 둡니다. 바꾼 파일을 알려 주며, 새 셸이 그 변경을 읽습니다. 다시 실행해도 바뀌는 것은 없습니다. `$ROK_HOME` 이 없으면 가드한 줄은 아무 일도 하지 않습니다.
 - `install.ps1` 은 `$ROK_HOME\bin` 을 사용자 `Path` 맨 앞에 두고, `$ROK_HOME\completions\rok.ps1` 을 써서 PowerShell 프로필의 가드한 줄 (한 번 더함) 로 읽게 합니다.
+- `install.sh` 와 `install.ps1` 은 `rok` 처럼 stderr 에 상태 줄을 출력하며, 같은 팔레트와 규칙 ([9.1.5](901-rokc-cli.md#915-전역-옵션), [9.1.8](901-rokc-cli.md#색)) 을 `tput` 없이 따릅니다. `install.sh` 는 stderr 를 보므로 터미널에서 `curl .. | sh` 도 색이 납니다.
 - `--no-modify-path` (`install.ps1 -NoModifyPath`) 나 `ROK_NO_MODIFY_PATH=1` 은 셸 파일, `Path`, 프로필을 건드리지 않고 `PATH` 에 더할 것을 출력합니다.
 - 릴리스는 `$ROK_DIST` (기본값 `https://github.com/rok-lang/rok/releases`) 에서 제공됩니다: `<dist>/download/v<version>/<archive>` 와 그 `.sha256`, 그리고 최신 릴리스의 버전을 담은 `<dist>/latest/download/rok-version`.
 

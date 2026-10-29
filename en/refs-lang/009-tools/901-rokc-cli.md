@@ -433,7 +433,7 @@ The global options are listed below. They may appear before or after the subcomm
 | `--verbose` / `-v`               | Show per-phase timing ([9.9.5](909-debug-tools.md#995-logging--progress-display)) |
 | `-vv`                            | More detailed logging: `Reading <file>` and `Specialized <path>(sig)` lines ([9.9.5](909-debug-tools.md#995-logging--progress-display)) |
 | `--quiet` / `-q`                 | Do not print progress lines (diagnostics are still printed) |
-| `--color=auto\|always\|never`    | Colored diagnostic output                                   |
+| `--color=auto\|always\|never`    | Colour on stdout and stderr (9.1.8)                         |
 | `--no-color`                     | Equivalent to `--color=never`                               |
 | `--cwd=<path>`                   | Change working directory before running                     |
 | `--print cfg\|target-list\|target-spec\|lldbinit` | Print the active cfg, the built-in target names, a target's specification, or the lldb command loading Rok's formatters (9.1.4) |
@@ -442,7 +442,7 @@ The global options are listed below. They may appear before or after the subcomm
 
 The lint level is determined in the order: the lint's default level < `-A` / `-W` / `-D` < `#[allow(..)]` / `#[warn(..)]` / `#[deny(..)]` in code (innermost wins). `rok` prepends the manifest's `lints` as these flags ([9.10.1](910-rok-frontend.md#9101-subcommands-and-global-options)).
 
-`--color=auto` (the default) uses color when stderr is a terminal and the environment variable `NO_COLOR` is not set.
+Colour is decided for stdout and stderr separately, in this order: `--color=never` turns it off and `--color=always` on; otherwise (`--color=auto`, the default) a non-empty `NO_COLOR` turns it off, a `CLICOLOR_FORCE` that is non-empty and not `0` turns it on, `TERM=dumb` turns it off, and else a stream is coloured when it is a terminal. On Windows a console that does not take escape sequences gets plain text.
 
 Examples:
 
@@ -485,7 +485,10 @@ The environment variables that affect `rokc` are:
 | `ROKC_INCREMENTAL` | Where the front end keeps the package's parses and lowered bodies (default `target/<profile>/incremental/`; `0`: nowhere); the library's collected items are kept in `lib/rok-cache/library/` ([9.2.16](902-aot-pipeline.md#9216-incremental-build)) |
 | `ROKC_INCR_VERIFY` | `1`: lower every body again and fail on a difference ([9.2.16](902-aot-pipeline.md#9216-incremental-build)) |
 | `ROKC_NUM_JOBS`   | Default for `rokc test --threads` (CPU core count if unset)                              |
-| `NO_COLOR`        | If set, `--color=auto` does not use color                                                |
+| `NO_COLOR`        | Non-empty: `--color=auto` does not use colour (9.1.5)                                    |
+| `CLICOLOR_FORCE`  | Non-empty and not `0`: `--color=auto` uses colour even when the stream is not a terminal, unless `NO_COLOR` is set (9.1.5) |
+| `COLORTERM`       | `truecolor` or `24bit`: colour uses 24-bit values (9.1.8)                                |
+| `TERM`            | `dumb`: `--color=auto` does not use colour; containing `256color`: colour uses the 256-colour palette (9.1.8) |
 
 An unset or empty variable has its default. A value outside those listed prints one warning line on stderr naming the variable, the value and the accepted values, and the variable has its default.
 
@@ -532,6 +535,27 @@ Progress is shown on stderr with right-aligned verbs. Nothing is printed with `-
 | `Running`   | Program run (`run`)                           |
 | `Created`   | Package created (`new`)                       |
 | `Removed`   | `target/` deleted (`clean`)                   |
+| `Fresh`     | A dependency is up to date                    |
+| `Checked`   | `check` done (error and warning counts)       |
+| `Generated` | Documentation written (`doc`)                 |
+| `Formatted` | A file rewritten (`fmt`)                      |
+
+`rok` prints its own progress the same way: `Added`, `Installed`, `Updated`, `Downloading` and the like ([9.10](910-rok-frontend.md)).
+
+### Colour
+
+When colour is on (9.1.5), the output uses this palette. Its depth follows the terminal: 24-bit values when `COLORTERM` is `truecolor` or `24bit`, else the 256-colour palette when `TERM` contains `256color`, else the 16 standard colours.
+
+| Part                                  | Colour                   | 24-bit      | 256   | 16             |
+|---------------------------------------|--------------------------|-------------|-------|----------------|
+| Status verbs (`Compiling`), list mark `*` | sky, bold            | `#38bdf8`   | `81`  | bright cyan    |
+| `error`                               | red, bold                | `#ff5f5f`   | `203` | bright red     |
+| `warning`                             | amber, bold              | `#e0b057`   | `179` | yellow         |
+| `note`                                | sky                      | `#38bdf8`   | `81`  | bright cyan    |
+| `help`                                | light pink               | `#f9a8d4`   | `218` | bright magenta |
+| Diagnostic gutter (`-->`, `\|`, line numbers) | sky, bold         | `#38bdf8`   | `81`  | bright cyan    |
+
+Colour never carries meaning alone: the labels (`error:`, `warning:`, `note:`, `help:`) and the status verbs are printed with or without it. A list that marks one entry (`rok toolchain list`, `rok env list`) puts `*` before it and `(default)` or `(active)` after it. Piped output, `--message-format=json` and `-q` are not affected.
 
 ### JSON output (for tool integration)
 

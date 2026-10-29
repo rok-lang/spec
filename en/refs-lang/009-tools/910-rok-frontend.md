@@ -23,7 +23,7 @@ A package without dependencies builds by file conventions alone, without a manif
 | `version`, `help`                                                 |                                         |
 | (none)                                                            | Same as `rok repl`: starts the REPL     |
 
-A delegated subcommand runs the `rokc` subcommand of the same name. `rok` consumes only its own global options (`--env` / `--offline` / `--locked` / `--cwd`, anywhere before `--`), passes the remaining arguments through unchanged, and adds the following. For `test` and `bench`, `rok` has `rokc` build the harness (`--emit-harness`) rather than run it, then runs the harness itself ([9.1](901-rokc-cli.md)); the runner is not part of the compiler.
+A delegated subcommand runs the `rokc` subcommand of the same name. `rok` consumes only its own global options (`--env` / `--offline` / `--locked` / `--cwd` / `--color`, anywhere before `--`), passes the remaining arguments through unchanged, and adds the following. For `test` and `bench`, `rok` has `rokc` build the harness (`--emit-harness`) rather than run it, then runs the harness itself ([9.1](901-rokc-cli.md)); the runner is not part of the compiler.
 
 - `--extern name=<source directory>` for each dependency package. They are prepared according to `rok.lock`, with dependencies before their dependents (the order `rok deps` prints). Prebuilding is done by `rokc` ([9.2.3](902-aot-pipeline.md#prebuilt-dependency-packages)).
 - The package's own features as `--cfg feature=<f>`, and each dependency's as `--extern-feature <name>=<f>` (9.10.4c). The feature options `--features <f,..>` (repeatable; `<dep>/<f>` too), `--all-features` and `--no-default-features` of build / run / test / bench / check / lint / doc / emit / repl / lsp / jupyter / deps are consumed by `rok` (before `--`).
@@ -57,8 +57,9 @@ The global options of `rok` are:
 | `--cwd <dir>`    | Change directory before running                                   |
 | `-q`, `--quiet`  | Reduce output                                                     |
 | `-v`, `--verbose` | More output (also passed to `rokc`)                              |
+| `--color <when>`, `--no-color` | `auto`, `always` or `never`: colour, decided as for `rokc` ([9.1.5](901-rokc-cli.md#915-global-options)); passed to the `rokc` it runs as `--color=<when>` |
 
-Environment variables are `ROK_HOME` (default `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6), `ROK_REGISTRY` (the index) and `ROK_REGISTRY_TOKEN` (the registry API token) (9.10.4a), and `ROK_DIST` (the release server, 9.10.6).
+Environment variables are `ROK_HOME` (default `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6), `ROK_REGISTRY` (the index) and `ROK_REGISTRY_TOKEN` (the registry API token) (9.10.4a), and `ROK_DIST` (the release server, 9.10.6). `NO_COLOR`, `CLICOLOR_FORCE`, `COLORTERM` and `TERM` set colour as for `rokc` ([9.1.7](901-rokc-cli.md#917-environment-variables)).
 
 ## 9.10.2. `rok new` / `rok init`: package creation
 
@@ -378,7 +379,7 @@ Environments replace conda / venv. There is no activation step.
 
 ```
 rok env create <name>
-rok env list                      # marks the current environment with *
+rok env list                      # marks the current environment with * and (active)
 rok env remove <name>
 rok env use <name>                # changes the default environment outside projects
 rok env export <name> <dir>       # writes rok.rokon / rok.lock to <dir>
@@ -422,7 +423,7 @@ rok uninstall [--native] <name>..
 A version prefix matches versions under it (`0.3` is the highest `0.3.*`). If no toolchain matches, it is an error suggesting `rok toolchain install`.
 
 ```
-rok toolchain list
+rok toolchain list                         # marks the default with * and (default)
 rok toolchain install <version> --from <dir | archive | url>
 rok toolchain default [<version>]          # without an argument, prints the current default
 rok toolchain remove <version>
@@ -444,6 +445,7 @@ rok toolchain clean                        # remove every installed toolchain bu
 - `install.sh` (<https://rok-lang.org/install.sh>) installs into `$ROK_HOME` from an archive or from GitHub releases of the `rok-lang` organization. It downloads the `.tar.xz` where tar can read it (macOS, or `xz` on `PATH`) and the release has one, else the `.tar.gz`. `rok toolchain install` downloads the `.tar.gz` (on Windows the `.zip`).
 - `install.sh` then sets up the shells, as rustup does. It writes `$ROK_HOME/env` (sh) and `$ROK_HOME/env.fish`, which put `$ROK_HOME/bin` first on `PATH` unless it is there already, and adds the guarded line `[ -f "$HOME/.rok/env" ] && . "$HOME/.rok/env"` (for that `$ROK_HOME`) once to each of `~/.profile`, `~/.bashrc`, `~/.bash_profile` and `~/.zshenv` that exists, and to the login shell's file, made if missing (bash: `~/.bashrc`, and `~/.profile` unless `~/.bash_profile` or `~/.bash_login` exists; zsh: `$ZDOTDIR/.zshenv`; other shells: `~/.profile`). Fish gets `~/.config/fish/conf.d/rok.fish` (under `$XDG_CONFIG_HOME` when set) when it is the login shell or its configuration directory exists. The completion scripts of `rok` and `rokc` go to `${XDG_DATA_HOME:-~/.local/share}/bash-completion/completions/`, `$ROK_HOME/zsh/` (which `env` adds to zsh's `fpath`) and, for fish, `~/.config/fish/completions/`. It names the files it changed; a new shell picks up the change, and running it again changes nothing. Without `$ROK_HOME` the guarded line does nothing.
 - `install.ps1` puts `$ROK_HOME\bin` first on the user's `Path` and writes `$ROK_HOME\completions\rok.ps1`, loaded by a guarded line in the PowerShell profile, added once.
+- `install.sh` and `install.ps1` print status lines on stderr as `rok` does, in the same palette and by the same rules ([9.1.5](901-rokc-cli.md#915-global-options), [9.1.8](901-rokc-cli.md#colour)), without `tput`. `install.sh` tests its stderr, so `curl .. | sh` on a terminal is coloured.
 - `--no-modify-path` (`install.ps1 -NoModifyPath`), or `ROK_NO_MODIFY_PATH=1`, leaves the shell files, `Path` and the profile alone and prints what to add to `PATH`.
 - Releases are served from `$ROK_DIST` (default `https://github.com/rok-lang/rok/releases`): `<dist>/download/v<version>/<archive>` with its `.sha256`, and `<dist>/latest/download/rok-version` holding the latest release's version.
 

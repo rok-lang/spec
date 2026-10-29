@@ -433,7 +433,7 @@ rokc <subcommand> --help
 | `--verbose` / `-v`               | 단계별 시간 표시 ([9.9.5](909-debug-tools.md#995-로그--진행-표시)) |
 | `-vv`                            | 더 자세한 로그: `Reading <file>` 과 `Specialized <path>(sig)` 줄 ([9.9.5](909-debug-tools.md#995-로그--진행-표시)) |
 | `--quiet` / `-q`                 | 진행 줄을 출력하지 않음 (진단은 출력)                       |
-| `--color=auto\|always\|never`    | 진단의 색상 출력                                            |
+| `--color=auto\|always\|never`    | stdout 과 stderr 의 색 (9.1.8)                              |
 | `--no-color`                     | `--color=never` 와 같음                                     |
 | `--cwd=<path>`                   | 작업 디렉토리를 바꾼 뒤 실행                                |
 | `--print cfg\|target-list\|target-spec\|lldbinit` | 활성 cfg, 내장 타깃 이름, 타깃 명세, 또는 Rok 의 formatter 를 로드하는 lldb 명령을 출력 (9.1.4) |
@@ -442,7 +442,7 @@ rokc <subcommand> --help
 
 lint 수준은 lint 의 기본 수준 < `-A` / `-W` / `-D` < 코드의 `#[allow(..)]` / `#[warn(..)]` / `#[deny(..)]` (가장 안쪽이 이김) 순으로 정합니다. `rok` 는 매니페스트의 `lints` 를 이 플래그로 앞에 붙여 넘깁니다 ([9.10.1](910-rok-frontend.md#9101-서브명령과-전역-옵션)).
 
-`--color=auto` (기본값) 는 stderr 가 터미널이고 환경 변수 `NO_COLOR` 가 없을 때 색을 씁니다.
+색은 stdout 과 stderr 에 따로 다음 순서로 정합니다: `--color=never` 면 끄고 `--color=always` 면 켭니다. 그 밖 (`--color=auto`, 기본값) 에는 비어 있지 않은 `NO_COLOR` 면 끄고, 비어 있지 않고 `0` 이 아닌 `CLICOLOR_FORCE` 면 켜고, `TERM=dumb` 면 끄며, 아니면 그 스트림이 터미널일 때 색을 씁니다. Windows 에서 escape sequence 를 받지 않는 콘솔은 색 없는 글자를 받습니다.
 
 사용 예는 다음과 같습니다.
 
@@ -485,7 +485,10 @@ rokc --cwd=examples/hello run
 | `ROKC_INCREMENTAL` | front end 가 패키지의 파싱과 lowering 한 본체를 두는 곳 (기본 `target/<profile>/incremental/`, `0`: 두지 않음). 라이브러리의 모은 항목은 `lib/rok-cache/library/` 에 둠 ([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |
 | `ROKC_INCR_VERIFY` | `1`: 모든 본체를 다시 lowering 하고 다르면 실패 ([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |
 | `ROKC_NUM_JOBS`   | `rokc test --threads` 의 기본값 (없으면 CPU 코어 수)                                     |
-| `NO_COLOR`        | 있으면 `--color=auto` 가 색을 쓰지 않음                                                  |
+| `NO_COLOR`        | 비어 있지 않으면 `--color=auto` 가 색을 쓰지 않음 (9.1.5)                                |
+| `CLICOLOR_FORCE`  | 비어 있지 않고 `0` 이 아니면 스트림이 터미널이 아니어도 `--color=auto` 가 색을 씀. `NO_COLOR` 가 있으면 쓰지 않음 (9.1.5) |
+| `COLORTERM`       | `truecolor` 나 `24bit`: 24비트 색 값을 씀 (9.1.8)                                        |
+| `TERM`            | `dumb`: `--color=auto` 가 색을 쓰지 않음. `256color` 를 포함하면 256색 팔레트를 씀 (9.1.8) |
 
 설정하지 않았거나 비어 있는 변수는 기본값을 가집니다. 나열된 것 밖의 값은 변수, 값, 받는 값을 알리는 경고 한 줄을 stderr 에 출력하며, 그 변수는 기본값을 가집니다.
 
@@ -532,6 +535,27 @@ error[E100]: cannot find value `count` in this scope
 | `Running`   | 프로그램 실행 (`run`)                     |
 | `Created`   | 패키지 생성 (`new`)                       |
 | `Removed`   | `target/` 삭제 (`clean`)                  |
+| `Fresh`     | 의존 패키지가 최신                        |
+| `Checked`   | `check` 끝 (에러와 경고 수)               |
+| `Generated` | 문서를 씀 (`doc`)                         |
+| `Formatted` | 파일 하나를 고쳐 씀 (`fmt`)               |
+
+`rok` 도 자신의 진행을 같은 방식으로 출력합니다: `Added`, `Installed`, `Updated`, `Downloading` 등 ([9.10](910-rok-frontend.md)).
+
+### 색
+
+색이 켜지면 (9.1.5) 출력은 이 팔레트를 씁니다. 깊이는 터미널을 따릅니다: `COLORTERM` 이 `truecolor` 나 `24bit` 면 24비트 값, 아니고 `TERM` 이 `256color` 를 포함하면 256색 팔레트, 그 밖에는 기본 16색입니다.
+
+| 부분                                  | 색                       | 24비트      | 256   | 16             |
+|---------------------------------------|--------------------------|-------------|-------|----------------|
+| 상태 동사 (`Compiling`), 목록 표시 `*` | 하늘색, 굵게            | `#38bdf8`   | `81`  | bright cyan    |
+| `error`                               | 빨강, 굵게               | `#ff5f5f`   | `203` | bright red     |
+| `warning`                             | 호박색, 굵게             | `#e0b057`   | `179` | yellow         |
+| `note`                                | 하늘색                   | `#38bdf8`   | `81`  | bright cyan    |
+| `help`                                | 연분홍                   | `#f9a8d4`   | `218` | bright magenta |
+| 진단의 거터 (`-->`, `\|`, 줄 번호)     | 하늘색, 굵게             | `#38bdf8`   | `81`  | bright cyan    |
+
+색만으로 뜻을 나타내지 않습니다: 라벨 (`error:`, `warning:`, `note:`, `help:`) 과 상태 동사는 색이 있든 없든 출력합니다. 항목 하나를 표시하는 목록 (`rok toolchain list`, `rok env list`) 은 그 앞에 `*`, 뒤에 `(default)` 나 `(active)` 를 붙입니다. 파이프로 보낸 출력, `--message-format=json`, `-q` 는 영향을 받지 않습니다.
 
 ### JSON 출력 (도구 통합용)
 
