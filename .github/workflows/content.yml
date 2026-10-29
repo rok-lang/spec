@@ -1,0 +1,15 @@
+# Check this branch and publish it to the site (rok-lang/.github content.yml).
+name: content
+
+on:
+  push:
+    branches: [main, "v*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  content:
+    uses: rok-lang/.github/.github/workflows/content.yml@main
+    with:
+      check: false
+    secrets: inherit
