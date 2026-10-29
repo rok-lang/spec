@@ -422,7 +422,7 @@ rokc help [subcommand]
 rokc <subcommand> --help
 ```
 
-Given a subcommand, shows the help for that command.
+Without a subcommand, prints the full reference: every subcommand, option and environment variable. Given a subcommand, prints that subcommand's own help: its usage forms, a short description, one or more examples and the options it takes. Neither prints text belonging to another subcommand.
 
 ## 9.1.5. Global options
 
@@ -463,6 +463,8 @@ Exit codes are defined as follows.
 | `2`   | Usage error (invalid option, unknown subcommand, etc.) |
 | `101` | rokc internal error (panic)                          |
 
+A usage error prints `rokc: <message>` and then the line ``run `rokc help <subcommand>` for usage`` (``run `rokc help` for usage`` when no known subcommand was given). The message says what to write instead: an unknown subcommand or option names the closest one when there is one (``unknown option `--relase`; did you mean `--release`?``), and an unknown subcommand that names a file (it contains `/` or ends in `.rok`) suggests `rokc run <file>`. When `ROK_CLI` is `rok` (9.1.7), both lines say `rok` instead of `rokc`.
+
 `rokc` does not read `ROK_HOME` (the sysroot is relative to the executable). If rokc itself panics (internal compiler error), it prints a message and exits with `101`. `rokc lsp`, `rokc repl` and `rokc jupyter` survive it: the language server reports it as an error diagnostic of the analyzed buffer, the REPL / kernel fails that cell ([9.7.5](907-jit-cells.md#975-error-modes)); both keep serving. `rokc run` exits with the exit code of the program it ran (9.1.2).
 
 If standard output or standard error is a pipe whose reader has gone, `rokc` stops without a message: on Unix it is terminated by `SIGPIPE` (a shell reports `141`); on Windows it exits with `1`. This is not an internal error.
@@ -481,6 +483,7 @@ The environment variables that affect `rokc` are:
 | `ROK_MLIR_PLUGIN_PATH` | Directories (separated like `PATH`) searched for a `--load-mlir-plugin` / `--load-mlir-pass-plugin` given as a bare name |
 | `ROK_LLVM_CACHE` | Cache directory `rokc bindgen` searches for libclang (9.1.3) |
 | `ROK_ENV_LIBS`  | Set by `rok` when it runs a script from an environment: the comma-separated libraries installed there. A script that uses one of them without declaring it gets a hint naming it |
+| `ROK_CLI`         | Set to `rok` by `rok` when it runs `rokc` (internal): usage errors (9.1.6) and `--help` name `rok`, not `rokc`. Programs that `rok run` starts inherit it |
 | `ROKC_TARGET_DIR` | Location of `target/` (default: inside the package)                                      |
 | `ROKC_INCREMENTAL` | Where the front end keeps the package's parses and lowered bodies (default `target/<profile>/incremental/`; `0`: nowhere); the library's collected items are kept in `lib/rok-cache/library/` ([9.2.16](902-aot-pipeline.md#9216-incremental-build)) |
 | `ROKC_INCR_VERIFY` | `1`: lower every body again and fail on a difference ([9.2.16](902-aot-pipeline.md#9216-incremental-build)) |

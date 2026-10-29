@@ -20,7 +20,7 @@ A package without dependencies builds by file conventions alone, without a manif
 | `doc`, `lint`, `repl [path]`, `lsp`                               | Delegated to `rokc` with dependencies attached |
 | `fmt`, `clean`, `demangle`, `profdata`                            | Delegated to `rokc` without dependencies |
 | `jupyter`                                                         | Running the kernel (`--connection-file`) is delegated; `jupyter install [--env <name>]` installs the kernelspec ([9.8.3](908-jupyter-integration.md#983-kernelspec-installation)) |
-| `version`, `help`                                                 |                                         |
+| `version`, `help`                                                 | Version; help (below)                   |
 | (none)                                                            | Same as `rok repl`: starts the REPL     |
 
 A delegated subcommand runs the `rokc` subcommand of the same name. `rok` consumes only its own global options (`--env` / `--offline` / `--locked` / `--cwd` / `--color`, anywhere before `--`), passes the remaining arguments through unchanged, and adds the following. For `test` and `bench`, `rok` has `rokc` build the harness (`--emit-harness`) rather than run it, then runs the harness itself ([9.1](901-rokc-cli.md)); the runner is not part of the compiler.
@@ -33,6 +33,10 @@ A delegated subcommand runs the `rokc` subcommand of the same name. `rok` consum
 `rok repl <path>` resolves dependencies and lints from the project of that path, as `run` does, and passes the manifest name (`--name`).
 
 Options, output and exit codes follow those of `rokc` ([9.1](901-rokc-cli.md)). `rok` treats a closed standard output or standard error the same way as `rokc` ([9.1.6](901-rokc-cli.md#916-exit-codes)). `rokls` is a standalone executable equivalent to `rok lsp`.
+
+`rok help` (also `rok --help`) prints a short page: the subcommands in groups, one line each, and the global options. `rok help <subcommand>` (also `rok <subcommand> --help`) prints that subcommand's own help: its usage forms, a description, examples and its options. For a delegated subcommand it is `rokc`'s help written as `rok`, with `rok`'s feature options added.
+
+An unknown subcommand or option is a usage error (exit code 2). The message names the closest subcommand or option when there is one, including common other names (`compile` for `build`, `rm` for `remove`), and is followed by ``run `rok help <subcommand>` for usage``. A stone or native package that the index lacks names the closest one there and the `rok search` to run. `rok` sets `ROK_CLI=rok` for the `rokc` it runs, so `rokc`'s usage errors and help name `rok` as well ([9.1.7](901-rokc-cli.md#917-environment-variables)).
 
 Running just `rok [options]` with no subcommand starts the REPL, like `rok repl`.
 
@@ -58,6 +62,8 @@ The global options of `rok` are:
 | `-q`, `--quiet`  | Reduce output                                                     |
 | `-v`, `--verbose` | More output (also passed to `rokc`)                              |
 | `--color <when>`, `--no-color` | `auto`, `always` or `never`: colour, decided as for `rokc` ([9.1.5](901-rokc-cli.md#915-global-options)); passed to the `rokc` it runs as `--color=<when>` |
+
+Global options may also follow the subcommand: `rok new app -q` is `rok -q new app`.
 
 Environment variables are `ROK_HOME` (default `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6), `ROK_REGISTRY` (the index) and `ROK_REGISTRY_TOKEN` (the registry API token) (9.10.4a), and `ROK_DIST` (the release server, 9.10.6). `NO_COLOR`, `CLICOLOR_FORCE`, `COLORTERM` and `TERM` set colour as for `rokc` ([9.1.7](901-rokc-cli.md#917-environment-variables)).
 

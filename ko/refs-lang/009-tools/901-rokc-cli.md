@@ -422,7 +422,7 @@ rokc help [subcommand]
 rokc <subcommand> --help
 ```
 
-서브명령을 주면 그 명령의 도움말을 보여 줍니다.
+서브명령 없이는 전체 참조 (모든 서브명령, 옵션, 환경 변수) 를 출력합니다. 서브명령을 주면 그 서브명령만의 도움말을 출력합니다: 사용 형태, 짧은 설명, 예제 하나 이상, 받는 옵션. 어느 쪽도 다른 서브명령의 텍스트를 출력하지 않습니다.
 
 ## 9.1.5. 전역 옵션
 
@@ -463,6 +463,8 @@ rokc --cwd=examples/hello run
 | `2`   | 사용법 에러 (잘못된 옵션, 모르는 서브명령 등)   |
 | `101` | rokc 내부 에러 (panic)                          |
 
+사용법 에러는 `rokc: <메시지>` 다음에 ``run `rokc help <subcommand>` for usage`` 줄을 출력합니다 (알려진 서브명령이 없으면 ``run `rokc help` for usage``). 메시지는 대신 쓸 것을 알려 줍니다: 모르는 서브명령이나 옵션은 가장 가까운 것이 있으면 그 이름을 대고 (``unknown option `--relase`; did you mean `--release`?``), 파일을 가리키는 (`/` 를 담거나 `.rok` 로 끝나는) 모르는 서브명령은 `rokc run <file>` 을 제안합니다. `ROK_CLI` 가 `rok` 이면 (9.1.7) 두 줄 모두 `rokc` 대신 `rok` 이라고 씁니다.
+
 `rokc` 는 `ROK_HOME` 을 읽지 않습니다 (sysroot 는 실행 파일 기준). rokc 자신이 panic 하면 (internal compiler error) 메시지를 출력하고 `101` 로 끝납니다. `rokc lsp`, `rokc repl`, `rokc jupyter` 는 이것을 견딥니다: language server 는 분석한 버퍼의 에러 진단으로 보고하고, REPL / kernel 은 그 셀을 실패시킵니다 ([9.7.5](907-jit-cells.md#975-에러-모드)). 둘 다 계속 서비스합니다. `rokc run` 은 실행한 프로그램의 종료 코드로 끝납니다 (9.1.2).
 
 표준 출력이나 표준 에러가 읽는 쪽이 사라진 pipe 이면 `rokc` 는 메시지 없이 멈춥니다: Unix 에서는 `SIGPIPE` 로 종료되고 (shell 은 `141` 을 보고), Windows 에서는 `1` 로 끝납니다. 이것은 내부 에러가 아닙니다.
@@ -481,6 +483,7 @@ rokc --cwd=examples/hello run
 | `ROK_MLIR_PLUGIN_PATH` | 이름만 준 `--load-mlir-plugin` / `--load-mlir-pass-plugin` 을 찾는 디렉터리들 (`PATH` 처럼 구분) |
 | `ROK_LLVM_CACHE` | `rokc bindgen` 이 libclang 을 찾는 cache 디렉터리 (9.1.3) |
 | `ROK_ENV_LIBS`  | `rok` 가 환경에서 스크립트를 실행할 때 설정: 그 환경에 설치된 라이브러리들 (쉼표로 구분). 스크립트가 그중 하나를 선언 없이 쓰면 그 이름을 알리는 hint 를 받음 |
+| `ROK_CLI`         | `rok` 가 `rokc` 를 실행할 때 `rok` 로 설정 (내부용): 사용법 에러 (9.1.6) 와 `--help` 가 `rokc` 대신 `rok` 이라고 씀. `rok run` 이 시작한 프로그램도 물려받음 |
 | `ROKC_TARGET_DIR` | `target/` 의 위치 (기본은 패키지 안)                                                     |
 | `ROKC_INCREMENTAL` | front end 가 패키지의 파싱과 lowering 한 본체를 두는 곳 (기본 `target/<profile>/incremental/`, `0`: 두지 않음). 라이브러리의 모은 항목은 `lib/rok-cache/library/` 에 둠 ([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |
 | `ROKC_INCR_VERIFY` | `1`: 모든 본체를 다시 lowering 하고 다르면 실패 ([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |

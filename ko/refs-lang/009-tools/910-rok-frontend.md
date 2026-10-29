@@ -20,7 +20,7 @@
 | `doc`, `lint`, `repl [path]`, `lsp`                               | 의존성을 붙여 `rokc` 에 위임            |
 | `fmt`, `clean`, `demangle`, `profdata`                            | 의존성 없이 `rokc` 에 위임              |
 | `jupyter`                                                         | 커널 실행 (`--connection-file`) 은 위임, `jupyter install [--env <name>]` 은 kernelspec 설치 ([9.8.3](908-jupyter-integration.md#983-kernelspec-설치)) |
-| `version`, `help`                                                 |                                         |
+| `version`, `help`                                                 | 버전, 도움말 (아래)                     |
 | (없음)                                                            | `rok repl` 과 같음: REPL 시작           |
 
 위임하는 서브명령은 같은 이름의 `rokc` 서브명령을 실행합니다. `rok` 는 자기 전역 옵션 (`--env` / `--offline` / `--locked` / `--cwd` / `--color`, `--` 앞 어디든) 만 소비하고, 나머지 인자는 그대로 넘기며 다음을 더합니다. `test` 와 `bench` 는 `rok` 가 `rokc` 로 하네스를 빌드하게만 하고 (`--emit-harness`) 실행은 직접 하므로 ([9.1](901-rokc-cli.md)), 러너는 컴파일러에 속하지 않습니다.
@@ -33,6 +33,10 @@
 `rok repl <path>` 는 `run` 처럼 그 경로의 프로젝트에서 의존성과 lint 를 정하고, 매니페스트 이름을 넘깁니다 (`--name`).
 
 옵션과 출력, 종료 코드는 `rokc` 의 것 ([9.1](901-rokc-cli.md)) 을 따릅니다. `rok` 는 닫힌 표준 출력이나 표준 에러를 `rokc` 와 같은 방식으로 다룹니다 ([9.1.6](901-rokc-cli.md#916-종료-코드)). `rokls` 는 `rok lsp` 와 같은 독립 실행 파일입니다.
+
+`rok help` (`rok --help` 도) 는 짧은 페이지를 출력합니다: 묶음별로 한 줄씩의 서브명령과 전역 옵션. `rok help <subcommand>` (`rok <subcommand> --help` 도) 는 그 서브명령만의 도움말을 출력합니다: 사용 형태, 설명, 예제, 옵션. 위임하는 서브명령이면 `rok` 으로 쓴 `rokc` 의 도움말에 `rok` 의 feature 옵션을 더한 것입니다.
+
+모르는 서브명령이나 옵션은 사용법 에러 (종료 코드 2) 입니다. 메시지는 가장 가까운 서브명령이나 옵션이 있으면 그 이름을 대고 (흔히 쓰는 다른 이름도: `build` 대신 `compile`, `remove` 대신 `rm`), 이어서 ``run `rok help <subcommand>` for usage`` 를 출력합니다. index 에 없는 stone 이나 native 패키지는 그 index 에서 가장 가까운 이름과 실행할 `rok search` 를 알려 줍니다. `rok` 는 자신이 실행하는 `rokc` 에 `ROK_CLI=rok` 를 설정하므로 `rokc` 의 사용법 에러와 도움말도 `rok` 이라고 씁니다 ([9.1.7](901-rokc-cli.md#917-환경-변수)).
 
 서브명령 없이 `rok [옵션]` 만 실행하면 `rok repl` 과 같이 REPL 을 시작합니다.
 
@@ -58,6 +62,8 @@ rok --env sci       # = rok repl --env sci
 | `-q`, `--quiet`  | 출력을 줄임                                                       |
 | `-v`, `--verbose` | 출력을 늘림 (`rokc` 에도 넘김)                                   |
 | `--color <when>`, `--no-color` | `auto`, `always`, `never`: 색. `rokc` 와 같이 정함 ([9.1.5](901-rokc-cli.md#915-전역-옵션)). 실행하는 `rokc` 에 `--color=<when>` 으로 넘김 |
+
+전역 옵션은 서브명령 뒤에 와도 됩니다: `rok new app -q` 는 `rok -q new app` 과 같습니다.
 
 환경 변수는 `ROK_HOME` (기본 `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6), `ROK_REGISTRY` (index) 와 `ROK_REGISTRY_TOKEN` (registry API 토큰) (9.10.4a), 그리고 `ROK_DIST` (릴리스 서버, 9.10.6) 입니다. `NO_COLOR`, `CLICOLOR_FORCE`, `COLORTERM`, `TERM` 은 `rokc` 와 같이 색을 정합니다 ([9.1.7](901-rokc-cli.md#917-환경-변수)).
 
