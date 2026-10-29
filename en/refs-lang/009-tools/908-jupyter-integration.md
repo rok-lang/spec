@@ -92,6 +92,8 @@ Jupyter only recognizes kernels installed in a kernelspec directory.
 rok jupyter install [--env <name>]
 ```
 
+`rok jupyter` with no arguments is a usage error (exit code `2`) that says what to run instead: `` Jupyter starts the kernel itself; to add it, run `rok jupyter install` ``.
+
 The kernelspec is `kernels/rok/kernel.json` under the directory below. Installed with `--env <name>`, it is `kernels/rok-<name>/`, with display name `rok (<name>)` and command `rok --env <name> jupyter ...`.
 
 1. `$JUPYTER_DATA_DIR` if set

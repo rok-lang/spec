@@ -19,7 +19,7 @@
 | `test`, `bench`                                                   | `rokc` 가 의존성을 붙여 하네스를 빌드하고, `rok` 가 실행 ([9.1](901-rokc-cli.md)) |
 | `doc`, `lint`, `repl [path]`, `lsp`                               | 의존성을 붙여 `rokc` 에 위임            |
 | `fmt`, `clean`, `demangle`, `profdata`                            | 의존성 없이 `rokc` 에 위임              |
-| `jupyter`                                                         | 커널 실행 (`--connection-file`) 은 위임, `jupyter install [--env <name>]` 은 kernelspec 설치 ([9.8.3](908-jupyter-integration.md#983-kernelspec-설치)) |
+| `jupyter`                                                         | 커널 실행 (`--connection-file`) 은 위임, `jupyter install [--env <name>]` 은 kernelspec 설치 ([9.8.3](908-jupyter-integration.md#983-kernelspec-설치)), 인자 없는 `rok jupyter` 는 `rok jupyter install` 을 알려 주는 사용법 에러 |
 | `version`, `help`                                                 | 버전, 도움말 (아래)                     |
 | (없음)                                                            | `rok repl` 과 같음: REPL 시작           |
 
@@ -36,7 +36,7 @@
 
 `rok help` (`rok --help` 도) 는 짧은 페이지를 출력합니다: 묶음별로 한 줄씩의 서브명령과 전역 옵션. `rok help <subcommand>` (`rok <subcommand> --help` 도) 는 그 서브명령만의 도움말을 출력합니다: 사용 형태, 설명, 예제, 옵션. 위임하는 서브명령이면 `rok` 으로 쓴 `rokc` 의 도움말에 `rok` 의 feature 옵션을 더한 것입니다.
 
-모르는 서브명령이나 옵션은 사용법 에러 (종료 코드 2) 입니다. 메시지는 가장 가까운 서브명령이나 옵션이 있으면 그 이름을 대고 (흔히 쓰는 다른 이름도: `build` 대신 `compile`, `remove` 대신 `rm`), 이어서 ``run `rok help <subcommand>` for usage`` 를 출력합니다. index 에 없는 stone 이나 native 패키지는 그 index 에서 가장 가까운 이름과 실행할 `rok search` 를 알려 줍니다. `rok` 는 자신이 실행하는 `rokc` 에 `ROK_CLI=rok` 를 설정하므로 `rokc` 의 사용법 에러와 도움말도 `rok` 이라고 씁니다 ([9.1.7](901-rokc-cli.md#917-환경-변수)).
+모르는 서브명령이나 옵션은 사용법 에러 (종료 코드 2) 입니다. 메시지는 가장 가까운 서브명령이나 옵션이 있으면 그 이름을 대고 (흔히 쓰는 다른 이름도: `build` 대신 `compile`, `remove` 대신 `rm`), 이어서 ``run `rok help <subcommand>` for usage`` 를 출력합니다. index 에 없는 stone 이나 native 패키지는 그 index 에서 가장 가까운 이름과 실행할 `rok search` 를 알려 줍니다. `rok` 는 자신이 실행하는 `rokc` 에 `ROK_CLI=rok` 를 설정하므로 `rokc` 의 사용법 에러, 도움말, 에러와 경고 줄의 접두사도 `rok` 이라고 씁니다 ([9.1.7](901-rokc-cli.md#917-환경-변수)).
 
 서브명령 없이 `rok [옵션]` 만 실행하면 `rok repl` 과 같이 REPL 을 시작합니다.
 
@@ -47,7 +47,7 @@ rok --env sci       # = rok repl --env sci
 
 `rok [options] <file> [args..]` 은 스크립트를 실행합니다: `rok run -q <file> -- args..` 와 같습니다. 파일 뒤의 모든 인자는 그대로 프로그램에 넘기며, 종료 코드는 프로그램의 것입니다. 그 단어는 `/` (Windows 에서는 `\` 도) 를 담거나 확장자가 `.rok` 이면 파일입니다. 그런 서브명령은 없으므로 서브명령을 파일로 오인하는 일은 없습니다. shebang 줄 ([1.2.3](../001-lexical/102-lexical-structure.md#shebang-줄)) 과 함께 쓰면 `./script.rok args` 가 스크립트를 실행합니다.
 
-위임하는 명령의 경로는 옵션도 옵션의 값도 아닌 첫 인자이므로, 옵션이 그 앞에 와도 됩니다 (`rok run --release t.rok`).
+위임하는 명령의 경로는 옵션도 옵션의 값도 아닌 첫 인자이므로, 옵션이 그 앞에 와도 됩니다 (`rok run --release t.rok`). 없는 경로는 다른 무엇보다 먼저 `` `<path>` does not exist `` 에러입니다 ("not inside a package" 가 아님). 첫 단어가 필터일 수 있는 `test` 와 `bench` 는 `.rok` 로 끝나는 단어만 경로로 봅니다.
 
 `rok completions <shell>` 은 `bash`, `zsh`, `fish`, `powershell` 의 자동완성 스크립트를 표준 출력에 냅니다. `rok help` (위임하는 서브명령은 `rokc` 의 도움말) 와 같은 명령 / 옵션 텍스트에서 만들므로 둘은 어긋나지 않습니다. 서브명령과 그 옵션, 설치된 toolchain 으로 `+<version>` 과 `toolchain default` / `toolchain remove` 의 인자, `env use` / `remove` / `shell` / `export` 와 `--env` 의 환경 이름, `--target` 의 값을 완성합니다. 이름은 완성할 때 `rok __complete toolchains` / `envs` (한 줄에 하나) 를 실행해 읽으므로 `$ROK_HOME` 을 따릅니다. `install.sh` 와 `install.ps1` 이 스크립트를 설치하고, `rok toolchain default` / `update` 가 다시 씁니다 (9.10.6).
 
@@ -212,6 +212,7 @@ rok deps [--dev] [--features <f,..>] [--all-features] [--no-default-features]
 - 빌드는 `rok.lock` 의 커밋과 버전을 씁니다. 새로 선언된 의존은 lock 에 더하고 지운 의존은 정리하지만, 이미 고정된 것을 옮기는 것은 `update` 뿐입니다. `update` 는 이름을 주면 그 패키지만, 없으면 모든 git 의존과 stone 을 다시 해소합니다.
 - `deps` 는 해소한 의존 패키지를 `<코드 이름>=<그 src/lib.rok 경로>` 줄로 (코드 이름은 `-` 를 `_` 로 바꾼 것), 의존되는 쪽이 먼저 오는 순서로 출력합니다 (`--dev` 는 dev 의존 포함). 각 줄 뒤에는 그 `--extern-feature=<코드 이름>=<f>` 줄들이 옵니다. `deps` 는 feature 옵션과 `--dev` 를 받습니다. native 패키지마다 (의존하는 쪽이 먼저, host 용) `# native <name> <vers>` 와 그 `rokc` 인자를 한 줄에 하나씩 출력합니다.
 - `rok.lock` 은 버전 관리에 함께 넣습니다.
+- `update` 는 lock 에서 바뀐 것마다 `Updated <name> v0.1.0 -> v0.1.1` 줄을 출력합니다 (git 의존성은 짧은 커밋으로, 새로 고정된 것은 `Locked`, 빠진 것은 `Removed`). 바뀐 것이 없으면 `note: all dependencies are up to date`, 의존성이 없으면 `` note: no dependencies to update; add one: `rok add <name>` `` 입니다. 패키지 밖에서 `--env` 없이 실행하면, 패키지 밖에서 쓰는 환경 (9.10.5) 에 라이브러리가 있을 때 그 환경을 업데이트하고 (무언가 바뀌었으면 끝에 `` Updated environment `<name>` ``), 아니면 에러입니다: `` not inside a package (..): make one with `rok init`; for an environment's libraries: `rok update --env <name>` ``.
 - `rok update` 는 `rok.lock` 을 다시 해소하고, `rok toolchain update` 는 toolchain 을 교체합니다 (9.10.6).
 
 ### 캐시
@@ -385,7 +386,7 @@ rok yank --native --vers <version> [--undo] [--index <dir>] <name>
 
 ```
 rok env create <name>
-rok env list                      # 현재 환경에 * 와 (active) 표시
+rok env list                      # 현재 환경에 * 와 (active) 표시, 없으면 만드는 법을 알려 줌
 rok env remove <name>
 rok env use <name>                # 프로젝트 밖의 기본 환경을 바꿈
 rok env export <name> <dir>       # rok.rokon / rok.lock 을 <dir> 에 씀
@@ -442,6 +443,8 @@ rok toolchain clean                        # 기본값을 제외한 설치된 �
 - 처음 설치한 toolchain 이 기본이 되고, 이때 `bin/` proxy 를 만듭니다.
 - `rok toolchain update` 는 `$ROK_HOME` 아래의 기본 toolchain 을 교체합니다. 인자가 없으면 최신 릴리스를, 버전을 주면 그 버전을 설치합니다. 설치한 toolchain 이 기본값이 되고 `bin/` proxy 를 다시 씁니다. Windows 에서는 실행 중인 proxy 의 이름을 바꾼 뒤 그 사본으로 교체합니다. 릴리스 archive 를 받아 SHA-256 을 검증하고 (아래 배포), 따로 풀어 제자리로 옮긴 뒤 proxy 가 그것을 실행하는지 확인합니다. 실패하면 이전 기본값과 proxy 를 되돌리고 새 toolchain 을 지웁니다. 이전 toolchain 들은 설치된 채로 남습니다. 이미 설치된 버전은 다운로드 없이 기본값이 됩니다. `rok update` 는 `rok.lock` 을 다시 해소하고, `rok toolchain update` 는 toolchain 을 교체합니다 (9.10.4).
 - `rok toolchain default <version>` 이나 `rok toolchain update` 뒤에는 설치 스크립트가 쓴 자동완성 스크립트 (아래 배포) 를 새 기본 toolchain 의 `rok completions` / `rokc completions` 로 다시 씁니다. 있는 파일만 다시 쓰고 새로 만들지는 않으며, `completions` 가 없는 toolchain 이면 그대로 둡니다. 아무것도 출력하지 않고, `-v` 이면 다시 쓴 파일을 알려 줍니다.
+- `rok toolchain default <version>` 이나 `rok toolchain update` 뒤에 `rok` 은 `PATH` 에서 `rok` 을 찾습니다 (Windows 에서는 `PATHEXT` 의 각 확장자로). 처음 찾은 것이 `$ROK_HOME/bin/rok` 이 아니면 (실제 경로로 비교) 그 파일과 그 `--version` 이 출력하는 버전으로 경고합니다: `warning: your shell runs <path> (rok X) before ~/.rok/bin/rok; put ~/.rok/bin first on PATH or remove the other one`. `-q` 이면 경고하지 않습니다 (설치 스크립트가 그렇게 실행함).
+- `rok --version -v` (또는 `rok version -v`) 는 버전 줄 다음에 `binary` (이 실행 파일), `toolchain` (활성 toolchain 과 그 이유: 명령줄의 `+`, `ROK_TOOLCHAIN`, 고정한 `rok.rokon`, 또는 기본값. 없으면 `none`), `rokc` (실행할 `rokc`), `host` 를 출력합니다.
 - `rok toolchain clean` 은 지금의 기본값을 제외한 설치된 모든 toolchain 을 지웁니다. `update` 가 남겨 둔 이전 버전을 정리하는 선택적(opt-in) 명령입니다. 프로젝트가 고정한 버전도 함께 지워지므로 빌드에 필요하면 다시 설치해야 하며, 기본 toolchain 이 없으면 에러입니다.
 
 ### 배포

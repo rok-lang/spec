@@ -92,6 +92,8 @@ Jupyter 는 kernelspec 디렉토리에 설치된 kernel 만 인식합니다.
 rok jupyter install [--env <name>]
 ```
 
+인자 없는 `rok jupyter` 는 대신 무엇을 실행할지 알려 주는 사용법 에러 (종료 코드 `2`) 입니다: `` Jupyter starts the kernel itself; to add it, run `rok jupyter install` ``.
+
 kernelspec 은 다음 디렉토리 아래의 `kernels/rok/kernel.json` 입니다. `--env <name>` 으로 설치하면 `kernels/rok-<name>/` 이며, 표시 이름은 `rok (<name>)`, 실행 명령은 `rok --env <name> jupyter ...` 입니다.
 
 1. `$JUPYTER_DATA_DIR` 이 있으면 그 디렉토리

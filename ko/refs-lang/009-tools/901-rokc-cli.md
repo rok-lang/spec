@@ -247,7 +247,7 @@ REPL 명령 (`:type`, `:doc`, `:time`, `:vars`, `:load`, `:reload`, `:edit`, `:s
 rokc jupyter --connection-file <path>
 ```
 
-이 명령은 Jupyter 가 호출하는 커널 모드이므로 사용자가 직접 실행하지는 않습니다. `--connection-file` 은 필수이며 (없으면 사용법 에러) Jupyter 가 제공하는 ZMQ 연결 정보 파일의 경로를 받습니다. `--extern` 같은 빌드 옵션도 함께 받습니다. 커널은 REPL 과 같은 셀 세션 ([9.7.0](907-jit-cells.md#970-셀-세션의-규칙)) 위에서 동작하며, 시작한 곳의 패키지를 `rokc repl .` 처럼 로드합니다 ([9.8.2](908-jupyter-integration.md#982-로컬-네이티브-커널-동작)). 의존성을 해소해 실행하려면 `rok jupyter --connection-file <path>` ([9.10](910-rok-frontend.md)) 를 씁니다. 자세한 통합 내용은 [Jupyter 통합](908-jupyter-integration.md) 에서 정의합니다.
+이 명령은 Jupyter 가 호출하는 커널 모드이므로 사용자가 직접 실행하지는 않습니다. `--connection-file` 은 필수이며 (없으면 사용법 에러, `rok` 을 거치면 `rok jupyter install` 을 알려 주는 에러) Jupyter 가 제공하는 ZMQ 연결 정보 파일의 경로를 받습니다. `--extern` 같은 빌드 옵션도 함께 받습니다. 커널은 REPL 과 같은 셀 세션 ([9.7.0](907-jit-cells.md#970-셀-세션의-규칙)) 위에서 동작하며, 시작한 곳의 패키지를 `rokc repl .` 처럼 로드합니다 ([9.8.2](908-jupyter-integration.md#982-로컬-네이티브-커널-동작)). 의존성을 해소해 실행하려면 `rok jupyter --connection-file <path>` ([9.10](910-rok-frontend.md)) 를 씁니다. 자세한 통합 내용은 [Jupyter 통합](908-jupyter-integration.md) 에서 정의합니다.
 
 커널 등록은 `rok jupyter install [--env <name>]` 이 합니다 ([9.8.3](908-jupyter-integration.md#983-kernelspec-설치)).
 
@@ -259,7 +259,9 @@ rokc jupyter --connection-file <path>
 rokc fmt [path]
 ```
 
-`[path]` 는 파일 또는 디렉토리를 받으며 (여러 개 가능, 생략하면 현재 디렉토리), [표준 포맷](#9111-표준-포맷-rokc-fmt) 에 맞게 in-place 로 수정합니다. 패키지인 디렉토리 (9.2.2) 는 그 `src/` 와 `tests/` 디렉토리, 그리고 `rok.rokon` 을 포맷하며, 그 안의 다른 파일은 건드리지 않습니다. 디렉토리는 재귀로 `.rok` 파일을 찾으며 `target/` 과 `.` 으로 시작하는 디렉토리는 건너뜁니다. `.rokon` 파일 ([ROKON](../../refs-standard-libraries/300-std/309-rokon.md#394-정규-형식)) 은 ROKON 인지 검사하고 들여쓰기만 다시 맞춥니다 (정규 형식으로 다시 쓰지 않으므로 주석이 남음).
+`[path]` 는 파일 또는 디렉토리를 받으며 (여러 개 가능), [표준 포맷](#9111-표준-포맷-rokc-fmt) 에 맞게 in-place 로 수정합니다. 패키지인 디렉토리 (9.2.2) 는 그 `src/`, `tests/`, `benches/`, `examples/` 디렉토리, 그리고 `rok.rokon` 을 포맷하며, 그 안의 다른 파일은 건드리지 않습니다. 경로가 없으면 현재 디렉토리가 속한 패키지, 즉 현재 디렉토리나 그 위에서 `src/main.rok`, `src/lib.rok` 또는 `rok.rokon` 이 있는 가장 가까운 디렉토리를 포맷합니다. 패키지 밖에서 경로가 없으면 에러 (종료 코드 `1`) 입니다: `` not inside a package; pass a file or directory: `rokc fmt <path>` `` (`rok` 을 거치면 `rok fmt`). 디렉토리는 재귀로 `.rok` 와 `.rokon` 파일을 찾으며 `target/`, `node_modules/`, `.` 으로 시작하는 디렉토리, 그리고 찾는 디렉토리나 그 패키지 루트의 `.gitignore` 가 무시하는 것은 건너뜁니다. `.gitignore` 에서는 다음 줄만 읽습니다: `name` (아래 어디서든 그 이름), `name/` (디렉토리만), `/name` (`.gitignore` 가 있는 디렉토리 바로 아래), `*suffix`. 주석, `!` 줄, 다른 와일드카드, 중간에 `/` 가 있는 경로는 건너뜁니다. 터미널에서는 찾는 데 1초가 넘게 걸리면 표준 에러에 `Scanning <n> files…` 를 보여 줍니다. `.rokon` 파일 ([ROKON](../../refs-standard-libraries/300-std/309-rokon.md#394-정규-형식)) 은 ROKON 인지 검사하고 들여쓰기만 다시 맞춥니다 (정규 형식으로 다시 쓰지 않으므로 주석이 남음).
+
+끝에는 `-q` 가 아니면 표준 에러에 무엇을 했는지 알립니다: `Formatted <n> files` (이미 포맷된 파일이 있으면 `, <m> already formatted` 를 덧붙임), `note: <n> files already formatted`, 또는 `--check` / `--diff` 이면 `` note: <n> files need formatting; `rokc fmt` without `--check` rewrites them `` 입니다. 포맷할 것이 없는 디렉토리는 `note: no .rok or .rokon files under <dir>` 입니다 (종료 코드 `0`).
 
 옵션은 다음과 같습니다.
 
@@ -483,7 +485,7 @@ rokc --cwd=examples/hello run
 | `ROK_MLIR_PLUGIN_PATH` | 이름만 준 `--load-mlir-plugin` / `--load-mlir-pass-plugin` 을 찾는 디렉터리들 (`PATH` 처럼 구분) |
 | `ROK_LLVM_CACHE` | `rokc bindgen` 이 libclang 을 찾는 cache 디렉터리 (9.1.3) |
 | `ROK_ENV_LIBS`  | `rok` 가 환경에서 스크립트를 실행할 때 설정: 그 환경에 설치된 라이브러리들 (쉼표로 구분). 스크립트가 그중 하나를 선언 없이 쓰면 그 이름을 알리는 hint 를 받음 |
-| `ROK_CLI`         | `rok` 가 `rokc` 를 실행할 때 `rok` 로 설정 (내부용): 사용법 에러 (9.1.6) 와 `--help` 가 `rokc` 대신 `rok` 이라고 씀. `rok run` 이 시작한 프로그램도 물려받음 |
+| `ROK_CLI`         | `rok` 가 `rokc` 를 실행할 때 `rok` 로 설정 (내부용): 사용법 에러 (9.1.6), `--help`, 에러와 경고 줄의 `rokc:` 접두사가 `rokc` 대신 `rok` 이라고 씀. `rok run` 이 시작한 프로그램도 물려받음 |
 | `ROKC_TARGET_DIR` | `target/` 의 위치 (기본은 패키지 안)                                                     |
 | `ROKC_INCREMENTAL` | front end 가 패키지의 파싱과 lowering 한 본체를 두는 곳 (기본 `target/<profile>/incremental/`, `0`: 두지 않음). 라이브러리의 모은 항목은 `lib/rok-cache/library/` 에 둠 ([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |
 | `ROKC_INCR_VERIFY` | `1`: 모든 본체를 다시 lowering 하고 다르면 실패 ([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |

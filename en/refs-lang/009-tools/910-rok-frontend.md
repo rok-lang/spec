@@ -19,7 +19,7 @@ A package without dependencies builds by file conventions alone, without a manif
 | `test`, `bench`                                                   | `rokc` builds the harness with dependencies attached; `rok` runs it ([9.1](901-rokc-cli.md)) |
 | `doc`, `lint`, `repl [path]`, `lsp`                               | Delegated to `rokc` with dependencies attached |
 | `fmt`, `clean`, `demangle`, `profdata`                            | Delegated to `rokc` without dependencies |
-| `jupyter`                                                         | Running the kernel (`--connection-file`) is delegated; `jupyter install [--env <name>]` installs the kernelspec ([9.8.3](908-jupyter-integration.md#983-kernelspec-installation)) |
+| `jupyter`                                                         | Running the kernel (`--connection-file`) is delegated; `jupyter install [--env <name>]` installs the kernelspec ([9.8.3](908-jupyter-integration.md#983-kernelspec-installation)); bare `rok jupyter` is a usage error pointing to `rok jupyter install` |
 | `version`, `help`                                                 | Version; help (below)                   |
 | (none)                                                            | Same as `rok repl`: starts the REPL     |
 
@@ -36,7 +36,7 @@ Options, output and exit codes follow those of `rokc` ([9.1](901-rokc-cli.md)). 
 
 `rok help` (also `rok --help`) prints a short page: the subcommands in groups, one line each, and the global options. `rok help <subcommand>` (also `rok <subcommand> --help`) prints that subcommand's own help: its usage forms, a description, examples and its options. For a delegated subcommand it is `rokc`'s help written as `rok`, with `rok`'s feature options added.
 
-An unknown subcommand or option is a usage error (exit code 2). The message names the closest subcommand or option when there is one, including common other names (`compile` for `build`, `rm` for `remove`), and is followed by ``run `rok help <subcommand>` for usage``. A stone or native package that the index lacks names the closest one there and the `rok search` to run. `rok` sets `ROK_CLI=rok` for the `rokc` it runs, so `rokc`'s usage errors and help name `rok` as well ([9.1.7](901-rokc-cli.md#917-environment-variables)).
+An unknown subcommand or option is a usage error (exit code 2). The message names the closest subcommand or option when there is one, including common other names (`compile` for `build`, `rm` for `remove`), and is followed by ``run `rok help <subcommand>` for usage``. A stone or native package that the index lacks names the closest one there and the `rok search` to run. `rok` sets `ROK_CLI=rok` for the `rokc` it runs, so `rokc`'s usage errors, help and the prefix of its error and warning lines name `rok` as well ([9.1.7](901-rokc-cli.md#917-environment-variables)).
 
 Running just `rok [options]` with no subcommand starts the REPL, like `rok repl`.
 
@@ -47,7 +47,7 @@ rok --env sci       # = rok repl --env sci
 
 `rok [options] <file> [args..]` runs a script: it is `rok run -q <file> -- args..`. Every argument after the file is passed to the program unchanged, and the exit code is the program's. The word is a file when it contains `/` (also `\` on Windows) or has the extension `.rok`; no subcommand does, so a subcommand is never taken for a file. Together with a shebang line ([1.2.3](../001-lexical/102-lexical-structure.md#shebang-line)), `./script.rok args` runs the script.
 
-The path of a delegated command is its first argument that is neither an option nor an option's value, so options may come before it (`rok run --release t.rok`).
+The path of a delegated command is its first argument that is neither an option nor an option's value, so options may come before it (`rok run --release t.rok`). A path that does not exist is an error, `` `<path>` does not exist ``, before anything else (not "not inside a package"); for `test` and `bench`, whose first word may be a filter, only a word ending in `.rok` is taken for a path.
 
 `rok completions <shell>` prints a completion script for `bash`, `zsh`, `fish` or `powershell` on standard output. It is generated from the same command and option text as `rok help` (and, for the delegated subcommands, `rokc`'s), so the two agree. It completes subcommands and their options, `+<version>` and the argument of `toolchain default` / `toolchain remove` with the installed toolchains, the environment names of `env use` / `remove` / `shell` / `export` and `--env`, and the value of `--target`. The names are read when completing, by running `rok __complete toolchains` / `envs` (one per line), so they follow `$ROK_HOME`. `install.sh` and `install.ps1` install the scripts, and `rok toolchain default` / `update` rewrite them (9.10.6).
 
@@ -212,6 +212,7 @@ rok deps [--dev] [--features <f,..>] [--all-features] [--no-default-features]
 - Builds use the commits and versions in `rok.lock`. Newly declared dependencies are added to the lock and removed ones are cleaned up, but only `update` moves something already pinned. Given names, `update` re-resolves only those packages; otherwise it re-resolves all git dependencies and stones.
 - `deps` prints the resolved dependency packages as lines `<code name>=<path of its src/lib.rok>` (the code name has `-` replaced by `_`), dependencies first (`--dev` includes dev dependencies). Each such line is followed by its `--extern-feature=<code name>=<f>` lines; `deps` takes the feature options and `--dev`. For each native package (dependents first, for the host) it also prints `# native <name> <vers>` followed by its `rokc` arguments, one per line.
 - `rok.lock` is committed to version control.
+- `update` prints a line per change in the lock, `Updated <name> v0.1.0 -> v0.1.1` (a git dependency by its short commit; `Locked` for one newly pinned, `Removed` for one dropped), or `note: all dependencies are up to date`; with no dependencies, `` note: no dependencies to update; add one: `rok add <name>` ``. Outside a package without `--env`, it updates the environment used outside a package (9.10.5) when that has libraries (ending with `` Updated environment `<name>` `` when something changed); otherwise it is an error: `` not inside a package (..): make one with `rok init`; for an environment's libraries: `rok update --env <name>` ``.
 - `rok update` re-resolves `rok.lock`; `rok toolchain update` replaces the toolchain (9.10.6).
 
 ### Cache
@@ -385,7 +386,7 @@ Environments replace conda / venv. There is no activation step.
 
 ```
 rok env create <name>
-rok env list                      # marks the current environment with * and (active)
+rok env list                      # marks the current environment with * and (active); with none, says how to make one
 rok env remove <name>
 rok env use <name>                # changes the default environment outside projects
 rok env export <name> <dir>       # writes rok.rokon / rok.lock to <dir>
@@ -442,6 +443,8 @@ rok toolchain clean                        # remove every installed toolchain bu
 - The first installed toolchain becomes the default, and the `bin/` proxies are created at that point.
 - `rok toolchain update` replaces the default toolchain under `$ROK_HOME`. Without an argument it installs the latest release; with a version it installs that version. The installed toolchain becomes the default and the `bin/` proxies are rewritten; on Windows a running proxy is renamed before its copy replaces it. It downloads the release archive and verifies its SHA-256 (Distribution, below), unpacks it apart and moves it into place, then checks that the proxies run it; on failure the previous default and proxies are restored and the new toolchain is removed. Earlier toolchains stay installed. A version already installed is made the default without a download. `rok update` re-resolves `rok.lock`; `rok toolchain update` replaces the toolchain (9.10.4).
 - After `rok toolchain default <version>` or `rok toolchain update`, the completion scripts the installers wrote (Distribution, below) are rewritten from the new default toolchain's `rok completions` / `rokc completions`. Only files that exist are rewritten; none is created, and a toolchain without `completions` leaves them as they are. This prints nothing; `-v` names the files rewritten.
+- After `rok toolchain default <version>` or `rok toolchain update`, `rok` looks up `rok` on `PATH` (on Windows with each `PATHEXT` extension). When the first one found is not `$ROK_HOME/bin/rok` (compared by real path), it warns with that file and the version its `--version` prints: `warning: your shell runs <path> (rok X) before ~/.rok/bin/rok; put ~/.rok/bin first on PATH or remove the other one`. `-q` leaves the warning out (the installers run that way).
+- `rok --version -v` (or `rok version -v`) prints, after the version line, `binary` (this executable), `toolchain` (the active toolchain and why: `+` on the command line, `ROK_TOOLCHAIN`, the `rok.rokon` that pins it, or the default; `none` when there is none), `rokc` (the `rokc` it runs) and `host`.
 - `rok toolchain clean` removes every installed toolchain except the current default, an opt-in tidy-up for the earlier versions that `update` leaves installed. A version a project pins is removed too, so reinstall it if a build needs it; with no default set it is an error.
 
 ### Distribution

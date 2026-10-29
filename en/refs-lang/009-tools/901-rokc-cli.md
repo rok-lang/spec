@@ -247,7 +247,7 @@ REPL commands (`:type`, `:doc`, `:time`, `:vars`, `:load`, `:reload`, `:edit`, `
 rokc jupyter --connection-file <path>
 ```
 
-This command is the kernel mode invoked by Jupyter, so users do not run it directly. `--connection-file` is required (without it, a usage error) and takes the path of the ZMQ connection file provided by Jupyter. Build options such as `--extern` are accepted as well. The kernel runs on the same cell session as the REPL ([9.7.0](907-jit-cells.md#970-rules-of-the-cell-session)) and loads the package it starts in as `rokc repl .` does ([9.8.2](908-jupyter-integration.md#982-local-native-kernel-operation)). To run with dependencies resolved, use `rok jupyter --connection-file <path>` ([9.10](910-rok-frontend.md)). Integration details are defined in [Jupyter integration](908-jupyter-integration.md).
+This command is the kernel mode invoked by Jupyter, so users do not run it directly. `--connection-file` is required (without it, a usage error; through `rok`, one that points to `rok jupyter install`) and takes the path of the ZMQ connection file provided by Jupyter. Build options such as `--extern` are accepted as well. The kernel runs on the same cell session as the REPL ([9.7.0](907-jit-cells.md#970-rules-of-the-cell-session)) and loads the package it starts in as `rokc repl .` does ([9.8.2](908-jupyter-integration.md#982-local-native-kernel-operation)). To run with dependencies resolved, use `rok jupyter --connection-file <path>` ([9.10](910-rok-frontend.md)). Integration details are defined in [Jupyter integration](908-jupyter-integration.md).
 
 The kernel is registered by `rok jupyter install [--env <name>]` ([9.8.3](908-jupyter-integration.md#983-kernelspec-installation)).
 
@@ -259,7 +259,9 @@ The kernel is registered by `rok jupyter install [--env <name>]` ([9.8.3](908-ju
 rokc fmt [path]
 ```
 
-`[path]` accepts files or directories (several allowed; the current directory if omitted) and rewrites them in place to the [standard format](#9111-standard-format-rokc-fmt). A directory that is a package (9.2.2) is formatted as its `src/` and `tests/` directories and its `rok.rokon`; other files in it are left alone. Directories are searched recursively for `.rok` files, skipping `target/` and directories beginning with `.`. `.rokon` files ([ROKON](../../refs-standard-libraries/300-std/309-rokon.md#394-canonical-form)) are checked for being ROKON and only re-indented (they are not rewritten in canonical form, so comments are preserved).
+`[path]` accepts files or directories (several allowed) and rewrites them in place to the [standard format](#9111-standard-format-rokc-fmt). A directory that is a package (9.2.2) is formatted as its `src/`, `tests/`, `benches/` and `examples/` directories and its `rok.rokon`; other files in it are left alone. Without a path, `fmt` formats the package the current directory is in: the nearest directory at or above it with `src/main.rok`, `src/lib.rok` or `rok.rokon`. Outside a package, no path is an error (exit code `1`): `` not inside a package; pass a file or directory: `rokc fmt <path>` `` (`rok fmt` through `rok`). Directories are searched recursively for `.rok` and `.rokon` files, skipping `target/`, `node_modules/`, directories beginning with `.`, and what the `.gitignore` at the searched directory or at its package's root ignores. Only these `.gitignore` lines are read: `name` (that name anywhere below), `name/` (directories only), `/name` (directly in the `.gitignore`'s directory) and `*suffix`; comments, `!` lines, other wildcards and paths with `/` inside are skipped. On a terminal, a search that takes more than a second shows `Scanning <n> files…` on standard error. `.rokon` files ([ROKON](../../refs-standard-libraries/300-std/309-rokon.md#394-canonical-form)) are checked for being ROKON and only re-indented (they are not rewritten in canonical form, so comments are preserved).
+
+At the end, unless `-q`, standard error says what happened: `Formatted <n> files` (with `, <m> already formatted` when some were), `note: <n> files already formatted`, or, with `--check` / `--diff`, `` note: <n> files need formatting; `rokc fmt` without `--check` rewrites them ``. A directory with nothing to format gives `note: no .rok or .rokon files under <dir>` (exit code `0`).
 
 Options:
 
@@ -483,7 +485,7 @@ The environment variables that affect `rokc` are:
 | `ROK_MLIR_PLUGIN_PATH` | Directories (separated like `PATH`) searched for a `--load-mlir-plugin` / `--load-mlir-pass-plugin` given as a bare name |
 | `ROK_LLVM_CACHE` | Cache directory `rokc bindgen` searches for libclang (9.1.3) |
 | `ROK_ENV_LIBS`  | Set by `rok` when it runs a script from an environment: the comma-separated libraries installed there. A script that uses one of them without declaring it gets a hint naming it |
-| `ROK_CLI`         | Set to `rok` by `rok` when it runs `rokc` (internal): usage errors (9.1.6) and `--help` name `rok`, not `rokc`. Programs that `rok run` starts inherit it |
+| `ROK_CLI`         | Set to `rok` by `rok` when it runs `rokc` (internal): usage errors (9.1.6), `--help` and the `rokc:` prefix of error and warning lines name `rok`, not `rokc`. Programs that `rok run` starts inherit it |
 | `ROKC_TARGET_DIR` | Location of `target/` (default: inside the package)                                      |
 | `ROKC_INCREMENTAL` | Where the front end keeps the package's parses and lowered bodies (default `target/<profile>/incremental/`; `0`: nowhere); the library's collected items are kept in `lib/rok-cache/library/` ([9.2.16](902-aot-pipeline.md#9216-incremental-build)) |
 | `ROKC_INCR_VERIFY` | `1`: lower every body again and fail on a difference ([9.2.16](902-aot-pipeline.md#9216-incremental-build)) |
