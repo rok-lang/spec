@@ -109,7 +109,7 @@ Config::fields()[1].type_name      // "i32"
 
 ## 6.10.3. REPL / Jupyter 자동 출력
 
-REPL 은 평범한 마지막 식을 `Display` 로, 뒤에 `?` 를 붙이면 `Debug` 로, `:type` 은 식을 실행하지 않고 타입 검사로 얻은 정적 타입을 출력합니다 ([9.7.7](../009-tools/907-jit-cells.md#977-시각화--출력)).
+REPL 은 평범한 마지막 식을 `Display` 로 (없으면 `Debug` 로), 뒤에 `?` 를 붙이면 `Debug` 로, `:type` 은 식을 실행하지 않고 타입 검사로 얻은 정적 타입을 출력합니다 ([9.7.7](../009-tools/907-jit-cells.md#977-시각화--출력)).
 
 ```
 >>> let x = 42i32;
@@ -117,16 +117,16 @@ REPL 은 평범한 마지막 식을 `Display` 로, 뒤에 `?` 를 붙이면 `Deb
 42
 
 >>> [1, 2, 3]
-List<i32>
+[1, 2, 3]
 
 >>> Config { host: "h", port: 80 }
-Config
-
->>> Config { host: "h", port: 80 }?
 Config { host: "h", port: 80 }
+
+>>> Opaque { id: 1 }
+Opaque
 ```
 
-평범한 식은 `Display`, 뒤에 `?` 는 `Debug` 를 씁니다. 요청한 트레잇 (평범한 식엔 `Display`, 뒤에 `?` 를 붙이면 `Debug`) 이 없는 값은 타입 이름만 출력합니다. 이 동작은 REPL 과 Jupyter 의 셀 세션 ([9.7](../009-tools/907-jit-cells.md)) 이 사용합니다.
+평범한 식은 `Display` 를, 없으면 `Debug` 를 쓰고, 뒤에 `?` 는 `Debug` 를 씁니다. 둘 다 없는 값 (뒤에 `?` 를 붙이면 `Debug` 가 없는 값) 은 타입 이름만 출력합니다. 이 동작은 REPL 과 Jupyter 의 셀 세션 ([9.7](../009-tools/907-jit-cells.md)) 이 사용합니다.
 
 ## 6.10.4. 글로벌 `typeof` / `sizeof` 함수 없음
 

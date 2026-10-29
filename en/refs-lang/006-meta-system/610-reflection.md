@@ -109,7 +109,7 @@ Config::fields()[1].type_name      // "i32"
 
 ## 6.10.3. REPL / Jupyter auto-printing
 
-When the REPL prints a bare last expression it uses `Display`; a trailing `?` uses `Debug`; `:type` prints the expression's static type, found by type checking without running it ([9.7.7](../009-tools/907-jit-cells.md#977-visualization--output)).
+When the REPL prints a bare last expression it uses `Display`, else `Debug`; a trailing `?` uses `Debug`; `:type` prints the expression's static type, found by type checking without running it ([9.7.7](../009-tools/907-jit-cells.md#977-visualization--output)).
 
 ```
 >>> let x = 42i32;
@@ -117,16 +117,16 @@ When the REPL prints a bare last expression it uses `Display`; a trailing `?` us
 42
 
 >>> [1, 2, 3]
-List<i32>
+[1, 2, 3]
 
 >>> Config { host: "h", port: 80 }
-Config
-
->>> Config { host: "h", port: 80 }?
 Config { host: "h", port: 80 }
+
+>>> Opaque { id: 1 }
+Opaque
 ```
 
-A bare expression uses `Display` and a trailing `?` uses `Debug`. A value without the requested trait (`Display` for a bare expression, `Debug` for a trailing `?`) prints only its type name. This behavior is used by REPL and Jupyter cell sessions ([9.7](../009-tools/907-jit-cells.md)).
+A bare expression uses `Display`, else `Debug`, and a trailing `?` uses `Debug`. A value without either (`Debug` for a trailing `?`) prints only its type name. This behavior is used by REPL and Jupyter cell sessions ([9.7](../009-tools/907-jit-cells.md)).
 
 ## 6.10.4. No global `typeof` / `sizeof` functions
 

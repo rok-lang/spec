@@ -8,10 +8,10 @@
 
 1. **한 번만 실행.** 각 셀의 코드는 정확히 한 번 실행됩니다. 앞 셀의 부수 효과 (I/O, 시각, 난수) 는 되풀이되지 않습니다.
 2. **상태 유지.** 셀 최상위의 `let` 바인딩, `static` 의 상태, `any` 값 (`any Tr` 포함) 은 이후 셀로 이어집니다. 바인딩은 대입할 수 있고, 같은 이름의 재 `let` 은 새 바인딩으로 가립니다 (9.7.3).
-3. **항목 유지와 재정의.** `fn` / `struct` / `impl` 등 항목은 유지됩니다. 같은 항목을 다시 정의하면 다음 셀부터 새 정의가 쓰입니다. 재정의 전에 컴파일된 코드도 이후 셀이 다시 닿으면 새 정의를 씁니다 (재정의된 `f` 를 부르는 `g` 는 새 `f` 를 부름). `static` 을 다시 정의하면 그 상태는 새로 시작합니다. 타입이 재정의된 바인딩은 더 이상 쓸 수 없으며, 쓰려 하면 그 사실을 note 로 알려 줍니다.
+3. **항목 유지와 재정의.** `fn` / `struct` / `impl` 등 항목은 유지됩니다. 같은 항목을 다시 정의하면 다음 셀부터 새 정의가 쓰입니다. 재정의 전에 컴파일된 코드도 이후 셀이 다시 닿으면 새 정의를 씁니다 (재정의된 `f` 를 부르는 `g` 는 새 `f` 를 부름). `static` 을 다시 정의하면 그 상태는 새로 시작합니다. 타입이 재정의된 바인딩은 더 이상 쓸 수 없으며, 쓰려 하면 그 사실을 note 로 알려 줍니다. 한 셀은 항목을 여럿 정의할 수 있습니다. 새 `impl Tr for T` 는 이전 것을 대체하고, 새 고유 `impl T` 는 그 메서드 중 하나를 정의하는 이전 것들을 대체합니다. 앞 항목이 더 이상 컴파일되지 않는 재정의는 거부합니다: 에러는 그 항목 안을 가리키고, 그 항목과 셀을 밝히며, 같은 셀에서 그 항목도 다시 정의하거나 `:reset` 하라고 알려 줍니다.
 4. **`any` 의 정체성.** `any` 의 타입 tag 는 한 세션의 모든 셀에서 같습니다. 앞 셀에서 넣은 `any` 값을 뒤 셀에서 `is` / 패턴으로 꺼낼 수 있습니다.
 5. **실패한 셀.** panic 하거나 프로세스를 끝내거나 죽은 셀은 바인딩에 부분 효과를 남기지 않습니다. 세션은 그 셀 이전의 상태로 계속됩니다. 이미 일어난 외부 효과 (I/O 등) 는 되돌리지 않습니다. 이전 셀의 스레드: 실패한 셀 뒤에 세션은 원래 자리로 돌아온 스레드만 (Windows), 또는 아무것도 (fork host) 남기지 않습니다. 런타임은 자기 executor 스레드를 다시 시작하며, 사라진 사용자 스레드를 join 하면 잃었다고 보고합니다 (`JoinError` 코드 `JOIN_LOST`, [stdlib 3.4](../../refs-standard-libraries/300-std/304-thread.md)). 세션은 조용한 순간에 저장합니다: poll 중인 task 도, 실행 중인 blocking job 도 없을 때입니다 (host 는 셀 전에 그것들을 기다리며, 그 기다림을 인터럽트하면 셀이 취소됨). 그래서 task 와 job 을 잃는 일은 없습니다. 사라진 스레드가 block 중에 가진 lock 은 해제됩니다.
-6. **표시.** 식 셀은 값을 `Display` 로 출력하고, 뒤에 `?` 를 붙이면 `Debug` 로 출력합니다. 요청한 트레잇 (평범한 식엔 `Display`, 뒤에 `?` 를 붙이면 `Debug`) 이 없는 값은 타입 이름만 출력합니다 (9.7.7).
+6. **표시.** 식 셀은 값을 `Display` 로, 없으면 `Debug` 로, 둘 다 없으면 타입 이름만 출력합니다. 뒤에 `?` 를 붙이면 `Debug` 로, 없으면 타입 이름을 출력합니다 (9.7.7).
 
 다음 바인딩과 효과는 다룰 수 없습니다.
 
@@ -31,7 +31,7 @@ REPL 의 한 줄과 Jupyter 의 한 셀은 그 내용에 따라 처리 방식이
 5. meta / attribute          → handle as appropriate
 ```
 
-다섯 가지 모두 같은 cell 처리 흐름을 따르며, 마지막 출력만 달라집니다. 식 셀이 보여 준 값은 이후 셀을 위해 `it` 에 바인딩합니다 (9.7.7). 식 셀은 값을 (`Display` 로) 출력하고, `let` 셀은 아무것도 출력하지 않습니다. divergent 식 셀 ([4.3.7](../004-functions/403-return.md#437-divergent-함수); `panic(..)`, `exit(..)`, `throw`) 은 문으로 실행합니다.
+다섯 가지 모두 같은 cell 처리 흐름을 따르며, 마지막 출력만 달라집니다. 식 셀이 보여 준 값은 이후 셀을 위해 `it` 에 바인딩합니다 (9.7.7). 식 셀은 값을 (`Display` 로, 없으면 `Debug` 로, 둘 다 없으면 타입 이름으로) 출력하고, `let` 셀은 아무것도 출력하지 않습니다. divergent 식 셀 ([4.3.7](../004-functions/403-return.md#437-divergent-함수); `panic(..)`, `exit(..)`, `throw`) 은 문으로 실행합니다.
 
 셀은 암묵 `main` 처럼 top-level 문에서 `await` 할 수 있습니다 ([4.16.5](../004-functions/416-entry-point.md#4165-비동기-main)). 그러면 셀은 끝날 때까지 executor 위에서 실행됩니다. 그 셀의 `let` 바인딩과 값은 다른 셀과 똑같이 이후 셀로 이어집니다.
 
@@ -128,6 +128,19 @@ parse error / type error / 의미 에러.
   - 다음 cell 진행 가능.
 ```
 
+에러는 셀이 어떻게 끝났는지와 세션이 그대로라는 것을 알려 줍니다:
+
+```
+panic             panic 보고 뒤에: the cell panicked; the session is unchanged
+잡히지 않은 throw  the cell threw `<error>`; the session is unchanged
+                    --> <에러가 셀을 떠난 위치>
+exit(n)           the cell called exit(n); the session is unchanged (`exit` or `:quit` ends the session)
+Ctrl-C            interrupted (Ctrl-C); the session is unchanged
+그 밖 (fault 등)   the cell failed; the session is unchanged
+```
+
+`<error>` 는 `main` 밖으로 나온 잡히지 않은 에러와 같은 에러 설명입니다 ([4.16.4](../004-functions/416-entry-point.md)). 어떤 메시지도 셀의 생성된 진입 함수를 언급하지 않습니다.
+
 바인딩과 항목은 셀 이전 상태로 돌아가지만 (9.7.0 규칙 5), 이미 일어난 외부 효과 (출력, 파일 쓰기 등) 는 되돌리지 않습니다. 실패한 셀을 세션에 남기지 않으므로, 고친 셀을 다시 입력하면 됩니다. fork 가 없는 host (Windows) 는 셀 전에 세션의 메모리와 스레드를 저장하고 셀이 실패하면 되돌려 놓으며, 관찰되는 결과는 fork 한 스냅샷과 같습니다.
 
 ### JIT 실패
@@ -136,7 +149,17 @@ host 가 셀의 코드를 로드하거나 링크하지 못하면 (알 수 없는
 
 ### 위치
 
-셀 안의 진단과 panic 위치는 셀 자신의 텍스트 기준 `<repl>:line:col` 로 표시합니다.
+입력 중인 셀의 진단은 셀 자신의 텍스트 기준 `<repl>:line:col` 로 표시합니다. 앞 셀 항목의 진단과 실행 중인 코드가 보고하는 위치 (panic, 잡히지 않은 에러, `try!`) 는 `<repl cell N>:line:col` 로 표시합니다: 셀 N 은 세션에서 N 번째로 입력한 셀이며 (`:type` 같은 명령은 셀이 아니고, 실패한 셀도 셉니다), line 과 col 은 그 셀의 텍스트 기준입니다. 앞 셀에서 정의한 함수는 그 셀의 위치를 보고합니다.
+
+```
+>>> fn boom(n: i32) {
+...     panic(f"boom {n}");
+... }
+>>> boom(5)
+thread 'main' panicked at <repl cell 1>:2:5:
+boom 5
+error: the cell panicked; the session is unchanged
+```
 
 ## 9.7.6. 캐시
 
@@ -153,14 +176,17 @@ host 가 셀의 코드를 로드하거나 링크하지 못하면 (알 수 없는
 hi
 ```
 
-마지막 식의 값을 `Display` 로 자동 출력합니다. 뒤에 `?` (`xs?`) 를 붙이면 `Debug` 로, `:type xs` 는 타입만 출력합니다. 요청한 트레잇 (평범한 식엔 `Display`, `?` 엔 `Debug`) 이 없는 값은 타입 이름만 출력하고, `let` 셀은 아무것도 출력하지 않습니다.
+마지막 식의 값을 `Display` 로, 없으면 `Debug` 로 자동 출력합니다. 뒤에 `?` (`xs?`) 를 붙이면 `Debug` 로, `:type xs` 는 타입만 출력합니다. `Display` 와 `Debug` 가 모두 없는 값 (`?` 엔 `Debug` 가 없는 값) 은 타입 이름만 출력하고 (`type_name_of`, [stdlib 2.12.4](../../refs-standard-libraries/200-core/212-reflect.md#2124-repl-출력): `any` 값은 담은 타입의 이름), `let` 셀은 아무것도 출력하지 않습니다.
 
 ```
 >>> let xs = [1, 2, 3];
 >>> xs
-List<i32>
->>> xs?
 [1, 2, 3]
+>>> "hi"?
+"hi"
+>>> struct Opaque { id: i32 }
+>>> Opaque { id: 1 }
+Opaque
 ```
 
 ### `it`: 마지막으로 보여 준 값

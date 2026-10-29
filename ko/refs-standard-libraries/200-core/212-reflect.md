@@ -224,7 +224,7 @@ fn dump_struct<T: Inspect>(x: T) {
 
 ## 2.12.4. REPL 출력
 
-REPL 은 평범한 마지막 식을 `Display` 로, 뒤에 `?` 를 붙이면 `Debug` 로, `:type` 은 이 장의 `Reflect::type_name_of` 로 출력합니다 ([2.10 fmt](210-fmt.md), [refs-lang 6.10.3](../../refs-lang/006-meta-system/610-reflection.md#6103-repl--jupyter-자동-출력)).
+REPL 은 평범한 마지막 식을 `Display` 로 (없으면 `Debug` 로), 뒤에 `?` 를 붙이면 `Debug` 로, 그 트레이트가 없는 값은 이 장의 `Reflect::type_name_of` 로 출력합니다 ([2.10 fmt](210-fmt.md), [refs-lang 6.10.3](../../refs-lang/006-meta-system/610-reflection.md#6103-repl--jupyter-자동-출력)).
 
 ```
 >>> let x = 42i32;
@@ -232,7 +232,7 @@ REPL 은 평범한 마지막 식을 `Display` 로, 뒤에 `?` 를 붙이면 `Deb
 42
 
 >>> [1, 2, 3]
-List<i32>
+[1, 2, 3]
 
 >>> [1, 2, 3]?
 [1, 2, 3]
@@ -241,7 +241,7 @@ List<i32>
 User { id: 1, name: "Alice" }
 ```
 
-평범한 식은 `Display`, 뒤에 `?` 가 붙으면 `Debug` 를 씁니다. 요청한 트레이트(평범한 식은 `Display`, 뒤에 `?` 는 `Debug`)가 없는 값은 타입 이름만 출력합니다.
+평범한 식은 `Display` 를, 없으면 `Debug` 를 쓰고, 뒤에 `?` 가 붙으면 `Debug` 를 씁니다. 둘 다 없는 값(뒤에 `?` 는 `Debug` 가 없는 값)은 타입 이름만 출력하며, `any` 값은 담은 타입의 이름을 출력합니다.
 
 ## 2.12.5. 모듈 매핑
 

@@ -8,10 +8,10 @@ The cell session obeys the following rules. The implementation is the [9.6 JIT e
 
 1. **Run once.** The code of each cell runs exactly once. Side effects of earlier cells (I/O, time, random numbers) are not repeated.
 2. **State persists.** Top-level `let` bindings of a cell, the state of `static`s, and `any` values (including `any Tr`) carry over to later cells. Bindings may be assigned, and a new `let` of the same name shadows with a new binding (9.7.3).
-3. **Items persist and may be redefined.** Items such as `fn` / `struct` / `impl` persist. If the same item is defined again, the new definition is used from the next cell. Even code compiled before the redefinition uses the new definition when a later cell reaches it again (a `g` calling a redefined `f` calls the new `f`). Redefining a `static` restarts its state. A binding whose type was redefined can no longer be used; an attempt to use it is reported with a note.
+3. **Items persist and may be redefined.** Items such as `fn` / `struct` / `impl` persist. If the same item is defined again, the new definition is used from the next cell. Even code compiled before the redefinition uses the new definition when a later cell reaches it again (a `g` calling a redefined `f` calls the new `f`). Redefining a `static` restarts its state. A binding whose type was redefined can no longer be used; an attempt to use it is reported with a note. A cell may define several items. A new `impl Tr for T` replaces the old one; a new inherent `impl T` replaces the earlier ones that define one of its methods. A redefinition that an earlier item no longer compiles against is rejected: the error points into that item, names it and its cell, and says to redefine it in the same cell or `:reset`.
 4. **Identity of `any`.** The type tag of `any` is the same across all cells of a session. An `any` value stored in an earlier cell can be extracted in a later cell with `is` / patterns.
 5. **Failed cells.** A cell that panics, terminates the process or dies leaves no partial effect on the bindings. The session continues from the state before that cell. External effects that already happened (I/O etc.) are not undone. Threads from earlier cells: after a failed cell the session keeps only the threads that are back where they were (Windows) or none of them (fork hosts). The runtime restarts its own executor threads; joining a user thread that is gone reports it lost (`JoinError` code `JOIN_LOST`, [stdlib 3.4](../../refs-standard-libraries/300-std/304-thread.md)). The session is saved at a quiet moment: no task is mid-poll and no blocking job is mid-run (the host waits for them before the cell; interrupting the wait cancels the cell), so tasks and jobs are never lost. Locks that a thread that is gone held while blocked are released.
-6. **Display.** An expression cell prints its value with `Display`; a trailing `?` prints the `Debug` form. A value without the requested trait (`Display` for a bare expression, `Debug` for a trailing `?`) prints only its type name (9.7.7).
+6. **Display.** An expression cell prints its value with `Display`, else with `Debug`, else only its type name; a trailing `?` prints the `Debug` form, else the type name (9.7.7).
 
 The following bindings and effects are not supported.
 
@@ -31,7 +31,7 @@ A REPL line or a Jupyter cell is processed differently depending on its content.
 5. meta / attribute          → handle as appropriate
 ```
 
-All five follow the same cell processing flow; only the final output differs. The value an expression cell shows is bound to `it` for later cells (9.7.7). An expression cell prints its value (`Display`); a `let` cell prints nothing. A divergent expression cell ([4.3.7](../004-functions/403-return.md#437-divergent-functions); `panic(..)`, `exit(..)`, `throw`) runs as a statement.
+All five follow the same cell processing flow; only the final output differs. The value an expression cell shows is bound to `it` for later cells (9.7.7). An expression cell prints its value (`Display`, else `Debug`, else its type name); a `let` cell prints nothing. A divergent expression cell ([4.3.7](../004-functions/403-return.md#437-divergent-functions); `panic(..)`, `exit(..)`, `throw`) runs as a statement.
 
 A cell may `await` in a top-level statement, as the implicit `main` may ([4.16.5](../004-functions/416-entry-point.md#4165-async-main)): the cell then runs on the executor until it completes. Its `let` bindings and its value carry over to later cells like those of any other cell.
 
@@ -128,6 +128,19 @@ panic / uncaught throw / process exit / segfault during execution.
   - the next cell can proceed.
 ```
 
+The error says how the cell ended and that the session is unchanged:
+
+```
+panic             the panic's report, then: the cell panicked; the session is unchanged
+uncaught throw    the cell threw `<error>`; the session is unchanged
+                    --> <where the error left the cell>
+exit(n)           the cell called exit(n); the session is unchanged (`exit` or `:quit` ends the session)
+Ctrl-C            interrupted (Ctrl-C); the session is unchanged
+other (a fault)   the cell failed; the session is unchanged
+```
+
+`<error>` is the error's description as for an uncaught error out of `main` ([4.16.4](../004-functions/416-entry-point.md)). No message names the cell's generated entry function.
+
 Bindings and items revert to the state before the cell (9.7.0 rule 5), but external effects that already happened (output, file writes, etc.) are not undone. A failed cell is not kept in the session, so the corrected cell can simply be entered again. Hosts without fork (Windows) save the session's memory and threads before the cell and put them back when it fails, with the same observable result as the forked snapshot.
 
 ### JIT failure
@@ -136,7 +149,17 @@ If the host cannot load or link a cell's code (an unknown `extern` symbol, etc.)
 
 ### Locations
 
-Diagnostics and panic locations in a cell name `<repl>:line:col`, counted over the cell's own text.
+Diagnostics in the cell being entered name `<repl>:line:col`, counted over the cell's own text. Diagnostics in an earlier cell's items, and the locations the running code reports (panics, uncaught errors, `try!`), name `<repl cell N>:line:col`: cell N is the Nth cell entered in the session (commands such as `:type` are not cells; a failed cell counts), and line and column count over its text. A function defined in an earlier cell reports the location in that cell.
+
+```
+>>> fn boom(n: i32) {
+...     panic(f"boom {n}");
+... }
+>>> boom(5)
+thread 'main' panicked at <repl cell 1>:2:5:
+boom 5
+error: the cell panicked; the session is unchanged
+```
 
 ## 9.7.6. Cache
 
@@ -153,14 +176,17 @@ Within a session the host reuses functions it has already compiled (9.6.4). Ther
 hi
 ```
 
-The last expression's value is printed with `Display`. A trailing `?` (as in `xs?`) prints the `Debug` form instead, and `:type xs` prints the type alone. A value without the requested trait (`Display` for a bare expression, `Debug` for `?`) prints only its type name. A `let` cell prints nothing.
+The last expression's value is printed with `Display`, else with `Debug`. A trailing `?` (as in `xs?`) prints the `Debug` form instead, and `:type xs` prints the type alone. A value without `Display` and `Debug` (`Debug` for `?`) prints only its type name (`type_name_of`, [stdlib 2.12.4](../../refs-standard-libraries/200-core/212-reflect.md#2124-repl-output): an `any` value names the type it holds). A `let` cell prints nothing.
 
 ```
 >>> let xs = [1, 2, 3];
 >>> xs
-List<i32>
->>> xs?
 [1, 2, 3]
+>>> "hi"?
+"hi"
+>>> struct Opaque { id: i32 }
+>>> Opaque { id: 1 }
+Opaque
 ```
 
 ### `it`: the last value shown
