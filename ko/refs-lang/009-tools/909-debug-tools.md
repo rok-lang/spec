@@ -381,7 +381,7 @@ CI 가 코드별로 다른 처리 (재시도, 알림 등) 를 적용할 수 있�
 
 ## 9.9.13. LSP 서버
 
-`rokc` 는 LSP (Language Server Protocol) 모드를 제공합니다. 같은 서버를 독립 바이너리 `rokls` (= `rok lsp`) 로도 제공합니다. stdio 로 통신하며, 진단, hover (멤버 포함), go-to-definition (정의하는 이름의 범위를 돌려줌), references, rename, 문서 심볼, 멤버 / 경로 완성, 포맷, semantic token (정적 문법이 알아볼 수 없는 매크로 호출과 사용자 정의 키워드, 리터럴 접미사, 연산자, 속성) 을 제공합니다. references 와 rename 은 버퍼 안에서만 동작합니다.
+`rokc` 는 LSP (Language Server Protocol) 모드를 제공합니다. 같은 서버를 독립 바이너리 `rokls` (= `rok lsp`) 로도 제공합니다. stdio 로 통신하며, 진단, hover (멤버 포함), go-to-definition (정의하는 이름의 범위를 돌려줌), references, rename, 문서 심볼, 멤버 / 경로 완성, 시그니처 도움말, 빠른 수정, 포맷, semantic token (정적 문법이 알아볼 수 없는 매크로 호출과 사용자 정의 키워드, 리터럴 접미사, 연산자, 속성) 을 제공합니다. references 와 rename 은 버퍼 안에서만 동작합니다.
 
 ```
 rokc lsp
@@ -392,6 +392,9 @@ rokls
 
 - **자동 완성.** `x.` 뒤에서는 `x` 타입의 필드와 메서드입니다. 표준 라이브러리나 다른 패키지의 타입이면 `pub` 인 것만 내놓으며, `#[doc(hidden)]` 멤버와 연산자 트레잇 (`a + b`, `xs[i]` 처럼 쓰는 것) 의 메서드는 빼놓습니다. `a::` 뒤에서는 (`use a::b::` 안에서도) `a` 아래의 모듈과 항목입니다. 그 밖에서는 커서 위치에서 보이는 지역 변수, 버퍼의 항목, 경로 없이 쓸 수 있는 이름 (core 라이브러리의 이름과 `use` 항목이 가져온 이름), 키워드입니다. REPL 과 Jupyter 커널도 같은 엔진으로 완성합니다 ([9.7.8](907-jit-cells.md#978-입력-단위-repl-식별)).
 - **hover 와 정의.** 함수, 메서드, 필드 위의 hover 는 표준 라이브러리의 것도 포함해 시그니처와 그 문서 주석을 보여 줍니다. `x.name` 의 go-to-definition 은 `x` 의 타입에서 `name` 을 찾으며, 표준 라이브러리 항목이면 라이브러리 소스의 그 항목으로 갑니다.
+- **시그니처 도움말.** 호출의 괄호 안에서 (`(` 와 `,` 에서 요청) 호출되는 함수의 시그니처와 문서 주석을 보여 주고, 커서가 있는 매개변수를 활성으로 표시합니다. 메서드는 receiver 의 타입에서 찾으며, 그 `self` 는 세지 않습니다.
+- **빠른 수정.** 편집을 담은 진단 (예: ``convert with `as i32` ``) 은 그 편집을 `quickfix` 코드 액션으로 내놓습니다. 편집이 없으면 무엇을 쓸지 말하는 help 줄이 코드 액션이 됩니다: ``add `;` `` 는 진단 span 의 끝에 `;` 를 넣고, ``add `use a::b;` `` 는 그 줄을 파일의 마지막 최상위 `use` 뒤에 (없으면 맨 앞의 `//!` 줄과 내부 속성 뒤에) 넣으며, ``rok add <name>`` 은 명령 `rok.add` 가 됩니다. `workspace/executeCommand` 를 받으면 서버는 `rok.add` 를 패키지 디렉터리에서 `rok add <name>` 으로 (스크립트면 그 파일의 디렉터리에서 `rok add <name> <file>` 로) 실행합니다. `rok` 은 `$ROK` 가 가리키는 것, 없으면 서버 옆의 것을 쓰며, 실행 뒤 열린 버퍼를 다시 검사합니다. 다른 명령은 실행하지 않으며 플래그도 받지 않습니다.
+- **rename.** `prepareRename` 은 rename 이 받아들일 때 커서 아래 이름의 범위를 돌려줍니다. 버퍼 밖에서 선언된 이름이면 어디서 왔는지 말하는 메시지로 실패합니다. 예: ``cannot rename `println`: it is defined in the standard library``. 키워드이면 `` `let` is a keyword `` 입니다.
 - **문서 심볼.** 심볼의 range 는 수식어 (`pub`, `const`, ..) 부터 닫는 `}` 나 `;` 까지 항목 전체를 덮고, selection range 는 이름입니다.
 - **진단 범위.** span 이 빈 진단은 그 위치의 토큰 위에, 줄 끝이면 그 앞의 토큰 위에 보고합니다.
 - **손으로 시작했을 때.** 터미널에서 시작하면 서버는 먼저 표준 에러에 ``rokls speaks the language server protocol on stdin; start it from an editor (see `rok help lsp`)`` 를 출력합니다. 클라이언트가 `initialize` 를 보내기 전에 입력이 끝나면 ``rokls: input ended before the editor sent `initialize` `` 를 출력하고 1 로 끝납니다. `initialize` 뒤에는 LSP 표준대로 `shutdown` 을 받았으면 0, 아니면 1 로 끝납니다.
