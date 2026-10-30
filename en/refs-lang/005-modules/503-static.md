@@ -3,7 +3,7 @@
 The `static` keyword (a contextual keyword that is a keyword only at the start of an item; the following `mut` is likewise a keyword only in the `static mut` position, [1.5.4](../001-lexical/105-keywords.md#154-contextual-keywords)) declares global memory that persists for the lifetime of the program.
 
 ```
-static_decl     ::= "static" "mut"? identifier ":" type_expr "=" const_expr ";"
+static_decl     ::= "static" "mut"? identifier ":" type_expr "=" expr ";"
 extern_static   ::= "static" "mut"? identifier ":" type_expr ";"   // in extern block
 ```
 
@@ -15,7 +15,7 @@ static DEFAULT_CONFIG: Config = Config::default();
 static APP_NAME: str = "rok";
 ```
 
-The basic form is `static`, a name, `:` with a type, and `=` with an initializer. The type must be written, and the initializer must be a `const` expression in the sense of [`const`](502-const.md), so it must be evaluable at compile time.
+The basic form is `static`, a name, `:` with a type, and `=` with an initializer. The type must be written. A `const` initializer ([`const`](502-const.md)) is evaluated at compile time; any other initializer runs once, on first access ([5.3.9](#539-initializers-compile-time-or-first-use)).
 
 A `static` is reachable from every thread, so its type must be `Sync` ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers)); this holds for lazily initialized statics too. `static XS: List<i32> = [];` is a compile error (collections, `StrBuf` and `Cell<T>` are `!Sync`); write `static XS: Mutex<List<i32>> = Mutex::new([]);`. Per-thread state uses `thread::local` ([stdlib 3.4.4](../../refs-standard-libraries/300-std/304-thread.md#344-thread-local-storage)), whose `ThreadLocal<T>` is `Sync`. Statics of an `extern` block ([5.3.10](#5310-extern-static-ffi)) are exempt.
 
@@ -116,7 +116,7 @@ impl Counter {
 }
 ```
 
-## 5.3.9. `const` restriction on initializers
+## 5.3.9. Initializers: compile time or first use
 
 If the initializer is a constant expression ([5.2.4](502-const.md#524-constant-expressions-and-the-evaluator)), it is initialized at compile time. Any other initializer is initialized once on first use (lazy initialization). Lazy initialization is thread-safe, and threads accessing concurrently wait until initialization finishes. Functions in the initializer need not be `const fn` (`Mutex::new`, etc.).
 

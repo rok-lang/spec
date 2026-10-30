@@ -134,7 +134,7 @@ The rationale for this decision:
 
 ## 4.16.7. Global state
 
-Module-level global state is declared only with [`static`](../005-modules/503-static.md), and its initial value must be a `const` expression evaluable at compile time ([5.3.9](../005-modules/503-static.md#539-const-restriction-on-initializers)). Lazy initialization, computed on first access at run time, is not a language feature but the responsibility of standard library wrappers. Program execution therefore always begins at the first statement of the entry point, and no user code runs before it.
+Module-level global state is declared only with [`static`](../005-modules/503-static.md). A `const` initializer is evaluated at compile time; any other initializer runs on the first access to its `static`, never before the entry point ([5.3.9](../005-modules/503-static.md#539-initializers-compile-time-or-first-use)). Program execution therefore always begins at the first statement of the entry point, and no user code runs before it.
 
 ## 4.16.8. Single-File execution
 
