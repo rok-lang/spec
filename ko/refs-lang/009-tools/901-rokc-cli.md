@@ -211,13 +211,13 @@ fn parse_1kb(b: Bench) {
 `b.iter(f)`가 측정 전체(보정, 예열, 표본 수집)를 맡고, 결과는 black_box를 거칩니다. `black_box`([`rok::core`](../../refs-standard-libraries/README.md))는 옵티마이저가 꿰뚫어 볼 수 없는 항등 함수입니다. 측정 구간의 입력과 결과에 적용하면 작업이 구간 밖으로 끌려 나가거나 상수로 접히지 않습니다. `b.bytes(n)` / `b.items(n)`은 처리량 열을 더합니다. `Bench`, `black_box`, 통계는 라이브러리 API이고, 측정 방법은 [9.9.11](909-debug-tools.md#9911-벤치마크)에서 정의합니다.
 
 - `--iters=N`은 보정 대신 표본 하나의 호출 횟수를 고정합니다.
-- `--samples=N`은 측정할 표본 수입니다(기본값 100).
+- `--samples=N`은 측정할 표본 수입니다(기본값 10).
 - `--format=human|rokbench`는 출력 형식을 고릅니다(기본값 `human`).
 
 벤치는 하나씩 차례로 실행됩니다. 각 벤치는 터미널이든 아니든 사람이 읽는 단위로 정렬한 한 줄을 출력합니다.
 
 ```
-  json::parse_1kb     1.84 us +/- 0.03 us   543 MiB/s   [2 outliers]
+  json::parse_1kb     1.84 us +/- 0.03 us   543 MiB/s   [2 outliers, 0 gc]
 ```
 
 `--format=rokbench`를 주면 그 대신 회귀 도구가 읽는 안정된 기계용 형식을 벤치마다 한 줄씩 출력합니다. 형식은 `#rokbench name=<name> median_ns=<f> mad_ns=<f> samples=<n> outliers=<n> gc=<n> bytes=<n> items=<n>`입니다.
@@ -544,10 +544,11 @@ error[E100]: cannot find value `count` in this scope
 
 | 동사        | 시점                                      |
 |-------------|-------------------------------------------|
-| `Compiling` | 프런트엔드 시작(패키지 이름과 디렉터리). `rok`이 가져온 의존 패키지(`$ROK_HOME/cache/` 아래)는 대신 `<name> v<version>`을 보임. 옵션 집합마다 한 번 캐시용으로 빌드하는 표준 라이브러리([9.2.16](902-aot-pipeline.md#9216-증분-빌드))는 `std (<-O 수준>, cached for next builds)`를 보임 |
+| `Compiling` | 프런트엔드 시작(패키지 이름과 디렉터리). `check`와 `lint`는 `Checking`, `doc`은 `Documenting`. `rok`이 가져온 의존 패키지(`$ROK_HOME/cache/` 아래)는 대신 `<name> v<version>`을 보임. 옵션 집합마다 한 번 캐시용으로 빌드하는 표준 라이브러리([9.2.16](902-aot-pipeline.md#9216-증분-빌드))는 `std (<-O 수준>, cached for next builds)`를 보임 |
 | `Building`  | 실행 파일 / 아카이브 생성(`build`)        |
-| `Built`     | 단독 파일의 실행 파일을 그 옆에 복사함(`build`). `Built hello (use -o to put it elsewhere)` |
+| `Built`     | 단독 파일의 실행 파일을 그 옆에 복사함(`build`). `Built hello (use -o to put it elsewhere)`. 테스트 / 벤치 harness를 `--emit-harness` 없이 빌드함(`test`, `bench`). 뒤에 그것을 실행할 `rok test`나 `rok bench`를 알리는 note가 따라옴 |
 | `Wrote`     | `--emit` 산출물 하나를 씀                 |
+| `Std`       | `-v`일 때 쓰는 표준 라이브러리. `prebuilt (<path>)`나 `from source` |
 | `Finished`  | 빌드 끝(명령 시작부터 걸린 시간, 표준 라이브러리 빌드 포함) |
 | `Running`   | 프로그램 실행(`run`). 현재 디렉터리 기준의 실행 파일. 단독 파일은 파일 이름(`Running hello.rok`), `-v`면 캐시된 실행 파일 |
 | `Created`   | 패키지 생성(`new`). 그 아래에 이어서 실행할 명령을 보임([9.10.2](910-rok-frontend.md#9102-rok-new--rok-init-패키지-생성)) |

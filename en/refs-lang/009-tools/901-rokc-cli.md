@@ -211,13 +211,13 @@ fn parse_1kb(b: Bench) {
 `b.iter(f)` performs the whole measurement (calibrate, warm up, sample); its result is black-boxed. `black_box` ([`rok::core`](../../refs-standard-libraries/README.md)) is an identity the optimizer cannot see through. Apply it to the inputs and result of the timed region so the work is neither hoisted out nor folded away. `b.bytes(n)` / `b.items(n)` add a throughput column. `Bench`, `black_box` and the statistics are library API; the method is defined in [9.9.11](909-debug-tools.md#9911-benchmarks).
 
 - `--iters=N` fixes the number of calls per sample instead of calibrating.
-- `--samples=N` is the number of samples measured (default 100).
+- `--samples=N` is the number of samples measured (default 10).
 - `--format=human|rokbench` selects the output form (default `human`).
 
 Benchmarks run one at a time. Each prints one aligned line in human units, to a terminal or not:
 
 ```
-  json::parse_1kb     1.84 us +/- 0.03 us   543 MiB/s   [2 outliers]
+  json::parse_1kb     1.84 us +/- 0.03 us   543 MiB/s   [2 outliers, 0 gc]
 ```
 
 `--format=rokbench` prints a stable machine form for regression tools instead, one line per benchmark: `#rokbench name=<name> median_ns=<f> mad_ns=<f> samples=<n> outliers=<n> gc=<n> bytes=<n> items=<n>`.
@@ -544,10 +544,11 @@ Progress is shown on stderr with right-aligned verbs. Nothing is printed with `-
 
 | Verb        | When                                          |
 |-------------|-----------------------------------------------|
-| `Compiling` | Front end starts (package name and directory). A dependency `rok` fetched (under `$ROK_HOME/cache/`) shows `<name> v<version>` instead; the standard library, built once per option set for the cache ([9.2.16](902-aot-pipeline.md#9216-incremental-build)), shows `std (<-O level>, cached for next builds)` |
+| `Compiling` | Front end starts (package name and directory); `Checking` for `check` and `lint`, `Documenting` for `doc`. A dependency `rok` fetched (under `$ROK_HOME/cache/`) shows `<name> v<version>` instead; the standard library, built once per option set for the cache ([9.2.16](902-aot-pipeline.md#9216-incremental-build)), shows `std (<-O level>, cached for next builds)` |
 | `Building`  | Executable / archive produced (`build`)       |
-| `Built`     | A lone file's executable copied next to it (`build`): `Built hello (use -o to put it elsewhere)` |
+| `Built`     | A lone file's executable copied next to it (`build`): `Built hello (use -o to put it elsewhere)`. A test or bench harness built without `--emit-harness` (`test`, `bench`), followed by a note naming `rok test` or `rok bench` to run it |
 | `Wrote`     | One `--emit` output written                   |
+| `Std`       | With `-v`: the standard library used, `prebuilt (<path>)` or `from source` |
 | `Finished`  | Build done (time since the command started, a standard library build included) |
 | `Running`   | Program run (`run`): the executable relative to the current directory; a lone file by its file name (`Running hello.rok`), with `-v` the cached executable |
 | `Created`   | Package created (`new`), then the command to run next under it ([9.10.2](910-rok-frontend.md#9102-rok-new--rok-init-package-creation)) |
