@@ -1,82 +1,82 @@
-# 2.6. broadcast - element-wise 연산자
+# 2.6. broadcast: 원소별 연산자
 
-`rok::core::ops::broadcast` 모듈은 Julia 식 dot 연산자에 대한 트레잇 권위를 제공합니다. dot 연산자(`.+` / `.*` / `.==` / `f.(x)`) 는 element-wise 의미를 문법 자체에 시각적으로 분리하여 드러내므로, 사용자 정의 `*`(예: matrix multiply 등) 과 혼동될 여지를 미리 차단합니다.
+`rok::core::ops::broadcast` 모듈은 Julia식 점 연산자의 트레잇을 정하는 권위입니다. 점 연산자(`.+` / `.*` / `.==` / `f.(x)`)는 원소별 의미를 문법에서 눈에 띄게 구분합니다. 그래서 사용자 정의 `*`(예: 행렬 곱)와 헷갈릴 일이 없습니다.
 
-이 장에서는 19 개의 broadcast 트레잇과 함수 broadcast desugar 규칙을 함께 정의합니다.
+이 장은 브로드캐스트 트레잇 19개와 함수 브로드캐스트가 풀리는 규칙을 함께 정의합니다.
 
-## 2.6.1. 동기 - 왜 별도 dot 연산자인가요
+## 2.6.1. 동기: 별도 dot 연산자를 두는 이유
 
-NumPy 나 MATLAB 에서 `*` 가 배열에서는 element-wise 로, 행렬에서는 곱셈으로 의미가 바뀌는 **silent ambiguity** 는 흔히 버그의 원인이 되어 왔습니다(PEP 465 의 `@` 도입 동기 역시 같은 맥락입니다).
+NumPy와 MATLAB에서 `*`는 배열에서는 원소별 곱, 행렬에서는 행렬 곱을 뜻합니다. 이 **드러나지 않는 모호성(silent ambiguity)**은 오래전부터 버그의 원인이었습니다. PEP 465가 `@`를 도입한 동기도 같습니다.
 
-이에 비해 rok 의 정책은 다음과 같이 명확합니다.
+Rok의 정책은 다음과 같습니다.
 
 ```rok
 m * n       // 사용자 정의 Mul - matrix multiplication, dot product, etc.
 m .* n      // element-wise (Hadamard product) - 항상 broadcast
 ```
 
-dot 접두사(`.`) 가 시각적인 신호 역할을 하여 element-wise 의도를 명시하며, 컴파일러가 이를 강제합니다. 즉 List/Vec/Matrix 등 어떤 컨테이너에서든 `.+` 는 일관되게 `DotAdd::dot_add` 로 dispatch 됩니다.
+점 접두사(`.`)가 원소별 의도를 눈에 보이게 드러내고, 컴파일러가 이 구분을 강제합니다. 그래서 List/Vec/Matrix 등 어떤 컨테이너에서든 `.+`는 늘 `DotAdd::dot_add`로 디스패치됩니다.
 
-## 2.6.2. 19 트레잇 - operator 매핑
+## 2.6.2. 트레잇 19개: 연산자 매핑
 
-전체 트레잇은 산술(6) + 비교(6) + 논리(2) + 비트(3) + shift(2) = **19**개로 구성됩니다.
+트레잇은 모두 산술(6) + 비교(6) + 논리(2) + 비트(3) + 시프트(2) = 19개입니다.
 
 > [!NOTE]
-> 이 장은 19 트레잇을 기준으로 정의하며, 산술 6종, 비교 6종, 논리 2종, 비트 3종, shift 2종을 모두 포함합니다. dot 비교(`.==`/`.!=`/`.<`/`.>`/`.<=`/`.>=`) 는 [2.5.8 broadcast 비교](205-cmp.md#258-broadcast-비교-트레잇)
-> 에서 **간단 시그니처** 만 제시했고, 이 장이 **전체 권위** 를 갖습니다.
+> 이 장은 트레잇 19개를 모두 정의합니다. 산술 6종, 비교 6종, 논리 2종, 비트 3종, 시프트 2종입니다. 점 비교(`.==`/`.!=`/`.<`/`.>`/`.<=`/`.>=`)는 [2.5.8 broadcast 비교](205-cmp.md#258-broadcast-비교-트레잇)
+> 에 **간단한 시그니처**만 있습니다. **전체 권위**는 이 장에 있습니다.
 
-### 산술 (6)
+### 산술(6)
 
-| 트레잇      | operator | precedence | 의미                          |
+| 트레잇      | 연산자   | 우선순위   | 의미                          |
 |-------------|----------|------------|-------------------------------|
-| `DotAdd`    | `.+`     | 7 (left)   | element-wise 덧셈             |
-| `DotSub`    | `.-`     | 7 (left)   | element-wise 뺄셈             |
-| `DotMul`    | `.*`     | 8 (left)   | element-wise 곱 (Hadamard)    |
-| `DotDiv`    | `./`     | 8 (left)   | element-wise 나눗셈           |
-| `DotRem`    | `.%`     | 8 (left)   | element-wise 나머지 (Rem)     |
-| `DotModulo` | `.%%`    | 8 (left)   | element-wise floored modulo   |
+| `DotAdd`    | `.+`     | 7 (좌)     | 원소별 덧셈             |
+| `DotSub`    | `.-`     | 7 (좌)     | 원소별 뺄셈             |
+| `DotMul`    | `.*`     | 8 (좌)     | 원소별 곱 (Hadamard)    |
+| `DotDiv`    | `./`     | 8 (좌)     | 원소별 나눗셈           |
+| `DotRem`    | `.%`     | 8 (좌)     | 원소별 나머지 (Rem)     |
+| `DotModulo` | `.%%`    | 8 (좌)     | 원소별 floored modulo   |
 
-### 비교 (6)
+### 비교(6)
 
-| 트레잇  | operator | precedence | 의미                                |
+| 트레잇  | 연산자   | 우선순위   | 의미                                |
 |---------|----------|------------|-------------------------------------|
-| `DotEq` | `.==`    | 4 (none)   | element-wise == → `Container<bool>` |
-| `DotNe` | `.!=`    | 4 (none)   | element-wise !=                     |
-| `DotLt` | `.<`     | 4 (none)   | element-wise <                      |
-| `DotGt` | `.>`     | 4 (none)   | element-wise >                      |
-| `DotLe` | `.<=`    | 4 (none)   | element-wise <=                     |
-| `DotGe` | `.>=`    | 4 (none)   | element-wise >=                     |
+| `DotEq` | `.==`    | 4 (비결합) | 원소별 == → `Container<bool>` |
+| `DotNe` | `.!=`    | 4 (비결합) | 원소별 !=                     |
+| `DotLt` | `.<`     | 4 (비결합) | 원소별 <                      |
+| `DotGt` | `.>`     | 4 (비결합) | 원소별 >                      |
+| `DotLe` | `.<=`    | 4 (비결합) | 원소별 <=                     |
+| `DotGe` | `.>=`    | 4 (비결합) | 원소별 >=                     |
 
-### 논리 (2)
+### 논리(2)
 
-| 트레잇          | operator | precedence | 의미                                     |
+| 트레잇          | 연산자   | 우선순위   | 의미                                     |
 |-----------------|----------|------------|------------------------------------------|
-| `DotLogicalAnd` | `.&&`    | 3 (left)   | element-wise 논리 AND (no short-circuit) |
-| `DotLogicalOr`  | `.\|\|`    | 2 (left)   | element-wise 논리 OR (no short-circuit)  |
+| `DotLogicalAnd` | `.&&`    | 3 (좌)     | 원소별 논리 AND (단락 평가 없음) |
+| `DotLogicalOr`  | `.\|\|`    | 2 (좌)     | 원소별 논리 OR (단락 평가 없음)  |
 
 > [!IMPORTANT]
-> **`.&&` / `.||` 는 short-circuit 평가를 하지 않습니다**. 일반 `&&` / `||` 와 달리, broadcast 가 fused loop 으로 lower 되는 특성상 양쪽 인자가 항상 평가됩니다. 의미적으로는 bool 컨테이너에 대한 element-wise 논리 결합과 동일합니다. 부수효과가 있는 함수 호출을 한쪽 인자에 두면 항상 실행되니 주의가 필요합니다.
+> **`.&&` / `.||`는 단락 평가(short-circuit)를 하지 않습니다**. 일반 `&&` / `||`와 달리 브로드캐스트는 합친 루프 하나로 낮추므로 양쪽 피연산자를 늘 평가합니다. 의미는 bool 컨테이너를 원소별로 논리 결합한 것과 같습니다. 부수 효과가 있는 함수 호출을 어느 쪽 피연산자에 두든 그 호출은 늘 실행되니 주의하세요.
 
-### 비트 (3)
+### 비트(3)
 
-| 트레잇      | operator | precedence | 의미           |
+| 트레잇      | 연산자   | 우선순위   | 의미           |
 |-------------|----------|------------|----------------|
-| `DotBitAnd` | `.&`     | 6 (left)   | element-wise & |
-| `DotBitOr`  | `.\|`     | 5 (left)   | element-wise \| |
-| `DotBitXor` | `.^`     | 6 (left)   | element-wise ^ |
+| `DotBitAnd` | `.&`     | 6 (좌)     | 원소별 & |
+| `DotBitOr`  | `.\|`     | 5 (좌)     | 원소별 \| |
+| `DotBitXor` | `.^`     | 6 (좌)     | 원소별 ^ |
 
-### shift (2)
+### 시프트(2)
 
-| 트레잇   | operator | precedence | 의미            |
+| 트레잇   | 연산자   | 우선순위   | 의미            |
 |----------|----------|------------|-----------------|
-| `DotShl` | `.<<`    | 9 (left)   | element-wise << |
-| `DotShr` | `.>>`    | 9 (left)   | element-wise >> |
+| `DotShl` | `.<<`    | 9 (좌)     | 원소별 << |
+| `DotShr` | `.>>`    | 9 (좌)     | 원소별 >> |
 
-precedence 와 associativity 는 일반 트레잇([2.3 ops](203-ops.md), [2.5 cmp](205-cmp.md)) 과 동형으로 맞추어 두었습니다.
+우선순위와 결합성은 일반 트레잇([2.3 ops](203-ops.md), [2.5 cmp](205-cmp.md))과 같습니다.
 
-## 2.6.3. 트레잇 시그니처 - 통일 형태
+## 2.6.3. 트레잇 시그니처: 통일 형태
 
-모든 dot 트레잇은 다음과 같이 통일된 형태를 따릅니다.
+모든 점 트레잇은 같은 형태를 따릅니다.
 
 ```rok
 trait DotAdd<Rhs = Self> {
@@ -110,31 +110,31 @@ trait DotLogicalAnd<Rhs = Self> {
 }
 ```
 
-산술 dot 트레잇은 `Add`/`Sub`/`Mul`/`Div`/`Rem`/`Modulo` 와 완전히 대칭을 이루며, `Output` associated type 에 infix 어트리뷰트를 부착하는 형태입니다. 여섯 비교 dot 트레잇 (`DotEq`, `DotNe`, `DotLt`, `DotGt`, `DotLe`, `DotGe`) 도 같은 형태이며, 각자 `Output` 을 가지고 그것은 보통 `Container<bool>` 입니다. 논리 dot 트레잇 (`DotLogicalAnd` / `DotLogicalOr`) 은 `Container<bool>` 양쪽을 받아 `Container<bool>` 을 돌려주는 형태가 일반적이며, short-circuit 이 없으므로 양쪽 컨테이너가 모두 끝까지 평가됩니다.
+산술 점 트레잇은 `Add`/`Sub`/`Mul`/`Div`/`Rem`/`Modulo`와 완전히 대칭입니다. 연관 타입 `Output`에 중위 속성을 붙인 형태입니다. 비교 점 트레잇 여섯 개(`DotEq`, `DotNe`, `DotLt`, `DotGt`, `DotLe`, `DotGe`)도 같은 형태입니다. 트레잇마다 `Output`이 있고, 그 타입은 보통 `Container<bool>`입니다. 논리 점 트레잇(`DotLogicalAnd` / `DotLogicalOr`)은 보통 양쪽에 `Container<bool>`을 받아 `Container<bool>`을 돌려줍니다. 단락 평가가 없으므로 양쪽 컨테이너를 모두 끝까지 평가합니다.
 
-### 함수 broadcast - 트레잇 X
+### 함수 broadcast: 트레잇 없음
 
-함수 broadcast 는 다음과 같은 형태로 사용됩니다.
+함수 브로드캐스트는 다음처럼 씁니다.
 
 ```rok
 f.(x)              // 함수 broadcast
 f.(a, b)           // 여러 인자
 ```
 
-함수 broadcast 는 별도의 트레잇을 두지 않고 다음과 같이 desugar 됩니다.
+함수 브로드캐스트에는 별도의 트레잇이 없고, 다음과 같이 풀립니다.
 
 ```rok
 f.(x)        →  x.into_iter().map(f).collect()
 g.(a, b)     →  a.into_iter().zip(b.into_iter()).map(|(x, y)| g(x, y)).collect()
 ```
 
-[2.7 iter](207-iter.md) 의 `map`/`zip` 으로 직접 dispatch 되며, broadcast 모듈이 별도의 트레잇을 두지 않습니다. 이는 함수 자체가 dispatch 대상이 아니라 callable 이라는 차이에서 비롯됩니다.
+이 식은 [2.7 iter](207-iter.md)의 `map`/`zip`으로 바로 디스패치됩니다. broadcast 모듈은 별도의 트레잇을 두지 않습니다. 함수 자체는 디스패치 대상이 아니라 호출할 수 있는 값(callable)이기 때문입니다.
 
-## 2.6.4. 의미 정의 - element-wise
+## 2.6.4. 의미 정의: 원소별
 
-### 산술 dot - 같은 모양 두 컨테이너
+### 산술 dot: 같은 모양 두 컨테이너
 
-같은 모양을 가진 두 컨테이너에 대한 산술 dot 연산은 다음과 같이 동작합니다.
+모양이 같은 두 컨테이너의 산술 점 연산은 다음과 같이 동작합니다.
 
 ```rok
 let a: List<i32> = [1, 2, 3];
@@ -146,7 +146,7 @@ let e = b .- a;          //→ [9, 18, 27]
 let f = b ./ a;          //→ [10, 10, 10]
 ```
 
-길이가 일치하지 않으면 런타임 panic 이 발생합니다. 다만 컴파일 타임에 size 를 알 수 있다면 컴파일 에러로 잡힙니다.
+길이가 다르면 실행 중에 panic이 일어납니다. 다만 컴파일 시간에 크기를 알 수 있으면 컴파일 에러로 잡힙니다.
 
 ```rok
 let x: [i32; 3] = [1, 2, 3];
@@ -158,9 +158,9 @@ let q: List<i32> = [1, 2];
 let r = p .+ q;          // panic at runtime - length mismatch
 ```
 
-### scalar broadcast
+### 스칼라 broadcast
 
-스칼라와 컨테이너를 함께 사용하면 다음과 같이 동작합니다.
+스칼라와 컨테이너를 함께 쓰면 다음과 같이 동작합니다.
 
 ```rok
 let a: List<i32> = [1, 2, 3];
@@ -169,11 +169,11 @@ let m = 2 .* a;          //→ [2, 4, 6]
 let t = a ./ 2;          //→ [0, 1, 1]    (i32 truncate)
 ```
 
-이 경우 별도의 impl (`DotAdd<T> for List<T>`, 그리고 scalar 가 왼쪽인 형태의 `DotAdd<List<T>> for T`) 이 scalar 쪽을 처리합니다. 고정 배열 `[T; N]` 에는 scalar 가 왼쪽인 impl 이 없습니다.
+이 경우 별도의 구현(`DotAdd<T> for List<T>`, 그리고 스칼라가 왼쪽인 형태의 `DotAdd<List<T>> for T`)이 스칼라 쪽을 처리합니다. 고정 배열 `[T; N]`에는 스칼라가 왼쪽인 구현이 없습니다.
 
-### 비교 dot - `Container<bool>` 반환
+### 비교 dot: `Container<bool>` 반환
 
-비교 dot 연산자는 결과로 `Container<bool>` 을 반환합니다.
+비교 점 연산자는 결과로 `Container<bool>`을 반환합니다.
 
 ```rok
 let a: List<i32> = [1, 5, 3];
@@ -186,9 +186,9 @@ a .>= b;                 //→ [false, true, true]
 a .< 4;                  //→ [true, false, true]   (scalar broadcast)
 ```
 
-### 나머지 dot - `.%` 와 `.%%`
+### 나머지 dot: `.%`와 `.%%`
 
-나머지 계열 dot 연산자는 일반 `%` / `%%` 와 동일한 의미를 element-wise 로 적용합니다.
+나머지 계열 점 연산자는 일반 `%` / `%%`와 같은 의미를 원소별로 적용합니다.
 
 ```rok
 let a: List<i32> = [-7, 5, -3, 8];
@@ -198,9 +198,9 @@ a .% b;                  //→ [-1, 2, 0, 2]   (Rem - 부호는 좌측 따름)
 a .%% b;                 //→ [2, 2, 0, 2]    (Modulo - 항상 [0, 3))
 ```
 
-### 논리 dot - `.&&` 와 `.||`
+### 논리 dot: `.&&`와 `.||`
 
-논리 dot 연산자는 두 `Container<bool>` 의 element-wise 논리 결합을 산출합니다. 점 없는 형태와 달리 short-circuit 이 없으므로, 양쪽 컨테이너가 항상 끝까지 평가됩니다.
+논리 점 연산자는 두 `Container<bool>`을 원소별로 논리 결합합니다. 점 없는 형태와 달리 단락 평가가 없으므로 양쪽 컨테이너를 늘 끝까지 평가합니다.
 
 ```rok
 let p: List<bool> = [true, false, true, false];
@@ -214,9 +214,9 @@ let xs: List<i32> = [1, 5, 3, 8];
 (xs .>= 2) .&& (xs .< 6);  //→ [false, true, true, false]
 ```
 
-### 비트 / shift dot
+### 비트 / 시프트 dot
 
-비트 및 shift 계열 dot 연산자도 같은 방식으로 동작합니다.
+비트와 시프트 계열 점 연산자도 같은 방식으로 동작합니다.
 
 ```rok
 let xs: List<u8> = [0b1100, 0b1010, 0b0011];
@@ -230,9 +230,9 @@ let ns: List<u32> = [1, 2, 4];
 ns .<< 2;                //→ [4, 8, 16]
 ```
 
-## 2.6.5. 함수 broadcast - `f.(x)`
+## 2.6.5. 함수 broadcast: `f.(x)`
 
-함수 broadcast 는 일반 함수 호출 자리에 dot 을 붙여 사용할 수 있습니다.
+함수 브로드캐스트는 일반 함수 호출에 점을 붙여 씁니다.
 
 ```rok
 let xs: List<f64> = [0.0, 0.5, 1.0];
@@ -242,7 +242,7 @@ let r = f64::sqrt.(xs);              //→ [0.0, 0.707..., 1.0]
 let g = (|x: f64| x * 2.0).(xs);     //→ [0.0, 1.0, 2.0]
 ```
 
-여러 인자를 동시에 broadcast 하는 것도 가능합니다.
+인자 여러 개를 한꺼번에 브로드캐스트해도 됩니다.
 
 ```rok
 let a: List<f64> = [1.0, 2.0, 3.0];
@@ -252,17 +252,17 @@ let r = f64::pow.(a, b);             //→ [1.0, 4_194_304.0, ...]
 let m = max.(a, b);                  //→ [10.0, 20.0, 30.0]
 ```
 
-`List`, `Slice`, 배열인 인자는 함께 순회하고, 그 밖의 인자는 매 호출에 그대로 넘깁니다 (`pow.(xs, 2.0)`). 순회하는 인자는 길이가 같아야 하며 런타임에 검사합니다. 인자 개수에는 **제한이 없어** 임의의 N-ary 함수까지 적용할 수 있습니다.
+`List`, `Slice`, 배열인 인자는 함께 순회하고, 그 밖의 인자는 호출마다 그대로 넘깁니다(`pow.(xs, 2.0)`). 순회하는 인자는 길이가 같아야 하고, 실행 중에 검사합니다. 인자 개수에는 **제한이 없으므로** 인자가 몇 개인 함수에든 적용할 수 있습니다.
 
-## 2.6.6. loop fusion
+## 2.6.6. 루프 융합
 
-연속해서 등장하는 dot 연산은 컴파일러가 단일 loop 로 합쳐 줍니다.
+컴파일러는 이어진 점 연산을 루프 하나로 합칩니다.
 
 ```rok
 let result = sin.(a) .+ cos.(b) .* 2.0;
 ```
 
-일반적인 lowering 이라면 3 개의 임시 List 할당과 3회의 loop 가 필요합니다. rok 은 중간 컬렉션 없는 단일 loop 를 보장하며, 그 방법 (예: `linalg.generic` op) 은 컴파일러가 고릅니다.
+단순하게 낮추면 임시 List 할당 3번과 루프 3개가 필요합니다. Rok은 중간 컬렉션 없는 루프 하나를 보장합니다. 그 방법(예: `linalg.generic` 연산)은 컴파일러가 고릅니다.
 
 ```rok
 // 개념적으로는 다음과 같은 단일 elementwise 호출과 같습니다.
@@ -271,38 +271,38 @@ let result = elementwise(a, b, |x, y| sin(x) + cos(y) * 2.0);
 
 ## 2.6.7. 트레잇 구현 매트릭스
 
-각 컨테이너 타입에 대한 dot 트레잇 impl 은 다음과 같이 매핑됩니다.
+컨테이너 타입별 점 트레잇 구현은 다음과 같습니다.
 
 | 컨테이너         | DotAdd   | DotMul   | DotEq       | 비고                                    |
 |------------------|----------|----------|-------------|-----------------------------------------|
-| `List<T>`        | T:Add    | T:Mul    | T:PartialEq | element-wise, 길이 일치                 |
-| `[T; N]` (고정)  | T:Add    | T:Mul    | T:PartialEq | 고정 N - 컴파일 타임                    |
-| `Slice<T>`       | T:Add    | T:Mul    | T:PartialEq | view - element-wise                     |
-| `i32`/`f64`/etc. | **없음** | **없음** | **없음**    | 스칼라끼리는 일반 `+`/`*`/`==` 사용     |
-| `T \| none`       | (연산자) | (연산자) | (연산자)    | option propagation (`none .+ x = none`) |
+| `List<T>`        | T:Add    | T:Mul    | T:PartialEq | 원소별, 길이가 같아야 함                |
+| `[T; N]` (고정)  | T:Add    | T:Mul    | T:PartialEq | 고정 N, 컴파일 시간                     |
+| `Slice<T>`       | T:Add    | T:Mul    | T:PartialEq | 뷰, 원소별                              |
+| `i32`/`f64` 등   | **없음** | **없음** | **없음**    | 스칼라끼리는 일반 `+`/`*`/`==` 사용     |
+| `T \| none`       | (연산자) | (연산자) | (연산자)    | 옵션 전파 (`none .+ x = none`)          |
 
-`T | none` 의 dot 의미는 option propagation 입니다. 즉 어느 한쪽이 `none` 이면 결과도 `none` 으로 전파됩니다. 이것은 라이브러리 impl 없이 연산자 수준에서 처리합니다.
+`T | none`에서 점 연산의 의미는 옵션 전파(option propagation)입니다. 어느 한쪽이 `none`이면 결과도 `none`입니다. 이 처리는 라이브러리 구현 없이 연산자 수준에서 합니다.
 
-`Matrix<T>` / `Tensor<T>` 같은 수치 컨테이너는 외부 라이브러리에서 정의되며, 그곳에서 동일한 dot 트레잇을 직접 구현하여 NumPy 식 broadcasting 규칙을 따르도록 되어 있습니다.
+`Matrix<T>` / `Tensor<T>` 같은 수치 컨테이너는 외부 라이브러리가 정의합니다. 그 라이브러리가 같은 점 트레잇을 직접 구현하고 NumPy식 브로드캐스트 규칙을 따릅니다.
 
 ## 2.6.8. NumPy 식 broadcasting 규칙
 
-차원이 다른 배열 간의 broadcast 는 NumPy 방식을 따릅니다. 1차원과 0차원(스칼라) 이 만나면 scalar 가 모든 원소에 적용되고, 같은 차원에 같은 shape 이라면 pointwise 로 동작하며, 다른 shape 일 경우에는 trailing dim 부터 일치시키되 1 이면 stretch 됩니다.
+차원이 다른 배열 사이의 브로드캐스트는 NumPy 방식을 따릅니다. 1차원과 0차원(스칼라)이 만나면 스칼라를 모든 원소에 적용합니다. 차원과 모양이 같으면 원소끼리 계산합니다. 모양이 다르면 마지막 차원부터 맞추고, 크기가 1인 차원은 늘립니다.
 
-본 절은 dot 트레잇의 일반 의미만 정의하며, 다차원 broadcasting 규칙의 전체 권위는 외부 텐서 라이브러리에 위임됩니다. rok 표준 라이브러리는 1 차원 컨테이너 (`List<T>`, `[T; N]`, `Slice<T>`) 의 element-wise 의미만 책임집니다.
+이 절은 점 트레잇의 일반 의미만 정의합니다. 다차원 브로드캐스트 규칙의 전체 권위는 외부 텐서 라이브러리에 맡깁니다. Rok 표준 라이브러리는 1차원 컨테이너(`List<T>`, `[T; N]`, `Slice<T>`)의 원소별 의미만 책임집니다.
 
-## 2.6.9. 다른 언어와의 비교
+## 2.6.9. 다른 언어와 비교
 
 다른 주요 언어와 비교하면 다음과 같습니다.
 
-| 측면             | NumPy                | Julia                      | MATLAB           | rok                           |
+| 측면             | NumPy                | Julia                      | MATLAB           | Rok                           |
 |------------------|----------------------|----------------------------|------------------|-------------------------------|
-| element-wise     | `*` (silent)         | `.*` (명시)                | `.*` (명시)      | `.*` (명시)                   |
-| matrix mul       | `@` (PEP 465)        | `*`                        | `*`              | `*` (사용자 정의 Mul)         |
-| element-wise add | `+` (silent)         | `.+`                       | `.+`             | `.+`                          |
-| 함수 broadcast   | `np.vectorize(f)(x)` | `f.(x)`                    | `arrayfun(f, x)` | `f.(x)`                       |
-| loop fusion      | **없음**             | `@.` 매크로 (자동)         | **없음**         | dot chain 자동 (MLIR)         |
-| comparison       | `==` returns array   | `.==`                      | `==` (혼란)      | `.==`                         |
-| dot 별도 트레잇  | **없음**             | **없음** (`*` overload 만) | **없음**         | **DotAdd/DotMul/...** (19 개) |
+| 원소별 연산      | `*` (암묵)           | `.*` (명시)                | `.*` (명시)      | `.*` (명시)                   |
+| 행렬 곱          | `@` (PEP 465)        | `*`                        | `*`              | `*` (사용자 정의 Mul)         |
+| 원소별 덧셈      | `+` (암묵)           | `.+`                       | `.+`             | `.+`                          |
+| 함수 브로드캐스트 | `np.vectorize(f)(x)` | `f.(x)`                    | `arrayfun(f, x)` | `f.(x)`                       |
+| 루프 합치기      | **없음**             | `@.` 매크로 (자동)         | **없음**         | 점 연산 연쇄 자동 (MLIR)      |
+| 비교             | `==`가 배열 반환     | `.==`                      | `==` (혼란)      | `.==`                         |
+| 점 전용 트레잇   | **없음**             | **없음** (`*` overload만) | **없음**         | **DotAdd/DotMul/...** (19개) |
 
-rok 이 다른 언어와 가장 크게 다른 지점은 두 가지로 요약할 수 있습니다. 첫째, dot 연산자가 모두 별도의 트레잇을 갖습니다. Julia 가 `+` 를 overload 한 위에 dot syntax 만 얹은 형태인 데 비해, rok 에서는 `Add` 와 `DotAdd` 가 서로 다른 트레잇이며 `Matrix * Matrix` 와 `Matrix .* Matrix` 가 완전히 다른 dispatch 를 따릅니다. 둘째, 컴파일러가 dot 사용을 강제합니다. 일반 `*` 로는 broadcast 가 **불가능** 하므로, 사용자 코드에 의존하지 않는 결정론적 분리가 보장됩니다.
+Rok이 다른 언어와 가장 크게 다른 점은 두 가지입니다. 첫째, 점 연산자마다 별도의 트레잇이 있습니다. Julia는 오버로드한 `+` 위에 점 문법만 얹습니다. Rok에서는 `Add`와 `DotAdd`가 서로 다른 트레잇이고, `Matrix * Matrix`와 `Matrix .* Matrix`는 전혀 다른 디스패치를 따릅니다. 둘째, 컴파일러가 점 사용을 강제합니다. 일반 `*`로는 브로드캐스트할 수 **없습니다**. 그래서 사용자 코드에 기대지 않는 결정론적 분리가 보장됩니다.

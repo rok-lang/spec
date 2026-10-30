@@ -1,10 +1,10 @@
-# 3.7. `process::` - 자식 프로세스
+# 3.7. `process::`: 자식 프로세스
 
-`rok::std::process` 모듈은 자식 프로세스를 spawn 하고 그 신호를 다루는 일을 담당합니다. 기본 골격은 Rust 의 `Command` builder 패턴을 따르되, 그 위에 모던한 안전 장치-`pidfd`, `kill_on_drop`, 그리고 `posix_spawn` fast path-를 얹어 한층 견고하게 만들었다.
+`rok::std::process` 모듈은 자식 프로세스를 띄우고 신호를 다룹니다. 기본 골격은 Rust의 `Command` builder 패턴을 따릅니다. 그 위에 현대적인 안전장치인 `pidfd`, `kill_on_drop`, `posix_spawn` 빠른 경로를 더해 더 견고하게 만들었습니다.
 
-## 3.7.1. `Command` builder
+## 3.7.1. `Command` 빌더
 
-가장 먼저 만나게 되는 것은 자식 프로세스의 청사진을 그리는 `Command` 구조체입니다. 실행할 프로그램, 인자, 환경 변수, 표준 입출력의 연결 방식 같은 모든 설정을 단계적으로 쌓아 올린 뒤에야 비로소 spawn 으로 옮겨 가게 됩니다.
+먼저 자식 프로세스의 청사진인 `Command` struct입니다. 실행할 프로그램, 인자, 환경 변수, 표준 입출력 연결 방식 같은 설정을 차례로 쌓은 뒤 프로세스를 띄웁니다.
 
 ```rok
 struct Command {
@@ -58,11 +58,11 @@ struct Output {
 }
 ```
 
-여기서 눈여겨볼 점은 `Stdio` 가 네 가지 갈래로 나뉜다는 것입니다. 부모의 fd 를 그대로 물려주는 `Inherit`, 출력을 통째로 버리는 `Null`, 양방향 통신을 위한 `Piped`, 그리고 임의의 fd 를 명시적으로 꽂아 넣는 `File` 이 그것입니다.
+`Stdio`는 네 가지입니다. 부모의 fd를 그대로 물려주는 `Inherit`, 출력을 모두 버리는 `Null`, 양방향 통신용 `Piped`, 임의의 fd를 명시적으로 연결하는 `File`입니다.
 
 ## 3.7.2. `Child`
 
-`spawn` 이 성공하면 이제 살아 움직이는 프로세스의 손잡이로서 `Child` 가 돌아옵니다. 이 핸들을 통해 표준 입출력 스트림에 접근하거나, 종료를 기다리거나, 신호를 보낼 수 있습니다.
+`spawn`이 성공하면 실행 중인 프로세스의 핸들인 `Child`를 돌려줍니다. 이 핸들로 표준 입출력 스트림에 접근하거나, 종료를 기다리거나, 신호를 보낼 수 있습니다.
 
 ```rok
 struct Child {
@@ -97,7 +97,7 @@ impl ExitStatus {
 }
 ```
 
-종료 결과는 `ExitStatus` 라는 불투명 타입에 담긴다. `code()` 가 `none` 이라면 unix 환경에서 신호에 의해 종료되었다는 뜻이고, 그 신호 번호는 `signal()` 로 따로 꺼내 볼 수 있습니다.
+종료 결과는 불투명 타입 `ExitStatus`에 담깁니다. `code()`가 `none`이면 Unix에서 신호로 종료되었다는 뜻입니다. 신호 번호는 `signal()`로 따로 꺼낼 수 있습니다.
 
 ## 3.7.3. 사용 예
 
@@ -135,26 +135,26 @@ using child = try Command::new("long_running")
 }    // ← using 해제 시 Drop → kill
 ```
 
-마지막 예시가 보여주듯, `kill_on_drop` 을 켠 `Child` 를 `using` 으로 묶으면 에러 전파나 조기 return 같은 흐름에서도 자식이 함께 정리됩니다. `using` 블록을 빠져나갈 때 `Drop` 이 kill 을 겁니다. `using` 밖의 `Child` 는 자동으로 kill 되지 않습니다 ([2.13.4](../200-core/213-marker.md#2134-drop---using-해제-시-정리)). `ChildStdin` / `ChildStdout` / `ChildStderr` 는 파이프의 파일 핸들이며 `File` 과 같은 방식으로 읽고 씁니다.
+마지막 예처럼 `kill_on_drop`을 켠 `Child`를 `using`으로 묶으면 에러 전파나 조기 반환 같은 흐름에서도 자식이 함께 정리됩니다. `using` 블록을 빠져나갈 때 `Drop`이 자식을 죽입니다. `using` 밖의 `Child`는 자동으로 죽지 않습니다([2.13.4](../200-core/213-marker.md#2134-drop-using-해제-시-정리)). `ChildStdin` / `ChildStdout` / `ChildStderr`는 파이프의 파일 핸들입니다. `File`과 같은 방식으로 읽고 씁니다.
 
-## 3.7.4. 모던 추가 - pidfd / posix_spawn / CLOEXEC
+## 3.7.4. 최신 추가 기능: pidfd / posix_spawn / CLOEXEC
 
-이러한 builder 패턴 위에 표준 라이브러리는 몇 가지 현대적 보강을 더합니다. 각각이 어떤 의미를 갖고 어떤 효과로 이어지는지 다음 표에 정리해 두었다.
+표준 라이브러리는 builder 패턴 위에 몇 가지 현대적인 보강을 더합니다. 각 기능의 의미와 효과는 다음과 같습니다.
 
 | 기능                    | 의미                          | 효과                    |
 |-------------------------|-------------------------------|-------------------------|
-| `posix_spawn` fast path | fork+exec 대신 syscall        | huge process spawn 빠름 |
-| `pidfd` (Linux 5.3+)    | pid 대신 fd 로 추적           | race-free signal        |
-| `CLOEXEC` default       | 모든 fd 가 자동 close-on-exec | fd leak 방지            |
-| `kill_on_drop`          | `using` 해제 시 kill          | process leak 방지       |
+| `posix_spawn` 빠른 경로 | fork+exec 대신 syscall        | 큰 프로세스에서도 빨리 띄움 |
+| `pidfd` (Linux 5.3+)    | pid 대신 fd로 추적           | 경쟁 없는 신호          |
+| `CLOEXEC` 기본값        | 모든 fd가 자동 close-on-exec | fd 누수 방지            |
+| `kill_on_drop`          | `using` 해제 시 kill          | 프로세스 누수 방지      |
 
-이러한 결정은 fd 누수와 process 누수, 그리고 신호 race 를 줄이는 방향으로 일관되게 정렬됩니다.
+이 결정은 모두 fd 누수, 프로세스 누수, 신호 경쟁을 줄이는 쪽을 향합니다.
 
-`Command::env` 를 써도 프로그램은 자식이 아니라 부모의 `PATH` 에서 찾습니다.
+`Command::env`를 써도 프로그램은 자식이 아니라 부모의 `PATH`에서 찾습니다.
 
-## 3.7.5. 신호 처리 (advanced)
+## 3.7.5. 신호 처리(고급)
 
-조금 더 깊은 영역으로 내려가면 신호 처리 함수들이 자리 잡고 있습니다.
+한 단계 더 내려가면 신호 처리 함수가 있습니다.
 
 ```rok
 fn signal(sig: i32, handler: fn() + Send) throws (SignalError);
@@ -167,15 +167,15 @@ struct SignalError {
 }
 ```
 
-`signal` 의 handler 는 신호 문맥 (signal handler) 안에서 돌지 않습니다. 런타임이 신호를 받아 전용 dispatcher 스레드 `rok-signal` 로 넘기고, handler 는 그 스레드에서 보통 함수처럼 실행됩니다. 그래서 handler 는 `Send` 여야 하며 할당이나 lock 을 써도 됩니다. 같은 신호에 다시 `signal` 을 부르면 handler 가 바뀝니다. `Command::process_group(pgid)` 는 자식을 그 프로세스 그룹에 넣습니다 (`0` 이면 자식의 pid 로 새 그룹).
+`signal`의 핸들러는 신호 문맥(signal handler) 안에서 돌지 않습니다. 런타임이 신호를 받아 전용 디스패처 스레드 `rok-signal`로 넘깁니다. 핸들러는 그 스레드에서 일반 함수처럼 실행됩니다. 그래서 핸들러는 `Send`여야 하고, 할당하거나 락을 잡아도 됩니다. 같은 신호에 `signal`을 다시 호출하면 핸들러가 바뀝니다. `Command::process_group(pgid)`는 자식을 그 프로세스 그룹에 넣습니다(`0`이면 자식의 pid로 새 그룹을 만듭니다).
 
-Windows 에서는 콘솔 이벤트가 신호 번호로 대응됩니다: Ctrl-C → 2, Ctrl-Break → 21, 콘솔 닫기 / 로그오프 / 종료 → 1. 자식에게 보내는 `kill` 과 `signal` 은 `TerminateProcess` 를 부릅니다.
+Windows에서는 콘솔 이벤트를 신호 번호에 대응합니다. Ctrl-C → 2, Ctrl-Break → 21, 콘솔 닫기 / 로그오프 / 종료 → 1입니다. 자식에게 보내는 `kill`과 `signal`은 `TerminateProcess`를 호출합니다.
 
-다만 대부분의 사용자는 이 부분을 직접 만질 일이 없습니다. daemon 이나 서버, interactive CLI 처럼 신호를 정면으로 마주해야 하는 자리에서나 비로소 필요해지는 도구들이라 보면 됩니다.
+대부분의 사용자는 이 부분을 직접 다룰 일이 없습니다. 데몬, 서버, 대화형 CLI처럼 신호를 직접 처리해야 하는 곳에서만 필요합니다.
 
 ## 3.7.6. 플랫폼 가용성
 
-플랫폼별 지원 범위는 다음과 같이 갈립니다.
+플랫폼별 지원 범위는 다음과 같습니다.
 
 | 항목             | linux      | macos | windows         | wasi |
 |------------------|------------|-------|-----------------|------|
@@ -183,7 +183,7 @@ Windows 에서는 콘솔 이벤트가 신호 번호로 대응됩니다: Ctrl-C �
 | `posix_spawn`    | ✓          | ✓     | (CreateProcess) | ✗    |
 | `pidfd`          | linux 5.3+ | ✗     | ✗               | ✗    |
 | `kill_on_drop`   | ✓          | ✓     | ✓               | ✗    |
-| signal handler   | ✓          | ✓     | (limited)       | ✗    |
+| 신호 핸들러      | ✓          | ✓     | (제한적)        | ✗    |
 | `process::id()`  | ✓          | ✓     | ✓               | `0` (wasm32) |
 
-wasm32 타깃에서 ✗ 로 표시한 항목은 런타임에 `IoErrorKind::Unsupported` 로 실패합니다.
+wasm32 타깃에서 ✗로 표시한 항목은 실행 중에 `IoErrorKind::Unsupported`로 실패합니다.

@@ -1,18 +1,18 @@
-# 3. Std tier
+# 3. Std 계층
 
-target-dep 영역의 표준 라이브러리입니다. 파일시스템, 네트워크, 시간, OS 스레드, I/O, 환경 변수, 프로세스, 경로를 포괄하며, 사용자 환경 (운영체제 / 플랫폼) 에 따라 가용성에 차이가 납니다.
+타깃에 의존하는 영역의 표준 라이브러리입니다. 파일 시스템, 네트워크, 시간, OS 스레드, I/O, 환경 변수, 프로세스, 경로를 다룹니다. 사용자 환경(운영체제 / 플랫폼)에 따라 쓸 수 있는 기능이 다릅니다.
 
 ## 위치
 
-spec 본체는 `spec/ko/refs-standard-libraries/300-std/` 아래 둡니다.
+사양 본체는 `spec/ko/refs-standard-libraries/300-std/` 아래에 있습니다.
 
 ## 의존성
 
-위로는 `rok` 와 `unsafe` 에 의존합니다. 아래로는 사용자 코드가 의존자 위치에 서지만, 어디까지나 명시 import 가 있어야 끌려 들어옵니다.
+위로는 `rok`와 `unsafe`에 의존합니다. 아래로는 사용자 코드가 std에 의존합니다. 단, std는 명시적으로 가져올 때만 끌려 들어옵니다.
 
 ## 사용자 import 정책
 
-묵시 `use rok::core::**;` 는 std 항목을 포함하지 않습니다 - `rok::std::*` 는 별도 명시 import 를 강제합니다. target 별 가용성 차이가 있기 때문에, 사용자가 **명시적으로** 플랫폼 의존성을 표현하도록 설계했습니다.
+묵시 `use rok::core::**;`에는 std 항목이 들어 있지 않습니다. `rok::std::*`는 따로 명시적으로 가져와야 합니다. 타깃마다 가용성이 다르므로 사용자가 플랫폼 의존성을 **명시적으로** 드러내도록 설계했습니다.
 
 ```rok
 use rok::std::fs;
@@ -22,24 +22,24 @@ use rok::std::thread::Builder;
 
 ## 모듈 목차
 
-본 tier 는 다음 열 모듈로 구성합니다.
+이 tier는 다음 열 모듈로 이루어집니다.
 
 - [3.1. `fs::` - 파일 시스템 (atomic ops, Dir capability, reflink copy)](301-fs.md)
 - [3.2. `net::` - TCP / UDP / Unix + TLS 1.3](302-net.md)
 - [3.3. `time::` - `Instant` / `SystemTime` / `Duration` / `BootTime`](303-time.md)
-- [3.4. `thread::` - OS 스레드 (1:1, `task::` 와 별개)](304-thread.md)
+- [3.4. `thread::` - OS 스레드 (1:1, `task::`와 별개)](304-thread.md)
 - [3.5. `io::` - `Reader` / `Writer` / stdin/out/err / `BufReader`](305-io.md)
 - [3.6. `env::` - 환경 변수 / args / current_dir / home_dir](306-env.md)
 - [3.7. `process::` - `Command` / `Child` / pidfd / kill_on_drop](307-process.md)
 - [3.8. `path::` - UTF-8 `Path` (Python 식) + `RawPath` 이스케이프](308-path.md)
 - [3.9. `rokon::` - ROKON 데이터 형식 (`.rokon`)](309-rokon.md)
-- [3.10. `crypto::` - OS 난수 원천](310-crypto.md)
+- [3.10. `crypto::`: OS 난수 원천](310-crypto.md)
 
-## 핵심 디자인 원칙
+## 핵심 설계 원칙
 
-### 1. blocking API + `*_async` - async 트레잇 없음
+### 1. 블로킹 API와 `*_async`: 비동기 트레잇 없음
 
-std 의 I/O 함수는 sync 이며 호출한 OS 스레드를 막습니다. task 안에서 기다리는 동안 worker 를 내주려면 같은 연산의 `*_async` 메서드를 `await` 합니다 ([3.2.0](302-net.md#320-공통-규칙)). stackless 코루틴에서는 보통 함수가 task 를 중단시킬 수 없으므로, sync 호출이 저절로 async 가 되지는 않습니다.
+std의 I/O 함수는 동기 함수이고, 호출한 OS 스레드를 막습니다. task 안에서 기다리는 동안 워커를 내주려면 같은 연산의 `*_async` 메서드를 `await`로 기다립니다([3.2.0](302-net.md#320-공통-규칙)). 스택 없는(stackless) 코루틴에서는 일반 함수가 task를 중단할 수 없습니다. 그래서 동기 호출이 저절로 비동기가 되지는 않습니다.
 
 ```rok
 // blocking - OS 스레드 (thread::spawn) 나 task 밖에서
@@ -57,22 +57,22 @@ async fn fetch_async(addr: str) throws (IoError) -> List<u8> {
 }
 ```
 
-`AsyncRead` / `AsyncWrite` 트레잇은 **두지 않습니다**. async 판은 타입의 고유 메서드와 함수입니다. 소켓은 I/O 드라이버의 readiness 를 기다리고 ([3.2.0](302-net.md#320-공통-규칙)), 일반 파일은 blocking 호출을 다른 OS 스레드에서 돌립니다 ([3.1.4a](301-fs.md#314a-비동기-파일-io-_async)).
+`AsyncRead` / `AsyncWrite` 트레잇은 **두지 않습니다**. async 판은 타입의 고유 메서드와 함수입니다. 소켓은 I/O 드라이버의 준비 상태를 기다립니다([3.2.0](302-net.md#320-공통-규칙)). 일반 파일은 블로킹 호출을 다른 OS 스레드에서 돌립니다([3.1.4a](301-fs.md#314a-비동기-파일-io_async)).
 
-### 2. I/O backend - runtime detail
+### 2. I/O 백엔드: 런타임 세부 사항
 
-준비 대기 (readiness) 는 **runtime 의 책임** 입니다 ([refs-lang 7.7](../../refs-lang/007-runtime/707-io-and-timer.md)). 사용자 코드는 어떤 backend 가 돌아가는지 알 필요가 없습니다.
+준비 대기(readiness)는 **런타임의 책임**입니다([refs-lang 7.7](../../refs-lang/007-runtime/707-io-and-timer.md)). 사용자 코드는 어떤 백엔드가 돌아가는지 몰라도 됩니다.
 
-| 플랫폼          | backend                     |
+| 플랫폼          | 백엔드                      |
 |-----------------|-----------------------------|
 | Linux           | epoll (edge-triggered)      |
 | macOS / FreeBSD | kqueue (`EV_CLEAR`)         |
 | Windows         | IOCP                        |
 | WASI            | `wasi:io/poll` (`wasm32-wasi`), `poll_oneoff` (`wasm32-wasi-threads`) |
 
-### 3. TLS 1.3 in std - HTTP out
+### 3. std의 TLS 1.3: HTTP는 제외
 
-TLS 1.3 는 **보안 critical** 영역입니다. 모든 앱이 TLS 를 새로 구현하면 보안 취약점이 폭발하므로 std 에 통합하는 쪽을 택했습니다.
+TLS 1.3은 **보안에 결정적인** 영역입니다. 앱마다 TLS를 직접 구현하면 보안 취약점이 크게 늘어납니다. 그래서 std에 넣었습니다.
 
 ```rok
 use rok::std::net::tls;
@@ -84,13 +84,13 @@ try tls_conn.write_all(req);
 let resp = try tls_conn.read_to_end();
 ```
 
-스택은 `rok::core::crypto` ([2.21](../200-core/221-crypto.md)) 위에 rok 로 작성한 자체 구현이며, OS 나 서드파티 TLS 라이브러리는 쓰지 않습니다 ([3.2.5](302-net.md#325-tls-13---nettls)).
+스택은 `rok::core::crypto`([2.21](../200-core/221-crypto.md)) 위에 Rok으로 작성한 자체 구현입니다. OS나 서드파티 TLS 라이브러리는 쓰지 않습니다([3.2.5](302-net.md#325-tls-13-nettls)).
 
-반면 HTTP/1, HTTP/2, HTTP/3 (QUIC) 은 **std 외부** 에 둡니다 - 별도 `rok/http` 패키지로 분리합니다. Go `net/http` 의 **1.0 frozen** 사례에서 얻은 학습입니다.
+반면 HTTP/1, HTTP/2, HTTP/3(QUIC)은 **std 밖**의 별도 `rok/http` 패키지로 나눕니다. Go `net/http`가 **1.0에서 동결된** 사례에서 얻은 교훈입니다.
 
-### 4. Capability-based fs - Dir 핸들
+### 4. capability 기반 fs: Dir 핸들
 
-WASI Preview 2 의 pre-opened directory handle 모델을 따릅니다. 모든 fs op 가 **Dir 을 통해** 일어납니다.
+WASI Preview 2의 미리 연 디렉터리 핸들(pre-opened directory handle) 모델을 따릅니다. 모든 fs 연산은 **Dir을 거쳐** 일어납니다.
 
 ```rok
 use rok::std::fs::{Dir, File};
@@ -102,13 +102,13 @@ let f: File = try data_dir.open("config.toml");
 let bytes = try f.read_to_end();
 ```
 
-이 모델의 장점은 세 가집니다. 첫째, TOCTOU 를 회피합니다 - `open_dir` 후 `open` 이 race-free 다. 둘째, 샌드박스가 자연스럽습니다 - 자식 task 에 **좁은 Dir** 만 전달하면 됩니다. 셋째, WASI 와 호환됩니다 - 같은 코드가 native 와 WASI 양쪽에서 동작합니다.
+이 모델의 장점은 세 가지입니다. 첫째, TOCTOU를 피합니다. `open_dir` 뒤의 `open`에는 경쟁 상태가 없습니다. 둘째, 샌드박스가 자연스럽습니다. 자식 task에 **좁은 Dir**만 넘기면 됩니다. 셋째, WASI와 호환됩니다. 같은 코드가 네이티브와 WASI 양쪽에서 동작합니다.
 
-편의 차원에서 `fs::open(absolute_path)` 도 가능하게 합니다. 내부적으로는 `Dir::root().open(...)` 으로 풀린다.
+편의를 위해 `fs::open(absolute_path)`도 허용합니다. 이 호출은 내부에서 `Dir::root().open(...)`으로 풀립니다.
 
-### 5. UTF-8 Path (Python 식)
+### 5. UTF-8 Path(Python 방식)
 
-Rust `Path` / `PathBuf` + `OsStr` 가 안기는 **ergonomics 부담** 을 회피하려는 결정입니다.
+Rust `Path` / `PathBuf` + `OsStr`의 **사용성 부담**을 피하려는 결정입니다.
 
 ```rok
 use rok::std::path::Path;
@@ -121,13 +121,13 @@ let with_ext: Path = p.with_extension("bak");
 let full = Path::from("/etc") / "nginx" / "nginx.conf";
 ```
 
-`Path` 는 **UTF-8 newtype** 입니다. non-UTF-8 파일명 (드물게 Unix 에 존재) 은 `RawPath` (bytes) 로 별도 처리합니다. 코드의 99% 는 `Path` 만으로 충분할 것입니다.
+`Path`는 **UTF-8 newtype**입니다. UTF-8이 아닌 파일명(Unix에 드물게 있음)은 `RawPath`(바이트)로 따로 처리합니다. 코드의 99%는 `Path`만으로 충분합니다.
 
-자세한 비교와 권위 근거는 [3.8 path](308-path.md) 에서 다룹니다.
+자세한 비교와 근거는 [3.8 path](308-path.md)에 있습니다.
 
-### 6. 모든 I/O 가 `throws (IoError)`
+### 6. 모든 I/O가 `throws (IoError)`
 
-panic 은 거의 발생하지 않습니다 (OOM 외). file not found, permission denied, network failure 어느 쪽이든 모두 `throws (IoError)` 시그니처로 던져지며, 호출을 `try` 로 표시해 자연스럽게 전파할 수 있습니다. 에러 타입 사이의 자동 변환은 없으므로, 다른 에러 타입으로 바꾸려면 `catch` 에서 감싸 다시 던집니다.
+panic은 거의 일어나지 않습니다(OOM 제외). 파일 없음, 권한 거부, 네트워크 실패는 모두 `throws (IoError)` 시그니처로 던집니다. 호출에 `try`를 붙여 전파합니다. 에러 타입 사이의 자동 변환은 없습니다. 다른 에러 타입으로 바꾸려면 `catch`에서 감싸 다시 던집니다.
 
 ```rok
 fn load_config() throws (ConfigError) -> Config {
@@ -138,19 +138,19 @@ fn load_config() throws (ConfigError) -> Config {
 }
 ```
 
-## target 가용성
+## 타깃 가용성
 
 플랫폼별 모듈 가용성은 다음과 같습니다.
 
 | 모듈                | linux/macos/windows | wasm32-wasi   | wasm32-wasi-threads | wasm32 (browser) |
 |---------------------|---------------------|---------------|---------------------|------------------|
-| `rok::std::fs`      | ✓                   | ✓ (cap-based) | ✓ (cap-based)       | ✗ (every call `Unsupported`) |
-| `rok::std::net`     | ✓ (+ TLS 1.3)       | ✓ (`wasi:sockets`) | host 가 넘긴 listener 만 | ✗ (use `fetch`) |
+| `rok::std::fs`      | ✓                   | ✓ (cap-based) | ✓ (cap-based)       | ✗ (모든 호출이 `Unsupported`) |
+| `rok::std::net`     | ✓ (+ TLS 1.3)       | ✓ (`wasi:sockets`) | 호스트가 넘긴 listener만 | ✗ (`fetch` 사용) |
 | `rok::std::time`    | ✓                   | ✓             | ✓                   | ✓ (Date.now)     |
-| `rok::std::thread`  | ✓                   | one thread (`spawn` `Unsupported`) | ✓ (wasi-threads) | one thread (`spawn` `Unsupported`) |
-| `rok::std::io`      | ✓                   | ✓             | ✓                   | console / stdin 은 EOF |
+| `rok::std::thread`  | ✓                   | 스레드 하나 (`spawn` `Unsupported`) | ✓ (wasi-threads) | 스레드 하나 (`spawn` `Unsupported`) |
+| `rok::std::io`      | ✓                   | ✓             | ✓                   | console / stdin은 EOF |
 | `rok::std::env`     | ✓                   | ✓             | ✓                   | ✗                |
 | `rok::std::process` | ✓                   | ✗             | ✗                   | ✗                |
 | `rok::std::path`    | ✓                   | ✓             | ✓                   | ✓                |
 
-✗ 는 모듈이 빌드되지만 그 연산이 런타임에 `IoErrorKind::Unsupported` 로 실패한다는 뜻이며, 컴파일 타임에 없는 것이 아닙니다. 브라우저에서 stdout / stderr 는 host 콘솔로 가고 stdin 은 EOF 입니다. 각 모듈 spec 의 가용성 절에서 플랫폼별 동작을 더 자세히 명시합니다.
+✗는 모듈은 빌드되지만 그 연산이 실행 중에 `IoErrorKind::Unsupported`로 실패한다는 뜻입니다. 컴파일 타임에 모듈이 없다는 뜻이 아닙니다. 브라우저에서 stdout / stderr는 호스트 콘솔로 가고 stdin은 EOF입니다. 플랫폼별 동작은 각 모듈 사양의 가용성 절에 더 자세히 있습니다.
