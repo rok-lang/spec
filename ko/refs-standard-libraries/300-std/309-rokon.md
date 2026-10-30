@@ -90,7 +90,7 @@ Config {
 - 실수는 다시 읽었을 때 같은 값이 되는 가장 짧은 표기로 씁니다(`1.0`, `1.0e300`). NaN / 무한대를 쓰려 하면 panic이 일어납니다("NaN/infinity has no ROKON form").
 - 이름 있는 값만 있는 변형의 정규 형식은 `E::V { .. }` 하나입니다(`Value::Variant`에는 형태 표시가 없음).
 - 문자열과 문자의 양방향(bidi) 제어 문자(U+202A-U+202E, U+2066-U+2069)는 이스케이프해서 씁니다(`\u{202e}`).
-- 정규 형식을 다시 읽으면 같은 값이 됩니다(왕복 변환). 읽는 쪽은 범위 밖의 실수 리터럴(`1e999`)을 거부하고, 범위를 알려 줍니다. 메시지는 ``float `1e999` is out of range (ROKON floats are f64, up to about 1.8e308)``입니다.
+- 정규 형식을 다시 읽으면 같은 값이 됩니다(왕복 변환). toolchain이 ROKON을 읽을 때(`rok.rokon`, `rok.lock`, `.rokon` 파일에 대한 `rokc fmt`)는 `f64` 범위 밖의 실수 리터럴(`1e999`)을 거부하고 범위를 알려 줍니다. 메시지는 ``float `1e999` is out of range (ROKON floats are f64, up to about 1.8e308)``입니다. `rokon::parse`는 그런 리터럴을 `Value::Float`로 읽습니다. 그 `float`에는 이런 한계가 없습니다.
 
 `rokc fmt`는 `.rokon` 파일이 ROKON인지 검사하고 들여쓰기만 다시 맞춥니다. 정규 형식으로 다시 쓰지는 않으므로 주석과 배치가 그대로 남습니다.
 
