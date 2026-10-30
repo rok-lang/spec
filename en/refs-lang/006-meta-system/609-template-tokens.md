@@ -172,7 +172,7 @@ True if `#[X]` is attached to the field.
 
 ### `@variant.pattern` matching pattern
 
-`@variant.pattern` is the variant in matching-pattern form, such as `Shape::Circle(r)`, `Shape::Pending`, or `Shape::Click { x: x1, y: y1 }`. The bindings in the `r`, `x1`, `y1` positions are compiler-generated names (hygiene, 6.9.8), and their values are retrieved with `@field` inside `@for_variant_fields`. Templates cannot use the binding names directly.
+`@variant.pattern` is the variant in matching-pattern form, such as `Shape::Circle(r)`, `Shape::Pending`, or `Shape::Click { x: x1, y: y1 }`. The bindings in the `r`, `x1`, `y1` positions are compiler-generated names (hygiene, [6.9.9](#hygiene)), and their values are retrieved with `@field` inside `@for_variant_fields`. Templates cannot use the binding names directly.
 
 ```rok
 match self {
@@ -374,7 +374,7 @@ The tokens above bind a type or item the definition is attached to. A macro ([6.
 
 ### `@name: <fragment>` fragment capture
 
-In a matcher, `@name: <fragment>` matches and binds that grammar. A fragment other than `tt` is parsed into a real syntax node, so the captured code is typed and checked and the tools resolve names inside it; `tt` captures one raw token tree (a token or a balanced group) for a non-rok DSL. Literal tokens elsewhere in the matcher must appear verbatim. In the template, `@name` substitutes the capture, preserving the call site's hygiene ([6.9.9](#699-expansion-mechanism)).
+In a matcher, `@name: <fragment>` captures part of the call as raw tokens; nothing is parsed at match time, so the first rule whose literal tokens and token counts fit is chosen ([6.8.12](608-meta-blocks.md#matchers-and-fragments)). `ident`, `literal` and `tt` take one identifier, one literal token and one token tree (a token or a balanced group); the other fragments take the run of tokens up to the next literal token of the matcher. The expansion is parsed as ordinary code after transcription, so the captured code is typed and checked there and the tools resolve names inside it; an argument that does not fit where the template puts it is a syntax error reported at the call. `tt` is the fragment for a non-rok DSL. Literal tokens elsewhere in the matcher must appear verbatim. In the template, `@name` substitutes the capture, preserving the call site's hygiene ([6.9.9](#699-expansion-mechanism)).
 
 ### `@rep` / `@for` repetition
 
