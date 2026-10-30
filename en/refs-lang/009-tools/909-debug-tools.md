@@ -344,9 +344,9 @@ rok bench
 1. **Clock.** A monotonic nanosecond clock. Its fixed overhead is amortized by timing `iters` calls per sample, never a single call.
 2. **Calibration.** Unless `--iters` is given, `iters` is raised until one sample takes about 100 ms, so clock quantization and overhead are negligible.
 3. **Warm-up.** Calls are run for about one sample's worth of time and discarded, to settle caches, branch predictors and paging.
-4. **Sampling.** `--samples` samples (default 100) are taken; each records the total time of `iters` calls, and the per-call time is that total divided by `iters`.
-5. **Statistics.** Mean, median, standard deviation, median absolute deviation (MAD), min and max are computed. Samples outside the Tukey fences (1.5 IQR mild, 3 IQR severe) are reported as outliers but kept out of the summary figure. The reported figure is the **median (+/- MAD)**, which is robust to an occasional slow sample.
-6. **GC awareness.** The runtime's collection counter is read around each sample; a sample during which a collection ran is classed as an outlier and counted separately, so GC pauses do not distort the median.
+4. **Sampling.** `--samples` samples (default 10) are taken; each records the total time of `iters` calls, and the per-call time is that total divided by `iters`.
+5. **Statistics.** The median, the quartiles and the median absolute deviation (MAD) of the samples are computed. Samples outside the Tukey fences (1.5 IQR beyond the quartiles) are counted as outliers. The reported figure is the **median (+/- MAD)** of all samples, which an occasional slow sample barely moves.
+6. **GC awareness.** The runtime's collection counter is read around each sample, and the samples during which a collection ran are counted. The human line ends with `[<n> outliers, <m> gc]` when either count is not zero; `--format=rokbench` always gives both.
 
 `black_box(x)` is an identity the optimizer cannot see through; apply it to the inputs and result of the timed closure so the work is neither hoisted out nor folded away. `b.bytes(n)` / `b.items(n)` turn the per-call time into a throughput (`MiB/s`, `Melem/s`).
 
