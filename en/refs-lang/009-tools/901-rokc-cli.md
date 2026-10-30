@@ -556,7 +556,7 @@ Progress is shown on stderr with right-aligned verbs. Nothing is printed with `-
 | `Fresh`     | Up to date; that build's warnings follow      |
 | `Checked`   | `check` done (error and warning counts)       |
 | `Generated` | Documentation written (`doc`)                 |
-| `Formatted` | A file rewritten (`fmt`)                      |
+| `Formatted` | Files rewritten (`fmt`): their count, at the end (`rokc fmt` above) |
 
 A build (`build`, `run`, `test`, `bench`, `doc`) that fails in the front end ends, after the diagnostics, with `error: could not build <name> (<n> error(s), <m> warning(s))`, counted as `check` counts them. `-q` and `--message-format=json` leave it out.
 

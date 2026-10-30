@@ -556,7 +556,7 @@ error[E100]: cannot find value `count` in this scope
 | `Fresh`     | 최신. 그 빌드의 경고가 뒤따름             |
 | `Checked`   | `check` 끝(에러와 경고 수)               |
 | `Generated` | 문서를 씀(`doc`)                         |
-| `Formatted` | 파일 하나를 고쳐 씀(`fmt`)               |
+| `Formatted` | 파일을 고쳐 씀(`fmt`). 끝에 그 수를 알림(위 `rokc fmt`) |
 
 프런트엔드에서 실패한 빌드(`build`, `run`, `test`, `bench`, `doc`)는 진단 뒤에 `error: could not build <name> (<n> error(s), <m> warning(s))`로 끝납니다. 수는 `check`가 세는 방식과 같습니다. `-q`와 `--message-format=json`에서는 이 줄을 생략합니다.
 
