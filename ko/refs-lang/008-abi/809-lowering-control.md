@@ -1,8 +1,8 @@
 # 8.9. Lowering: 제어 흐름과 GC 통합
 
-이 절에서는 [`if` 표현식](../003-expressions/310-if-expression.md), [`match`](../003-expressions/312-match-expression.md), [루프](../003-expressions/313-loop-expressions.md), [에러 제어 흐름](../003-expressions/314-error-control-flow.md) 의 lowering 규칙을 다루고, 더불어 [GC](../000-meta/007-glossary.md#gc-garbage-collector) 의 alloc / barrier / safepoint 를 emit 하는 규칙을 함께 정의합니다.
+이 절은 [`if` 표현식](../003-expressions/310-if-expression.md), [`match`](../003-expressions/312-match-expression.md), [루프](../003-expressions/313-loop-expressions.md), [에러 제어 흐름](../003-expressions/314-error-control-flow.md)의 lowering 규칙과, [GC](../000-meta/007-glossary.md#gc-garbage-collector)의 alloc / barrier / safepoint 코드를 emit하는 규칙을 정의합니다.
 
-생성하는 MLIR / LLVM 모듈은 빌드 타깃 (`--target`) 의 target triple 과 data layout 을 담습니다.
+생성하는 MLIR / LLVM 모듈에는 빌드 타깃(`--target`)의 target triple과 data layout이 들어갑니다.
 
 ## 8.9.1. `if` 표현식
 
@@ -10,7 +10,7 @@
 if cond { x } else { y }
 ```
 
-이 표현식은 `scf.if` 를 사용한 MLIR 로 다음과 같이 lower 됩니다.
+이 표현식은 `scf.if`를 쓰는 다음 MLIR로 lower됩니다.
 
 ```
 %result = scf.if %cond -> (i32) {
@@ -20,13 +20,13 @@ if cond { x } else { y }
 }
 ```
 
-한편 `else` 분기가 없고 값이 unit 인 `if` 의 경우는 다음과 같습니다.
+`else` 분기가 없고 값이 unit인 `if`의 예입니다.
 
 ```rok
 if cond { do_thing(); }
 ```
 
-이 경우의 lowering 결과는 다음과 같이 단순한 형태가 됩니다.
+이 경우는 더 단순한 형태로 lower됩니다.
 
 ```
 scf.if %cond {
@@ -36,13 +36,13 @@ scf.if %cond {
 
 ## 8.9.2. `if let`
 
-[`if` 표현식](../003-expressions/310-if-expression.md) 의 `if let pattern = expr` 형태를 살펴보겠습니다.
+[`if` 표현식](../003-expressions/310-if-expression.md)의 `if let pattern = expr` 형태의 예입니다.
 
 ```rok
 if let v: T = compute() { use(v) } else { fallback() }
 ```
 
-이 표현식은 decision tree 형태의 MLIR 로 lower 되며, 그 결과는 다음과 같습니다.
+이 표현식은 decision tree 형태의 MLIR로 lower됩니다.
 
 ```
 %opt = func.call @compute() : () -> !sum_T_none
@@ -59,7 +59,7 @@ scf.if %is_some {
 
 ## 8.9.3. `match` 의 decision tree
 
-[`match`](../003-expressions/312-match-expression.md) 의 가지들은 decision tree 로 lower 됩니다.
+[`match`](../003-expressions/312-match-expression.md)의 가지들은 decision tree로 lower됩니다.
 
 ```rok
 match v {
@@ -70,7 +70,7 @@ match v {
 }
 ```
 
-이 `match` 식은 다음과 같은 MLIR 로 변환됩니다.
+이 `match` 식은 다음 MLIR이 됩니다.
 
 ```
 cf.switch %v : i32, [
@@ -99,19 +99,19 @@ cf.switch %v : i32, [
   ; ...
 ```
 
-튜플, `struct`, `enum` 변형, range 등 복잡한 패턴의 경우에는 각각의 분해 과정이 내부적인 switch / cmp 로 lower 됩니다.
+튜플, `struct`, `enum` 변형, range 같은 복잡한 패턴은 분해 단계마다 내부 switch / cmp로 lower됩니다.
 
 ## 8.9.4. `loop` / `while` / `for`
 
 ### `loop`
 
-`loop` 는 다음과 같은 형태로 사용됩니다.
+`loop`는 다음과 같이 씁니다.
 
 ```rok
 let v = loop { ...; if cond { break x; } }
 ```
 
-이는 `scf.while` 을 사용하거나 `cf.br` 로 직접 표현하여 MLIR 로 lower 됩니다.
+이 식은 `scf.while`을 쓰거나 `cf.br`로 직접 표현해서 MLIR로 lower됩니다.
 
 ```
 %v = scf.while () : () -> (i32) {
@@ -124,17 +124,17 @@ let v = loop { ...; if cond { break x; } }
 }
 ```
 
-다만 `break value` 는 `scf.while` 안에서 표현하기 어려우므로, `scf.execute_region` 또는 `cf.br` 로 풀어쓰게 됩니다.
+`break value`는 `scf.while` 안에서 표현하기 어려우므로 `scf.execute_region`이나 `cf.br`로 풀어 씁니다.
 
 ### `while`
 
-`while` 은 다음과 같이 사용합니다.
+`while`은 다음과 같이 씁니다.
 
 ```rok
 while cond { body }
 ```
 
-이는 `scf.while` 로 lower 되며, 결과는 다음과 같습니다.
+이 식은 `scf.while`로 lower됩니다.
 
 ```
 scf.while () : () -> () {
@@ -149,31 +149,31 @@ scf.while () : () -> () {
 
 ### `for`
 
-`for` 는 다음과 같이 사용합니다.
+`for`는 다음과 같이 씁니다.
 
 ```rok
 for x in xs { body }
 ```
 
-[루프 표현식](../003-expressions/313-loop-expressions.md) 의 desugar 는 `let it = xs.into_iter(); loop { match it.next() { ... } }` 형태로 풀린 뒤, 위에서 설명한 lowering 과정을 동일하게 통과합니다.
+[루프 표현식](../003-expressions/313-loop-expressions.md)의 desugar가 이 식을 `let it = xs.into_iter(); loop { match it.next() { ... } }`로 풀고, 그 결과는 위에서 설명한 lowering을 똑같이 거칩니다.
 
 ## 8.9.5. `break` / `continue`
 
-루프 안의 `break` 와 `continue` 는 `cf.br` 로 루프의 시작 지점이나 끝 지점으로 점프합니다.
+루프 안의 `break`와 `continue`는 `cf.br`로 루프의 시작이나 끝으로 점프합니다.
 
-`scf.while` 만으로는 표현이 불편하기 때문에, `cf` 다이얼렉트의 직접 분기로 lower 하게 됩니다.
+`scf.while`만으로는 표현하기 불편하므로 `cf` 다이얼렉트의 직접 분기로 lower합니다.
 
-라벨 (`'outer:`) 또한 적절한 [block](../000-meta/007-glossary.md#block-블록) 으로 점프합니다.
+라벨(`'outer:`)도 알맞은 [block](../000-meta/007-glossary.md#block-블록)으로 점프합니다.
 
 ## 8.9.6. `try` / `catch` / `finally`: 값 기반 분기
 
-[에러 제어 흐름](../003-expressions/314-error-control-flow.md) 의 에러는 [Calling convention](806-calling-convention.md#865-throwing-함수의-반환-값-기반-에러-전달) 에서 정의한 `{ is_err, payload }` 반환값으로 전달됩니다. 따라서 `try` 와 `catch` 는 모두 일반 분기로 lower 됩니다.
+[에러 제어 흐름](../003-expressions/314-error-control-flow.md)의 에러는 [Calling convention](806-calling-convention.md#865-throwing-함수의-반환-값-기반-에러-전달)에서 정의한 `{ is_err, payload }` 반환값으로 전달됩니다. 따라서 `try`와 `catch`는 둘 다 일반 분기로 lower됩니다.
 
 ```rok
 let v = try f(x);              // f: fn(X) throws (E) -> T
 ```
 
-`try` 로 표시한 호출은 반환값의 `is_err` 를 검사해, 성공이면 payload 를 `T` 로 꺼내고 에러면 에러 경로로 분기합니다.
+`try`로 표시한 호출은 반환값의 `is_err`를 검사합니다. 성공이면 payload를 `T`로 꺼내고, 에러면 에러 경로로 분기합니다.
 
 ```
 %r = func.call @f(%x) : (!X) -> !Throws_T_E
@@ -191,7 +191,7 @@ cf.cond_br %is_err, ^err, ^ok
   cf.br ^catch_dispatch(%e)
 ```
 
-`catch` 절이 붙은 식은 왼쪽 식의 모든 에러 경로가 모이는 dispatch 블록을 하나 갖습니다.
+`catch` 절이 붙은 식에는 왼쪽 식의 모든 에러 경로가 모이는 dispatch 블록이 하나 있습니다.
 
 ```rok
 try body catch e: A { handler_a } catch _ { handler_any }
@@ -214,19 +214,19 @@ try body catch e: A { handler_a } catch _ { handler_any }
   ...
 ```
 
-매칭되는 절이 없으면 dispatch 블록은 에러를 바깥 `catch` 의 dispatch 블록으로 넘기거나 둘러싼 함수의 에러 반환값을 만들어 반환합니다. untyped `throws` 의 에러 (`any Error`) 에 대한 타입 패턴 검사는 [`any`](808-lowering-types.md) 의 tag 비교로 lower 됩니다.
+매칭되는 절이 없으면 dispatch 블록은 에러를 바깥 `catch`의 dispatch 블록으로 넘기거나, 둘러싼 함수의 에러 반환값을 만들어 반환합니다. untyped `throws`의 에러(`any Error`)에 대한 타입 패턴 검사는 [`any`](808-lowering-types.md)의 tag 비교로 lower됩니다.
 
-`try?` 는 에러 경로에서 `none` 을 만들어 `^end` 로 가고, `try!` 는 에러 경로에서 `panic_fn` 을 호출합니다.
+`try?`는 에러 경로에서 `none`을 만들어 `^end`로 가고, `try!`는 에러 경로에서 `panic_fn`을 호출합니다.
 
 ## 8.9.7. `throw`
 
-`throw` 는 다음과 같이 사용합니다.
+`throw`는 다음과 같이 씁니다.
 
 ```rok
 throw err;
 ```
 
-`throw` 는 에러 경로로 가는 무조건 분기로 lower 됩니다. 가장 가까운 `catch` 가 같은 함수 안에 있으면 그 dispatch 블록으로 가고, 없으면 둘러싼 함수의 에러 반환값을 만들어 반환합니다.
+`throw`는 에러 경로로 가는 무조건 분기로 lower됩니다. 가장 가까운 `catch`가 같은 함수 안에 있으면 그 dispatch 블록으로 가고, 없으면 둘러싼 함수의 에러 반환값을 만들어 반환합니다.
 
 ```
 ; 같은 함수 안에 catch 가 있는 경우
@@ -239,17 +239,17 @@ cf.br ^catch_dispatch(%err)
 func.return %r2 : !Throws_T_E
 ```
 
-함수 밖으로 에러를 돌려주는 경로도 일반 `return` 과 같으므로, shadow stack pop 같은 epilogue 가 그대로 실행됩니다. 런타임 호출은 없습니다.
+함수 밖으로 에러를 돌려주는 경로도 일반 `return`과 같으므로 shadow stack pop 같은 epilogue가 그대로 실행됩니다. 런타임 호출은 없습니다.
 
 ## 8.9.8. `finally`
 
-`finally` 는 다음과 같이 사용합니다.
+`finally`는 다음과 같이 씁니다.
 
 ```rok
 try { body } finally { cleanup }
 ```
 
-왼쪽 식을 벗어나는 모든 경로가 cleanup 블록을 거치도록 lower 됩니다. 정상 종료, `catch` 처리 후 종료, 처리되지 않은 에러의 전파, 그리고 `return` / `break` / `continue` 의 각 경로는 cleanup 블록으로 분기한 뒤 원래 목적지로 이어집니다. 에러 전파도 일반 분기이므로 별도의 unwind 메커니즘은 필요하지 않습니다.
+왼쪽 식을 벗어나는 모든 경로가 cleanup 블록을 거치도록 lower합니다. 정상 종료, `catch` 처리 후 종료, 처리되지 않은 에러의 전파, `return` / `break` / `continue`의 각 경로는 cleanup 블록으로 분기한 뒤 원래 목적지로 이어집니다. 에러 전파도 일반 분기이므로 별도의 unwind 메커니즘이 필요 없습니다.
 
 ```
 ^body_ok(%v):        cf.br ^cleanup(%k_ok, %v)
@@ -261,17 +261,17 @@ try { body } finally { cleanup }
   ; %kind 에 따라 ^end / 에러 전파 / 함수 return / 루프 목적지로 분기
 ```
 
-cleanup 블록 안에서 새 에러가 던져지면 그 에러가 원래의 경로를 대체합니다. panic 은 프로세스를 종료하므로 cleanup 블록을 거치지 않습니다.
+cleanup 블록 안에서 새 에러를 던지면 그 에러가 원래 경로를 대신합니다. panic은 프로세스를 종료하므로 cleanup 블록을 거치지 않습니다.
 
 ## 8.9.9. GC alloc: fast / slow path
 
-[할당](../007-runtime/702-allocation.md) 부분을 함께 살펴보겠습니다.
+[할당](../007-runtime/702-allocation.md)도 함께 참고하세요.
 
 ```rok
 let p = Point { x: 1.0, y: 2.0 };
 ```
 
-이는 fast path 가 인라인된 다음과 같은 MLIR 로 lower 됩니다.
+이 식은 fast path가 인라인된 다음 MLIR로 lower됩니다.
 
 ```
 ; fast path
@@ -299,13 +299,13 @@ cf.cond_br %overflow, ^slow, ^fast
   ; ...
 ```
 
-위 fast path 에서 `%24` 는 객체 총 크기, `%8` 은 정렬, `%TYPE_ID_POINT` 는 type_id 상수를 의미합니다. fast path 는 TLAB 의 bump 포인터를 올린 뒤 헤더의 `type_id` 와 `gc_word` (= 크기, [8.1.4](801-object-header-abi.md#814-gc_word-offset-8-u64-또는-ptr)) 를 인라인으로 씁니다.
+위 fast path에서 `%24`는 객체 총 크기, `%8`은 정렬, `%TYPE_ID_POINT`는 type_id 상수입니다. fast path는 TLAB의 bump 포인터를 올린 뒤 헤더의 `type_id`와 `gc_word`(= 크기, [8.1.4](801-object-header-abi.md#814-gc_word-offset-8-u64-또는-ptr))를 인라인으로 씁니다.
 
-slow path 의 경우에는 `rok_gc_alloc_slow` 를 호출합니다.
+slow path는 `rok_gc_alloc_slow`를 호출합니다.
 
 ### 헤더 채우기
 
-객체 헤더와 필드는 다음과 같이 채워 줍니다.
+객체 헤더와 필드는 다음과 같이 채웁니다.
 
 ```
 ; type_id 채우기
@@ -328,13 +328,13 @@ llvm.store %2.0, %y_addr : f64
 
 ## 8.9.10. Write Barrier
 
-[배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md#742-write-barrier-incremental-update) 의 object-remembering barrier 입니다.
+[배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md#742-write-barrier-incremental-update)의 object-remembering barrier입니다.
 
 ```rok
 *p.field = q;       // GC 객체에 GC 포인터 쓰기
 ```
 
-이는 다음과 같은 MLIR 로 lower 됩니다.
+이 식은 다음 MLIR로 lower됩니다.
 
 ```
 ; 1. write barrier: 목적지 p 의 헤더만 검사 (store 앞이어도 됨)
@@ -353,14 +353,14 @@ cf.cond_br %need_log, ^log, ^store
   llvm.store %q, %addr : !llvm.ptr
 ```
 
-- 저장하는 값 `q` 의 헤더는 읽지 않습니다. `q` 는 `any` 슬롯의 inline 정수나 `str` 의 내부 포인터일 수 있어 헤더로 읽으면 안전하지 않습니다.
-- fast path 는 load 하나와 분기 하나입니다. 실제로는 `UNLOGGED | CARDED` 를 함께 검사합니다. `CARDED` (큰 old 객체) 이면 호출 없이 쓴 slot 이 걸치는 512 B card (`(slot - p) >> 9` ..= `(slot + len - 1 - p) >> 9`) 를 card table (포인터는 헤더 바로 앞 word) 에 dirty 로 표시하고, `UNLOGGED` 이면 위처럼 `rok_gc_wb_slow` 를 부릅니다. 그래서 barrier 는 slot 주소와 저장하는 값의 크기를 씁니다 ([7.4.2](../007-runtime/704-barriers-and-roots.md#742-write-barrier-incremental-update)).
-- `rok_gc_wb_slow` 는 safepoint 가 아닙니다. barrier 와 store 사이에 수집이 끼어들지 않습니다.
-- 방금 할당한 객체의 초기화, `static` 에의 store, raw `Ptr<T>` 메모리, 참조가 아닌 atomic 에는 barrier 를 넣지 않습니다.
+- 저장하는 값 `q`의 헤더는 읽지 않습니다. `q`는 `any` 슬롯의 inline 정수나 `str`의 내부 포인터일 수 있으므로, 헤더로 읽으면 안전하지 않습니다.
+- fast path는 load 하나와 분기 하나입니다. 실제로는 `UNLOGGED | CARDED`를 함께 검사합니다. `CARDED`(큰 old 객체)이면 호출 없이, 쓴 slot이 걸치는 512 B card(`(slot - p) >> 9` ..= `(slot + len - 1 - p) >> 9`)를 card table(포인터는 헤더 바로 앞 word)에 dirty로 표시합니다. `UNLOGGED`이면 위처럼 `rok_gc_wb_slow`를 호출합니다. 그래서 barrier는 slot 주소와 저장하는 값의 크기를 씁니다([7.4.2](../007-runtime/704-barriers-and-roots.md#742-write-barrier-incremental-update)).
+- `rok_gc_wb_slow`는 safepoint가 아닙니다. barrier와 store 사이에 수집이 끼어들지 않습니다.
+- 방금 할당한 객체의 초기화, `static`으로의 store, raw `Ptr<T>` 메모리, 참조가 아닌 atomic에는 barrier를 넣지 않습니다.
 
 ## 8.9.11. Safepoint poll
 
-[Safepoint 프로토콜](804-safepoint.md) 도 살펴보겠습니다.
+[Safepoint 프로토콜](804-safepoint.md)도 참고하세요.
 
 ```
 ; safepoint poll
@@ -379,13 +379,13 @@ cf.cond_br %need_yield, ^slow, ^cont
   ; ... 계속 ...
 ```
 
-컴파일러는 함수의 진입 지점 (또는 각 경로의 첫 safepoint 앞, [8.4.7](804-safepoint.md#847-safepoint-의-불변)) 과 루프의 back-edge 에 위 코드를 emit 합니다.
+컴파일러는 함수 진입 지점(또는 각 경로의 첫 safepoint 앞, [8.4.7](804-safepoint.md#847-safepoint-의-불변))과 루프의 back-edge에 위 코드를 emit합니다.
 
 ## 8.9.12. Shadow stack frame
 
-[배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack) 을 함께 참고합니다. 컴파일러는 LLVM 의 `gc "shadow-stack"` 전략이나 `llvm.gcroot` 를 쓰지 않고, frame 의 link / unlink 를 직접 emit 합니다. LLVM 의 체인 머리 `llvm_gc_root_chain` 은 프로세스 전역 하나뿐이라 thread 별 체인을 만들 수 없기 때문입니다.
+[배리어와 루트 추적](../007-runtime/704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack)도 함께 참고하세요. 컴파일러는 LLVM의 `gc "shadow-stack"` 전략이나 `llvm.gcroot`를 쓰지 않고 frame의 link / unlink를 직접 emit합니다. LLVM의 체인 머리 `llvm_gc_root_chain`은 프로세스 전역 하나뿐이라 thread별 체인을 만들 수 없기 때문입니다.
 
-GC 참조 word 가 2 개 (`%x`, `%y`) 인 함수의 예입니다. 슬롯에는 word 의 주소를 넣으므로, 변수 대입은 평소처럼 `%x` 에 store 하는 것으로 끝납니다.
+GC 참조 word가 2개(`%x`, `%y`)인 함수의 예입니다. 슬롯에는 word의 주소를 넣으므로, 변수 대입은 평소처럼 `%x`에 store하면 끝납니다.
 
 ```
 ; 진입: word 0 초기화, frame 할당과 link
@@ -414,34 +414,34 @@ llvm.store %obj, %x : !llvm.ptr, !llvm.ptr
 llvm.store %saved, %head_ptr : !llvm.ptr, !llvm.ptr
 ```
 
-`@rok_tls` 는 [8.3.8](803-tls-slots.md#838-컴파일러-emit-의-형식) 의 thread-local 블록이며, shadow stack 머리는 그 offset 0 슬롯입니다. 에러 반환도 일반 `return` 이므로 ([8.9.6](#896-try--catch--finally-값-기반-분기)) 같은 unlink 를 지납니다. link 는 위 예보다 늦게, 각 경로의 첫 safepoint 앞에서 할 수도 있습니다 ([8.4.7](804-safepoint.md#847-safepoint-의-불변)). 그때는 link 한 경로의 return 만 unlink 합니다. GC 참조를 들고 있고 safepoint 에 닿을 수 있는 함수만 frame 이 필요합니다 ([8.4.2](804-safepoint.md#842-emit-위치)). 반환하지 않는 함수 (panic) 와 할당도 block 도 하지 않는 런타임 함수 ([8.5.2](805-extern-symbols.md#safepoint-가-아닌-함수)) 의 호출은 세지 않습니다.
+`@rok_tls`는 [8.3.8](803-tls-slots.md#838-컴파일러-emit-의-형식)의 thread-local 블록이며, shadow stack 머리는 그 offset 0 슬롯입니다. 에러 반환도 일반 `return`이므로([8.9.6](#896-try--catch--finally-값-기반-분기)) 같은 unlink를 거칩니다. link는 위 예보다 늦게, 각 경로의 첫 safepoint 앞에서 할 수도 있습니다([8.4.7](804-safepoint.md#847-safepoint-의-불변)). 그때는 link한 경로의 return만 unlink합니다. frame은 GC 참조를 들고 있고 safepoint에 닿을 수 있는 함수에만 필요합니다([8.4.2](804-safepoint.md#842-emit-위치)). 반환하지 않는 함수(panic)와, 할당도 block도 하지 않는 런타임 함수([8.5.2](805-extern-symbols.md#safepoint-가-아닌-함수))의 호출은 세지 않습니다.
 
 ### 모듈의 data layout
 
-컴파일러가 emit 하는 모듈은 반드시 `llvm.data_layout` 속성을 타깃에 맞게 설정합니다. 그렇지 않으면 `gep null[1]` 을 접어 얻는 크기 (객체 크기, frame 크기) 가 타깃과 어긋날 수 있습니다. data layout 을 설정하지 않는 경로에서는 그런 접힌 `gep` 으로 크기를 구하지 않고 상수로 계산합니다.
+컴파일러가 emit하는 모듈은 `llvm.data_layout` 속성을 반드시 타깃에 맞게 설정해야 합니다. 그렇지 않으면 `gep null[1]`을 접어 얻는 크기(객체 크기, frame 크기)가 타깃과 어긋날 수 있습니다. data layout을 설정하지 않는 경로에서는 그런 접힌 `gep`으로 크기를 구하지 않고 상수로 계산합니다.
 
 ## 8.9.13. Indexing
 
-[인덱싱과 슬라이싱](../003-expressions/306-indexing-and-slicing.md) 의 `arr[i]` 를 살펴보겠습니다.
+[인덱싱과 슬라이싱](../003-expressions/306-indexing-and-slicing.md)의 `arr[i]` 예입니다.
 
 ```rok
 arr[5]
 ```
 
-이 표현식은 표준 라이브러리의 `Index::index(arr, 5)` 함수 호출이 되며, 일반 함수 호출과 동일한 방식으로 lowering 됩니다.
+이 표현식은 표준 라이브러리 함수 `Index::index(arr, 5)` 호출이 되며, 일반 함수 호출과 똑같이 lower됩니다.
 
-`Index` 트레잇이 인라인되어 결과적으로 다음과 같은 형태가 만들어집니다.
+`Index` 트레잇이 인라인되면 결과는 다음과 같습니다.
 
 ```
 %ptr = llvm.getelementptr %arr_data, %5 : ...
 %val = llvm.load %ptr : ...
 ```
 
-이러한 결과는 제네릭 단형화와 인라이닝을 통해 자동으로 도출됩니다.
+이 결과는 제네릭 단형화와 인라이닝으로 자연스럽게 나옵니다.
 
 ## 8.9.14. 종합: Hot path 의 모습
 
-대표적인 hot path 인 [TLAB](../000-meta/007-glossary.md#tlab-thread-local-allocation-buffer) alloc 과 필드 쓰기의 LLVM IR 비용을 정리해 드리면 다음과 같습니다.
+대표적인 hot path인 [TLAB](../000-meta/007-glossary.md#tlab-thread-local-allocation-buffer) alloc과 필드 쓰기의 LLVM IR 비용은 다음과 같습니다.
 
 - TLAB cursor 검사: load / add / icmp / cond_br (4 명령어)
 - cursor 갱신: store (1 명령어)
@@ -450,4 +450,4 @@ arr[5]
 - write barrier (필요 시): load / and / icmp / cond_br + (slow) call (4 ~ 6 명령어)
 - safepoint poll (필요 시): load / icmp / cond_br (3 명령어)
 
-작은 객체의 할당과 채우기는 대략 10 ~ 20 명령어입니다. LLVM 최적화 (인라인, mem2reg, simplification) 가 일부를 더 지웁니다.
+작은 객체의 할당과 채우기는 대략 10 ~ 20 명령어입니다. LLVM 최적화(인라인, mem2reg, simplification)가 그중 일부를 더 없앱니다.

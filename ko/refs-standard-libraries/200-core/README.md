@@ -1,22 +1,22 @@
 # 2. Rok tier
 
-Rok tier 는 안전 영역 표준 라이브러리 으로, 모든 target 에서 빌드되는 Rok의 실용 표면입니다. 사용자 코드의 90% 가 이 tier 의 항목을 사용하기 때문에, Rok은 Rok라는 언어가 일상적인 프로그래밍에서 어떤 모습으로 드러나는지를 결정하는 핵심 계층이라 할 수 있습니다.
+Rok tier는 안전한 표준 라이브러리입니다. 모든 target에서 빌드되는 Rok의 실용 표면입니다. 사용자 코드의 약 90%가 이 tier의 항목을 쓰므로, 일상적인 프로그래밍에서 Rok이 어떤 모습인지는 이 계층이 정합니다.
 
 ## 위치
 
-먼저 사양 문서가 자리잡은 위치는 다음과 같습니다.
+사양 문서는 다음 위치에 있습니다.
 
 - spec: `spec/ko/refs-standard-libraries/200-core/`
 
 ## 의존성
 
-Rok tier 는 위로는 `unsafe` 를 내부 사용 목적으로 의존하며, 아래로는 `std` 와 사용자 코드가 Rok을 의존자로 갖습니다. 따라서 Rok은 unsafe 와 std 사이를 잇는 안전 영역의 중심에 위치합니다.
+Rok tier는 위로는 내부 용도로 `unsafe`에 의존하고, 아래로는 `std`와 사용자 코드가 Rok tier에 의존합니다. 그래서 Rok tier는 unsafe와 std 사이, 안전 영역의 중심에 있습니다.
 
 ## 사용자 import 정책
 
-`use rok::core::**;` 가 **묵시 적용**되며, 모든 사용자 파일에 컴파일러가 자동으로 prepend 합니다. 그 결과 Rok의 모든 pub 항목 (List, Dict, Add, Display, Iterator, Mutex, task, ...) 이 별도 import 없이 사용 가능합니다.
+`use rok::core::**;`는 **묵시적으로 적용**됩니다. 컴파일러가 모든 사용자 파일 앞에 이 줄을 붙입니다. 그래서 Rok의 모든 pub 항목 (List, Dict, Add, Display, Iterator, Mutex, task, ...)을 따로 import하지 않고 쓸 수 있습니다.
 
-또한 필요에 따라 좁게 명시하는 방식도 허용됩니다.
+필요하면 좁게 명시하는 import도 허용됩니다.
 
 ```rok
 use rok::core::collections::List;           // 좁은 명시
@@ -24,14 +24,14 @@ use rok::core::ops::{Add, Sub};
 ```
 
 > [!NOTE]
-> Rok은 **별도 `rok::core::prelude` 모듈을 두지 않습니다**. `**` recursive glob 자체가
-> prelude 역할을 하며, 추가 indirection 은 없습니다.
+> Rok에는 **별도의 `rok::core::prelude` 모듈이 없습니다**. `**` recursive glob 자체가
+> prelude 역할을 하며, 추가 indirection은 없습니다.
 
-자세한 정책은 [0.2 import 정책](../000-meta/002-import.md) 에서 다룹니다.
+자세한 정책은 [0.2 import 정책](../000-meta/002-import.md)에서 다룹니다.
 
 ## 모듈 목차
 
-이어서 Rok tier 가 제공하는 모듈을 영역별로 정리합니다.
+Rok tier의 모듈을 영역별로 나누면 다음과 같습니다.
 
 ### 숫자 / niche
 
@@ -83,19 +83,19 @@ use rok::core::ops::{Add, Sub};
 
 ### 인코딩
 
-- [2.22. `encoding::` - hex 와 base64](222-encoding.md)
+- [2.22. `encoding::` - hex와 base64](222-encoding.md)
 
 > [!NOTE]
-> 텐서 / 자동 미분 / SIMD / GPU 같은 과학 컴퓨팅 영역은 Rok tier 에 두지 않고 **외부 라이브러리** 로 분리합니다. 외부 라이브러리는 [`rok::bare::mlir`](../100-bare/) 모듈을 통해 MLIR 다이얼렉트에 직접 접근할 수 있습니다.
+> 텐서 / 자동 미분 / SIMD / GPU 같은 과학 컴퓨팅 영역은 Rok tier에 두지 않고 **외부 라이브러리**로 분리합니다. 외부 라이브러리는 [`rok::bare::mlir`](../100-bare/) 모듈로 MLIR 다이얼렉트에 직접 접근할 수 있습니다.
 
 ## 핵심 디자인 원칙
 
-Rok tier 의 설계는 다음 네 가지 축을 따릅니다.
+Rok tier의 설계는 다음 네 가지 축을 따릅니다.
 
-먼저 트레잇이 우선합니다. 모든 의미 결정은 트레잇 메서드 dispatch 로 이루어지며, `+` 연산은 `Add::add` 로, `[i]` 인덱싱은 `Index::index` 로 해소됩니다.
+첫째, 트레잇이 우선합니다. 모든 의미 결정은 트레잇 메서드 dispatch로 이루어지며, `+` 연산은 `Add::add`로, `[i]` 인덱싱은 `Index::index`로 해소됩니다.
 
-그다음 변환은 명시적입니다. `i64 → i32` 같이 정보 손실이 발생할 수 있는 변환은 컴파일 또는 런타임 에러로 거부되며, saturate 나 wrap 같은 정책은 per-op 단위로 명시되어야 합니다 (refs-standard-libraries 0.x, 변환 정책).
+둘째, 변환은 명시적입니다. `i64 → i32`처럼 정보를 잃을 수 있는 변환은 컴파일 에러나 런타임 에러로 거부되며, saturate나 wrap 같은 정책은 연산마다 명시해야 합니다 (refs-standard-libraries 0.x, 변환 정책).
 
-또한 **GC 친화** 를 지향합니다. 컬렉션과 동시성 객체는 GC 로 관리되며, 외부 자원의 `drop` 은 `using` 블록에서만 호출됩니다.
+셋째, **GC 친화**를 지향합니다. 컬렉션과 동시성 객체는 GC로 관리되며, 외부 자원의 `drop`은 `using` 블록에서만 호출됩니다.
 
-따라서 마지막으로 **target 독립성** 이 보장됩니다. 모든 항목은 모든 Tier 1 플랫폼에서 동일하게 동작하며, target 에 의존하는 항목은 `std` 로 분리됩니다.
+마지막으로 **target 독립성**이 보장됩니다. 모든 항목은 모든 Tier 1 플랫폼에서 동일하게 동작하며, target에 의존하는 항목은 `std`로 분리됩니다.

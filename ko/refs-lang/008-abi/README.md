@@ -1,6 +1,6 @@
 # 8. 런타임 ABI / MLIR lowering 개요
 
-본 블록은 컴파일러(`rokc`) 와 런타임(`librokr.a`) 사이의 공유 contract 를 정의합니다. 컴파일러와 런타임은 본 사양 텍스트로 연결됩니다. 둘이 공유하는 코드는 GC ABI 상수의 정의 하나 (`gc_abi`, [8.1](801-object-header-abi.md)) 뿐입니다.
+이 블록은 컴파일러(`rokc`)와 런타임(`librokr.a`)이 공유하는 contract를 정의합니다. 컴파일러와 런타임은 이 사양 텍스트로 연결됩니다. 둘이 공유하는 코드는 GC ABI 상수의 정의 하나(`gc_abi`, [8.1](801-object-header-abi.md))뿐입니다.
 
 ## 목차
 
@@ -19,20 +19,20 @@
 
 ### 1. 런타임 ABI
 
-컴파일러가 생성한 코드와 `librokr.a` 를 링크해 함께 실행할 때의 인터페이스에 해당합니다. 객체의 메모리 레이아웃은 컴파일러가 만든 객체를 [GC](../000-meta/007-glossary.md#gc-garbage-collector) 가 정확히 해석할 수 있도록 규정됩니다. [extern "C" 심볼](../000-meta/007-glossary.md#extern-c-심볼) 은 컴파일러가 호출할 수 있는 런타임 함수이며, 각 심볼의 thread-safety 분류 (`thread-safe` / `caller-thread-only` / `process-init` 등) 는 [8.5 Extern "C" 심볼](805-extern-symbols.md#850-thread-safety-분류) 에서 정의합니다. TLS 슬롯은 컴파일러가 emit 한 인라인 코드가 읽고 쓰는 thread-local 자리를 의미합니다. Calling convention 은 함수 호출 시의 레지스터·스택 사용을 규정합니다.
+컴파일러가 생성한 코드를 `librokr.a`와 링크해 함께 실행할 때의 인터페이스입니다. 객체의 메모리 레이아웃은 컴파일러가 만든 객체를 [GC](../000-meta/007-glossary.md#gc-garbage-collector)가 정확히 해석할 수 있도록 정합니다. [extern "C" 심볼](../000-meta/007-glossary.md#extern-c-심볼)은 컴파일러가 호출할 수 있는 런타임 함수이며, 각 심볼의 thread-safety 분류(`thread-safe` / `caller-thread-only` / `process-init` 등)는 [8.5 Extern "C" 심볼](805-extern-symbols.md#850-thread-safety-분류)에서 정의합니다. TLS 슬롯은 컴파일러가 emit한 인라인 코드가 읽고 쓰는 thread-local 자리입니다. Calling convention은 함수 호출에서 레지스터와 스택을 쓰는 방식을 정합니다.
 
 ### 2. MLIR lowering
 
-[컴파일 파이프라인](../000-meta/002-pipeline.md) 의 rok-mir → 표준 MLIR 단계에서, Rok의 고차원 의미를 표준 MLIR 다이얼렉트로 변환하는 규칙을 의미합니다. `tagged union`, `any` 슬롯, 패턴 매칭, try/catch, generics 는 모두 표준 MLIR 다이얼렉트로 lower 됩니다. 커스텀 Rok 다이얼렉트는 존재하지 않습니다.
+[컴파일 파이프라인](../000-meta/002-pipeline.md)의 rok-mir → 표준 MLIR 단계에서 Rok의 고수준 의미를 표준 MLIR 다이얼렉트로 바꾸는 규칙입니다. `tagged union`, `any` 슬롯, 패턴 매칭, try/catch, generics는 모두 표준 MLIR 다이얼렉트로 lower됩니다. 커스텀 Rok 다이얼렉트는 없습니다.
 
 ## 본 사양 텍스트가 권위인 이유
 
-컴파일러와 런타임은 `gc_abi` 외의 공유 코드나 헤더 파일을 갖지 않습니다. 두 쪽이 같은 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 를 따른다는 보장은 본 사양 텍스트와 통합 테스트의 end-to-end 검증에서 비롯됩니다.
+컴파일러와 런타임은 `gc_abi` 말고는 코드나 헤더 파일을 공유하지 않습니다. 두 쪽이 같은 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface)를 따른다는 보장은 이 사양 텍스트와 통합 테스트의 end-to-end 검증에서 나옵니다.
 
-이 모델은 Swift ABI Stability 의 접근과 같습니다. 즉, 사양이 권위이며 구현은 그것을 따릅니다.
+이 모델은 Swift ABI Stability와 같은 접근입니다. 사양이 권위이고, 구현은 사양을 따릅니다.
 
 ## 안정성
 
-본 블록의 contract 는 언어 버전(SemVer) 의 일부에 해당합니다. ABI 변경은 명시적 버전 업을 동반합니다. minor / patch 의 경우 추가만 가능하며 호환을 깨면 안 됩니다. major 의 경우 호환을 깨는 변경이 가능하지만, 패키지 매니저가 알 수 있도록 합니다.
+이 블록의 contract는 언어 버전(SemVer)의 일부입니다. ABI를 바꾸면 버전을 명시적으로 올립니다. minor / patch 버전에서는 추가만 할 수 있고 호환성을 깨면 안 됩니다. major 버전에서는 호환성을 깰 수 있지만, 패키지 매니저가 알아챌 수 있는 방식이어야 합니다.
 
-미리 빌드한 패키지의 ROKHIR header 는 그것을 만든 `rokc` 를 기록합니다 ([9.4](../009-tools/904-rokhir-bytecode.md)). 다른 `rokc` 가 만든 패키지를 쓰려 하면 다시 빌드하라는 에러입니다.
+미리 빌드한 패키지의 ROKHIR header에는 그 패키지를 만든 `rokc`가 기록됩니다([9.4](../009-tools/904-rokhir-bytecode.md)). 다른 `rokc`가 만든 패키지를 쓰려고 하면 다시 빌드하라는 에러가 납니다.
