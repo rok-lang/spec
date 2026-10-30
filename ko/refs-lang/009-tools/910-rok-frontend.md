@@ -83,6 +83,21 @@ rok init --script <file.rok>
 
 두 명령은 정규 형식 ([ROKON 3.9.4](../../refs-standard-libraries/300-std/309-rokon.md#394-정규-형식)) 의 `rok.rokon` 과 `target/` 을 담은 `.gitignore` 도 쓰며, git 저장소 안이 아니면 `git init` 을 합니다. `init` 은 디렉토리 이름을 이름 규칙 (9.10.3) 에 맞게 바꿔 패키지 이름으로 씁니다.
 
+두 명령은 `Created` 줄 뒤에, 그 메시지 아래에 이어서 실행할 명령을 출력합니다: `cd <dir> && rok run`, 라이브러리만 있는 패키지는 `rok test` 이며, 패키지가 현재 디렉토리면 `cd` 없이 씁니다. Windows PowerShell 에는 `&&` 가 없으므로 Windows 에서는 `cd <dir>` 와 그 명령을 두 줄로 씁니다. `-q` 면 둘 다 출력하지 않습니다.
+
+```
+     Created executable package (hello)
+             cd hello && rok run
+```
+
+Windows 에서는:
+
+```
+     Created executable package (hello)
+             cd hello
+             rok run
+```
+
 ```
 hello/
 ├── .gitignore        <- target/
@@ -209,6 +224,7 @@ rok deps [--dev] [--features <f,..>] [--all-features] [--no-default-features]
 ```
 
 - `add` / `remove` 는 `rok.rokon` 을 고치며, 주석과 배치를 보존합니다. `--dev` 는 `dev_deps` 에 넣습니다. `add` / `remove` 는 패키지의 `rok.rokon` 을 고칩니다. 마지막 인자로 스크립트 파일을 주면 `add` / `remove` 는 대신 그 파일의 `//! rokon` 블록을 고칩니다 (9.10.7): 블록이 없으면 shebang 줄과 맨 앞의 `//!` 줄 뒤에 만들고 (정규 형식으로 쓰며, 이미 있는 블록은 배치와 주석을 유지함), 비게 된 블록은 지우며, path 는 스크립트 기준으로 쓰고, `--dev` / `--optional` 은 에러입니다. 패키지 안의 스크립트는 에러입니다 (패키지의 `rok.rokon` 을 씀). 스크립트 없이 패키지 밖에서, 또는 `--env` 와 함께 쓰면 `rok add <name> <file.rok>` 와 `rok install` / `rok uninstall` 을 알리는 에러입니다 ([9.10.5a](#9105a-rok-install--rok-uninstall)). stone 을 요구 없이 더하면 `^<가장 새 버전>` 을 적습니다. `--features`, `--no-default-features`, `--optional` 은 `Dep::..` 에 적습니다. `--optional` 은 패키지에 같은 이름의 feature 가 없으면 feature `"<name>": ["dep:<name>"]` 도 더합니다.
+- 패키지에 대한 `add` 는 `Added <name> v<version>` 을 알립니다. 버전은 의존 패키지 `rok.rokon` 의 `version` (아직 해석되지 않은 stone 은 고정한 버전) 이며, 없으면 `Added <name>` 입니다. `--dev` 는 ` (dev_deps)` 를 덧붙입니다.
 - 빌드는 `rok.lock` 의 커밋과 버전을 씁니다. 새로 선언된 의존은 lock 에 더하고 지운 의존은 정리하지만, 이미 고정된 것을 옮기는 것은 `update` 뿐입니다. `update` 는 이름을 주면 그 패키지만, 없으면 모든 git 의존과 stone 을 다시 해소합니다.
 - `deps` 는 해소한 의존 패키지를 `<코드 이름>=<그 src/lib.rok 경로>` 줄로 (코드 이름은 `-` 를 `_` 로 바꾼 것), 의존되는 쪽이 먼저 오는 순서로 출력합니다 (`--dev` 는 dev 의존 포함). 각 줄 뒤에는 그 `--extern-feature=<코드 이름>=<f>` 줄들이 옵니다. `deps` 는 feature 옵션과 `--dev` 를 받습니다. native 패키지마다 (의존하는 쪽이 먼저, host 용) `# native <name> <vers>` 와 그 `rokc` 인자를 한 줄에 하나씩 출력합니다.
 - `rok.lock` 은 버전 관리에 함께 넣습니다.

@@ -67,6 +67,8 @@ rokc build [path]
 
 `[path]` follows the package selection rules above. Output is placed in the per-profile `target/` of [9.2.15](902-aot-pipeline.md#9215-output). `src/main.rok` produces `target/<profile>/<name>`; `src/lib.rok` produces `target/<profile>/lib<name>.a` plus the interface `target/<profile>/<name>.rokhir` ([9.4](904-rokhir-bytecode.md)); a package with both produces both. The profile is `release` for `-O2` / `-O3` / `-Os` (including `--release`) and `debug` otherwise; with `--target=<target>` the directory is `target/<name>/<profile>/`. If `--target-dir=<dir>` or `ROKC_TARGET_DIR` is set, that directory is used instead of `target/`.
 
+A lone file ([4.16.8](../004-functions/416-entry-point.md#4168-single-file-execution)) is built the way `rokc run` builds it, and its executable is copied next to the file as its stem plus the target's executable suffix (`hello.rok` gives `hello`, `hello.exe` on Windows), unless `-o` names another file. A file already at that path that an earlier build of the script did not write is left alone: the build fails and names `-o <file>`.
+
 Options:
 
 - `--release` performs an optimized build (equivalent to `-O2`) in the `release` profile; the default is a debug build (`-O0`) in the `debug` profile. The profiles differ as [9.2.15](902-aot-pipeline.md#9215-output) describes.
@@ -95,7 +97,7 @@ Options:
 - `-C profile-use=<file>` optimizes with an indexed profile from `rokc profdata merge`. A missing file is an error. Functions whose control flow changed since the profile was recorded are optimized without it, and one warning gives their count.
 - Both select the MLIR → LLVM backend at every level, and with them `-C backend=native` is an error. The standard library is compiled with the program (not taken from the cache), so it is profiled and optimized too. The REPL rejects both.
 
-`rokc build` reports the package's lint diagnostics as `rokc check` does ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)): warnings are printed and the build goes on; a `deny` lint fails it. If nothing has changed since the previous build, `rokc build` / `rokc run` print `Fresh`, print that build's warnings again, and skip the build ([9.2.16](902-aot-pipeline.md#9216-incremental-build)).
+`rokc build` reports the package's lint diagnostics as `rokc check` does ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)): warnings are printed and the build goes on; a `deny` lint fails it. If nothing has changed since the previous build, `rokc build` / `rokc run` print `Fresh`, then that build's warnings again, and skip the build ([9.2.16](902-aot-pipeline.md#9216-incremental-build)).
 
 ### `rokc profdata merge`: profile merge
 
@@ -131,7 +133,7 @@ rokc run [path] [-- args...]
 
 It builds an executable package and runs it at once; arguments after `--` are passed to the executable unchanged. Options are the same as `rokc build`. A library package has nothing to run, so it is an error.
 
-A package is built to `target/<profile>/<name>`; an anonymous package (single file) is built in a temporary directory, so no `target/` is created next to the file. `rokc build <file>.rok` builds even an anonymous package into `target/`.
+A package is built to `target/<profile>/<name>`; an anonymous package (single file) is built in a temporary directory, so no `target/` is created next to the file. `rokc build <file>.rok` builds it the same way and copies the executable next to the file (`rokc build` above).
 
 ```
 rokc run hello.rok -- arg1 arg2
@@ -210,12 +212,17 @@ fn parse_1kb(b: Bench) {
 
 - `--iters=N` fixes the number of calls per sample instead of calibrating.
 - `--samples=N` is the number of samples measured (default 100).
+- `--format=human|rokbench` selects the output form (default `human`).
 
-Benchmarks run one at a time. Terminal output is one aligned line per benchmark, in human units; when stdout is not a terminal a stable machine form is written for regression tools.
+Benchmarks run one at a time. Each prints one aligned line in human units, to a terminal or not:
 
 ```
   json::parse_1kb     1.84 us +/- 0.03 us   543 MiB/s   [2 outliers]
 ```
+
+`--format=rokbench` prints a stable machine form for regression tools instead, one line per benchmark: `#rokbench name=<name> median_ns=<f> mad_ns=<f> samples=<n> outliers=<n> gc=<n> bytes=<n> items=<n>`.
+
+A benchmark that never calls `b.iter` measured nothing. It is not a failure: its line is `` <name>  warning: measured nothing: time the code with `b.iter(|| ..)` ``, and the summary counts it as `<n> measured nothing`, not as run.
 
 ### `rokc repl`: terminal REPL
 
@@ -291,7 +298,7 @@ Lint levels are set by the global options `-A` / `-W` / `-D` (9.1.5) and by attr
 ### `rokc doc`: documentation generation
 
 ```
-rokc doc [path] [--std]
+rokc doc [path] [--std] [--open]
 ```
 
 Generates HTML API documentation in `target/doc/` from the public items and docs (`///`, `//!`, `#[doc]`, [6.2.8](../006-meta-system/602-built-in-attributes.md#628-doc---doc-comment-form)) of the package's library (its executable when it has none) (and `--extern` dependency packages).
@@ -304,6 +311,8 @@ target/doc/
 ```
 
 `--std` also documents the standard library tiers into `rok-core/`, `rok-std/`, `rok-bare/`; without a path it documents only them, into `./target/doc/`.
+
+`--open` then opens `index.html` with `$BROWSER` if set, else with the system's opener (`open` on macOS, `xdg-open` on Linux, `start` on Windows). If that cannot start, a warning names the file to open by hand; the exit code is not affected.
 
 Doc text is interpreted as a subset of markdown (headings, fenced code blocks, inline code, links, `**bold**`, lists, paragraphs).
 
@@ -525,6 +534,8 @@ The header is `<severity>[<code>]: <message>` and `--> path:line:col` gives the 
 Progress is shown on stderr with right-aligned verbs. Nothing is printed with `-q`.
 
 ```
+   Compiling std (-Os, cached for next builds)
+   Compiling json v0.1.0
    Compiling foo (path/to/foo)
     Building target/debug/foo
     Finished in 1.23s
@@ -533,17 +544,20 @@ Progress is shown on stderr with right-aligned verbs. Nothing is printed with `-
 
 | Verb        | When                                          |
 |-------------|-----------------------------------------------|
-| `Compiling` | Front end starts (package name and directory) |
+| `Compiling` | Front end starts (package name and directory). A dependency `rok` fetched (under `$ROK_HOME/cache/`) shows `<name> v<version>` instead; the standard library, built once per option set for the cache ([9.2.16](902-aot-pipeline.md#9216-incremental-build)), shows `std (<-O level>, cached for next builds)` |
 | `Building`  | Executable / archive produced (`build`)       |
+| `Built`     | A lone file's executable copied next to it (`build`): `Built hello (use -o to put it elsewhere)` |
 | `Wrote`     | One `--emit` output written                   |
-| `Finished`  | Build done (elapsed time)                     |
-| `Running`   | Program run (`run`)                           |
-| `Created`   | Package created (`new`)                       |
+| `Finished`  | Build done (time since the command started, a standard library build included) |
+| `Running`   | Program run (`run`): the executable relative to the current directory; a lone file by its file name (`Running hello.rok`), with `-v` the cached executable |
+| `Created`   | Package created (`new`), then the command to run next under it ([9.10.2](910-rok-frontend.md#9102-rok-new--rok-init-package-creation)) |
 | `Removed`   | `target/` deleted (`clean`)                   |
-| `Fresh`     | A dependency is up to date                    |
+| `Fresh`     | Up to date; that build's warnings follow      |
 | `Checked`   | `check` done (error and warning counts)       |
 | `Generated` | Documentation written (`doc`)                 |
 | `Formatted` | A file rewritten (`fmt`)                      |
+
+A build (`build`, `run`, `test`, `bench`, `doc`) that fails in the front end ends, after the diagnostics, with `error: could not build <name> (<n> error(s), <m> warning(s))`, counted as `check` counts them. `-q` and `--message-format=json` leave it out.
 
 `rok` prints its own progress the same way: `Added`, `Installed`, `Updated`, `Downloading` and the like ([9.10](910-rok-frontend.md)).
 

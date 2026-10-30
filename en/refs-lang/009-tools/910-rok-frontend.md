@@ -83,6 +83,21 @@ rok init --script <file.rok>
 
 Both commands also write `rok.rokon` in canonical form ([ROKON 3.9.4](../../refs-standard-libraries/300-std/309-rokon.md#394-canonical-form)) and a `.gitignore` containing `target/`, and run `git init` if not inside a git repository. `init` uses the directory name, adjusted to the naming rules (9.10.3), as the package name.
 
+After the `Created` line, both print the command to run next, under the message: `cd <dir> && rok run`, or `rok test` for a package with only a library; without `cd` when the package is the current directory. On Windows, where Windows PowerShell has no `&&`, `cd <dir>` and the command are two lines. `-q` prints neither.
+
+```
+     Created executable package (hello)
+             cd hello && rok run
+```
+
+On Windows:
+
+```
+     Created executable package (hello)
+             cd hello
+             rok run
+```
+
 ```
 hello/
 ├── .gitignore        <- target/
@@ -209,6 +224,7 @@ rok deps [--dev] [--features <f,..>] [--all-features] [--no-default-features]
 ```
 
 - `add` / `remove` edit `rok.rokon`, preserving comments and layout. `--dev` adds to `dev_deps`. `add` / `remove` edit the package's `rok.rokon`. Given a script file as the last argument, `add` / `remove` edit that file's `//! rokon` block instead (9.10.7): a missing block is created after the shebang line and the leading `//!` lines (written in canonical form; an existing block keeps its layout and comments), a block left empty is removed, a path is written relative to the script, and `--dev` / `--optional` are errors. A script inside a package is an error (it uses the package's `rok.rokon`). Outside a package without a script, or with `--env`, they are an error naming `rok add <name> <file.rok>` and `rok install` / `rok uninstall` ([9.10.5a](#9105a-rok-install--rok-uninstall)). Adding a stone without a requirement writes `^<newest version>`. `--features`, `--no-default-features` and `--optional` are written into the `Dep::..`; `--optional` also adds the feature `"<name>": ["dep:<name>"]` unless the package has a feature of that name.
+- `add` to a package reports `Added <name> v<version>`, the `version` in the dependency's `rok.rokon` (for a stone not yet resolved, the version pinned), or `Added <name>` when it has none; `--dev` adds ` (dev_deps)`.
 - Builds use the commits and versions in `rok.lock`. Newly declared dependencies are added to the lock and removed ones are cleaned up, but only `update` moves something already pinned. Given names, `update` re-resolves only those packages; otherwise it re-resolves all git dependencies and stones.
 - `deps` prints the resolved dependency packages as lines `<code name>=<path of its src/lib.rok>` (the code name has `-` replaced by `_`), dependencies first (`--dev` includes dev dependencies). Each such line is followed by its `--extern-feature=<code name>=<f>` lines; `deps` takes the feature options and `--dev`. For each native package (dependents first, for the host) it also prints `# native <name> <vers>` followed by its `rokc` arguments, one per line.
 - `rok.lock` is committed to version control.

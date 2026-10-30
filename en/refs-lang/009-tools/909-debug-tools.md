@@ -350,7 +350,7 @@ rok bench
 
 `black_box(x)` is an identity the optimizer cannot see through; apply it to the inputs and result of the timed closure so the work is neither hoisted out nor folded away. `b.bytes(n)` / `b.items(n)` turn the per-call time into a throughput (`MiB/s`, `Melem/s`).
 
-Terminal output is aligned and in human units; non-terminal output is a stable one-line-per-bench machine form for regression tools. `--iters` / `--samples` adjust the sampling.
+Output is aligned and in human units, to a terminal or not; `--format=rokbench` gives a stable one-line-per-bench machine form for regression tools ([9.1.2](901-rokc-cli.md#rokc-bench-benchmarks)). A benchmark that never calls `b.iter` is reported as having measured nothing, a warning and not a failure. `--iters` / `--samples` adjust the sampling.
 
 ## 9.9.12. CI / test integration
 

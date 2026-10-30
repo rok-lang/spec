@@ -67,6 +67,8 @@ rokc build [path]
 
 `[path]` 는 위의 패키지 지정 규칙을 따릅니다. 산출물은 [9.2.15](902-aot-pipeline.md#9215-산출물) 의 profile 별 `target/` 에 놓입니다. `src/main.rok` 는 `target/<profile>/<name>` 을, `src/lib.rok` 는 `target/<profile>/lib<name>.a` 와 인터페이스 `target/<profile>/<name>.rokhir` ([9.4](904-rokhir-bytecode.md)) 를 만들며, 둘 다 있는 패키지는 둘 다 만듭니다. profile 은 `-O2` / `-O3` / `-Os` (`--release` 포함) 이면 `release`, 그 밖에는 `debug` 이며, `--target=<target>` 이면 `target/<name>/<profile>/` 입니다. `--target-dir=<dir>` 나 `ROKC_TARGET_DIR` 이 있으면 `target/` 대신 그 디렉토리를 씁니다.
 
+단독 파일 ([4.16.8](../004-functions/416-entry-point.md#4168-단일-파일-실행)) 은 `rokc run` 처럼 빌드하고, 그 실행 파일을 파일 옆에 파일 이름의 stem 과 타깃의 실행 파일 접미사로 복사합니다 (`hello.rok` 는 `hello`, Windows 에서는 `hello.exe`). `-o` 가 다른 파일을 지정하면 그곳에 둡니다. 그 경로에 이 스크립트의 이전 빌드가 쓰지 않은 파일이 이미 있으면 건드리지 않습니다: 빌드는 실패하고 `-o <file>` 을 알립니다.
+
 옵션은 다음과 같습니다.
 
 - `--release` 는 최적화 빌드 (`-O2` 와 같음) 를 `release` profile 로 수행하며, 기본값은 `debug` profile 의 디버그 빌드 (`-O0`) 입니다. 두 profile 의 차이는 [9.2.15](902-aot-pipeline.md#9215-산출물) 가 설명합니다.
@@ -95,7 +97,7 @@ rokc build [path]
 - `-C profile-use=<file>` 은 `rokc profdata merge` 로 만든 indexed profile 로 최적화합니다. 파일이 없으면 에러입니다. profile 을 기록한 뒤 제어 흐름이 바뀐 함수는 그것 없이 최적화하며, 그 수를 경고 하나로 알립니다.
 - 둘 다 어느 수준에서나 MLIR → LLVM backend 를 고르며, 함께 쓰는 `-C backend=native` 는 에러입니다. 표준 라이브러리는 cache 에서 가져오지 않고 프로그램과 함께 컴파일되므로 함께 profile 되고 최적화됩니다. REPL 은 둘 다 거부합니다.
 
-`rokc build` 는 패키지의 lint 진단을 `rokc check` 처럼 보고합니다 ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)): 경고는 출력하고 빌드를 이어 가며, `deny` lint 는 빌드를 실패시킵니다. 이전 빌드 뒤로 바뀐 것이 없으면 `rokc build` / `rokc run` 은 `Fresh` 를 출력하고, 그 빌드의 경고를 다시 출력하며, 빌드를 건너뜁니다 ([9.2.16](902-aot-pipeline.md#9216-증분-빌드)).
+`rokc build` 는 패키지의 lint 진단을 `rokc check` 처럼 보고합니다 ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)): 경고는 출력하고 빌드를 이어 가며, `deny` lint 는 빌드를 실패시킵니다. 이전 빌드 뒤로 바뀐 것이 없으면 `rokc build` / `rokc run` 은 `Fresh` 를 출력하고, 그 뒤에 그 빌드의 경고를 다시 출력하며, 빌드를 건너뜁니다 ([9.2.16](902-aot-pipeline.md#9216-증분-빌드)).
 
 ### `rokc profdata merge`: profile 병합
 
@@ -131,7 +133,7 @@ rokc run [path] [-- args...]
 
 실행 패키지를 빌드한 뒤 곧바로 실행하며, `--` 뒤에 적은 인자는 실행 파일에 그대로 전달됩니다. 옵션은 `rokc build` 와 동일합니다. 라이브러리 패키지에는 실행할 것이 없으므로 에러입니다.
 
-패키지는 `target/<profile>/<name>` 에 빌드하고, 익명 패키지 (단일 파일) 는 임시 디렉토리에 빌드하므로 파일 옆에 `target/` 을 만들지 않습니다. `rokc build <file>.rok` 은 익명 패키지도 `target/` 에 빌드합니다.
+패키지는 `target/<profile>/<name>` 에 빌드하고, 익명 패키지 (단일 파일) 는 임시 디렉토리에 빌드하므로 파일 옆에 `target/` 을 만들지 않습니다. `rokc build <file>.rok` 은 같은 방식으로 빌드하고 실행 파일을 파일 옆에 복사합니다 (위의 `rokc build`).
 
 ```
 rokc run hello.rok -- arg1 arg2
@@ -210,12 +212,17 @@ fn parse_1kb(b: Bench) {
 
 - `--iters=N` 은 보정 대신 표본 하나의 호출 횟수를 고정합니다.
 - `--samples=N` 은 측정할 표본 수입니다 (기본 100).
+- `--format=human|rokbench` 는 출력 형식을 고릅니다 (기본 `human`).
 
-벤치는 하나씩 차례로 실행됩니다. 터미널 출력은 벤치마다 한 줄, 사람이 읽는 단위로 정렬되고, stdout 이 터미널이 아니면 회귀 도구를 위한 안정적인 기계 가독 형식이 쓰입니다.
+벤치는 하나씩 차례로 실행됩니다. 각 벤치는 터미널이든 아니든 사람이 읽는 단위로 정렬한 한 줄을 출력합니다.
 
 ```
   json::parse_1kb     1.84 us +/- 0.03 us   543 MiB/s   [2 outliers]
 ```
+
+`--format=rokbench` 는 대신 회귀 도구를 위한 안정적인 기계 가독 형식을 벤치마다 한 줄씩 출력합니다: `#rokbench name=<name> median_ns=<f> mad_ns=<f> samples=<n> outliers=<n> gc=<n> bytes=<n> items=<n>`.
+
+`b.iter` 를 한 번도 부르지 않은 벤치는 아무것도 측정하지 않은 것입니다. 실패는 아닙니다: 그 줄은 `` <name>  warning: measured nothing: time the code with `b.iter(|| ..)` `` 이고, 요약은 그것을 실행한 것이 아니라 `<n> measured nothing` 으로 셉니다.
 
 ### `rokc repl`: 터미널 REPL
 
@@ -291,7 +298,7 @@ lint 수준은 전역 옵션 `-A` / `-W` / `-D` (9.1.5) 와 코드의 속성이 
 ### `rokc doc`: 문서 생성
 
 ```
-rokc doc [path] [--std]
+rokc doc [path] [--std] [--open]
 ```
 
 패키지의 라이브러리 (없으면 실행 파일) (와 `--extern` 의존 패키지) 의 공개 항목과 문서 (`///`, `//!`, `#[doc]`, [6.2.8](../006-meta-system/602-built-in-attributes.md#628-doc---문서-주석-형태)) 로 HTML API 문서를 `target/doc/` 에 만듭니다.
@@ -304,6 +311,8 @@ target/doc/
 ```
 
 `--std` 는 표준 라이브러리 tier 도 `rok-core/`, `rok-std/`, `rok-bare/` 로 문서화합니다. 경로가 없으면 그것만 `./target/doc/` 에 만듭니다.
+
+`--open` 은 그 뒤에 `index.html` 을 `$BROWSER` 가 있으면 그것으로, 없으면 시스템의 opener (macOS 는 `open`, Linux 는 `xdg-open`, Windows 는 `start`) 로 엽니다. 그것을 시작할 수 없으면 경고가 직접 열 파일을 알리며, 종료 코드는 바뀌지 않습니다.
 
 문서 텍스트는 markdown 의 부분집합 (제목, fenced 코드 블록, 인라인 코드, 링크, `**굵게**`, 목록, 문단) 으로 해석합니다.
 
@@ -525,6 +534,8 @@ error[E100]: cannot find value `count` in this scope
 진행 상황은 stderr 에 오른쪽 정렬한 동사로 표시됩니다. `-q` 면 출력하지 않습니다.
 
 ```
+   Compiling std (-Os, cached for next builds)
+   Compiling json v0.1.0
    Compiling foo (path/to/foo)
     Building target/debug/foo
     Finished in 1.23s
@@ -533,17 +544,20 @@ error[E100]: cannot find value `count` in this scope
 
 | 동사        | 시점                                      |
 |-------------|-------------------------------------------|
-| `Compiling` | 프론트엔드 시작 (패키지 이름과 디렉토리)  |
+| `Compiling` | 프론트엔드 시작 (패키지 이름과 디렉토리). `rok` 가 가져온 의존 패키지 (`$ROK_HOME/cache/` 아래) 는 대신 `<name> v<version>` 을, 옵션 집합마다 한 번 cache 용으로 빌드하는 표준 라이브러리 ([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) 는 `std (<-O 수준>, cached for next builds)` 를 보임 |
 | `Building`  | 실행 파일 / archive 생성 (`build`)        |
+| `Built`     | 단독 파일의 실행 파일을 그 옆에 복사함 (`build`): `Built hello (use -o to put it elsewhere)` |
 | `Wrote`     | `--emit` 산출물 하나를 씀                 |
-| `Finished`  | 빌드 끝 (걸린 시간)                       |
-| `Running`   | 프로그램 실행 (`run`)                     |
-| `Created`   | 패키지 생성 (`new`)                       |
+| `Finished`  | 빌드 끝 (명령 시작부터 걸린 시간, 표준 라이브러리 빌드 포함) |
+| `Running`   | 프로그램 실행 (`run`): 현재 디렉토리 기준의 실행 파일. 단독 파일은 파일 이름 (`Running hello.rok`), `-v` 면 캐시된 실행 파일 |
+| `Created`   | 패키지 생성 (`new`), 그 아래에 이어서 실행할 명령 ([9.10.2](910-rok-frontend.md#9102-rok-new--rok-init-패키지-생성)) |
 | `Removed`   | `target/` 삭제 (`clean`)                  |
-| `Fresh`     | 의존 패키지가 최신                        |
+| `Fresh`     | 최신. 그 빌드의 경고가 뒤따름             |
 | `Checked`   | `check` 끝 (에러와 경고 수)               |
 | `Generated` | 문서를 씀 (`doc`)                         |
 | `Formatted` | 파일 하나를 고쳐 씀 (`fmt`)               |
+
+프론트엔드에서 실패한 빌드 (`build`, `run`, `test`, `bench`, `doc`) 는 진단 뒤에 `error: could not build <name> (<n> error(s), <m> warning(s))` 로 끝나며, 수는 `check` 가 세는 방식과 같습니다. `-q` 와 `--message-format=json` 에서는 생략합니다.
 
 `rok` 도 자신의 진행을 같은 방식으로 출력합니다: `Added`, `Installed`, `Updated`, `Downloading` 등 ([9.10](910-rok-frontend.md)).
 
