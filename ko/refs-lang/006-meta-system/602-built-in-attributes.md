@@ -19,19 +19,19 @@ deprecated_attr ::= "#" "[" "deprecated" ("(" string_lit ")" | "=" string_lit)? 
 struct Point { x: i64; y: i64; }
 ```
 
-`#[derive(...)]`의 인자로 트레잇 이름을 콤마로 구분해 나열합니다. 그러면 나열한 트레잇마다 그 타입에 맞는 구현이 자동으로 생성됩니다.
+`#[derive(...)]`의 인자로 트레잇 이름을 쉼표로 구분해 나열합니다. 그러면 컴파일러가 나열한 트레잇마다 그 타입에 맞는 구현을 자동으로 생성합니다.
 
 ### 내장 derive 가능 트레잇
 
 derive할 수 있는 트레잇은 `Clone`, `Copy`, `Debug`, `Default`, `PartialEq`, `Eq`, `PartialOrd`, `Ord`, `Hash`뿐입니다. 각 트레잇의 생성 규칙과 요구 조건은 [stdlib 2.13.11](../../refs-standard-libraries/200-core/213-marker.md#21311-derive-가능한-트레잇)에서 정의합니다.
 
-- `Display`는 derive할 수 없습니다. 표시 형식은 타입 작성자가 정합니다([stdlib 2.10](../../refs-standard-libraries/200-core/210-fmt.md)).
-- `Eq` / `Ord`를 상위 트레잇(`PartialEq` / `PartialOrd`, `Eq`) 없이 derive하면 컴파일 에러입니다. `Copy`는 `Clone`이 필요하고, `Drop`과 함께 쓸 수 없습니다.
+- `Display`는 derive로 구현할 수 없습니다. 표시 형식은 타입 작성자가 정합니다([stdlib 2.10](../../refs-standard-libraries/200-core/210-fmt.md)).
+- `Eq` / `Ord`를 상위 트레잇(`PartialEq` / `PartialOrd`, `Eq`) 없이 derive로 구현하면 컴파일 에러입니다. `Copy`는 `Clone`이 필요하고, `Drop`과 함께 쓸 수 없습니다.
 - `union`에 `#[derive]`를 붙이면 컴파일 에러입니다.
 
-### 사용자 정의 derive 와의 결합
+### 사용자 정의 derive와 결합
 
-`#[derive(MyTrait)]`처럼 사용자 정의 트레잇도 derive할 수 있습니다. 단, `MyTrait`가 `#[impl_derive(MyTrait)]` 메타 블록([6.8](608-meta-blocks.md))으로 정의되어 있어야 합니다. 위의 내장 derive 이름은 메타 블록으로 다시 정의할 수 없습니다.
+`#[derive(MyTrait)]`처럼 사용자 정의 트레잇도 derive로 구현할 수 있습니다. 단, `MyTrait`를 정의하는 `#[impl_derive(MyTrait)]` 메타 블록([6.8](608-meta-blocks.md))이 있어야 합니다. 위의 내장 derive 이름은 메타 블록으로 다시 정의할 수 없습니다.
 
 내장 derive와 사용자 정의 derive는 한 `#[derive(...)]` 안에 섞어 쓸 수 있습니다.
 
@@ -62,12 +62,12 @@ enum Status { ... }
 | 인자                        | 의미                                                                                                 |
 |-----------------------------|------------------------------------------------------------------------------------------------------|
 | `C`                         | C [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 레이아웃: 선언 순서, 자연 정렬. 기본 `struct` 레이아웃과 같음 |
-| `transparent`               | 필드 정확히 하나, 다른 `repr` 인자 없음. 그 필드와 같은 표현이며 C ABI 를 그 필드로 건넘             |
+| `transparent`               | 필드 정확히 하나, 다른 `repr` 인자 없음. 그 필드와 같은 표현이고 C ABI에서도 그 필드처럼 건넘             |
 | `packed`                    | 정렬을 무시하고 빽빽이 묶음 ([FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) 한정). GC 참조를 담을 수 없고 `align(N)`과 함께 쓸 수 없음 |
-| `align(N)`                  | 최소 정렬을 N 바이트로 강제                                                                          |
-| `u8` ~ `u64` / `i8` ~ `i64` | `enum`의 tag 타입. 32 비트가 아닌 폭은 필드 없는 enum 만; 데이터 enum 은 `i32` / `u32` |
+| `align(N)`                  | 최소 정렬을 N바이트로 강제                                                                           |
+| `u8` ~ `u64` / `i8` ~ `i64` | `enum`의 태그 타입. 32비트가 아닌 폭은 필드 없는 enum에만 씀. 데이터가 있는 enum은 `i32` / `u32` |
 
-`#[repr]`가 없으면 [`struct`](../002-types/203-struct.md)는 선언 순서와 자연 정렬(`repr(C)`와 같음)을 따르고, [`enum`](../002-types/204-enum.md)과 합 타입의 레이아웃은 컴파일러가 정합니다([2.7](../002-types/207-niche-optimization.md)).
+`#[repr]`가 없으면 [`struct`](../002-types/203-struct.md)는 선언 순서와 자연 정렬을 따릅니다. `repr(C)`와 같습니다. [`enum`](../002-types/204-enum.md)과 합 타입의 레이아웃은 컴파일러가 정합니다([2.7](../002-types/207-niche-optimization.md)).
 
 ## 6.2.3. `#[link(...)]` 외부 라이브러리 명시
 
@@ -89,11 +89,11 @@ extern "C" { ... }
 | `"libname"`                 | 단순 라이브러리 이름        |
 | `name = "..."`              | 라이브러리 이름 (key-value) |
 | `kind = "static" / "dylib"` | 링크 종류                   |
-| `wasm_import_module = "m"` | wasm32: 블록의 함수를 core module `m`에서 import. 그 밖에서는 무시 |
+| `wasm_import_module = "m"` | wasm32: 블록의 함수를 core module `m`에서 가져옴. 그 밖에서는 무시 |
 
 ### `#[link_name = "sym"]`
 
-extern 함수에 붙인 `#[link_name = "sym"]`은 그 함수가 링크할 심볼을 지정합니다. `wasm_import_module` 블록 안에서는 import 이름을 지정합니다.
+extern 함수에 붙인 `#[link_name = "sym"]`은 그 함수가 링크할 심볼을 지정합니다. `wasm_import_module` 블록 안에서는 가져올 이름을 지정합니다.
 
 ```rok
 #[link(wasm_import_module = "env")]
@@ -122,7 +122,7 @@ fn never_inline() { ... }
 | `always` | 인라이닝 강제                   |
 | `never`  | 인라이닝 금지                   |
 
-`#[inline]`은 최적화 힌트일 뿐이며, 프로그램의 의미에는 영향을 주지 않습니다.
+`#[inline]`은 최적화 힌트일 뿐입니다. 프로그램의 의미에는 영향을 주지 않습니다.
 
 ## 6.2.5. `#[test]` 테스트 함수 마커
 
@@ -133,9 +133,9 @@ fn test_addition() {
 }
 ```
 
-`assert_eq`는 [stdlib 2.14.5](../../refs-standard-libraries/200-core/214-error.md#assert--assert_eq--assert_ne)에 있습니다. 함수에 `#[test]`를 붙이면 테스트 함수로 표시됩니다. `rokc test`가 이런 함수를 모아 하네스를 만들고, 테스트 러너(`rok test` 등)가 자동으로 실행합니다. 일반 빌드에서는 `#[cfg(test)]`가 함께 붙은 것처럼 제외됩니다. 테스트 함수는 자신과 바깥 모듈의 가시성과 상관없이 실행되며, `#[test]`가 다른 코드에서 보이는 가시성을 바꾸지는 않습니다.
+`assert_eq`는 [stdlib 2.14.5](../../refs-standard-libraries/200-core/214-error.md#assert--assert_eq--assert_ne)에 있습니다. 함수에 `#[test]`를 붙이면 테스트 함수가 됩니다. `rokc test`가 이런 함수를 모아 하네스를 만들고, 테스트 러너(`rok test` 등)가 자동으로 실행합니다. 일반 빌드에서는 `#[cfg(test)]`가 함께 붙은 것처럼 빠집니다. 테스트 함수는 자신과 바깥 모듈의 가시성과 상관없이 실행됩니다. `#[test]`가 다른 코드에서 보이는 가시성을 바꾸지는 않습니다.
 
-`#[bench]`는 벤치마크 함수를 표시하며, `#[test]`처럼 `#[cfg(test)]`를 함의합니다. `rokc bench`가 이런 함수를 모아 실행합니다([9.1.2](../009-tools/901-rokc-cli.md#rokc-bench-벤치마크)). 벤치마크 함수는 자신과 바깥 모듈의 가시성과 상관없이 실행되며, `#[bench]`가 다른 코드에서 보이는 가시성을 바꾸지는 않습니다.
+`#[bench]`는 벤치마크 함수를 표시합니다. `#[test]`처럼 `#[cfg(test)]`를 함의합니다. `rokc bench`가 이런 함수를 모아 실행합니다([9.1.2](../009-tools/901-rokc-cli.md#rokc-bench-벤치마크)). 벤치마크 함수는 자신과 바깥 모듈의 가시성과 상관없이 실행됩니다. `#[bench]`가 다른 코드에서 보이는 가시성을 바꾸지는 않습니다.
 
 ## 6.2.6. `#[cold]` 드물게 호출되는 함수
 
@@ -156,7 +156,7 @@ fn old_api() { ... }
 fn old_api2() { ... }
 ```
 
-`#[deprecated]`가 붙은 함수를 사용하면 경고(lint `deprecated`)가 나지만 에러는 아닙니다. `= "..."` 형태로 메시지를 적으면 그 메시지가 경고에 함께 표시됩니다. 이 속성은 어느 항목에나 붙일 수 있지만, 경고는 함수에서만 납니다.
+`#[deprecated]`가 붙은 함수를 쓰면 경고(린트 `deprecated`)가 납니다. 에러는 아닙니다. `= "..."` 형태로 메시지를 적으면 경고에 그 메시지도 나옵니다. 이 속성은 어느 항목에나 붙일 수 있지만 경고는 함수에서만 납니다.
 
 ## 6.2.8. `#[doc = "..."]` 문서 주석 형태
 
@@ -186,7 +186,7 @@ fn f() { ... }
 pub const fn spread_misfit<V>(d: Dict<str, V>, key: str, why: str) { .. }
 ```
 
-`#[doc(hidden)]`은 공개 항목을 API 문서(`rokc doc`)와 language server의 자동 완성에서 뺍니다. 컴파일러가 생성한 코드에서 부를 수 있도록 `pub`으로 둔 항목에 씁니다. 항목은 여전히 공개이며, 컴파일과 이름 해석도 달라지지 않습니다. 모듈에 붙이면 그 안의 모든 것을 숨깁니다. 항목의 문서 주석과 함께 둘 수 있으며, 문서 주석은 hover에 계속 표시됩니다. 그 밖의 `#[doc(..)]` 형태는 에러입니다. `#[doc = ".."]`나 `#[doc(hidden)]`으로 쓰세요.
+`#[doc(hidden)]`은 공개 항목을 API 문서(`rokc doc`)와 언어 서버의 자동 완성에서 뺍니다. 컴파일러가 생성한 코드에서 부를 수 있도록 `pub`으로 둔 항목에 씁니다. 항목은 여전히 공개입니다. 컴파일과 이름 해석도 달라지지 않습니다. 모듈에 붙이면 그 안의 모든 것을 숨깁니다. 항목의 문서 주석과 함께 둘 수 있고, 문서 주석은 호버 정보에 계속 나옵니다. 그 밖의 `#[doc(..)]` 형태는 에러입니다. `#[doc = ".."]`나 `#[doc(hidden)]`으로 쓰세요.
 
 ## 6.2.9. `#[allow(...)]` / `#[deny(...)]` / `#[warn(...)]` 린트 제어
 
@@ -198,49 +198,49 @@ fn _placeholder() { }
 fn strict_zone() { ... }
 ```
 
-이 속성들은 붙은 항목의 범위 안에서 lint 진단의 수준을 바꿉니다. lint는 패키지를 컴파일하는 모든 명령에서 실행됩니다. `rokc build`, `run`, `test`, `bench`, `emit`, `check`, `lint`([9.1.2](../009-tools/901-rokc-cli.md#rokc-lint-린터))와 language server가 해당하며, `doc`은 해당하지 않습니다. 빌드하는 패키지만 검사하고 의존 패키지는 검사하지 않습니다. `warn` lint는 출력만 되고 빌드를 실패시키지 않습니다. `deny` lint는 에러이며, 빌드가 종료 코드 1로 실패합니다. `allow`는 진단을 무시하고, `warn`은 진단을 경고로 내고, `deny`는 진단을 에러로 냅니다. `#![allow(..)]` 같은 내부 형태는 둘러싼 모듈(파일 머리에서는 파일 전체)에 적용됩니다. 인자는 lint 이름이나 그룹 이름입니다. 항목에 붙인 `#[allow]`는 그 항목의 변형, 필드, 메서드에도 적용됩니다.
+이 속성은 붙은 항목의 범위 안에서 린트 진단의 수준을 바꿉니다. 린트는 패키지를 컴파일하는 모든 명령에서 실행됩니다. `rokc build`, `run`, `test`, `bench`, `emit`, `check`, `lint`([9.1.2](../009-tools/901-rokc-cli.md#rokc-lint-린터))와 언어 서버가 해당합니다. `doc`은 해당하지 않습니다. 빌드하는 패키지만 검사하고 의존 패키지는 검사하지 않습니다. `warn` 린트는 출력만 하고 빌드를 실패로 만들지 않습니다. `deny` 린트는 에러이고, 빌드가 종료 코드 1로 실패합니다. `allow`는 진단을 무시하고, `warn`은 진단을 경고로, `deny`는 진단을 에러로 냅니다. `#![allow(..)]` 같은 내부 형태는 둘러싼 모듈에 적용됩니다. 파일 머리에서는 파일 전체에 적용됩니다. 인자는 린트 이름이나 그룹 이름입니다. 항목에 붙인 `#[allow]`는 그 항목의 변형, 필드, 메서드에도 적용됩니다.
 
-수준은 다음 순서로 정해지며, 뒤에 오는 것이 앞의 것보다 우선합니다. 각 lint의 기본 수준 < `rok.rokon`의 `lints` 필드(`lints_from` 사슬을 적용한 뒤)([9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) < CLI의 `-A` / `-W` / `-D` < 소스의 속성(가장 안쪽 것이 우선). `lints`는 CLI 플래그 앞에 붙은 것처럼 처리되므로, 뒤에 쓴 CLI 플래그가 이 설정을 덮어씁니다. lint 진단의 코드는 `E503`입니다.
+수준은 다음 순서로 정해지고, 뒤에 오는 것이 앞의 것보다 우선합니다. 각 린트의 기본 수준 < `rok.rokon`의 `lints` 필드(`lints_from` 사슬을 적용한 뒤)([9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) < CLI의 `-A` / `-W` / `-D` < 소스의 속성(가장 안쪽 것이 우선). `lints`는 CLI 플래그 앞에 붙은 것처럼 처리되므로 뒤에 쓴 CLI 플래그가 이 설정을 덮어씁니다. 린트 진단의 코드는 `E503`입니다.
 
-모든 lint의 기본 수준은 `warn`입니다.
+모든 린트의 기본 수준은 `warn`입니다.
 
-| lint                     | 검사                                                               |
+| 린트                     | 검사                                                               |
 |--------------------------|--------------------------------------------------------------------|
-| `unused_variables`       | 읽지 않는 지역 변수나 매개변수. 대입하거나 `ref`로 캡처한 (`[ref n]`) `ref` 매개변수는 사용한 것으로 봄: 그 쓰기가 호출자에게 닿음 |
+| `unused_variables`       | 읽지 않는 지역 변수나 매개변수. 대입하거나 `ref`로 캡처한 (`[ref n]`) `ref` 매개변수는 사용한 것으로 봄. 그 쓰기가 호출한 쪽에 닿기 때문 |
 | `unused_imports`         | 모듈이 이름을 쓰지 않는 `use`                                      |
 | `dead_code`              | 아무도 부르지 않는 비 `pub` 함수                                   |
 | `unreachable_code`       | `return` / `break` / `continue` / `throw` / `panic` 뒤의 문장      |
 | `unused_must_use`        | `#[must_use]` 함수의 결과, 또는 `#[must_use]` 타입의 값을 버림 ([6.2.11](#6211-must_use-결과-무시-경고)) |
-| `unused_doc_comments`    | 설명하지 않는 것 (문, match arm, 구조체 리터럴이나 tuple 필드, 식)에 붙은 문서 주석. 일반 주석은 `//`를 씀 |
-| `write_to_copy`          | 아무도 나중에 읽지 않는 사본에 필드를 대입함: 값으로 받은 매개변수나 `self`, `for` 바인딩, 원소의 `let` (`xs[i]`, [2.3.8](../002-types/203-struct.md#238-값-의미))이며, 이후의 읽기, 루프 반복, 반환, 호출 어느 것도 그 변경을 볼 수 없을 때. 같은 변수에 대한 다른 쓰기에만 쓰이는 읽기는 세지 않으며, 클로저나 코루틴 블록이 언급하는 변수는 검사하지 않음 |
-| `ignored_error`          | `try? f();` 문장이 에러를 조용히 버림. `let _ = try? f();`는 의도한 best-effort 호출의 표시이며 보고하지 않음 |
+| `unused_doc_comments`    | 문서화 대상이 아닌 것(문, match 가지, struct 리터럴이나 튜플 필드, 식)에 붙은 문서 주석. 일반 주석은 `//`를 씀 |
+| `write_to_copy`          | 아무도 나중에 읽지 않는 사본에 필드를 대입함. 사본은 값으로 받은 매개변수나 `self`, `for` 바인딩, 원소의 `let`(`xs[i]`, [2.3.8](../002-types/203-struct.md#238-값-의미))이고, 이후의 읽기, 루프 반복, 반환, 호출 어느 것도 그 변경을 볼 수 없을 때. 같은 변수에 다시 쓰는 데에만 쓰이는 읽기는 세지 않음. 클로저나 코루틴 블록이 언급하는 변수는 검사하지 않음 |
+| `ignored_error`          | `try? f();` 문장이 에러를 조용히 버림. `let _ = try? f();`는 실패해도 괜찮은 호출이라는 표시이므로 보고하지 않음 |
 | `shadowed_loop_var`      | `for` 본체의 `let`이 루프 변수를 다시 묶음                        |
-| `nan_comparison`         | NaN 과의 비교 (늘 거짓, `!=`는 늘 참)                             |
+| `nan_comparison`         | NaN과 비교 (늘 거짓, `!=`는 늘 참)                               |
 | `none_comparison`        | `x is none` 대신 `x == none`                                       |
 | `bool_comparison`        | `bool`을 `true` / `false`와 비교                                 |
 | `self_assignment`        | `x = x;`                                                           |
 | `unclosed_resource`      | `using`으로 해제하지 않은 `File` / `Dir` / `ReadDir` / `TcpStream` / `TcpListener` / `UdpSocket` / `Child` (warn) |
 | `while_true`             | `loop` 대신 `while true`                                           |
 | `deprecated`             | `#[deprecated]` 함수 사용                                          |
-| `redundant_cast`         | `x`가 이미 `T` 인 `x as T`                                        |
+| `redundant_cast`         | `x`가 이미 `T`인 `x as T`                                         |
 | `redundant_clone`        | 원시 타입 값의 `.clone()`                                          |
-| `non_snake_case`         | 함수, 지역 변수, 매개변수, 모듈 이름이 snake_case 가 아님          |
-| `non_camel_case_types`   | 타입, 트레잇, 변형 이름이 UpperCamelCase 가 아님: 첫 글자가 소문자가 아니고, `__`가 없으며, `_`는 대소문자가 없는 문자 사이에만 (`V1_0`) |
-| `non_upper_case_globals` | `const` / `static` 이름이 UPPER_SNAKE_CASE 가 아님                 |
+| `non_snake_case`         | 함수, 지역 변수, 매개변수, 모듈 이름이 snake_case가 아님           |
+| `non_camel_case_types`   | 타입, 트레잇, 변형 이름이 UpperCamelCase가 아님. 첫 글자가 소문자가 아니고, `__`가 없으며, `_`는 대소문자가 없는 문자 사이에만 (`V1_0`) |
+| `non_upper_case_globals` | `const` / `static` 이름이 UPPER_SNAKE_CASE가 아님                  |
 | `confusable_idents`      | 서로 닮은 식별자 ([1.4](../001-lexical/104-identifiers.md))        |
-| `missing_f_prefix`       | 범위 안의 지역 변수 `name`에 대한 `{name}`을 담은 보통 문자열 리터럴: `f` 접두어가 빠짐 (warn) |
+| `missing_f_prefix`       | 범위 안의 지역 변수 `name`을 가리키는 `{name}`을 담은 보통 문자열 리터럴: `f` 접두어가 빠짐 (warn) |
 
 | 그룹                | 포함                                                                                         |
 |---------------------|----------------------------------------------------------------------------------------------|
 | `unused`            | `unused_variables`, `unused_imports`, `dead_code`, `unreachable_code`, `unused_must_use`, `unused_doc_comments` |
 | `nonstandard_style` | `non_snake_case`, `non_camel_case_types`, `non_upper_case_globals`                           |
-| `all`               | 모든 lint                                                                                    |
+| `all`               | 모든 린트                                                                                    |
 
 `write_to_copy`의 help는 `ref self` / `ref p`, 인덱스 루프(`for i in 0..xs.len() { xs[i].f = .. }`), 또는 원소를 다시 써 넣는 방법을 제안합니다.
 
-`rokc lint --list`는 lint, 그룹, 기본 수준을 출력합니다.
+`rokc lint --list`는 린트, 그룹, 기본 수준을 출력합니다.
 
-## 6.2.10. `#[non_exhaustive]` 외부에서의 완전성 검사 회피
+## 6.2.10. `#[non_exhaustive]` 외부 완전성 검사 회피
 
 ```rok
 #[non_exhaustive]
@@ -250,7 +250,7 @@ pub enum ApiError {
 }
 ```
 
-`#[non_exhaustive]`는 `enum`이나 `struct`에 붙일 수 있습니다. 이 속성이 있으면 외부 패키지에서 그 타입에 `match`할 때, 모든 변형을 처리하더라도 catch-all(`_ => ...`)을 추가로 써야 합니다. 덕분에 라이브러리 작성자는 SemVer 호환성을 깨지 않고 나중에 새 변형을 추가할 수 있습니다.
+`#[non_exhaustive]`는 `enum`이나 `struct`에 붙일 수 있습니다. 이 속성이 있으면 외부 패키지에서 그 타입을 `match`할 때 모든 변형을 처리하더라도 나머지 가지(`_ => ...`)를 더 써야 합니다. 덕분에 라이브러리 작성자는 SemVer 호환성을 깨지 않고 나중에 새 변형을 추가할 수 있습니다.
 
 ## 6.2.11. `#[must_use]` 결과 무시 경고
 
@@ -261,7 +261,7 @@ fn calculate() -> i32 { ... }
 
 `#[must_use]`가 붙은 함수의 반환값을 쓰지 않고 버리면 경고가 납니다. 결과를 일부러 무시하려면 [매개변수](../004-functions/402-parameters.md)에서 설명한 `_ = ...`를 쓰세요.
 
-`#[must_use]`는 `struct`나 `enum`에도 붙일 수 있습니다. 그러면 값의 타입이 그 타입인 식 문장, 또는 그 타입이면서 한 번도 읽지 않는 지역 변수가 속성의 메시지와 함께 `unused_must_use` 경고를 냅니다. `async fn` 호출이나 `async` 블록의 값(await하지 않은 future는 실행되지 않음)과 `thread::JoinHandle`([stdlib 3.4.2](../../refs-standard-libraries/300-std/304-thread.md#342-api). join하지 않은 스레드는 프로그램이 끝나기 전에 끝나지 않을 수 있으며, `detach`는 스레드가 따로 실행됨을 명시함)은 `#[must_use]`입니다.
+`#[must_use]`는 `struct`나 `enum`에도 붙일 수 있습니다. 그러면 그 타입의 값을 내는 식 문장과, 그 타입이면서 한 번도 읽지 않는 지역 변수에 `unused_must_use` 경고가 납니다. 경고에는 속성의 메시지가 함께 나옵니다. `async fn` 호출이나 `async` 블록의 값과 `thread::JoinHandle`([stdlib 3.4.2](../../refs-standard-libraries/300-std/304-thread.md#342-api))은 `#[must_use]`입니다. 기다리지 않은 future는 실행되지 않습니다. 합류하지 않은 스레드는 프로그램이 끝나기 전에 끝나지 않을 수 있습니다. `detach`는 스레드를 따로 실행한다는 뜻을 밝힙니다.
 
 ## 6.2.12. `#[track_caller]` 호출 위치 전달
 
@@ -273,20 +273,20 @@ fn expect_positive(n: i32) -> i32 {
 }
 ```
 
-- 함수는 호출 위치를 숨겨진 마지막 `str` 인자로 받습니다. 함수 안의 panic은 그 위치를 보고합니다([4.14.13](../004-functions/414-throws.md#41413-panic-과-fatal-에러)).
-- tracked 함수가 다른 tracked 함수를 부르면 받은 위치를 그대로 넘깁니다.
-- tracked 함수를 함수 값으로 쓰면 그 값을 만든 위치를 보고합니다.
+- 함수는 호출 위치를 숨겨진 마지막 `str` 인자로 받습니다. 함수 안의 panic은 그 위치를 보고합니다([4.14.13](../004-functions/414-throws.md#41413-panic과-fatal-에러)).
+- 추적 대상 함수가 다른 추적 대상 함수를 부르면 받은 위치를 그대로 넘깁니다.
+- 추적 대상 함수를 함수 값으로 쓰면 그 값을 만든 위치를 보고합니다.
 - `async fn`에 붙이면 호출만 추적하고 코루틴 본체는 추적하지 않습니다.
-- `extern`(런타임) 선언에 붙이면 그 심볼이 위치 인자를 하나 더 받습니다([8.5.7](../008-abi/805-extern-symbols.md#857-diagnostic-영역)).
+- `extern`(런타임) 선언에 붙이면 그 심볼이 위치 인자를 하나 더 받습니다([8.5.7](../008-abi/805-extern-symbols.md#857-진단-영역)).
 - `main`, `extern "C" fn`, `#[export_name]` 함수에는 붙일 수 없습니다.
 
-잘못된 입력에 panic하는 표준 라이브러리 함수(`panic`, `unreachable`, `assert*`, 인덱싱, 슬라이싱, `unwrap`, `List::insert` / `remove` 등)는 `#[track_caller]`입니다.
+잘못된 입력에 panic을 일으키는 표준 라이브러리 함수(`panic`, `unreachable`, `assert*`, 인덱싱, 슬라이싱, `unwrap`, `List::insert` / `remove` 등)는 `#[track_caller]`입니다.
 
 ## 6.2.13. 정리
 
-위의 속성은 컴파일러와 도구가 직접 인식하는 내장 속성이며, 메타 블록으로 따로 정의할 필요가 없습니다.
+위의 속성은 컴파일러와 도구가 직접 인식하는 내장 속성입니다. 메타 블록으로 따로 정의하지 않아도 됩니다.
 
-`#[lang]`, `#[literal]` 같은 매직 속성은 언어의 의미와 결합되어 있으므로 별도 문서에서 정의합니다.
+`#[lang]`, `#[literal]` 같은 매직 속성은 언어의 의미와 결합되어 있으므로 다른 절에서 정의합니다.
 
 ### 그 밖의 내장 속성
 
@@ -295,10 +295,10 @@ fn expect_positive(n: i32) -> i32 {
 | 속성                           | 붙는 곳                       | 의미 |
 |--------------------------------|-------------------------------|------|
 | `#[path("file.rok")]`          | `mod name;`                   | `name.rok` 대신 그 파일에서 모듈을 읽음 ([5.4.6](../005-modules/504-modules.md#546-사용자-정의-경로-path)) |
-| `#![no_implicit_rok]`          | 파일 (내부)                   | 그 파일의 묵시적 `use rok::core::**;`를 끔 ([stdlib 0.2.5](../../refs-standard-libraries/000-meta/002-import.md#025-묵시-무시---no_implicit_rok)) |
-| `#[export_name("sym")]`        | 함수                          | 함수를 맹글링하지 않은 심볼 `sym`으로 export 함 (wasm32 에서는 그 이름의 wasm export). 도달 불가 함수 제거의 root ([9.5.8](../009-tools/905-symbol-mangling.md)) |
-| `#[no_mangle]`                 | 함수                          | 함수를 이름 lint 와 미사용 함수 lint 에서 뺌. 심볼은 바꾸지 않으며, 심볼 이름은 `#[export_name]`으로 정함 |
-| `#[wit::export]`               | 함수, `pub struct`            | WIT export 를 구현함: 함수 또는 resource ([stdlib 1.8](../../refs-standard-libraries/100-bare/108-wit.md)) |
-| `#[niche(..)]`                 | newtype struct                | 타입이 갖지 않는 값을 선언하며, 그 값이 `T \| none`의 niche 가 됨 ([2.7.4](../002-types/207-niche-optimization.md#274-opt-in-niche-niche)) |
+| `#![no_implicit_rok]`          | 파일 (내부)                   | 그 파일의 묵시적 `use rok::core::**;`를 끔 ([stdlib 0.2.5](../../refs-standard-libraries/000-meta/002-import.md#025-적용-해제-no_implicit_rok)) |
+| `#[export_name("sym")]`        | 함수                          | 함수를 맹글링하지 않은 심볼 `sym`으로 내보냄 (wasm32에서는 그 이름의 wasm export). 도달 불가 함수 제거의 루트 ([9.5.8](../009-tools/905-symbol-mangling.md)) |
+| `#[no_mangle]`                 | 함수                          | 함수를 이름 린트와 미사용 함수 린트에서 뺌. 심볼은 바꾸지 않음. 심볼 이름은 `#[export_name]`으로 정함 |
+| `#[wit::export]`               | 함수, `pub struct`            | WIT export를 구현함. 함수 또는 resource ([stdlib 1.8](../../refs-standard-libraries/100-bare/108-wit.md)) |
+| `#[niche(..)]`                 | newtype struct                | 타입에 없는 값을 선언함. 그 값이 `T \| none`의 niche가 됨 ([2.7.4](../002-types/207-niche-optimization.md#274-opt-in-niche-niche)) |
 | `#[intrinsic("rok.OP.TYPE")]`  | 표준 라이브러리 전용          | 함수나 메서드를 컴파일러 연산에 묶음. 사용자 코드에서는 에러 ([stdlib 0.3](../../refs-standard-libraries/000-meta/003-intrinsics.md)) |
-| `#[no_safepoint]`              | `extern "rok"` 블록           | toolchain 내부용: 블록의 함수는 할당도 block 도 하지 않으므로 그 호출은 safepoint 가 아님. 다른 블록에서는 에러 ([5.9.2](../005-modules/509-extern-block.md#592-abi-명시)) |
+| `#[no_safepoint]`              | `extern "rok"` 블록           | toolchain 내부용. 블록의 함수는 할당도 블로킹도 하지 않으므로 그 호출은 safepoint가 아님. 다른 블록에서는 에러 ([5.9.2](../005-modules/509-extern-block.md#592-abi-명시)) |

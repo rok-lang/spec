@@ -1,12 +1,12 @@
 # 1.5. volatile 메모리 접근
 
-`rok::bare::volatile` 모듈은 컴파일러가 최적화로 없애지 않는 메모리 read / write를
-정의합니다. hardware register, MMIO, signal handler, DMA buffer처럼 모든 접근이 쓴 그대로
-실행되어야 하는 곳에서는 이 모듈이 필수입니다.
+`rok::bare::volatile` 모듈은 컴파일러가 최적화로 없애지 않는 메모리 읽기 / 쓰기를
+정의합니다. 하드웨어 레지스터, MMIO, 시그널 핸들러, DMA 버퍼처럼 모든 접근을 쓴 그대로
+실행해야 하는 곳에서는 이 모듈이 꼭 필요합니다.
 
 ## 1.5.1. 동기
 
-컴파일러는 평범한 read / write를 마음대로 제거하거나 재배열하거나 합칠 수 있습니다.
+컴파일러는 평범한 읽기 / 쓰기를 마음대로 지우거나, 순서를 바꾸거나, 합칠 수 있습니다.
 다음 코드를 보세요.
 
 ```rok
@@ -17,8 +17,8 @@ unsafe {
 }
 ```
 
-컴파일러는 첫 write를 dead store로 보고 지울 수 있지만, 어떤 hardware는 1과 2를 차례로
-받아야 제대로 동작합니다. `volatile`은 이런 최적화를 막고 접근을 쓴 그대로 실행하게 합니다.
+컴파일러는 첫 쓰기를 죽은 저장(dead store)으로 보고 지울 수 있습니다. 하지만 어떤 하드웨어는
+1과 2를 차례로 받아야 제대로 동작합니다. `volatile`은 이런 최적화를 막고 접근을 쓴 그대로 실행하게 합니다.
 
 ```rok
 unsafe {
@@ -29,7 +29,7 @@ unsafe {
 
 ## 1.5.2. API
 
-API는 read와 write 두 함수뿐입니다.
+API는 읽기와 쓰기 두 함수뿐입니다.
 
 ```rok
 // rok::bare::volatile
@@ -37,8 +37,8 @@ unsafe fn read<T>(src: ConstPtr<T>) -> T;
 unsafe fn write<T>(dst: Ptr<T>, value: T);
 ```
 
-같은 동작을 `Ptr<T>::read_volatile` / `write_volatile` 메서드로도 쓸 수 있으며,
-그쪽이 더 자연스러운 경우가 많습니다([1.1.2](101-ptr.md#112-ptrt---strict-provenance-api)).
+같은 동작을 `Ptr<T>::read_volatile` / `write_volatile` 메서드로도 쓸 수 있습니다.
+그쪽이 더 자연스러운 경우가 많습니다([1.1.2](101-ptr.md#112-ptrt-strict-provenance-api)).
 
 ## 1.5.3. 사용처
 
@@ -46,26 +46,26 @@ unsafe fn write<T>(dst: Ptr<T>, value: T);
 
 | 자리                   | 이유                                  |
 |------------------------|---------------------------------------|
-| MMIO register          | hardware가 read만으로도 side effect |
-| Memory-mapped 디바이스 | DMA 등                                |
-| signal handler 변수    | signal 안에서 변경, 외부에서 봐야 함 |
-| spinlock retry loop    | 다른 thread가 변경한 값 반복 read    |
+| MMIO 레지스터          | 하드웨어는 읽기만으로도 부수 효과가 있음 |
+| 메모리 매핑 디바이스   | DMA 등                                |
+| 시그널 핸들러 변수     | 시그널 안에서 바꾸고 바깥에서 봐야 함 |
+| 스핀락 재시도 루프     | 다른 스레드가 바꾼 값을 반복해 읽음  |
 
-## 1.5.4. 주의 - atomic 과 다름
+## 1.5.4. 주의: atomic과 다름
 
 흔히 오해하는 점이 있습니다. `volatile`은 컴파일러 최적화를 막을 뿐,
-atomic을 보장하지 않습니다.
+원자성을 보장하지 않습니다.
 
-- multi-thread에서 race condition은 여전히 발생합니다.
-- memory ordering도 강제하지 않습니다.
+- 여러 스레드 사이의 경쟁 상태(race condition)는 여전히 일어납니다.
+- 메모리 순서(memory ordering)도 강제하지 않습니다.
 
-따라서 thread 사이에서 공유하는 변수에는
-[`Atomic<T>`](../200-core/216-sync.md#2162-atomict---lock-free-원자)를 써야 하고,
-`volatile`은 **hardware MMIO** 전용 도구로 남겨 두어야 합니다.
+따라서 스레드 사이에서 공유하는 변수에는
+[`Atomic<T>`](../200-core/216-sync.md#2162-atomict-lock-free-원자-타입)를 써야 합니다.
+`volatile`은 **하드웨어 MMIO** 전용 도구로 남겨 두기를 권장합니다.
 
 ## 1.5.5. lowering
 
-`volatile::read`와 `volatile::write`는 LLVM의 `load volatile` / `store volatile`로 lower됩니다. 둘은 `ConstPtr` / `Ptr`의 메서드 `read_volatile` / `write_volatile`을 부르며, 그 intrinsic은 `rok.ptr.read_volatile`과 `rok.ptr.write_volatile`입니다.
+컴파일러는 `volatile::read`와 `volatile::write`를 LLVM의 `load volatile` / `store volatile`로 낮춥니다. 둘은 `ConstPtr` / `Ptr`의 메서드 `read_volatile` / `write_volatile`을 부릅니다. 그 intrinsic은 `rok.ptr.read_volatile`과 `rok.ptr.write_volatile`입니다.
 
-atomic은 [2.16 sync](../200-core/216-sync.md)에서 자세히 다루며, 이 장은
-atomic이 아닌 경우만 규정합니다.
+원자 연산은 [2.16 sync](../200-core/216-sync.md)에서 자세히 다룹니다. 이 장은
+원자 연산이 아닌 경우만 정합니다.

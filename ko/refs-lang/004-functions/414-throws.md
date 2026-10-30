@@ -1,6 +1,6 @@
 # 4.14. `throws` 시그니처
 
-[에러 제어 흐름](../003-expressions/314-error-control-flow.md)의 `throw`, `try`, `catch`, `finally`와 함께 쓰는 함수 시그니처의 `throws` / `rethrows` 형태를 정의합니다.
+이 절은 함수 시그니처의 `throws` / `rethrows` 형태를 정의합니다. 이 형태는 [에러 제어 흐름](../003-expressions/314-error-control-flow.md)의 `throw`, `try`, `catch`, `finally`와 함께 씁니다.
 
 > [!IMPORTANT]
 > Rok의 에러 모델은 `throws` 하나입니다. 에러를 던질 수 있는 함수는 시그니처에 `throws`를 적고, 호출하는 쪽은 그 호출을 `try`로 표시합니다. 에러를 값으로 담아 두어야 할 때에만 표준 라이브러리의 [`Result<T, E>`](../../refs-standard-libraries/200-core/214-error.md)를 씁니다. 규칙은 한 줄입니다. **던지면 `throws`, 담아 두면 `Result`.**
@@ -30,15 +30,15 @@ fn name(args) throws (A | B | C) -> R           // typed: 합 타입 에러
 fn name(f: fn(T) throws -> U) rethrows -> R     // 인자로 받은 함수가 던질 때만 던짐
 ```
 
-`throws`와 `rethrows`는 매개변수 괄호 `)` 뒤에서만 키워드인 문맥 키워드이며([1.5.4](../001-lexical/105-keywords.md#154-문맥-키워드)), 반환 타입 화살표 앞에 옵니다. `throws` 뒤의 선택적인 괄호 안에는 던질 수 있는 에러의 타입을 적습니다.
+`throws`와 `rethrows`는 문맥 키워드입니다. 매개변수 괄호 `)` 뒤에서만 키워드로 읽힙니다([1.5.4](../001-lexical/105-keywords.md#154-문맥-키워드)). 두 키워드는 반환 타입 화살표 앞에 옵니다. `throws` 뒤의 선택적인 괄호 안에는 던질 수 있는 에러의 타입을 적습니다.
 
-## 4.14.2. non-throwing 함수
+## 4.14.2. 던지지 않는 함수
 
 ```rok
 fn add(x: i32, y: i32) -> i32 { x + y }
 ```
 
-`throws`가 없는 함수에서는 에러가 함수 밖으로 나갈 수 없습니다. 본체의 `throw`나 `try`로 표시한 호출에서 나온 에러를 함수 안의 `catch`가 모두 처리하지 않으면 컴파일 에러입니다. 호출자는 이 함수를 `try` 없이 호출합니다.
+`throws`가 없는 함수에서는 에러가 함수 밖으로 나갈 수 없습니다. 에러는 본체의 `throw`나 `try`로 표시한 호출에서 나옵니다. 이 에러를 함수 안의 `catch`가 모두 처리하지 않으면 컴파일 에러입니다. 호출자는 이 함수를 `try` 없이 호출합니다.
 
 ```rok
 fn bad() -> i32 {
@@ -46,28 +46,28 @@ fn bad() -> i32 {
 }
 ```
 
-이 규칙 때문에 함수가 에러를 던질 수 있는지가 시그니처에 드러나며, 에러가 몰래 전파되는 일을 막습니다.
+이 규칙 덕분에 함수가 에러를 던질 수 있는지가 시그니처에 드러나고, 에러가 몰래 전파되지 않습니다.
 
-## 4.14.3. untyped `throws`
+## 4.14.3. 타입 없는 `throws`
 
 ```rok
 fn parse(s: str) throws -> i32 { ... }
 ```
 
-untyped `throws`는 `throws (any Error)`의 축약입니다. 이 함수는 표준 라이브러리의 [`Error`](../../refs-standard-libraries/200-core/214-error.md) 트레잇을 구현하는 어떤 타입의 에러든 던질 수 있으며, 던진 값은 [제약 붙은 `any`](../002-types/202-any-slot.md)인 `any Error` 값으로 전달됩니다. 호출자는 `catch`의 타입 패턴으로 구체 타입을 좁혀 매칭하거나, `catch e: any Error` 또는 catch-all로 모두 받습니다.
+untyped `throws`는 `throws (any Error)`의 축약입니다. 이 함수는 표준 라이브러리의 [`Error`](../../refs-standard-libraries/200-core/214-error.md) 트레잇을 구현하는 어떤 타입의 에러든 던질 수 있습니다. 던진 값은 [제약 붙은 `any`](../002-types/202-any-slot.md)인 `any Error` 값으로 전달됩니다. 호출자는 `catch`의 타입 패턴으로 구체 타입을 좁혀 매칭합니다. 또는 `catch e: any Error`나 catch-all로 모두 받습니다.
 
-untyped 형태는 공개 API처럼 에러 종류가 호출자에게 닫혀 있지 않은 경우에 권장합니다.
+공개 API처럼 호출자 입장에서 에러 종류가 닫혀 있지 않으면 untyped 형태를 권장합니다.
 
-## 4.14.4. typed `throws` 의 단일 타입과 합 타입
+## 4.14.4. 타입 있는 `throws`: 단일 타입과 합 타입
 
 ```rok
 fn fetch_user(id: i64) throws (NotFound) -> User { ... }
 fn parse_or_load(s: str) throws (ParseError | IOError | TimeoutError) -> Data { ... }
 ```
 
-괄호 안에 던질 수 있는 정확한 타입을 적을 수 있으며, 합 타입(`A | B | C`)도 그대로 쓸 수 있습니다.
+괄호 안에 던질 수 있는 정확한 타입을 적을 수 있습니다. 합 타입(`A | B | C`)도 그대로 쓸 수 있습니다.
 
-typed 형태는 내부 API나 라이브러리 API, 임베디드 환경, 에러 종류가 닫혀 있는 경우에 알맞습니다. 이때 컴파일러는 호출자의 `catch` 가지가 에러 타입을 모두 덮는지 검증할 수 있으며, 모두 덮으면 그 식은 더 이상 에러를 던지지 않는 것으로 봅니다.
+typed 형태는 내부 API나 라이브러리 API, 임베디드 환경처럼 에러 종류가 닫혀 있을 때 알맞습니다. 이때 컴파일러는 호출자의 `catch` 가지가 에러 타입을 모두 덮는지 검사할 수 있습니다. 모두 덮으면 컴파일러는 그 식이 더 이상 에러를 던지지 않는다고 봅니다.
 
 ```rok
 fn caller() -> Data {             // non-throwing: 세 타입을 모두 처리
@@ -78,9 +78,9 @@ fn caller() -> Data {             // non-throwing: 세 타입을 모두 처리
 }
 ```
 
-## 4.14.5. `throws` 와 본체의 일치
+## 4.14.5. `throws`와 본체의 일치
 
-함수 밖으로 나갈 수 있는 모든 에러는 시그니처의 `throws`와 호환되어야 합니다. 에러의 출처는 본체의 `throw` 문과 `try`로 표시한 throwing 호출이며, 함수 안의 `catch`가 처리한 에러는 검사 대상에서 빠집니다.
+함수 밖으로 나갈 수 있는 모든 에러는 시그니처의 `throws`와 호환되어야 합니다. 에러의 출처는 본체의 `throw` 문과 `try`로 표시한 throwing 호출입니다. 함수 안의 `catch`가 처리한 에러는 검사하지 않습니다.
 
 ```rok
 fn f() throws (A) -> i32 {
@@ -89,7 +89,7 @@ fn f() throws (A) -> i32 {
 }
 ```
 
-호환 규칙은 다음과 같습니다. typed `throws (E)`에서는 출처의 에러 타입이 모두 `E`의 항이어야 합니다. untyped `throws`에서는 출처의 에러 타입이 모두 `Error`를 구현해야 하며, 그 값은 `any Error`로 전달됩니다.
+호환 규칙은 다음과 같습니다. typed `throws (E)`에서는 출처의 에러 타입이 모두 `E`의 항이어야 합니다. untyped `throws`에서는 출처의 에러 타입이 모두 `Error`를 구현해야 합니다. 그 값은 `any Error`로 전달됩니다.
 
 에러 타입 사이의 자동 변환은 없습니다. 하위 함수의 에러를 다른 타입으로 바꿔 전파하려면 `catch`에서 감싸서 다시 던집니다.
 
@@ -103,9 +103,9 @@ fn load_config(path: str) throws (ConfigError) -> Config {
 
 ## 4.14.6. 호출자의 의무
 
-`throws` 함수를 호출하는 식은 반드시 `try`가 덮는 식 안에 있어야 합니다. `try` 없이 throwing 함수를 호출하면 컴파일 에러입니다. `try`는 그 오른쪽 식 전체를 덮으므로, `try a(b())`는 `a`와 `b` 두 호출을 모두 덮고, `try { a(); b(); }`는 블록 안의 호출을 모두 덮습니다 ([3.14.2](../003-expressions/314-error-control-flow.md#3142-try-호출-지점-표시)).
+`throws` 함수를 호출하는 식은 `try`가 덮는 식 안에 있어야 합니다. `try` 없이 throwing 함수를 호출하면 컴파일 에러입니다. `try`는 그 오른쪽 식 전체를 덮습니다. 그래서 `try a(b())`는 `a`와 `b` 두 호출을 모두 덮고, `try { a(); b(); }`는 블록 안의 호출을 모두 덮습니다([3.14.2](../003-expressions/314-error-control-flow.md#3142-try-호출-지점-표시)).
 
-`try`로 표시한 호출에서 나온 에러는 가장 가까운 `catch`가 처리하며, 처리되지 않은 에러는 둘러싼 함수로 전파됩니다. 이때 둘러싼 함수의 `throws`가 그 에러 타입을 받아야 합니다(4.14.5).
+`try`로 표시한 호출에서 나온 에러는 가장 가까운 `catch`가 처리합니다. 처리하지 못한 에러는 둘러싼 함수로 전파됩니다. 이때 둘러싼 함수의 `throws`가 그 에러 타입을 받아야 합니다(4.14.5).
 
 ```rok
 fn caller() {                     // non-throwing
@@ -144,10 +144,10 @@ fn map<U>(self, f: fn(T) throws -> U) rethrows -> List<U> {
 }
 ```
 
-`rethrows`는 함수형 매개변수를 받는 고차 함수를 위한 형태입니다. `rethrows` 함수는 인자로 받은 함수나 클로저가 던질 때만 던집니다.
+`rethrows`는 함수형 매개변수를 받는 고차 함수에 쓰는 형태입니다. `rethrows` 함수는 인자로 받은 함수나 클로저가 던질 때만 던집니다.
 
 - 호출 지점에서 throwing 함수형 매개변수에 넘긴 인자가 모두 non-throwing이면, 그 호출은 non-throwing이며 `try` 없이 부릅니다.
-- 인자 중 하나라도 throwing이면 그 호출은 throwing이며, 던지는 에러 타입은 그 인자들의 에러 타입입니다. 호출자는 `try`로 표시합니다.
+- 인자 중 하나라도 throwing이면 그 호출은 throwing입니다. 던지는 에러 타입은 그 인자의 에러 타입입니다. 호출자는 `try`로 표시합니다.
 - `rethrows` 함수의 본체에서 함수 밖으로 나갈 수 있는 에러는 함수형 매개변수의 호출에서 나온 에러뿐입니다. 본체가 자기 에러를 직접 던지면 컴파일 에러입니다.
 
 ```rok
@@ -167,9 +167,9 @@ fn(T) throws -> U             // untyped: throws (any Error)
 fn(T) throws (E) -> U         // typed
 ```
 
-non-throwing 함수 값은 매개변수와 반환 타입이 같은 throwing 함수 타입 자리에 넣을 수 있으며, `throws (A)` 함수 값은 `throws (A | B)` 자리나 (`A`가 `Error`를 구현하면) untyped `throws` 자리에 넣을 수 있습니다. 반대 방향은 허용하지 않습니다. 자세한 내용은 [4.4](404-function-type.md)에서 다룹니다.
+non-throwing 함수 값은 매개변수와 반환 타입이 같은 throwing 함수 타입 자리에 넣을 수 있습니다. `throws (A)` 함수 값은 `throws (A | B)` 자리에 넣을 수 있습니다. `A`가 `Error`를 구현하면 untyped `throws` 자리에도 넣을 수 있습니다. 반대 방향으로는 넣을 수 없습니다. 자세한 내용은 [4.4](404-function-type.md)에 있습니다.
 
-## 4.14.9. `throws` 와 `async`, `yield` 의 결합
+## 4.14.9. `throws`와 `async`, `yield`의 결합
 
 세 수식어를 모두 한 함수에 함께 쓸 수 있습니다.
 
@@ -181,17 +181,17 @@ yield fn lines(s: str) throws (ParseError) -> str { ... }
 async yield fn read_paginated(url: str) throws (NetworkError) -> Page { ... }
 ```
 
-`throws`는 시그니처 위치의 키워드이며, `async`나 `yield`와 직교적으로 결합합니다.
+`throws`는 시그니처 위치의 키워드이며 `async`나 `yield`와 직교합니다.
 
-## 4.14.10. `throws` 가 합 타입 시그니처에 미치는 영향
+## 4.14.10. `throws`가 합 타입 시그니처에 미치는 영향
 
 ```rok
 async fn fetch_data() throws (NetworkError) -> Data { ... }
 ```
 
-이 함수를 호출하면 `Data | NetworkError`를 담은 Future가 나올까요?
+이 함수를 호출하면 `Data | NetworkError`를 담은 Future가 나온다고 생각할 수 있습니다.
 
-답은 **`TryAsyncFuture<Data, NetworkError>`**입니다([4.1.11](401-function-declaration.md#코루틴-함수의-결과-타입)). 에러는 결과 타입에 섞이지 않고 `await` 지점에서 에러 채널로 전달됩니다. 그래서 `await`하는 쪽이 `try`로 표시합니다. `TryAsyncFuture`는 일반 `Future` 트레잇을 구현하지 않습니다.
+실제 결과는 **`TryAsyncFuture<Data, NetworkError>`**입니다([4.1.11](401-function-declaration.md#코루틴-함수의-결과-타입)). 에러는 결과 타입에 섞이지 않고 `await` 지점에서 에러 채널로 전달됩니다. 그래서 `await`로 기다리는 쪽이 `try`로 표시합니다. `TryAsyncFuture`는 일반 `Future` 트레잇을 구현하지 않습니다.
 
 ```rok
 let f = fetch_data();              // f: TryAsyncFuture<Data, NetworkError>
@@ -200,13 +200,13 @@ let d = try await f catch e: NetworkError {
 };
 ```
 
-이렇게 정했으므로 결과가 결과와 에러라는 두 변형을 가진 `enum`으로 바뀌지 않습니다.
+이렇게 정했으므로 결과 타입이 결과와 에러라는 두 변형이 있는 `enum`으로 바뀌지 않습니다.
 
-`yield`와 `async yield`도 같은 패턴을 따릅니다. `throws (E)`인 제너레이터는 `TryGenIter<T, E>`, 스트림은 `TryAsyncStream<T, E>`이며, 에러는 `next` 지점에서 에러 채널로 전달됩니다.
+`yield`와 `async yield`도 같은 패턴을 따릅니다. `throws (E)`인 제너레이터는 `TryGenIter<T, E>`, 스트림은 `TryAsyncStream<T, E>`입니다. 에러는 `next` 지점에서 에러 채널로 전달됩니다.
 
 ### `try for`
 
-`next`가 던지는 iterator(`TryGenIter` 등)를 도는 `for`는 throwing 식이므로 `try`로 덮어야 합니다. `for await`도 마찬가지입니다.
+`next`가 에러를 던지는 반복자(`TryGenIter` 등)를 도는 `for`는 throwing 식이므로 `try`로 덮어야 합니다. `for await`도 마찬가지입니다.
 
 ```rok
 try for line in lines("a.txt") {         // 각 next 의 IoError 가 전파됨
@@ -218,7 +218,7 @@ for line in lines("a.txt") { ... }       // ERROR: try 없음
 
 ## 4.14.11. 메서드의 `throws`
 
-[메서드](409-method.md)도 일반 함수와 마찬가지로 `throws` 시그니처를 가질 수 있습니다.
+[메서드](409-method.md)에도 일반 함수와 마찬가지로 `throws` 시그니처를 붙일 수 있습니다.
 
 ```rok
 impl Database {
@@ -230,23 +230,23 @@ impl Database {
 
 트레잇을 구현하는 impl 메서드의 `throws`는 트레잇 메서드의 `throws`와 같아야 합니다. impl이 `throws`를 새로 붙이거나 에러 타입을 넓히면 컴파일 에러입니다.
 
-연산자 트레잇 메서드(`Add::add` 등)는 `throws` 없이 선언되므로 연산자는 에러를 던지지 않습니다. 실패할 수 있는 연산은 이름 있는 메서드로 두거나 `Result`를 반환합니다 ([stdlib 2.3](../../refs-standard-libraries/200-core/203-ops.md)).
+연산자 트레잇 메서드(`Add::add` 등)는 `throws` 없이 선언되므로 연산자는 에러를 던지지 않습니다. 실패할 수 있는 연산은 이름 있는 메서드로 두거나 `Result`를 반환합니다([stdlib 2.3](../../refs-standard-libraries/200-core/203-ops.md)).
 
 ## 4.14.12. 값 기반 구현 모델
 
-throwing 함수는 결과를 값으로 돌려줍니다. 반환값은 성공 여부 플래그와, 성공 값 또는 에러 값을 담은 payload의 쌍입니다. 에러 채널은 시그니처로 구분되므로 성공 타입과 에러 타입이 같아도 문제없습니다. 호출 지점의 `try`는 플래그를 검사해 분기하며, 에러면 가장 가까운 `catch`로 가거나 둘러싼 함수의 에러 결과로 그대로 반환합니다.
+throwing 함수는 결과를 값으로 돌려줍니다. 반환값은 성공 여부 플래그와 페이로드의 쌍입니다. 페이로드에는 성공 값이나 에러 값이 들어갑니다. 에러 채널은 시그니처로 구분되므로 성공 타입과 에러 타입이 같아도 됩니다. 호출 지점의 `try`는 플래그를 검사해 분기합니다. 에러면 가장 가까운 `catch`로 가거나, 둘러싼 함수의 에러 결과로 그대로 반환합니다.
 
-이 모델에서 에러가 나지 않는 경로의 비용은 분기 하나뿐이고, `try`나 `catch`에 들어가는 비용은 없습니다. 스택을 거슬러 올라가는 unwinding도, 런타임의 에러 전달 함수도 쓰지 않습니다. 정확한 반환값 레이아웃은 [8.6.5](../008-abi/806-calling-convention.md#865-throwing-함수의-반환-값-기반-에러-전달)에서, lowering은 [8.9.6](../008-abi/809-lowering-control.md#896-try--catch--finally-값-기반-분기)에서 정의합니다.
+이 모델에서 에러가 나지 않는 경로의 비용은 분기 하나뿐입니다. `try`나 `catch`에 들어갈 때 드는 비용은 없습니다. 스택을 거슬러 올라가는 unwinding도, 런타임의 에러 전달 함수도 쓰지 않습니다. 정확한 반환값 레이아웃은 [8.6.5](../008-abi/806-calling-convention.md#865-던지는-함수의-반환-값-기반-에러-전달)에서, lowering은 [8.9.6](../008-abi/809-lowering-control.md#896-try--catch--finally-값-기반-분기)에서 정의합니다.
 
-## 4.14.13. panic 과 fatal 에러
+## 4.14.13. panic과 fatal 에러
 
-panic은 `throws`의 에러가 아닙니다. 표준 라이브러리의 `panic_fn`, `try!`의 실패, 0으로 나누기, 정수 overflow, 경계 검사 실패 같은 panic과 [에러 제어 흐름](../003-expressions/314-error-control-flow.md)의 fatal 에러는 어떤 `throws` 시그니처에도 들어가지 않으며, `catch`로 잡을 수 없습니다. 런타임은 다음을 표준 에러(stderr)에 출력하고 종료 코드 `101`로 프로세스를 끝냅니다.
+panic은 `throws`의 에러가 아닙니다. panic에는 표준 라이브러리의 `panic_fn`, `try!`의 실패, 0으로 나누기, 정수 오버플로, 경계 검사 실패가 있습니다. 이런 panic과 [에러 제어 흐름](../003-expressions/314-error-control-flow.md)의 fatal 에러는 어떤 `throws` 시그니처에도 들어가지 않습니다. `catch`로 잡을 수도 없습니다. 런타임은 다음을 표준 에러(stderr)에 출력하고 종료 코드 `101`로 프로세스를 끝냅니다.
 
 ```
 thread '<name>' panicked at <path>:<line>:<col>:
 <message>
 ```
 
-- `<name>`은 스레드 이름이며, 주 스레드는 `main`, 이름 없는 스레드는 `<unnamed>`입니다.
+- `<name>`은 스레드 이름입니다. 주 스레드는 `main`, 이름 없는 스레드는 `<unnamed>`입니다.
 - 위치는 실패한 식입니다. [`#[track_caller]`](../006-meta-system/602-built-in-attributes.md#6212-track_caller-호출-위치-전달) 함수 사슬 안이면 그 사슬 밖의 첫 호출 위치입니다.
-- backtrace는 정의하지 않습니다.
+- 사양은 백트레이스를 정의하지 않습니다.

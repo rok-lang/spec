@@ -13,7 +13,7 @@ return_type   ::= "->" type_expr
 param_list    ::= param ("," param)* ","?
 ```
 
-여기서 `visibility?`는 [가시성](../005-modules/506-visibility.md)의 `pub`, `pub(pkg)`, `pub(sub)` 중 하나이거나, 생략한 형태(모듈 비공개)입니다. `fn_modifiers`는 [unsafe](415-unsafe.md), [async](412-async.md), [yield (제너레이터)](411-generators.md) 세 수식어를 **정해진 순서로 0개 또는 1개씩** 적는 자리입니다(자세한 규칙은 [4.1.11 fn 수식어의 순서와 조합](#4111-fn-수식어의-순서와-조합)에서 정의). `throws_clause?`의 의미는 [throws](414-throws.md)에서 정의하며, 이 문서는 가시성, modifier, throws 키워드 자체의 의미를 다루지 않습니다.
+여기서 `visibility?`는 [가시성](../005-modules/506-visibility.md)의 `pub`, `pub(pkg)`, `pub(sub)` 중 하나입니다. 생략하면 모듈 비공개입니다. `fn_modifiers`는 [unsafe](415-unsafe.md), [async](412-async.md), [yield (제너레이터)](411-generators.md) 세 수식어를 **정해진 순서로 0개 또는 1개씩** 적는 자리입니다. 자세한 규칙은 [4.1.11 fn 수식어의 순서와 조합](#4111-fn-수식어의-순서와-조합)에 있습니다. `throws_clause?`의 의미는 [throws](414-throws.md)에서 정의합니다. 이 문서는 가시성, 수식어, throws 키워드 자체의 의미는 다루지 않습니다.
 
 형식을 따지지 않고 전체 모양을 적으면 다음과 같습니다.
 
@@ -27,8 +27,8 @@ fn 이름(매개변수들) -> 반환타입 {
 
 - `fn` 키워드로 시작합니다.
 - 함수 이름은 [식별자](../001-lexical/104-identifiers.md)의 형식을 따릅니다.
-- 이어서 괄호로 감싼 매개변수 목록을 적으며, 자세한 규칙은 [매개변수](402-parameters.md)에서 정의합니다.
-- 반환 타입은 선택 사항이며, `->` 토큰([구두점과 연산자 토큰](../001-lexical/110-punctuation-and-operator-tokens.md)) 뒤에 [타입 표현식](../002-types/201-type-expressions.md)을 둡니다.
+- 이어서 괄호로 감싼 매개변수 목록이 옵니다. 자세한 규칙은 [매개변수](402-parameters.md)에서 정의합니다.
+- 반환 타입은 선택 사항입니다. `->` 토큰([구두점과 연산자 토큰](../001-lexical/110-punctuation-and-operator-tokens.md)) 뒤에 [타입 표현식](../002-types/201-type-expressions.md)을 둡니다.
 - 본체는 [블록 표현식](../003-expressions/309-block-expressions.md)입니다.
 
 ## 4.1.2. 가장 간단한 예
@@ -47,9 +47,9 @@ fn add(x: i32, y: i32) -> i32 {
 
 ## 4.1.3. 반환 타입 생략
 
-반환 타입의 `->` 부분은 생략할 수 있으며, 생략하면 다음과 같습니다.
+반환 타입의 `->` 부분은 생략할 수 있습니다. 생략하면 다음과 같습니다.
 
-- 본체에서 반환 식의 타입을 추론하며, 본체의 마지막 식 타입이 반환 타입이 됩니다.
+- 컴파일러가 본체에서 반환 타입을 추론합니다. 본체의 마지막 식 타입이 반환 타입이 됩니다.
 - 추론할 수 없거나 모호하면 컴파일 에러입니다.
 
 다음 예는 반환 타입을 생략했지만, 마지막 식의 타입에서 `i32`를 추론합니다.
@@ -69,7 +69,7 @@ fn print_msg(s: str) {
 }
 ```
 
-반환 타입을 명시했는데 함수 본체가 명시한 타입과 맞지 않으면 컴파일 에러입니다.
+반환 타입을 명시했는데 함수 본체가 그 타입과 맞지 않으면 컴파일 에러입니다.
 
 ```rok
 fn bad() -> i32 {
@@ -79,7 +79,7 @@ fn bad() -> i32 {
 
 ## 4.1.4. 매개변수 타입 생략
 
-매개변수에 타입을 적지 않으면 암묵 제네릭이 됩니다 ([`any` 슬롯](../002-types/202-any-slot.md), [제네릭](../002-types/210-generics.md)).
+매개변수에 타입을 적지 않으면 암묵 제네릭이 됩니다([`any` 슬롯](../002-types/202-any-slot.md), [제네릭](../002-types/210-generics.md)).
 
 ```rok
 fn id(x) {                        // x: T (제네릭)
@@ -100,10 +100,10 @@ fn dyn_id(x: any) {               // x 는 any 슬롯 (런타임 디스패치)
 
 ## 4.1.5. 본체
 
-함수 본체는 [블록 표현식](../003-expressions/309-block-expressions.md)의 규칙을 그대로 따르며, 성질은 다음과 같습니다.
+함수 본체는 [블록 표현식](../003-expressions/309-block-expressions.md)의 규칙을 그대로 따릅니다. 성질은 다음과 같습니다.
 
 - 문장을 0개 이상 담습니다.
-- 마지막 식은 0개 또는 1개(종결자 없이) 둘 수 있고, 그 식의 값이 함수의 반환값이 됩니다.
+- 마지막 식은 종결자 없이 0개 또는 1개 둘 수 있습니다. 그 식의 값이 함수의 반환값이 됩니다.
 - 마지막에 `return`([`return`](403-return.md))으로 명시 반환할 수 있습니다.
 
 ## 4.1.6. 빈 본체
@@ -124,7 +124,7 @@ fn f() -> i32 {
 }
 ```
 
-위 예에서 `42i32`는 종결자가 없는 식이므로 함수의 반환값이 됩니다. 종결자를 붙여(`42i32;`) 쓰면 값이 버려지고 본체가 unit을 반환하므로, 명시한 `-> i32`와 충돌해 컴파일 에러입니다.
+위 예에서 `42i32`는 종결자가 없는 식이므로 함수의 반환값이 됩니다. 종결자를 붙여 `42i32;`로 쓰면 값이 버려지고 본체는 unit을 반환합니다. 그러면 명시한 `-> i32`와 맞지 않으므로 컴파일 에러입니다.
 
 ```rok
 fn f() -> i32 {
@@ -133,9 +133,9 @@ fn f() -> i32 {
 }
 ```
 
-## 4.1.8. 함수 본체에서의 명시적 `return`
+## 4.1.8. 함수 본체의 명시적 `return`
 
-본체 안에서는 `return` 키워드로 명시 반환할 수 있으며, 자세한 내용은 [`return`](403-return.md)에서 정의합니다.
+본체 안에서는 `return` 키워드로 명시 반환할 수 있습니다. 자세한 내용은 [`return`](403-return.md)에서 정의합니다.
 
 ```rok
 fn early(x: i32) -> i32 {
@@ -146,7 +146,7 @@ fn early(x: i32) -> i32 {
 
 ## 4.1.9. 가시성
 
-함수에 가시성 키워드(`pub`, `pub(pkg)`, `pub(sub)`)를 붙여 외부에 노출되는 범위를 정할 수 있습니다.
+함수에 가시성 키워드(`pub`, `pub(pkg)`, `pub(sub)`)를 붙이면 함수가 바깥에 드러나는 범위를 정할 수 있습니다.
 
 ```rok
 pub fn area(r: f64) -> f64 { ... }              // 외부 패키지에서 호출 가능
@@ -165,19 +165,19 @@ fn add(x: i32, y: i32) -> i32 { x + y }
 fn add(x: f64, y: f64) -> f64 { x + y }   // ERROR: 중복
 ```
 
-타입에 따라 동작을 다르게 하려면 트레잇과 제네릭을 함께 씁니다 ([`trait`](../002-types/208-trait.md)).
+타입에 따라 동작을 다르게 하려면 트레잇과 제네릭을 함께 씁니다([`trait`](../002-types/208-trait.md)).
 
-모듈의 함수, `const`, `static`은 값 이름공간 하나를 공유합니다. 그래서 같은 모듈에서 이 셋 중 다른 것과 이름이 같은 `const`, `static`, 함수도 컴파일 에러입니다. tuple 구조체나 unit 구조체의 생성자도 이 이름공간에 있습니다([2.3.7](../002-types/203-struct.md#237-같은-모듈-내-중복-정의-금지)). `fn Point`, `const Point`, `static Point` 옆의 `struct Point(i32, i32);`는 중복 정의입니다. arity, `async`, 타입 매개변수가 달라도 두 함수는 구별되지 않습니다. 인자 개수를 다르게 받으려면 한 함수의 뒤쪽 매개변수에 기본값을 줍니다 ([4.2.3](402-parameters.md#423-기본값)).
+모듈의 함수, `const`, `static`은 값 이름공간 하나를 공유합니다. 그래서 같은 모듈에서 이 셋 중 다른 것과 이름이 같은 `const`, `static`, 함수도 컴파일 에러입니다. 튜플 struct나 unit struct의 생성자도 이 이름공간에 있습니다([2.3.7](../002-types/203-struct.md#237-같은-모듈-내-중복-정의-금지)). `fn Point`, `const Point`, `static Point` 옆의 `struct Point(i32, i32);`는 중복 정의입니다. 인자 개수(arity)나 `async` 여부, 타입 매개변수가 달라도 두 함수는 구별되지 않습니다. 인자 개수를 다르게 받으려면 한 함수의 뒤쪽 매개변수에 기본값을 줍니다([4.2.3](402-parameters.md#423-기본값)).
 
 ## 4.1.11. fn 수식어의 순서와 조합
 
-함수에 붙는 수식어(`unsafe`, `async`, `yield`)는 **반드시 다음 순서**로 적어야 합니다.
+함수에 붙는 수식어(`unsafe`, `async`, `yield`)는 **다음 순서로 적어야** 합니다.
 
 ```
 unsafe → async → yield
 ```
 
-순서를 어기면 syntax error입니다. 같은 수식어를 두 번 적는 것도 문법상 불가능합니다(`unsafe?`의 `?`는 0개 또는 1개만 허용).
+순서를 어기면 구문 에러입니다. 같은 수식어를 두 번 적을 수도 없습니다. 문법에서 `unsafe?`의 `?`는 0개 또는 1개만 허용합니다.
 
 ```rok
 unsafe async yield fn ok() -> i32 { ... }   // OK: 정해진 순서
@@ -186,11 +186,11 @@ yield async fn bad2() { ... }            // ERROR: yield 가 async 앞에 옴
 unsafe unsafe fn bad3() { ... }          // ERROR: unsafe 중복
 ```
 
-이렇게 강제하면 같은 의미의 함수는 항상 같은 모양으로 적히므로, formatter, linter, 사용자가 읽기 모두 단순해집니다.
+이 규칙 덕분에 같은 의미의 함수는 항상 같은 모양으로 적힙니다. 그래서 포매터와 린터가 단순해지고 사람이 읽기도 쉬워집니다.
 
-### 가능한 8 개 조합
+### 가능한 8개 조합
 
-세 수식어가 모두 선택이므로 조합은 8개이며, 각각 다음과 같습니다.
+세 수식어가 모두 선택이므로 조합은 8개입니다. 각 조합은 다음과 같습니다.
 
 | 조합                    | 호출 결과                              | 의미                 | 정의 위치                          |
 |-------------------------|----------------------------------------|----------------------|------------------------------------|
@@ -199,15 +199,15 @@ unsafe unsafe fn bad3() { ... }          // ERROR: unsafe 중복
 | `async fn`              | `AsyncFuture<R>`                   | 비동기 함수          | [4.12](412-async.md)               |
 | `yield fn`              | `GenIter<R>`                       | 제너레이터           | [4.11](411-generators.md)          |
 | `async yield fn`        | `AsyncStream<R>`                   | 비동기 스트림        | [4.13](413-stream.md)              |
-| `unsafe async fn`       | `AsyncFuture<R>`                   | unsafe 비동기 함수   | (각 modifier의 합)                |
-| `unsafe yield fn`       | `GenIter<R>`                       | unsafe 제너레이터    | (각 modifier의 합)                |
-| `unsafe async yield fn` | `AsyncStream<R>`                   | unsafe 비동기 스트림 | (각 modifier의 합)                |
+| `unsafe async fn`       | `AsyncFuture<R>`                   | unsafe 비동기 함수   | (각 수식어의 합)                  |
+| `unsafe yield fn`       | `GenIter<R>`                       | unsafe 제너레이터    | (각 수식어의 합)                  |
+| `unsafe async yield fn` | `AsyncStream<R>`                   | unsafe 비동기 스트림 | (각 수식어의 합)                  |
 
-`unsafe`가 붙은 조합의 의미는 단순합니다. 함수 본체 전체가 unsafe scope가 되고(4.15의 정의), 결과 타입과 코루틴 동작은 함께 붙은 다른 수식어(`async` / `yield`)의 정의를 그대로 따릅니다. `unsafe`가 더하는 것은 본체 안에서 raw pointer 역참조와 `unsafe fn` 호출을 허용하는 효과뿐입니다.
+`unsafe`가 붙은 조합의 의미는 단순합니다. 함수 본체 전체가 unsafe 범위가 됩니다(4.15의 정의). 결과 타입과 코루틴 동작은 함께 붙은 다른 수식어(`async` / `yield`)의 정의를 그대로 따릅니다. `unsafe`가 더하는 것은 본체 안에서 원시 포인터를 역참조하고 `unsafe fn`을 호출할 수 있게 하는 것뿐입니다.
 
 ### 코루틴 함수의 결과 타입
 
-`async` / `yield`가 붙은 함수(블록, 클로저 포함)의 호출 결과는 표준 라이브러리 타입입니다. 선언의 `-> R`에는 원소 / 결과 타입 `T`를 적습니다.
+`async` / `yield`가 붙은 함수(블록, 클로저 포함)를 호출하면 표준 라이브러리 타입의 값이 나옵니다. 선언의 `-> R`에는 원소 / 결과 타입 `T`를 적습니다.
 
 | 형태             | 결과 타입         | 구현 트레잇            | `throws (E)`일 때        |
 |------------------|-------------------|------------------------|---------------------------|
@@ -215,7 +215,7 @@ unsafe unsafe fn bad3() { ... }          // ERROR: unsafe 중복
 | `async fn`       | `AsyncFuture<T>`  | `Future<Output = T>`   | `TryAsyncFuture<T, E>`    |
 | `async yield fn` | `AsyncStream<T>`  | `Stream<Item = T>`     | `TryAsyncStream<T, E>`    |
 
-`Try*` 변형은 에러를 다음 진행 지점에서 던집니다. 예를 들어 `TryGenIter<T, E>`의 `next`는 `next(ref self) throws (E) -> T | none`이고, `TryAsyncFuture`는 `try await`에서 던집니다. 이 변형들은 일반 `Iterator` / `Future` / `Stream` 트레잇을 구현하지 않습니다 ([4.14.10](414-throws.md#41410-throws-가-합-타입-시그니처에-미치는-영향)).
+`Try*` 변형은 에러를 다음 진행 지점에서 던집니다. 예를 들어 `TryGenIter<T, E>`의 `next`는 `next(ref self) throws (E) -> T | none`이고, `TryAsyncFuture`는 `try await`에서 던집니다. 이 변형은 일반 `Iterator` / `Future` / `Stream` 트레잇을 구현하지 않습니다([4.14.10](414-throws.md#41410-throws가-합-타입-시그니처에-미치는-영향)).
 
 ```rok
 async fn fetch_user(id: i64) -> User { ... }
@@ -227,15 +227,15 @@ let it: TryGenIter<str, IoError> = lines("a.txt");
 
 ### 클로저와 블록 형태
 
-`async`와 `yield`의 클로저 / 블록 형태에도 같은 순서 규칙을 적용합니다. 예를 들어 Stream을 만드는 클로저는 항상 `async yield ||`로 적으며, `yield async ||`는 클로저 형태가 아닙니다. 이 형태는 `async ||` 클로저에 `yield`를 적용한 것으로 읽혀 타입 에러로 거부됩니다. 클로저 / 블록 형태의 자세한 내용은 각 modifier 문서를 참고하세요.
+`async`와 `yield`의 클로저 / 블록 형태에도 같은 순서 규칙을 적용합니다. 예를 들어 Stream을 만드는 클로저는 항상 `async yield ||`로 적습니다. `yield async ||`는 클로저 형태가 아닙니다. 컴파일러는 이를 `async ||` 클로저에 `yield`를 적용한 것으로 읽고 타입 에러로 거부합니다. 클로저와 블록 형태의 자세한 내용은 각 수식어 문서에 있습니다.
 
 ## 4.1.12. 매개변수 / 반환 / 본체 사이의 평가 순서
 
 호출할 때의 평가 순서는 다음과 같습니다.
 
 1. 인자 표현식을 평가합니다(좌→우 순서).
-2. 매개변수 매칭을 수행하고 함수 본체 평가를 시작합니다.
-3. 본체를 평가하며, 끝나면 마지막 식의 값 또는 `return`의 값이 결과가 됩니다.
+2. 매개변수를 매칭하고 함수 본체를 평가하기 시작합니다.
+3. 본체를 평가합니다. 끝나면 마지막 식의 값이나 `return`의 값이 결과가 됩니다.
 4. 호출 지점에 결과를 전달합니다.
 
 세부 평가 순서는 [매개변수](402-parameters.md)의 매개변수 평가 순서 절에서 정의합니다.

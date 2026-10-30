@@ -1,6 +1,6 @@
 # 6.9. 템플릿 토큰과 확장
 
-이 절은 [메타 블록](608-meta-blocks.md) 본체 안에서 쓸 수 있는 템플릿 토큰의 전체 목록을 정의하고, 메타 블록이 언제 어떤 메커니즘으로 확장되는지 정의합니다.
+이 절은 [메타 블록](608-meta-blocks.md) 본체 안에서 쓸 수 있는 템플릿 토큰의 전체 목록을 정의합니다. 메타 블록이 언제 어떤 메커니즘으로 확장되는지도 정의합니다.
 
 ## 6.9.1. 템플릿 토큰의 형태
 
@@ -39,14 +39,14 @@ template_token  ::= "@" identifier
 | `@variant.is_unit` / `.is_tuple` / `.is_named`           | 부울                                        | 6.9.4 |
 | `@for_variant_fields { .. }`                             | 현재 변형의 필드마다 본문                   | 6.9.4 |
 | `@apply_if(cond) { .. }`                                 | `cond`가 참일 때만 본문                    | 6.9.5 |
-| `@accept(kind, ..)`                                      | 대상 종류 제한 (attribute 전용)             | 6.9.5 |
-| `@where_all(Trait)`                                      | 타입 파라미터마다 `T: Trait`                | 6.9.5 |
-| `@has_derive_attr(a)`, `@derive_attr(a)`                 | 필드의 derive attribute (부울 / 인자)       | 6.9.6 |
-| `@item`, `@item.name` / `.params` / `.return_type` / `.body` | 부착 대상 항목과 그 부분 (attribute 전용) | 6.9.7 |
-| `@attribute`                                             | 사용처의 attribute 인자 (attribute 전용)    | 6.9.7 |
+| `@accept(kind, ..)`                                      | 대상 종류 제한 (속성 정의 전용)             | 6.9.5 |
+| `@where_all(Trait)`                                      | 타입 매개변수마다 `T: Trait`                | 6.9.5 |
+| `@has_derive_attr(a)`, `@derive_attr(a)`                 | 필드의 derive 속성 (부울 / 인자)            | 6.9.6 |
+| `@item`, `@item.name` / `.params` / `.return_type` / `.body` | 부착 대상 항목과 그 부분 (속성 정의 전용) | 6.9.7 |
+| `@attribute`                                             | 사용처의 속성 인자 (속성 정의 전용)         | 6.9.7 |
 | `<이름 토큰>.as_str()`                                   | 이름의 문자열 리터럴                        | 6.9.3 |
 
-목록에 없는 `@이름`은 에러입니다. `@where_for_fields`는 예약된 이름이며, 이것도 쓰면 에러입니다.
+목록에 없는 `@이름`은 에러입니다. `@where_for_fields`는 예약된 이름이고, 이것도 쓰면 에러입니다.
 
 ## 6.9.2. 타입 컨텍스트
 
@@ -64,7 +64,7 @@ template_token  ::= "@" identifier
 
 ### `@if_struct { ... }` / `@if_enum { ... }` / `@if_union { ... }`
 
-이 토큰들은 대상 타입이 각각 `struct`, `enum`, `union`일 때만 안의 코드를 생성합니다.
+이 토큰은 대상 타입이 각각 `struct`, `enum`, `union`일 때만 안의 코드를 생성합니다.
 
 ```rok
 @if_struct {
@@ -76,17 +76,17 @@ template_token  ::= "@" identifier
 }
 ```
 
-대상 타입이 다른 종류이면 블록은 무시되고 코드가 생성되지 않습니다.
+대상 타입이 다른 종류이면 블록을 무시하고 코드를 생성하지 않습니다.
 
 ### `@Self.name` / `@Self.is_unit` / `.is_tuple` / `.is_named`
 
-`@Self.name`은 타입 인자를 뺀 대상 타입 이름(`Pair<T>`의 `Pair`)입니다. `@Self.is_unit` / `@Self.is_tuple` / `@Self.is_named`는 대상 struct가 unit struct, 튜플 struct, 이름 있는 필드 struct인지를 나타내는 부울이며, `@apply_if`에 씁니다.
+`@Self.name`은 타입 인자를 뺀 대상 타입 이름(`Pair<T>`의 `Pair`)입니다. `@Self.is_unit` / `@Self.is_tuple` / `@Self.is_named`는 부울입니다. 대상 struct가 unit struct, 튜플 struct, 이름 있는 필드 struct 중 어느 것인지 나타냅니다. `@apply_if`에 씁니다.
 
 ## 6.9.3. 필드 반복
 
 ### `@for_fields { ... }`
 
-`@for_fields`는 `struct`나 `union`의 필드마다 블록을 반복합니다. `@for_variants` 안에서는 현재 변형의 필드를 반복하며, `@for_variant_fields`와 같습니다. `enum`에 `@for_variants` 없이 쓰면 에러입니다.
+`@for_fields`는 `struct`나 `union`의 필드마다 블록을 반복합니다. `@for_variants` 안에서는 현재 변형의 필드를 반복하고, `@for_variant_fields`와 같습니다. `enum`에 `@for_variants` 없이 쓰면 에러입니다.
 
 ```rok
 @for_fields {
@@ -98,7 +98,7 @@ template_token  ::= "@" identifier
 
 ### `@field`
 
-`@field`는 현재 필드의 자리 표시이며, 필드 접근 위치에 씁니다.
+`@field`는 현재 필드의 자리 표시이고, 필드 접근 위치에 씁니다.
 
 ```rok
 self.@field                          // self.x, self.y, ...
@@ -146,7 +146,7 @@ fn typed<T>() where T == @field.type { ... }
 
 ### `@field.has_default` / `@field.default`
 
-`@field.has_default`는 필드에 기본값(`x: i32 = 0`, [2.3.3](../002-types/203-struct.md#233-필드-기본값))이 있으면 참이고, `@field.default`는 그 `= expr`의 식입니다. 기본값이 없는 필드에서 `@field.default`를 쓰면 에러입니다.
+`@field.has_default`는 필드에 기본값(`x: i32 = 0`, [2.3.3](../002-types/203-struct.md#233-필드-기본값))이 있으면 참입니다. `@field.default`는 그 `= expr`의 식입니다. 기본값이 없는 필드에서 `@field.default`를 쓰면 에러입니다.
 
 ```rok
 @apply_if(@field.has_default) {
@@ -154,11 +154,11 @@ fn typed<T>() where T == @field.type { ... }
 }
 ```
 
-## 6.9.4. 변형 (variant) 반복
+## 6.9.4. 변형(variant) 반복
 
 ### `@for_variants { ... }`
 
-`@for_variants`는 `enum`의 variant마다 블록을 반복합니다.
+`@for_variants`는 `enum`의 변형마다 블록을 반복합니다.
 
 ```rok
 @for_variants {
@@ -168,11 +168,11 @@ fn typed<T>() where T == @field.type { ... }
 
 ### `@variant.name` variant 이름
 
-`@variant.name`은 variant의 이름입니다.
+`@variant.name`은 변형의 이름입니다.
 
 ### `@variant.pattern` 매칭 패턴
 
-`@variant.pattern`은 variant를 매칭하는 패턴입니다. 예를 들어 `Shape::Circle(r)`, `Shape::Pending`, `Shape::Click { x: x1, y: y1 }` 같은 모양입니다. 여기서 `r`, `x1`, `y1` 자리의 바인딩은 컴파일러가 만든 이름이며(위생, 6.9.8), 그 값은 `@for_variant_fields` 안의 `@field`로 꺼냅니다. 템플릿은 바인딩 이름을 직접 쓸 수 없습니다.
+`@variant.pattern`은 변형을 매칭하는 패턴입니다. 예를 들어 `Shape::Circle(r)`, `Shape::Pending`, `Shape::Click { x: x1, y: y1 }` 같은 모양입니다. 여기서 `r`, `x1`, `y1` 자리의 바인딩은 컴파일러가 만든 이름입니다(위생, 6.9.8). 그 값은 `@for_variant_fields` 안의 `@field`로 꺼냅니다. 템플릿은 바인딩 이름을 직접 쓸 수 없습니다.
 
 ```rok
 match self {
@@ -184,7 +184,7 @@ match self {
 
 ### `@variant.is_unit` / `@variant.is_tuple` / `@variant.is_named`
 
-이 토큰들은 variant의 종류를 검사합니다.
+이 토큰은 변형의 종류를 검사합니다.
 
 ```rok
 @apply_if(@variant.is_tuple) {
@@ -194,7 +194,7 @@ match self {
 
 ### `@for_variant_fields { ... }`
 
-variant 안의 필드를 반복할 때는 `@for_variant_fields`를 씁니다. 그 안에서는 `@field.name` 등을 쓸 수 있습니다.
+변형 안의 필드를 반복할 때는 `@for_variant_fields`를 씁니다. 그 안에서는 `@field.name` 등을 쓸 수 있습니다.
 
 ```rok
 @for_variants {
@@ -226,13 +226,13 @@ variant 안의 필드를 반복할 때는 `@for_variant_fields`를 씁니다. �
 }
 ```
 
-`cond`는 템플릿 토큰의 부울 값(예: `@field.is_pub`, `@field.has_attr(...)`)과 일반 부울 연산자(`!`, `&&`, `||`)로 이루어진 식이며, 컴파일 타임에 평가됩니다.
+`cond`는 템플릿 토큰의 부울 값(예: `@field.is_pub`, `@field.has_attr(...)`)과 일반 부울 연산자(`!`, `&&`, `||`)로 이루어진 식입니다. 컴파일 타임에 평가됩니다.
 
 `else` 분기용 키워드는 따로 없습니다. 반대 조건의 `@apply_if`를 쓰세요.
 
 ### `@accept(...)`
 
-`@accept`는 derive나 attribute를 붙일 수 있는 대상 종류를 제한합니다. 콤마나 `|`로 구분한 항목 종류 목록을 받습니다.
+`@accept`는 derive나 속성을 붙일 수 있는 대상 종류를 제한합니다. 쉼표나 `|`로 구분한 항목 종류 목록을 받습니다.
 
 ```rok
 #[impl_attribute(my_wrap)] pub @attribute {
@@ -257,11 +257,11 @@ variant 안의 필드를 반복할 때는 `@for_variant_fields`를 씁니다. �
 | `impl`   | `impl` 블록      |
 | `trait`  | `trait` 항목     |
 
-여러 종류를 콤마나 `|`로 구분해 쓰면 그중 하나만 맞아도 허용합니다. 대상이 허용된 종류가 아니면 사용처에서 컴파일 에러입니다.
+여러 종류를 쉼표나 `|`로 구분해 쓰면 그중 하나만 맞아도 허용합니다. 대상이 허용된 종류가 아니면 사용처에서 컴파일 에러입니다.
 
 ### `@where_all(Trait)`
 
-`@where_all`은 모든 필드 타입이 `Trait`를 만족해야 한다는 조건을 where 절로 자동 추가합니다.
+`@where_all`은 모든 필드 타입이 `Trait`를 만족해야 한다는 조건을 where 절로 자동으로 넣습니다.
 
 ```rok
 #[impl_derive(Eq)] pub @derive {
@@ -277,7 +277,7 @@ variant 안의 필드를 반복할 때는 `@for_variant_fields`를 씁니다. �
 }
 ```
 
-이렇게 하면 생성된 `impl`에 대상 타입의 타입 파라미터마다 `T: Eq`가 추가됩니다. 구체적인 필드 타입에 대한 절은 넣지 않으며, 그 필드들이 `Eq`를 구현하는지는 생성된 본문을 타입 검사할 때 확인합니다. 템플릿의 `impl` 뒤에는 대상 타입의 제네릭 파라미터가 들어가며, 바운드는 `@where_all`이 붙인 것뿐입니다.
+이렇게 하면 생성된 `impl`에 대상 타입의 타입 매개변수마다 `T: Eq`가 추가됩니다. 구체적인 필드 타입의 절은 넣지 않습니다. 그 필드가 `Eq`를 구현하는지는 생성된 본문을 타입 검사할 때 확인합니다. 템플릿의 `impl` 뒤에는 대상 타입의 제네릭 매개변수가 들어갑니다. 바운드는 `@where_all`이 붙인 것뿐입니다.
 
 ## 6.9.6. derive_attribute 토큰
 
@@ -285,11 +285,11 @@ variant 안의 필드를 반복할 때는 `@for_variant_fields`를 씁니다. �
 
 ### `@has_derive_attr(name)`
 
-필드에 `derive_attribute`의 대상 attr가 붙어 있는지를 나타냅니다.
+필드에 `derive_attribute`의 대상 속성이 붙어 있는지 나타냅니다.
 
-### `@derive_attr(name)` 그 attr 의 인자
+### `@derive_attr(name)` 그 attr의 인자
 
-`@derive_attr(name)`은 필드에 붙은 attr의 인자입니다.
+`@derive_attr(name)`은 필드에 붙은 그 속성의 인자입니다.
 
 ```rok
 #[impl_derive_attribute(Serialize, rename)] pub @derive {
@@ -302,13 +302,13 @@ variant 안의 필드를 반복할 때는 `@for_variant_fields`를 씁니다. �
 }
 ```
 
-## 6.9.7. attribute 전용 토큰
+## 6.9.7. 속성 전용 토큰
 
 다음 토큰은 `#[impl_attribute(name)]` 안에서 씁니다.
 
 ### `@item` 원본 항목 재사용
 
-`@item`은 attribute가 붙은 항목 전체를 그대로 재사용합니다.
+`@item`은 속성이 붙은 항목 전체를 그대로 재사용합니다.
 
 ```rok
 #[impl_attribute(deprecated_warning)] pub @attribute {
@@ -319,11 +319,11 @@ variant 안의 필드를 반복할 때는 `@for_variant_fields`를 씁니다. �
 
 ### `@item.body`
 
-`@item.body`는 함수 본체이며, 함수 항목에서만 의미가 있습니다.
+`@item.body`는 함수 본체입니다. 함수 항목에서만 의미가 있습니다.
 
 ### `@item.name`, `@item.params`, `@item.return_type`
 
-이 토큰들은 함수 시그니처의 각 부분입니다.
+이 토큰은 함수 시그니처의 각 부분입니다.
 
 ```rok
 #[impl_attribute(timed)] pub @attribute {
@@ -338,7 +338,7 @@ variant 안의 필드를 반복할 때는 `@for_variant_fields`를 씁니다. �
 
 ### `@attribute` `#[...]` 인자
 
-`@attribute`는 사용처에서 attribute에 쓴 인자입니다. `#[impl_attribute(name)]`로 정의한 attribute를 사용처가 `#[name(args)]` 형태로 썼다면, `@attribute`는 그 args입니다.
+`@attribute`는 사용처에서 속성에 쓴 인자입니다. `#[impl_attribute(name)]`로 정의한 속성을 사용처가 `#[name(args)]` 형태로 썼다면 `@attribute`는 그 args입니다.
 
 ```rok
 #[impl_attribute(prefix)] pub @attribute {
@@ -360,44 +360,44 @@ fn run() { ... }
 //   }
 ```
 
-## 6.9.8. 호출부 (macro) 토큰
+## 6.9.8. 호출부(macro) 토큰
 
-위의 토큰은 정의가 붙은 타입이나 항목을 바인딩합니다. macro([6.8.12](608-meta-blocks.md#6812-macro-형태))는 그 대신 매처로 호출자의 토큰을 바인딩하며, 아래 토큰을 씁니다. `@for`와 `@concat`은 위의 형태와 공유합니다. shape 조건(`@apply_if`와 그것이 검사하는 `@Self`/`@field`/`@variant`)은 공유하지 않습니다. macro에는 검사할 타입 shape가 없기 때문입니다.
+위의 토큰은 정의가 붙은 타입이나 항목을 바인딩합니다. macro([6.8.12](608-meta-blocks.md#6812-macro-형태))는 그 대신 매처로 호출하는 쪽의 토큰을 바인딩하고, 아래 토큰을 씁니다. `@for`와 `@concat`은 위의 형태와 함께 씁니다. shape 조건(`@apply_if`와 그것이 검사하는 `@Self`/`@field`/`@variant`)은 함께 쓰지 않습니다. macro에는 검사할 타입 shape가 없기 때문입니다.
 
 | 토큰                                   | 매처 / 템플릿에서                                               | 절    |
 |----------------------------------------|----------------------------------------------------------------|-------|
-| `@name: <fragment>`                    | 매처: fragment 하나 캡처 (`expr`, `stmt`, `block`, `ty`, `pat`, `path`, `ident`, `literal`, `item`, `tt`) | 6.9.8 |
-| `@name`                                | 템플릿: 캡처한 fragment, 또는 `@for` 안에서 현재 원소          | 6.9.8 |
+| `@name: <fragment>`                    | 매처: 조각 하나 캡처 (`expr`, `stmt`, `block`, `ty`, `pat`, `path`, `ident`, `literal`, `item`, `tt`) | 6.9.8 |
+| `@name`                                | 템플릿: 캡처한 조각, 또는 `@for` 안에서 현재 원소          | 6.9.8 |
 | `@rep[sep = ",", trailing] { .. }`     | 매처: 하위 패턴을 반복 (구분자·끝 구분자 선택)                 | 6.9.8 |
-| `@for @name { .. }`                    | 템플릿: 캡처 시퀀스의 원소마다 본체 (여럿이면 lockstep)        | 6.9.3 |
+| `@for @name { .. }`                    | 템플릿: 캡처 시퀀스의 원소마다 본체 (여럿이면 보조를 맞춤)     | 6.9.3 |
 | `@concat(a, @name, ..)`                | 템플릿: 이름 토큰·문자열 리터럴을 인덱싱되는 식별자 하나로 이음 | 6.9.8 |
 
 ### `@name: <fragment>` fragment 캡처
 
-매처에서 `@name: <fragment>`는 그 문법을 매칭해 바인딩합니다. `tt`를 뺀 fragment는 실제 구문 노드로 파싱되므로, 캡처한 코드는 타입이 정해지고 검사되며, 도구가 그 안의 이름을 해석합니다. `tt`는 Rok 문법이 아닌 DSL을 위해 원시 토큰 트리 하나(토큰 하나 또는 짝이 맞는 그룹)를 캡처합니다. 매처의 다른 리터럴 토큰은 호출에 그대로 나와야 합니다. 템플릿에서 `@name`은 캡처한 내용으로 치환되며, 호출 위치의 위생은 유지됩니다([6.9.9](#699-확장-메커니즘)).
+매처에서 `@name: <fragment>`는 그 문법을 매칭해 바인딩합니다. `tt`를 뺀 조각(fragment)은 실제 구문 노드로 파싱됩니다. 그래서 캡처한 코드는 타입이 정해지고 검사를 받으며, 도구가 그 안의 이름을 해석합니다. `tt`는 Rok 문법이 아닌 DSL을 위해 원시 토큰 트리 하나(토큰 하나 또는 짝이 맞는 그룹)를 캡처합니다. 매처의 다른 리터럴 토큰은 호출에 그대로 나와야 합니다. 템플릿에서 `@name`은 캡처한 내용으로 치환되고, 호출 위치의 위생은 유지됩니다([6.9.9](#699-확장-메커니즘)).
 
 ### `@rep` / `@for` 반복
 
-`@rep[sep = ",", trailing] { <하위 패턴> }`은 하위 패턴을 0회 이상 매칭하며, 그 안에서 캡처한 메타변수는 시퀀스를 바인딩합니다. `@for @name { <본체> }`는 `@for_fields`([6.9.3](#693-필드-반복))와 같은 반복자이며, 여기서는 그 시퀀스에 적용됩니다. 한 `@rep`의 메타변수들은 lockstep으로 함께 돌며, 길이가 같아야 합니다. `@rep`과 `@for`는 중첩할 수 있습니다.
+`@rep[sep = ",", trailing] { <하위 패턴> }`은 하위 패턴을 0회 이상 매칭합니다. 그 안에서 캡처한 메타변수는 시퀀스를 바인딩합니다. `@for @name { <본체> }`는 `@for_fields`([6.9.3](#693-필드-반복))와 같은 반복자이고, 여기서는 그 시퀀스를 돕니다. 한 `@rep`의 메타변수는 보조를 맞춰 함께 돌고, 길이가 같아야 합니다. `@rep`과 `@for`는 중첩할 수 있습니다.
 
 ### `@concat(..)` 이름 합성
 
-`@concat(..)`은 이름 토큰(`@name`, `@Self.name`, 맨 식별자)과 문자열 리터럴을 이어 식별자 하나를 만듭니다. 정의 위치나 경로 위치에서만 쓸 수 있습니다. 만든 식별자는 기록되므로 심볼 검색과 정의로 이동으로 생성된 항목에 닿을 수 있습니다([6.8.12](608-meta-blocks.md#도구-지원과-위생)). 이름이 아닌 조각을 쓰거나 이름 위치 밖에서 쓰면 에러입니다.
+`@concat(..)`은 이름 토큰(`@name`, `@Self.name`, 맨 식별자)과 문자열 리터럴을 이어 식별자 하나를 만듭니다. 정의 위치나 경로 위치에서만 쓸 수 있습니다. 만든 식별자는 기록되므로 심볼 검색과 정의로 이동이 생성된 항목에 닿습니다([6.8.12](608-meta-blocks.md#도구-지원과-위생)). 이름이 아닌 조각을 쓰거나 이름 위치 밖에서 쓰면 에러입니다.
 
 ## 6.9.9. 확장 메커니즘
 
 ### 모으기와 확장
 
-메타 확장은 다음 순서로 진행됩니다.
+메타 확장은 다음 순서로 일어납니다.
 
-1. 파싱 전의 pre-pass가 라이브러리와 사용자 패키지의 모든 파일에서 메타 블록을 모읍니다([6.8.11](608-meta-blocks.md#6811-등록가시성과의-결합)).
-2. 파서가 `#[derive(X)]`나 `#[x]`가 붙은 항목을 만나면, 해당 메타 블록 본체의 템플릿 토큰을 항목의 값으로 치환하고 결과를 다시 파싱합니다.
+1. 파싱 전의 사전 패스(pre-pass)가 라이브러리와 사용자 패키지의 모든 파일에서 메타 블록을 모읍니다([6.8.11](608-meta-blocks.md#6811-등록가시성과-결합)).
+2. 파서가 `#[derive(X)]`나 `#[x]`가 붙은 항목을 만나면 해당 메타 블록 본체의 템플릿 토큰을 항목의 값으로 치환합니다. 그리고 결과를 다시 파싱합니다.
 3. 생성된 항목도 다시 메타 처리합니다. 고정점에 이를 때까지 반복합니다.
-4. 순환(`A → B → A`)은 에러입니다([6.8.8](608-meta-blocks.md#688-fixed-point-확장)).
+4. 순환(`A → B → A`)은 에러입니다([6.8.8](608-meta-blocks.md#688-고정점-확장)).
 
-### `cfg` 와의 관계
+### `cfg`와 관계
 
-메타 블록에 붙은 `#[cfg(..)]`는 그 블록의 **등록** 여부를 정합니다. cfg 평가가 메타 블록 수집보다 먼저이므로, cfg가 거짓인 블록의 derive / attribute는 등록되지 않습니다. 그래서 서로 배타적인 cfg 아래에서 두 블록이 같은 이름을 정의할 수 있습니다. 블록을 둘러싼 모듈(인라인 `mod`와 파일 모듈)의 `#[cfg]`도 등록에 적용됩니다. 파일 안의 `#![cfg]`는 아직 적용되지 않습니다.
+메타 블록에 붙은 `#[cfg(..)]`는 그 블록의 **등록** 여부를 정합니다. cfg 평가가 메타 블록 수집보다 먼저이므로 cfg가 거짓인 블록의 derive / 속성은 등록되지 않습니다. 그래서 서로 배타적인 cfg 아래에서 두 블록이 같은 이름을 정의할 수 있습니다. 블록을 둘러싼 모듈(인라인 `mod`와 파일 모듈)의 `#[cfg]`도 등록에 적용됩니다. 파일 안의 `#![cfg]`는 아직 적용되지 않습니다.
 
 항목에 붙은 [`#[cfg]`](603-cfg.md)는 그 항목에서 생성된 모든 항목에 그대로 복사됩니다. 따라서 cfg가 거짓인 항목은 생성물과 함께 사라집니다. 전체 순서는 다음과 같습니다.
 
@@ -405,9 +405,9 @@ fn run() { ... }
 parse → cfg eval → meta expansion (fixed-point) → 이름 해소 → 타입 검사 → ...
 ```
 
-### 위생 (hygiene)
+### 위생(hygiene)
 
-템플릿이 묶는 지역 이름, 곧 `let` / `for`의 바인딩과 클로저 매개변수(f-string의 `{..}` 안 포함)는 확장할 때 겹치지 않는 이름으로 바뀝니다. 그래서 템플릿의 지역 이름은 항목에서 온 이름(`@item.body`, `@item.params`, `let @field.name = ..`)을 가리거나 포획하지 않습니다.
+템플릿이 묶는 지역 이름은 확장할 때 겹치지 않는 이름으로 바뀝니다. 지역 이름은 `let` / `for`의 바인딩과 클로저 매개변수이고, f-string의 `{..}` 안도 포함합니다. 그래서 템플릿의 지역 이름은 항목에서 온 이름(`@item.body`, `@item.params`, `let @field.name = ..`)을 가리거나 캡처하지 않습니다.
 
 ```rok
 #[impl_derive(Foo)] pub @derive {
@@ -427,7 +427,7 @@ let s = S { temp: "hi" };
 let r = s.foo();                              // 메타가 만든 'temp' 와 충돌 안 함
 ```
 
-`match` arm 패턴이 묶는 이름과 `S { x }` 축약은 바꾸지 않습니다. 템플릿은 그 자리에 항목과 겹칠 수 있는 이름을 쓰지 않습니다. `@variant.pattern`의 바인딩은 컴파일러가 만든 이름이므로 겹치지 않습니다.
+`match` 가지의 패턴이 묶는 이름과 `S { x }` 축약은 바꾸지 않습니다. 템플릿은 그 자리에 항목과 겹칠 수 있는 이름을 쓰지 않습니다. `@variant.pattern`의 바인딩은 컴파일러가 만든 이름이므로 겹치지 않습니다.
 
 ### 자유 식별자의 해소
 
@@ -449,7 +449,7 @@ let r = s.foo();                              // 메타가 만든 'temp' 와 충
 
 ### 진단 위치
 
-확장 중의 에러와 확장 결과의 파싱 에러는 템플릿의 위치를 가리키고, 사용처(`#[derive(X)]` / `#[x]`)를 note로 덧붙입니다. 템플릿 토큰을 거쳐 항목에서 온 토큰은 항목의 위치를 가리킵니다.
+확장 중의 에러와 확장 결과의 파싱 에러는 템플릿의 위치를 가리킵니다. 사용처(`#[derive(X)]` / `#[x]`)는 참고(note)로 덧붙입니다. 템플릿 토큰을 거쳐 항목에서 온 토큰은 항목의 위치를 가리킵니다.
 
 ## 6.9.10. 디버깅
 
@@ -457,7 +457,7 @@ let r = s.foo();                              // 메타가 만든 'temp' 와 충
 
 ## 6.9.11. 정리
 
-템플릿 토큰은 Rok 메타 시스템의 코드 생성 어휘입니다. 형태는 단순하지만 실제로 쓰이는 derive와 attribute의 주요 사례를 모두 다룹니다.
+템플릿 토큰은 Rok 메타 시스템의 코드 생성 어휘입니다. 형태는 단순하지만 실제로 쓰이는 derive와 속성의 주요 사례를 모두 다룹니다.
 
 Rok은 토큰 변환의 유연성을 제한하는 대신 디버깅 가능성, 도구 친화성, 위생 보장을 택했습니다.
 

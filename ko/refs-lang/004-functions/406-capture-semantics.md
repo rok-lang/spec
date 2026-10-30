@@ -14,7 +14,7 @@ count = 10;
 f();                               // 1 (f 는 0 을 가짐)
 ```
 
-이렇게 정한 이유는 세 가지입니다. 첫째, 명시성입니다. 캡처 모드가 코드에 분명히 드러납니다. 둘째, 부작용 차단입니다. 클로저가 바깥 변수를 몰래 바꾸는 함정을 막습니다. 셋째, 과학·수치 코드에 맞습니다. Julia의 100배 박싱 함정(참조 캡처가 동적 슬롯에 박싱되어 성능이 떨어지는 문제)을 피합니다.
+이렇게 정한 이유는 세 가지입니다. 첫째, 명시성입니다. 캡처 모드가 코드에 분명히 드러납니다. 둘째, 부작용 차단입니다. 클로저가 바깥 변수를 몰래 바꾸는 함정을 막습니다. 셋째, 과학·수치 코드에 맞습니다. Julia의 '100배 박싱 함정'을 피합니다. 참조 캡처가 동적 슬롯에 박싱되어 성능이 떨어지는 문제입니다.
 
 ```
 capture_list    ::= "[" capture_item ("," capture_item)* ","? "]"
@@ -22,7 +22,7 @@ capture_item    ::= "ref" capture_name | capture_name
 capture_name    ::= identifier | "self"
 ```
 
-`self`는 메서드의 receiver를 가리킵니다. `[ref self]`는 `ref self` 메서드에서만 쓸 수 있고, receiver를 공유합니다 ([4.7.4](407-ref-keyword.md#474-클로저-캡처-리스트)). 값으로 받은 `self`는 값으로 캡처합니다.
+`self`는 메서드의 수신자를 가리킵니다. `[ref self]`는 `ref self` 메서드에서만 쓸 수 있고, 수신자를 공유합니다([4.7.4](407-ref-keyword.md#474-클로저-캡처-리스트)). 값으로 받은 `self`는 값으로 캡처합니다.
 
 ## 4.6.2. 참조 캡처: `[ref x]` 캡처 리스트
 
@@ -37,7 +37,7 @@ inc(); inc(); dec();
 // count = 1
 ```
 
-클로저 정의 앞에 `[ref 변수, ref 변수, ...]`처럼 둡니다. 리스트 안의 변수는 공유 셀에 담기며(boxing), 바깥 스코프와 클로저가 같은 셀을 쓰므로 클로저 안에서 재할당하면 바깥 변수에도 반영됩니다. 셀은 GC 객체여서 클로저가 변수의 스코프보다 오래 살아도 됩니다. 리스트에 없는 변수는 일반 값 캡처입니다.
+클로저 정의 앞에 `[ref 변수, ref 변수, ...]`처럼 둡니다. 리스트 안의 변수는 공유 셀에 담깁니다(boxing). 바깥 스코프와 클로저가 같은 셀을 쓰므로 클로저 안에서 재할당하면 바깥 변수에도 반영됩니다. 셀은 GC 객체여서 클로저가 변수의 스코프보다 오래 살아도 됩니다. 리스트에 없는 변수는 일반 값 캡처입니다.
 
 ### 다중 캡처와 혼합 캡처
 
@@ -76,9 +76,9 @@ let f = || { count = count + 1 };
 //        To mutate the outer variable, add `[ref count]` capture list.
 ```
 
-이 규칙은 `ref` 캡처를 의도적으로 적도록 이끌기 위한 것입니다.
+이 규칙은 `ref` 캡처를 일부러 적도록 이끕니다.
 
-## 4.6.5. `ref` 단축 (없음)
+## 4.6.5. `ref` 단축(없음)
 
 ```rok
 ref || { ... }                    // 채택 안 함
@@ -88,7 +88,7 @@ ref || { ... }                    // 채택 안 함
 
 ## 4.6.6. 루프 변수 자동 처리
 
-값 캡처가 기본이므로 루프 변수는 반복마다 자기 값을 가집니다.
+값 캡처가 기본이므로 각 반복의 루프 변수는 자기 값을 유지합니다.
 
 ```rok
 let fns: List<fn() -> i32> = [];
@@ -99,13 +99,13 @@ fns[0]();                          // 0
 fns[4]();                          // 4
 ```
 
-Go 1.22의 per-iteration scope 같은 별도 규칙이 필요 없습니다. 값 캡처만으로 의도한 의미가 됩니다.
+Go 1.22의 반복별 스코프(per-iteration scope) 같은 별도 규칙이 필요 없습니다. 값 캡처만으로 의도한 의미가 됩니다.
 
-## 4.6.7. 구조체와 참조 핸들의 캡처
+## 4.6.7. struct와 참조 핸들의 캡처
 
-값 캡처는 값을 클로저 안으로 복사합니다. [`struct`](../002-types/203-struct.md)는 값 타입이므로 클로저는 자기 사본을 가집니다. 클로저 안에서 필드에 써도 바깥 변수는 바뀌지 않습니다. 바깥 변수를 바꾸려면 `[ref p]`를 씁니다.
+값 캡처는 값을 클로저 안으로 복사합니다. [`struct`](../002-types/203-struct.md)는 값 타입이므로 클로저 안에는 자기 사본이 있습니다. 클로저 안에서 필드에 써도 바깥 변수는 바뀌지 않습니다. 바깥 변수를 바꾸려면 `[ref p]`를 씁니다.
 
-컬렉션(`List`, `Dict`, `Set`, `StrBuf`, ...)은 참조 핸들입니다 ([stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md#참조-핸들)). 값 캡처는 핸들을 복사하므로 객체는 공유됩니다.
+컬렉션(`List`, `Dict`, `Set`, `StrBuf` 등)은 참조 핸들입니다([stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md#참조-핸들)). 값 캡처는 핸들을 복사하므로 객체는 공유됩니다.
 
 ```rok
 let xs = [1, 2, 3];
@@ -121,7 +121,7 @@ g();
 
 컬렉션의 독립된 사본이 필요하면 `.clone()`을 호출합니다.
 
-## 4.6.8. `ref` 캡처 vs 객체 변경의 차이
+## 4.6.8. `ref` 캡처와 객체 변경의 차이
 
 ```rok
 let xs = [1, 2, 3];
@@ -144,7 +144,7 @@ let g = [ref xs] || {
 
 ## 4.6.9. 병렬과 동시성 문맥의 추가 제약
 
-`fn() + Send` 클로저(`task::spawn`, `par::for_each`, `thread::spawn` 등에 넘기는 클로저)의 캡처는 모두 `Send + Sync`여야 합니다([4.4](404-function-type.md#send--sync-bound)). `[ref x]` 셀은 클로저와 그 클로저를 만든 코드가 함께 쓰므로, `x`의 타입과 상관없이 절대 `Send`도 `Sync`도 아닙니다. 그래서 `[ref]` 캡처가 있는 클로저(그런 클로저를 캡처하는 클로저, `async [ref x] ||` 클로저가 만든 future도 마찬가지)는 어떤 `+ Send` / `+ Sync` 자리에도 들어가지 않습니다. 같은 스레드 안에서 쓰는 경우(`spawn_local`, 일반 호출)는 영향이 없습니다. 컬렉션은 `!Sync`이므로([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---스레드-경계-marker)) 값 캡처로도 이렇게 넘길 수 없습니다.
+`fn() + Send` 클로저(`task::spawn`, `par::for_each`, `thread::spawn` 등에 넘기는 클로저)의 캡처는 모두 `Send + Sync`여야 합니다([4.4](404-function-type.md#send--sync-바운드)). `[ref x]` 셀은 클로저와 그 클로저를 만든 코드가 함께 씁니다. 그래서 이 셀은 `x`의 타입과 상관없이 `Send`도 `Sync`도 아닙니다. 따라서 `[ref]` 캡처가 있는 클로저는 어떤 `+ Send` / `+ Sync` 자리에도 들어가지 않습니다. 그런 클로저를 캡처한 클로저와 `async [ref x] ||` 클로저가 만든 future도 마찬가지입니다. 같은 스레드 안에서 쓸 때(`spawn_local`, 일반 호출)는 영향이 없습니다. 컬렉션은 `!Sync`이므로([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync-스레드-경계-마커)) 값 캡처로도 이렇게 넘길 수 없습니다.
 
 ```rok
 let buf: List<i32> = [];
@@ -154,7 +154,7 @@ par::for_each(xs, [ref buf] |x| { buf.push(x) });
 
 대신 reduce를 쓰거나(`par::reduce(xs, 0, |a, b| a + b)`), `Mutex` / `RwLock` / `Atomic` / 채널로 공유하거나, 스레드에서 값을 돌려받습니다(`join()`).
 
-이렇게 공유한 값은 새 소유자의 것입니다. `Mutex::new(buf)`나 `tx.send(buf)` 뒤에 `buf`를 쓰면 컴파일 에러입니다 ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---스레드-경계-marker)). lock을 통해 쓰거나 `buf.clone()`을 넘깁니다.
+이렇게 공유한 값은 새 소유자의 것입니다. `Mutex::new(buf)`나 `tx.send(buf)` 뒤에 `buf`를 쓰면 컴파일 에러입니다([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync-스레드-경계-마커)). 락을 거쳐 쓰거나 `buf.clone()`을 넘깁니다.
 
 ```rok
 let m = Mutex::new(buf);
@@ -162,9 +162,9 @@ buf.push(1);
 // ERROR: `buf` was moved into the `Mutex`; use it through the lock: using g = m.lock() { g.get().push(1) }
 ```
 
-병렬·동시성 규칙의 자세한 내용은 표준 라이브러리 사양이 정의하며, 이 절은 언어 수준의 캡처 메커니즘만 다룹니다.
+병렬·동시성 규칙의 자세한 내용은 표준 라이브러리 사양이 정의합니다. 이 절은 언어 수준의 캡처 메커니즘만 다룹니다.
 
-## 4.6.10. 캡처 변수의 가시 범위
+## 4.6.10. 캡처 변수의 수명
 
 캡처한 변수는 클로저 값이 살아 있는 동안 함께 남습니다. 클로저가 바깥 스코프를 벗어나도 캡처한 값은 클로저 객체 안에 남아 있습니다.
 
@@ -181,4 +181,4 @@ c();                               // 2
 c();                               // 3
 ```
 
-위 예에서 `count`는 바깥 함수가 끝난 뒤에도 클로저 객체에 붙어 살아 있습니다. [GC](../000-meta/007-glossary.md#gc-garbage-collector)가 이 수명을 관리합니다 ([7. 런타임 모델](../007-runtime/README.md)).
+위 예에서 `count`는 바깥 함수가 끝난 뒤에도 클로저 객체에 붙어 살아 있습니다. [GC](../000-meta/007-glossary.md#gc-garbage-collector)가 이 수명을 관리합니다([7. 런타임 모델](../007-runtime/README.md)).

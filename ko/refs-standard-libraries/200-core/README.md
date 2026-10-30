@@ -1,6 +1,6 @@
-# 2. Rok tier
+# 2. Rok 계층
 
-Rok tier는 안전한 표준 라이브러리입니다. 모든 target에서 빌드되는 Rok의 실용 표면입니다. 사용자 코드의 약 90%가 이 tier의 항목을 쓰므로, 일상적인 프로그래밍에서 Rok이 어떤 모습인지는 이 계층이 정합니다.
+Rok tier는 안전한 표준 라이브러리입니다. 모든 타깃에서 빌드되는 Rok의 실용 표면입니다. 사용자 코드의 약 90%가 이 계층의 항목을 씁니다. 그래서 일상적인 프로그래밍에서 Rok이 어떤 모습인지는 이 계층이 정합니다.
 
 ## 위치
 
@@ -10,13 +10,13 @@ Rok tier는 안전한 표준 라이브러리입니다. 모든 target에서 빌�
 
 ## 의존성
 
-Rok tier는 위로는 내부 용도로 `unsafe`에 의존하고, 아래로는 `std`와 사용자 코드가 Rok tier에 의존합니다. 그래서 Rok tier는 unsafe와 std 사이, 안전 영역의 중심에 있습니다.
+Rok tier는 위로는 내부 용도로 `unsafe`에 의존합니다. 아래로는 `std`와 사용자 코드가 Rok tier에 의존합니다. 그래서 Rok tier는 unsafe와 std 사이에서 안전 영역의 중심에 있습니다.
 
 ## 사용자 import 정책
 
-`use rok::core::**;`는 **묵시적으로 적용**됩니다. 컴파일러가 모든 사용자 파일 앞에 이 줄을 붙입니다. 그래서 Rok의 모든 pub 항목 (List, Dict, Add, Display, Iterator, Mutex, task, ...)을 따로 import하지 않고 쓸 수 있습니다.
+`use rok::core::**;`는 **묵시적으로 적용**됩니다. 컴파일러가 모든 사용자 파일 앞에 이 줄을 붙입니다. 그래서 Rok의 모든 pub 항목(List, Dict, Add, Display, Iterator, Mutex, task 등)을 따로 가져오지 않고 쓸 수 있습니다.
 
-필요하면 좁게 명시하는 import도 허용됩니다.
+필요하면 가져올 항목을 좁게 적어도 됩니다.
 
 ```rok
 use rok::core::collections::List;           // 좁은 명시
@@ -24,10 +24,10 @@ use rok::core::ops::{Add, Sub};
 ```
 
 > [!NOTE]
-> Rok에는 **별도의 `rok::core::prelude` 모듈이 없습니다**. `**` recursive glob 자체가
-> prelude 역할을 하며, 추가 indirection은 없습니다.
+> Rok에는 **별도의 `rok::core::prelude` 모듈이 없습니다**. `**` 재귀 glob 자체가
+> prelude 역할을 하고, 그 사이에 다른 간접 단계는 없습니다.
 
-자세한 정책은 [0.2 import 정책](../000-meta/002-import.md)에서 다룹니다.
+자세한 정책은 [0.2 import 정책](../000-meta/002-import.md)에 있습니다.
 
 ## 모듈 목차
 
@@ -86,16 +86,16 @@ Rok tier의 모듈을 영역별로 나누면 다음과 같습니다.
 - [2.22. `encoding::` - hex와 base64](222-encoding.md)
 
 > [!NOTE]
-> 텐서 / 자동 미분 / SIMD / GPU 같은 과학 컴퓨팅 영역은 Rok tier에 두지 않고 **외부 라이브러리**로 분리합니다. 외부 라이브러리는 [`rok::bare::mlir`](../100-bare/) 모듈로 MLIR 다이얼렉트에 직접 접근할 수 있습니다.
+> 텐서, 자동 미분, SIMD, GPU 같은 과학 컴퓨팅 영역은 Rok tier에 두지 않고 **외부 라이브러리**로 분리합니다. 외부 라이브러리는 [`rok::bare::mlir`](../100-bare/) 모듈로 MLIR 다이얼렉트에 직접 접근할 수 있습니다.
 
-## 핵심 디자인 원칙
+## 핵심 설계 원칙
 
 Rok tier의 설계는 다음 네 가지 축을 따릅니다.
 
-첫째, 트레잇이 우선합니다. 모든 의미 결정은 트레잇 메서드 dispatch로 이루어지며, `+` 연산은 `Add::add`로, `[i]` 인덱싱은 `Index::index`로 해소됩니다.
+첫째, 트레잇이 우선합니다. 모든 의미는 트레잇 메서드 디스패치로 정해집니다. `+` 연산은 `Add::add`로, `[i]` 인덱싱은 `Index::index`로 해소됩니다.
 
-둘째, 변환은 명시적입니다. `i64 → i32`처럼 정보를 잃을 수 있는 변환은 컴파일 에러나 런타임 에러로 거부되며, saturate나 wrap 같은 정책은 연산마다 명시해야 합니다 (refs-standard-libraries 0.x, 변환 정책).
+둘째, 변환은 명시적입니다. `i64 → i32`처럼 정보를 잃을 수 있는 변환은 컴파일 에러나 런타임 에러로 거부됩니다. 포화(saturate)나 랩(wrap) 같은 정책은 연산마다 적어야 합니다(refs-standard-libraries 0.x, 변환 정책).
 
-셋째, **GC 친화**를 지향합니다. 컬렉션과 동시성 객체는 GC로 관리되며, 외부 자원의 `drop`은 `using` 블록에서만 호출됩니다.
+셋째, **GC 친화**를 지향합니다. 컬렉션과 동시성 객체는 GC가 관리합니다. 외부 자원의 `drop`은 `using` 블록에서만 호출됩니다.
 
-마지막으로 **target 독립성**이 보장됩니다. 모든 항목은 모든 Tier 1 플랫폼에서 동일하게 동작하며, target에 의존하는 항목은 `std`로 분리됩니다.
+마지막으로 **타깃 독립성**을 보장합니다. 모든 항목은 모든 Tier 1 플랫폼에서 똑같이 동작합니다. 타깃에 의존하는 항목은 `std`로 분리합니다.
