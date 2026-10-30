@@ -110,7 +110,7 @@ rokc build --message-format=json
 Each diagnostic is one line of JSON object on stdout (the human format goes to stderr).
 
 ```json
-{"type":"error","code":"E200","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"..."}],"notes":["..."],"spec":["..."]}
+{"type":"error","code":"E200","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"..."}],"notes":["..."],"fixes":[],"spec":["..."]}
 ```
 
 | Field      | Meaning                                                            |
@@ -121,9 +121,10 @@ Each diagnostic is one line of JSON object on stdout (the human format goes to s
 | `message`  | Message                                                            |
 | `spans`    | List of locations. The first element is the primary location (`is_primary: true`); the rest are secondary |
 | `notes`    | List of note strings; a help entry starts with `help: `            |
+| `fixes`    | Edits that fix the code, each a span of one file with the `text` that replaces it and a `title` (below); often empty |
 | `spec`     | Sections the message and notes cite (`spec 3.12.5`), which the human format leaves out |
 
-A span has `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_primary` and `label`. A diagnostic that knows only the file and no position has just `{"file_name": .., "is_primary": true}`.
+A span has `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_primary` and `label`. A diagnostic that knows only the file and no position has just `{"file_name": .., "is_primary": true}`. A fix has `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `text` and `title` (``convert with `as i32` ``); the language server offers it as a quick fix ([9.9.13](#9913-lsp-server)).
 
 This format lets IDEs and CI systems read diagnostics mechanically.
 

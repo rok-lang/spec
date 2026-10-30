@@ -110,7 +110,7 @@ rokc build --message-format=json
 진단 하나가 stdout의 JSON 객체 한 줄입니다. 사람용 형식은 stderr에 나옵니다.
 
 ```json
-{"type":"error","code":"E200","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"..."}],"notes":["..."],"spec":["..."]}
+{"type":"error","code":"E200","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"..."}],"notes":["..."],"fixes":[],"spec":["..."]}
 ```
 
 | 필드       | 뜻                                                                 |
@@ -121,9 +121,10 @@ rokc build --message-format=json
 | `message`  | 메시지                                                             |
 | `spans`    | 위치 목록. 첫 원소가 주 위치(`is_primary: true`), 나머지는 보조 위치 |
 | `notes`    | note 문자열 목록. help 항목은 `help: `로 시작                     |
+| `fixes`    | 코드를 고치는 편집 목록. 각 편집은 파일 하나의 span에 그 자리를 바꿀 `text`와 `title`을 더한 것(아래). 비어 있을 때가 많음 |
 | `spec`     | 메시지와 note가 인용하는 절(`spec 3.12.5`). 사람용 형식에서는 빠짐 |
 
-span에는 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_primary`, `label`이 있습니다. 위치 없이 파일만 아는 진단은 `{"file_name": .., "is_primary": true}`만 둡니다.
+span에는 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_primary`, `label`이 있습니다. 위치 없이 파일만 아는 진단은 `{"file_name": .., "is_primary": true}`만 둡니다. fix에는 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `text`, `title`(``convert with `as i32` ``)이 있습니다. LSP 서버는 이것을 빠른 수정으로 내놓습니다([9.9.13](#9913-lsp-서버)).
 
 IDE와 CI 시스템은 이 형식으로 진단을 기계적으로 읽을 수 있습니다.
 
