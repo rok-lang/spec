@@ -4,7 +4,7 @@
 
 ## 7.8.1. 상태 기계 lowering
 
-Rok 의 코루틴은 stackless 이며, 컴파일러가 직접 만든 상태 기계로 lower 합니다. LLVM coroutine intrinsic (`llvm.coro.*`) 은 쓰지 않습니다. frame 의 레이아웃을 컴파일러가 알아야 frame 의 ScanTable 을 만들 수 있기 때문입니다. arch 별 context-switch 코드는 없으며, 모든 Tier 1 타깃에서 같습니다.
+Rok의 코루틴은 stackless 이며, 컴파일러가 직접 만든 상태 기계로 lower 합니다. LLVM coroutine intrinsic (`llvm.coro.*`) 은 쓰지 않습니다. frame 의 레이아웃을 컴파일러가 알아야 frame 의 ScanTable 을 만들 수 있기 때문입니다. arch 별 context-switch 코드는 없으며, 모든 Tier 1 타깃에서 같습니다.
 
 ```
 yield / async / async yield 블록

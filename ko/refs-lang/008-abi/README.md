@@ -23,7 +23,7 @@
 
 ### 2. MLIR lowering
 
-[컴파일 파이프라인](../000-meta/002-pipeline.md) 의 rok-mir → 표준 MLIR 단계에서, Rok 의 고차원 의미를 표준 MLIR 다이얼렉트로 변환하는 규칙을 의미합니다. `tagged union`, `any` 슬롯, 패턴 매칭, try/catch, generics 는 모두 표준 MLIR 다이얼렉트로 lower 됩니다. 커스텀 Rok 다이얼렉트는 존재하지 않습니다.
+[컴파일 파이프라인](../000-meta/002-pipeline.md) 의 rok-mir → 표준 MLIR 단계에서, Rok의 고차원 의미를 표준 MLIR 다이얼렉트로 변환하는 규칙을 의미합니다. `tagged union`, `any` 슬롯, 패턴 매칭, try/catch, generics 는 모두 표준 MLIR 다이얼렉트로 lower 됩니다. 커스텀 Rok 다이얼렉트는 존재하지 않습니다.
 
 ## 본 사양 텍스트가 권위인 이유
 

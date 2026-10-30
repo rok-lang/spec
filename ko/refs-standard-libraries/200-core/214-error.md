@@ -1,6 +1,6 @@
 # 2.14. error - 에러 트레잇 / 타입
 
-`rok::core::error` / `rok::core::panic` 모듈은 에러 처리 권위를 제공합니다 (`ZeroError` 는 `NonZero` 옆, `rok::core::num::niche` 에 있습니다). Rok 의 에러 모델은 하나입니다. 에러를 던질 수 있는 함수는 시그니처에 `throws` 를 적고, 호출하는 쪽은 그 호출을 `try` 로 표시합니다 ([refs-lang 4.14](../../refs-lang/004-functions/414-throws.md)). `Result<T, E>` 는 에러를 **값으로 담아 두기** 위한 평범한 enum 이며, 에러를 전파하는 수단이 아닙니다.
+`rok::core::error` / `rok::core::panic` 모듈은 에러 처리 권위를 제공합니다 (`ZeroError` 는 `NonZero` 옆, `rok::core::num::niche` 에 있습니다). Rok의 에러 모델은 하나입니다. 에러를 던질 수 있는 함수는 시그니처에 `throws` 를 적고, 호출하는 쪽은 그 호출을 `try` 로 표시합니다 ([refs-lang 4.14](../../refs-lang/004-functions/414-throws.md)). `Result<T, E>` 는 에러를 **값으로 담아 두기** 위한 평범한 enum 이며, 에러를 전파하는 수단이 아닙니다.
 
 이 장은 48 개의 lang slot 가운데 `panic_fn` / `oom_fn` / `unreachable_fn` 세 개를 정의합니다.
 
@@ -53,7 +53,7 @@ enum Result<T, E> {
 ```
 
 > [!NOTE]
-> Rok 은 **`Some` / `None` enum variant 가 없습니다**. `Option<T>` 자체가 **존재하지 않으며**
+> Rok은 **`Some` / `None` enum variant 가 없습니다**. `Option<T>` 자체가 **존재하지 않으며**
 > 그 자리에 sum type `T | none` 을 사용합니다. `Result` 는 **두 갈래 모두 의미 있는 데이터를 나르는** 경우라서 별도 enum 으로 정의됩니다.
 
 ### 핵심 메서드
@@ -417,7 +417,7 @@ if let n: i32 = r.ok() { use(n); }     // T | none 으로 추출
 
 ## 2.14.9. 다른 언어와의 비교
 
-다른 주요 언어들과 비교했을 때 Rok 의 에러 모델은 다음과 같은 위치에 자리잡고 있습니다.
+다른 주요 언어들과 비교했을 때 Rok의 에러 모델은 다음과 같은 위치에 자리잡고 있습니다.
 
 | 측면           | Rust           | Swift                   | Java            | Rok                                    |
 |----------------|----------------|-------------------------|-----------------|----------------------------------------|
@@ -429,4 +429,4 @@ if let n: i32 = r.ok() { use(n); }     // T | none 으로 추출
 | 구현 방식      | 반환값         | 반환값 (에러 레지스터)  | 스택 unwinding  | 반환값 `{ is_err, payload }`           |
 | panic          | `panic!`       | `fatalError`            | `Error`         | `panic_fn`: catch 불가, 종료 코드 101  |
 
-Rok 의 가장 큰 차이점은 다음과 같이 세 가지로 정리됩니다. 첫째, `Option` 자체가 없으며 그 자리를 `T | none` sum type 이 대체하므로 타입을 한 개 줄일 수 있습니다. 둘째, 에러 전파는 `throws` 와 `try` 하나로 통일되고, `Result` 는 에러를 값으로 담아 두는 역할만 맡습니다. 셋째, typed sum throws 인 `throws (A | B | C)` 는 단일 타입만 받는 Swift 의 typed throws 보다 표현력이 더 높습니다.
+Rok의 가장 큰 차이점은 다음과 같이 세 가지로 정리됩니다. 첫째, `Option` 자체가 없으며 그 자리를 `T | none` sum type 이 대체하므로 타입을 한 개 줄일 수 있습니다. 둘째, 에러 전파는 `throws` 와 `try` 하나로 통일되고, `Result` 는 에러를 값으로 담아 두는 역할만 맡습니다. 셋째, typed sum throws 인 `throws (A | B | C)` 는 단일 타입만 받는 Swift 의 typed throws 보다 표현력이 더 높습니다.

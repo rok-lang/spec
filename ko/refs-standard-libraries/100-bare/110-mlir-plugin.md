@@ -14,7 +14,7 @@ MLIR 다이얼렉트 plugin 은 라이브러리 모듈이 아니라 컴파일러
 | 로드된 plugin op 을 `__mlir_op` 으로 호출                | **spec 안** ([1.9](109-mlir.md))           |
 | plugin op 의 lowering / 패스                             | **spec 밖**: plugin 자체가 책임           |
 
-이 분리는 Rok 이 MLIR 자체의 dialect-definition DSL 진화 (TableGen → IRDL → 차세대 형식) 에 종속되지 않도록 합니다.
+이 분리는 Rok이 MLIR 자체의 dialect-definition DSL 진화 (TableGen → IRDL → 차세대 형식) 에 종속되지 않도록 합니다.
 
 ## 1.10.2. plugin 빌드 형태
 
@@ -80,7 +80,7 @@ plugin 사용자 (라이브러리 작성자 + 그 라이브러리를 쓰는 사�
 
 ## 1.10.6. ABI 버전 정책
 
-plugin ABI 는 Rok 가 정하지 않고 MLIR 의 plugin API (`MLIR_PLUGIN_API_VERSION`) 를 따릅니다. 호환성 판정은 MLIR 이 하며, 내장 LLVM 버전이 바뀌면 plugin 을 다시 빌드해야 합니다. 이는 `rok::bare` tier 가 stable 하지 않다는 일반 원칙 ([0.5 표준 라이브러리 계층](../../refs-lang/000-meta/005-standard-libraries-tiers.md)) 과 맞습니다.
+plugin ABI 는 Rok가 정하지 않고 MLIR 의 plugin API (`MLIR_PLUGIN_API_VERSION`) 를 따릅니다. 호환성 판정은 MLIR 이 하며, 내장 LLVM 버전이 바뀌면 plugin 을 다시 빌드해야 합니다. 이는 `rok::bare` tier 가 stable 하지 않다는 일반 원칙 ([0.5 표준 라이브러리 계층](../../refs-lang/000-meta/005-standard-libraries-tiers.md)) 과 맞습니다.
 
 ## 1.10.7. 빌드 격리
 
@@ -106,7 +106,7 @@ unsafe {
 | LLVM       | `-load=plugin.so` (legacy pass manager)             | CLI        |
 | **Rok**    | **`--load-mlir-plugin ...` → `rokc` 의 MLIR 에 로드** | CLI      |
 
-Rok 은 자체 plugin ABI 를 두지 않고 MLIR 의 plugin 형태를 그대로 씁니다.
+Rok은 자체 plugin ABI 를 두지 않고 MLIR 의 plugin 형태를 그대로 씁니다.
 
 ## 1.10.9. 범위 밖
 

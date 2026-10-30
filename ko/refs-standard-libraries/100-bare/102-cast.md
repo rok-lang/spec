@@ -1,6 +1,6 @@
 # 1.2. cast 연산 - 명시 named cast
 
-pointer 와 type 사이의 변환은 오직 **named function** 형태로만 존재합니다. `cast` 모듈은 없습니다. `ptr_cast`, `align_cast`, `align_cast_unchecked`, `const_cast` 는 `rok::bare::ptr` 에, `reinterpret` 와 `transmute_unchecked` 는 `rok::bare::mem` 에 정의되며, `rok::bare` 루트가 여섯 개 모두를 다시 내보냅니다 (`rok::bare::ptr_cast`). C 와 Rust 의 `as` cast 가 가장 위험한 까닭은 변환이 조용히(silent) 일어난다는 점이며, Rok 은 이 함정을 피하기 위해 모든 cast 를 **명시적인 이름** 으로 강제합니다.
+pointer 와 type 사이의 변환은 오직 **named function** 형태로만 존재합니다. `cast` 모듈은 없습니다. `ptr_cast`, `align_cast`, `align_cast_unchecked`, `const_cast` 는 `rok::bare::ptr` 에, `reinterpret` 와 `transmute_unchecked` 는 `rok::bare::mem` 에 정의되며, `rok::bare` 루트가 여섯 개 모두를 다시 내보냅니다 (`rok::bare::ptr_cast`). C 와 Rust 의 `as` cast 가 가장 위험한 까닭은 변환이 조용히(silent) 일어난다는 점이며, Rok은 이 함정을 피하기 위해 모든 cast 를 **명시적인 이름** 으로 강제합니다.
 
 ## 1.2.1. cast 함수 4 종
 
@@ -201,4 +201,4 @@ let bits: u64 = unsafe { rok::bare::transmute_unchecked(s) };   // SomeNewtype �
 - `Pod` marker trait 이 bit reinterpret 의 안전 조건을 제공합니다.
 - `transmute_unchecked` 는 escape hatch 로만 노출됩니다.
 
-이 정책 덕분에 Rok 은 C 의 번거로운 형 변환과 Rust 의 `as` 함정을 동시에 피해 갈 수 있습니다.
+이 정책 덕분에 Rok은 C 의 번거로운 형 변환과 Rust 의 `as` 함정을 동시에 피해 갈 수 있습니다.

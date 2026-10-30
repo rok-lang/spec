@@ -62,7 +62,7 @@ rok jupyter --connection-file <path>        # 의존성을 해소한 뒤 rokc ju
 
 | 요청                   | 응답                                                                                   |
 |------------------------|----------------------------------------------------------------------------------------|
-| `kernel_info_request`  | `language_info` 의 name `rok`, mimetype `text/x-rok`, file_extension `.rok`, codemirror_mode 와 pygments_lexer `rust` (프런트엔드가 Rok 를 알기 전까지의 하이라이팅), 문서 (`https://docs.rok-lang.org/latest/`) 와 이 REPL 장으로 가는 `help_links`, REPL 의 toolchain 줄인 `banner` ([9.7.8](907-jit-cells.md#줄-편집)), `protocol_version` `"5.3"` |
+| `kernel_info_request`  | `language_info` 의 name `rok`, mimetype `text/x-rok`, file_extension `.rok`, codemirror_mode 와 pygments_lexer `rust` (프런트엔드가 Rok를 알기 전까지의 하이라이팅), 문서 (`https://docs.rok-lang.org/latest/`) 와 이 REPL 장으로 가는 `help_links`, REPL 의 toolchain 줄인 `banner` ([9.7.8](907-jit-cells.md#줄-편집)), `protocol_version` `"5.3"` |
 | `execute_request`      | 아래 "실행" 참조                                                                       |
 | `is_complete_request`  | REPL 의 이어 쓰기 규칙으로 `complete` / `incomplete` 판정, `indent` 는 아직 열린 괄호마다 공백 네 칸 |
 | `complete_request`     | REPL 의 자동 완성 후보 (9.8.5)                                                         |

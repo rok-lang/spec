@@ -22,7 +22,7 @@ Rok 컴파일러를 본 사양에서는 `rokc` 라고 부릅니다. `rokc` 는 L
    LLVM IR → native object → lld
 ```
 
-`-O0` (빌드와 REPL) 에서는 rok-mir 가 Rok 의 native backend 를 거쳐 곧바로 기계어가 됩니다 (0.2.4).
+`-O0` (빌드와 REPL) 에서는 rok-mir 가 Rok의 native backend 를 거쳐 곧바로 기계어가 됩니다 (0.2.4).
 
 > rok-hir 는 고수준 IR 이며, 타입 추론 이전 단계로서 사용자 코드 구조를 그대로 유지합니다. rok-mir 는 중간 IR 로서, 단형화와 연산자 desugar 가 완료되고 모든 타입이 확정된 형태입니다.
 > standard MLIR 은 upstream MLIR 다이얼렉트를 뜻합니다. 마지막으로 LLVM IR 과 네이티브 코드가 산출됩니다.
@@ -47,9 +47,9 @@ Rok 전용 MLIR 다이얼렉트는 별도로 정의하지 않습니다. 사용�
 | `math`     | 수학 함수                                |
 | `llvm`     | 저수준 op (intrinsic, `struct`)          |
 
-이러한 선택은 다음과 같은 사항을 보장합니다. 먼저, upstream MLIR 의 개선이 자동으로 Rok 에 흘러들어옵니다. 또한 IREE, Enzyme, Triton 같은 외부 MLIR 기반 도구와 자연스럽게 상호운용합니다. 마지막으로, 자체 다이얼렉트의 등록과 유지보수에 드는 비용이 발생하지 않습니다.
+이러한 선택은 다음과 같은 사항을 보장합니다. 먼저, upstream MLIR 의 개선이 자동으로 Rok에 흘러들어옵니다. 또한 IREE, Enzyme, Triton 같은 외부 MLIR 기반 도구와 자연스럽게 상호운용합니다. 마지막으로, 자체 다이얼렉트의 등록과 유지보수에 드는 비용이 발생하지 않습니다.
 
-그 대신 Rok 의 고차원 의미를 표준 다이얼렉트로 떨어뜨리는 책임이 컴파일러, 특히 `rok-mir → MLIR` 단계로 모이게 됩니다. 이는 의도된 부담입니다. 파이프라인 끝단의 선택지를 닫지 않기 위해 부담을 안쪽으로 옮긴 결과입니다.
+그 대신 Rok의 고차원 의미를 표준 다이얼렉트로 떨어뜨리는 책임이 컴파일러, 특히 `rok-mir → MLIR` 단계로 모이게 됩니다. 이는 의도된 부담입니다. 파이프라인 끝단의 선택지를 닫지 않기 위해 부담을 안쪽으로 옮긴 결과입니다.
 
 ## 0.2.4. Backends
 
@@ -60,4 +60,4 @@ Rok 전용 MLIR 다이얼렉트는 별도로 정의하지 않습니다. 사용�
 | native            | `-O0` 빌드와 REPL 셀         | rok-mir → 기계어                             |
 | MLIR → LLVM       | `-O1` 이상                   | rok-mir → MLIR → LLVM IR → 최적화된 object   |
 
-LLVM, MLIR, lld 는 `rokc` 의 일부입니다. 외부 LLVM 도구를 실행하지 않으며 사용자는 LLVM 을 설치하지 않습니다. macOS 대상은 SDK 를 위해 Xcode Command Line Tools 가 필요합니다. 크로스 컴파일은 내장되어 있습니다: `--target <triple>` 은 어느 host 에서나 동작하고, toolchain 은 지원하는 Linux 대상의 C 라이브러리 (musl, glibc link stub) 를 함께 제공하므로 Linux 대상에는 sysroot 가 필요 없습니다. C 헤더는 없습니다: Rok 은 C 를 컴파일하지 않습니다. Windows 대상은 toolchain 이 가진 module definition 으로 만든 import library 와 UCRT 에 대해 링크하며, MSVC 도구나 Windows SDK 가 필요 없습니다. Apple 대상은 재배포할 수 없는 macOS SDK (Xcode Command Line Tools) 가 필요합니다 ([9.2.14](../009-tools/902-aot-pipeline.md#9214-링킹-실행-파일의-경우), [0.6](006-platform-targets.md)). `--emit=mlir` / `--emit=llvmir` 는 중간 형태를 내보냅니다 ([9.9.1](../009-tools/909-debug-tools.md#991-중간-산출물-출력---emit)).
+LLVM, MLIR, lld 는 `rokc` 의 일부입니다. 외부 LLVM 도구를 실행하지 않으며 사용자는 LLVM 을 설치하지 않습니다. macOS 대상은 SDK 를 위해 Xcode Command Line Tools 가 필요합니다. 크로스 컴파일은 내장되어 있습니다: `--target <triple>` 은 어느 host 에서나 동작하고, toolchain 은 지원하는 Linux 대상의 C 라이브러리 (musl, glibc link stub) 를 함께 제공하므로 Linux 대상에는 sysroot 가 필요 없습니다. C 헤더는 없습니다: Rok은 C 를 컴파일하지 않습니다. Windows 대상은 toolchain 이 가진 module definition 으로 만든 import library 와 UCRT 에 대해 링크하며, MSVC 도구나 Windows SDK 가 필요 없습니다. Apple 대상은 재배포할 수 없는 macOS SDK (Xcode Command Line Tools) 가 필요합니다 ([9.2.14](../009-tools/902-aot-pipeline.md#9214-링킹-실행-파일의-경우), [0.6](006-platform-targets.md)). `--emit=mlir` / `--emit=llvmir` 는 중간 형태를 내보냅니다 ([9.9.1](../009-tools/909-debug-tools.md#991-중간-산출물-출력---emit)).

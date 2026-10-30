@@ -4,7 +4,7 @@
 
 ## 3.8.1. 두 타입 - `Path` / `RawPath`
 
-Rok 의 경로 표현은 두 개의 타입으로 나뉩니다.
+Rok의 경로 표현은 두 개의 타입으로 나뉩니다.
 
 | 타입      | 의미                                          | 사용 빈도             |
 |-----------|-----------------------------------------------|-----------------------|
@@ -190,4 +190,4 @@ let f = try dir.open(Path::from("config.toml"));
 | canonicalize  | `.canonicalize()`         | `.resolve()`     | `filepath.Abs`  | `.canonicalize()`           |
 | 메서드 chain  | OK (대부분)               | excellent        | OK              | excellent                   |
 
-요약하자면 Rok 의 **가장 큰 결정** 은 UTF-8 default 와 `/` 연산자의 결합입니다. 이로써 Python pathlib 의 ergonomics 와 Rust 수준의 performance 를 함께 가져갑니다.
+요약하자면 Rok의 **가장 큰 결정** 은 UTF-8 default 와 `/` 연산자의 결합입니다. 이로써 Python pathlib 의 ergonomics 와 Rust 수준의 performance 를 함께 가져갑니다.

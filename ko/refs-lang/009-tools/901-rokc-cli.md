@@ -447,7 +447,7 @@ rokc <subcommand> --help
 | `--color=auto\|always\|never`    | stdout 과 stderr 의 색 (9.1.8)                              |
 | `--no-color`                     | `--color=never` 와 같음                                     |
 | `--cwd=<path>`                   | 작업 디렉토리를 바꾼 뒤 실행                                |
-| `--print cfg\|target-list\|target-spec\|lldbinit` | 활성 cfg, 내장 타깃 이름, 타깃 명세, 또는 Rok 의 formatter 를 로드하는 lldb 명령을 출력 (9.1.4) |
+| `--print cfg\|target-list\|target-spec\|lldbinit` | 활성 cfg, 내장 타깃 이름, 타깃 명세, 또는 Rok의 formatter 를 로드하는 lldb 명령을 출력 (9.1.4) |
 | `--message-format=human\|json`   | 진단 형식. `json` 은 stdout 에 한 줄씩 (9.1.8)              |
 | `-A` / `-W` / `-D <lint \| group>` | lint 수준 (`--allow` / `--warn` / `--deny`). 패키지를 컴파일하는 모든 명령 (`build`, `run`, `test`, `bench`, `emit`, `check`, `lint`, `lsp`) 에 적용. 여러 번 쓸 수 있고 뒤의 것이 이김 |
 

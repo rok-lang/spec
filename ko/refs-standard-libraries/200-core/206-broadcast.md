@@ -10,7 +10,7 @@
 
 NumPy 나 MATLAB 에서 `*` 가 배열에서는 element-wise 로, 행렬에서는 곱셈으로 의미가 바뀌는 **silent ambiguity** 는 흔히 버그의 원인이 되어 왔습니다(PEP 465 의 `@` 도입 동기 역시 같은 맥락입니다).
 
-이에 비해 Rok 의 정책은 다음과 같이 명확합니다.
+이에 비해 Rok의 정책은 다음과 같이 명확합니다.
 
 ```rok
 m * n       // 사용자 정의 Mul: matrix multiplication, dot product, etc.
@@ -264,7 +264,7 @@ let m = max.(a, b);                  //→ [10.0, 20.0, 30.0]
 let result = sin.(a) .+ cos.(b) .* 2.0;
 ```
 
-일반적인 lowering 이라면 3 개의 임시 List 할당과 3회의 loop 가 필요합니다. Rok 은 중간 컬렉션 없는 단일 loop 를 보장하며, 그 방법 (예: `linalg.generic` op) 은 컴파일러가 고릅니다.
+일반적인 lowering 이라면 3 개의 임시 List 할당과 3회의 loop 가 필요합니다. Rok은 중간 컬렉션 없는 단일 loop 를 보장하며, 그 방법 (예: `linalg.generic` op) 은 컴파일러가 고릅니다.
 
 ```rok
 // 개념적으로는 다음과 같은 단일 elementwise 호출과 같습니다.
@@ -307,4 +307,4 @@ let result = elementwise(a, b, |x, y| sin(x) + cos(y) * 2.0);
 | comparison       | `==` returns array   | `.==`                      | `==` (혼란)      | `.==`                         |
 | dot 별도 트레잇  | **없음**             | **없음** (`*` overload 만) | **없음**         | **DotAdd/DotMul/...** (19 개) |
 
-Rok 이 다른 언어와 가장 크게 다른 지점은 두 가지로 요약할 수 있습니다. 첫째, dot 연산자가 모두 별도의 트레잇을 갖습니다. Julia 가 `+` 를 overload 한 위에 dot syntax 만 얹은 형태인 데 비해, Rok 에서는 `Add` 와 `DotAdd` 가 서로 다른 트레잇이며 `Matrix * Matrix` 와 `Matrix .* Matrix` 가 완전히 다른 dispatch 를 따릅니다. 둘째, 컴파일러가 dot 사용을 강제합니다. 일반 `*` 로는 broadcast 가 **불가능** 하므로, 사용자 코드에 의존하지 않는 결정론적 분리가 보장됩니다.
+Rok이 다른 언어와 가장 크게 다른 지점은 두 가지로 요약할 수 있습니다. 첫째, dot 연산자가 모두 별도의 트레잇을 갖습니다. Julia 가 `+` 를 overload 한 위에 dot syntax 만 얹은 형태인 데 비해, Rok 에서는 `Add` 와 `DotAdd` 가 서로 다른 트레잇이며 `Matrix * Matrix` 와 `Matrix .* Matrix` 가 완전히 다른 dispatch 를 따릅니다. 둘째, 컴파일러가 dot 사용을 강제합니다. 일반 `*` 로는 broadcast 가 **불가능** 하므로, 사용자 코드에 의존하지 않는 결정론적 분리가 보장됩니다.

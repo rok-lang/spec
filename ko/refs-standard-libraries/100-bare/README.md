@@ -91,7 +91,7 @@ using pin = rok::bare::gc::pin(obj) {          // pin 시작
 
 ### 4. Cast 는 명시 named operation 만
 
-C 와 Rust 에서 `as` cast 가 pointer 위에서 일으키는 함정은 가장 큰 위험 요소입니다. 그래서 Rok 은 모든 unsafe cast 를 명시적으로 이름 붙여진 함수로만 노출합니다.
+C 와 Rust 에서 `as` cast 가 pointer 위에서 일으키는 함정은 가장 큰 위험 요소입니다. 그래서 Rok은 모든 unsafe cast 를 명시적으로 이름 붙여진 함수로만 노출합니다.
 
 | C/Rust 표기       | Rok 표기                                 | 의미                           |
 |-------------------|------------------------------------------|--------------------------------|

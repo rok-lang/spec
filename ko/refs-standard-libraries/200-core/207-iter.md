@@ -241,7 +241,7 @@ loop {
 
 ## 2.7.3. `Step` - 한 칸 진행 추상화
 
-`Range<T>` 의 iteration 은 "다음 값으로 한 칸 이동" 이라는 단순 동작에 기반합니다. 그런데 이 동작은 일반적인 산술 (`Add`) 과는 의미가 다른데, 예를 들어 `char` 의 다음 값은 codepoint + 1 이지만 `char + char` 자체는 정의되지 않습니다. 따라서 Rok 은 step 진행을 별도의 트레잇으로 분리해 두고 있습니다.
+`Range<T>` 의 iteration 은 "다음 값으로 한 칸 이동" 이라는 단순 동작에 기반합니다. 그런데 이 동작은 일반적인 산술 (`Add`) 과는 의미가 다른데, 예를 들어 `char` 의 다음 값은 codepoint + 1 이지만 `char + char` 자체는 정의되지 않습니다. 따라서 Rok은 step 진행을 별도의 트레잇으로 분리해 두고 있습니다.
 
 ```rok
 trait Step: PartialOrd + Clone {

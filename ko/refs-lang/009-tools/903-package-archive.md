@@ -35,7 +35,7 @@ ScanTable 은 일반 상수 데이터이며, 생성된 등록 코드가 프로�
 
 ## 9.3.3. 정적 .a 원칙
 
-모든 라이브러리 산출물은 정적 `.a` 입니다. 동적 라이브러리는 Rok 의 표준 산출물이 아닙니다. [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) 로 동적 라이브러리를 부르는 것은 됩니다.
+모든 라이브러리 산출물은 정적 `.a` 입니다. 동적 라이브러리는 Rok의 표준 산출물이 아닙니다. [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) 로 동적 라이브러리를 부르는 것은 됩니다.
 
 ## 9.3.4. 버전 호환 검사
 

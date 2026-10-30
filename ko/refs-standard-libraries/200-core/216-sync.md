@@ -1,6 +1,6 @@
 # 2.16. sync - 동시성 primitive
 
-`rok::core::sync` 모듈은 공유 상태에 안전하게 접근할 수 있도록 도와주는 primitive 트레잇과 타입을 정의합니다. Rok 의 GC 와 M:N 스케줄러 환경에서 multi-task 또는 multi-thread 사이의 데이터 공유를 처리할 때 사용합니다.
+`rok::core::sync` 모듈은 공유 상태에 안전하게 접근할 수 있도록 도와주는 primitive 트레잇과 타입을 정의합니다. Rok의 GC 와 M:N 스케줄러 환경에서 multi-task 또는 multi-thread 사이의 데이터 공유를 처리할 때 사용합니다.
 
 `use rok::core::**;` 가 묵시적으로 적용되므로 별도의 import 없이도 `Atomic`, `Mutex`, `RwLock`, `Cell` 을 곧바로 사용할 수 있습니다. 다만 동시성 코드임을 시각적으로 분명히 드러내고 싶은 자리에서는 다음과 같이 좁은 범위의 import 를 권장합니다.
 
@@ -176,7 +176,7 @@ match STATE.try_lock() {
 
 ### poisoning - **없음**
 
-Rok 의 Mutex 는 Rust 의 PoisonError 모델과 다릅니다. panic 이 발생해도 잠금은 자동으로 해제되며, 다음 task 는 정상적으로 진입할 수 있습니다. 이렇게 설계한 이유는 두 가지입니다.
+Rok의 Mutex 는 Rust 의 PoisonError 모델과 다릅니다. panic 이 발생해도 잠금은 자동으로 해제되며, 다음 task 는 정상적으로 진입할 수 있습니다. 이렇게 설계한 이유는 두 가지입니다.
 
 1. panic 은 잡을 수 없고 프로세스를 종료하므로, panic 도중의 잠금 상태를 다른 task 가 관측하는 일이 없습니다. 에러가 `throw` 로 전파되어 `using` 블록을 벗어날 때에는 [`using` 이 Drop 을 호출](213-marker.md#2134-drop---using-해제-시-정리)하므로, `MutexGuard` 의 drop 이 잠금 해제를 책임집니다.
 2. poison 의 의미는 보수적으로 보이지만 사용자 부담이 크고, 대부분의 경우 false positive 입니다.

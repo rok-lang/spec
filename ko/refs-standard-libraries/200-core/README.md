@@ -1,6 +1,6 @@
 # 2. Rok tier
 
-Rok tier 는 안전 영역 표준 라이브러리 으로, 모든 target 에서 빌드되는 Rok 의 실용 표면입니다. 사용자 코드의 90% 가 이 tier 의 항목을 사용하기 때문에, Rok 은 Rok 라는 언어가 일상적인 프로그래밍에서 어떤 모습으로 드러나는지를 결정하는 핵심 계층이라 할 수 있습니다.
+Rok tier 는 안전 영역 표준 라이브러리 으로, 모든 target 에서 빌드되는 Rok의 실용 표면입니다. 사용자 코드의 90% 가 이 tier 의 항목을 사용하기 때문에, Rok은 Rok라는 언어가 일상적인 프로그래밍에서 어떤 모습으로 드러나는지를 결정하는 핵심 계층이라 할 수 있습니다.
 
 ## 위치
 
@@ -10,11 +10,11 @@ Rok tier 는 안전 영역 표준 라이브러리 으로, 모든 target 에서 �
 
 ## 의존성
 
-Rok tier 는 위로는 `unsafe` 를 내부 사용 목적으로 의존하며, 아래로는 `std` 와 사용자 코드가 Rok 을 의존자로 갖습니다. 따라서 Rok 은 unsafe 와 std 사이를 잇는 안전 영역의 중심에 위치합니다.
+Rok tier 는 위로는 `unsafe` 를 내부 사용 목적으로 의존하며, 아래로는 `std` 와 사용자 코드가 Rok을 의존자로 갖습니다. 따라서 Rok은 unsafe 와 std 사이를 잇는 안전 영역의 중심에 위치합니다.
 
 ## 사용자 import 정책
 
-`use rok::core::**;` 가 **묵시 적용**되며, 모든 사용자 파일에 컴파일러가 자동으로 prepend 합니다. 그 결과 Rok 의 모든 pub 항목 (List, Dict, Add, Display, Iterator, Mutex, task, ...) 이 별도 import 없이 사용 가능합니다.
+`use rok::core::**;` 가 **묵시 적용**되며, 모든 사용자 파일에 컴파일러가 자동으로 prepend 합니다. 그 결과 Rok의 모든 pub 항목 (List, Dict, Add, Display, Iterator, Mutex, task, ...) 이 별도 import 없이 사용 가능합니다.
 
 또한 필요에 따라 좁게 명시하는 방식도 허용됩니다.
 
@@ -24,7 +24,7 @@ use rok::core::ops::{Add, Sub};
 ```
 
 > [!NOTE]
-> Rok 은 **별도 `rok::core::prelude` 모듈을 두지 않습니다**. `**` recursive glob 자체가
+> Rok은 **별도 `rok::core::prelude` 모듈을 두지 않습니다**. `**` recursive glob 자체가
 > prelude 역할을 하며, 추가 indirection 은 없습니다.
 
 자세한 정책은 [0.2 import 정책](../000-meta/002-import.md) 에서 다룹니다.

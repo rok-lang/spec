@@ -1,6 +1,6 @@
 # 2.15. 문자열 - `str` / `char` / `c_char`
 
-`rok::core::str` 모듈은 문자열과 문자 타입의 권위 정의를 제공합니다. Rok 은 **UTF-8 우선** 정책을 채택하고 있어서, 모든 in-process 문자열은 UTF-8 로 다루며, FFI 경계에서만 `c_char` 를 사용합니다.
+`rok::core::str` 모듈은 문자열과 문자 타입의 권위 정의를 제공합니다. Rok은 **UTF-8 우선** 정책을 채택하고 있어서, 모든 in-process 문자열은 UTF-8 로 다루며, FFI 경계에서만 `c_char` 를 사용합니다.
 
 `str`, `char`, `c_char` 는 struct 가 아니라 컴파일러에 내장된 primitive 타입입니다. 컴파일러는 이들의 lang slot (`str_type`, `char_type`, `cchar_type`) 을 비워 둡니다 ([0.4](../000-meta/004-lang-slot-table.md)). 이 모듈은 그 메서드와 트레잇 impl 을 정의합니다.
 
@@ -25,7 +25,7 @@
 | 가변 buffer | `String`        | `io.StringIO` 등 | `StrBuf`               |
 | 메모리     | borrow checker   | refcount       | GC                       |
 
-Rok 의 `str` 은 수명 추적이 필요 없다는 점에서 Python 의 불변 `str` 에 가깝고, 표현은 Rust 의 `&str` 처럼 `(ptr, len)` 쌍입니다. 런타임에 만들어지는 문자열의 바이트는 GC 객체 (type id `1`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-런타임-예약-type-id)) 에 있습니다.
+Rok의 `str` 은 수명 추적이 필요 없다는 점에서 Python 의 불변 `str` 에 가깝고, 표현은 Rust 의 `&str` 처럼 `(ptr, len)` 쌍입니다. 런타임에 만들어지는 문자열의 바이트는 GC 객체 (type id `1`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-런타임-예약-type-id)) 에 있습니다.
 
 ## 2.15.2. `str` - 불변 UTF-8 문자열
 

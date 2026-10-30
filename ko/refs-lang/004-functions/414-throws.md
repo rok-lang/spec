@@ -3,7 +3,7 @@
 [에러 제어 흐름](../003-expressions/314-error-control-flow.md) 의 `throw`, `try`, `catch`, `finally` 와 결합되는 함수 시그니처의 `throws` / `rethrows` 형태를 정의합니다.
 
 > [!IMPORTANT]
-> Rok 의 에러 모델은 `throws` 하나입니다. 에러를 던질 수 있는 함수는 시그니처에 `throws` 를 적고, 호출하는 쪽은 그 호출을 `try` 로 표시합니다. 에러를 값으로 담아 두어야 할 때에만 표준 라이브러리의 [`Result<T, E>`](../../refs-standard-libraries/200-core/214-error.md) 를 씁니다. 규칙은 한 줄입니다. **던지면 `throws`, 담아 두면 `Result`.**
+> Rok의 에러 모델은 `throws` 하나입니다. 에러를 던질 수 있는 함수는 시그니처에 `throws` 를 적고, 호출하는 쪽은 그 호출을 `try` 로 표시합니다. 에러를 값으로 담아 두어야 할 때에만 표준 라이브러리의 [`Result<T, E>`](../../refs-standard-libraries/200-core/214-error.md) 를 씁니다. 규칙은 한 줄입니다. **던지면 `throws`, 담아 두면 `Result`.**
 
 ## 4.14.1. 형태
 

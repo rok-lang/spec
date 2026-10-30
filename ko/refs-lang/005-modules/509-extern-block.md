@@ -53,7 +53,7 @@ extern "C" {
 > `"Rust"` 같은 다른 언어의 ABI 는 일반적으로 unstable 하므로 `extern` 의 대상이 되지 않습니다. 다른 언어와의 인터페이스는 양쪽이 합의한 안정적인 ABI (보통 `"C"`) 위에서만 가능합니다.
 
 > [!NOTE]
-> Rok 은 에러를 반환값으로 전달하며 스택 unwinding 을 사용하지 않습니다 ([8.6.5](../008-abi/806-calling-convention.md#865-throwing-함수의-반환-값-기반-에러-전달)). 따라서 외부 언어의 예외나 unwinding 이 Rok frame 을 가로지르는 것은 정의되지 않은 동작이며, 외부 함수는 호출 경계 안에서 예외를 처리해야 합니다.
+> Rok은 에러를 반환값으로 전달하며 스택 unwinding 을 사용하지 않습니다 ([8.6.5](../008-abi/806-calling-convention.md#865-throwing-함수의-반환-값-기반-에러-전달)). 따라서 외부 언어의 예외나 unwinding 이 Rok frame 을 가로지르는 것은 정의되지 않은 동작이며, 외부 함수는 호출 경계 안에서 예외를 처리해야 합니다.
 
 ABI 표시가 없는 단순한 `extern { ... }` 형태는 컴파일 에러가 되므로, 반드시 ABI 를 명시해야 합니다.
 
@@ -115,7 +115,7 @@ c_fn_type ::= "unsafe"? "extern" ("\"C\"" | "\"system\"") "fn" "(" (type_expr ("
 
 - ABI 문자열은 `"C"` 나 `"system"` 만 됩니다. 그 밖은 에러입니다.
 - `extern "system" fn(..) -> R` 은 `extern "C" fn(..) -> R` 과 같은 규칙을 따르므로 Win32 callback 을 표현할 수 있습니다. 별개의 타입인 것은 stdcall 인 32-bit x86 Windows 에서뿐이며, 그 밖에서는 두 타입이 같습니다.
-- 이 타입의 값은 이름 있는 C-ABI 함수로만 만듭니다. `extern` 블록의 C 선언의 값은 `unsafe extern "C" fn(..)` 타입이라 안전한 (`unsafe` 없는) 자리에 넣을 수 없고, Rok 의 `extern "C" fn` 정의 (그 C 진입점, 5.9.10) 는 안전한 `extern "C" fn(..)` 값을 줍니다.
+- 이 타입의 값은 이름 있는 C-ABI 함수로만 만듭니다. `extern` 블록의 C 선언의 값은 `unsafe extern "C" fn(..)` 타입이라 안전한 (`unsafe` 없는) 자리에 넣을 수 없고, Rok의 `extern "C" fn` 정의 (그 C 진입점, 5.9.10) 는 안전한 `extern "C" fn(..)` 값을 줍니다.
 - Rok `fn` 값 (클로저, 함수 타입 변수 포함) 과 C 함수 포인터는 서로 변환되지 않습니다.
 - `unsafe` 가 없는 타입으로 부르는 것은 안전하고, `unsafe extern "C" fn` 으로 부를 때는 `unsafe` 가 필요합니다.
 - `none` 이 아닌 C 함수 포인터 값은 null 이 아닙니다. 그래서 `| none` 없는 `extern "C" fn` 자리 (매개변수, 반환, 필드) 로 NULL 을 받는 것은 정의되지 않은 동작이며, NULL 을 돌려줄 수 있는 C API 는 `| none` 으로 선언해야 합니다.
@@ -175,7 +175,7 @@ fn use_malloc() {
 }
 ```
 
-사용자가 선언한 `extern "C"` 함수는 unsafe 이므로 `unsafe { ... }` 안에서 부릅니다 ([4.15](../004-functions/415-unsafe.md)). toolchain 이 선언하는 런타임 함수 (`rok_print_*`, `rok_panic_str` 등) 는 안전하게 부를 수 있습니다. 그 밖에는 `extern` 함수도 외부 심볼이라는 점을 빼면 일반 호출과 다를 바가 없습니다. 결과 타입에는 Rok 의 일반적인 의미론이 그대로 적용됩니다. `extern static` 역시 일반 변수처럼 읽기와 (mut 인 경우) 쓰기가 모두 가능합니다.
+사용자가 선언한 `extern "C"` 함수는 unsafe 이므로 `unsafe { ... }` 안에서 부릅니다 ([4.15](../004-functions/415-unsafe.md)). toolchain 이 선언하는 런타임 함수 (`rok_print_*`, `rok_panic_str` 등) 는 안전하게 부를 수 있습니다. 그 밖에는 `extern` 함수도 외부 심볼이라는 점을 빼면 일반 호출과 다를 바가 없습니다. 결과 타입에는 Rok의 일반적인 의미론이 그대로 적용됩니다. `extern static` 역시 일반 변수처럼 읽기와 (mut 인 경우) 쓰기가 모두 가능합니다.
 
 ## 5.9.7. 가시성
 

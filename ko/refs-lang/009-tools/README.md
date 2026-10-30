@@ -1,6 +1,6 @@
 # 9. 실행 / 툴 개요
 
-본 블록에서는 Rok 의 컴파일러 `rokc`, front-end `rok`, 그리고 실행 환경 (REPL / Jupyter 커널) 사양을 정의합니다. [실행 엔진과 사용자 표면](../000-meta/001-execution-modes.md) 에서 정의한 두 엔진 ([JIT](../000-meta/007-glossary.md#jit-just-in-time) / [AOT](../000-meta/007-glossary.md#aot-ahead-of-time)) 과 세 사용자 표면 (REPL / Jupyter / AOT 산출물 직접 실행) 을 어떻게 구현하는지 다루고 있습니다.
+본 블록에서는 Rok의 컴파일러 `rokc`, front-end `rok`, 그리고 실행 환경 (REPL / Jupyter 커널) 사양을 정의합니다. [실행 엔진과 사용자 표면](../000-meta/001-execution-modes.md) 에서 정의한 두 엔진 ([JIT](../000-meta/007-glossary.md#jit-just-in-time) / [AOT](../000-meta/007-glossary.md#aot-ahead-of-time)) 과 세 사용자 표면 (REPL / Jupyter / AOT 산출물 직접 실행) 을 어떻게 구현하는지 다루고 있습니다.
 
 ## 목차
 

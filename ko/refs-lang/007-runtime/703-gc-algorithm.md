@@ -1,6 +1,6 @@
 # 7.3. GC 알고리듬
 
-Rok 의 GC 는 [Immix](../000-meta/007-glossary.md#immix) mark-region[^immix] 위에 sticky mark-bit 세대 수집[^whippet] 을 얹은 수집기입니다. minor 수집과 evacuation 은 stop-the-world 이며 mutator 는 safepoint ([8.4](../008-abi/804-safepoint.md)) 에서 멈춥니다. full 수집의 mark 는 동시에 할 수 있습니다 ([7.5](705-concurrent-collection.md)). 루트와 write barrier 는 [7.4](704-barriers-and-roots.md) 에서 정의합니다.
+Rok의 GC 는 [Immix](../000-meta/007-glossary.md#immix) mark-region[^immix] 위에 sticky mark-bit 세대 수집[^whippet] 을 얹은 수집기입니다. minor 수집과 evacuation 은 stop-the-world 이며 mutator 는 safepoint ([8.4](../008-abi/804-safepoint.md)) 에서 멈춥니다. full 수집의 mark 는 동시에 할 수 있습니다 ([7.5](705-concurrent-collection.md)). 루트와 write barrier 는 [7.4](704-barriers-and-roots.md) 에서 정의합니다.
 
 ## 7.3.1. Immix mark-region
 

@@ -3,7 +3,7 @@
 `rok::core::ops` 의 `*Assign` 트레잇 패밀리는 `a += b`, `a *= b` 같은 복합 대입 연산자를 **in-place** 갱신으로 dispatch 하는 역할을 담당합니다. 즉, [refs-lang 3.4 대입과 복합 대입](../../refs-lang/003-expressions/304-assignment.md) 에서 정의된 syntax 가 본 트레잇으로 desugar 되는 구조입니다.
 
 > [!NOTE]
-> Rok 은 `mut` 키워드를 일반 코드에서 쓰지 않습니다 ([refs-lang 5.1 변수 선언](../../refs-lang/005-modules/501-variable-declaration.md)).
+> Rok은 `mut` 키워드를 일반 코드에서 쓰지 않습니다 ([refs-lang 5.1 변수 선언](../../refs-lang/005-modules/501-variable-declaration.md)).
 > 변수는 항상 `let` 으로 선언되고, 같은 이름에 다시 대입하면 **재할당** 으로 처리됩니다.
 > heap 객체 (List, Dict 등) 의 in-place 갱신은 변수 선언자 `let mut` 가 아니라
 > **객체가 가변 메서드를 노출하는지** 로 결정됩니다. `*Assign` 트레잇이 그 가변 메서드의 자리입니다.
@@ -16,7 +16,7 @@ a += b;
 
 이 식에는 두 가지 의미가 가능합니다. 먼저 **in-place dispatch** 의 경우 `<typeof(a) as AddAssign<typeof(b)>>::add_assign(ref a, b)` 로 풀려서 `a` 가 가리키는 객체의 **내용** 을 직접 수정하므로 새 객체를 만들지 않습니다. 반면 **fallback** (`Add::add` 후 재대입) 의 경우 `a = a + b` 형태가 되어 `Add` 호출 결과를 `a` 에 다시 저장하면서 새 객체를 생성합니다.
 
-Rok 은 이 두 모드를 자동으로 선택합니다.
+Rok은 이 두 모드를 자동으로 선택합니다.
 
 ```
 컴파일러 동작 (a += b 받았을 때):
@@ -215,7 +215,7 @@ alias;                       //→ [1, 2, 3, 4, 5]  (alias 도 변화 봄)
 // 비교: xs = xs + [4, 5] 는 새 List 생성, alias 는 변화 못 봄
 ```
 
-이 의미는 Rok 의 heap 객체 자동 공유 모델 ([refs-lang 4.7](../../refs-lang/004-functions/407-ref-keyword.md)) 과 정확히 일치합니다.
+이 의미는 Rok의 heap 객체 자동 공유 모델 ([refs-lang 4.7](../../refs-lang/004-functions/407-ref-keyword.md)) 과 정확히 일치합니다.
 
 ## 2.4.8. 사용자 정의 *Assign
 
@@ -250,7 +250,7 @@ impl AddAssign for Vec3 {
 
 ## 2.4.9. *Assign 의 supertrait 관계 - 없음
 
-Rok 은 `AddAssign` 을 `Add` 의 supertrait 로 묶지 **않습니다**. 따라서 두 트레잇은 서로 독립적으로 다루어집니다.
+Rok은 `AddAssign` 을 `Add` 의 supertrait 로 묶지 **않습니다**. 따라서 두 트레잇은 서로 독립적으로 다루어집니다.
 
 그 이유는 컬렉션처럼 `Add` 가 의미가 없고 (`xs + ys` 가 새 컬렉션을 만드는 비용이 큼) `AddAssign` 만 의미가 있는 경우가 존재하기 때문입니다. 만약 supertrait 로 묶는다면 그러한 타입이 `AddAssign` 만 구현하는 일이 불가능해집니다.
 

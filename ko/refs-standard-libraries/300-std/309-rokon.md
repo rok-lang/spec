@@ -1,6 +1,6 @@
 # 3.9. `rokon::` - ROKON 데이터 형식
 
-ROKON (Rok Object Notation) 은 Rok 의 리터럴 문법으로 값을 적는 데이터 형식입니다. 확장자는 `.rokon` 입니다. Rust 의 RON, Zig 의 ZON 과 같은 자리이며, 패키지 매니페스트 `rok.rokon` 과 lockfile `rok.lock` ([refs-lang 9.10.3](../../refs-lang/009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) 이 이 형식을 씁니다.
+ROKON (Rok Object Notation) 은 Rok의 리터럴 문법으로 값을 적는 데이터 형식입니다. 확장자는 `.rokon` 입니다. Rust 의 RON, Zig 의 ZON 과 같은 자리이며, 패키지 매니페스트 `rok.rokon` 과 lockfile `rok.lock` ([refs-lang 9.10.3](../../refs-lang/009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) 이 이 형식을 씁니다.
 
 ## 3.9.1. 형식
 

@@ -1,6 +1,6 @@
 # 7.6. 스케줄러
 
-Rok 의 스케줄러는 M:N [work-stealing](../000-meta/007-glossary.md#work-stealing) 방식이며, 본 문서에서는 그 구조를 정의합니다.
+Rok의 스케줄러는 M:N [work-stealing](../000-meta/007-glossary.md#work-stealing) 방식이며, 본 문서에서는 그 구조를 정의합니다.
 
 ## 7.6.1. 통합된 worker 모델
 

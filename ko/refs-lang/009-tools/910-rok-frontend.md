@@ -325,7 +325,7 @@ rok yank [--native] --vers <version> [--undo] [--index <checkout>] [name]   # --
 
 ## 9.10.4b. Native 패키지
 
-Rok 은 C 를 컴파일하지 않습니다. native 패키지는 target triple 마다의 미리 빌드된 archive 와 다음 값입니다:
+Rok은 C 를 컴파일하지 않습니다. native 패키지는 target triple 마다의 미리 빌드된 archive 와 다음 값입니다:
 
 ```rokon
 Native {

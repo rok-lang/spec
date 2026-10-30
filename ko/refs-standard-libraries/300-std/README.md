@@ -94,7 +94,7 @@ try tls_conn.write_all(req);
 let resp = try tls_conn.read_to_end();
 ```
 
-스택은 `rok::core::crypto` ([2.21](../200-core/221-crypto.md)) 위에 Rok 로 작성한 자체 구현이며, OS 나 서드파티 TLS 라이브러리는 쓰지 않습니다 ([3.2.5](302-net.md#325-tls-13---nettls)).
+스택은 `rok::core::crypto` ([2.21](../200-core/221-crypto.md)) 위에 Rok로 작성한 자체 구현이며, OS 나 서드파티 TLS 라이브러리는 쓰지 않습니다 ([3.2.5](302-net.md#325-tls-13---nettls)).
 
 반면 HTTP/1, HTTP/2, HTTP/3 (QUIC) 은 **std 외부** 에 두고, 별도 `rok/http` 패키지로 분리합니다. Go `net/http` 의 **1.0 frozen** 사례에서 얻은 학습입니다.
 

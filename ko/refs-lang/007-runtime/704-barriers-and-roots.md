@@ -18,7 +18,7 @@
 LLVM 의 `gc "shadow-stack"` 전략 (`llvm.gcroot`) 은 쓰지 않습니다. 이 전략의 체인 머리 `llvm_gc_root_chain` 은 프로세스 전체에 하나뿐인 global 이라 thread 마다 shadow stack 을 둘 수 없기 때문입니다.
 
 > [!IMPORTANT]
-> Rok 의 루트 추적은 컴파일러가 frame push / pop 을 직접 emit 하는 shadow stack 입니다. 체인 머리는 thread 마다 하나씩 있는 `rok_tls` 의 offset 0 슬롯 (`rok_tls_shadow_stack_top`) 입니다 ([8.3.8](../008-abi/803-tls-slots.md#838-컴파일러-emit-의-형식)). 모든 Tier 1 타깃 (32-bit ARM / x86 / WASM 포함) 에서 같은 방식으로 동작합니다.
+> Rok의 루트 추적은 컴파일러가 frame push / pop 을 직접 emit 하는 shadow stack 입니다. 체인 머리는 thread 마다 하나씩 있는 `rok_tls` 의 offset 0 슬롯 (`rok_tls_shadow_stack_top`) 입니다 ([8.3.8](../008-abi/803-tls-slots.md#838-컴파일러-emit-의-형식)). 모든 Tier 1 타깃 (32-bit ARM / x86 / WASM 포함) 에서 같은 방식으로 동작합니다.
 
 ### Shadow Stack 의 구조
 

@@ -130,7 +130,7 @@ struct GcPtr<T> {
 }
 ```
 
-Rok 의 GC 는 컴파일러가 직접 emit 하는 **thread 별 shadow stack** 으로 root set 을 추적합니다 ([refs-lang 7.4.1](../../refs-lang/007-runtime/704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack)).
+Rok의 GC 는 컴파일러가 직접 emit 하는 **thread 별 shadow stack** 으로 root set 을 추적합니다 ([refs-lang 7.4.1](../../refs-lang/007-runtime/704-barriers-and-roots.md#741-루트-추적-컴파일러가-직접-emit-하는-shadow-stack)).
 
 ## 1.6.4. pin / unpin 의 GC 측 메커니즘
 
@@ -222,7 +222,7 @@ null-terminated 형태처럼, 각 컨테이너의 layout 에 맞춘 형태로 �
 | pin 후 만료 검증 | **없음**                       | 컴파일러 (block scope) | **없음** (수동)          | type system + scope       |
 | 다중 pin         | overlapping OK                 | **제한**               | overlapping OK           | overlapping OK (count)    |
 
-Rok 이 다른 언어와 갈라지는 가장 큰 지점은 두 가지입니다.
+Rok이 다른 언어와 갈라지는 가장 큰 지점은 두 가지입니다.
 
 1. 타입 시스템이 강제한다는 점입니다. `GcPtr<T>` 와 `Ptr<T>` 는 서로 다른
    타입이며, 자동 변환은 거부됩니다. 오직 pin guard 를 통해서만 건너갈 수 있습니다.

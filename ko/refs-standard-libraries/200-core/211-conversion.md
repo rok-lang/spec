@@ -1,12 +1,12 @@
 # 2.11. 변환 트레잇
 
-`rok::core::convert` 모듈은 값을 한 타입에서 다른 타입으로 옮기는 트레잇 패밀리를 정의합니다. Rok 의 변환 정책에서 가장 핵심이 되는 원칙은 silent 정보 손실을 거부하는 것입니다. 따라서 `.into()` 는 lossless 한 변환만을 허용하며, 손실이 발생할 수 있는 변환의 경우에는 사용자가 명시적으로 그 정책을 선택하도록 설계됩니다.
+`rok::core::convert` 모듈은 값을 한 타입에서 다른 타입으로 옮기는 트레잇 패밀리를 정의합니다. Rok의 변환 정책에서 가장 핵심이 되는 원칙은 silent 정보 손실을 거부하는 것입니다. 따라서 `.into()` 는 lossless 한 변환만을 허용하며, 손실이 발생할 수 있는 변환의 경우에는 사용자가 명시적으로 그 정책을 선택하도록 설계됩니다.
 
 [refs-lang 2.14 형 변환](../../refs-lang/002-types/214-cast-and-conversion.md) 의 syntax 는 본 트레잇으로 dispatch 됩니다.
 
 ## 2.11.1. 변환 정책 - 4 갈래
 
-Rok 은 변환의 **의도** 에 따라 네 갈래로 분리해 다룹니다. 사용자는 매번 어느 갈래에 해당하는지를 명시해야 합니다.
+Rok은 변환의 **의도** 에 따라 네 갈래로 분리해 다룹니다. 사용자는 매번 어느 갈래에 해당하는지를 명시해야 합니다.
 
 | 갈래         | 메서드                              | 의미                                  | 실패 시                     |
 |--------------|-------------------------------------|---------------------------------------|-----------------------------|
@@ -19,7 +19,7 @@ Rok 은 변환의 **의도** 에 따라 네 갈래로 분리해 다룹니다. �
 
 ### 디자인 근거
 
-silent saturate 나 silent wrap 은 사용자가 모르는 사이에 값이 변형되어 디버그하기 어려운 버그를 만들어 냅니다. Rok 은 JS 가 Number → BigInt 를 도입하면서 얻은 교훈, 그리고 NumPy 가 wrap 에서 OverflowError 로 이동하면서 얻은 교훈을 함께 받아들였습니다.
+silent saturate 나 silent wrap 은 사용자가 모르는 사이에 값이 변형되어 디버그하기 어려운 버그를 만들어 냅니다. Rok은 JS 가 Number → BigInt 를 도입하면서 얻은 교훈, 그리고 NumPy 가 wrap 에서 OverflowError 로 이동하면서 얻은 교훈을 함께 받아들였습니다.
 
 ## 2.11.2. `From<U>` 트레잇 - lossless 변환
 
@@ -364,13 +364,13 @@ let auto: i64 = (a + b).into();  // From<i32> for i64 (lossless) 명시
 
 | 언어   | 변환 모델                                               | Rok 과의 차이                                                                     |
 |--------|---------------------------------------------------------|-----------------------------------------------------------------------------------|
-| Rust   | `From`/`Into` lossless, `as` wrap, `try_into` Result    | Rok 과 가장 유사. `saturating_into`/`wrapping_into` 메서드는 Rok 이 명시 추가     |
-| Swift  | 모든 정수 변환 trapping 기본, `.init(clamping:)` opt-in | Rok 은 trapping 거부: debug=panic + release=wrap (fixed-width 산술), 변환은 명시  |
-| Julia  | `Int32(big)` trapping, `convert` 함수 패밀리            | Rok 은 trait 메서드로 통일 (`from`/`into`)                                        |
-| Python | `int(x)`/`float(x)` 함수, 항상 무한 정밀도              | Rok 의 `int` / `float` 는 같은 정신, fixed primitive 는 별개 세계                 |
+| Rust   | `From`/`Into` lossless, `as` wrap, `try_into` Result    | Rok과 가장 유사. `saturating_into`/`wrapping_into` 메서드는 Rok이 명시 추가     |
+| Swift  | 모든 정수 변환 trapping 기본, `.init(clamping:)` opt-in | Rok은 trapping 거부: debug=panic + release=wrap (fixed-width 산술), 변환은 명시  |
+| Julia  | `Int32(big)` trapping, `convert` 함수 패밀리            | Rok은 trait 메서드로 통일 (`from`/`into`)                                        |
+| Python | `int(x)`/`float(x)` 함수, 항상 무한 정밀도              | Rok의 `int` / `float` 는 같은 정신, fixed primitive 는 별개 세계                 |
 | C      | implicit conversion (`int` → `long` 자동)               | Rok 명시 거부, silent type mixing 차단                                            |
 
-이러한 비교를 토대로 Rok 이 채택한 핵심 디자인 결정은 다음과 같습니다. 먼저 silent 정보 손실을 거부합니다 (Rust 의 영향을 받았습니다). 다음으로 4 갈래 (`into`, `try_into`, `saturating_into`, `as`) 를 명시함으로써 의도 표현을 강제합니다. 또한 literal context 에서만 auto-From 을 허용하며, runtime value 의 경우에는 명시를 강제합니다. 마지막으로 `int` / `float` 의 auto-promote 와 fixed primitive 를 분리하는데, 이는 Python 과 Smalltalk 의 영향에서 나온 결정입니다.
+이러한 비교를 토대로 Rok이 채택한 핵심 디자인 결정은 다음과 같습니다. 먼저 silent 정보 손실을 거부합니다 (Rust 의 영향을 받았습니다). 다음으로 4 갈래 (`into`, `try_into`, `saturating_into`, `as`) 를 명시함으로써 의도 표현을 강제합니다. 또한 literal context 에서만 auto-From 을 허용하며, runtime value 의 경우에는 명시를 강제합니다. 마지막으로 `int` / `float` 의 auto-promote 와 fixed primitive 를 분리하는데, 이는 Python 과 Smalltalk 의 영향에서 나온 결정입니다.
 
 ## 2.11.12. 모듈 매핑
 

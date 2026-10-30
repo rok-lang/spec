@@ -71,4 +71,4 @@ base64_decode("-_-_", url_safe: true);         //→ [251, 255, 191]
 | Go     | `encoding/hex`               | `encoding/base64` (`StdEncoding`, `RawURLEncoding`, ...) |
 | Rok    | `hex_encode`, `hex_decode`   | `base64_encode`, `base64_decode` (`url_safe`, `pad`)     |
 
-Rok 은 base64 의 네 가지 변형을 네 개의 인코딩 값 대신 이름 붙은 인자 두 개 뒤에 두고, 디코더가 패딩 있는 텍스트와 없는 텍스트를 모두 받으므로, 흔한 경우는 옵션 없는 호출 하나입니다.
+Rok은 base64 의 네 가지 변형을 네 개의 인코딩 값 대신 이름 붙은 인자 두 개 뒤에 두고, 디코더가 패딩 있는 텍스트와 없는 텍스트를 모두 받으므로, 흔한 경우는 옵션 없는 호출 하나입니다.

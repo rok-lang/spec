@@ -1,7 +1,7 @@
 # 1.3. 문장 종결자
 
 > [!IMPORTANT]
-> Rok 의 문장은 세미콜론 (`;`) 으로 끝납니다. 줄바꿈만으로는 문장을 끝낼 수 없습니다.
+> Rok의 문장은 세미콜론 (`;`) 으로 끝납니다. 줄바꿈만으로는 문장을 끝낼 수 없습니다.
 
 ```
 stmt_terminator ::= ";"
@@ -22,7 +22,7 @@ stmt_terminator ::= ";"
 
 ## 1.3.2. 줄바꿈 자동 삽입을 두지 않는 이유
 
-Rok 은 JavaScript 의 ASI (Automatic Semicolon Insertion), Go 의 줄 끝 자동 세미콜론, Swift 의 줄 단위 종료 같은 자동 규칙을 도입하지 않습니다.
+Rok은 JavaScript 의 ASI (Automatic Semicolon Insertion), Go 의 줄 끝 자동 세미콜론, Swift 의 줄 단위 종료 같은 자동 규칙을 도입하지 않습니다.
 
 그 이유는 다음과 같습니다. 첫째, 자동 규칙은 드문 경우에서 모호성을 만들어내며, JavaScript 의 ASI 함정이 잘 알려진 예가 됩니다. 둘째, 명시적 종결자가 있어야 포매터, LSP, 에디터의 다음-문장 점프 같은 도구가 문장 경계를 결정론적으로 알 수 있습니다. 마지막으로, 한 줄에 여러 문장을 두는 표기는 REPL 의 빠른 입력 등에서 자연스럽게 사용됩니다.
 

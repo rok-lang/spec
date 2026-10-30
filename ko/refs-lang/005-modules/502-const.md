@@ -65,7 +65,7 @@ fn f() {
 let p = &X;                       // ERROR: const 는 주소 없음 (개념적으로)
 ```
 
-실제 Rok 에서 `&` 같은 직접 주소 연산자가 존재하는지에 대해서는 [타입 표현식](../002-types/201-type-expressions.md) 의 포인터 타입과 [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) 사양에서 정의합니다.
+실제 Rok에서 `&` 같은 직접 주소 연산자가 존재하는지에 대해서는 [타입 표현식](../002-types/201-type-expressions.md) 의 포인터 타입과 [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) 사양에서 정의합니다.
 
 ## 5.2.4. 상수 식과 평가기
 

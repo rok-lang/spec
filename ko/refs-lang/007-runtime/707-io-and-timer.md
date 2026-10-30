@@ -130,4 +130,4 @@ park 가 진행되는 동안 CPU 사용량은 0 이므로, idle worker 가 많�
 
 ## 7.7.10. Reactor 패턴과의 비교
 
-Rok 은 전통적인 reactor 구조를 씁니다. 별도의 reactor thread 하나가 I/O 를 기다리고, worker thread 들과는 parking 표를 통해서만 만납니다. 그 대가로 I/O 깨움이 thread 를 건넙니다 (unpark 한 번).
+Rok은 전통적인 reactor 구조를 씁니다. 별도의 reactor thread 하나가 I/O 를 기다리고, worker thread 들과는 parking 표를 통해서만 만납니다. 그 대가로 I/O 깨움이 thread 를 건넙니다 (unpark 한 번).
