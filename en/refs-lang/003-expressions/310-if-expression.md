@@ -19,7 +19,7 @@ Here `cond` is an expression of type `bool`, and both the body and the `else` bo
 
 ## 3.10.2. Value as an expression
 
-For `if` to be used as a value, it must have an `else` clause.
+An `if` produces a value other than unit only when it has an `else` clause.
 
 ```rok
 let a = if cond { 1i32 } else { 2i32 };          // OK, i32

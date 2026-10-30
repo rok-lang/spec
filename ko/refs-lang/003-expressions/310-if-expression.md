@@ -19,11 +19,11 @@ if cond1 { ... } else if cond2 { ... } else { ... }
 
 ## 3.10.2. 표현식의 값
 
-`if`를 값으로 쓰려면 `else` 절이 있어야 합니다.
+`if`가 unit이 아닌 값을 내려면 `else` 절이 있어야 합니다.
 
 ```rok
 let a = if cond { 1i32 } else { 2i32 };          // OK, i32
-let b = if cond { 1i32 };                          // OK, 단 b 의 타입이 unit (else 없는 경우)
+let b = if cond { 1i32 };                          // OK, 단 b의 타입은 unit (else 없는 경우)
 ```
 
 `else`가 없는 `if`는 분기가 한쪽뿐이므로 값을 반환하지 않고, 결과는 unit입니다. `else`가 있는 `if`는 양쪽 분기의 값을 합쳐 결과를 만듭니다.
