@@ -1,24 +1,24 @@
-# 3.4. `thread::` - OS 스레드 (1:1 모델)
+# 3.4. `thread::`: OS 스레드(1:1 모델)
 
-`rok::std::thread` 모듈은 OS-level 스레드를 다루기 위한 진입점입니다. M:N 협력적 스케줄러 위에서 동작하는 task 와는 [2.18 task](../200-core/218-task.md) 에서 정리한 대로 별도의 추상이며, 이 모듈은 native thread 를 직접 spawn 하는 경로를 제공합니다.
+`rok::std::thread` 모듈은 OS 수준 스레드를 다루는 진입점입니다. [2.18 task](../200-core/218-task.md)에서 정리한 대로, 스레드는 M:N 협력적 스케줄러 위에서 도는 task와 별개의 추상입니다. 이 모듈로 네이티브 스레드를 직접 띄웁니다.
 
-## 3.4.1. 언제 thread vs task
+## 3.4.1. thread와 task 중 고르기
 
-어떤 상황에서 어느 쪽을 골라야 하는지는 다음 표로 가늠할 수 있습니다.
+상황별 선택 기준은 다음과 같습니다.
 
 | 자리                           | 권장                                        |
 |--------------------------------|---------------------------------------------|
 | 일반 동시성 / async I/O        | `task::spawn` (가벼움)                      |
-| CPU-bound 계산                 | `task::spawn` 또는 `par::*` (work-stealing) |
-| Blocking C 라이브러리 호출     | `thread::spawn` (task scheduler block 회피) |
-| OS thread API 가 요구되는 자리 | `thread::spawn` (TLS, signal mask, etc.)    |
+| CPU 중심 계산                  | `task::spawn` 또는 `par::*` (work-stealing) |
+| 블로킹 C 라이브러리 호출       | `thread::spawn` (task 스케줄러를 막지 않음) |
+| OS 스레드 API가 필요한 곳     | `thread::spawn` (TLS, signal mask, etc.)    |
 | 임베디드 / no-task             | `thread::spawn`                             |
 
-요컨대 task 가 충분히 가볍고 표현력 있게 처리할 수 있는 영역에서는 task 가 우선이고, OS 자원을 직접 다뤄야 하는 자리에서만 thread 로 내려가는 편이 자연스럽습니다.
+task로 가볍고 충분히 표현할 수 있는 곳에서는 task를 먼저 씁니다. OS 자원을 직접 다뤄야 하는 곳에서만 스레드로 내려갑니다.
 
 ## 3.4.2. API
 
-기본 타입과 함수 시그니처는 아래와 같습니다.
+기본 타입과 함수 시그니처는 다음과 같습니다.
 
 ```rok
 struct Thread { /* OS handle, 제네릭 아님 */ }
@@ -77,21 +77,21 @@ impl<T> ThreadLocal<T> {
 }
 ```
 
-`Thread::unpark` 는 그 스레드의 park 토큰을 세우고 깨웁니다. 토큰은 한 번의 `park` 가 소비합니다.
+`Thread::unpark`는 그 스레드의 park 토큰을 세우고 깨웁니다. 토큰은 한 번의 `park`가 소비합니다.
 
-`thread::spawn` 은 기본값의 `Builder::spawn` 을 `try!` 로 감싼 것입니다: `Builder::spawn` 이 throw 하는 경우 (target 에 스레드가 없거나 OS 가 새 스레드를 거부) `thread::spawn` 은 panic 합니다. 그 오류를 다루려면 `Builder::new().spawn(f)` 를 씁니다.
+`thread::spawn`은 기본 설정의 `Builder::spawn`을 `try!`로 감싼 함수입니다. `Builder::spawn`이 에러를 던지는 경우(타깃에 스레드가 없거나 OS가 새 스레드를 거부)에는 `thread::spawn`에서 panic이 일어납니다. 그 에러를 다루려면 `Builder::new().spawn(f)`를 씁니다.
 
-`await handle` ([2.20.5](../200-core/220-future.md#2205-intofuture---await-가능한-값)) 은 task 안에서 스레드를 기다립니다: join 은 executor 의 blocking lane ([`task::spawn_blocking`](../200-core/218-task.md#2181-핵심-api)) 에서 돌므로 task 만 기다립니다. 결과는 `T` 이며, OS join 실패 (`JoinError`) 는 panic 하므로 그것을 다루려면 `join` 을 부릅니다.
+`await handle`([2.20.5](../200-core/220-future.md#2205-intofuture-await-가능한-값))은 task 안에서 스레드를 기다립니다. join은 executor의 블로킹 레인([`task::spawn_blocking`](../200-core/218-task.md#2181-핵심-api))에서 돌므로 task만 기다립니다. 결과는 `T`입니다. OS join 실패(`JoinError`)는 panic이 됩니다. 이 실패를 다루려면 `join`을 호출합니다.
 
-### panic 과 `JoinError`
+### panic과 `JoinError`
 
-어느 스레드에서든 panic 이 나면 프로세스 전체가 종료 코드 101 로 끝납니다. 그래서 `join` 이 다른 스레드의 panic 을 받을 일은 없으며, `JoinError` 는 OS 수준의 join 실패, 또는 실패한 REPL 셀과 함께 끝난 스레드의 `JOIN_LOST` ([refs-lang 9.7.0](../../refs-lang/009-tools/907-jit-cells.md#970-셀-세션의-규칙)) 를 나타내며, 후자는 "thread join failed: the thread ended with a failed REPL cell" 로 표시됩니다.
+어느 스레드에서든 panic이 나면 프로세스 전체가 종료 코드 101로 끝납니다. 그래서 `join`이 다른 스레드의 panic을 받을 일은 없습니다. `JoinError`가 나타내는 것은 두 가지입니다. OS 수준의 join 실패, 또는 실패한 REPL 셀과 함께 끝난 스레드의 `JOIN_LOST`([refs-lang 9.7.0](../../refs-lang/009-tools/907-jit-cells.md#970-셀-세션의-규칙))를 나타냅니다. 후자는 "thread join failed: the thread ended with a failed REPL cell"로 표시됩니다.
 
-`JOIN_TAKEN` (-2): 그 handle 이나 그 복사본이 이미 join 되었거나 detach 되었습니다. 두 번째 `join` 은 그것을 던지고, 두 번째 `detach` 는 아무것도 하지 않습니다.
+`JOIN_TAKEN` (-2): 그 핸들이나 그 복사본에 이미 join이나 detach를 했습니다. 두 번째 `join`은 이 에러를 던지고, 두 번째 `detach`는 아무것도 하지 않습니다.
 
 ## 3.4.3. 사용 예
 
-가장 간단한 spawn-join 패턴부터 builder, 다중 spawn 까지 차례로 살펴봅니다.
+가장 간단한 spawn-join 패턴, builder, 스레드를 여러 개 띄우는 예를 차례로 보여 줍니다.
 
 ```rok
 use rok::std::thread;
@@ -118,9 +118,9 @@ let results: List<i64> = handles
     .collect();
 ```
 
-## 3.4.4. thread-local storage
+## 3.4.4. 스레드 로컬 저장소
 
-각 스레드마다 독립된 저장소가 필요하다면 `thread::local` 을 활용합니다.
+스레드마다 독립된 저장소가 필요하면 `thread::local`을 씁니다.
 
 ```rok
 let counter = thread::local(|| 0);
@@ -130,15 +130,15 @@ try thread::spawn(|| {
 }).join();
 ```
 
-## 3.4.5. impl / target
+## 3.4.5. 구현 / 타깃
 
-플랫폼별 지원 현황은 다음과 같이 정리됩니다.
+플랫폼별 지원 현황은 다음과 같습니다.
 
 | 항목            | linux/macos/windows   | wasm32-wasi / 브라우저    | wasm32-wasi-threads |
 |-----------------|-----------------------|---------------------------|---------------------|
-| `spawn`         | ✓                     | panic (`Builder::spawn` 의 `Unsupported`) | ✓     |
-| `Builder::spawn` | ✓                    | `Unsupported` 를 throw    | ✓                   |
+| `spawn`         | ✓                     | panic (`Builder::spawn`의 `Unsupported`) | ✓     |
+| `Builder::spawn` | ✓                    | `Unsupported`를 던짐     | ✓                   |
 | `local`         | ✓                     | ✓ (스레드 하나)           | ✓                   |
 | `park`/`unpark` | futex / WaitOnAddress | ✓                         | ✓                   |
 
-`wasm32-wasi` 와 브라우저에는 스레드가 하나이며 `thread::current().name()` 은 `none` 입니다. `wasm32-wasi-threads` 에서 `rok_cpu_count()` 와 사용 가능한 병렬도는 4 입니다. WASI 는 코어 수를 알려 줄 수 없기 때문입니다.
+`wasm32-wasi`와 브라우저에는 스레드가 하나뿐이고, `thread::current().name()`은 `none`입니다. `wasm32-wasi-threads`에서 `rok_cpu_count()`와 사용 가능한 병렬도는 4입니다. WASI는 코어 수를 알려 줄 수 없기 때문입니다.
