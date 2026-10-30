@@ -3,7 +3,7 @@
 `static` 키워드는 프로그램이 실행되는 동안 유지되는 전역 메모리를 선언합니다. 이 키워드는 항목 시작에서만 키워드인 문맥 키워드이고, 뒤의 `mut`도 `static mut` 자리에서만 키워드입니다([1.5.4](../001-lexical/105-keywords.md#154-문맥-키워드)).
 
 ```
-static_decl     ::= "static" "mut"? identifier ":" type_expr "=" const_expr ";"
+static_decl     ::= "static" "mut"? identifier ":" type_expr "=" expr ";"
 extern_static   ::= "static" "mut"? identifier ":" type_expr ";"   // in extern block
 ```
 
@@ -15,7 +15,7 @@ static DEFAULT_CONFIG: Config = Config::default();
 static APP_NAME: str = "rok";
 ```
 
-기본 형태는 `static`, 이름, `:`과 타입, `=`과 초기값 순서입니다. 타입은 적어야 합니다. 초기값은 [`const`](502-const.md)에서 말하는 `const` 표현식이어야 합니다. 곧 컴파일 타임에 평가할 수 있어야 합니다.
+기본 형태는 `static`, 이름, `:`과 타입, `=`과 초기값 순서입니다. 타입은 적어야 합니다. 초기값이 [`const`](502-const.md) 표현식이면 컴파일 타임에 평가하고, 그렇지 않으면 처음 접근할 때 한 번 실행합니다([5.3.9](#539-초기값과-const)).
 
 `static`은 모든 스레드에서 닿을 수 있으므로 그 타입은 `Sync`여야 합니다([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync-스레드-경계-마커)). 지연 초기화되는 static도 마찬가지입니다. `static XS: List<i32> = [];`는 컴파일 에러입니다(컬렉션, `StrBuf`, `Cell<T>`는 `!Sync`). 대신 `static XS: Mutex<List<i32>> = Mutex::new([]);`로 적습니다. 스레드별 상태에는 `thread::local`([stdlib 3.4.4](../../refs-standard-libraries/300-std/304-thread.md#344-스레드-로컬-저장소))을 씁니다. 이것이 돌려주는 `ThreadLocal<T>`는 `Sync`입니다. `extern` 블록의 static([5.3.10](#5310-extern-static-ffi))은 예외입니다.
 
