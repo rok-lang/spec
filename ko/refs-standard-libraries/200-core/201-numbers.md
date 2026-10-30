@@ -1,36 +1,28 @@
 # 2.1. 숫자 타입
 
-`rok::core::num` 모듈은 Rok 의 모든 수치 타입을 정의합니다. Rok 은 두 세계의 숫자를
-함께 두며, 사용자가 자유롭게 어느 쪽을 쓸지 선택할 수 있습니다.
+`rok::core::num` 모듈은 Rok의 모든 수치 타입을 정의합니다. Rok에는 두 세계의 숫자가 함께 있고, 어느 쪽을 쓸지는 사용자가 고릅니다.
 
 ```
 int / float    (auto-promote, 무한 정밀도, opt-in)
 fixed primitive (i8..i64, u8..u64, isize, usize, f32, f64; 하드웨어 친화적, 기본)
 ```
 
-이 두 세계는 서로 **공존** 합니다. 접미사 없는 리터럴은 기대 타입을 따르며, 기대 타입이 없으면 `i32` / `f64` 가 됩니다 ([refs-lang 1.6.3](../../refs-lang/001-lexical/106-numeric-literals.md#163-접미사-없는-리터럴)). `int` / `float` 는 타입을 적은 자리에서만 쓰입니다.
+두 세계는 **공존**합니다. 접미사 없는 리터럴은 기대 타입을 따르고, 기대 타입이 없으면 `i32` / `f64`가 됩니다([refs-lang 1.6.3](../../refs-lang/001-lexical/106-numeric-literals.md#163-접미사-없는-리터럴)). `int` / `float`는 타입을 적은 자리에서만 쓰입니다.
 
-## 2.1.1. 두 세계의 숫자 - 분리하는 이유
+## 2.1.1. 두 세계의 숫자: 분리하는 이유
 
-### `int` / `float` - auto-promote 세계
+### `int` / `float`: auto-promote 세계
 
-이 세계는 무한 정밀도를 지향합니다. overflow 자체가 발생하지 않으며, 메모리
-한계에 도달했을 때만 OOM 으로 끝납니다. 작은 값은 hardware fixed-width 로
-저장되는 small-int optimization 을 거치고, 값이 커지면 heap 의 BigInt 로 자동
-promote 됩니다. `int` / `float` 값은 불변이며, heap 의 BigInt 도 제자리에서 바뀌지 않고 공유만 됩니다 (그래서 `Copy` 입니다). 그 결과 사용자는 산술 정확성을 보장받게 되어, `I32_MAX + 1` 가
-silent wrap 되어 황당한 결과를 내는 일이 없습니다.
+이 세계는 무한 정밀도를 지향합니다. 오버플로는 일어나지 않고, 메모리 한계에 닿을 때만 OOM으로 끝납니다. 작은 값은 small-int 최적화로 하드웨어 고정 폭 형태로 저장합니다. 값이 커지면 힙의 BigInt로 자동 승격(promote)합니다. `int` / `float` 값은 불변입니다. 힙의 BigInt도 제자리에서 바뀌지 않고 공유만 되므로 `Copy`입니다. 덕분에 산술 결과는 항상 정확합니다. `I32_MAX + 1`이 조용히 한 바퀴 돌아 엉뚱한 값이 되는 일은 없습니다.
 
-### fixed primitive - 하드웨어 친화 세계
+### 고정 폭 원시 타입: 하드웨어 친화 세계
 
-반면 fixed primitive 는 하드웨어에 가까운 세계입니다. `i32` / `f64` 등 15
-종으로 구성되며, syntax 는 [refs-lang 2.1 타입 표현식](../../refs-lang/002-types/201-type-expressions.md) 이
-정의합니다. 메모리와 성능을 정밀하게 제어해야 하는 상황 (FFI 인터페이스, SIMD,
-큰 array, 핫 루프) 에 적합하고, overflow 정책이 명시됩니다 ([2.3 ops
-산술](203-ops.md) 의 fixed-width 산술 절을 참고합니다).
+반면 fixed primitive는 하드웨어에 가까운 세계입니다. `i32` / `f64` 등 15종이고, 문법은 [refs-lang 2.1 타입 표현식](../../refs-lang/002-types/201-type-expressions.md)이 정의합니다. FFI 인터페이스, SIMD, 큰 배열, 핫 루프처럼 메모리와 성능을 정밀하게 제어해야 하는 상황에 알맞습니다. 오버플로 정책도 명시되어 있습니다([2.3 ops
+산술](203-ops.md)의 fixed-width 산술 절 참고).
 
-### 어느 쪽이 default 인가
+### 기본으로 쓰는 쪽
 
-접미사 없는 리터럴 (`42`, `3.14`) 은 기대 타입이 없으면 **`i32` / `f64`** 가 됩니다. auto-promote 세계는 `int` / `float` 를 적은 자리에서만 쓰입니다.
+접미사 없는 리터럴(`42`, `3.14`)은 기대 타입이 없으면 **`i32` / `f64`**가 됩니다. auto-promote 세계는 `int` / `float`를 적은 자리에서만 쓰입니다.
 
 ```rok
 let total: int = 0;               // int (auto-promote), 명시
@@ -41,7 +33,7 @@ let n = 0;                        // i32 (기대 타입 없음)
 let perf_critical: i64 = 0;       // i64: 기대 타입을 따름
 ```
 
-## 2.1.2. `int` - 무한 정밀도 정수
+## 2.1.2. `int`: 무한 정밀도 정수
 
 ```rok
 #[keyword("int")]
@@ -81,24 +73,16 @@ impl Int {
 }
 ```
 
-이것들은 고정 폭 정수의 이름과 panic 을 따릅니다. `pow` 는 `u32` 지수를 받습니다: 그보다 큰 지수는 0 과 ±1 을 뺀 모든 밑에서 적어도 2^32 bit 를 냅니다. `modpow` 는 결과가 `|m|` 보다 작게 머무르므로 `int` 지수를 받으며, 결과는 [`%%`](203-ops.md#modulo---floored-modulo-) 처럼 `m` 의 부호를 가집니다. 음수 지수는 에러입니다 (modular inverse 없음).
+이 메서드는 고정 폭 정수의 이름과 panic 규칙을 따릅니다. `pow`는 `u32` 지수를 받습니다. 그보다 큰 지수는 0과 ±1을 뺀 모든 밑에서 결과가 적어도 2^32비트가 됩니다. `modpow`는 결과가 `|m|`보다 작게 머무르므로 `int` 지수를 받습니다. 결과의 부호는 [`%%`](203-ops.md#modulo-내림-modulo)처럼 `m`의 부호를 따릅니다. 음수 지수는 에러입니다(모듈러 역원 없음).
 
-`Int` 는 `rok::core::num::bigint::Int` 에 정의됩니다 (`Float` 는
-`rok::core::num::bigfloat::Float`). `#[keyword("int")]` 가 식별자 `int` 를 타입 키워드로
-등록하며, 이 등록은 모든 패키지에 적용됩니다. 그래서 사용자 코드에서는 PascalCase
-`Int` 가 아닌 lowercase `int` 로 타입을 표기합니다
-([refs-lang 6.6](../../refs-lang/006-meta-system/606-keyword-magic.md) 가
-권위입니다). 그리고 `#[lang("int_type")]` 로 컴파일러가 `int` 타입을 찾습니다.
+`Int`는 `rok::core::num::bigint::Int`에, `Float`는 `rok::core::num::bigfloat::Float`에 정의합니다. `#[keyword("int")]`가 식별자 `int`를 타입 키워드로 등록하고, 이 등록은 모든 패키지에 적용됩니다. 그래서 사용자 코드에서는 PascalCase `Int`가 아니라 소문자 `int`로 타입을 적습니다. 권위 있는 정의는 [refs-lang 6.6](../../refs-lang/006-meta-system/606-keyword-magic.md)에 있습니다. 컴파일러는 `#[lang("int_type")]`로 `int` 타입을 찾습니다.
 
-`int` 의 핵심 특성은 다음과 같습니다. 메모리 표현 측면에서 작은
-값은 64-bit word 안에 직접 저장되는 small-int optimization 을 거치고, 큰 값은
-heap 의 BigInt 표현으로 자동 promote 되며, 이 모든 과정은 사용자에게
-투명하게 처리됩니다. 표현은 항상 정규형입니다. 값이 i64 범위에 들어가면 small 형태, 벗어나면 BigInt 이며, 산술 결과가 다시 i64 범위로 돌아오면 small 형태로 돌아갑니다. 같은 값은 같은 표현을 가집니다. **lang slot** 으로는 `int_type` ([0.4 lang slot
-표](../000-meta/004-lang-slot-table.md)) 이 사용됩니다. 접미사 없는 정수 리터럴은 기대 타입이 `int` 일 때만 `int` 가 됩니다.
+`int`의 주요 성질은 다음과 같습니다. 메모리에서 작은 값은 small-int 최적화로 64비트 워드 안에 직접 저장하고, 큰 값은 힙의 BigInt 표현으로 자동 승격합니다. 이 과정은 사용자에게 드러나지 않습니다. 표현은 항상 정규형입니다. 값이 i64 범위에 들어가면 small 형태이고 벗어나면 BigInt입니다. 산술 결과가 다시 i64 범위로 돌아오면 small 형태로 돌아갑니다. 같은 값의 표현은 언제나 같습니다. **lang slot**은 `int_type`입니다([0.4 lang slot
+표](../000-meta/004-lang-slot-table.md)). 접미사 없는 정수 리터럴은 기대 타입이 `int`일 때만 `int`가 됩니다.
 
 ### 산술
 
-`int` 끼리의 모든 산술은 절대 wrap 되거나 saturate 되지 않습니다.
+`int`끼리 계산하면 결코 한 바퀴 돌거나(wrap) 포화(saturate)하지 않습니다.
 
 ```rok
 let big: int = 1;
@@ -115,29 +99,18 @@ big = big * big;
 // big = 10^42, 더 큰 BigInt, 정확
 ```
 
-산술 트레잇 ([2.3 ops](203-ops.md)) 의 `Add`, `Sub`, `Mul`, `Div`, `Rem` 이
-모두 구현됩니다. 여기서 `Div` 는 정수 나눗셈 (절삭) 으로 동작하므로,
-`7 / 2 = 3`, `-7 / 2 = -3` 과 같이 계산됩니다. 비교 트레잇 ([2.5
-cmp](205-cmp.md)) 도 `Eq`, `Ord`, `Hash` 가 모두 구현됩니다.
+산술 트레잇([2.3 ops](203-ops.md)) `Add`, `Sub`, `Mul`, `Div`, `Rem`을 모두 구현합니다. `Div`는 소수점 아래를 버리는 정수 나눗셈이므로 `7 / 2 = 3`, `-7 / 2 = -3`입니다. 비교 트레잇([2.5
+cmp](205-cmp.md)) `Eq`, `Ord`, `Hash`도 모두 구현합니다.
 
 ### 주요 사용처
 
-`int` 는 다양한 상황에서 활용됩니다. REPL 이나 Jupyter 의 산술 default 로
-사용되어 매번 typing 하지 않아도 정확성이 보장되며, 수치 시뮬레이션의 누적
-합이나 곱을 계산할 때 overflow 걱정이 없습니다. 또한 암호 연산이나 큰 정수
-처리에서 별도의 BigInt 라이브러리 의존성 없이 표준 라이브러리만으로 작업이
-가능합니다.
+`int`는 여러 곳에 쓰입니다. REPL이나 Jupyter에서 산술 기본 타입으로 쓰면 매번 타입을 적지 않아도 결과가 정확합니다. 수치 시뮬레이션에서 합이나 곱을 누적할 때도 오버플로를 걱정하지 않아도 됩니다. 암호 연산이나 큰 정수 처리도 BigInt 라이브러리를 따로 쓰지 않고 표준 라이브러리만으로 할 수 있습니다.
 
 ### 한계
 
-물론 `int` 에도 한계는 존재합니다. 메모리 측면에서 BigInt promote 시 heap
-할당이 필요하므로, 핫 루프나 큰 array 에서는 fixed primitive 가 권장됩니다.
-성능 측면에서도 small-int 범위 안에서는 fixed primitive 와 비슷하지만, BigInt
-promote 이후에는 느려질 수밖에 없습니다. 그리고 FFI 의 경우 `extern "C"`
-함수가 fixed primitive 만 받기 때문에, `int` 는 `i64` 등으로 명시 변환한 뒤
-전달해야 합니다.
+`int`에도 한계가 있습니다. 메모리 면에서는 BigInt로 승격할 때 힙 할당이 필요합니다. 그래서 핫 루프나 큰 배열에는 fixed primitive를 권장합니다. 성능은 small-int 범위 안에서는 fixed primitive와 비슷하지만, BigInt로 승격한 뒤에는 느릴 수밖에 없습니다. FFI에서는 `extern "C"` 함수가 fixed primitive만 받습니다. 그래서 `int`는 `i64` 등으로 명시적으로 변환한 뒤 넘겨야 합니다.
 
-## 2.1.3. `float` - 지수 무제한 부동소수
+## 2.1.3. `float`: 지수 무제한 부동소수
 
 ```rok
 #[keyword("float")]
@@ -164,36 +137,27 @@ impl Float {
 }
 ```
 
-`#[keyword("float")]` 가 `float` 키워드를 등록하면서 struct `Float` 로
-라우팅합니다. 따라서 사용자 코드에서는 lowercase `float` 만 보이게 됩니다.
+`#[keyword("float")]`는 `float` 키워드를 등록하고 struct `Float`로 연결합니다. 그래서 사용자 코드에는 소문자 `float`만 보입니다.
 
-`float` 의 값은 53-bit 유효숫자 (f64 와 같은 정밀도) 와 무제한 (i64) 지수를 가집니다.
-보통은 f64 표현을 쓰고, 유한한 결과가 f64 범위를 넘거나 (overflow) 0 쪽으로
-너무 작아지면 (underflow) `inf` / `0` 이 되는 대신 BigFloat 표현으로 promote 됩니다.
+`float` 값은 53비트 유효숫자(f64와 같은 정밀도)와 무제한(i64) 지수로 이루어집니다. 보통은 f64 표현을 씁니다. 유한한 결과가 f64 범위를 넘거나(오버플로) 0 쪽으로 너무 작아지면(언더플로) `inf` / `0`이 되는 대신 BigFloat 표현으로 승격합니다.
 
-- `inf` / `NaN` 은 0 으로 나누기나 `inf` / `NaN` 피연산자에서만 생깁니다.
-- `%` 는 정확한 fmod 입니다.
-- `Display` 는 f64 의 `%g` 와 같은 모양이며, promote 된 값은 `1.5e+400` 처럼 지수로 씁니다.
+- `inf` / `NaN`은 0으로 나누기나 `inf` / `NaN` 피연산자에서만 생깁니다.
+- `%`는 정확한 fmod입니다.
+- `Display`는 f64의 `%g`와 같은 모양입니다. 승격한 값은 `1.5e+400`처럼 지수로 씁니다.
 
 ### 한계 명시
 
-`float` 의 한계도 분명히 짚어 두어야 합니다. 정밀도는 무한이 아니라 53 bit 입니다.
-그래서 IEEE 754 f64 와 동일한 round-off 가 발생합니다. 예를 들어 `0.1 + 0.2` 가
-`0.3` 이 되지 않는 현상은 Rok 에서도 동일하게 나타납니다. 또한 `Eq` 가
-구현되어 있지 않은데, `float` 는 `Eq` 마커 트레잇을 구현하지 않고 NaN 처리를
-위해 `PartialEq` 만 구현합니다. 자세한 위계는 [2.5 cmp](205-cmp.md) 를
-참고합니다.
+`float`의 한계도 분명히 밝혀 둡니다. 정밀도는 무한이 아니라 53비트입니다. 그래서 IEEE 754 f64와 같은 반올림 오차가 생깁니다. 예를 들어 `0.1 + 0.2`가 `0.3`이 되지 않는 현상은 Rok에서도 똑같이 나타납니다. `Eq`도 구현하지 않습니다. `float`는 NaN을 다루려고 `Eq` 마커 트레잇 없이 `PartialEq`만 구현합니다. 전체 위계는 [2.5 cmp](205-cmp.md)에 있습니다.
 
 ### lang slot
 
-`float_type` ([0.4 lang slot 표](../000-meta/004-lang-slot-table.md)) 으로 컴파일러가 `float` 타입을 찾습니다. 접미사 없는 실수 리터럴은 기대 타입이 `float` 일 때만 `float` 가 됩니다.
+컴파일러는 `float_type`([0.4 lang slot 표](../000-meta/004-lang-slot-table.md))으로 `float` 타입을 찾습니다. 접미사 없는 실수 리터럴은 기대 타입이 `float`일 때만 `float`가 됩니다.
 
-## 2.1.4. fixed-width primitive
+## 2.1.4. 고정 폭 원시 타입
 
-[refs-lang 2.1 타입 표현식](../../refs-lang/002-types/201-type-expressions.md) 이 15 primitive 의 **이름** 을
-정의합니다. 이 절은 그 위에서 표준 라이브러리의 메서드와 동작을 정의합니다.
+[refs-lang 2.1 타입 표현식](../../refs-lang/002-types/201-type-expressions.md)이 원시 타입 15개의 **이름**을 정의합니다. 이 절은 그 위에 표준 라이브러리의 메서드와 동작을 정의합니다.
 
-### 정수 (10 종)
+### 정수(10종)
 
 | 타입    | 비트 폭                         | 범위           |
 |---------|---------------------------------|----------------|
@@ -208,40 +172,36 @@ impl Float {
 | `u64`   | 64                              | 0 ~ 2⁶⁴-1      |
 | `usize` | target pointer width            | target-dep     |
 
-### 부동소수 (2 종)
+### 부동소수(2종)
 
 | 타입  | 비트 폭 | 표준                                 |
 |-------|---------|--------------------------------------|
 | `f32` | 32      | IEEE 754 binary32 (single precision) |
 | `f64` | 64      | IEEE 754 binary64 (double precision) |
 
-### 부울 / 문자 (3 종)
+### 부울 / 문자(3종)
 
 | 타입     | 의미                                                                                  |
 |----------|---------------------------------------------------------------------------------------|
 | `bool`   | `true` / `false`                                                                      |
-| `char`   | Unicode scalar value (4 바이트), 컴파일러 primitive. 메서드는 [2.15](215-string.md) |
-| `c_char` | C ABI 호환 char (1-byte signed); FFI 전용                                             |
+| `char`   | 유니코드 스칼라 값(4바이트), 컴파일러 원시 타입. 메서드는 [2.15](215-string.md) |
+| `c_char` | C ABI 호환 char(1바이트, 부호 있음), FFI 전용                                         |
 
-### 두 부류 - 언어 기본값 vs 표준 라이브러리 추가
+### 두 부류: 언어 내장과 표준 라이브러리 추가
 
-이 장의 수치 / 부울 / 문자 타입은 **두 부류** 로 나뉘어 있습니다.
+이 장의 수치 / 부울 / 문자 타입은 **두 부류**로 나뉩니다.
 
 | 부류                       | 구성원                                                                                                | 등록 방식                              |
 |----------------------------|-------------------------------------------------------------------------------------------------------|----------------------------------------|
 | **16 언어 기본값**         | `i8`/`i16`/`i32`/`i64`, `u8`/`u16`/`u32`/`u64`, `isize`/`usize`, `f32`/`f64`, `bool`, `char`, `c_char`, `str` | 언어가 직접 인식, `#[keyword]` 불필요  |
 | **2 표준 라이브러리 추가** | `int`, `float`                                                                                | `#[keyword(...)]` 등록                 |
 
-언어 기본값은 컴파일러 (lexer/parser) 가 직접 인식하는 토큰이라서, 표준 라이브러리가
-별도로 키워드 등록을 하지 않습니다. 그 결과 사용자가 이 이름들을 재정의할 수
-없다는 사실이 자동으로 보장됩니다.
+언어 기본값은 컴파일러(렉서/파서)가 직접 인식하는 토큰입니다. 그래서 표준 라이브러리가 키워드로 따로 등록하지 않습니다. 덕분에 사용자는 이 이름을 다시 정의할 수 없습니다.
 
-이에 비해 표준 라이브러리 추가 (`int` / `float`) 는 `#[keyword(...)]` 로
-등록됩니다. 이 모듈의 `Int` / `Float` 정의에서 `#[keyword]` attribute
-가 부착됩니다 ([refs-lang
-6.6](../../refs-lang/006-meta-system/606-keyword-magic.md) 가 권위입니다).
+이에 비해 표준 라이브러리가 추가하는 `int` / `float`는 `#[keyword(...)]`로 등록합니다. 이 모듈의 `Int` / `Float` 정의에 `#[keyword]` 속성이 붙습니다(권위 있는 정의는 [refs-lang
+6.6](../../refs-lang/006-meta-system/606-keyword-magic.md)).
 
-### 언어 기본값 primitive 의 표준 라이브러리 형태
+### 내장 원시 타입의 표준 라이브러리 형태
 
 ```rok
 impl i32 { ... }              // 고유 상수와 메서드 (아래)
@@ -249,20 +209,15 @@ impl Add for i32 { ... }      // 트레잇 impl: Add, PartialOrd, Display, Clone
 impl PartialEq for c_char { ... }
 ```
 
-표준 라이브러리는 언어 기본 primitive 에 대해 struct 를 선언하지 않습니다. 고유 메서드와
-트레잇 (`Add`, `Display`, `Clone`, ...) 을 위한 `impl` 블록만 부착합니다. 타입 인식 자체는
-컴파일러가 책임집니다.
+표준 라이브러리는 언어 기본 원시 타입의 struct를 선언하지 않습니다. 고유 메서드와 트레잇(`Add`, `Display`, `Clone` 등)의 `impl` 블록만 붙입니다. 타입을 알아보는 일은 컴파일러가 맡습니다.
 
 ### 산술 / 비교 트레잇 impl
 
-각 primitive 가 [2.3 ops](203-ops.md), [2.4 ops-assign](204-ops-assign.md),
-[2.5 cmp](205-cmp.md) 의 트레잇을 구현합니다. 모든 연산자 메서드와 `PartialEq` / `PartialOrd` 메서드에는
-`#[intrinsic("rok.OP.TYPE")]` 가 부착되어 컴파일러 백엔드 PrimOp 와 직결
-됩니다.
+원시 타입은 각각 [2.3 ops](203-ops.md), [2.4 ops-assign](204-ops-assign.md), [2.5 cmp](205-cmp.md)의 트레잇을 구현합니다. 모든 연산자 메서드와 `PartialEq` / `PartialOrd` 메서드에는 `#[intrinsic("rok.OP.TYPE")]`가 붙습니다. 그래서 이 메서드는 컴파일러 백엔드 PrimOp로 바로 이어집니다.
 
-### 메서드 (각 primitive 별)
+### 메서드(원시 타입별)
 
-각 정수 / 부동소수 타입은 다음 메서드를 노출합니다 (예시는 `i32` 입니다).
+정수 / 부동소수 타입에는 각각 다음 메서드가 있습니다. 예시는 `i32`입니다.
 
 ```rok
 impl i32 {
@@ -354,11 +309,9 @@ impl i32 {
 }
 ```
 
-`i8`, `i16`, `i64`, `isize` 는 각자의 폭으로 같은 집합을 가집니다. unsigned 타입
-(`u8`..`u64`, `usize`) 은 부호 관련 메서드 (`abs`, `unsigned_abs`, `signum`, `is_positive`,
+`i8`, `i16`, `i64`, `isize`에도 각자의 폭으로 같은 메서드가 있습니다. 부호 없는 타입(`u8`..`u64`, `usize`)에는 부호 관련 메서드(`abs`, `unsigned_abs`, `signum`, `is_positive`,
 `is_negative`, `checked_isqrt`, `checked_abs`, `saturating_neg`, `saturating_abs`,
-`wrapping_abs`) 를 뺀 같은 집합을 가지며, `abs_diff` 는 같은 타입을 반환하고 `checked_neg` 는
-0 이 아닌 모든 값에서 `none` 입니다. 대신 2 의 거듭제곱 메서드가 추가됩니다.
+`wrapping_abs`)를 뺀 나머지가 있습니다. 이때 `abs_diff`는 같은 타입을 반환하고, `checked_neg`는 0이 아닌 모든 값에서 `none`입니다. 대신 2의 거듭제곱 메서드가 더 있습니다.
 
 ```rok
 impl u32 {
@@ -368,10 +321,9 @@ impl u32 {
 }
 ```
 
-정수의 최솟값 / 최댓값은 함수가 아니라 연관 상수 `i32::MIN` / `i32::MAX` 입니다. 인자 없는 고유 메서드 `min()` / `max()` 를 두면 같은 이름의 `Ord::min` / `Ord::max` (`a.min(b)`) 를 가리기 때문입니다.
+정수의 최솟값 / 최댓값은 함수가 아니라 연관 상수 `i32::MIN` / `i32::MAX`입니다. 인자 없는 고유 메서드 `min()` / `max()`를 두면 같은 이름의 `Ord::min` / `Ord::max`(`a.min(b)`)를 가리기 때문입니다.
 
-부동소수 (`f32`, `f64`) 는 다음 상수와 메서드를 제공합니다 (`f32` 는 `f64` 자리에 `f32`,
-비트에 `u32` 를 쓴 같은 집합입니다).
+부동소수 타입(`f32`, `f64`)에는 다음 상수와 메서드가 있습니다. `f32`의 집합은 `f64` 자리에 `f32`를, 비트에 `u32`를 쓴 것과 같습니다.
 
 ```rok
 impl f64 {
@@ -459,21 +411,21 @@ impl f64 {
 }
 ```
 
-## 2.1.5. literal → 어느 타입?
+## 2.1.5. 리터럴의 타입 결정
 
-[refs-lang 1.6 숫자 리터럴](../../refs-lang/001-lexical/106-numeric-literals.md) 의 규칙은 다음과 같습니다.
+[refs-lang 1.6 숫자 리터럴](../../refs-lang/001-lexical/106-numeric-literals.md)의 규칙은 다음과 같습니다.
 
 | 형태      | 결정 타입                                         |
 |-----------|---------------------------------------------------|
-| `42`      | 기대 타입 (정수 / 실수 타입), 없으면 `i32`         |
-| `3.14`    | 기대 타입 (실수 타입), 없으면 `f64`                |
+| `42`      | 기대 타입(정수 / 실수 타입), 없으면 `i32`          |
+| `3.14`    | 기대 타입(실수 타입), 없으면 `f64`                 |
 | `42i32`   | `i32`                                             |
 | `42u64`   | `u64`                                             |
 | `3.14f32` | `f32`                                             |
 | `3.14f64` | `f64`                                             |
 | `'A'`     | `char`                                            |
-| `c'A'`    | `c_char` (primitive)                              |
-| `0xFF`    | 10 진과 같음: 기대 타입, 없으면 `i32`              |
+| `c'A'`    | `c_char` (원시 타입)                              |
+| `0xFF`    | 10진과 같음. 기대 타입, 없으면 `i32`               |
 | `0xFFi32` | `i32`                                             |
 
 ### 기대 타입과 범위 검사
@@ -490,7 +442,7 @@ let i: i32 = 1.5;           // 컴파일 에러: 실수 리터럴은 정수 슬�
 let big: int = 9999999999;  // int
 ```
 
-자세한 변환 매트릭스는 [2.11 변환](211-conversion.md) 에 정리됩니다.
+전체 변환 매트릭스는 [2.11 변환](211-conversion.md)에 있습니다.
 
 ### `Zero` / `One`
 
@@ -499,14 +451,13 @@ trait Zero { fn zero() -> Self; }       // 덧셈 항등원
 trait One  { fn one() -> Self; }        // 곱셈 항등원
 ```
 
-모든 숫자 primitive 와 `int` / `float` 가 두 트레잇을 구현합니다. `Iterator::sum` / `product` 가 이를 씁니다 ([2.7.1](207-iter.md#271-iterator---단계-진행)).
+모든 숫자 원시 타입과 `int` / `float`가 두 트레잇을 구현합니다. `Iterator::sum` / `product`가 이 트레잇을 씁니다([2.7.1](207-iter.md#271-iterator-단계-진행)).
 
 ## 2.1.6. 산술 결과 타입
 
 ### `int + int = int`
 
-auto-promote 가 적용되므로 결과는 항상 `int` 자체가 됩니다. fixed-width 추론은
-이루어지지 않습니다.
+auto-promote가 적용되므로 결과는 항상 `int`입니다. 고정 폭 타입으로 추론하지 않습니다.
 
 ```rok
 let a: int = 1000;
@@ -516,8 +467,7 @@ let c = a + b;       // int (3000)
 
 ### `i32 + i32 = i32`
 
-fixed-width 는 그대로 유지됩니다. 사용자가 wider type 을 원할 경우 명시 변환을
-사용해야 합니다.
+고정 폭은 그대로 유지됩니다. 더 넓은 타입이 필요하면 명시적으로 변환해야 합니다.
 
 ```rok
 let a: i32 = 5;
@@ -527,7 +477,7 @@ let c: i32 = a + b;   // i32
 let wider: i64 = (a as i64) + (b as i64);   // i64
 ```
 
-### `int + i32` (혼합 - 거부)
+### `int + i32`(혼합: 거부)
 
 ```rok
 let a: int = 5;       // int
@@ -535,71 +485,54 @@ let b: i32 = 3;       // i32
 let c = a + b;        // 컴파일 에러: type mismatch
 ```
 
-이 경우 명시 변환이 강제됩니다.
+이때는 명시적으로 변환해야 합니다.
 
 ```rok
 let c1 = a + int::from_i32(b);    // int (a + int(3))
 let c2 = (a.to_i32()? + b);       // i32 (a 가 i32 범위 안이면 OK)
 ```
 
-이러한 정책 덕분에 silent type mixing 이 차단됩니다. Rok 은 Julia 처럼 자동
-promote 를 하지 않으며, 어느 세계를 쓸지는 사용자가 명시하도록 되어 있습니다.
+이 정책으로 타입이 조용히 섞이는 일을 막습니다. Rok은 Julia와 달리 자동으로 승격하지 않습니다. 어느 세계를 쓸지는 사용자가 명시합니다.
 
-## 2.1.7. fixed primitive ↔ int 변환
+## 2.1.7. 고정 폭 원시 타입 ↔ int 변환
 
-fixed primitive 와 `int` 사이의 변환은 명시적으로만 가능합니다.
+fixed primitive와 `int` 사이는 명시적으로만 변환할 수 있습니다.
 
 | 변환                     | 메서드                                | 실패 시                      |
 |--------------------------|---------------------------------------|------------------------------|
-| `i32` → `int`            | `.into::<int>()` 또는 `int::from_i32` | 항상 성공 (lossless)         |
-| `int` → `i32`            | `.try_into::<i32>()`                  | `OverflowError` 를 throw     |
+| `i32` → `int`            | `.into::<int>()` 또는 `int::from_i32` | 항상 성공 (손실 없음)        |
+| `int` → `i32`            | `.try_into::<i32>()`                  | `OverflowError`를 던짐      |
 | `int` → `i32` (saturate) | `.saturating_into::<i32>()`           | i32::MIN 또는 MAX            |
 | `int` → `i32` (wrap)     | `.wrapping_into::<i32>()`             | 모듈러 산술                  |
-| `int` → `f64`            | `.into::<f64>()` 또는 `int::to_f64`   | 가장 가까운 값으로 반올림 (`From` 의 문서화된 예외, [2.11.8](211-conversion.md)). `float` → `f64` 도 같은 예외 |
+| `int` → `f64`            | `.into::<f64>()` 또는 `int::to_f64`   | 가장 가까운 값으로 반올림 (`From`의 문서화된 예외, [2.11.8](211-conversion.md)). `float` → `f64`도 같은 예외 |
 
-## 2.1.8. niche 최적화 (간단)
+## 2.1.8. niche 최적화 개요
 
 [refs-lang 2.7
-niche](../../refs-lang/002-types/207-niche-optimization.md) 가 메커니즘을
-정의합니다. 자동 niche 가 적용되는 primitive 는 다음과 같습니다.
+niche](../../refs-lang/002-types/207-niche-optimization.md)가 메커니즘을 정의합니다. 자동 niche가 적용되는 원시 타입은 다음과 같습니다.
 
-`bool | none` 은 1 byte (niche 값 `2`), `Ptr<T> | none` / `ConstPtr<T> | none`
-은 pointer 크기 (null 이 none) 입니다 ([refs-lang 2.7.2](../../refs-lang/002-types/207-niche-optimization.md#272-자동-niche)). 그러나 `i8`..`i64`,
-`u8`..`u64`, `f32`, `f64` 자체에는 자동 niche 가 적용되지 않습니다. 모든 bit
-pattern 이 유효한 값이기 때문입니다.
+`bool | none`은 1바이트(niche 값 `2`)이고, `Ptr<T> | none` / `ConstPtr<T> | none`은 포인터 크기(null이 none)입니다([refs-lang 2.7.2](../../refs-lang/002-types/207-niche-optimization.md#272-자동-niche)). 그러나 `i8`..`i64`,
+`u8`..`u64`, `f32`, `f64` 자체에는 자동 niche가 적용되지 않습니다. 모든 비트 패턴이 유효한 값이기 때문입니다.
 
-opt-in niche 가 필요한 경우에는 [2.2 non-zero](202-non-zero.md) 의
-`NonZero<T>` / `NonNan<F>` / `Finite<F>` / `Positive<T>` wrapper 를 사용합니다.
+opt-in niche가 필요하면 [2.2 non-zero](202-non-zero.md)의 `NonZero<T>` / `NonNan<F>` / `Finite<F>` / `Positive<T>` 래퍼를 씁니다.
 
 ## 2.1.9. lang slot 매핑
 
-언어 기본값 16 종 (`i8`..`i64`, `u8`..`u64`, `isize`, `usize`, `f32`, `f64`, `bool`,
-`c_char`, `char`, `str`) 은 컴파일러가 이름으로 인식합니다. 이들에 lang slot 을 묶는 표준
-라이브러리 항목은 없고 struct 도 선언되지 않습니다. 라이브러리는 `impl` 블록만 추가하므로
-(2.1.4) `#[keyword]` 나 `#[lang]` 이 필요하지 않습니다.
+언어 기본값 16종(`i8`..`i64`, `u8`..`u64`, `isize`, `usize`, `f32`, `f64`, `bool`,
+`c_char`, `char`, `str`)은 컴파일러가 이름으로 인식합니다. 이 타입에 lang slot을 묶는 표준 라이브러리 항목은 없고 struct도 선언하지 않습니다. 라이브러리는 `impl` 블록만 추가하므로(2.1.4) `#[keyword]`나 `#[lang]`이 필요하지 않습니다.
 
-표준 라이브러리가 추가하는 2 종은 `#[keyword(...)]` 로 등록되고 `#[lang(...)]` 으로
-lang slot 에 묶이는 PascalCase struct 입니다.
+표준 라이브러리가 추가하는 2종은 PascalCase struct입니다. `#[keyword(...)]`로 등록하고 `#[lang(...)]`으로 lang slot에 묶습니다.
 
 | primitive | lang slot    | struct 이름 | 등록                  |
 |-----------|--------------|-------------|-----------------------|
 | `int`     | `int_type`   | `Int`       | `#[keyword("int")]`   |
 | `float`   | `float_type` | `Float`     | `#[keyword("float")]` |
 
-참고로 `Range<T>` (`a..b`) 는 [2.7 iter](207-iter.md) 가 정의합니다.
+참고로 `Range<T>`(`a..b`)는 [2.7 iter](207-iter.md)가 정의합니다.
 
-## 2.1.10. 다른 언어와의 비교 - 디자인 결정 근거
+## 2.1.10. 다른 언어와 비교: 설계 근거
 
-Rok 의 두-세계 모델 (`int` auto-promote 와 fixed primitive) 은 여러 언어에서
-영향을 받았습니다. Smalltalk 의 SmallInteger ↔ LargeInteger 는 auto-promote
-의 원형이라고 할 수 있고, Lisp 와 Scheme 의 numeric tower (fixnum / bignum /
-rational / real) 도 중요한 참고가 됩니다. 또한 **Python int** 는 무한 정밀도를
-default 로 두지만 fixed primitive 가 없다는 차이가 있고, **Julia** 는 fixed
-primitive 를 default 로 둡니다. Rok 도 리터럴의 기본은 fixed (`i32` / `f64`) 이고, `int` 는 opt-in 입니다.
+Rok의 두 세계 모델(auto-promote `int`와 fixed primitive)은 여러 언어에서 영향을 받았습니다. Smalltalk의 SmallInteger ↔ LargeInteger는 auto-promote의 원형입니다. Lisp와 Scheme의 수 체계(numeric tower: fixnum / bignum /
+rational / real)도 중요한 참고 대상입니다. **Python int**는 무한 정밀도를 기본으로 두지만 fixed primitive가 없습니다. **Julia**는 fixed primitive를 기본으로 둡니다. Rok도 리터럴의 기본은 fixed(`i32` / `f64`)이고, `int`는 opt-in입니다.
 
-각 언어와의 차이는 다음과 같습니다. **Python** 은 int 만 제공하며,
-fixed-width 가 없어서 FFI 나 성능 critical 한 상황에서는 NumPy 에 의존하게
-됩니다. **Julia** 는 Rok 과 같이 fixed 가 default 이며, 무한 정밀도가
-필요하면 `BigInt` 를 명시합니다. **Rust** 는 fixed only 라서 매번
-사용자가 type 을 적어야만 합니다. **Rok** 는 두 세계가 공존하도록
-하여, 리터럴은 기대 타입을 따르고 (없으면 `i32` / `f64`), 무한 정밀도가 필요한 자리에서 `int` / `float` 를 적도록 설계됩니다.
+언어별 차이는 다음과 같습니다. **Python**에는 int만 있고 고정 폭 타입이 없습니다. 그래서 FFI나 성능이 중요한 작업에서는 NumPy에 의존합니다. **Julia**는 Rok처럼 fixed가 기본이고, 무한 정밀도가 필요하면 `BigInt`를 명시합니다. **Rust**에는 fixed만 있어서 사용자가 매번 타입을 적어야 합니다. **Rok**에는 두 세계가 함께 있습니다. 리터럴은 기대 타입을 따르고(없으면 `i32` / `f64`), 무한 정밀도가 필요한 자리에는 `int` / `float`를 적습니다.

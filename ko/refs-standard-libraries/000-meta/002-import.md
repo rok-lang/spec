@@ -1,19 +1,19 @@
-# 0.2. import 정책 - `use rok::core::**;` 묵시 적용
+# 0.2. import 정책: `use rok::core::**;` 묵시 적용
 
-> 본 문서는 표준 라이브러리 묵시 import 정책을 정의합니다. Rok 가상 네임스페이스 아래 `rok::core` 영역만 자동 가시화되며, `rok::bare` 와 `rok::std` 는 명시 import 가 필요합니다.
+> 이 문서는 표준 라이브러리의 묵시 import 정책을 정의합니다. Rok 가상 네임스페이스 아래에서 자동으로 보이는 영역은 `rok::core`뿐입니다. `rok::bare`와 `rok::std`는 명시적으로 가져와야 합니다.
 
-Rok 은 모든 사용자 소스 파일 앞에 **묵시적으로** 다음 한 줄을 prepend 합니다.
+Rok은 모든 사용자 소스 파일 맨 앞에 다음 한 줄을 **묵시적으로** 붙입니다.
 
 ```rok
 use rok::core::**;
 ```
 
-여기서 `**` 는 **recursive glob** 으로, `rok` 모듈 자신은 물론 그 아래 모든 하위 모듈 (`rok::core::ops`, `rok::core::iter`, `rok::core::collections`, `rok::core::sync`, `rok::core::task`, ...) 의 pub 항목까지 한꺼번에 끌어옵니다.
+`**`는 **재귀 glob(recursive glob)**입니다. `rok` 모듈 자신과 그 아래 모든 하위 모듈(`rok::core::ops`, `rok::core::iter`, `rok::core::collections`, `rok::core::sync`, `rok::core::task`, ...)의 pub 항목을 한꺼번에 가져옵니다.
 
 > [!NOTE]
-> Rok 은 **별도 `rok::core::prelude` 모듈을 두지 않습니다**. Rust `std::prelude::v1::*` 나 Haskell `Prelude` 식 **re-export 모듈** 관습은 거부했고, 그 자리를 `**` recursive glob 이 **직접** 대신합니다. 메커니즘이 단순해지는 것은 물론 추가 indirection 도 사라집니다.
+> Rok에는 **`rok::core::prelude` 모듈이 따로 없습니다**. Rust의 `std::prelude::v1::*`나 Haskell의 `Prelude` 같은 **재내보내기(re-export) 모듈** 관습은 따르지 않습니다. `**` 재귀 glob이 그 자리를 **직접** 대신합니다. 메커니즘이 단순해지고 간접 계층도 하나 사라집니다.
 
-## 0.2.1. 핵심 디자인 결정
+## 0.2.1. 핵심 설계 결정
 
 | 모델                                     | 채택 언어      | Rok 채택  |
 |------------------------------------------|----------------|-----------|
@@ -21,13 +21,13 @@ use rok::core::**;
 | 명시 use 만                              | C / C++        | (verbose) |
 | **`use rok::core::**;` 묵시 + 명시 보강** | Rok 자체       | **채택**  |
 
-### 왜 별도 prelude 모듈을 거부하는가
+### 별도 prelude 모듈을 거부하는 이유
 
-전통적 prelude 가 안고 있는 단점은 한둘이 아닙니다. 우선 **indirection** 문제가 있는데, `rok::core::prelude::v1::List` 처럼 **re-export 경로** 가 실제 정의 경로와 분리되어 버립니다. 거기에 `prelude::v1` / `prelude::v2` 같은 epoch 단위로 버전을 관리해야 하는 부담도 따라옵니다 (Rust 2024 prelude 추가가 그 학습 사례입니다). 자기 모순도 피할 수 없습니다. 표준 라이브러리 자체가 prelude 를 import 하면 cycle 이 발생해 `#![no_prelude]` 같은 별도 escape 를 마련해야 합니다. 무엇보다 `**` 가 이미 재귀 glob 을 제공한다면 prelude 모듈은 **trivially redundant** 한 layer 에 지나지 않습니다.
+전통적인 prelude에는 단점이 여럿 있습니다. 먼저 **간접 계층(indirection)** 문제입니다. `rok::core::prelude::v1::List`처럼 **재내보내기 경로**가 실제 정의 경로와 따로 놉니다. 다음으로 `prelude::v1` / `prelude::v2`처럼 epoch 단위로 버전을 관리해야 합니다. Rust 2024에서 prelude에 항목을 추가한 일이 그 예입니다. 자기모순도 피할 수 없습니다. 표준 라이브러리 자신이 prelude를 가져오면 순환이 생기므로 `#![no_prelude]` 같은 탈출구가 따로 필요합니다. 무엇보다 `**`로 이미 재귀 glob을 쓸 수 있다면 prelude 모듈은 **뻔히 중복된(trivially redundant)** 층일 뿐입니다.
 
-Rok 의 해결책은 깔끔합니다. `**` 자체를 언어 차원에 끌어들였기에 자동 적용도 `**` 로, 사용자 명시도 `**` 로 같은 메커니즘 위에서 굴러갑니다.
+Rok의 해결책은 간단합니다. `**` 자체를 언어에 들였으므로 자동 적용도 `**`로, 사용자의 명시적 import도 `**`로 합니다. 둘은 같은 메커니즘 위에서 동작합니다.
 
-## 0.2.2. `**` recursive glob
+## 0.2.2. `**` 재귀 glob
 
 ```rok
 use foo::bar;            // 단일 항목
@@ -36,9 +36,9 @@ use foo::*;              // 단일 레벨 glob (foo 의 직접 자식만)
 use foo::**;             // recursive glob (foo + 하위 모듈 모두)
 ```
 
-`**` syntax 의 본문 정의는 [refs-lang 5.5 use](../../refs-lang/005-modules/505-use.md) 가 담당합니다.
+`**` 문법의 규범적 정의는 [refs-lang 5.5 use](../../refs-lang/005-modules/505-use.md)에 있습니다.
 
-## 0.2.3. 묵시 적용 - `use rok::core::**;`
+## 0.2.3. 묵시 적용: `use rok::core::**;`
 
 ```rok
 // 사용자 코드
@@ -54,20 +54,20 @@ fn main() {
 }
 ```
 
-위 코드는 어떤 use 문도 적지 않은 채로 작동합니다. 컴파일러가 **묵시적으로** `use rok::core::**;` 를 prepend 해 주기 때문입니다.
+위 코드는 use 문을 하나도 적지 않아도 동작합니다. 컴파일러가 `use rok::core::**;`를 **묵시적으로** 앞에 붙이기 때문입니다.
 
 ### 이름 충돌 정책
 
-`**` 도 끌어오는 이름의 사용자 정의 항목은 그 모듈에서 그것을 가립니다: 이름 찾기는 묵시 `use rok::core::**` 보다 모듈 자신의 항목과 그 `use` 를 먼저 봅니다 ([refs-lang 5.7.1](../../refs-lang/005-modules/507-paths.md#571-경로의-시작-식별자)). core 항목은 경로나 별칭으로 계속 닿을 수 있습니다.
+사용자가 정의한 항목의 이름이 `**`로 들어오는 이름과 같으면 그 모듈에서는 사용자 항목이 core 항목을 가립니다. 이름을 찾을 때 묵시 `use rok::core::**`보다 모듈 자신의 항목과 그 모듈의 `use`를 먼저 보기 때문입니다([refs-lang 5.7.1](../../refs-lang/005-modules/507-paths.md#571-경로의-시작-식별자)). core 항목에는 경로나 별칭으로 여전히 접근할 수 있습니다.
 
 ```rok
 struct List<T> { ... }                  // OK: 여기서 rok::core::collections::List 를 가림
 let xs: rok::core::collections::List<i32> = [1, 2];   // 경로로 가리킨 core 의 List
 ```
 
-## 0.2.4. 묵시 적용 **안 되는** tier
+## 0.2.4. 묵시 적용되지 않는 계층
 
-묵시 처리되는 것은 `use rok::core::**;` 뿐입니다. unsafe 와 std 는 **명시 강제** 입니다.
+묵시적으로 적용하는 것은 `use rok::core::**;`뿐입니다. unsafe와 std는 **명시해야만** 쓸 수 있습니다.
 
 ```rok
 // unsafe: 위험 시그널
@@ -79,7 +79,7 @@ use rok::std::fs;
 use rok::std::time::Instant;
 ```
 
-이 정책은 [0.1 tier 모델](001-tier-model.md) 의 다음 표와 그대로 맞물립니다.
+이 정책은 [0.1 tier 모델](001-tier-model.md)의 다음 표와 맞물립니다.
 
 | tier           | 묵시 import | 이유                    |
 |----------------|-------------|-------------------------|
@@ -87,11 +87,11 @@ use rok::std::time::Instant;
 | `rok::bare::**` | ✗           | 위험 시그널, 명시 강제 |
 | `rok::std::**` | ✗           | target-dep, 명시 강제  |
 
-이렇게 해 두면 사용자가 어떤 영역으로 진입하고 있는지 파일 상단만 봐도 즉시 드러납니다.
+이렇게 하면 코드가 어떤 영역을 쓰는지 파일 맨 위만 봐도 알 수 있습니다.
 
-## 0.2.5. 묵시 무시 - `#![no_implicit_rok]`
+## 0.2.5. 적용 해제: `#![no_implicit_rok]`
 
-특수한 상황에서는 묵시 `use rok::core::**;` 자체를 꺼 버릴 수도 있습니다.
+특수한 상황에서는 묵시 `use rok::core::**;` 자체를 끌 수 있습니다.
 
 ```rok
 #![no_implicit_rok]   // 파일 최상단
@@ -103,13 +103,13 @@ let r = a + b;   // OK (Add 명시)
 let m = Mutex::new(0);   // ERROR: Mutex 미 import
 ```
 
-리터럴은 컴파일러가 정의하므로 계속 쓸 수 있습니다. 잃는 것은 이름 (과 import 하지 않은 트레잇의 연산자, [refs-lang 6.7.8](../../refs-lang/006-meta-system/607-operator-magic.md#678-매핑의-가시성)) 뿐입니다.
+리터럴은 컴파일러가 정의하므로 계속 쓸 수 있습니다. 잃는 것은 이름과, 가져오지 않은 트레잇의 연산자뿐입니다([refs-lang 6.7.8](../../refs-lang/006-meta-system/607-operator-magic.md#678-매핑의-가시성)).
 
-쓸 일이 생기는 곳은 다음과 같습니다. 표준 라이브러리 자체가 자기 자신을 import 하면 cycle 이 발생하므로 이 attribute 가 필요하고, `no_std` 나 `no_rok` 환경 (드물지만 임베디드) 에서도 마찬가지입니다. 학습용이나 데모 코드에서 어떤 항목이 어디서 오는지 한눈에 보여 주고 싶을 때도 유용한 도구입니다.
+이 속성을 쓰는 곳은 다음과 같습니다. 표준 라이브러리는 자기 자신을 가져오면 순환이 생기므로 이 속성이 필요합니다. 드물지만 임베디드 같은 `no_std`나 `no_rok` 환경도 마찬가지입니다. 학습용이나 데모 코드에서 각 항목이 어디서 오는지 한눈에 보여 줄 때도 쓸모가 있습니다.
 
-## 0.2.6. `**` 의 가시성 규칙
+## 0.2.6. `**`의 가시성 규칙
 
-`**` 는 **pub 항목만** 노출합니다. 내부 구현 (`pub(pkg)` / private) 은 외부 사용자에게 절대로 새어 나가지 않습니다.
+`**`는 **pub 항목만** 드러냅니다. 내부 구현(`pub(pkg)` / private)은 외부 사용자에게 새어 나가지 않습니다.
 
 ```rok
 mod sync {                          // rok::core::sync
@@ -126,7 +126,7 @@ rok::core::sync::Internal::new();              // ERROR: pub(pkg)
 rok::core::sync::helper();                     // ERROR: private
 ```
 
-또한 이름을 평탄화하지 않고 모듈 경로를 그대로 보존합니다.
+이름을 평탄화하지 않고 모듈 경로를 그대로 보존합니다.
 
 ```rok
 // 묵시 use rok::core::**; 후
@@ -138,7 +138,7 @@ rok::core::sync::Mutex::new(0);
 Mutex::new(0);
 ```
 
-## 0.2.7. 다른 언어와의 비교
+## 0.2.7. 다른 언어와 비교
 
 | 언어    | 모델                                        | indirection                        |
 |---------|---------------------------------------------|------------------------------------|
@@ -146,8 +146,8 @@ Mutex::new(0);
 | Rust    | `std::prelude::v1::*` re-export 모듈 + 자동 | 1 (prelude module)                 |
 | Haskell | `Prelude` re-export 모듈 + 자동             | 1                                  |
 | Python  | built-ins (언어 magic)                      | 0 (langauge-level)                 |
-| **Rok** | `use rok::core::**;` 묵시                    | **0** (직접: `**` 가 곧 메커니즘) |
+| **Rok** | `use rok::core::**;` 묵시                    | **0** (직접: `**`가 곧 메커니즘)  |
 
-Rok 이 다른 언어와 갈라지는 가장 큰 지점은 prelude 모듈 indirection 이 없다는 사실입니다. `**` 가 **언어 차원** 에서 recursive glob 을 제공하기에 사용자도 표준 라이브러리도 같은 메커니즘을 공유합니다.
+Rok이 다른 언어와 가장 크게 다른 점은 prelude 모듈이라는 간접 계층이 없다는 것입니다. 재귀 glob `**`가 **언어 차원**의 기능이므로 사용자와 표준 라이브러리가 같은 메커니즘을 씁니다.
 
-이 결정 하나로 explicit > implicit 와 no extra indirection 두 원칙을 모두 만족시킬 수 있습니다.
+이 결정 하나로 '명시가 묵시보다 낫다(explicit > implicit)'와 '간접 계층을 더 두지 않는다(no extra indirection)'는 두 원칙을 모두 만족합니다.
