@@ -184,7 +184,7 @@ print(rokon::to_string(cfg));
 
 ### Limitations
 
-- `Dict` / `Set` are written in hash order. To preserve order, use `OrderedDict` / `OrderedSet`.
+- `Dict` / `Set` are written in insertion order, as they iterate (2.9).
 - `[T; 0]` cannot be read.
 - Tuples are limited to 6 elements.
 - A dict whose first key is `none` cannot be read (3.9.1).
