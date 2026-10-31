@@ -25,10 +25,27 @@ struct Thread { /* OS handle, 제네릭 아님 */ }
 struct JoinHandle<T> { /* join 결과 T */ }
 struct ThreadId { /* opaque */ }       // PartialEq 구현
 
-struct JoinError { code: i32; }          // OS join 에러 번호 (errno), JOIN_LOST, 또는 JOIN_TAKEN
-const JOIN_LOST: i32 = -1;               // 실패한 REPL 셀과 함께 끝난 스레드
-const JOIN_TAKEN: i32 = -2;              // 이미 join 또는 detach 됨
+struct JoinError {
+    #[deprecated(since = "0.1.6", note = "use `JoinError::kind()`")]
+    code: i32;                           // OS join 에러 번호 (errno), JOIN_LOST, 또는 JOIN_TAKEN
+}
+impl JoinError {
+    fn kind(self) -> JoinErrorKind;
+    fn message(self) -> str;             // Display 가 보이는 그대로
+}
 // Display, Debug, Error 를 구현
+
+#[non_exhaustive]
+enum JoinErrorKind {
+    Os(i32),                             // OS 의 join 에러 번호 (errno)
+    Lost,                                // 실패한 REPL 셀과 함께 끝난 스레드
+    Taken,                               // 이미 join 또는 detach 됨
+}                                        // + PartialEq, Debug
+
+#[deprecated(since = "0.1.6", note = "use `JoinErrorKind::Lost`")]
+const JOIN_LOST: i32 = -1;
+#[deprecated(since = "0.1.6", note = "use `JoinErrorKind::Taken`")]
+const JOIN_TAKEN: i32 = -2;
 
 fn spawn<T: Send>(f: fn() -> T + Send) -> JoinHandle<T>;   // = try! Builder::new().spawn(f)
 
@@ -65,7 +82,7 @@ fn yield_now();
 fn sleep(dur: Duration);
 fn park();                                     // unpark 될 때까지 block (깨운 이유 없이 돌아올 수 있음)
 fn park_timeout(dur: Duration);
-fn panicking() -> bool;                        // 항상 false: panic 은 그 전에 프로세스를 끝냄
+fn panicking() -> bool;                        // panic 한 스레드에서, 프로세스가 끝나는 동안 true
 
 // thread-local storage
 fn local<T>(init: fn() -> T + Sync) -> ThreadLocal<T>;     // 각 스레드에서 처음 쓸 때 init 호출
@@ -85,9 +102,9 @@ impl<T> ThreadLocal<T> {
 
 ### panic과 `JoinError`
 
-어느 스레드에서든 panic이 나면 프로세스 전체가 종료 코드 101로 끝납니다. 그래서 `join`이 다른 스레드의 panic을 받을 일은 없습니다. `JoinError`가 나타내는 것은 두 가지입니다. OS 수준의 join 실패, 또는 실패한 REPL 셀과 함께 끝난 스레드의 `JOIN_LOST`([refs-lang 9.7.0](../../refs-lang/009-tools/907-jit-cells.md#970-셀-세션의-규칙))를 나타냅니다. 후자는 "thread join failed: the thread ended with a failed REPL cell"로 표시됩니다.
+어느 스레드에서든 panic이 나면 프로세스 전체가 종료 코드 101로 끝납니다. 그래서 `join`이 다른 스레드의 panic을 받을 일은 없습니다. `thread::panicking()`은 프로세스가 끝나는 동안 panic한 스레드에서 도는 코드(임베더의 종료 훅)에서만 true입니다. `JoinError`가 나타내는 것은 두 가지입니다. OS 수준의 join 실패(`JoinErrorKind::Os`), 또는 실패한 REPL 셀과 함께 끝난 스레드의 `JoinErrorKind::Lost`(`JOIN_LOST`)([refs-lang 9.7.0](../../refs-lang/009-tools/907-jit-cells.md#970-셀-세션의-규칙))를 나타냅니다. 후자는 "thread join failed: the thread ended with a failed REPL cell"로 표시됩니다.
 
-`JOIN_TAKEN` (-2): 그 핸들이나 그 복사본에 이미 join이나 detach를 했습니다. 두 번째 `join`은 이 에러를 던지고, 두 번째 `detach`는 아무것도 하지 않습니다.
+`JoinErrorKind::Taken`(`JOIN_TAKEN`, -2): 그 핸들이나 그 복사본에 이미 join이나 detach를 했습니다. 두 번째 `join`은 이 에러를 던지고, 두 번째 `detach`는 아무것도 하지 않습니다. `code` 필드와 `JOIN_*` 상수는 경고(`deprecated`)를 내고, 0.2.0에서 사라집니다.
 
 ## 3.4.3. 사용 예
 

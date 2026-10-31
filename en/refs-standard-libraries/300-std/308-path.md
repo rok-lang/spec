@@ -36,16 +36,17 @@ impl Path {
     fn ancestors(self) -> Ancestors;     // implements Iterator<Item = Path>
 
     // manipulation
-    fn join(self, other: Path) -> Path;
+    fn join<P: AsPath>(self, other: P) -> Path;   // a str too
     fn with_file_name(self, name: str) -> Path;
     fn with_extension(self, ext: str) -> Path;
     fn strip_prefix(self, base: Path) throws (StripPrefixError) -> Path;
+    fn strip_prefix_opt<P: AsPath>(self, base: P) -> Path | none;   // none instead of the throw
 
     fn is_absolute(self) -> bool;
     fn is_relative(self) -> bool;
     fn has_root(self) -> bool;
-    fn starts_with(self, base: Path) -> bool;
-    fn ends_with(self, suffix: Path) -> bool;
+    fn starts_with<P: AsPath>(self, base: P) -> bool;
+    fn ends_with<P: AsPath>(self, suffix: P) -> bool;
     fn normalize(self) -> Path;             // resolve "." / ".." (lexical)
 
     // OS interaction (convenience; fs::* internally)

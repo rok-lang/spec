@@ -76,7 +76,7 @@ Config {
 
 - struct 대상은 `Struct`, `{}`, `A::B { .. }`를 받습니다. 그래서 모듈 경로를 붙인 struct 이름(`geom::Point { .. }`)도 받습니다.
 - 적은 이름은 대상과 같아야 합니다. struct는 경로의 마지막 마디, enum 변형은 마지막 두 마디를 비교합니다.
-- 모르는 필드는 그 필드 이름 위치의 에러입니다.
+- 모르는 필드는 그 필드 이름 위치의 에러입니다. 타입에 `#[rokon(deny_unknown_fields)]`를 붙이면 이를 명시합니다. 0.2.0부터 읽기가 모르는 필드를 기본으로 건너뛰어도 그 타입은 계속 에러로 다룹니다.
 - 빠진 필드는 그 필드에 `= 기본값`이 있으면 기본값을 받습니다. 타입이 `T | none`이면 `none`을 받습니다. 그 밖에는 에러입니다(`FromRokon::from_missing`).
 - 정수 값이 대상 정수 타입의 범위를 넘으면 에러입니다.
 - 이름 있는 변형은 `E::V(a, k: b)`로도 읽습니다. 위치 인자가 필드를 순서대로 채우고, 이어서 이름 있는 인자가 채웁니다.
@@ -117,7 +117,22 @@ impl Value {
     fn kind(self) -> str;            // 에러 메시지용 종류 이름 (아래)
 }                                    // + Display, Debug, PartialEq, Eq, Hash
 
-pub struct RokonError { pub msg: str; pub line: u32; pub col: u32; pub path: str; }
+pub struct RokonError {
+    #[deprecated(since = "0.1.6", note = "use `RokonError::message()`")]
+    pub msg: str;
+    #[deprecated(since = "0.1.6", note = "use `RokonError::line()`")]
+    pub line: u32;
+    #[deprecated(since = "0.1.6", note = "use `RokonError::col()`")]
+    pub col: u32;
+    #[deprecated(since = "0.1.6", note = "use `RokonError::path()`")]
+    pub path: str;
+}
+impl RokonError {
+    pub fn message(self) -> str;     // Display 가 붙이는 위치 없이
+    pub fn line(self) -> u32;        // 1 부터; 텍스트에서 온 값이 아니면 0
+    pub fn col(self) -> u32;         // 1 부터, code point 단위; line 처럼 0
+    pub fn path(self) -> str;        // ".servers[2].port"; 루트면 빈 문자열
+}
 
 pub trait ToRokon { fn to_rokon(self) -> Value; }
 pub trait FromRokon {
@@ -126,7 +141,8 @@ pub trait FromRokon {
 }
 
 pub fn parse(s: str) throws (RokonError) -> Value;
-pub fn to_string<T: ToRokon>(v: T) -> str;
+pub fn to_string<T: ToRokon>(v: T) -> str;                        // NaN / 무한대 float 에서 panic
+pub fn try_to_string<T: ToRokon>(v: T) throws (RokonError) -> str;  // 그 자리에서 대신 경로와 함께 throw
 pub fn from_str<T: FromRokon>(s: str) throws (RokonError) -> T;
 pub fn encode<T: ToRokon>(x: T) -> Value;
 pub fn decode<T: FromRokon>(v: Value, seg: str) throws (RokonError) -> T;
@@ -138,7 +154,7 @@ pub fn decode<T: FromRokon>(v: Value, seg: str) throws (RokonError) -> T;
 - `Value`의 `Debug`, `==`, `hash`에서는 panic이 일어나지 않습니다.
 - 표준 구현은 다음과 같습니다. 모든 정수 타입, `f32` / `f64`, `int` / `float`, `bool` / `char` / `str`, `Value`, `T | none`, `List`, `Set`, `Dict`, `OrderedDict`, `OrderedSet`, 원소 1~6개의 튜플, `[T; N]`.
 
-모듈은 `Fields`, `struct_args`, `variant_of`, `variant_args`, `unknown_variant`, `RokonError::new` / `within`, 그리고 하위 모듈 `read` / `write`도 내보냅니다. 이들은 `#[derive(Rokon)]`에 대해 `@derive`가 생성하는 코드에 쓰입니다. 안정 API가 아닙니다.
+모듈은 `Fields`, `struct_args`, `variant_of`, `variant_args`, `unknown_variant`, `RokonError::new` / `within`, 그리고 하위 모듈 `read` / `write`도 내보냅니다. 이들은 `#[derive(Rokon)]`에 대해 `@derive`가 생성하는 코드에 쓰입니다. 안정 API가 아닙니다. `RokonError::new` / `within`을 뺀 나머지는 `#[doc(hidden)]`이고, 0.2.0부터는 표준 라이브러리 밖에서 보이지 않습니다.
 
 ### `#[derive(Rokon)]`
 

@@ -76,7 +76,7 @@ In typed reads (`from_str`, `decode`), the target type determines the interpreta
 
 - A struct target accepts `Struct`, `{}` and `A::B { .. }`, so struct names with a module path (`geom::Point { .. }`) are accepted too.
 - A written name must match the target. For structs, the last path segment is compared; for enum variants, the last two segments.
-- An unknown field is an error at the position of that field name.
+- An unknown field is an error at the position of that field name. `#[rokon(deny_unknown_fields)]` on the type says so explicitly and keeps it when 0.2.0 makes reads skip unknown fields by default.
 - A missing field takes the field's `= default` if it has one, `none` if its type is `T | none`, and is an error otherwise (`FromRokon::from_missing`).
 - An integer value outside the range of the target integer type is an error.
 - Named variants can also be read as `E::V(a, k: b)`. Positional arguments fill the fields in order, followed by named arguments.
@@ -117,7 +117,22 @@ impl Value {
     fn kind(self) -> str;            // kind name for error messages (below)
 }                                    // + Display, Debug, PartialEq, Eq, Hash
 
-pub struct RokonError { pub msg: str; pub line: u32; pub col: u32; pub path: str; }
+pub struct RokonError {
+    #[deprecated(since = "0.1.6", note = "use `RokonError::message()`")]
+    pub msg: str;
+    #[deprecated(since = "0.1.6", note = "use `RokonError::line()`")]
+    pub line: u32;
+    #[deprecated(since = "0.1.6", note = "use `RokonError::col()`")]
+    pub col: u32;
+    #[deprecated(since = "0.1.6", note = "use `RokonError::path()`")]
+    pub path: str;
+}
+impl RokonError {
+    pub fn message(self) -> str;     // without the position Display adds
+    pub fn line(self) -> u32;        // 1-based; 0 when the value did not come from text
+    pub fn col(self) -> u32;         // 1-based, in code points; 0 as for line
+    pub fn path(self) -> str;        // ".servers[2].port"; empty at the root
+}
 
 pub trait ToRokon { fn to_rokon(self) -> Value; }
 pub trait FromRokon {
@@ -126,7 +141,8 @@ pub trait FromRokon {
 }
 
 pub fn parse(s: str) throws (RokonError) -> Value;
-pub fn to_string<T: ToRokon>(v: T) -> str;
+pub fn to_string<T: ToRokon>(v: T) -> str;                        // panics on a NaN / infinite float
+pub fn try_to_string<T: ToRokon>(v: T) throws (RokonError) -> str;  // throws there instead, with the path
 pub fn from_str<T: FromRokon>(s: str) throws (RokonError) -> T;
 pub fn encode<T: ToRokon>(x: T) -> Value;
 pub fn decode<T: FromRokon>(v: Value, seg: str) throws (RokonError) -> T;
@@ -138,7 +154,7 @@ pub fn decode<T: FromRokon>(v: Value, seg: str) throws (RokonError) -> T;
 - `Debug`, `==` and `hash` on `Value` never panic.
 - Standard implementations: every integer type, `f32` / `f64`, `int` / `float`, `bool` / `char` / `str`, `Value`, `T | none`, `List`, `Set`, `Dict`, `OrderedDict`, `OrderedSet`, tuples of 1 ~ 6 elements, `[T; N]`.
 
-The module also exports `Fields`, `struct_args`, `variant_of`, `variant_args`, `unknown_variant`, `RokonError::new` / `within` and the submodules `read` / `write`. They support the code `@derive` generates for `#[derive(Rokon)]` and are not a stable API.
+The module also exports `Fields`, `struct_args`, `variant_of`, `variant_args`, `unknown_variant`, `RokonError::new` / `within` and the submodules `read` / `write`. They support the code `@derive` generates for `#[derive(Rokon)]` and are not a stable API: all but `RokonError::new` / `within` are `#[doc(hidden)]`, and 0.2.0 makes them private to the standard library.
 
 ### `#[derive(Rokon)]`
 

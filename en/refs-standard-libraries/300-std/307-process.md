@@ -71,6 +71,8 @@ impl Child {
     #[cfg(target_os = "linux")]
     fn pidfd(self) throws (IoError) -> RawFd;
 
+    fn send_signal(self, sig: Signal) throws (IoError);  // Windows: Kill only
+    #[deprecated(since = "0.1.6", note = "use `Child::send_signal(Signal::..)`")]
     fn signal(self, sig: i32) throws (IoError);          // unix
 }
 
@@ -95,6 +97,7 @@ impl ExitStatus {
     fn signal(self) -> i32 | none;       // unix
 }
 impl Display for ExitStatus { ... }      // "exit status: 1" / "signal: 9"
+impl Debug for ExitStatus { ... }        // "ExitStatus { code: 1 }" / "ExitStatus { signal: 9 }"
 ```
 
 The exit result is held in the opaque type `ExitStatus`. If `code()` is `none`, the process was terminated by a signal on unix, and the signal number can be retrieved separately with `signal()`.
@@ -159,10 +162,22 @@ With `Command::env`, the program is still looked up on the parent's `PATH`, not 
 Going a level deeper, there are the signal handling functions.
 
 ```rok
+#[non_exhaustive]
+enum Signal { Hangup, Interrupt, Quit, Kill, Pipe, Alarm, Terminate, User1, User2, Child, Continue, Stop }
+
+impl Signal {
+    fn number(self) -> i32;              // the OS's number (SIGHUP = 1, ..)
+}                                        // + PartialEq, Debug
+
+fn on_signal(sig: Signal, handler: fn() + Send) throws (SignalError);
+fn send_signal(pid: u32, sig: Signal) throws (IoError);
+#[deprecated(since = "0.1.6", note = "use `process::on_signal(Signal::.., handler)`")]
 fn signal(sig: i32, handler: fn() + Send) throws (SignalError);
+#[deprecated(since = "0.1.6", note = "use `process::send_signal(pid, Signal::..)`")]
 fn kill(pid: u32, sig: i32) throws (IoError);
 fn raise(sig: i32) throws (IoError);
-fn id() -> u32;                          // this process's id (= env::pid())
+fn id() -> u32;                          // this process's id
+fn exit(code: i32) -> !;                 // exit now via the runtime's rok_exit; finally and Drop do not run (refs-lang 4.16)
 fn abort() -> !;                         // abnormal termination (SIGABRT); nothing is cleaned up
 
 struct SignalError {
@@ -171,9 +186,9 @@ struct SignalError {
 }
 ```
 
-A `signal` handler does not run in signal context (inside a signal handler). The runtime receives the signal and hands it to a dedicated dispatcher thread `rok-signal`, where the handler runs like an ordinary function. The handler must therefore be `Send`, and it may allocate or take locks. Calling `signal` again for the same signal replaces the handler. `Command::process_group(pgid)` puts the child in that process group (`0` means a new group with the child's pid).
+An `on_signal` handler does not run in signal context (inside a signal handler). The runtime receives the signal and hands it to a dedicated dispatcher thread `rok-signal`, where the handler runs like an ordinary function. The handler must therefore be `Send`, and it may allocate or take locks. Calling `on_signal` again for the same signal replaces the handler. `Signal` names the signal on every OS; the `i32` forms `signal`, `kill` and `Child::signal` still work and warn (`deprecated`), and 0.2.0 removes them. `Command::process_group(pgid)` puts the child in that process group (`0` means a new group with the child's pid).
 
-On Windows, console events map to signal numbers: Ctrl-C → 2, Ctrl-Break → 21, console close / logoff / shutdown → 1. `kill` and `signal` sent to a child call `TerminateProcess`.
+On Windows, console events map to signals: Ctrl-C → `Interrupt` (2), console close / logoff / shutdown → `Hangup` (1); the deprecated `signal` also takes Ctrl-Break (21). `send_signal` sends only `Signal::Kill`, as `TerminateProcess`; any other `Signal` is an `IoError` (`Unsupported`), and `on_signal` of a signal other than `Interrupt` or `Hangup` is a `SignalError`.
 
 Most users never need to touch this. These tools become necessary only where signals must be faced head-on, such as daemons, servers and interactive CLIs.
 
