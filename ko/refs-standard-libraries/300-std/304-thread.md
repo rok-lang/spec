@@ -147,6 +147,8 @@ try thread::spawn(|| {
 }).join();
 ```
 
+`get`은 현재 스레드의 값을 돌려줍니다. task는 `await` 뒤에 다른 worker 스레드에서 다시 이어질 수 있으므로, `await`를 넘어 들고 있던 `get()` 값은 그때 다른 스레드의 값이 되어 두 스레드가 잠금 없이 함께 씁니다. `await` 뒤에 `get()`을 다시 부릅니다. `thread_local_across_await` 린트([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어))가 이런 값을 보고합니다.
+
 ## 3.4.5. 구현 / 타깃
 
 플랫폼별 지원 현황은 다음과 같습니다.

@@ -93,6 +93,8 @@ rx.recv();             //→ 1
 rx.recv();             //→ none  (closed)
 ```
 
+A sender that some path never closes keeps the channel open: `rx.recv()` blocks and `for v in rx` never ends. Close every sender you make (each `clone` too) once it has sent its last value, on every path, or in the thread or task it is moved to. The `unclosed_sender` lint ([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)) reports a `Sender` made in a function that some path leaves open, including one captured by a closure that only sends through it.
+
 ## 2.17.4. Multiple producers and consumers
 
 `Sender<T>` implements `Clone`, so multiple tasks can send messages to the same channel.

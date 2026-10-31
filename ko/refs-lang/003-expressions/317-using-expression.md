@@ -97,6 +97,8 @@ let content = using f = try fs::open(path) {
 
 panic과 fatal 에러는 프로세스를 바로 종료하므로 `drop`을 호출하지 않습니다([3.14.8](314-error-control-flow.md#3148-panic과-fatal-에러)). panic의 일반적인 동작이며, `using`에만 해당하지 않습니다.
 
+값은 한 번만 해제합니다. `using x = a {} using y = a {}`는 `a`를 두 번 해제하고(`bare::alloc::Allocation`이면 이중 해제), `using`이 끝난 뒤에 `a`를 쓰면 해제된 값을 쓰게 됩니다. `using_twice` 린트가 둘 다 보고합니다([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). `using`마다 그 자리에서 만든 값을 묶거나(`using g = m.lock() { .. }`), 할 일을 모두 한 `using` 블록 안에서 합니다.
+
 ## 3.17.7. 묶을 수 있는 타입
 
 `using` 우변 식의 타입은 [`Drop`](../../refs-standard-libraries/200-core/213-marker.md)을 구현하거나, `Drop`이 있는 필드를 담아야 합니다(drop glue, [stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop-using-해제-시-정리)). 둘 다 아니면 컴파일 에러입니다.

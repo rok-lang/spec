@@ -97,6 +97,8 @@ This is the biggest structural difference from function-scoped `defer` (Go). The
 
 Panics and fatal errors terminate the process immediately, so `drop` is not called ([3.14.8](314-error-control-flow.md#3148-panics-and-fatal-errors)). This is the general result of a panic, not behavior specific to `using`.
 
+A value is released once. `using x = a {} using y = a {}` releases `a` twice (for a `bare::alloc::Allocation`, a double free), and using `a` after its `using` ended uses a released value. The `using_twice` lint reports both ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)): give each `using` the value it makes (`using g = m.lock() { .. }`), or do all the work inside one `using` block.
+
 ## 3.17.7. Types that can be bound
 
 The type of the right-hand expression of `using` must implement [`Drop`](../../refs-standard-libraries/200-core/213-marker.md) or contain fields that have `Drop` (drop glue, [stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop---cleanup-on-using-release)). Otherwise it is a compile error.

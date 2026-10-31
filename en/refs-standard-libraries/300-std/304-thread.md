@@ -147,6 +147,8 @@ try thread::spawn(|| {
 }).join();
 ```
 
+`get` returns the current thread's value. A task may resume on another worker thread after an `await`, so a `get()` value kept across an `await` is then another thread's, used by two threads without a lock. Call `get()` again after the `await`. The `thread_local_across_await` lint ([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)) reports such a value.
+
 ## 3.4.5. impl / target
 
 Per-platform support:
