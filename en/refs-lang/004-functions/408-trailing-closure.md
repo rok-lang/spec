@@ -57,7 +57,7 @@ Attaching a closure without call parentheses, as in `xs.map |x| { .. }`, is a tr
 - It is immediately preceded by a path (`thread::spawn`, `f`) or a member name (`.map`).
 - It is followed by `|params|`, an optional `-> R`, and `{`. Without this shape, `|` is bitwise OR.
 - `||` is always logical OR. A closure without parameters uses the `{ body }` shorthand.
-- Inside the head (condition and scrutinee) of `if` / `while` / `match`, parenthesis-free trailing closures and the `{ body }` shorthand are disabled; a `{` there opens the body block. If a closure is needed in the head, use parentheses (`if xs.any(|x| { x > 0 }) { .. }`).
+- Inside the head of `if` / `while` / `match` / `for` / `using` (condition, scrutinee, iterated expression, `using` initializer), parenthesis-free trailing closures and the `{ body }` shorthand are disabled; a `{` there opens the body block. If a closure is needed in the head, use parentheses (`if xs.any(|x| { x > 0 }) { .. }`).
 
 ```rok
 let ys = xs.map |x| -> i64 { x as i64 * 2 };   // explicit return type
