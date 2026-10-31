@@ -271,6 +271,7 @@ The default level of every lint is `warn`. The Since column is the release that 
 | `thread_local_across_await` | 0.1.6   | A `ThreadLocal::get()` value used after an `await` in an `async` body ([stdlib 3.4.4](../../refs-standard-libraries/300-std/304-thread.md#344-thread-local-storage)) (warn) |
 | `extern_static_unsafe`   | 0.1.6   | An extern `static` read or written outside `unsafe` ([5.9.6](../005-modules/509-extern-block.md#596-calls--use)) (warn) |
 | `extern_ffi_types`       | 0.1.6   | A GC type (`List`, `Dict`, a closure, a sum, `any`, a struct holding one) as a parameter, result or `static` of an `extern "C"` / `"system"` block, or of an `extern "C" fn` definition ([5.9.4](../005-modules/509-extern-block.md#594-ffi-compatible-types)) (warn) |
+| `unqualified_meta`       | 0.1.6   | Another package's macro, derive or attribute used by its bare name, found only through the build-wide scope that 0.2.0 removes; write `dep::name!`, `#[derive(dep::Name)]`, `#[dep::name]` or `use dep::name!;` ([6.8.11](608-meta-blocks.md#6811-combination-with-registrationvisibility)) |
 
 `unclosed_sender`, `using_twice`, `guard_escape`, `thread_local_across_await`, `extern_static_unsafe` and `extern_ffi_types` were added in 0.1.6. 0.2.0 makes what `guard_escape`, `extern_static_unsafe` and `extern_ffi_types` report errors.
 

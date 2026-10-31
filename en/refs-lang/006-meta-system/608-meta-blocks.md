@@ -185,10 +185,10 @@ The visibility keyword is attached to the template block itself. Its effect:
 
 | Visibility                    | Where it can be used                                       |
 |-------------------------------|------------------------------------------------------------|
-| `pub` (including `pub(pkg)`)  | The whole build. Used as `#[derive(X)]` / `#[x]` without `use` |
+| `pub` (including `pub(pkg)`)  | The whole build. Another package writes it with this package's name: `#[derive(dep::X)]` / `#[dep::x]` / `dep::x!(..)` (6.8.11) |
 | private                       | Within the file that defines the meta block                |
 
-Derive and attribute names are build-global names without a module path (6.8.11). A meta block's or keyword handler's `#[cfg]` is evaluated with the cfg of the package that defines it (its own features, [9.10.4c](../009-tools/910-rok-frontend.md#9104c-features)).
+Meta names have no module path: a name belongs to the package whose meta block registers it, written bare in that package and with the package's name in others (6.8.11). A meta block's or keyword handler's `#[cfg]` is evaluated with the cfg of the package that defines it (its own features, [9.10.4c](../009-tools/910-rok-frontend.md#9104c-features)).
 
 ## 6.8.7. Body introducers (`@derive` / `@attribute`)
 
@@ -245,22 +245,35 @@ Rok's choice trades expressiveness for predictability and ease of debugging.
 
 A meta block carrying `#[impl_derive(TraitName)]` registers a derive named `TraitName`, `#[impl_attribute(name)]` registers the `#[name]` attribute, and `#[impl_macro(name)]` registers the macro `name!`. The compiler collects meta blocks from every file of libraries and user packages before parsing, so they can be used regardless of definition location or file order. If a `#[cfg]` on a meta block is false, that block is not registered ([6.9.9](609-template-tokens.md#relation-to-cfg)).
 
-A `pub` meta block is visible throughout the build without `use` (6.8.6). Meta blocks are not items of the name space, so they are not targets of `use` either.
+A meta name belongs to the package whose meta block registers it. In that package it is written bare (`#[derive(MyHash)]`, `#[x]`, `x!(..)`) or with `pkg::`. Another package writes the defining package's name before it, the same root as that package's paths: `#[derive(dep::MyHash)]`, `#[dep::x]`, `dep::x!(..)`. The qualifier is the package alone; meta blocks are not items of the name space and have no module path.
+
+A module-level `use dep::x!;` imports the macro `x!`, so the file calls it as `x!(..)`. It imports no item, and it cannot be renamed (`as`) or re-exported (`pub use`). A `use` of an item named like a derive, usually its trait (`use dep::MyHash;`), also imports the derive, and `use dep::*;` imports every meta name of `dep`.
 
 ```rok
-// pkg::derives
+// package json
+#[impl_macro(log)] pub @macro { ... }
 #[impl_derive(MyHash)] pub @derive {
-    impl MyHash for @Self { ... }
+    impl pkg::MyHash for @Self { ... }
 }
 
-// another module: used without import
-#[derive(MyHash)]
+// a package that depends on json
+use json::log!;
+
+#[derive(json::MyHash)]
 struct Foo { ... }
+
+fn main() {
+    json::log!("start");
+    log!("imported");
+}
 ```
+
+Until 0.2.0 a bare name also reaches a `pub` meta block of any package in the build (the build-wide scope). Such a use, neither qualified nor imported, gets the `unqualified_meta` warning ([6.2.9](602-built-in-attributes.md#629-allow--deny--warn-lint-control)), whose help gives the qualified form. Rok 0.2.0 removes the build-wide scope. The standard library's meta names (`#[derive(Inspect)]`) stay bare. When several packages register a bare name, a use takes this package's block, else the one a `use` imports, else it is an error that lists the qualified forms.
 
 The following are errors:
 
-- Two meta blocks registering the same derive, attribute or macro name (one macro is one `@macro` block holding all its rules).
+- Two meta blocks of one package registering the same derive, attribute or macro name (one macro is one `@macro` block holding all its rules). Two packages may each register a name.
+- A qualified macro or attribute (`dep::x!`, `#[dep::x]`) that the named package does not register. For a derive (`#[derive(dep::X)]`) this is a warning in 0.1: before 0.1.6 such a derive did nothing.
 - A meta block redefining the name of a built-in derive ([6.2.1](602-built-in-attributes.md): `Clone`, `Copy`, `Default`, `Debug`, `PartialEq`, `Eq`, `PartialOrd`, `Ord`, `Hash`) or a built-in attribute (`cfg`, `derive`, `test`, `inline`, `repr`, `keyword`, and the other attributes of 6.2 to 6.7).
 
 ## 6.8.12. The macro form
@@ -279,7 +292,7 @@ Like the other forms, a macro is `#[impl_macro(name)]`, a visibility, the `@macr
 }
 ```
 
-`#[impl_macro(name)]` registers the macro `name!`, exactly as `#[impl_derive(T)]` registers the derive `T`. On a call the rules are tried top to bottom and the first whose matcher matches is expanded; if none matches it is a compile error at the call. A macro's name is build-global and used without `use`, like a derive or attribute ([6.8.6](#686-pub--visibility)); the trailing `!` at every call marks it as a macro, not a function.
+`#[impl_macro(name)]` registers the macro `name!`, exactly as `#[impl_derive(T)]` registers the derive `T`. On a call the rules are tried top to bottom and the first whose matcher matches is expanded; if none matches it is a compile error at the call. Like a derive's or an attribute's, a macro's name belongs to its package: `name!` there, `dep::name!` or a `use dep::name!;` in other packages ([6.8.11](#6811-combination-with-registrationvisibility)). The trailing `!` at every call marks it as a macro, not a function.
 
 ```rok
 #[impl_macro(twice)] pub @macro {
@@ -291,7 +304,7 @@ let p = twice!(compute());      // (the value, the same value)
 
 ### Invocation
 
-A macro is called as `name!( .. )`, `name![ .. ]` or `name!{ .. }`; the delimiters are interchangeable and do not change meaning. The arguments are an arbitrary **token tree**: any tokens with balanced `()` `[]` `{}`, so the lexer and formatter tokenize a call even without knowing the macro. A macro may expand at these positions, in whichever its template produces:
+A macro is called as `name!( .. )`, `name![ .. ]` or `name!{ .. }`, and from another package as `dep::name!( .. )`; the delimiters are interchangeable and do not change meaning. The arguments are an arbitrary **token tree**: any tokens with balanced `()` `[]` `{}`, so the lexer and formatter tokenize a call even without knowing the macro. A macro may expand at these positions, in whichever its template produces:
 
 | Position   | Example                                   | Template yields         |
 |------------|-------------------------------------------|-------------------------|

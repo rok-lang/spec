@@ -271,6 +271,7 @@ fn strict_zone() { ... }
 | `thread_local_across_await` | 0.1.6   | `async` 본체에서 `ThreadLocal::get()` 값을 `await` 뒤에 씀 ([stdlib 3.4.4](../../refs-standard-libraries/300-std/304-thread.md#344-스레드-로컬-저장소)) (warn) |
 | `extern_static_unsafe`   | 0.1.6   | extern `static`을 `unsafe` 밖에서 읽거나 씀 ([5.9.6](../005-modules/509-extern-block.md#596-호출--사용)) (warn) |
 | `extern_ffi_types`       | 0.1.6   | `extern "C"` / `"system"` 블록이나 `extern "C" fn` 정의의 매개변수, 결과, `static`에 GC 타입(`List`, `Dict`, 클로저, 합 타입, `any`, 이런 것을 담은 struct)이 있음 ([5.9.4](../005-modules/509-extern-block.md#594-ffi-호환-타입)) (warn) |
+| `unqualified_meta`       | 0.1.6   | 다른 패키지의 macro, derive, 속성을 이름만 써서 0.2.0이 없애는 빌드 전역 범위로만 찾음. `dep::name!`, `#[derive(dep::Name)]`, `#[dep::name]`, `use dep::name!;`으로 씀 ([6.8.11](608-meta-blocks.md#6811-등록가시성과-결합)) |
 
 `unclosed_sender`, `using_twice`, `guard_escape`, `thread_local_across_await`, `extern_static_unsafe`, `extern_ffi_types`는 0.1.6에서 추가되었습니다. `guard_escape`, `extern_static_unsafe`, `extern_ffi_types`가 보고하는 코드는 0.2.0에서 에러가 됩니다.
 
