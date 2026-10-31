@@ -12,7 +12,7 @@
 fn block_on<F: Future>(f: F) -> F::Output;              // sync 진입점: executor 에 붙어 f 를 끝까지 실행
 fn block_on_try<T, E>(f: TryAsyncFuture<T, E>) throws (E) -> T;   // throw 하는 async body 용 block_on. 그 에러를 여기서 throw
 fn spawn<F: Future + Send>(f: F) -> Task<F::Output> where F::Output: Send;
-fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future, 현재 worker 에 고정
+fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future, 현재 worker 에 고정 (OS 스레드가 아님)
 fn spawn_blocking<T: Send>(f: fn() -> T + Send) -> Blocking<T>;   // blocking 작업을 executor 밖 OS 스레드에서
 fn workers() -> usize;                                  // executor 안에서는 pool 크기, 밖에서는 1
 fn cpu_count() -> usize;                                // 온라인 CPU 수 (pool 크기)
@@ -77,7 +77,7 @@ await task::sleep(Duration::ms(100));
 await task::yield_now();
 ```
 
-`spawn`은 클로저가 아니라 future를 받습니다. 그래서 `task::spawn(async { ... })`처럼 `async` 블록이나 `async fn` 호출 결과를 넘깁니다. `Send`가 아닌 future는 `spawn_local`로 현재 스레드에서 실행합니다. `join` / `race` / `timeout`은 `await`로 기다려 결과를 받습니다.
+`spawn`은 클로저가 아니라 future를 받습니다. 그래서 `task::spawn(async { ... })`처럼 `async` 블록이나 `async fn` 호출 결과를 넘깁니다. `Send`가 아닌 future는 `spawn_local`로 현재 워커에서 실행합니다. `join` / `race` / `timeout`은 `await`로 기다려 결과를 받습니다.
 
 ### `spawn_blocking`: 블로킹 작업
 
@@ -193,7 +193,7 @@ impl<T> Future for Task<T> {              // `await t`: 완료까지 suspend
 
 프로세스에는 실행기(executor)가 하나 있습니다. 실행기는 처음 쓸 때 시작합니다. CPU 수(`cpu_count()`)만큼의 워커 스레드, 블로킹 레인, I/O 드라이버로 이루어집니다. `block_on`은 부른 스레드를 손님 워커로 이 실행기에 붙여 `f`를 끝까지 실행합니다. `block_on`이 돌아올 때 실행 중인 task는 계속 실행됩니다. 다만 `block_on`은 그 스레드에 고정된 `spawn_local` task도 끝난 뒤에야 돌아옵니다. 그 task는 다른 스레드로 옮겨 갈 수 없기 때문입니다. `par::*`와 `spawn_blocking`도 같은 executor를 씁니다.
 
-`spawn`으로 띄운 task는 어느 워커에서든 실행될 수 있습니다. 그래서 `Future + Send`여야 하고 결과도 `Send`여야 합니다. `spawn_local`의 task는 그것을 만든 워커에 고정됩니다. 다만 `block_on` 스레드가 폴링하지만 소유하지 않은 task도 있습니다. 기다리는 동안 맡은 `spawn` task입니다. 이런 task에서 부른 `spawn_local`은 대신 풀 워커에 고정됩니다. 그래서 `block_on`은 자기 task의 로컬 task만 기다립니다. 이런 poll 한 번에서 만든 로컬 task는 모두 같은 풀 워커로 가고, 그 poll이 끝난 뒤에야 시작합니다. 원래 그 task를 실행했을 워커에서와 같습니다.
+`spawn`으로 띄운 task는 어느 워커에서든 실행될 수 있습니다. 그래서 `Future + Send`여야 하고 결과도 `Send`여야 합니다. `spawn_local`의 task는 그것을 만든 워커에 고정됩니다. 고정되는 것은 워커이지 OS 스레드가 아닙니다. 워커는 다른 OS 스레드에서 이어질 수 있으므로([refs-lang 7.6.7](../../refs-lang/007-runtime/706-scheduler.md#767-블로킹-syscall-자동-검출)), `spawn_local` task는 어느 OS 스레드에서 도는지나 그 스레드의 스레드 로컬 상태에 기대면 안 됩니다. (참조 런타임은 살아 있는 `spawn_local` task가 있는 워커를 넘기지 않습니다.) 다만 `block_on` 스레드가 폴링하지만 소유하지 않은 task도 있습니다. 기다리는 동안 맡은 `spawn` task입니다. 이런 task에서 부른 `spawn_local`은 대신 풀 워커에 고정됩니다. 그래서 `block_on`은 자기 task의 로컬 task만 기다립니다. 이런 poll 한 번에서 만든 로컬 task는 모두 같은 풀 워커로 가고, 그 poll이 끝난 뒤에야 시작합니다. 원래 그 task를 실행했을 워커에서와 같습니다.
 
 스케줄러 골격은 다음과 같습니다.
 

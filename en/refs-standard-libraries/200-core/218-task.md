@@ -12,7 +12,7 @@ The signatures of the core API:
 fn block_on<F: Future>(f: F) -> F::Output;              // sync entry point: attaches to the executor and runs f to completion
 fn block_on_try<T, E>(f: TryAsyncFuture<T, E>) throws (E) -> T;   // block_on for a throwing async body; its error is thrown here
 fn spawn<F: Future + Send>(f: F) -> Task<F::Output> where F::Output: Send;
-fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future, pinned to the current worker
+fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future, pinned to the current worker (not an OS thread)
 fn spawn_blocking<T: Send>(f: fn() -> T + Send) -> Blocking<T>;   // blocking work on an OS thread outside the executor
 fn workers() -> usize;                                  // pool size inside the executor, 1 outside
 fn cpu_count() -> usize;                                // number of online CPUs (the pool size)
@@ -75,7 +75,7 @@ await task::sleep(Duration::ms(100));
 await task::yield_now();
 ```
 
-`spawn` takes a future, not a closure, so it is passed an `async` block or the result of an `async fn` call, as in `task::spawn(async { ... })`. A future that is not `Send` runs on the current thread through `spawn_local`. `join` / `race` / `timeout` are `await`ed to obtain their results.
+`spawn` takes a future, not a closure, so it is passed an `async` block or the result of an `async fn` call, as in `task::spawn(async { ... })`. A future that is not `Send` runs on the current worker through `spawn_local`. `join` / `race` / `timeout` are `await`ed to obtain their results.
 
 ### `spawn_blocking` - blocking work
 
@@ -191,7 +191,7 @@ impl<T> Future for Task<T> {              // `await t`: suspend until completion
 
 A process has one executor. It starts on first use and consists of as many worker threads as there are CPUs (`cpu_count()`), a blocking lane, and an I/O driver. `block_on` attaches the calling thread to this executor as a guest worker and runs `f` to completion. Tasks still running when `block_on` returns keep running. `block_on` returns only after the `spawn_local` tasks pinned to its thread are done too; they cannot move to another thread. `par::*` and `spawn_blocking` use the same executor.
 
-A task created with `spawn` can run on any worker, so it must be `Future + Send` and its result must be `Send` too. A task from `spawn_local` is pinned to the worker that created it. A `spawn_local` from a task that a `block_on` thread polls but does not own (a `spawn` task it picked up while waiting) is pinned to a pool worker instead, so `block_on` waits only for the locals of its own tasks. All the locals one such poll spawns go to the same pool worker, and they start only once that poll has ended, as on the worker that would have run them.
+A task created with `spawn` can run on any worker, so it must be `Future + Send` and its result must be `Send` too. A task from `spawn_local` is pinned to the worker that created it. It is pinned to the worker, not to an OS thread: a worker may continue on another OS thread ([refs-lang 7.6.7](../../refs-lang/007-runtime/706-scheduler.md#767-automatic-detection-of-blocking-syscalls)), so a `spawn_local` task should not rely on which OS thread runs it or on that thread's thread-local state. (The reference runtime never hands on a worker with live `spawn_local` tasks.) A `spawn_local` from a task that a `block_on` thread polls but does not own (a `spawn` task it picked up while waiting) is pinned to a pool worker instead, so `block_on` waits only for the locals of its own tasks. All the locals one such poll spawns go to the same pool worker, and they start only once that poll has ended, as on the worker that would have run them.
 
 The scheduler skeleton is as follows.
 
