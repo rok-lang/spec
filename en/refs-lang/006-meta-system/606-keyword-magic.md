@@ -89,11 +89,11 @@ Thanks to this pre-pass, consistency within the compilation unit is maintained r
 
 The compiler does not check the handler's signature separately. After a keyword use becomes a handler call (6.6.3), the call is type-checked as an ordinary function call. The handler's parameters therefore determine the usage form of the keyword (arguments, trailing closure).
 
-## 6.6.9. Absence of contextual keywords (restated)
+## 6.6.9. Registered keywords are never contextual
 
-The principle in [keywords](../001-lexical/105-keywords.md) of not introducing contextual keywords applies equally to registered keywords.
+The contextual keywords of [1.5.4](../001-lexical/105-keywords.md#154-contextual-keywords) (`type`, `in`, `static` and the rest) are a fixed set the language defines. A registered keyword is never contextual.
 
-Once `#[keyword("with")]` is registered, `with` is tokenized as a keyword everywhere. Forms such as "a keyword only in certain positions" are not introduced.
+Once `#[keyword("with")]` is registered, `with` is tokenized as a keyword everywhere in the compilation unit. A registration cannot make a word a keyword only in certain positions.
 
 This consistency helps keep the lexer and parser simple.
 
