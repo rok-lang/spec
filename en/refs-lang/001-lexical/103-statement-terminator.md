@@ -40,7 +40,7 @@ The code above is recognized as three empty statements. This form is accepted to
 
 A block-like expression ends in `}`: `if`, `match`, `loop`, `while`, `for`, or a block (`{ }`, `unsafe { }`, labeled block). When one appears in statement position, the trailing `;` may be omitted (the same rule as Rust). The value of that expression must then be unit; to discard a non-unit value, add `;`.
 
-A call with a block-body [trailing closure](../004-functions/408-trailing-closure.md) (`retry(3) { .. }`, `xs.each |x| { .. }`) also ends a statement without `;` ([4.8.8](../004-functions/408-trailing-closure.md)). In that case the call's value is discarded as if `;` had been written.
+A call with a block-body [trailing closure](../004-functions/408-trailing-closure.md) (`retry(3) { .. }`, `xs.each |x| { .. }`) also ends a statement without `;` ([4.8.8](../004-functions/408-trailing-closure.md)) when nothing continues it after the closure's `}`. In that case the call's value is discarded as if `;` had been written. Unlike a keyword-led statement, such a call is parsed as an ordinary expression, so a binary operator after the `}` continues it (see below).
 
 ```rok
 if ready { start(); }        // no ;
@@ -48,12 +48,14 @@ for x in xs { print(x); }
 let n = if a { 1 } else { 2 };   // a let statement still ends with ;
 ```
 
-If a binary operator follows the `}` of a block-like expression statement that starts with a keyword (`if`, `match`, etc.), it begins a new statement. Only member access such as `.method()` and postfix `?` continue the expression. A binary operator after a trailing closure call is parsed as continuing that call.
+If a binary operator follows the `}` of a block-like expression statement that starts with a keyword (`if`, `match`, etc.), it begins a new statement. Only member access such as `.method()` and postfix `?` continue the expression. A binary operator after a trailing closure call, even on the next line, is parsed as continuing that call: `run { .. }` followed by the line `-x;` is `run { .. } - x;`, which usually fails to type-check (``operator `-` cannot be applied to `()` and `i32` ``). Write `;` after the closure's `}` to end the statement there.
 
 ```rok
 if c { a(); } else { b(); }
 -x;                          // new statement (not the if statement minus x)
 match v { ... }.len();       // . continues
+run { a(); };                // ; ends the call statement here
+-x;                          // new statement
 ```
 
 A non-block-like expression appearing as a statement in the middle of a block requires `;`. Only the last expression of a block (the block's value) may appear without `;`.
