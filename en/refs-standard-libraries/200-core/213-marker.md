@@ -379,7 +379,7 @@ pub trait Transfer {
 pub struct Memo { /* private fields */ }
 ```
 
-The compiler calls `Transfer` only for its fixed list of standard handle types; an impl on any other type is ignored. `Memo` records the copies one hand-off has made, by original object, and the copied buffers still to fix. Its methods and the `transfer*` intrinsics beside it are `pub(pkg)`: they are internal to the library and not a stable API.
+The compiler calls `Transfer` only for its fixed list of standard handle types; an impl on any other type is ignored. Besides the collections and futures, the list holds `crypto::Secret` ([2.21](221-crypto.md)) and the secret words the crypto algorithms keep: a hand-off gives the new owner its own copy in secret storage, and `par` runs items that reach one `Secret` one at a time, as for a collection. `Memo` records the copies one hand-off has made, by original object, and the copied buffers still to fix. Its methods and the `transfer*` intrinsics beside it are `pub(pkg)`: they are internal to the library and not a stable API.
 
 ## 2.13.10. `Default` - default values
 

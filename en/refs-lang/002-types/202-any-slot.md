@@ -111,7 +111,7 @@ The narrowing rules are:
 - A variant check `x is Enum::Variant` (2.2.5) does not narrow.
 - When the operand's static type is a plain member `A` of the checked sum, `x is (A | B)` does not narrow; `x` keeps type `A`.
 - When `x` is captured by `[ref x]` ([4.6.2](../004-functions/406-capture-semantics.md#462-reference-capture-the-ref-x-capture-list)), each read of `x` in the narrowed scope checks the shared cell again; if a closure stored a value that is not `T`, the read panics.
-- Within the narrowed scope, `x` has type `T`. Assigning to `x` (or its fields / elements) is converted back and written to the original slot. Assigning a value of the declared type that is not `T` ends the narrowing for the rest of that scope: `x` has its declared type again, and normal flow typing continues. Assigning a value outside the declared type is still a type error.
+- Within the narrowed scope, `x` has type `T`. Assigning to `x` (or its fields / elements) is converted back and written to the original slot; so is the final value of `x` (or a field of it) passed as a `ref` argument, when the call returns. Assigning a value of the declared type that is not `T` ends the narrowing for the rest of that scope: `x` has its declared type again, and normal flow typing continues. Assigning a value outside the declared type is still a type error.
 
 ```rok
 let v: any = 1i32;

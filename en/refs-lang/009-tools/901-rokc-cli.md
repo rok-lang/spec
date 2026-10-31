@@ -32,6 +32,8 @@ option          ::= "--" identifier ("=" value)?
 
 `--name value` is equivalent to `--name=value`. Global options (9.1.5) may appear before or after the subcommand.
 
+The subcommand, options, their values and paths must be valid UTF-8. An argument that is not is a usage error (9.1.6) that names its position: ``argument 3 (`b�c`) is not valid UTF-8; only a program's arguments, after `--`, may be other bytes``. The arguments after `--` need not be: `rokc run` passes them to the program as the system gave them (on Windows, UTF-16 with unpaired surrogates as well).
+
 | Area                | Subcommands                                           |
 |---------------------|-------------------------------------------------------|
 | Build / run         | `build`, `emit`, `run`, `test`, `bench`, `check`      |
@@ -131,7 +133,7 @@ Equivalent to `rokc build --emit=..`. If `--emit` is omitted, it is `mlir`.
 rokc run [path] [-- args...]
 ```
 
-It builds an executable package and runs it at once; arguments after `--` are passed to the executable unchanged. Options are the same as `rokc build`. A library package has nothing to run, so it is an error.
+It builds an executable package and runs it at once; arguments after `--` are passed to the executable unchanged, any bytes (9.1.1). Options are the same as `rokc build`. A library package has nothing to run, so it is an error.
 
 A package is built to `target/<profile>/<name>`; an anonymous package (single file) is built in a temporary directory, so no `target/` is created next to the file. `rokc build <file>.rok` builds it the same way and copies the executable next to the file (`rokc build` above).
 

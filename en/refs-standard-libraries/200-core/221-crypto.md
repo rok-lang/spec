@@ -22,7 +22,7 @@ impl Debug for Secret;                              // "Secret(n bytes)", never 
 fn constant_time_eq(a: Bytes, b: Bytes) -> bool;   // time depends only on the lengths
 ```
 
-A `Secret` is a fixed-length byte string in secret storage ([2.21.5](#2215-security-considerations)). Copies share the bytes, as with `List`, and it is not `Sync`. A view from `as_bytes` or slicing reads the storage itself: it sees later writes and reads zeros once the secret is wiped. `Secret` has no `==`; compare with `constant_time_eq`.
+A `Secret` is a fixed-length byte string in secret storage ([2.21.5](#2215-security-considerations)). Copies share the bytes, as with `List`, and it is not `Sync`. As for a collection, a hand-off to another thread gives the new owner its own copy, in secret storage, and `par` runs items that reach one `Secret` one at a time ([2.13.9](213-marker.md#2139-send--sync---thread-boundary-markers)). A view from `as_bytes` or slicing reads the storage itself: it sees later writes and reads zeros once the secret is wiped. `Secret` has no `==`; compare with `constant_time_eq`.
 
 ## 2.21.1. Hashes, HMAC, HKDF
 
@@ -150,7 +150,7 @@ The guarantee has limits an implementation states and does not hide:
 
 **Key material in memory.** Secret bytes live in *secret storage*: a buffer the collector allocates in the large-object space ([refs-lang 7.1.2](../../refs-lang/007-runtime/701-object-layout.md#712-memory-spaces)), never moves or copies, and overwrites with zeros before it releases the memory. `Secret` (2.21) is its public form.
 
-- The bytes of a `Secret` exist in exactly one place in the heap. They are overwritten with zeros by `wipe`, when a `using` binding releases the `Secret` (directly or through drop glue), and at the latest by the collection that frees the buffer. The zeroing uses stores the optimizer may not remove.
+- The bytes of a `Secret` exist in exactly one place in the heap; a hand-off to another thread (2.13.9) makes a second `Secret` in secret storage, wiped by the same rules. They are overwritten with zeros by `wipe`, when a `using` binding releases the `Secret` (directly or through drop glue), and at the latest by the collection that frees the buffer. The zeroing uses stores the optimizer may not remove.
 - The algorithms keep key-dependent state only in secret storage or in locals, never in ordinary heap objects. That state is the AES round keys, GHASH key and ChaCha20 key (`Aead`), HMAC and HKDF (padded key, chaining values, output blocks), the X25519 and ML-KEM shared keys, the ML-KEM decapsulation key with its secret polynomials, seeds and messages, and Ed25519's expanded key and nonce hash. Functions whose result is key material return a `Secret`. Temporaries in secret storage are wiped before the function returns, unless it throws; then the collection wipes them.
 - `net::tls` ([3.2.5](../300-std/302-net.md#325-tls-13---nettls)) keeps its traffic, handshake and resumption secrets, record keys, key-exchange secrets, ticket PSKs and Ed25519 / EC private keys in secret storage, and wipes them on KeyUpdate, at the end of the handshake and on close.
 

@@ -80,7 +80,7 @@ fingerprint가 같으면 다시 빌드하지 않습니다. fingerprint에는 다
 
 미리 빌드한 패키지의 인터페이스는 소비하는 쪽의 feature가 아니라, 그 패키지를 빌드할 때 쓴 feature(그 ROKHIR meta, [9.4.6](904-rokhir-bytecode.md#946-meta))로 읽습니다.
 
-컴파일하는 모든 명령이 이 경로를 씁니다. `build` / `run` / `test` / `bench` / `check` / `lint` / `doc` / `lsp` / `repl` / `jupyter`, 단일 파일 스크립트, 이름 있는 환경이 모두 해당합니다. REPL 호스트도 미리 빌드한 아카이브를 링크합니다. 패키지도 `--target-dir`도 없으면 시스템 임시 디렉터리의 `rokc-target/` 아래에 둡니다.
+컴파일하는 모든 명령이 이 경로를 씁니다. `build` / `run` / `test` / `bench` / `check` / `lint` / `doc` / `lsp` / `repl` / `jupyter`, 단일 파일 스크립트, 이름 있는 환경이 모두 해당합니다. REPL 호스트도 미리 빌드한 아카이브를 링크합니다. 패키지도 `--target-dir`도 없으면 시스템 임시 디렉터리의 단일 파일 캐시 아래에 둡니다(9.2.16).
 
 표준 라이브러리는 소스에서 빌드하고([9.3.6](903-package-archive.md#936-표준-라이브러리)), 미리 빌드한 상태로 `rokc` 캐시(9.2.19)에 둡니다.
 
@@ -251,7 +251,8 @@ target/
 패키지 안에서 `Fresh`가 아닌 빌드는 컴파일한 코드를 codegen unit 단위로 재사용합니다. rokc는 패키지의 코드(실행 파일이든 라이브러리든)를 unit으로 나눕니다. 패키지의 모듈마다 하나, 그 인스턴스를 컴파일하는 라이브러리의 모듈마다 하나, 그리고 프로그램에 한 번만 있는 것(static, C `main`, GC 타입 등록)을 위한 unit이 하나입니다. 인스턴스는 타입 인자에 따라 여러 unit에 나뉠 수 있습니다.
 
 - unit은 같은 타깃 디렉터리에 출력한 지난 빌드 이후 키가 바뀌었을 때만 컴파일합니다. 키가 그대로면 `target/<profile>/incremental/<name>/`(라이브러리는 `lib<name>/`)에 둔 결과를 재사용합니다. 그 뒤 모두 링크합니다.
-- 익명 파일의 unit은 패키지 없이 쓰는 타깃 디렉터리(`--target-dir`, `ROKC_TARGET_DIR`, 없으면 `<시스템 임시 디렉토리>/rokc-target/`)의 `[<triple>/]<profile>/incremental/<stem>-<경로의 hash>/`에 둡니다. 기본 `rokc-target/`은 캐시입니다. rokc는 하루에 많아야 한 번, 일주일 동안 어떤 빌드도 쓰지 않은 파일을 지웁니다.
+- 익명 파일의 unit은 패키지 없이 쓰는 타깃 디렉터리(`--target-dir`, `ROKC_TARGET_DIR`, 없으면 단일 파일 캐시)의 `[<triple>/]<profile>/incremental/<stem>-<경로의 hash>/`에 둡니다. 단일 파일 캐시는 Unix에서 `<시스템 임시 디렉토리>/rokc-target-<uid>/`(`<uid>`는 유효 사용자 ID)이고, Windows에서는 `%TEMP%\rokc-target\`입니다. Windows의 임시 디렉터리는 이미 사용자마다 따로 있습니다. 이 디렉터리는 캐시입니다. rokc는 하루에 많아야 한 번, 일주일 동안 어떤 빌드도 쓰지 않은 파일을 지웁니다.
+- rokc는 단일 파일 캐시에서 찾은 것을 실행하므로, Unix에서는 이 디렉터리를 사용자 혼자만 쓰게 둡니다. rokc는 모드 `0700`으로 만들고, 쓰기 전에 심볼릭 링크가 아닌 디렉터리인지, 유효 사용자의 것인지, 그룹과 다른 사용자의 권한 비트가 없는지 확인합니다. 아니면 명령은 종료 코드 `1`과 ``rokc: error: <dir> is not private to you (owner uid N, mode 0755); remove it or set ROKC_TARGET_DIR``로 실패합니다. `--target-dir`와 `ROKC_TARGET_DIR`는 주어진 그대로 씁니다.
 - unit의 키에는 그 함수들의 코드, 다른 unit에서 가져다 쓰는 것의 시그니처와 코드 생성 정보, 쓰는 static과 GC 타입, 타깃, 최적화 수준, 코드 생성 옵션, 컴파일러의 정체가 들어갑니다. `-g`이면 디버그 정보가 가리키는 소스 파일의 경로도 들어갑니다. 그래서 함수의 시그니처가 바뀌면 호출자의 unit을 다시 컴파일하고, 파일을 더하면 그 파일을 가리키는 unit만 다시 컴파일합니다.
 - 심볼과 GC type id는 다른 unit의 내용에 의존하지 않습니다. unit은 GC type id를 패키지의 공유 unit이 정의한 심볼에서 읽습니다([9.5.7](905-symbol-mangling.md#957-충돌-회피-typehash의-안정성)). 그래서 산출물은 깨끗한 빌드가 만드는 것과 같습니다.
 - 최적화 빌드도 unit 사이에서 인라인합니다(ThinLTO, unit별 결과도 캐시함).
