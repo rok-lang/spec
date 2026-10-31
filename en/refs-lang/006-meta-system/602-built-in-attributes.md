@@ -242,6 +242,12 @@ The default level of every lint is `warn`. The Since column is the release that 
 | `while_true`             | 0.1.0   | `while true` instead of `loop`                                      |
 | `deprecated`             | 0.1.0   | Use of a `#[deprecated]` function, method, field, type, constant or static ([6.2.7](#627-deprecated-discouraged-use-marker)) |
 | `deprecated_safe`        | 0.1.6   | A call of a `#[future_unsafe]` function, or a use of such a static, outside `unsafe` ([6.2.14](#6214-future_unsafe-safe-today-unsafe-later)) |
+| `keyword_idents`         | 0.1.6   | A name spelled `macro`, `defer`, `dyn`, `move`, `gen` or `do`, keywords from 0.2.0; write `r#name` ([1.5.6](../001-lexical/105-keywords.md#156-keywords-from-020)) |
+| `octal_like_literal`     | 0.1.6   | A decimal integer literal with a leading zero (`0755` is 755); write `0o755` or `755` ([1.6.1](../001-lexical/106-numeric-literals.md#161-basic-form)) |
+| `try_coalesce_precedence` | 0.1.6   | `try? f() ?? d`, which is `try? (f() ?? d)`; write `(try? f()) ?? d` or `try? (f() ?? d)` ([3.14.3](../003-expressions/314-error-control-flow.md)) |
+| `trailing_closure_operator` | 0.1.6   | An operator at the start of the line after a statement's trailing-closure call, which it continues; write `;` after the `}` ([1.3.4](../001-lexical/103-statement-terminator.md#134-block-like-expression-statements)) |
+| `fstring_g_precision`    | 0.1.6   | `{x:.3g}` on a number, which prints like `{x:.3}` until `g` becomes the general format in 0.2.0 ([1.7.3](../001-lexical/107-string-literals.md#173-format-strings)) |
+| `closure_return`         | 0.1.6   | A bare `return;` in the trailing closure of a call that is a statement: it ends only that call of the closure ([4.3.11](../004-functions/403-return.md#4311-return-in-closures-and-nested-functions)) |
 | `redundant_cast`         | 0.1.0   | `x as T` where `x` is already `T`                                   |
 | `redundant_clone`        | 0.1.0   | `.clone()` on a value of a primitive type                           |
 | `non_snake_case`         | 0.1.0   | Function, local variable, parameter, or module names not in snake_case |

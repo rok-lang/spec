@@ -103,7 +103,26 @@ The recommended naming conventions `snake_case`, `PascalCase` and `SCREAMING_SNA
 
 ## 1.4.4. Collision with keywords
 
-A token that exactly matches a reserved word defined in [Keywords](105-keywords.md) is classified as a keyword, not an identifier. Contextual keywords are identifiers outside their designated positions, and after `.`, in field name declarations, and in named argument positions, even reserved words are identifiers ([1.5.5](105-keywords.md#155-keywords-in-name-positions)). Raw identifiers that would allow reserved words to be used as identifiers, such as Rust's `r#fn`, are not adopted; the cost of confusion was judged to outweigh their value.
+A token that exactly matches a reserved word defined in [Keywords](105-keywords.md) is classified as a keyword, not an identifier. Contextual keywords are identifiers outside their designated positions, and after `.`, in field name declarations, and in named argument positions, even reserved words are identifiers ([1.5.5](105-keywords.md#155-keywords-in-name-positions)).
+
+### Raw identifiers
+
+`r#` directly followed by an identifier is a raw identifier: that identifier, never a keyword, reserved or contextual. `r#match` is the name `match`, and `r#type` is the name `type` even at the start of an item.
+
+```
+raw_identifier ::= "r#" identifier
+```
+
+```rok
+fn r#match(x: i32) -> i32 { x + 1 }   // a function named match
+struct Tok { r#type: i32; }            // the same field as type: i32
+let r#move = r#match(1);               // move, a keyword from 0.2.0 (1.5.6)
+let k = tok.type + tok.r#type;         // the same field twice
+```
+
+A raw identifier names the same thing as the plain spelling: `t.r#type` and `t.type` are the same field, and `r#gen` calls a function declared `fn gen`. `r#self`, `r#Self` and `r#_` are compile errors: `self` and `Self` cannot be names ([1.5.5](105-keywords.md#155-keywords-in-name-positions)), and `_` already is one. `r#"` and `r##"` still start a raw string ([1.7](107-string-literals.md)).
+
+Raw identifiers exist mainly for the words that become keywords in 0.2.0 ([1.5.6](105-keywords.md#156-keywords-from-020)): a name written `r#move` compiles in both.
 
 ## 1.4.5. Length limit
 

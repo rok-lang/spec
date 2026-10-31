@@ -48,7 +48,7 @@ for x in xs { print(x); }
 let n = if a { 1 } else { 2 };   // a let statement still ends with ;
 ```
 
-If a binary operator follows the `}` of a block-like expression statement that starts with a keyword (`if`, `match`, etc.), it begins a new statement. Only member access such as `.method()` and postfix `?` continue the expression. A binary operator after a trailing closure call, even on the next line, is parsed as continuing that call: `run { .. }` followed by the line `-x;` is `run { .. } - x;`, which usually fails to type-check (``operator `-` cannot be applied to `()` and `i32` ``). Write `;` after the closure's `}` to end the statement there.
+If a binary operator follows the `}` of a block-like expression statement that starts with a keyword (`if`, `match`, etc.), it begins a new statement. Only member access such as `.method()` and postfix `?` continue the expression. A binary operator after a trailing closure call, even on the next line, is parsed as continuing that call: `run { .. }` followed by the line `-x;` is `run { .. } - x;`, which usually fails to type-check (``operator `-` cannot be applied to `()` and `i32` ``). Write `;` after the closure's `}` to end the statement there. When the call starts a statement and the operator starts the next line, the compiler warns (lint `trailing_closure_operator`): Rok 0.2.0 ends the statement at that `}`.
 
 ```rok
 if c { a(); } else { b(); }

@@ -180,4 +180,19 @@ fn outer() -> i32 {
 }
 ```
 
+문장인 호출의 [트레일링 클로저](408-trailing-closure.md) 안에 값 없이 쓴 `return;`은 함수에서 빠져나가는 것처럼 읽히지만, 실제로는 그 클로저 호출 한 번만 끝냅니다. 린트 `closure_return`이 이를 경고합니다. 함수에서 빠져나가려면 호출 대신 `for` 루프를 씁니다.
+
+```rok
+fn main() {
+    each(xs) |x| {
+        if x == 2 { return; }     // 경고: 이 호출만 끝남. 3 은 그대로 출력
+        println(f"{x}");
+    }
+    for x in xs {
+        if x == 2 { return; }     // main 에서 빠져나감
+        println(f"{x}");
+    }
+}
+```
+
 중첩 함수와 클로저 정의의 자세한 내용은 [클로저](405-closure.md)에서 다룹니다.

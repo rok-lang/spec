@@ -36,7 +36,7 @@ The supported radixes and their notation are as follows.
 
 Non-decimal radixes are used only for integer literals; floating-point literals allow decimal notation only.
 
-A form with a leading zero (e.g. `0123`) has exactly one meaning: decimal `123`. The "leading 0 = octal" rule common in C and Java is not adopted; octal must be written with the `0o` prefix.
+A form with a leading zero (e.g. `0123`) has exactly one meaning: decimal `123`. The "leading 0 = octal" rule common in C and Java is not adopted; octal must be written with the `0o` prefix. Because the C reading is common, a decimal integer literal with a leading zero gets a warning (lint `octal_like_literal`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)); the help offers `0o123` for octal and `123` for the same value. `0` itself and floating-point literals (`0.5`, `00.5`) do not warn.
 
 ### Digit separators
 

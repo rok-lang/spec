@@ -102,7 +102,7 @@ rok::core::iter::Iterator       // 경로 루트
 - `struct` 리터럴과 `struct` 패턴의 필드 이름: `Ev { match: 1 }`, `Ev { match: m } => ...`
 - 이름 있는 인자의 이름: `f(type: 1)`. 이름 있는 인자는 매개변수를 가리키고, 매개변수 이름은 예약 키워드일 수 없습니다. 그래서 실제로 이 자리에는 문맥 키워드만 옵니다.
 
-`self`는 예외여서 이 자리에서도 식별자가 될 수 없습니다. raw 식별자(Rust의 `r#fn`)는 여기서도 없습니다([1.4.4](104-identifiers.md#144-키워드와-충돌)).
+`self`는 예외여서 이 자리에서도 식별자가 될 수 없습니다. 그 밖의 자리에서 키워드를 이름으로 쓰려면 raw 식별자 `r#match`로 적습니다([1.4.4](104-identifiers.md#raw-식별자)).
 
 ```rok
 struct Token { type: Kind; for: str; }   // OK: 필드 이름
@@ -110,3 +110,16 @@ let k = tok.type;                         // OK: . 뒤
 make(type: Kind::Ident);                  // OK: 이름 있는 인자 (문맥 키워드)
 struct S { self: i32; }                   // ERROR: self 는 예외
 ```
+
+## 1.5.6. 0.2.0부터 키워드
+
+Rok 0.2.0은 `macro`, `defer`, `dyn`, `move`, `gen`, `do` 여섯 단어를 더 예약합니다. 0.1에서는 아직 식별자이지만, 이 단어와 철자가 같은 식별자에는 경고가 나옵니다(린트 `keyword_idents`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). help는 raw 식별자([1.4.4](104-identifiers.md#raw-식별자))를 알려 줍니다. raw 식별자는 0.1과 0.2 모두에서 컴파일됩니다.
+
+```rok
+fn gen(n: i32) -> i32 { n }     // 경고: `gen` is a keyword from Rok 0.2.0 on
+fn r#gen(n: i32) -> i32 { n }   // 0.1과 0.2 모두 OK
+let s = Step { move: 1 };       // OK: 필드 이름 (1.5.5)
+let m = s.move;                 // OK: . 뒤
+```
+
+1.5.5의 이름 자리에서는 경고하지 않습니다. 0.2.0에서도 그 자리의 키워드는 이름이기 때문입니다.

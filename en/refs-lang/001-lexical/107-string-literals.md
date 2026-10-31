@@ -145,6 +145,8 @@ If `width` is present and `align` is not, numbers (integers and floating-point) 
 | `e` `E`         | Integers, floating-point | Exponent notation                                                |
 | `?`             | All types               | `Debug`. May be combined with width / align                       |
 
+`g` is `Display` in 0.1, so `{x:.3g}` prints like `{x:.3}` (`1234.568` for `1234.5678`). From 0.2.0 `g` is the general format of C and Python (`1.23e+03`). A `g` with a precision on a number gets a warning (lint `fstring_g_precision`); write `{x:.3}` to keep the output.
+
 A static spec is checked at compile time against the hole's type; a mismatch is an error pointing at that hole (`{s:x}` with `s: str`, etc.). The trait invoked by each type letter is defined by the standard library formatting specification ([stdlib 2.10](../../refs-standard-libraries/200-core/210-fmt.md)).
 
 ### Dynamic format specifiers

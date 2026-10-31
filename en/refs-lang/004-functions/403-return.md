@@ -180,4 +180,19 @@ fn outer() -> i32 {
 }
 ```
 
+A bare `return;` in the [trailing closure](408-trailing-closure.md) of a call that is a statement reads like a return from the function, but it ends only that call of the closure. The lint `closure_return` warns about it; to leave the function, write a `for` loop instead of the call.
+
+```rok
+fn main() {
+    each(xs) |x| {
+        if x == 2 { return; }     // warning: ends only this call; 3 still prints
+        println(f"{x}");
+    }
+    for x in xs {
+        if x == 2 { return; }     // leaves main
+        println(f"{x}");
+    }
+}
+```
+
 Details on defining nested functions and closures are in [Closures](405-closure.md).
