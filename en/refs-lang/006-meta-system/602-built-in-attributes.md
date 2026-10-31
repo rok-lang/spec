@@ -9,7 +9,10 @@ repr_attr       ::= "#" "[" "repr" "(" repr_arg ("," repr_arg)* ")" "]"
 repr_arg        ::= "C" | "transparent" | "packed" | "align" "(" int_lit ")"
                   | identifier                          // primitive int repr
 inline_attr     ::= "#" "[" "inline" ("(" ("always" | "never") ")")? "]"
-deprecated_attr ::= "#" "[" "deprecated" ("(" string_lit ")" | "=" string_lit)? "]"
+deprecated_attr ::= "#" "[" "deprecated" ("(" deprecated_args ")" | "=" string_lit)? "]"
+deprecated_args ::= string_lit | deprecated_kv ("," deprecated_kv)*
+deprecated_kv   ::= ("since" | "note") "=" string_lit
+future_unsafe   ::= "#" "[" "future_unsafe" ("(" string_lit ")" | "=" string_lit)? "]"
 ```
 
 ## 6.2.1. `#[derive(...)]` automatic trait implementation
@@ -154,9 +157,25 @@ fn old_api() { ... }
 
 #[deprecated = "use new_api instead"]
 fn old_api2() { ... }
+
+impl Config {
+    #[deprecated(since = "0.1.6", note = "use `Config::try_new`")]
+    pub fn new() -> Config { ... }
+}
 ```
 
-A use of a function marked `#[deprecated]` produces a warning (lint `deprecated`), not an error. A message given with `= "..."` is included in the warning. The attribute is accepted on any item, but only functions produce the warning.
+A use of an item marked `#[deprecated]` produces a warning (lint `deprecated`), not an error. A message, given as `= "..."`, `("...")` or `note = "..."`, is shown with the warning; it should say what to write instead. `since = "x.y.z"` names the release that deprecated the item.
+
+The warning covers these items, wherever they are declared (the package itself, a dependency, the standard library):
+
+- functions and methods, called or used as a value; a trait method's mark covers every impl of it;
+- fields, when read, assigned, set in a struct literal or named in a pattern;
+- structs, enums, unions, type aliases and traits, named in a type or as the start of a path (`Old::new`);
+- constants and statics.
+
+Only uses in the package being built warn ([6.2.9](#629-allow--deny--warn-lint-control)). A type's own `impl` does not warn about the type, and a struct's own methods do not warn about its fields. A type is recognized by its full path, or by a last segment no other type shares. The attribute is accepted on any item; on others (variants, impls, modules) it has no effect.
+
+A deprecation whose `since` is newer than the baseline of the `warnings` group is outside that group: `"warnings": "deny"` leaves it a warning, while `deprecated` and `all` reach it. The language server tags the use as deprecated, so editors strike it through.
 
 ## 6.2.8. `#[doc = "..."]` doc comment form
 
@@ -221,7 +240,8 @@ The default level of every lint is `warn`. The Since column is the release that 
 | `self_assignment`        | 0.1.0   | `x = x;`                                                            |
 | `unclosed_resource`      | 0.1.0   | A `File` / `Dir` / `ReadDir` / `TcpStream` / `TcpListener` / `UdpSocket` / `Child` not released by `using` (warn) |
 | `while_true`             | 0.1.0   | `while true` instead of `loop`                                      |
-| `deprecated`             | 0.1.0   | Use of a `#[deprecated]` function                                   |
+| `deprecated`             | 0.1.0   | Use of a `#[deprecated]` function, method, field, type, constant or static ([6.2.7](#627-deprecated-discouraged-use-marker)) |
+| `deprecated_safe`        | 0.1.6   | A call of a `#[future_unsafe]` function, or a use of such a static, outside `unsafe` ([6.2.14](#6214-future_unsafe-safe-today-unsafe-later)) |
 | `redundant_cast`         | 0.1.0   | `x as T` where `x` is already `T`                                   |
 | `redundant_clone`        | 0.1.0   | `.clone()` on a value of a primitive type                           |
 | `non_snake_case`         | 0.1.0   | Function, local variable, parameter, or module names not in snake_case |
@@ -310,3 +330,14 @@ The compiler also recognizes the following attributes. Each is specified where i
 | `#[niche(..)]`                 | newtype struct                | Declares values the type never holds, used as the niche of `T \| none` ([2.7.4](../002-types/207-niche-optimization.md#274-opt-in-niches-niche)) |
 | `#[intrinsic("rok.OP.TYPE")]`  | standard library only         | Binds a function or method to a compiler operation; an error in user code ([stdlib 0.3](../../refs-standard-libraries/000-meta/003-intrinsics.md)) |
 | `#[no_safepoint]`              | `extern "rok"` block          | Toolchain-internal: the block's functions neither allocate nor block, so calls to them are not safepoints; an error on other blocks ([5.9.2](../005-modules/509-extern-block.md#592-abi-specifiers)) |
+
+## 6.2.14. `#[future_unsafe]` safe today, `unsafe` later
+
+```rok
+#[future_unsafe("`ptr` must point at a NUL-terminated string")]
+pub fn from_ptr(ptr: Ptr<u8>) -> CStr { ... }
+```
+
+`#[future_unsafe("note")]` marks a library function, method, extern function or static that a later release makes `unsafe`. A call of it, or a use of the static, outside an `unsafe` block or `unsafe fn` warns with lint `deprecated_safe` and the note: wrap the call in `unsafe { .. }`, which compiles now and stays correct when the item becomes `unsafe`. Inside `unsafe` there is no warning.
+
+It is for the standard library and library packages. On a function of the program being built it is an error: make that function `unsafe fn` instead. On an item other than a function, method, extern function or static it is an error.

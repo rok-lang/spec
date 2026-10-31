@@ -110,3 +110,10 @@ evolves together with the compiler and runtime, so user code is advised to pin t
 The foundation (`rok::core`) API aims for SemVer stability, and direct changes are accompanied by a major
 version bump. The `rok::std` API is as volatile as its per-target availability differences, but the
 signatures themselves remain stable.
+
+Within a release series an item is never removed or changed incompatibly. An item that is replaced
+keeps working and is marked `#[deprecated(since = "..", note = "..")]`
+([6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md#627-deprecated-discouraged-use-marker)),
+the note naming what to use instead. A safe function that must become `unsafe` is marked
+`#[future_unsafe]` ([6.2.14](../../refs-lang/006-meta-system/602-built-in-attributes.md#6214-future_unsafe-safe-today-unsafe-later)).
+The next breaking release removes the item or makes it `unsafe`.

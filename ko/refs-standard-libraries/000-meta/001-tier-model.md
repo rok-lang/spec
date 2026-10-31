@@ -75,3 +75,5 @@ use rok::std::time::Instant;
 ## 0.1.5. 진화 정책
 
 세 계층은 안정성 정책도 다릅니다. `rok::bare` API는 안정적이지 않고 컴파일러, 런타임과 함께 바뀝니다. 그래서 사용자 코드는 버전을 고정(pin)하기를 권장합니다. foundation(`rok::core`) API는 SemVer 안정성을 목표로 하고, API를 직접 바꾸면 메이저 버전을 올립니다. `rok::std` API는 타깃별 가용성 차이만큼 변동이 크지만, 시그니처 자체는 안정적으로 유지합니다.
+
+한 릴리스 시리즈 안에서는 항목을 없애거나 호환되지 않게 바꾸지 않습니다. 대체되는 항목은 계속 동작하고, `#[deprecated(since = "..", note = "..")]`로 표시합니다([6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md#627-deprecated-사용-자제-표시)). 메시지에는 대신 쓸 것을 적습니다. `unsafe`가 되어야 하는 안전한 함수는 `#[future_unsafe]`로 표시합니다([6.2.14](../../refs-lang/006-meta-system/602-built-in-attributes.md#6214-future_unsafe-지금은-안전-나중에-unsafe)). 다음 호환성이 깨지는 릴리스에서 그 항목을 없애거나 `unsafe`로 만듭니다.

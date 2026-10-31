@@ -9,7 +9,10 @@ repr_attr       ::= "#" "[" "repr" "(" repr_arg ("," repr_arg)* ")" "]"
 repr_arg        ::= "C" | "transparent" | "packed" | "align" "(" int_lit ")"
                   | identifier                          // primitive int repr
 inline_attr     ::= "#" "[" "inline" ("(" ("always" | "never") ")")? "]"
-deprecated_attr ::= "#" "[" "deprecated" ("(" string_lit ")" | "=" string_lit)? "]"
+deprecated_attr ::= "#" "[" "deprecated" ("(" deprecated_args ")" | "=" string_lit)? "]"
+deprecated_args ::= string_lit | deprecated_kv ("," deprecated_kv)*
+deprecated_kv   ::= ("since" | "note") "=" string_lit
+future_unsafe   ::= "#" "[" "future_unsafe" ("(" string_lit ")" | "=" string_lit)? "]"
 ```
 
 ## 6.2.1. `#[derive(...)]` 자동 트레잇 구현
@@ -154,9 +157,25 @@ fn old_api() { ... }
 
 #[deprecated = "use new_api instead"]
 fn old_api2() { ... }
+
+impl Config {
+    #[deprecated(since = "0.1.6", note = "use `Config::try_new`")]
+    pub fn new() -> Config { ... }
+}
 ```
 
-`#[deprecated]`가 붙은 함수를 쓰면 경고(린트 `deprecated`)가 납니다. 에러는 아닙니다. `= "..."` 형태로 메시지를 적으면 경고에 그 메시지도 나옵니다. 이 속성은 어느 항목에나 붙일 수 있지만 경고는 함수에서만 납니다.
+`#[deprecated]`가 붙은 항목을 쓰면 경고(린트 `deprecated`)가 납니다. 에러는 아닙니다. `= "..."`, `("...")`, `note = "..."` 형태로 메시지를 적으면 경고에 그 메시지도 나옵니다. 메시지에는 대신 쓸 것을 적습니다. `since = "x.y.z"`는 그 항목을 사용 자제로 바꾼 릴리스입니다.
+
+경고는 다음 항목에 납니다. 항목이 선언된 곳(그 패키지, 의존 패키지, 표준 라이브러리)은 가리지 않습니다.
+
+- 함수와 메서드: 호출하거나 값으로 쓸 때. 트레잇 메서드에 붙은 표시는 그 메서드의 모든 impl에 적용됩니다.
+- 필드: 읽거나, 대입하거나, struct 리터럴에서 값을 주거나, 패턴에서 이름을 쓸 때.
+- struct, enum, union, 타입 별칭, 트레잇: 타입이나 경로의 앞부분(`Old::new`)에서 이름을 쓸 때.
+- 상수와 static.
+
+빌드하는 패키지 안의 사용에만 경고가 납니다([6.2.9](#629-allow--deny--warn-린트-제어)). 타입 자신의 `impl`은 그 타입에 대해 경고하지 않고, struct 자신의 메서드는 그 필드에 대해 경고하지 않습니다. 타입은 전체 경로로, 또는 다른 타입과 겹치지 않는 마지막 이름으로 알아봅니다. 이 속성은 어느 항목에나 붙일 수 있습니다. 위에 없는 항목(변형, impl, 모듈)에서는 아무 효과가 없습니다.
+
+`since`가 `warnings` 그룹의 기준 릴리스보다 새로우면 그 사용 자제는 그 그룹 밖에 있습니다. `"warnings": "deny"`에서는 경고로 남고, `deprecated`와 `all`에서는 적용됩니다. 언어 서버는 그 사용에 사용 자제 태그를 달아서 편집기가 취소선으로 보여 줍니다.
 
 ## 6.2.8. `#[doc = "..."]` 문서 주석 형태
 
@@ -221,7 +240,8 @@ fn strict_zone() { ... }
 | `self_assignment`        | 0.1.0   | `x = x;`                                                           |
 | `unclosed_resource`      | 0.1.0   | `using`으로 해제하지 않은 `File` / `Dir` / `ReadDir` / `TcpStream` / `TcpListener` / `UdpSocket` / `Child` (warn) |
 | `while_true`             | 0.1.0   | `loop` 대신 `while true`                                           |
-| `deprecated`             | 0.1.0   | `#[deprecated]` 함수 사용                                          |
+| `deprecated`             | 0.1.0   | `#[deprecated]` 함수, 메서드, 필드, 타입, 상수, static 사용 ([6.2.7](#627-deprecated-사용-자제-표시)) |
+| `deprecated_safe`        | 0.1.6   | `unsafe` 밖에서 `#[future_unsafe]` 함수를 호출하거나 그런 static을 씀 ([6.2.14](#6214-future_unsafe-지금은-안전-나중에-unsafe)) |
 | `redundant_cast`         | 0.1.0   | `x`가 이미 `T`인 `x as T`                                         |
 | `redundant_clone`        | 0.1.0   | 원시 타입 값의 `.clone()`                                          |
 | `non_snake_case`         | 0.1.0   | 함수, 지역 변수, 매개변수, 모듈 이름이 snake_case가 아님           |
@@ -310,3 +330,14 @@ fn expect_positive(n: i32) -> i32 {
 | `#[niche(..)]`                 | newtype struct                | 타입에 없는 값을 선언함. 그 값이 `T \| none`의 niche가 됨 ([2.7.4](../002-types/207-niche-optimization.md#274-opt-in-niche-niche)) |
 | `#[intrinsic("rok.OP.TYPE")]`  | 표준 라이브러리 전용          | 함수나 메서드를 컴파일러 연산에 묶음. 사용자 코드에서는 에러 ([stdlib 0.3](../../refs-standard-libraries/000-meta/003-intrinsics.md)) |
 | `#[no_safepoint]`              | `extern "rok"` 블록           | toolchain 내부용. 블록의 함수는 할당도 블로킹도 하지 않으므로 그 호출은 safepoint가 아님. 다른 블록에서는 에러 ([5.9.2](../005-modules/509-extern-block.md#592-abi-명시)) |
+
+## 6.2.14. `#[future_unsafe]` 지금은 안전, 나중에 `unsafe`
+
+```rok
+#[future_unsafe("`ptr` must point at a NUL-terminated string")]
+pub fn from_ptr(ptr: Ptr<u8>) -> CStr { ... }
+```
+
+`#[future_unsafe("note")]`는 나중 릴리스에서 `unsafe`가 될 라이브러리의 함수, 메서드, extern 함수, static을 표시합니다. `unsafe` 블록이나 `unsafe fn` 밖에서 그 함수를 호출하거나 그 static을 쓰면 린트 `deprecated_safe` 경고가 메시지와 함께 납니다. 호출을 `unsafe { .. }`로 감싸면 됩니다. 이 코드는 지금도 컴파일되고, 항목이 `unsafe`가 된 뒤에도 그대로 맞습니다. `unsafe` 안에서는 경고가 나지 않습니다.
+
+이 속성은 표준 라이브러리와 라이브러리 패키지용입니다. 빌드하는 프로그램의 함수에 붙이면 에러입니다. 그 함수는 `unsafe fn`으로 만듭니다. 함수, 메서드, extern 함수, static이 아닌 항목에 붙여도 에러입니다.
