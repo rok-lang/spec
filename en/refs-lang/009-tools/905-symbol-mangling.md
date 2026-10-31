@@ -253,5 +253,5 @@ This lets tools such as gdb, lldb and VS Code display Rok functions by their ori
 
 The symbol mangling scheme is also part of the ABI. Changes must therefore follow the stability policy in the [Overview](../008-abi/README.md).
 
-- Compatibility is maintained within the same major version.
-- Compatibility breaks across major versions, and the ABI hash changes as well.
+- Before 1.0, the scheme may change in every 0.x.0 release and is kept within a 0.x series.
+- From 1.0, compatibility is maintained within the same major version; it breaks across major versions, and the ABI hash changes as well.

@@ -33,6 +33,6 @@ This model follows the same approach as Swift ABI Stability: the specification i
 
 ## Stability
 
-The contract in this block is part of the language version (SemVer). ABI changes come with an explicit version bump. Minor / patch releases may only add and must not break compatibility. Major releases may break compatibility, but do so in a way the package manager can detect.
+The contract in this block, symbol mangling ([9.5](../009-tools/905-symbol-mangling.md)) included, is part of the toolchain version. Before 1.0 the ABI may change in every 0.x.0 release; 0.x.y releases do not break it. From 1.0, minor / patch releases may only add and must not break compatibility, and major releases may break it in a way the package manager can detect.
 
 The ROKHIR header of a prebuilt package records the `rokc` that built it ([9.4](../009-tools/904-rokhir-bytecode.md)). Using a package built by a different `rokc` is an error that asks for a rebuild.

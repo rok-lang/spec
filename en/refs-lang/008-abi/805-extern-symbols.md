@@ -600,8 +600,9 @@ This prefix convention avoids symbol collisions with external libraries and user
 
 Each function signature is part of the [ABI](../000-meta/007-glossary.md#abi-application-binary-interface). The change policy is:
 
-- minor: only compatible changes are allowed; adding arguments is handled through function wrappers.
-- major: breaking changes are possible, and the ABI version hash changes.
+- before 1.0: breaking changes are possible in every 0.x.0 release; a 0.x.y release makes only compatible changes.
+- from 1.0, minor: only compatible changes are allowed; adding arguments is handled through function wrappers.
+- from 1.0, major: breaking changes are possible, and the ABI version hash changes.
 
 See the stability policy in the [overview](README.md) for details.
 
