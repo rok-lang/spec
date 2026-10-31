@@ -229,6 +229,7 @@ fn strict_zone() { ... }
 | `non_upper_case_globals` | 0.1.0   | `const` / `static` 이름이 UPPER_SNAKE_CASE가 아님                  |
 | `confusable_idents`      | 0.1.0   | 서로 닮은 식별자 ([1.4](../001-lexical/104-identifiers.md))        |
 | `missing_f_prefix`       | 0.1.0   | 범위 안의 지역 변수 `name`을 가리키는 `{name}`을 담은 보통 문자열 리터럴: `f` 접두어가 빠짐 (warn) |
+| `literal_spread_mismatch` | 0.1.6   | 고정 매개변수에 펼친 `List`나 Dict 리터럴이 자리를 채울 수 없음: 길이가 다르거나 남은 매개변수 어느 것의 이름도 아닌 키가 있음([4.2](../004-functions/402-parameters.md)). 그 호출은 런타임에 panic이 일어남 (warn) |
 
 | 그룹                | 포함                                                                                         |
 |---------------------|----------------------------------------------------------------------------------------------|

@@ -229,6 +229,7 @@ The default level of every lint is `warn`. The Since column is the release that 
 | `non_upper_case_globals` | 0.1.0   | `const` / `static` names not in UPPER_SNAKE_CASE                    |
 | `confusable_idents`      | 0.1.0   | Identifiers that resemble each other ([1.4](../001-lexical/104-identifiers.md)) |
 | `missing_f_prefix`       | 0.1.0   | A plain string literal containing `{name}` where `name` is a local in scope: the `f` prefix is missing (warn) |
+| `literal_spread_mismatch` | 0.1.6   | A `List` or Dict literal spread into fixed parameters that cannot fill them: a length that differs, or a key that names no parameter left ([4.2](../004-functions/402-parameters.md)); the call panics at run time (warn) |
 
 | Group               | Includes                                                                                     |
 |---------------------|----------------------------------------------------------------------------------------------|

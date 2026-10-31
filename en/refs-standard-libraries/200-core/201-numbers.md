@@ -561,6 +561,20 @@ let c2 = (a.to_i32()? + b);       // i32 (OK if a is within the i32 range)
 This policy blocks silent type mixing. Unlike Julia, Rok does not auto-promote;
 the user states which world to use.
 
+The compiler's help on mixed numbers converts the narrower side to the wider
+type, so the suggested cast loses no value: an integer goes to a float, any
+primitive goes to `int` or `float`, and of two signed or two unsigned integers
+the narrower goes to the wider. A signed type takes an unsigned one; when both
+have the same width below 64 bits, both go to the signed type one width up.
+
+```rok
+let a: i32 = 1;
+let b: i64 = 5000000000;
+let c = a + b;   // help: convert one side: `(a as i64) + b`
+let u: u32 = 3;
+let d = a + u;   // help: convert both sides: `(a as i64) + (u as i64)`
+```
+
 ## 2.1.7. Fixed primitive ↔ int conversion
 
 Conversion between fixed primitives and `int` is explicit only.

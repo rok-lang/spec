@@ -134,6 +134,7 @@ spread의 규칙은 다음과 같습니다.
 - `List` / `Slice` spread를 고정 매개변수에 넘기면 다음 인자 앞까지의 자리를 채웁니다. 길이는 런타임에 검사합니다. 배열 spread는 그 길이만큼 채웁니다.
 - Dict spread는 named 인자로 바뀝니다. 각 키는 다른 방법으로 채우지 않은 매개변수의 이름이어야 합니다(런타임에 검사). 값은 그 매개변수의 타입이어야 합니다. 기본값이 있는 매개변수에 Dict의 값 타입 `V`가 맞지 않으면 그 매개변수는 기본값을 받습니다. 이때 그 매개변수 이름의 키가 있으면 런타임에 panic이 일어납니다.
 - variadic 자리에는 튜플, `List`, `Slice`, 배열 spread를 일반 인자와 섞어 넘길 수 있습니다(`f(a, ..xs, b)`). variadic 매개변수를 그대로 다른 variadic에 넘길 수도 있습니다(`fn f(xs: ...i32) { g(..xs) }`).
+- 펼치는 값이 안에 `..`이 없는 `List` 리터럴이거나 키가 모두 문자열 리터럴인 Dict 리터럴이면 컴파일러는 컴파일 타임에도 검사합니다. 길이가 채울 자리 수와 다르거나, 남은 매개변수 중 어느 것의 이름도 아닌 키가 있으면 경고 lint `literal_spread_mismatch`를 냅니다(`spread of 3 elements into 2 parameters; this call panics`). 런타임 검사는 그대로 남습니다.
 - 컬렉션이 아닌 값을 펼치면 에러입니다("needs a tuple, a List, a Slice or an array").
 - 원소 타입 `T`가 제네릭으로 열려 있는 variadic을 인자 없이 부르면 `T`를 정할 수 없으므로 타입 표기를 적어야 합니다.
 

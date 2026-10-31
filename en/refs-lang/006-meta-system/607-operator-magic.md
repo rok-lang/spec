@@ -171,6 +171,8 @@ let r = a ⊕ b;            // user token
 
 A token not in the 3.2 table, such as `⊕`, names one existing token with `like = "+"` and follows that token's level and associativity. New levels cannot be created. The token must satisfy the extended-token conditions of [punctuation and operator tokens](../001-lexical/110-punctuation-and-operator-tokens.md#1104-extension-tokens): every character must be Unicode `Pattern_Syntax`, and it is an error if it equals an existing fixed token.
 
+A token may start like a fixed one: `#[infix("<-", like = "+")]` makes `c <- 3` one operator, since the lexer takes the longest match. Such a token, one that starts with a character a fixed token starts with, works only in the files of the package that registers it; elsewhere `a<-1` stays `a < -1` ([1.10.4](../001-lexical/110-punctuation-and-operator-tokens.md#1104-extension-tokens)).
+
 ## 6.7.10. Precedence and associativity levels
 
 The single authoritative location for operator levels is the [3.2.3 precedence table](../003-expressions/302-precedence-and-associativity.md#323-precedence-and-associativity-table). Neither the standard library nor user code can set or change levels; a new token attaches to one of the existing levels via `like`.

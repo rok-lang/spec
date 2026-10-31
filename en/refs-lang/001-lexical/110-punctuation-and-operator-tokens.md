@@ -11,7 +11,7 @@ A conflict between the two tables is rejected at registration time; fixed tokens
 ## 1.10.2. Longest match
 
 > [!IMPORTANT]
-> When an input admits several token candidates, the longest match is chosen.
+> When an input admits several token candidates, the longest match is chosen. Registered extension tokens ([1.10.4](#1104-extension-tokens)) are candidates too.
 
 | Input | Tokenization                                |
 |-------|---------------------------------------------|
@@ -21,6 +21,7 @@ A conflict between the two tables is rejected at registration time; fixed tokens
 | `..=` | One token (`..=` is longer than `..`)       |
 | `..`  | One token                                   |
 | `<<=` | One token (`<<=` is longer than `<<`)       |
+| `<-`  | One token where `<-` is registered (longer than `<`); otherwise `<` and `-` |
 
 ## 1.10.3. Fixed token table
 
@@ -155,7 +156,11 @@ Beyond the fixed table above, a character sequence that the standard libraries o
 
 Examples include `⊕`, `⊗`, `⋆` and `°`. The precedence of an extension token follows the existing token specified with `like` at registration ([6.7.2](../006-meta-system/607-operator-magic.md#672-arguments)).
 
-Once such a sequence is registered, the lexer cuts it out as a single token. The registration time, syntax and meaning are defined in [`#[infix]` / `#[prefix]` / `#[postfix]` magic](../006-meta-system/607-operator-magic.md).
+Once such a sequence is registered, the lexer cuts it out as a single token, by the longest match of 1.10.2: a registered `<-` wins over the fixed `<`, and a fixed `<=` wins over a registered `<`.
+
+A registered sequence that starts with a character a fixed token starts with (`~ @ + - * / % ^ = ! < > & | . : ?`), such as `<-` or `**`, is a token only in the files of the package that registers it. Other packages' files keep the fixed tokens, so `a<-1` there is still `a < -1`. A sequence that starts with any other character, such as `⊕` or `$$`, is a token in every file of the build.
+
+The registration time, syntax and meaning are defined in [`#[infix]` / `#[prefix]` / `#[postfix]` magic](../006-meta-system/607-operator-magic.md).
 
 ## 1.10.5. What is not tokenized
 

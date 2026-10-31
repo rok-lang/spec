@@ -134,6 +134,7 @@ The following rules apply to spread:
 - A `List` / `Slice` spread into fixed parameters fills the slots up to the next argument, with a run-time length check. An array spread fills its length.
 - A Dict spread is converted to named arguments. Each key must name a parameter not filled otherwise (checked at run time), and its value must have that parameter's type. A defaulted parameter that the Dict's value type `V` does not fit takes its default; a key naming it panics at run time.
 - In a variadic position, tuple, `List`, `Slice` and array spreads may be mixed with ordinary arguments (`f(a, ..xs, b)`). A variadic parameter may be passed as-is to another variadic (`fn f(xs: ...i32) { g(..xs) }`).
+- When the operand is a `List` literal with no `..` inside, or a Dict literal whose keys are string literals, the compiler checks it at compile time too. A length that differs from the slots it fills, or a key that names no parameter left to fill, gives the warning lint `literal_spread_mismatch` (`spread of 3 elements into 2 parameters; this call panics`). The run-time check stays.
 - Spreading a non-collection value is an error ("needs a tuple, a List, a Slice or an array").
 - Calling a variadic whose element type `T` is an open generic with no arguments cannot determine `T`, so a type annotation is required.
 
