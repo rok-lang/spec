@@ -105,7 +105,7 @@ A `str` parameter in an `extern "C"` signature is a single NUL-terminated `char*
 
 A `pub` function of an `extern` block in module `m` is also reachable as `m::f`; its symbol is unprefixed. A `rok_*` name in an `extern "C"` block may not take or return `str` ([8.5](../008-abi/805-extern-symbols.md)).
 
-Writing an incompatible type produces a compile warning or error. The exact checking rules are defined in [Calling Convention](../008-abi/806-calling-convention.md).
+An incompatible type is undefined behavior: C sees a GC reference (`List`, `Dict`) as raw bits. The compiler does not check this yet, apart from rejecting `str` in an `extern "C" fn` definition ([5.9.10](#5910-extern-fn-definitions-exposed-externally)), so the requirement is the program's. The calling convention for each type is defined in [Calling Convention](../008-abi/806-calling-convention.md).
 
 ### C function pointer types
 
@@ -175,7 +175,7 @@ fn use_malloc() {
 }
 ```
 
-User-declared `extern "C"` functions are unsafe and are called inside `unsafe { ... }` ([4.15](../004-functions/415-unsafe.md)). Runtime functions declared by the toolchain (`rok_print_*`, `rok_panic_str`, etc.) can be called safely. Otherwise an `extern` function call differs from an ordinary call only in that it is an external symbol. Rok's ordinary semantics apply to the result type. An `extern static` can likewise be read and (if mut) written like an ordinary variable.
+User-declared `extern "C"` functions are unsafe and are called inside `unsafe { ... }` ([4.15](../004-functions/415-unsafe.md)). Runtime functions declared by the toolchain (`rok_print_*`, `rok_panic_str`, etc.) can be called safely. Otherwise an `extern` function call differs from an ordinary call only in that it is an external symbol. Rok's ordinary semantics apply to the result type. An `extern static` can likewise be read and (if `mut`) written like an ordinary variable, without `unsafe`. Its type must still be FFI-compatible (5.9.4): Rok reads the foreign memory as that type, so `static environ: List<str>;` is undefined behavior; declare it as a pointer (`static environ: Ptr<Ptr<c_char>>;`).
 
 ## 5.9.7. Visibility
 
