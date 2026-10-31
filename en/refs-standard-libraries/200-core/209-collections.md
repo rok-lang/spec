@@ -257,7 +257,7 @@ impl<K: Hash + Eq, V: Default> Entry<K, V> {
 ```
 
 ```rok
-let counts: Dict<str, i32> = {};
+let counts: Dict<str, i32> = Dict::new();   // `{}` is an empty block, not an empty Dict
 for w in words {
     counts.entry(w).and_modify(|n| n + 1).or_insert(1);
 }
