@@ -202,43 +202,50 @@ fn strict_zone() { ... }
 
 수준은 다음 순서로 정해지고, 뒤에 오는 것이 앞의 것보다 우선합니다. 각 린트의 기본 수준 < `rok.rokon`의 `lints` 필드(`lints_from` 사슬을 적용한 뒤)([9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) < CLI의 `-A` / `-W` / `-D` < 소스의 속성(가장 안쪽 것이 우선). `lints`는 CLI 플래그 앞에 붙은 것처럼 처리되므로 뒤에 쓴 CLI 플래그가 이 설정을 덮어씁니다. 린트 진단의 코드는 `E503`입니다.
 
-모든 린트의 기본 수준은 `warn`입니다.
+모든 린트의 기본 수준은 `warn`입니다. 도입 열은 그 린트를 추가한 릴리스입니다.
 
-| 린트                     | 검사                                                               |
-|--------------------------|--------------------------------------------------------------------|
-| `unused_variables`       | 읽지 않는 지역 변수나 매개변수. 대입하거나 `ref`로 캡처한 (`[ref n]`) `ref` 매개변수는 사용한 것으로 봄. 그 쓰기가 호출한 쪽에 닿기 때문 |
-| `unused_imports`         | 모듈이 이름을 쓰지 않는 `use`                                      |
-| `dead_code`              | 아무도 부르지 않는 비 `pub` 함수                                   |
-| `unreachable_code`       | `return` / `break` / `continue` / `throw` / `panic` 뒤의 문장      |
-| `unused_must_use`        | `#[must_use]` 함수의 결과, 또는 `#[must_use]` 타입의 값을 버림 ([6.2.11](#6211-must_use-결과-무시-경고)) |
-| `unused_doc_comments`    | 문서화 대상이 아닌 것(문, match 가지, struct 리터럴이나 튜플 필드, 식)에 붙은 문서 주석. 일반 주석은 `//`를 씀 |
-| `write_to_copy`          | 아무도 나중에 읽지 않는 사본에 필드를 대입함. 사본은 값으로 받은 매개변수나 `self`, `for` 바인딩, 원소의 `let`(`xs[i]`, [2.3.8](../002-types/203-struct.md#238-값-의미))이고, 이후의 읽기, 루프 반복, 반환, 호출 어느 것도 그 변경을 볼 수 없을 때. 같은 변수에 다시 쓰는 데에만 쓰이는 읽기는 세지 않음. 클로저나 코루틴 블록이 언급하는 변수는 검사하지 않음 |
-| `ignored_error`          | `try? f();` 문장이 에러를 조용히 버림. `let _ = try? f();`는 실패해도 괜찮은 호출이라는 표시이므로 보고하지 않음 |
-| `shadowed_loop_var`      | `for` 본체의 `let`이 루프 변수를 다시 묶음                        |
-| `nan_comparison`         | NaN과 비교 (늘 거짓, `!=`는 늘 참)                               |
-| `none_comparison`        | `x is none` 대신 `x == none`                                       |
-| `bool_comparison`        | `bool`을 `true` / `false`와 비교                                 |
-| `self_assignment`        | `x = x;`                                                           |
-| `unclosed_resource`      | `using`으로 해제하지 않은 `File` / `Dir` / `ReadDir` / `TcpStream` / `TcpListener` / `UdpSocket` / `Child` (warn) |
-| `while_true`             | `loop` 대신 `while true`                                           |
-| `deprecated`             | `#[deprecated]` 함수 사용                                          |
-| `redundant_cast`         | `x`가 이미 `T`인 `x as T`                                         |
-| `redundant_clone`        | 원시 타입 값의 `.clone()`                                          |
-| `non_snake_case`         | 함수, 지역 변수, 매개변수, 모듈 이름이 snake_case가 아님           |
-| `non_camel_case_types`   | 타입, 트레잇, 변형 이름이 UpperCamelCase가 아님. 첫 글자가 소문자가 아니고, `__`가 없으며, `_`는 대소문자가 없는 문자 사이에만 (`V1_0`) |
-| `non_upper_case_globals` | `const` / `static` 이름이 UPPER_SNAKE_CASE가 아님                  |
-| `confusable_idents`      | 서로 닮은 식별자 ([1.4](../001-lexical/104-identifiers.md))        |
-| `missing_f_prefix`       | 범위 안의 지역 변수 `name`을 가리키는 `{name}`을 담은 보통 문자열 리터럴: `f` 접두어가 빠짐 (warn) |
+| 린트                     | 도입    | 검사                                                               |
+|--------------------------|---------|--------------------------------------------------------------------|
+| `unused_variables`       | 0.1.0   | 읽지 않는 지역 변수나 매개변수. 대입하거나 `ref`로 캡처한 (`[ref n]`) `ref` 매개변수는 사용한 것으로 봄. 그 쓰기가 호출한 쪽에 닿기 때문 |
+| `unused_imports`         | 0.1.0   | 모듈이 이름을 쓰지 않는 `use`                                      |
+| `dead_code`              | 0.1.0   | 아무도 부르지 않는 비 `pub` 함수                                   |
+| `unreachable_code`       | 0.1.0   | `return` / `break` / `continue` / `throw` / `panic` 뒤의 문장      |
+| `unused_must_use`        | 0.1.0   | `#[must_use]` 함수의 결과, 또는 `#[must_use]` 타입의 값을 버림 ([6.2.11](#6211-must_use-결과-무시-경고)) |
+| `unused_doc_comments`    | 0.1.0   | 문서화 대상이 아닌 것(문, match 가지, struct 리터럴이나 튜플 필드, 식)에 붙은 문서 주석. 일반 주석은 `//`를 씀 |
+| `write_to_copy`          | 0.1.0   | 아무도 나중에 읽지 않는 사본에 필드를 대입함. 사본은 값으로 받은 매개변수나 `self`, `for` 바인딩, 원소의 `let`(`xs[i]`, [2.3.8](../002-types/203-struct.md#238-값-의미))이고, 이후의 읽기, 루프 반복, 반환, 호출 어느 것도 그 변경을 볼 수 없을 때. 같은 변수에 다시 쓰는 데에만 쓰이는 읽기는 세지 않음. 클로저나 코루틴 블록이 언급하는 변수는 검사하지 않음 |
+| `ignored_error`          | 0.1.0   | `try? f();` 문장이 에러를 조용히 버림. `let _ = try? f();`는 실패해도 괜찮은 호출이라는 표시이므로 보고하지 않음 |
+| `shadowed_loop_var`      | 0.1.0   | `for` 본체의 `let`이 루프 변수를 다시 묶음                        |
+| `nan_comparison`         | 0.1.0   | NaN과 비교 (늘 거짓, `!=`는 늘 참)                               |
+| `none_comparison`        | 0.1.0   | `x is none` 대신 `x == none`                                       |
+| `bool_comparison`        | 0.1.0   | `bool`을 `true` / `false`와 비교                                 |
+| `self_assignment`        | 0.1.0   | `x = x;`                                                           |
+| `unclosed_resource`      | 0.1.0   | `using`으로 해제하지 않은 `File` / `Dir` / `ReadDir` / `TcpStream` / `TcpListener` / `UdpSocket` / `Child` (warn) |
+| `while_true`             | 0.1.0   | `loop` 대신 `while true`                                           |
+| `deprecated`             | 0.1.0   | `#[deprecated]` 함수 사용                                          |
+| `redundant_cast`         | 0.1.0   | `x`가 이미 `T`인 `x as T`                                         |
+| `redundant_clone`        | 0.1.0   | 원시 타입 값의 `.clone()`                                          |
+| `non_snake_case`         | 0.1.0   | 함수, 지역 변수, 매개변수, 모듈 이름이 snake_case가 아님           |
+| `non_camel_case_types`   | 0.1.0   | 타입, 트레잇, 변형 이름이 UpperCamelCase가 아님. 첫 글자가 소문자가 아니고, `__`가 없으며, `_`는 대소문자가 없는 문자 사이에만 (`V1_0`) |
+| `non_upper_case_globals` | 0.1.0   | `const` / `static` 이름이 UPPER_SNAKE_CASE가 아님                  |
+| `confusable_idents`      | 0.1.0   | 서로 닮은 식별자 ([1.4](../001-lexical/104-identifiers.md))        |
+| `missing_f_prefix`       | 0.1.0   | 범위 안의 지역 변수 `name`을 가리키는 `{name}`을 담은 보통 문자열 리터럴: `f` 접두어가 빠짐 (warn) |
 
 | 그룹                | 포함                                                                                         |
 |---------------------|----------------------------------------------------------------------------------------------|
 | `unused`            | `unused_variables`, `unused_imports`, `dead_code`, `unreachable_code`, `unused_must_use`, `unused_doc_comments` |
 | `nonstandard_style` | `non_snake_case`, `non_camel_case_types`, `non_upper_case_globals`                           |
-| `all`               | 모든 린트                                                                                    |
+| `warnings`          | 기준 릴리스 0.1.5까지 추가된 모든 린트                                                       |
+| `all`               | 이후 릴리스가 추가하는 린트까지 포함한 모든 린트                                             |
 
 `write_to_copy`의 help는 `ref self` / `ref p`, 인덱스 루프(`for i in 0..xs.len() { xs[i].f = .. }`), 또는 원소를 다시 써 넣는 방법을 제안합니다.
 
-`rokc lint --list`는 린트, 그룹, 기본 수준을 출력합니다.
+릴리스가 바뀌어도 경고 없이 빌드되어야 하는 프로젝트는 `warnings` 그룹을 deny합니다. `lints`의 `"warnings": "deny"`, `-D warnings`, `#![deny(warnings)]`가 그 방법입니다. 기준 릴리스 뒤에 추가된 린트는 이 그룹에 들어가지 않습니다. 기준 릴리스 뒤의 릴리스가 deprecated로 표시한 항목의 사용(`deprecated`)도 이 그룹 아래에서는 기본 수준을 유지합니다. 그래서 같은 시리즈의 이후 릴리스가 빌드되던 코드를 에러로 만들지 않습니다. 이런 것까지 검사하려면 이름을 직접 쓰거나 `all`을 deny합니다. `all`을 deny하면 이후 릴리스가 추가하는 모든 린트를 받아들이는 것입니다. 기준 릴리스는 코드를 깨뜨릴 수 있는 릴리스(0.2.0)에서만 바뀝니다.
+
+어떤 경고는 린트 단계가 아니라 컴파일러가 직접 내지만, 그래도 린트에 속합니다. 닮은 식별자는 `confusable_idents`이고, 잘못 놓인 문서 주석은 `unused_doc_comments`입니다. 이 경고의 수준도 다른 린트처럼 린트 이름으로 정합니다.
+
+린트 진단은 수준이 어디서 왔는지 알려 줍니다. `` `#[warn(unused_variables)]` on by default ``, `` `-D unused` on the command line ``, 매니페스트에서 온 수준이면 `` `"unused_variables": "deny"` in `lints` of rok.rokon ``, 속성이 정했으면 그 속성에 붙은 레이블입니다. 모르는 린트나 그룹 이름은 경고이며, 가장 가까운 이름을 알려 주고 `rokc lint --list`를 가리킵니다.
+
+`rokc lint --list`는 린트를 기본 수준, 추가된 릴리스와 함께 출력하고, 이어서 그룹을 출력합니다.
 
 ## 6.2.10. `#[non_exhaustive]` 외부 완전성 검사 회피
 

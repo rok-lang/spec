@@ -202,43 +202,50 @@ These attributes change the level of lint diagnostics within the scope of the it
 
 The level is determined in the following order, later overriding earlier: each lint's default level < the `lints` field of `rok.rokon` (after its `lints_from` chain) ([9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) < CLI `-A` / `-W` / `-D` < attributes in source (the innermost wins). `lints` is treated as if prepended to the CLI flags, so CLI flags written after it override it. The code of lint diagnostics is `E503`.
 
-The default level of every lint is `warn`.
+The default level of every lint is `warn`. The Since column is the release that added the lint.
 
-| lint                     | Checks                                                              |
-|--------------------------|---------------------------------------------------------------------|
-| `unused_variables`       | Local variables or parameters that are never read. A `ref` parameter that is assigned, or captured by `ref` (`[ref n]`), is used: the write reaches the caller |
-| `unused_imports`         | A `use` whose name the module never uses                            |
-| `dead_code`              | Non-`pub` functions nobody calls                                    |
-| `unreachable_code`       | Statements after `return` / `break` / `continue` / `throw` / `panic` |
-| `unused_must_use`        | Discarding the result of a `#[must_use]` function, or a value of a `#[must_use]` type ([6.2.11](#6211-must_use-warning-on-ignored-results)) |
-| `unused_doc_comments`    | A doc comment on what is not documented (a statement, match arm, struct literal or tuple field, expression); use `//` for a plain comment |
-| `write_to_copy`          | A field assigned on a copy that nothing reads afterwards: a by-value parameter or `self`, a `for` binding, or a `let` of an element (`xs[i]`, [2.3.8](../002-types/203-struct.md#238-value-semantics)), when no later read, loop iteration, return or call can see the change. A read that only feeds another write to the same variable does not count; a variable a closure or coroutine block mentions is not checked |
-| `ignored_error`          | A `try? f();` statement silently discarding an error; `let _ = try? f();` marks a deliberate best-effort call and is not reported |
-| `shadowed_loop_var`      | A `let` in a `for` body rebinding the loop variable                 |
-| `nan_comparison`         | Comparison with NaN (always false; `!=` always true)                |
-| `none_comparison`        | `x == none` instead of `x is none`                                  |
-| `bool_comparison`        | Comparing a `bool` with `true` / `false`                            |
-| `self_assignment`        | `x = x;`                                                            |
-| `unclosed_resource`      | A `File` / `Dir` / `ReadDir` / `TcpStream` / `TcpListener` / `UdpSocket` / `Child` not released by `using` (warn) |
-| `while_true`             | `while true` instead of `loop`                                      |
-| `deprecated`             | Use of a `#[deprecated]` function                                   |
-| `redundant_cast`         | `x as T` where `x` is already `T`                                   |
-| `redundant_clone`        | `.clone()` on a value of a primitive type                           |
-| `non_snake_case`         | Function, local variable, parameter, or module names not in snake_case |
-| `non_camel_case_types`   | Type, trait, or variant names not in UpperCamelCase: no lowercase first letter, no `__`, and `_` only between characters without case (`V1_0`) |
-| `non_upper_case_globals` | `const` / `static` names not in UPPER_SNAKE_CASE                    |
-| `confusable_idents`      | Identifiers that resemble each other ([1.4](../001-lexical/104-identifiers.md)) |
-| `missing_f_prefix`       | A plain string literal containing `{name}` where `name` is a local in scope: the `f` prefix is missing (warn) |
+| lint                     | Since   | Checks                                                              |
+|--------------------------|---------|---------------------------------------------------------------------|
+| `unused_variables`       | 0.1.0   | Local variables or parameters that are never read. A `ref` parameter that is assigned, or captured by `ref` (`[ref n]`), is used: the write reaches the caller |
+| `unused_imports`         | 0.1.0   | A `use` whose name the module never uses                            |
+| `dead_code`              | 0.1.0   | Non-`pub` functions nobody calls                                    |
+| `unreachable_code`       | 0.1.0   | Statements after `return` / `break` / `continue` / `throw` / `panic` |
+| `unused_must_use`        | 0.1.0   | Discarding the result of a `#[must_use]` function, or a value of a `#[must_use]` type ([6.2.11](#6211-must_use-warning-on-ignored-results)) |
+| `unused_doc_comments`    | 0.1.0   | A doc comment on what is not documented (a statement, match arm, struct literal or tuple field, expression); use `//` for a plain comment |
+| `write_to_copy`          | 0.1.0   | A field assigned on a copy that nothing reads afterwards: a by-value parameter or `self`, a `for` binding, or a `let` of an element (`xs[i]`, [2.3.8](../002-types/203-struct.md#238-value-semantics)), when no later read, loop iteration, return or call can see the change. A read that only feeds another write to the same variable does not count; a variable a closure or coroutine block mentions is not checked |
+| `ignored_error`          | 0.1.0   | A `try? f();` statement silently discarding an error; `let _ = try? f();` marks a deliberate best-effort call and is not reported |
+| `shadowed_loop_var`      | 0.1.0   | A `let` in a `for` body rebinding the loop variable                 |
+| `nan_comparison`         | 0.1.0   | Comparison with NaN (always false; `!=` always true)                |
+| `none_comparison`        | 0.1.0   | `x == none` instead of `x is none`                                  |
+| `bool_comparison`        | 0.1.0   | Comparing a `bool` with `true` / `false`                            |
+| `self_assignment`        | 0.1.0   | `x = x;`                                                            |
+| `unclosed_resource`      | 0.1.0   | A `File` / `Dir` / `ReadDir` / `TcpStream` / `TcpListener` / `UdpSocket` / `Child` not released by `using` (warn) |
+| `while_true`             | 0.1.0   | `while true` instead of `loop`                                      |
+| `deprecated`             | 0.1.0   | Use of a `#[deprecated]` function                                   |
+| `redundant_cast`         | 0.1.0   | `x as T` where `x` is already `T`                                   |
+| `redundant_clone`        | 0.1.0   | `.clone()` on a value of a primitive type                           |
+| `non_snake_case`         | 0.1.0   | Function, local variable, parameter, or module names not in snake_case |
+| `non_camel_case_types`   | 0.1.0   | Type, trait, or variant names not in UpperCamelCase: no lowercase first letter, no `__`, and `_` only between characters without case (`V1_0`) |
+| `non_upper_case_globals` | 0.1.0   | `const` / `static` names not in UPPER_SNAKE_CASE                    |
+| `confusable_idents`      | 0.1.0   | Identifiers that resemble each other ([1.4](../001-lexical/104-identifiers.md)) |
+| `missing_f_prefix`       | 0.1.0   | A plain string literal containing `{name}` where `name` is a local in scope: the `f` prefix is missing (warn) |
 
 | Group               | Includes                                                                                     |
 |---------------------|----------------------------------------------------------------------------------------------|
 | `unused`            | `unused_variables`, `unused_imports`, `dead_code`, `unreachable_code`, `unused_must_use`, `unused_doc_comments` |
 | `nonstandard_style` | `non_snake_case`, `non_camel_case_types`, `non_upper_case_globals`                           |
-| `all`               | Every lint                                                                                   |
+| `warnings`          | Every lint added up to the baseline release, 0.1.5                                           |
+| `all`               | Every lint, including those later releases add                                               |
 
 The help of `write_to_copy` suggests `ref self` / `ref p`, an index loop (`for i in 0..xs.len() { xs[i].f = .. }`), or writing the element back.
 
-`rokc lint --list` prints the lints, groups, and default levels.
+`warnings` is the group to deny for a build that must stay clean across releases: `"warnings": "deny"` in `lints`, `-D warnings` or `#![deny(warnings)]`. A lint added after the baseline is not in it, and a deprecation (`deprecated`) of an item that a release after the baseline deprecated keeps its default level under it, so a later release of the same series never turns code that built into an error. To check those too, name them, or deny `all`: denying `all` opts in to every lint later releases add. The baseline moves only with a release that may break code (0.2.0).
+
+Some warnings come from the compiler itself rather than from a lint pass, and still belong to a lint: a confusable identifier is `confusable_idents` and a misplaced doc comment is `unused_doc_comments`. Their level is set by the lint's name, as for any other lint.
+
+Each lint diagnostic says where its level came from: `` `#[warn(unused_variables)]` on by default ``, `` `-D unused` on the command line ``, `` `"unused_variables": "deny"` in `lints` of rok.rokon `` for a level from the manifest, or a label on the attribute that set it. An unknown lint or group name is a warning that names the closest known one and points to `rokc lint --list`.
+
+`rokc lint --list` prints the lints with their default levels and the release that added each, then the groups.
 
 ## 6.2.10. `#[non_exhaustive]` opting out of external exhaustiveness
 

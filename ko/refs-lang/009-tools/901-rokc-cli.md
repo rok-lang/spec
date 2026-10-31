@@ -291,7 +291,7 @@ rokc check [path] [--check-library]
 rokc lint [path] [--list]
 ```
 
-`rokc check`에서 코드 생성을 뺀 것입니다. 컴파일하는 모든 명령이 같은 린트를 보고합니다([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). `lint`는 린트와 프런트엔드만 돌립니다. 진단 형식은 9.1.8을 따르고, 린트 진단의 코드는 `E503`입니다. 린트 목록과 그룹은 [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)에 있습니다. `--list`는 린트와 그룹, 기본 수준을 출력합니다.
+`rokc check`에서 코드 생성을 뺀 것입니다. 컴파일하는 모든 명령이 같은 린트를 보고합니다([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). `lint`는 린트와 프런트엔드만 돌립니다. 진단 형식은 9.1.8을 따르고, 린트 진단의 코드는 `E503`입니다. 린트 목록과 그룹은 [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)에 있습니다. `--list`는 린트를 기본 수준, 추가된 릴리스와 함께 출력하고, 이어서 그룹을 출력합니다.
 
 린트 수준은 전역 옵션 `-A` / `-W` / `-D`(9.1.5)와 코드의 속성이 정합니다. `deny` 수준의 린트가 하나라도 걸리면 종료 코드는 `1`입니다.
 

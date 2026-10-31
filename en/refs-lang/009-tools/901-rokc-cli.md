@@ -291,7 +291,7 @@ Runs the front end through type checking and MIR building, plus lints, and repor
 rokc lint [path] [--list]
 ```
 
-`rokc check` without code generation. Every compiling command reports the same lints ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)); `lint` runs only them and the front end. The diagnostic format is 9.1.8; lint diagnostics have code `E503`. The list of lints and groups is in [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control). `--list` prints the lints, groups and default levels.
+`rokc check` without code generation. Every compiling command reports the same lints ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)); `lint` runs only them and the front end. The diagnostic format is 9.1.8; lint diagnostics have code `E503`. The list of lints and groups is in [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control). `--list` prints the lints with their default levels and the release that added each, then the groups.
 
 Lint levels are set by the global options `-A` / `-W` / `-D` (9.1.5) and by attributes in code. If any `deny`-level lint fires, the exit code is `1`.
 
