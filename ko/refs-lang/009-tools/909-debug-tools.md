@@ -110,7 +110,7 @@ rokc build --message-format=json
 진단 하나가 stdout의 JSON 객체 한 줄입니다. 사람용 형식은 stderr에 나옵니다.
 
 ```json
-{"type":"error","code":"E200","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"..."}],"notes":["..."],"fixes":[],"spec":["..."]}
+{"type":"error","code":"E200","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"...","line_end":5,"col_end":15}],"notes":["..."],"fixes":[],"spec":["..."],"help":[],"lint":null,"schema":1}
 ```
 
 | 필드       | 뜻                                                                 |
@@ -123,8 +123,13 @@ rokc build --message-format=json
 | `notes`    | note 문자열 목록. help 항목은 `help: `로 시작                     |
 | `fixes`    | 코드를 고치는 편집 목록. 각 편집은 파일 하나의 span에 그 자리를 바꿀 `text`와 `title`을 더한 것(아래). 비어 있을 때가 많음 |
 | `spec`     | 메시지와 note가 인용하는 절(`spec 3.12.5`). 사람용 형식에서는 빠짐 |
+| `help`     | `notes`의 help 항목에서 `help: ` 접두어를 뗀 것                    |
+| `lint`     | 경고나 린트 에러가 속한 린트(`unused_variables`). `#[allow(..)]`와 `-A`가 받는 이름([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). 나머지는 `null` |
+| `schema`   | 이 형식의 버전. 지금은 `1`                                         |
 
-span에는 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_primary`, `label`이 있습니다. 위치 없이 파일만 아는 진단은 `{"file_name": .., "is_primary": true}`만 둡니다. fix에는 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `text`, `title`(``convert with `as i32` ``)이 있습니다. LSP 서버는 이것을 빠른 수정으로 내놓습니다([9.9.13](#9913-lsp-서버)).
+span에는 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_primary`, `label`, `line_end`, `col_end`가 있습니다. `line_end` / `col_end`는 span이 끝나는 위치(마지막 문자 바로 다음)이고, `line_start` / `col_start`처럼 코드 포인트로 셉니다. 소스 텍스트가 없으면 `null`입니다. 위치 없이 파일만 아는 진단은 `{"file_name": .., "is_primary": true}`만 둡니다. fix에는 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `text`, `title`(``convert with `as i32` ``), `line_end`, `col_end`가 있습니다. LSP 서버는 이것을 빠른 수정으로 내놓습니다([9.9.13](#9913-lsp-서버)).
+
+같은 `schema` 안에서는 필드를 더하기만 하고, 빼거나 이름이나 뜻을 바꾸지 않습니다. 그러니 읽는 쪽은 모르는 필드를 무시해야 합니다. `schema`가 `1`인 동안 help 항목은 `notes`에도 그대로 남습니다. 테스트, 벤치, `rok deps` 레코드([9.9.12](#9912-ci--테스트-통합), [9.10.4](910-rok-frontend.md#9104-의존성-rok-add--remove--update--deps))도 각자의 `schema`로 같은 규칙을 따릅니다.
 
 IDE와 CI 시스템은 이 형식으로 진단을 기계적으로 읽을 수 있습니다.
 
@@ -356,7 +361,7 @@ rok bench
 
 `black_box(x)`는 옵티마이저가 꿰뚫어 볼 수 없는 항등 함수입니다. 측정 클로저의 입력과 결과에 적용하세요. 그러면 작업이 밖으로 끌려 나가거나 접혀 사라지지 않습니다. `b.bytes(n)` / `b.items(n)`은 호출당 시간을 처리량(`MiB/s`, `Melem/s`)으로 바꿉니다.
 
-출력은 터미널이든 아니든 사람이 읽는 단위로 정렬됩니다. `--format=rokbench`는 회귀 도구가 읽는 안정된 기계용 형식을 벤치마다 한 줄씩 출력합니다([9.1.2](901-rokc-cli.md#rokc-bench-벤치마크)). `b.iter`를 한 번도 부르지 않은 벤치는 아무것도 측정하지 않았다고 보고합니다. 실패가 아니라 경고입니다. `--iters` / `--samples`로 표본을 조절합니다.
+출력은 터미널이든 아니든 사람이 읽는 단위로 정렬됩니다. `--format=rokbench`는 회귀 도구가 읽는 안정된 기계용 형식을 벤치마다 한 줄씩 출력합니다([9.1.2](901-rokc-cli.md#rokc-bench-벤치마크)). `--format=json`은 JSON 레코드를 출력합니다([9.9.12](#9912-ci--테스트-통합)). `b.iter`를 한 번도 부르지 않은 벤치는 아무것도 측정하지 않았다고 보고합니다. 실패가 아니라 경고입니다. `--iters` / `--samples`로 표본을 조절합니다.
 
 ## 9.9.12. CI / 테스트 통합
 
@@ -369,6 +374,23 @@ rokc build --message-format=json --no-color > build.log
 ```
 
 이 출력은 CI 시스템이 파싱하기 좋습니다.
+
+### 테스트와 벤치 레코드
+
+`rok test --format json`과 `rok bench --format json`은 stdout에 JSON 객체를 한 줄에 하나씩 씁니다. 사람용 텍스트, 테스트의 출력, 벤치가 직접 출력한 내용은 stderr로 가므로 stdout에는 레코드만 남습니다. 레코드마다 `schema`(지금은 `1`), `type`, `kind`(`test`나 `bench`)가 있습니다.
+
+```json
+{"schema":1,"type":"case","kind":"test","name":"math::adds","result":"ok","ms":3.215}
+{"schema":1,"type":"case","kind":"bench","name":"sum","result":"ok","ms":270.1,"median_ns":6.833,"mad_ns":0.167,"samples":10,"outliers":0,"gc":0,"bytes":0,"items":0}
+{"schema":1,"type":"summary","kind":"test","result":"failed","passed":2,"failed":1,"filtered_out":0,"ms":120.4}
+```
+
+| `type`    | 필드                                                                |
+|-----------|---------------------------------------------------------------------|
+| `case`    | `name`, `result`(`ok`, `failed`, 또는 아무것도 측정하지 않은 벤치의 `ignored`), `ms`(그 프로세스의 실제 경과 시간). `result`가 `ok`인 벤치에는 `#rokbench` 줄([9.1.2](901-rokc-cli.md#rokc-bench-벤치마크))과 같은 `median_ns`, `mad_ns`, `samples`, `outliers`, `gc`, `bytes`, `items`도 있음 |
+| `summary` | `result`(`ok`나 `failed`), `ms`, 그리고 개수. 테스트는 `passed`, `failed`, `filtered_out`, 벤치는 `run`, `failed`, `ignored`, `filtered_out` |
+
+summary는 하네스마다 그 case들 뒤에 옵니다. 그래서 루트 파일이 둘 다 있는 패키지는 라이브러리 실행이 통과하면 summary가 둘입니다. 레코드는 JSON 진단의 `schema` 규칙([9.9.4](#994-진단--에러-메시지))을 따르므로, 읽는 쪽은 모르는 필드를 무시합니다. `--message-format=json`을 함께 주면 빌드 진단도 같은 stdout에 JSON 줄로 나옵니다. 진단은 `type`(`error`, `warning`, ..)으로 레코드와 구별합니다.
 
 ### 종료 코드
 

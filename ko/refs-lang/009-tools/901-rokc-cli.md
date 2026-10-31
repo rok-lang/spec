@@ -162,10 +162,11 @@ rokc test [path] [filter]
 
 **각 테스트는 자기 프로세스에서 실행됩니다.** 테스트가 panic으로 끝나거나(종료 코드 101) 잡히지 않은 에러로 끝나면(종료 코드 1) 그 테스트만 실패하고, 나머지는 계속 실행됩니다. 시그널로 끝나도 실패입니다.
 
-옵션은 `rokc build`와 같고, 다음 두 가지가 더 있습니다.
+옵션은 `rokc build`와 같고, 다음 세 가지가 더 있습니다.
 
 - `--threads=N`은 동시에 실행할 테스트 프로세스 수를 지정합니다. 기본값은 `ROKC_NUM_JOBS`이고, 그것도 없으면 CPU 수입니다.
 - `--show-output`은 성공한 테스트의 stdout / stderr도 표시합니다. 실패한 테스트의 출력은 늘 표시합니다.
+- `--format=human|json`은 출력 형식을 고릅니다(기본값 `human`). `json`은 테스트마다 JSON 레코드 하나와 summary를 stdout에, 아래 텍스트를 stderr에 씁니다([9.9.12](909-debug-tools.md#9912-ci--테스트-통합)).
 
 출력은 stdout에 다음 형태로 나옵니다.
 
@@ -214,7 +215,7 @@ fn parse_1kb(b: Bench) {
 
 - `--iters=N`은 보정 대신 표본 하나의 호출 횟수를 고정합니다.
 - `--samples=N`은 측정할 표본 수입니다(기본값 10).
-- `--format=human|rokbench`는 출력 형식을 고릅니다(기본값 `human`).
+- `--format=human|json|rokbench`는 출력 형식을 고릅니다(기본값 `human`). `json`은 테스트와 같습니다([9.9.12](909-debug-tools.md#9912-ci--테스트-통합)). 다른 값은 세 값을 알려 주는 CLI 에러입니다.
 
 벤치는 하나씩 차례로 실행됩니다. 각 벤치는 터미널이든 아니든 사람이 읽는 단위로 정렬한 한 줄을 출력합니다.
 
@@ -222,7 +223,7 @@ fn parse_1kb(b: Bench) {
   json::parse_1kb     1.84 us +/- 0.03 us   543 MiB/s   [2 outliers, 0 gc]
 ```
 
-`--format=rokbench`를 주면 그 대신 회귀 도구가 읽는 안정된 기계용 형식을 벤치마다 한 줄씩 출력합니다. 형식은 `#rokbench name=<name> median_ns=<f> mad_ns=<f> samples=<n> outliers=<n> gc=<n> bytes=<n> items=<n>`입니다.
+`--format=rokbench`를 주면 그 대신 회귀 도구가 읽는 안정된 기계용 형식을 벤치마다 한 줄씩 출력합니다. 형식은 `#rokbench name=<name> median_ns=<f> mad_ns=<f> samples=<n> outliers=<n> gc=<n> bytes=<n> items=<n>`입니다. 이 줄은 지금 형태로 고정됩니다. 키를 더하거나 빼거나 순서를 바꾸지 않으므로, 이 줄에 맞춰 쓴 파서는 계속 동작합니다. 새 필드는 `--format=json`의 JSON 레코드에만 들어갑니다. JSON 레코드는 벤치가 직접 출력한 내용과도 분리됩니다(`rokbench`에서는 그 내용이 이 줄과 같은 stdout에 섞입니다).
 
 `b.iter`를 한 번도 부르지 않은 벤치는 아무것도 측정하지 않은 것입니다. 실패는 아닙니다. 그 줄은 `` <name>  warning: measured nothing: time the code with `b.iter(|| ..)` ``이고, 요약은 그 벤치를 실행한 수가 아니라 `<n> measured nothing`으로 셉니다.
 

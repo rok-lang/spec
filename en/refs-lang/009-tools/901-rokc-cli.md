@@ -162,10 +162,11 @@ If there is a single argument and it is not an existing path, it is taken as `fi
 
 **Each test runs in its own process.** If a test panics (exit code 101) or ends with an uncaught error (exit code 1), only that test fails and the rest keep running. Termination by signal is also a failure.
 
-Options are the same as `rokc build`, plus two more:
+Options are the same as `rokc build`, plus three more:
 
 - `--threads=N` sets the number of test processes run concurrently. The default is `ROKC_NUM_JOBS`, or the CPU count if that is unset.
 - `--show-output` also shows the stdout / stderr of passing tests. Output of failing tests is always shown.
+- `--format=human|json` selects the output form (default `human`). `json` writes a JSON record per test and a summary on stdout and the text below on stderr ([9.9.12](909-debug-tools.md#9912-ci--test-integration)).
 
 Output goes to stdout in the following form.
 
@@ -214,7 +215,7 @@ fn parse_1kb(b: Bench) {
 
 - `--iters=N` fixes the number of calls per sample instead of calibrating.
 - `--samples=N` is the number of samples measured (default 10).
-- `--format=human|rokbench` selects the output form (default `human`).
+- `--format=human|json|rokbench` selects the output form (default `human`). `json` is as for tests ([9.9.12](909-debug-tools.md#9912-ci--test-integration)); any other value is a CLI error naming the three.
 
 Benchmarks run one at a time. Each prints one aligned line in human units, to a terminal or not:
 
@@ -222,7 +223,7 @@ Benchmarks run one at a time. Each prints one aligned line in human units, to a 
   json::parse_1kb     1.84 us +/- 0.03 us   543 MiB/s   [2 outliers, 0 gc]
 ```
 
-`--format=rokbench` prints a stable machine form for regression tools instead, one line per benchmark: `#rokbench name=<name> median_ns=<f> mad_ns=<f> samples=<n> outliers=<n> gc=<n> bytes=<n> items=<n>`.
+`--format=rokbench` prints a stable machine form for regression tools instead, one line per benchmark: `#rokbench name=<name> median_ns=<f> mad_ns=<f> samples=<n> outliers=<n> gc=<n> bytes=<n> items=<n>`. This line is frozen as it is: no key is added, removed or reordered, so a reader written for it keeps working. New fields go only in the JSON records of `--format=json`, which also keep a benchmark's own output apart from them (with `rokbench`, it shares stdout with these lines).
 
 A benchmark that never calls `b.iter` measured nothing. It is not a failure: its line is `` <name>  warning: measured nothing: time the code with `b.iter(|| ..)` ``, and the summary counts it as `<n> measured nothing`, not as run.
 

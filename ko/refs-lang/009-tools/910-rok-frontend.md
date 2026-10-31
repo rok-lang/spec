@@ -236,7 +236,7 @@ rok remove <name>
 rok add .. <file.rok>                    # 스크립트의 //! rokon 블록에
 rok remove [--native] <name> <file.rok>
 rok update [name...]
-rok deps [--dev] [--features <f,..>] [--all-features] [--no-default-features]
+rok deps [--dev] [--features <f,..>] [--all-features] [--no-default-features] [--format json]
 ```
 
 - `add` / `remove`는 패키지의 `rok.rokon`을 고치고, 주석과 배치를 보존합니다. `--dev`는 `dev_deps`에 넣습니다.
@@ -245,7 +245,8 @@ rok deps [--dev] [--features <f,..>] [--all-features] [--no-default-features]
 - stone을 요구 없이 더하면 `^<가장 새 버전>`을 적습니다. `--features`, `--no-default-features`, `--optional`은 `Dep::..`에 적습니다. 패키지에 같은 이름의 feature가 없으면 `--optional`은 feature `"<name>": ["dep:<name>"]`도 더합니다.
 - 패키지에 `add`하면 `Added <name> v<version>`을 알립니다. 버전은 의존 패키지 `rok.rokon`의 `version`입니다(아직 해석되지 않은 stone은 고정한 버전). 버전이 없으면 `Added <name>`입니다. `--dev`는 ` (dev_deps)`를 덧붙입니다.
 - 빌드는 `rok.lock`의 커밋과 버전을 씁니다. 새로 선언된 의존은 lock에 더하고 지운 의존은 정리합니다. 하지만 이미 고정된 것을 옮기는 것은 `update`뿐입니다. `update`는 이름을 주면 그 패키지만, 없으면 모든 git 의존과 stone을 다시 해소합니다.
-- `deps`는 해소한 의존 패키지를 `<코드 이름>=<그 src/lib.rok 경로>` 줄로 출력합니다. 코드 이름은 `-`를 `_`로 바꾼 것이고, 의존되는 쪽이 먼저 옵니다(`--dev`면 dev 의존 포함). 각 줄 뒤에는 그 `--extern-feature=<코드 이름>=<f>` 줄이 옵니다. `deps`는 feature 옵션과 `--dev`를 받습니다. native 패키지마다(의존하는 쪽이 먼저, 호스트용) `# native <name> <vers>`와 그 `rokc` 인자를 한 줄에 하나씩 출력합니다.
+- `deps`는 해소한 의존 패키지를 `<코드 이름>=<그 src/lib.rok 경로>` 줄로 출력합니다. 코드 이름은 `-`를 `_`로 바꾼 것이고, 의존되는 쪽이 먼저 옵니다(`--dev`면 dev 의존 포함). 각 줄 뒤에는 그 `--extern-feature=<코드 이름>=<f>` 줄이 옵니다. `deps`는 feature 옵션과 `--dev`를 받습니다. native 패키지마다(의존하는 쪽이 먼저, 호스트용) `# native <name> <vers>`와 그 `rokc` 인자를 한 줄에 하나씩 출력합니다. 의존성이 없으면 아무것도 출력하지 않습니다.
+- `deps --format json`은 같은 순서로 JSON 객체를 한 줄에 하나씩 대신 출력합니다. 객체마다 `schema`(지금은 `1`)와 `type`이 있습니다. `package` 레코드에는 `name`, `version`(stone이면 해소한 버전, 아니면 그 의존성 `rok.rokon`의 `version`, 그것도 없으면 `null`), `source`(`path+<dir>`, `git+<url>#<commit>`, `registry+<index url>`), `path`(그 `src/lib.rok`), `features`가 있습니다. `native` 레코드에는 `name`, `version`, `args`(그 `rokc` 인자)가 있습니다. 마지막 `summary` 레코드는 `packages`와 `natives`의 수를 세므로, 의존성이 없는 패키지는 이것만 출력합니다. 레코드는 JSON 진단의 `schema` 규칙([9.9.4](909-debug-tools.md#994-진단--에러-메시지))을 따릅니다. 기본값은 `--format human`이고, 다른 값은 CLI 에러입니다.
 - `rok.lock`은 버전 관리에 함께 넣습니다.
 - `update`는 lock에서 바뀐 것마다 `Updated <name> v0.1.0 -> v0.1.1` 줄을 출력합니다. git 의존성은 짧은 커밋으로 적고, 새로 고정된 것은 `Locked`, 빠진 것은 `Removed`입니다. 바뀐 것이 없으면 `note: all dependencies are up to date`를, 의존성이 없으면 `` note: no dependencies to update; add one: `rok add <name>` ``를 출력합니다.
 - 패키지 밖에서 `--env` 없이 이 명령을 실행하면, 패키지 밖에서 쓰는 환경(9.10.5)에 라이브러리가 있을 때 그 환경을 업데이트합니다. 무언가 바뀌었으면 끝에 `` Updated environment `<name>` ``을 출력합니다. 라이브러리가 없으면 에러입니다. `` not inside a package (..): make one with `rok init`; for an environment's libraries: `rok update --env <name>` ``
@@ -512,7 +513,7 @@ rok toolchain clean                        # 기본값을 제외한 설치된 �
 - `rok toolchain update`는 `$ROK_HOME` 아래의 기본 toolchain을 교체합니다. 인자가 없으면 가장 새 릴리스(`latest/download/rok-version`)를 설치합니다. 그것이 다른 시리즈여도 마찬가지입니다(rustup 방식). 기본값이 다른 시리즈로 옮겨 가면, 이전 toolchain이 남는다는 note가 그 시리즈에 머무는 방법도 알려 줍니다. ``note: rok 0.1.6 stays installed; a project that must stay on 0.1 pins it (`toolchain: "0.1"` in rok.rokon or a script's `//! rokon` block, as `rok new` writes) or runs `rok +0.1 ..` ``. 인자를 주면 `install`과 같이 읽어 그 릴리스를 설치합니다. `update 0.1`은 가장 새 0.1 릴리스입니다. 설치한 toolchain이 기본값이 되고 가장 새 toolchain이 바뀌었으면 `bin/` 프록시를 다시 씁니다. Windows에서는 실행 중인 프록시의 이름을 바꾼 뒤 그 사본으로 교체합니다. 릴리스 아카이브를 받아 SHA-256을 검증하고(아래 배포), 따로 풀어 제자리로 옮깁니다. 그런 다음 프록시가 새 toolchain을 실행하는지 확인합니다. 실패하면 이전 기본값과 프록시를 되돌리고 새 toolchain을 지웁니다. 이전 toolchain은 설치된 채로 남습니다. 이미 설치된 버전은 내려받지 않고 기본값이 됩니다. `rok update`는 `rok.lock`을 다시 해소하고, `rok toolchain update`는 toolchain을 교체합니다(9.10.4).
 - `rok toolchain default <version>`이나 `rok toolchain update` 뒤에는 설치 스크립트가 쓴 자동 완성 스크립트(아래 배포)를 다시 씁니다. 새 기본 toolchain의 `rok completions` / `rokc completions`로 씁니다. 있는 파일만 다시 쓰고 새로 만들지는 않습니다. `completions`가 없는 toolchain이면 그대로 둡니다. 아무것도 출력하지 않고, `-v`이면 다시 쓴 파일을 알려 줍니다.
 - `rok toolchain default <version>`이나 `rok toolchain update` 뒤에 `rok`은 `PATH`에서 `rok`을 찾습니다(Windows에서는 `PATHEXT`의 각 확장자로). 처음 찾은 것이 `$ROK_HOME/bin/rok`이 아니면(실제 경로로 비교) 경고합니다. 경고는 그 파일과 그 `--version`이 출력하는 버전을 알립니다. `warning: your shell runs <path> (rok X) before ~/.rok/bin/rok; put ~/.rok/bin first on PATH or remove the other one`. `-q`이면 경고하지 않습니다(설치 스크립트가 이렇게 실행함).
-- `rok --version -v`(또는 `rok version -v`)는 버전 줄 다음에 다음 줄을 출력합니다. `binary`(이 실행 파일), `toolchain`(활성 toolchain과 그 이유), `rokc`(여기서 명령이 실행할 `rokc`. 자기 것이거나, 명령을 넘길 때는 고정한 toolchain의 것), `host`입니다. 이유는 명령줄의 `+`, `ROK_TOOLCHAIN`, 고정한 `rok.rokon`, 기본값 중 하나이고, toolchain이 없으면 `none`입니다.
+- `rok --version -v`(또는 `rok version -v`)는 버전 줄 다음에 다음 줄을 출력합니다. `binary`(이 실행 파일), `toolchain`(활성 toolchain과 그 이유), `rokc`(여기서 명령이 실행할 `rokc`. 자기 것이거나, 명령을 넘길 때는 고정한 toolchain의 것), `host`입니다. 이유는 명령줄의 `+`, `ROK_TOOLCHAIN`, 고정한 `rok.rokon`, 기본값 중 하나이고, toolchain이 없으면 `none`입니다. 각 줄은 값을 맞춰 정렬한 `key: value` 형태로, `rokc --version -v`(`host: <triple>`)와 같습니다. `--format json`(`rok version -v --format json`, `rok --version --format=json`)은 대신 JSON 객체 하나를 출력합니다. `schema`(지금은 `1`), `version`, `line`(버전 줄에서 `rok ` 뒤의 텍스트)이 있고, `-v`면 위 네 키도 있습니다.
 - `rok toolchain clean`은 지금의 기본값을 제외한 설치된 모든 toolchain을 지웁니다. `update`가 남겨 둔 이전 버전을 정리하는 선택(opt-in) 명령입니다. 프로젝트가 고정한 버전도 함께 지워지므로 빌드에 필요하면 다시 설치해야 합니다. 기본 toolchain이 없으면 에러입니다.
 
 ### toolchain이 함께 쓰는 파일

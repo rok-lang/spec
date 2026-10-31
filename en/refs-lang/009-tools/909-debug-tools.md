@@ -110,7 +110,7 @@ rokc build --message-format=json
 Each diagnostic is one line of JSON object on stdout (the human format goes to stderr).
 
 ```json
-{"type":"error","code":"E200","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"..."}],"notes":["..."],"fixes":[],"spec":["..."]}
+{"type":"error","code":"E200","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"...","line_end":5,"col_end":15}],"notes":["..."],"fixes":[],"spec":["..."],"help":[],"lint":null,"schema":1}
 ```
 
 | Field      | Meaning                                                            |
@@ -123,8 +123,13 @@ Each diagnostic is one line of JSON object on stdout (the human format goes to s
 | `notes`    | List of note strings; a help entry starts with `help: `            |
 | `fixes`    | Edits that fix the code, each a span of one file with the `text` that replaces it and a `title` (below); often empty |
 | `spec`     | Sections the message and notes cite (`spec 3.12.5`), which the human format leaves out |
+| `help`     | The help entries of `notes`, without the `help: ` prefix           |
+| `lint`     | The lint a warning or lint error belongs to (`unused_variables`), the name `#[allow(..)]` and `-A` take ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)); `null` for the others |
+| `schema`   | The version of this format, now `1`                                |
 
-A span has `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_primary` and `label`. A diagnostic that knows only the file and no position has just `{"file_name": .., "is_primary": true}`. A fix has `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `text` and `title` (``convert with `as i32` ``); the language server offers it as a quick fix ([9.9.13](#9913-lsp-server)).
+A span has `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_primary`, `label`, `line_end` and `col_end`. `line_end` / `col_end` are where the span ends (the position just past its last character), counted like `line_start` / `col_start` in code points; they are `null` when the source text is not at hand. A diagnostic that knows only the file and no position has just `{"file_name": .., "is_primary": true}`. A fix has `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `text`, `title` (``convert with `as i32` ``), `line_end` and `col_end`; the language server offers it as a quick fix ([9.9.13](#9913-lsp-server)).
+
+Within one `schema`, fields are only added, never removed, renamed or given another meaning, so a reader should ignore fields it does not know. A help entry stays in `notes` as well while `schema` is `1`. The test, bench and `rok deps` records ([9.9.12](#9912-ci--test-integration), [9.10.4](910-rok-frontend.md#9104-dependencies-rok-add--remove--update--deps)) follow the same rule with their own `schema`.
 
 This format lets IDEs and CI systems read diagnostics mechanically.
 
@@ -351,7 +356,7 @@ rok bench
 
 `black_box(x)` is an identity the optimizer cannot see through; apply it to the inputs and result of the timed closure so the work is neither hoisted out nor folded away. `b.bytes(n)` / `b.items(n)` turn the per-call time into a throughput (`MiB/s`, `Melem/s`).
 
-Output is aligned and in human units, to a terminal or not; `--format=rokbench` gives a stable one-line-per-bench machine form for regression tools ([9.1.2](901-rokc-cli.md#rokc-bench-benchmarks)). A benchmark that never calls `b.iter` is reported as having measured nothing, a warning and not a failure. `--iters` / `--samples` adjust the sampling.
+Output is aligned and in human units, to a terminal or not; `--format=rokbench` gives a stable one-line-per-bench machine form for regression tools ([9.1.2](901-rokc-cli.md#rokc-bench-benchmarks)), and `--format=json` gives JSON records ([9.9.12](#9912-ci--test-integration)). A benchmark that never calls `b.iter` is reported as having measured nothing, a warning and not a failure. `--iters` / `--samples` adjust the sampling.
 
 ## 9.9.12. CI / test integration
 
@@ -364,6 +369,23 @@ rokc build --message-format=json --no-color > build.log
 ```
 
 This output is suitable for CI systems to parse.
+
+### Test and bench records
+
+`rok test --format json` and `rok bench --format json` write one JSON object per line on stdout. The human text, the output of the tests, and anything a benchmark prints itself go to stderr, so stdout holds only records. Each record has `schema` (now `1`), `type` and `kind` (`test` or `bench`).
+
+```json
+{"schema":1,"type":"case","kind":"test","name":"math::adds","result":"ok","ms":3.215}
+{"schema":1,"type":"case","kind":"bench","name":"sum","result":"ok","ms":270.1,"median_ns":6.833,"mad_ns":0.167,"samples":10,"outliers":0,"gc":0,"bytes":0,"items":0}
+{"schema":1,"type":"summary","kind":"test","result":"failed","passed":2,"failed":1,"filtered_out":0,"ms":120.4}
+```
+
+| `type`    | Fields                                                              |
+|-----------|---------------------------------------------------------------------|
+| `case`    | `name`; `result`: `ok`, `failed`, or `ignored` (a benchmark that measured nothing); `ms`, the wall time of its process. A benchmark with `result` `ok` also has `median_ns`, `mad_ns`, `samples`, `outliers`, `gc`, `bytes` and `items`, as in the `#rokbench` line ([9.1.2](901-rokc-cli.md#rokc-bench-benchmarks)) |
+| `summary` | `result` (`ok` or `failed`), `ms`, and the counts: for tests `passed`, `failed`, `filtered_out`; for benchmarks `run`, `failed`, `ignored`, `filtered_out` |
+
+A summary follows the cases of each harness, so a package with both root files has two when its library's run passes. Records follow the `schema` rule of the JSON diagnostics ([9.9.4](#994-diagnostics--error-messages)): a reader ignores fields it does not know. With `--message-format=json`, the build's diagnostics are JSON lines on the same stdout; their `type` (`error`, `warning`, ..) tells them apart from records.
 
 ### Exit codes
 
