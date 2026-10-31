@@ -164,7 +164,7 @@ If there is a single argument and it is not an existing path, it is taken as `fi
 
 Options are the same as `rokc build`, plus three more:
 
-- `--threads=N` sets the number of test processes run concurrently. The default is `ROK_NUM_JOBS`, or the CPU count if that is unset.
+- `--threads=N` sets the number of test processes run concurrently. The default is `ROK_TEST_THREADS`, or the CPU count if that is unset.
 - `--show-output` also shows the stdout / stderr of passing tests. Output of failing tests is always shown.
 - `--format=human|json` selects the output form (default `human`). `json` writes a JSON record per test and a summary on stdout and the text below on stderr ([9.9.12](909-debug-tools.md#9912-ci--test-integration)).
 
@@ -354,7 +354,7 @@ For each symbol it prints a block in the [9.5.4](905-symbol-mangling.md) format,
 
 ### `rokc rokhir-text`: [ROKHIR](../000-meta/007-glossary.md#rokhir-rok-hir-bytecode) text output
 
-`rokc rokhir-text <file>` is the old name of `rokc inspect --text <file>` (below). Until 0.2.0 it still works, and warns with the command to write instead.
+`rokc rokhir-text <file>` is the old name of `rokc inspect --dump <file>` (below). Until 0.2.0 it still works, and warns with the command to write instead.
 
 ### `rokc inspect`: package inspection
 
@@ -362,12 +362,12 @@ For each symbol it prints a block in the [9.5.4](905-symbol-mangling.md) format,
 
 ```
 rokc inspect path/to/libfoo.a        # or foo.rokhir
-rokc inspect --text path/to/foo.rokhir   # or libfoo.a; reads the sibling foo.rokhir
+rokc inspect --dump path/to/foo.rokhir   # or libfoo.a; reads the sibling foo.rokhir
 ```
 
 It shows the package name and hash, rokc version, ROKHIR version, GC type id range, exports, [generic](../000-meta/007-glossary.md#generic) items, and archive members with their sizes ([9.9.14](909-debug-tools.md#9914-package-inspection)).
 
-With `--text` it prints the ROKHIR of the prebuilt library as text instead: the header fields, producer, meta and interface files; the format is described in [ROKHIR format](904-rokhir-bytecode.md).
+With `--dump` it prints the ROKHIR of the prebuilt library as text instead: the header fields, producer, meta and interface files; the format is described in [ROKHIR format](904-rokhir-bytecode.md).
 
 ## 9.1.4. Auxiliary subcommands
 
@@ -500,8 +500,8 @@ The environment variables that affect `rokc` are:
 | `__ROK_CLI`       | Set to `rok` by `rok` when it runs `rokc` (internal): usage errors (9.1.6), `--help` and the `rokc:` prefix of error and warning lines name `rok`, not `rokc`. Programs that `rok run` starts inherit it |
 | `ROK_TARGET_DIR`  | Location of `target/` (default: inside the package)                                      |
 | `ROK_INCREMENTAL` | Where the front end keeps the package's parses and lowered bodies (default `target/<profile>/incremental/`; `0`: nowhere); the library's collected items are kept in `lib/rok-cache/library/` ([9.2.16](902-aot-pipeline.md#9216-incremental-build)) |
-| `ROK_INCR_VERIFY` | `1`: lower every body again and fail on a difference ([9.2.16](902-aot-pipeline.md#9216-incremental-build)) |
-| `ROK_NUM_JOBS`    | Default for `rokc test --threads` (CPU core count if unset)                              |
+| `ROK_INCREMENTAL_VERIFY` | `1`: lower every body again and fail on a difference ([9.2.16](902-aot-pipeline.md#9216-incremental-build)) |
+| `ROK_TEST_THREADS` | Default for `rokc test --threads` (CPU core count if unset)                              |
 | `NO_COLOR`        | Non-empty: `--color=auto` does not use colour (9.1.5)                                    |
 | `CLICOLOR_FORCE`  | Non-empty and not `0`: `--color=auto` uses colour even when the stream is not a terminal, unless `NO_COLOR` is set (9.1.5) |
 | `COLORTERM`       | `truecolor` or `24bit`: colour uses 24-bit values (9.1.8)                                |

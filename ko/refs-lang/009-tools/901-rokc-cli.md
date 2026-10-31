@@ -164,7 +164,7 @@ rokc test [path] [filter]
 
 옵션은 `rokc build`와 같고, 다음 세 가지가 더 있습니다.
 
-- `--threads=N`은 동시에 실행할 테스트 프로세스 수를 지정합니다. 기본값은 `ROK_NUM_JOBS`이고, 그것도 없으면 CPU 수입니다.
+- `--threads=N`은 동시에 실행할 테스트 프로세스 수를 지정합니다. 기본값은 `ROK_TEST_THREADS`이고, 그것도 없으면 CPU 수입니다.
 - `--show-output`은 성공한 테스트의 stdout / stderr도 표시합니다. 실패한 테스트의 출력은 늘 표시합니다.
 - `--format=human|json`은 출력 형식을 고릅니다(기본값 `human`). `json`은 테스트마다 JSON 레코드 하나와 summary를 stdout에, 아래 텍스트를 stderr에 씁니다([9.9.12](909-debug-tools.md#9912-ci--테스트-통합)).
 
@@ -354,7 +354,7 @@ rokc demangle <symbol>...
 
 ### `rokc rokhir-text`: [ROKHIR](../000-meta/007-glossary.md#rokhir-rok-hir-bytecode) 텍스트 출력
 
-`rokc rokhir-text <file>`은 `rokc inspect --text <file>`(아래)의 예전 이름입니다. 0.2.0 전까지는 그대로 동작하고, 대신 쓸 명령을 알리는 경고를 냅니다.
+`rokc rokhir-text <file>`은 `rokc inspect --dump <file>`(아래)의 예전 이름입니다. 0.2.0 전까지는 그대로 동작하고, 대신 쓸 명령을 알리는 경고를 냅니다.
 
 ### `rokc inspect`: 패키지 검사
 
@@ -362,12 +362,12 @@ rokc demangle <symbol>...
 
 ```
 rokc inspect path/to/libfoo.a        # 또는 foo.rokhir
-rokc inspect --text path/to/foo.rokhir   # 또는 libfoo.a. 옆의 foo.rokhir 를 읽음
+rokc inspect --dump path/to/foo.rokhir   # 또는 libfoo.a. 옆의 foo.rokhir 를 읽음
 ```
 
 패키지 이름과 해시, rokc 버전, ROKHIR 버전, GC type id 구간, 내보낸 항목, [제네릭](../000-meta/007-glossary.md#generic--제네릭) 항목, 아카이브 멤버와 크기를 한 번에 표시합니다([9.9.14](909-debug-tools.md#9914-패키지-검사)).
 
-`--text`를 주면 대신 미리 빌드한 라이브러리의 ROKHIR을 텍스트로 출력합니다. 헤더 필드, producer, meta와 interface 파일을 출력하고, 포맷은 [ROKHIR 포맷](904-rokhir-bytecode.md)에서 정의합니다.
+`--dump`를 주면 대신 미리 빌드한 라이브러리의 ROKHIR을 텍스트로 출력합니다. 헤더 필드, producer, meta와 interface 파일을 출력하고, 포맷은 [ROKHIR 포맷](904-rokhir-bytecode.md)에서 정의합니다.
 
 ## 9.1.4. 보조 서브명령
 
@@ -500,8 +500,8 @@ rokc --cwd=examples/hello run
 | `__ROK_CLI`       | `rok`이 `rokc`를 실행할 때 `rok`으로 설정(내부용). 사용법 에러(9.1.6), `--help`, 에러와 경고 줄의 `rokc:` 접두사에서 `rokc` 대신 `rok`이라고 씀. `rok run`이 시작한 프로그램도 물려받음 |
 | `ROK_TARGET_DIR`  | `target/`의 위치(기본값은 패키지 안)                                                     |
 | `ROK_INCREMENTAL` | 프런트엔드가 패키지의 파싱 결과와 낮춘 본체를 두는 곳(기본값 `target/<profile>/incremental/`, `0`이면 두지 않음). 라이브러리에서 모은 항목은 `lib/rok-cache/library/`에 둠([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |
-| `ROK_INCR_VERIFY` | `1`이면 모든 본체를 다시 낮추고, 결과가 다르면 실패([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |
-| `ROK_NUM_JOBS`    | `rokc test --threads`의 기본값(없으면 CPU 코어 수)                                     |
+| `ROK_INCREMENTAL_VERIFY` | `1`이면 모든 본체를 다시 낮추고, 결과가 다르면 실패([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |
+| `ROK_TEST_THREADS` | `rokc test --threads`의 기본값(없으면 CPU 코어 수)                                     |
 | `NO_COLOR`        | 비어 있지 않으면 `--color=auto`가 색을 쓰지 않음(9.1.5)                                |
 | `CLICOLOR_FORCE`  | 비어 있지 않고 `0`이 아니면 스트림이 터미널이 아니어도 `--color=auto`가 색을 씀. `NO_COLOR`가 있으면 쓰지 않음(9.1.5) |
 | `COLORTERM`       | `truecolor`나 `24bit`이면 24비트 색 값을 씀(9.1.8)                                        |

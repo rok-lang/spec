@@ -180,7 +180,7 @@ fn outer() -> i32 {
 }
 ```
 
-A bare `return;` in the [trailing closure](408-trailing-closure.md) of a call that is a statement reads like a return from the function, but it ends only that call of the closure. The lint `closure_return` warns about it; to leave the function, write a `for` loop instead of the call.
+A bare `return;` in the [trailing closure](408-trailing-closure.md) of a call that is a statement reads like a return from the function, but it ends only that call of the closure. The lint `trailing_closure_return` warns about it; to leave the function, write a `for` loop instead of the call.
 
 ```rok
 fn main() {

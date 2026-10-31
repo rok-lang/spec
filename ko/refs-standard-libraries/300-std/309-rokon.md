@@ -122,7 +122,7 @@ pub struct RokonError {
     pub msg: str;
     #[deprecated(since = "0.1.6", note = "use `RokonError::line()`")]
     pub line: u32;
-    #[deprecated(since = "0.1.6", note = "use `RokonError::col()`")]
+    #[deprecated(since = "0.1.6", note = "use `RokonError::column()`")]
     pub col: u32;
     #[deprecated(since = "0.1.6", note = "use `RokonError::path()`")]
     pub path: str;
@@ -130,7 +130,7 @@ pub struct RokonError {
 impl RokonError {
     pub fn message(self) -> str;     // Display 가 붙이는 위치 없이
     pub fn line(self) -> u32;        // 1 부터; 텍스트에서 온 값이 아니면 0
-    pub fn col(self) -> u32;         // 1 부터, code point 단위; line 처럼 0
+    pub fn column(self) -> u32;      // 1 부터, code point 단위; line 처럼 0
     pub fn path(self) -> str;        // ".servers[2].port"; 루트면 빈 문자열
 }
 

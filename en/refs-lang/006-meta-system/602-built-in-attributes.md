@@ -12,7 +12,7 @@ inline_attr     ::= "#" "[" "inline" ("(" ("always" | "never") ")")? "]"
 deprecated_attr ::= "#" "[" "deprecated" ("(" deprecated_args ")" | "=" string_lit)? "]"
 deprecated_args ::= string_lit | deprecated_kv ("," deprecated_kv)*
 deprecated_kv   ::= ("since" | "note") "=" string_lit
-future_unsafe   ::= "#" "[" "future_unsafe" ("(" string_lit ")" | "=" string_lit)? "]"
+deprecated_safe ::= "#" "[" "deprecated_safe" ("(" string_lit ")" | "=" string_lit)? "]"
 ```
 
 ## 6.2.1. `#[derive(...)]` automatic trait implementation
@@ -175,7 +175,7 @@ The warning covers these items, wherever they are declared (the package itself, 
 
 Only uses in the package being built warn ([6.2.9](#629-allow--deny--warn-lint-control)). A type's own `impl` does not warn about the type, and a struct's own methods do not warn about its fields. A type is recognized by its full path, or by a last segment no other type shares. The attribute is accepted on any item; on others (variants, impls, modules) it has no effect.
 
-A deprecation whose `since` is newer than the baseline of the `warnings` group is outside that group: `"warnings": "deny"` leaves it a warning, while `deprecated` and `all` reach it. The language server tags the use as deprecated, so editors strike it through.
+`since` is informational: a deprecation of any release is in `deprecated` and `warnings`. The language server tags the use as deprecated, so editors strike it through.
 
 ## 6.2.8. `#[doc = "..."]` doc comment form
 
@@ -241,15 +241,15 @@ The default level of every lint is `warn`. The Since column is the release that 
 | `unclosed_resource`      | 0.1.0   | A `Drop` resource the function makes (`File`, `Dir`, `ReadDir`, `TcpStream`, `TcpListener`, `UdpSocket`, `Child`, any type whose `drop` the program reaches; not a crypto `Secret`, which the collector wipes) that some path leaves open: not under `using`, not closed (`close`, `wait`, `into_*`, a buffered writer's `flush`, a `for` that drains a `ReadDir`, ..), not handed on. Such a path is a `return`, a `throw` from a call between opening and closing, the end of the function, a reassignment, the next pass of a loop, or a value never bound (`(try! File::open(p)).read_to_str()`). A function that only calls the value's own methods does not take it over (warn) |
 | `while_true`             | 0.1.0   | `while true` instead of `loop`                                      |
 | `deprecated`             | 0.1.0   | Use of a `#[deprecated]` function, method, field, type, constant or static ([6.2.7](#627-deprecated-discouraged-use-marker)) |
-| `deprecated_safe`        | 0.1.6   | A call of a `#[future_unsafe]` function, or a use of such a static, outside `unsafe` ([6.2.14](#6214-future_unsafe-safe-today-unsafe-later)) |
+| `deprecated_safe`        | 0.1.6   | A call of a `#[deprecated_safe]` function, or a use of such a static, outside `unsafe` ([6.2.14](#6214-deprecated_safe-safe-today-unsafe-later)) |
 | `keyword_idents`         | 0.1.6   | A name spelled `macro`, `defer`, `dyn`, `move`, `gen` or `do`, keywords from 0.2.0; write `r#name` ([1.5.6](../001-lexical/105-keywords.md#156-keywords-from-020)) |
-| `octal_like_literal`     | 0.1.6   | A decimal integer literal with a leading zero (`0755` is 755); write `0o755` or `755` ([1.6.1](../001-lexical/106-numeric-literals.md#161-basic-form)) |
+| `zero_prefixed_literal`  | 0.1.6   | A decimal integer literal with a leading zero (`0755` is 755); write `0o755` or `755` ([1.6.1](../001-lexical/106-numeric-literals.md#161-basic-form)) |
 | `try_coalesce_precedence` | 0.1.6   | `try? f() ?? d`, which is `try? (f() ?? d)`; write `(try? f()) ?? d` or `try? (f() ?? d)` ([3.14.3](../003-expressions/314-error-control-flow.md)) |
 | `trailing_closure_operator` | 0.1.6   | An operator at the start of the line after a statement's trailing-closure call, which it continues; write `;` after the `}` ([1.3.4](../001-lexical/103-statement-terminator.md#134-block-like-expression-statements)) |
 | `fstring_g_precision`    | 0.1.6   | `{x:.3g}` on a number, which prints like `{x:.3}` until `g` becomes the general format in 0.2.0 ([1.7.3](../001-lexical/107-string-literals.md#173-format-strings)) |
-| `closure_return`         | 0.1.6   | A bare `return;` in the trailing closure of a call that is a statement: it ends only that call of the closure ([4.3.11](../004-functions/403-return.md#4311-return-in-closures-and-nested-functions)) |
+| `trailing_closure_return` | 0.1.6   | A bare `return;` in the trailing closure of a call that is a statement: it ends only that call of the closure ([4.3.11](../004-functions/403-return.md#4311-return-in-closures-and-nested-functions)) |
 | `capture_field_write`    | 0.1.6   | A field write on a value-captured struct inside a closure: it changes the closure's copy; help `[ref p]` ([4.6.7](../004-functions/406-capture-semantics.md#467-capturing-structs-and-reference-handles)) |
-| `const_mutation`         | 0.1.6   | A `ref self` method, or a mutating method of a collection (`push`, `insert`, ...), called on a `const`: each use is a new value, so the change is dropped ([5.2](../005-modules/502-const.md)) |
+| `const_item_mutation`    | 0.1.6   | A `ref self` method, or a mutating method of a collection (`push`, `insert`, ...), called on a `const`: each use is a new value, so the change is dropped ([5.2](../005-modules/502-const.md)) |
 | `pattern_binds_const`    | 0.1.6   | A pattern name that resolves to a `const` or `static`, or is capitalised and within two edits of a variant of the scrutinee's `enum`: it binds every value ([3.11](../003-expressions/311-patterns.md)) |
 | `discarded_ref_write`    | 0.1.6   | A `ref self` method called on an element, a `Dict` entry or a `static`: there is no place to write back to ([4.7](../004-functions/407-ref-keyword.md)) |
 | `ambiguous_int_literal`  | 0.1.6   | An unsuffixed integer literal into a sum with more than one integer member and a floating-point member: it takes the float ([1.6.3](../001-lexical/106-numeric-literals.md#163-unsuffixed-literals)) |
@@ -270,21 +270,21 @@ The default level of every lint is `warn`. The Since column is the release that 
 | `guard_escape`           | 0.1.6   | A `throw` inside a lock guard's `using` block whose error holds what the lock protects ([stdlib 2.16.3](../../refs-standard-libraries/200-core/216-sync.md#2163-mutext---exclusive-lock)) (warn) |
 | `thread_local_across_await` | 0.1.6   | A `ThreadLocal::get()` value used after an `await` in an `async` body ([stdlib 3.4.4](../../refs-standard-libraries/300-std/304-thread.md#344-thread-local-storage)) (warn) |
 | `extern_static_unsafe`   | 0.1.6   | An extern `static` read or written outside `unsafe` ([5.9.6](../005-modules/509-extern-block.md#596-calls--use)) (warn) |
-| `extern_ffi_types`       | 0.1.6   | A GC type (`List`, `Dict`, a closure, a sum, `any`, a struct holding one) as a parameter, result or `static` of an `extern "C"` / `"system"` block, or of an `extern "C" fn` definition ([5.9.4](../005-modules/509-extern-block.md#594-ffi-compatible-types)) (warn) |
+| `improper_ctypes`        | 0.1.6   | A GC type (`List`, `Dict`, a closure, a sum, `any`, a struct holding one) as a parameter, result or `static` of an `extern "C"` / `"system"` block, or of an `extern "C" fn` definition ([5.9.4](../005-modules/509-extern-block.md#594-ffi-compatible-types)) (warn) |
 | `unqualified_meta`       | 0.1.6   | Another package's macro, derive or attribute used by its bare name, found only through the build-wide scope that 0.2.0 removes; write `dep::name!`, `#[derive(dep::Name)]`, `#[dep::name]` or `use dep::name!;` ([6.8.11](608-meta-blocks.md#6811-combination-with-registrationvisibility)) |
 
-`unclosed_sender`, `using_twice`, `guard_escape`, `thread_local_across_await`, `extern_static_unsafe` and `extern_ffi_types` were added in 0.1.6. 0.2.0 makes what `guard_escape`, `extern_static_unsafe` and `extern_ffi_types` report errors.
+`unclosed_sender`, `using_twice`, `guard_escape`, `thread_local_across_await`, `extern_static_unsafe` and `improper_ctypes` were added in 0.1.6. 0.2.0 makes what `guard_escape`, `extern_static_unsafe` and `improper_ctypes` report errors.
 
 | Group               | Includes                                                                                     |
 |---------------------|----------------------------------------------------------------------------------------------|
 | `unused`            | `unused_variables`, `unused_imports`, `dead_code`, `unreachable_code`, `unused_must_use`, `unused_doc_comments` |
 | `nonstandard_style` | `non_snake_case`, `non_camel_case_types`, `non_upper_case_globals`                           |
-| `warnings`          | Every lint added up to the baseline release, 0.1.5                                           |
+| `warnings`          | Every lint whose level is warn, including those later releases add                           |
 | `all`               | Every lint, including those later releases add                                               |
 
 The help of `write_to_copy` suggests `ref self` / `ref p`, an index loop (`for i in 0..xs.len() { xs[i].f = .. }`), or writing the element back.
 
-`warnings` is the group to deny for a build that must stay clean across releases: `"warnings": "deny"` in `lints`, `-D warnings` or `#![deny(warnings)]`. A lint added after the baseline is not in it, and a deprecation (`deprecated`) of an item that a release after the baseline deprecated keeps its default level under it, so a later release of the same series never turns code that built into an error. To check those too, name them, or deny `all`: denying `all` opts in to every lint later releases add. The baseline moves only with a release that may break code (0.2.0).
+`warnings` takes rustc's meaning: denying it (`"warnings": "deny"` in `lints`, `-D warnings` or `#![deny(warnings)]`) turns every warning into an error, including the lints and deprecations a later release adds. A build that must keep building across releases pins its toolchain (`toolchain` in `rok.rokon`, [9.10.6](../009-tools/910-rok-frontend.md)). Each lint's Since column is informational.
 
 Some warnings come from the compiler itself rather than from a lint pass, and still belong to a lint: a confusable identifier is `confusable_idents` and a misplaced doc comment is `unused_doc_comments`. Their level is set by the lint's name, as for any other lint.
 
@@ -355,13 +355,13 @@ The compiler also recognizes the following attributes. Each is specified where i
 | `#[intrinsic("rok.OP.TYPE")]`  | standard library only         | Binds a function or method to a compiler operation; an error in user code ([stdlib 0.3](../../refs-standard-libraries/000-meta/003-intrinsics.md)) |
 | `#[no_safepoint]`              | `extern "rok"` block          | Toolchain-internal: the block's functions neither allocate nor block, so calls to them are not safepoints; an error on other blocks ([5.9.2](../005-modules/509-extern-block.md#592-abi-specifiers)) |
 
-## 6.2.14. `#[future_unsafe]` safe today, `unsafe` later
+## 6.2.14. `#[deprecated_safe]` safe today, `unsafe` later
 
 ```rok
-#[future_unsafe("`ptr` must point at a NUL-terminated string")]
+#[deprecated_safe("`ptr` must point at a NUL-terminated string")]
 pub fn from_ptr(ptr: Ptr<u8>) -> CStr { ... }
 ```
 
-`#[future_unsafe("note")]` marks a library function, method, extern function or static that a later release makes `unsafe`. A call of it, or a use of the static, outside an `unsafe` block or `unsafe fn` warns with lint `deprecated_safe` and the note: wrap the call in `unsafe { .. }`, which compiles now and stays correct when the item becomes `unsafe`. Inside `unsafe` there is no warning.
+`#[deprecated_safe("note")]` marks a library function, method, extern function or static that a later release makes `unsafe`. A call of it, or a use of the static, outside an `unsafe` block or `unsafe fn` warns with lint `deprecated_safe` and the note: wrap the call in `unsafe { .. }`, which compiles now and stays correct when the item becomes `unsafe`. Inside `unsafe` there is no warning.
 
 It is for the standard library and library packages. On a function of the program being built it is an error: make that function `unsafe fn` instead. On an item other than a function, method, extern function or static it is an error.

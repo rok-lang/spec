@@ -115,5 +115,5 @@ Within a release series an item is never removed or changed incompatibly. An ite
 keeps working and is marked `#[deprecated(since = "..", note = "..")]`
 ([6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md#627-deprecated-discouraged-use-marker)),
 the note naming what to use instead. A safe function that must become `unsafe` is marked
-`#[future_unsafe]` ([6.2.14](../../refs-lang/006-meta-system/602-built-in-attributes.md#6214-future_unsafe-safe-today-unsafe-later)).
+`#[deprecated_safe]` ([6.2.14](../../refs-lang/006-meta-system/602-built-in-attributes.md#6214-deprecated_safe-safe-today-unsafe-later)).
 The next breaking release removes the item or makes it `unsafe`.

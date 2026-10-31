@@ -105,7 +105,7 @@ extern "C" {
 
 모듈 `m`의 `extern` 블록에 있는 `pub` 함수는 `m::f`로도 닿을 수 있습니다. 그 심볼에는 접두어가 붙지 않습니다. `extern "C"` 블록의 `rok_*` 이름은 `str`을 받거나 돌려줄 수 없습니다([8.5](../008-abi/805-extern-symbols.md)).
 
-호환되지 않는 타입을 쓰면 정의되지 않은 동작입니다. C는 GC 참조(`List`, `Dict`)를 그저 비트로 보고, 수집기는 그것을 옮기거나 해제할 수 있습니다. 컴파일러는 `extern "C"`와 `extern "system"` 블록, `extern "C" fn` 정의의 매개변수, 결과, `static`에 GC 타입(`List`, `Dict`, 클로저, 합 타입, `any`, 이런 것을 담은 struct)이 있으면 경고합니다(`extern_ffi_types`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). 0.2.0에서는 에러가 됩니다. `extern "C" fn` 정의의 `str`은 거부합니다([5.9.10](#5910-extern-fn-정의외부에-노출)). 그 밖의 불일치는 프로그램이 피해야 합니다. 타입별 호출 규약은 [호출 규약](../008-abi/806-calling-convention.md)에서 정의합니다.
+호환되지 않는 타입을 쓰면 정의되지 않은 동작입니다. C는 GC 참조(`List`, `Dict`)를 그저 비트로 보고, 수집기는 그것을 옮기거나 해제할 수 있습니다. 컴파일러는 `extern "C"`와 `extern "system"` 블록, `extern "C" fn` 정의의 매개변수, 결과, `static`에 GC 타입(`List`, `Dict`, 클로저, 합 타입, `any`, 이런 것을 담은 struct)이 있으면 경고합니다(`improper_ctypes`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). 0.2.0에서는 에러가 됩니다. `extern "C" fn` 정의의 `str`은 거부합니다([5.9.10](#5910-extern-fn-정의외부에-노출)). 그 밖의 불일치는 프로그램이 피해야 합니다. 타입별 호출 규약은 [호출 규약](../008-abi/806-calling-convention.md)에서 정의합니다.
 
 ### C 함수 포인터 타입
 

@@ -121,7 +121,7 @@ MLIR 바이트코드와 같은 PrefixVarInt이고 LEB128의 변형입니다. 첫
 
 ## 9.4.10. ROKHIR 검사
 
-`rokc rokhir-text <file>`은 ROKHIR의 버전, producer, 메타(`features:` 포함), 인터페이스 파일의 경로와 텍스트, 요약을 출력합니다([9.9.2](909-debug-tools.md#992-rokhir-검사)). `rokc inspect`([9.9.14](909-debug-tools.md#9914-패키지-검사))는 아카이브와 함께 요약을 보여 줍니다.
+`rokc inspect --dump <file>`은 ROKHIR의 버전, producer, 메타(`features:` 포함), 인터페이스 파일의 경로와 텍스트, 요약을 출력합니다([9.9.2](909-debug-tools.md#992-rokhir-검사)). `rokc inspect`([9.9.14](909-debug-tools.md#9914-패키지-검사))는 아카이브와 함께 요약을 보여 줍니다.
 
 ## 9.4.11. 안정성
 

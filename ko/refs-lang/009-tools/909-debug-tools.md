@@ -39,7 +39,7 @@ target/debug/build/foo.expanded.rok
 ## 9.9.2. ROKHIR 검사
 
 ```
-rokc inspect --text path/to/foo.rokhir   # 또는 libfoo.a. 옆의 foo.rokhir 를 읽음
+rokc inspect --dump path/to/foo.rokhir   # 또는 libfoo.a. 옆의 foo.rokhir 를 읽음
 ```
 
 이 명령은 미리 빌드한 라이브러리의 [ROKHIR](904-rokhir-bytecode.md)을 사람이 읽을 수 있는 형식으로 출력합니다. 버전, producer, 메타 다음에 인터페이스 파일마다 `--- <경로>`와 그 텍스트가 이어집니다. 텍스트는 구체 함수 본문을 `;`로 잘라 낸 소스입니다.
@@ -475,7 +475,7 @@ Concrete .o files:
   foo.o (15 KB)
 ```
 
-`rokc inspect --text <file>`은 ROKHIR의 버전, producer, 메타와 인터페이스 파일 전체를 출력합니다(9.9.2).
+`rokc inspect --dump <file>`은 ROKHIR의 버전, producer, 메타와 인터페이스 파일 전체를 출력합니다(9.9.2).
 
 패키지가 바깥에 무엇을 노출하는지 한눈에 볼 수 있습니다.
 

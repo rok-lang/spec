@@ -39,7 +39,7 @@ To select several steps at once, separate them with commas, as in `--emit=mlir,l
 ## 9.9.2. ROKHIR inspection
 
 ```
-rokc inspect --text path/to/foo.rokhir   # or libfoo.a; reads the sibling foo.rokhir
+rokc inspect --dump path/to/foo.rokhir   # or libfoo.a; reads the sibling foo.rokhir
 ```
 
 This command prints the [ROKHIR](904-rokhir-bytecode.md) of a prebuilt library in human-readable form. After the version, producer and meta, each interface file follows as `--- <path>` and its text (source with concrete function bodies cut down to `;`).
@@ -458,7 +458,7 @@ Concrete .o files:
   foo.o (15 KB)
 ```
 
-`rokc inspect --text <file>` prints the ROKHIR's version, producer, meta and all interface files (9.9.2).
+`rokc inspect --dump <file>` prints the ROKHIR's version, producer, meta and all interface files (9.9.2).
 
 This gives an at-a-glance view of what the package exposes externally.
 

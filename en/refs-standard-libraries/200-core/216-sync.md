@@ -55,7 +55,7 @@ impl<T: AtomicPrimitive + PartialEq> Atomic<T> {
 
 impl Atomic<i32> {
     fn wait(self, expected: i32, timeout_ns: i64 = -1);   // waits while the value is expected, up to timeout_ns (< 0 means forever)
-    fn wait_for(self, expected: i32, timeout: Duration);   // wait, the limit a Duration (negative: forever)
+    fn wait_timeout(self, expected: i32, timeout: Duration);   // wait, the limit a Duration (negative: forever)
     fn wake(self);                                         // wakes every thread waiting on this cell
 }
 ```

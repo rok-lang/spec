@@ -122,7 +122,7 @@ pub struct RokonError {
     pub msg: str;
     #[deprecated(since = "0.1.6", note = "use `RokonError::line()`")]
     pub line: u32;
-    #[deprecated(since = "0.1.6", note = "use `RokonError::col()`")]
+    #[deprecated(since = "0.1.6", note = "use `RokonError::column()`")]
     pub col: u32;
     #[deprecated(since = "0.1.6", note = "use `RokonError::path()`")]
     pub path: str;
@@ -130,7 +130,7 @@ pub struct RokonError {
 impl RokonError {
     pub fn message(self) -> str;     // without the position Display adds
     pub fn line(self) -> u32;        // 1-based; 0 when the value did not come from text
-    pub fn col(self) -> u32;         // 1-based, in code points; 0 as for line
+    pub fn column(self) -> u32;      // 1-based, in code points; 0 as for line
     pub fn path(self) -> str;        // ".servers[2].port"; empty at the root
 }
 

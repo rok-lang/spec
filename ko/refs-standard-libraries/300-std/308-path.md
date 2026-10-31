@@ -40,7 +40,7 @@ impl Path {
     fn with_file_name(self, name: str) -> Path;
     fn with_extension(self, ext: str) -> Path;
     fn strip_prefix(self, base: Path) throws (StripPrefixError) -> Path;
-    fn strip_prefix_opt<P: AsPath>(self, base: P) -> Path | none;   // throw 대신 none
+    fn strip_prefix_or_none<P: AsPath>(self, base: P) -> Path | none;   // throw 대신 none
 
     fn is_absolute(self) -> bool;
     fn is_relative(self) -> bool;

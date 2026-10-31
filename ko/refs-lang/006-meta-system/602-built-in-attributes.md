@@ -12,7 +12,7 @@ inline_attr     ::= "#" "[" "inline" ("(" ("always" | "never") ")")? "]"
 deprecated_attr ::= "#" "[" "deprecated" ("(" deprecated_args ")" | "=" string_lit)? "]"
 deprecated_args ::= string_lit | deprecated_kv ("," deprecated_kv)*
 deprecated_kv   ::= ("since" | "note") "=" string_lit
-future_unsafe   ::= "#" "[" "future_unsafe" ("(" string_lit ")" | "=" string_lit)? "]"
+deprecated_safe ::= "#" "[" "deprecated_safe" ("(" string_lit ")" | "=" string_lit)? "]"
 ```
 
 ## 6.2.1. `#[derive(...)]` 자동 트레잇 구현
@@ -175,7 +175,7 @@ impl Config {
 
 빌드하는 패키지 안의 사용에만 경고가 납니다([6.2.9](#629-allow--deny--warn-린트-제어)). 타입 자신의 `impl`은 그 타입에 대해 경고하지 않고, struct 자신의 메서드는 그 필드에 대해 경고하지 않습니다. 타입은 전체 경로로, 또는 다른 타입과 겹치지 않는 마지막 이름으로 알아봅니다. 이 속성은 어느 항목에나 붙일 수 있습니다. 위에 없는 항목(변형, impl, 모듈)에서는 아무 효과가 없습니다.
 
-`since`가 `warnings` 그룹의 기준 릴리스보다 새로우면 그 사용 자제는 그 그룹 밖에 있습니다. `"warnings": "deny"`에서는 경고로 남고, `deprecated`와 `all`에서는 적용됩니다. 언어 서버는 그 사용에 사용 자제 태그를 달아서 편집기가 취소선으로 보여 줍니다.
+`since`는 참고용입니다. 어느 릴리스의 사용 자제든 `deprecated`와 `warnings`에 들어갑니다. 언어 서버는 그 사용에 사용 자제 태그를 달아서 편집기가 취소선으로 보여 줍니다.
 
 ## 6.2.8. `#[doc = "..."]` 문서 주석 형태
 
@@ -241,15 +241,15 @@ fn strict_zone() { ... }
 | `unclosed_resource`      | 0.1.0   | 함수가 만든 `Drop` 자원(`File`, `Dir`, `ReadDir`, `TcpStream`, `TcpListener`, `UdpSocket`, `Child`, 프로그램이 `drop`에 닿는 모든 타입. 수집기가 지우는 암호 `Secret`은 제외)을 어떤 경로가 열린 채로 둠. `using` 아래에 있지 않고, 닫지 않았고(`close`, `wait`, `into_*`, 버퍼 writer의 `flush`, `ReadDir`를 끝까지 도는 `for` 등), 넘겨주지도 않은 경우. 그런 경로는 `return`, 열기와 닫기 사이의 호출이 던지는 `throw`, 함수의 끝, 다시 대입, 루프의 다음 회차, 묶지 않은 값(`(try! File::open(p)).read_to_str()`)임. 값의 메서드만 부르는 함수는 그 값을 넘겨받지 않음 (warn) |
 | `while_true`             | 0.1.0   | `loop` 대신 `while true`                                           |
 | `deprecated`             | 0.1.0   | `#[deprecated]` 함수, 메서드, 필드, 타입, 상수, static 사용 ([6.2.7](#627-deprecated-사용-자제-표시)) |
-| `deprecated_safe`        | 0.1.6   | `unsafe` 밖에서 `#[future_unsafe]` 함수를 호출하거나 그런 static을 씀 ([6.2.14](#6214-future_unsafe-지금은-안전-나중에-unsafe)) |
+| `deprecated_safe`        | 0.1.6   | `unsafe` 밖에서 `#[deprecated_safe]` 함수를 호출하거나 그런 static을 씀 ([6.2.14](#6214-deprecated_safe-지금은-안전-나중에-unsafe)) |
 | `keyword_idents`         | 0.1.6   | 0.2.0부터 키워드인 `macro`, `defer`, `dyn`, `move`, `gen`, `do`와 철자가 같은 이름. `r#name`으로 씀 ([1.5.6](../001-lexical/105-keywords.md#156-020부터-키워드)) |
-| `octal_like_literal`     | 0.1.6   | 앞에 0이 붙은 10진 정수 리터럴(`0755`는 755). `0o755`나 `755`로 씀 ([1.6.1](../001-lexical/106-numeric-literals.md#161-기본-형태)) |
+| `zero_prefixed_literal`  | 0.1.6   | 앞에 0이 붙은 10진 정수 리터럴(`0755`는 755). `0o755`나 `755`로 씀 ([1.6.1](../001-lexical/106-numeric-literals.md#161-기본-형태)) |
 | `try_coalesce_precedence` | 0.1.6   | `try? (f() ?? d)`로 묶이는 `try? f() ?? d`. `(try? f()) ?? d`나 `try? (f() ?? d)`로 씀 ([3.14.3](../003-expressions/314-error-control-flow.md)) |
 | `trailing_closure_operator` | 0.1.6   | 문장의 트레일링 클로저 호출 다음 줄 맨 앞에 와서 그 호출에 이어지는 연산자. `}` 뒤에 `;`를 씀 ([1.3.4](../001-lexical/103-statement-terminator.md#134-블록류-식-문장)) |
 | `fstring_g_precision`    | 0.1.6   | 수에 쓴 `{x:.3g}`. 0.2.0에서 `g`가 일반 형식이 되기 전까지는 `{x:.3}`처럼 출력됨 ([1.7.3](../001-lexical/107-string-literals.md#173-형식-문자열)) |
-| `closure_return`         | 0.1.6   | 문장인 호출의 트레일링 클로저 안에 값 없이 쓴 `return;`. 그 클로저 호출 한 번만 끝냄 ([4.3.11](../004-functions/403-return.md#4311-return과-클로저--중첩-함수)) |
+| `trailing_closure_return` | 0.1.6   | 문장인 호출의 트레일링 클로저 안에 값 없이 쓴 `return;`. 그 클로저 호출 한 번만 끝냄 ([4.3.11](../004-functions/403-return.md#4311-return과-클로저--중첩-함수)) |
 | `capture_field_write`    | 0.1.6   | 클로저 안에서 값 캡처한 구조체의 필드에 씀: 클로저의 사본이 바뀜. help는 `[ref p]` ([4.6.7](../004-functions/406-capture-semantics.md#467-struct와-참조-핸들의-캡처)) |
-| `const_mutation`         | 0.1.6   | `const`에 `ref self` 메서드나 컬렉션의 변경 메서드(`push`, `insert` 등)를 부름: 쓸 때마다 새 값이므로 변경이 버려짐 ([5.2](../005-modules/502-const.md)) |
+| `const_item_mutation`    | 0.1.6   | `const`에 `ref self` 메서드나 컬렉션의 변경 메서드(`push`, `insert` 등)를 부름: 쓸 때마다 새 값이므로 변경이 버려짐 ([5.2](../005-modules/502-const.md)) |
 | `pattern_binds_const`    | 0.1.6   | `const`나 `static`으로 해소되거나, 대문자로 시작하고 피검사 식 `enum`의 변형과 편집 거리 2 이내인 패턴 이름: 모든 값을 바인딩함 ([3.11](../003-expressions/311-patterns.md)) |
 | `discarded_ref_write`    | 0.1.6   | 원소, `Dict` 항목, `static`에 `ref self` 메서드를 부름: 되쓸 자리가 없음 ([4.7](../004-functions/407-ref-keyword.md)) |
 | `ambiguous_int_literal`  | 0.1.6   | 정수 항이 둘 이상이고 부동소수점 항이 있는 합 타입에 접미사 없는 정수 리터럴: 부동소수점이 됨 ([1.6.3](../001-lexical/106-numeric-literals.md#163-접미사-없는-리터럴)) |
@@ -270,21 +270,21 @@ fn strict_zone() { ... }
 | `guard_escape`           | 0.1.6   | 잠금 가드의 `using` 블록 안에서 잠금이 보호하는 것을 담은 에러를 `throw`함 ([stdlib 2.16.3](../../refs-standard-libraries/200-core/216-sync.md#2163-mutext-배타적-잠금)) (warn) |
 | `thread_local_across_await` | 0.1.6   | `async` 본체에서 `ThreadLocal::get()` 값을 `await` 뒤에 씀 ([stdlib 3.4.4](../../refs-standard-libraries/300-std/304-thread.md#344-스레드-로컬-저장소)) (warn) |
 | `extern_static_unsafe`   | 0.1.6   | extern `static`을 `unsafe` 밖에서 읽거나 씀 ([5.9.6](../005-modules/509-extern-block.md#596-호출--사용)) (warn) |
-| `extern_ffi_types`       | 0.1.6   | `extern "C"` / `"system"` 블록이나 `extern "C" fn` 정의의 매개변수, 결과, `static`에 GC 타입(`List`, `Dict`, 클로저, 합 타입, `any`, 이런 것을 담은 struct)이 있음 ([5.9.4](../005-modules/509-extern-block.md#594-ffi-호환-타입)) (warn) |
+| `improper_ctypes`        | 0.1.6   | `extern "C"` / `"system"` 블록이나 `extern "C" fn` 정의의 매개변수, 결과, `static`에 GC 타입(`List`, `Dict`, 클로저, 합 타입, `any`, 이런 것을 담은 struct)이 있음 ([5.9.4](../005-modules/509-extern-block.md#594-ffi-호환-타입)) (warn) |
 | `unqualified_meta`       | 0.1.6   | 다른 패키지의 macro, derive, 속성을 이름만 써서 0.2.0이 없애는 빌드 전역 범위로만 찾음. `dep::name!`, `#[derive(dep::Name)]`, `#[dep::name]`, `use dep::name!;`으로 씀 ([6.8.11](608-meta-blocks.md#6811-등록가시성과-결합)) |
 
-`unclosed_sender`, `using_twice`, `guard_escape`, `thread_local_across_await`, `extern_static_unsafe`, `extern_ffi_types`는 0.1.6에서 추가되었습니다. `guard_escape`, `extern_static_unsafe`, `extern_ffi_types`가 보고하는 코드는 0.2.0에서 에러가 됩니다.
+`unclosed_sender`, `using_twice`, `guard_escape`, `thread_local_across_await`, `extern_static_unsafe`, `improper_ctypes`는 0.1.6에서 추가되었습니다. `guard_escape`, `extern_static_unsafe`, `improper_ctypes`가 보고하는 코드는 0.2.0에서 에러가 됩니다.
 
 | 그룹                | 포함                                                                                         |
 |---------------------|----------------------------------------------------------------------------------------------|
 | `unused`            | `unused_variables`, `unused_imports`, `dead_code`, `unreachable_code`, `unused_must_use`, `unused_doc_comments` |
 | `nonstandard_style` | `non_snake_case`, `non_camel_case_types`, `non_upper_case_globals`                           |
-| `warnings`          | 기준 릴리스 0.1.5까지 추가된 모든 린트                                                       |
+| `warnings`          | 수준이 warn인 모든 린트. 이후 릴리스가 추가하는 린트도 포함                                  |
 | `all`               | 이후 릴리스가 추가하는 린트까지 포함한 모든 린트                                             |
 
 `write_to_copy`의 help는 `ref self` / `ref p`, 인덱스 루프(`for i in 0..xs.len() { xs[i].f = .. }`), 또는 원소를 다시 써 넣는 방법을 제안합니다.
 
-릴리스가 바뀌어도 경고 없이 빌드되어야 하는 프로젝트는 `warnings` 그룹을 deny합니다. `lints`의 `"warnings": "deny"`, `-D warnings`, `#![deny(warnings)]`가 그 방법입니다. 기준 릴리스 뒤에 추가된 린트는 이 그룹에 들어가지 않습니다. 기준 릴리스 뒤의 릴리스가 deprecated로 표시한 항목의 사용(`deprecated`)도 이 그룹 아래에서는 기본 수준을 유지합니다. 그래서 같은 시리즈의 이후 릴리스가 빌드되던 코드를 에러로 만들지 않습니다. 이런 것까지 검사하려면 이름을 직접 쓰거나 `all`을 deny합니다. `all`을 deny하면 이후 릴리스가 추가하는 모든 린트를 받아들이는 것입니다. 기준 릴리스는 코드를 깨뜨릴 수 있는 릴리스(0.2.0)에서만 바뀝니다.
+`warnings`는 rustc와 같은 뜻입니다. 이 그룹을 deny하면(`lints`의 `"warnings": "deny"`, `-D warnings`, `#![deny(warnings)]`) 모든 경고가 에러가 되고, 이후 릴리스가 추가하는 린트와 사용 자제도 마찬가지입니다. 릴리스가 바뀌어도 계속 빌드되어야 하는 프로젝트는 툴체인을 고정합니다(`rok.rokon`의 `toolchain`, [9.10.6](../009-tools/910-rok-frontend.md)). 린트마다 적힌 릴리스 열은 참고용입니다.
 
 어떤 경고는 린트 단계가 아니라 컴파일러가 직접 내지만, 그래도 린트에 속합니다. 닮은 식별자는 `confusable_idents`이고, 잘못 놓인 문서 주석은 `unused_doc_comments`입니다. 이 경고의 수준도 다른 린트처럼 린트 이름으로 정합니다.
 
@@ -355,13 +355,13 @@ fn expect_positive(n: i32) -> i32 {
 | `#[intrinsic("rok.OP.TYPE")]`  | 표준 라이브러리 전용          | 함수나 메서드를 컴파일러 연산에 묶음. 사용자 코드에서는 에러 ([stdlib 0.3](../../refs-standard-libraries/000-meta/003-intrinsics.md)) |
 | `#[no_safepoint]`              | `extern "rok"` 블록           | toolchain 내부용. 블록의 함수는 할당도 블로킹도 하지 않으므로 그 호출은 safepoint가 아님. 다른 블록에서는 에러 ([5.9.2](../005-modules/509-extern-block.md#592-abi-명시)) |
 
-## 6.2.14. `#[future_unsafe]` 지금은 안전, 나중에 `unsafe`
+## 6.2.14. `#[deprecated_safe]` 지금은 안전, 나중에 `unsafe`
 
 ```rok
-#[future_unsafe("`ptr` must point at a NUL-terminated string")]
+#[deprecated_safe("`ptr` must point at a NUL-terminated string")]
 pub fn from_ptr(ptr: Ptr<u8>) -> CStr { ... }
 ```
 
-`#[future_unsafe("note")]`는 나중 릴리스에서 `unsafe`가 될 라이브러리의 함수, 메서드, extern 함수, static을 표시합니다. `unsafe` 블록이나 `unsafe fn` 밖에서 그 함수를 호출하거나 그 static을 쓰면 린트 `deprecated_safe` 경고가 메시지와 함께 납니다. 호출을 `unsafe { .. }`로 감싸면 됩니다. 이 코드는 지금도 컴파일되고, 항목이 `unsafe`가 된 뒤에도 그대로 맞습니다. `unsafe` 안에서는 경고가 나지 않습니다.
+`#[deprecated_safe("note")]`는 나중 릴리스에서 `unsafe`가 될 라이브러리의 함수, 메서드, extern 함수, static을 표시합니다. `unsafe` 블록이나 `unsafe fn` 밖에서 그 함수를 호출하거나 그 static을 쓰면 린트 `deprecated_safe` 경고가 메시지와 함께 납니다. 호출을 `unsafe { .. }`로 감싸면 됩니다. 이 코드는 지금도 컴파일되고, 항목이 `unsafe`가 된 뒤에도 그대로 맞습니다. `unsafe` 안에서는 경고가 나지 않습니다.
 
 이 속성은 표준 라이브러리와 라이브러리 패키지용입니다. 빌드하는 프로그램의 함수에 붙이면 에러입니다. 그 함수는 `unsafe fn`으로 만듭니다. 함수, 메서드, extern 함수, static이 아닌 항목에 붙여도 에러입니다.

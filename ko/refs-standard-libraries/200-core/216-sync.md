@@ -55,7 +55,7 @@ impl<T: AtomicPrimitive + PartialEq> Atomic<T> {
 
 impl Atomic<i32> {
     fn wait(self, expected: i32, timeout_ns: i64 = -1);   // 값이 expected 인 동안, 최대 timeout_ns (< 0 이면 무한) 대기
-    fn wait_for(self, expected: i32, timeout: Duration);   // wait, 한도를 Duration 으로 (음수면 무한)
+    fn wait_timeout(self, expected: i32, timeout: Duration);   // wait, 한도를 Duration 으로 (음수면 무한)
     fn wake(self);                                         // 이 cell 에서 wait 중인 스레드를 모두 깨움
 }
 ```

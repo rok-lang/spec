@@ -333,7 +333,7 @@ rok yank [--native] <name>@<version> [--undo] [--registry <url> | --index-dir <c
 ```
 
 - `search`는 index에서 이름으로 찾고, 찾은 것마다 `<name> <newest version> - <description>`을 한 줄씩 출력합니다. 항목에 description이 없으면 그 부분은 생략합니다. index 조회는 `-` / `_` 어느 쪽 철자든 받습니다.
-- `publish --dry-run`은 dry run입니다. `--dry-run`도 `--commit`도 없으면 `publish`는 역시 dry run이고 경고를 냅니다. 0.2.0은 둘 중 하나를 요구합니다.
+- `publish --dry-run`은 dry run입니다. `--dry-run`도 `--commit`도 없으면 `publish`는 역시 dry run이고 경고를 냅니다. 0.2.0부터는 `cargo publish`처럼 옵션 없는 `publish`가 게시하고, 미리 보기는 `--dry-run`이며, `--commit`은 필요 없습니다. 계속 미리 보려면 `--dry-run`을 씁니다.
   - `publish: false`인 패키지는 거부합니다. 에러는 지울 줄을 알려 줍니다.
   - readme(9.10.3)가 있어야 합니다. 깨끗한 작업 트리, 저장소 루트의 패키지, 그리고 `src/lib.rok`, `src/main.rok`, 또는 둘 다가 필요합니다.
   - `src/main.rok`만 있는 stone은 프로그램입니다. `rok install`이 그것을 빌드하고, 의존 패키지가 될 수 없습니다.
@@ -350,7 +350,7 @@ rok yank [--native] <name>@<version> [--undo] [--registry <url> | --index-dir <c
   - `POST <api>/api/v1/yank`, 본문 `Yank { name, vers, undo: <bool>, native: <bool> }` → `Yanked { name, vers, yanked }`
 
   실패는 4xx / 5xx 상태와 `Error { message: ".." }`로 옵니다. `rok`은 그 message를 보고합니다. 401은 토큰이 유효하지 않다는 뜻입니다.
-- 레지스트리 API에는 토큰이 필요하고, `--index-dir` checkout에는 필요 없습니다. index의 토큰은 다음 순서로 고릅니다. `ROK_REGISTRY_TOKEN`이 설정되어 있고 비어 있지 않으면 그 값입니다. 아니면 `rok login`이 그 index에 저장한 토큰이고, 그것도 없으면 `credentials.rokon`의 토큰(아래)입니다. 모두 없으면 "run `rok login` first" 에러입니다. 설정된 index가 아닌 index에서는 ``run `rok login --registry <url>` first``입니다.
+- 레지스트리 API에는 토큰이 필요하고, `--index-dir` checkout에는 필요 없습니다. index의 토큰은 다음 순서로 고릅니다. `ROK_REGISTRY_TOKEN`이 설정되어 있고 비어 있지 않으면 그 값입니다. rokstones.io가 아닌 index에 쓰면 경고를 한 번 냅니다. 0.2.0은 이 값을 rokstones.io로만 보내고, 다른 index는 `rok login --registry <url>`로 저장한 `tokens.rokon`의 토큰을 씁니다. 아니면 `rok login`이 그 index에 저장한 토큰이고, 그것도 없으면 `credentials.rokon`의 토큰(아래)입니다. 모두 없으면 "run `rok login` first" 에러입니다. 설정된 index가 아닌 index에서는 ``run `rok login --registry <url>` first``입니다.
 - `rok login`은 웹사이트에서 만든 rokstones.io 계정 토큰을 받습니다(`<api>/me`, GitHub로 로그인. 지금은 레지스트리 maintainer만 만들 수 있음). 토큰을 생략하면 표준 입력에서 화면에 보이지 않게 읽습니다(Ctrl-C에도 에코를 되돌림). `login`은 `/api/v1/me`에 물어봅니다. API가 거부하는 토큰과 `publish`가 false인 계정("this account cannot publish yet: publishing is open to rokstones.io maintainers only")은 아무것도 저장하지 않고 거절합니다. 그 밖에는 `--registry <url>`이 가리키는 index, 없으면 설정된 index의 토큰을 `$ROK_HOME/tokens.rokon`에 `Tokens { tokens: { "<index url>": "<token>" } }`로 저장하고 "Logged in as <login>"을 출력합니다. 키에는 끝의 `/`를 붙이지 않고, 이미 있던 필드와 다른 index의 토큰은 그대로 둡니다. 토큰은 자기 index의 레지스트리 API로만 보냅니다.
 - 설정된 index라면 `rok login`은 `$ROK_HOME/credentials.rokon`에도 `Credentials { token: ".." }`를 저장합니다. rok 0.1.5 이하는 이 파일을 읽어 설정된 index가 무엇이든 그곳으로 보냅니다. `tokens.rokon`에 항목이 없는 index에는 `credentials.rokon`의 토큰을 여전히 씁니다. 그 index가 rokstones.io가 아니면 ``the token in <file> is not tied to an index; run `rok login --registry <url>` `` 경고를 내고, 0.2.0은 이 토큰을 rokstones.io로만 보냅니다.
 - 두 파일 모두 Unix에서는 mode 0600으로 씁니다. Windows에서는 사용자 프로필 아래에 있는 `$ROK_HOME`의 기본 권한을 받습니다.

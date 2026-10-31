@@ -121,7 +121,7 @@ If any of the following differs, the ROKHIR is rejected with a "rebuild" error.
 
 ## 9.4.10. ROKHIR inspection
 
-`rokc rokhir-text <file>` prints the ROKHIR's version, producer, meta (including `features:`), the paths and text of the interface files, and the summaries ([9.9.2](909-debug-tools.md#992-rokhir-inspection)). `rokc inspect` ([9.9.14](909-debug-tools.md#9914-package-inspection)) shows a summary together with the archive.
+`rokc inspect --dump <file>` prints the ROKHIR's version, producer, meta (including `features:`), the paths and text of the interface files, and the summaries ([9.9.2](909-debug-tools.md#992-rokhir-inspection)). `rokc inspect` ([9.9.14](909-debug-tools.md#9914-package-inspection)) shows a summary together with the archive.
 
 ## 9.4.11. Stability
 
