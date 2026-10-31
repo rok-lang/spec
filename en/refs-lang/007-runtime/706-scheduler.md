@@ -90,7 +90,7 @@ The compiler and runtime automatically send known blocking syscalls to a blockin
 
 By default there are N workers and tasks move freely between threads. With the thread-per-core option enabled, each task is pinned to a fixed worker and workers do not steal from each other; cache locality is maximized, suiting NUMA environments and datacenter workloads.
 
-It is toggled with the environment variable `ROK_THREAD_PER_CORE=1`; `ROK_WORKERS=<n>` sets N (default: the online CPUs).
+It is toggled with the environment variable `ROKR_THREAD_PER_CORE=1`; `ROKR_WORKERS=<n>` sets N (default: the online CPUs). Until 0.2.0 the old names `ROK_THREAD_PER_CORE` and `ROK_WORKERS` are read when the new ones are unset ([9.9.8](../009-tools/909-debug-tools.md#998-memory--gc-tools)).
 
 > [!NOTE]
 > A task is pinned to a worker; a worker whose task blocks may continue on another OS thread ([7.6.7](#767-automatic-detection-of-blocking-syscalls)), so thread identity is not stable for a pinned task.

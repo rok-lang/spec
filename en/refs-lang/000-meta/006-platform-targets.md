@@ -29,11 +29,13 @@ Three WebAssembly targets are supported, covering browser-based and server-side 
 | Target                   | Notes                            |
 |--------------------------|----------------------------------|
 | `wasm32-unknown-unknown` | Browser environment; `target_os = "none"` ([6.3.2](../006-meta-system/603-cfg.md)) |
-| `wasm32-wasi`            | Server-side WASM: a WASI preview 2 component. `wasi:sockets` networking; no threads (`thread::spawn` panics; `thread::Builder::spawn` throws `Unsupported`) |
-| `wasm32-wasi-threads`    | Server-side WASM with threads: a WASI preview 1 core module using wasi-threads (shared memory). Networking only on listeners the host passes in; connect / bind / DNS throw `Unsupported` |
+| `wasm32-wasip2` (`wasm32-wasi`) | Server-side WASM: a WASI preview 2 component. `wasi:sockets` networking; no threads (`thread::spawn` panics; `thread::Builder::spawn` throws `Unsupported`) |
+| `wasm32-wasip1-threads` (`wasm32-wasi-threads`) | Server-side WASM with threads: a WASI preview 1 core module using wasi-threads (shared memory). Networking only on listeners the host passes in; connect / bind / DNS throw `Unsupported` |
 
 > [!NOTE]
-> wasmtime removed wasi-threads after v46, so `wasm32-wasi-threads` will depend on WASI shared-everything-threads in the future.
+> wasmtime removed wasi-threads after v46, so `wasm32-wasip1-threads` will depend on WASI shared-everything-threads in the future.
+
+`wasm32-wasi`, `wasm32-wasi-threads` and `riscv32imac-unknown-none` are the old names of `wasm32-wasip2`, `wasm32-wasip1-threads` and `riscv32imac-unknown-none-elf`: elsewhere `wasm32-wasi` means WASI preview 1. Until 0.2.0 both names select the same target, whose name in `target/<name>/`, the toolchain's target directory and `cfg` stays the old one; `--target` with an old name warns, and `rokc --print target-list` marks it deprecated ([9.1.4](../009-tools/901-rokc-cli.md#914-auxiliary-subcommands)). 0.2.0 drops the old names.
 
 ### 32-bit
 
@@ -49,7 +51,7 @@ These 15 targets directly cover most users in science, data, HPC, Jupyter and em
 
 ## 0.6.2. Targets outside Tier 1: no guarantee
 
-The following targets are not in Tier 1, and this specification does not guarantee behavior on them: `powerpc64le-unknown-linux-gnu` for IBM Power HPC environments, `x86_64-unknown-freebsd` for FreeBSD, `riscv32imac-unknown-none` for RISC-V embedded, and `s390x-unknown-linux-gnu` for IBM Z mainframes.
+The following targets are not in Tier 1, and this specification does not guarantee behavior on them: `powerpc64le-unknown-linux-gnu` for IBM Power HPC environments, `x86_64-unknown-freebsd` for FreeBSD, `riscv32imac-unknown-none-elf` (old name `riscv32imac-unknown-none`) for RISC-V embedded, and `s390x-unknown-linux-gnu` for IBM Z mainframes.
 
 ## 0.6.3. Implications of 32-bit support
 

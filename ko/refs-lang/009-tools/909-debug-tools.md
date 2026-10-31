@@ -7,15 +7,17 @@
 [AOT 빌드 파이프라인](902-aot-pipeline.md)의 단계별 결과를 덤프할 수 있습니다.
 
 ```
-rokc build --emit=ast           # 메타 확장과 desugar 뒤의 전체 AST 를 rok 소스로
+rokc build --emit=source        # 메타 확장과 desugar 뒤의 전체 AST 를 rok 소스로
 rokc build --emit=hir          # rok-hir 텍스트 출력
 rokc build --emit=mir           # rok-mir 텍스트 출력
 rokc build --emit=mlir          # 표준 MLIR 텍스트
 rokc build --emit=llvmir        # LLVM IR
 rokc build --emit=asm           # 어셈블리
 rokc build --emit=obj           # object 파일
-rokc build --emit=expanded      # 메타 확장 결과 (9.9.10)
+rokc build --emit=expansions    # 메타 확장 결과 (9.9.10)
 ```
+
+`ast`와 `expanded`는 `source`와 `expansions`의 예전 이름입니다. 0.2.0 전까지는 그대로 동작하고 경고를 냅니다.
 
 `mlir`과 `llvmir`은 최적화 수준과 관계없이 MLIR → LLVM 백엔드에서 나옵니다. `asm`과 `obj`는 최적화 수준에 따라 고른 백엔드에서 나옵니다([9.2.10](902-aot-pipeline.md#9210-백엔드-선택)).
 
@@ -37,7 +39,7 @@ target/debug/build/foo.expanded.rok
 ## 9.9.2. ROKHIR 검사
 
 ```
-rokc rokhir-text path/to/foo.rokhir      # 또는 libfoo.a. 옆의 foo.rokhir 를 읽음
+rokc inspect --text path/to/foo.rokhir   # 또는 libfoo.a. 옆의 foo.rokhir 를 읽음
 ```
 
 이 명령은 미리 빌드한 라이브러리의 [ROKHIR](904-rokhir-bytecode.md)을 사람이 읽을 수 있는 형식으로 출력합니다. 버전, producer, 메타 다음에 인터페이스 파일마다 `--- <경로>`와 그 텍스트가 이어집니다. 텍스트는 구체 함수 본문을 `;`로 잘라 낸 소스입니다.
@@ -289,17 +291,19 @@ rokc build --release -C profile-use=app.profdata  #    profile 로 다시 빌드
 
 | 변수                      | 효과                                                                         |
 |---------------------------|------------------------------------------------------------------------------|
-| `ROK_GC_LOG=1`            | 수집마다 종류(minor / full), 일시 정지 시간, mark 수, sweep 결과를 stderr에 출력. 동시 full 수집은 시작 일시 정지(minor 수집)와 끝 일시 정지를 따로 기록함. sweep 결과는 살아 있는 바이트의 전 -> 후 |
-| `ROK_GC_STATS=1`          | 종료할 때 수집 횟수(minor / full), 일시 정지 시간, 수집기 CPU 시간을 stderr에 출력. 둘째 줄은 블록 수 / 상주 크기 / evacuation 횟수 / 옮긴 바이트 |
-| `ROK_GC_CONCURRENT=auto\|always\|off` | full 수집의 동시 mark. `auto`는 old 객체가 32 MiB 이상일 때([7.5](../007-runtime/705-concurrent-collection.md)) |
-| `ROK_GC_EVAC=always`      | 테스트용. full 수집마다 evacuation([7.3.1](../007-runtime/703-gc-algorithm.md#731-immix-mark-region)) |
-| `ROK_GC_STRESS=N`         | 테스트용. 할당 N번마다 수집(그 8번째마다 full)                             |
-| `ROK_HEAP_DUMP=on_oom`    | OOM이 나면 합계, 바이트 기준 상위 32개 타입, 가장 큰 큰 객체 32개를 stderr에 출력. 최선 노력이며 할당하지 않고 락을 잡지 않음. 형식은 런타임이 정함 |
-| `ROK_WORKERS=<n>`         | executor 워커 수 N(기본값은 온라인 CPU 수)([7.6.8](../007-runtime/706-scheduler.md#768-thread-per-core-옵션)) |
-| `ROK_THREAD_PER_CORE=1`   | thread-per-core. task를 자기 워커에 고정하고 훔쳐 가지 않음(7.6.8) |
-| `ROK_DYNAMIC_WORKERS=1`   | 쉬는 워커는 재우고, 활성 워커가 모두 바쁘면 다시 씀([7.7.8](../007-runtime/707-io-and-timer.md#778-워커-수의-동적-조절)) |
+| `ROKR_GC_LOG=1`           | 수집마다 종류(minor / full), 일시 정지 시간, mark 수, sweep 결과를 stderr에 출력. 동시 full 수집은 시작 일시 정지(minor 수집)와 끝 일시 정지를 따로 기록함. sweep 결과는 살아 있는 바이트의 전 -> 후 |
+| `ROKR_GC_STATS=1`         | 종료할 때 수집 횟수(minor / full), 일시 정지 시간, 수집기 CPU 시간을 stderr에 출력. 둘째 줄은 블록 수 / 상주 크기 / evacuation 횟수 / 옮긴 바이트 |
+| `ROKR_GC_CONCURRENT=auto\|always\|off` | full 수집의 동시 mark. `auto`는 old 객체가 32 MiB 이상일 때([7.5](../007-runtime/705-concurrent-collection.md)) |
+| `ROKR_GC_EVAC=always`     | 테스트용. full 수집마다 evacuation([7.3.1](../007-runtime/703-gc-algorithm.md#731-immix-mark-region)) |
+| `ROKR_GC_STRESS=N`        | 테스트용. 할당 N번마다 수집(그 8번째마다 full)                             |
+| `ROKR_HEAP_DUMP=on_oom`   | OOM이 나면 합계, 바이트 기준 상위 32개 타입, 가장 큰 큰 객체 32개를 stderr에 출력. 최선 노력이며 할당하지 않고 락을 잡지 않음. 형식은 런타임이 정함 |
+| `ROKR_WORKERS=<n>`        | executor 워커 수 N(기본값은 온라인 CPU 수)([7.6.8](../007-runtime/706-scheduler.md#768-thread-per-core-옵션)) |
+| `ROKR_THREAD_PER_CORE=1`  | thread-per-core. task를 자기 워커에 고정하고 훔쳐 가지 않음(7.6.8) |
+| `ROKR_DYNAMIC_WORKERS=1`  | 쉬는 워커는 재우고, 활성 워커가 모두 바쁘면 다시 씀([7.7.8](../007-runtime/707-io-and-timer.md#778-워커-수의-동적-조절)) |
 
 설정하지 않았거나 비어 있는 변수는 기본값을 씁니다. 표에 없는 값을 주면 stderr에 경고를 한 줄 출력합니다. 경고는 변수, 준 값, 받는 값을 알립니다. 그 변수는 기본값을 씁니다.
+
+0.2.0 전까지 런타임은 `ROKR_` 이름이 없거나 비어 있으면 `ROKR_` 대신 `ROK_`로 시작하는 예전 이름(`ROK_GC_LOG`, `ROK_WORKERS` 등)도 읽습니다. 프로그램의 stderr는 프로그램의 것이므로 런타임은 이에 대해 아무것도 출력하지 않습니다. 예전 이름만 설정되어 있으면 `rokc run`, `test`, `bench`(그래서 `rok run`, `test`, `bench`도)가 경고를 냅니다.
 
 ## 9.9.9. REPL / Jupyter 디버그
 
@@ -330,7 +334,7 @@ rokc build --release -C profile-use=app.profdata  #    profile 로 다시 빌드
 [사용자 정의 메타 블록](../006-meta-system/608-meta-blocks.md)의 derive와 속성이 어떤 코드를 생성하는지 확인할 수 있습니다.
 
 ```
-rokc build --emit=expanded      # → target/<profile>/build/<name>.expanded.rok
+rokc build --emit=expansions    # → target/<profile>/build/<name>.expanded.rok
 ```
 
 이 옵션은 사용자 패키지의 [메타 확장](../006-meta-system/609-template-tokens.md) 결과를 소스 텍스트로 출력합니다. 확장마다 다음 주석 뒤에 생성된 소스가 이어집니다. 생성물을 다시 확장한 결과는 바깥 확장 뒤에 이어집니다.
@@ -340,7 +344,7 @@ rokc build --emit=expanded      # → target/<profile>/build/<name>.expanded.rok
 impl MyHash for Point { ... }
 ```
 
-메타 확장과 디슈거링을 모두 거친 전체 AST를 Rok 소스로 보려면 `--emit=ast`(`<name>.ast.rok`)를 씁니다.
+메타 확장과 디슈거링을 모두 거친 전체 AST를 Rok 소스로 보려면 `--emit=source`(`<name>.ast.rok`)를 씁니다.
 
 ## 9.9.11. 벤치마크
 
@@ -471,12 +475,12 @@ Concrete .o files:
   foo.o (15 KB)
 ```
 
-`rokc rokhir-text <file>`은 ROKHIR의 버전, producer, 메타와 인터페이스 파일 전체를 출력합니다(9.9.2).
+`rokc inspect --text <file>`은 ROKHIR의 버전, producer, 메타와 인터페이스 파일 전체를 출력합니다(9.9.2).
 
 패키지가 바깥에 무엇을 노출하는지 한눈에 볼 수 있습니다.
 
 ## 9.9.15. 정리
 
-이 절의 도구는 Rok 개발과 디버그의 중심입니다. 표준 도구(gdb, perf, jupyter)를 통합하고, 그 위에 Rok 고유 도구(`rokc demangle`, `rokc rokhir-text` 등)를 더해 진단 환경을 이룹니다.
+이 절의 도구는 Rok 개발과 디버그의 중심입니다. 표준 도구(gdb, perf, jupyter)를 통합하고, 그 위에 Rok 고유 도구(`rokc demangle`, `rokc inspect` 등)를 더해 진단 환경을 이룹니다.
 
 9장(실행과 도구)은 여기서 끝납니다. 이로써 이 사양 전체의 큰 그림이 완성됩니다.

@@ -7,15 +7,17 @@ This section defines the debug / diagnostic tools provided by `rokc` and their i
 The per-step results of the [AOT build pipeline](902-aot-pipeline.md) can be dumped.
 
 ```
-rokc build --emit=ast           # full AST after meta expansion and desugaring, as rok source
+rokc build --emit=source        # full AST after meta expansion and desugaring, as rok source
 rokc build --emit=hir          # rok-hir text output
 rokc build --emit=mir           # rok-mir text output
 rokc build --emit=mlir          # standard MLIR text
 rokc build --emit=llvmir        # LLVM IR
 rokc build --emit=asm           # assembly
 rokc build --emit=obj           # object file
-rokc build --emit=expanded      # meta expansion result (9.9.10)
+rokc build --emit=expansions    # meta expansion result (9.9.10)
 ```
+
+`ast` and `expanded` are the old names of `source` and `expansions`: until 0.2.0 they still work and warn.
 
 `mlir` and `llvmir` come from the MLIR → LLVM backend at any optimization level; `asm` and `obj` come from the backend the level selects ([9.2.10](902-aot-pipeline.md#9210-backend-selection)).
 
@@ -37,7 +39,7 @@ To select several steps at once, separate them with commas, as in `--emit=mlir,l
 ## 9.9.2. ROKHIR inspection
 
 ```
-rokc rokhir-text path/to/foo.rokhir      # or libfoo.a; reads the sibling foo.rokhir
+rokc inspect --text path/to/foo.rokhir   # or libfoo.a; reads the sibling foo.rokhir
 ```
 
 This command prints the [ROKHIR](904-rokhir-bytecode.md) of a prebuilt library in human-readable form. After the version, producer and meta, each interface file follows as `--- <path>` and its text (source with concrete function bodies cut down to `;`).
@@ -284,17 +286,19 @@ The runtime reads the following environment variables.
 
 | Variable                  | Effect                                                                       |
 |---------------------------|------------------------------------------------------------------------------|
-| `ROK_GC_LOG=1`            | Prints the kind (minor / full), pause time, mark count and sweep result of each collection to stderr. A concurrent full collection logs its start pause (a minor collection) and its finish pause separately; the sweep result is the live bytes before -> after |
-| `ROK_GC_STATS=1`          | At exit, prints collection counts (minor / full), pause time and collector CPU time to stderr. The second line gives block count / resident size / evacuation count / bytes moved |
-| `ROK_GC_CONCURRENT=auto\|always\|off` | Concurrent marking for full collections. `auto` applies when old objects are 32 MiB or more ([7.5](../007-runtime/705-concurrent-collection.md)) |
-| `ROK_GC_EVAC=always`      | For testing. Evacuation on every full collection ([7.3.1](../007-runtime/703-gc-algorithm.md#731-immix-mark-region)) |
-| `ROK_GC_STRESS=N`         | For testing. Collects every N allocations (every 8th of those is full)       |
-| `ROK_HEAP_DUMP=on_oom`    | On OOM, prints to stderr the totals, the top 32 types by bytes and the 32 largest large objects. Best effort: it allocates nothing and takes no lock. Format is runtime-defined |
-| `ROK_WORKERS=<n>`         | Number of executor workers N (default: the online CPUs) ([7.6.8](../007-runtime/706-scheduler.md#768-thread-per-core-option)) |
-| `ROK_THREAD_PER_CORE=1`   | Thread-per-core: tasks pinned to their worker, no stealing (7.6.8) |
-| `ROK_DYNAMIC_WORKERS=1`   | Idle workers park and are taken back when every active worker is busy ([7.7.8](../007-runtime/707-io-and-timer.md#778-dynamic-adjustment-of-worker-count)) |
+| `ROKR_GC_LOG=1`           | Prints the kind (minor / full), pause time, mark count and sweep result of each collection to stderr. A concurrent full collection logs its start pause (a minor collection) and its finish pause separately; the sweep result is the live bytes before -> after |
+| `ROKR_GC_STATS=1`         | At exit, prints collection counts (minor / full), pause time and collector CPU time to stderr. The second line gives block count / resident size / evacuation count / bytes moved |
+| `ROKR_GC_CONCURRENT=auto\|always\|off` | Concurrent marking for full collections. `auto` applies when old objects are 32 MiB or more ([7.5](../007-runtime/705-concurrent-collection.md)) |
+| `ROKR_GC_EVAC=always`     | For testing. Evacuation on every full collection ([7.3.1](../007-runtime/703-gc-algorithm.md#731-immix-mark-region)) |
+| `ROKR_GC_STRESS=N`        | For testing. Collects every N allocations (every 8th of those is full)       |
+| `ROKR_HEAP_DUMP=on_oom`   | On OOM, prints to stderr the totals, the top 32 types by bytes and the 32 largest large objects. Best effort: it allocates nothing and takes no lock. Format is runtime-defined |
+| `ROKR_WORKERS=<n>`        | Number of executor workers N (default: the online CPUs) ([7.6.8](../007-runtime/706-scheduler.md#768-thread-per-core-option)) |
+| `ROKR_THREAD_PER_CORE=1`  | Thread-per-core: tasks pinned to their worker, no stealing (7.6.8) |
+| `ROKR_DYNAMIC_WORKERS=1`  | Idle workers park and are taken back when every active worker is busy ([7.7.8](../007-runtime/707-io-and-timer.md#778-dynamic-adjustment-of-worker-count)) |
 
 An unset or empty variable has its default. A value outside those listed prints one warning line on stderr naming the variable, the value and the accepted values, and the variable has its default.
+
+Until 0.2.0 the runtime also reads each variable under its old name, `ROK_` in place of `ROKR_` (`ROK_GC_LOG`, `ROK_WORKERS`, ...), when the `ROKR_` name is unset or empty. The runtime itself prints nothing about it, since a program's stderr is its own; `rokc run`, `test` and `bench` (and so `rok run`, `test` and `bench`) warn when only the old name is set.
 
 ## 9.9.9. REPL / Jupyter debugging
 
@@ -325,7 +329,7 @@ To see a cell's MLIR / LLVM IR, put the same code in `main.rok` and use `rokc bu
 You can check what code the derives / attributes of [user-defined meta blocks](../006-meta-system/608-meta-blocks.md) generate.
 
 ```
-rokc build --emit=expanded      # → target/<profile>/build/<name>.expanded.rok
+rokc build --emit=expansions    # → target/<profile>/build/<name>.expanded.rok
 ```
 
 This option prints the result of [meta expansion](../006-meta-system/609-template-tokens.md) of the user package as source text. Each expansion's generated source follows a comment like the one below; when generated code is expanded again, that result follows the outer expansion.
@@ -335,7 +339,7 @@ This option prints the result of [meta expansion](../006-meta-system/609-templat
 impl MyHash for Point { ... }
 ```
 
-To see the full AST after all meta expansion and desugaring as Rok source, use `--emit=ast` (`<name>.ast.rok`).
+To see the full AST after all meta expansion and desugaring as Rok source, use `--emit=source` (`<name>.ast.rok`).
 
 ## 9.9.11. Benchmarks
 
@@ -454,12 +458,12 @@ Concrete .o files:
   foo.o (15 KB)
 ```
 
-`rokc rokhir-text <file>` prints the ROKHIR's version, producer, meta and all interface files (9.9.2).
+`rokc inspect --text <file>` prints the ROKHIR's version, producer, meta and all interface files (9.9.2).
 
 This gives an at-a-glance view of what the package exposes externally.
 
 ## 9.9.15. Summary
 
-The tools above form the core of Rok's development and debugging experience. Integration with standard tools (gdb, perf, jupyter) combined with rok-specific tools (`rokc demangle`, `rokc rokhir-text`, etc.) provides a rich diagnostic environment.
+The tools above form the core of Rok's development and debugging experience. Integration with standard tools (gdb, perf, jupyter) combined with rok-specific tools (`rokc demangle`, `rokc inspect`, etc.) provides a rich diagnostic environment.
 
 This concludes chapter 9 (execution and tools) and completes the overall picture of this specification.

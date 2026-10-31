@@ -36,7 +36,7 @@ Options, output and exit codes follow those of `rokc` ([9.1](901-rokc-cli.md)). 
 
 `rok help` (also `rok --help`) prints a short page: the subcommands in groups, one line each, and the global options. `rok help <subcommand>` (also `rok <subcommand> --help`) prints that subcommand's own help: its usage forms, a description, examples and its options. For a delegated subcommand it is `rokc`'s help written as `rok`, with `rok`'s feature options added.
 
-An unknown subcommand or option is a usage error (exit code 2). The message names the closest subcommand or option when there is one, including common other names (`compile` for `build`, `rm` for `remove`), and is followed by ``run `rok help <subcommand>` for usage``. A stone or native package that the index lacks names the closest one there and the `rok search` to run. `rok` sets `ROK_CLI=rok` for the `rokc` it runs, so `rokc`'s usage errors, help and the prefix of its error and warning lines name `rok` as well ([9.1.7](901-rokc-cli.md#917-environment-variables)).
+An unknown subcommand or option is a usage error (exit code 2). The message names the closest subcommand or option when there is one, including common other names (`compile` for `build`, `rm` for `remove`), and is followed by ``run `rok help <subcommand>` for usage``. A stone or native package that the index lacks names the closest one there and the `rok search` to run. `rok` sets `__ROK_CLI=rok` for the `rokc` it runs, so `rokc`'s usage errors, help and the prefix of its error and warning lines name `rok` as well ([9.1.7](901-rokc-cli.md#917-environment-variables)).
 
 Running just `rok [options]` with no subcommand starts the REPL, like `rok repl`.
 
@@ -309,24 +309,28 @@ Stone { name: "json", vers: "1.4.2", deps: [{ name: "util", req: "^0.3", kind: "
 
 ```
 rok search [--native] <query>
-rok login [<token>]
-rok logout
-rok publish [--index <checkout>] [--commit]
-rok yank [--native] --vers <version> [--undo] [--index <checkout>] [name]   # name required with --native
+rok login [--registry <url>] [<token>]
+rok logout [--registry <url> | --all]
+rok publish [--dry-run | --commit] [--registry <url> | --index-dir <checkout>]
+rok yank [--native] <name>@<version> [--undo] [--registry <url> | --index-dir <checkout>]
 ```
 
 - `search` searches the index by name and prints one line per match: `<name> <newest version> - <description>` (the description part omitted when the entry has none). Index lookups accept either spelling, `-` or `_`.
-- `publish` is a dry run by default. A package with `publish: false` is refused, with an error naming the line to remove. The readme (9.10.3) must exist. It requires a clean work tree, the package at the repository root, and a `src/lib.rok`, a `src/main.rok` or both. A stone with only `src/main.rok` is a program: `rok install` builds it, and it cannot be a dependency. Normal path / git dependencies are rejected, and path / git dev dependencies are dropped. It checks for conflicts with the same version and with names equal under `-` / `_` and case folding. A name already owned under a different spelling is rejected, and so is a name that breaks the rules of 9.10.3 (a Windows device name, more than 64 characters). A dry run without `--index` only prints the entry; with `--index` it is also checked against that checkout. The entry's source is the url of git remote `origin` as configured (before `insteadOf` rewrites); it must be `https://`, except `http://127.0.0.1` and `http://localhost`.
-- With `--commit`, `publish` adds the entry: with `--index`, as a commit "Publish <name> <vers>" in that checkout (not pushed); without it, through the registry API of the configured index ("Which index"), which adds it to the index. The client never writes to the index repository itself.
-- `yank` sets (or with `--undo` clears) `yanked` for that version: with `--index`, as a commit in that checkout; otherwise through the registry API.
+- `publish --dry-run` is a dry run. Without `--dry-run` or `--commit`, `publish` is a dry run too and warns: 0.2.0 asks for one of them. A package with `publish: false` is refused, with an error naming the line to remove. The readme (9.10.3) must exist. It requires a clean work tree, the package at the repository root, and a `src/lib.rok`, a `src/main.rok` or both. A stone with only `src/main.rok` is a program: `rok install` builds it, and it cannot be a dependency. Normal path / git dependencies are rejected, and path / git dev dependencies are dropped. It checks for conflicts with the same version and with names equal under `-` / `_` and case folding. A name already owned under a different spelling is rejected. A dry run without `--index-dir` only prints the entry; with `--index-dir` it is also checked against that checkout. The entry's source is the url of git remote `origin` as configured (before `insteadOf` rewrites); it must be `https://`, except `http://127.0.0.1` and `http://localhost`.
+- With `--commit`, `publish` adds the entry: with `--index-dir`, as a commit "Publish <name> <vers>" in that checkout (not pushed); without it, through the registry API of the index `--registry <url>` names, else of the configured index ("Which index"), which adds it to the index. `--index-dir` and `--registry` cannot be combined, nor `--dry-run` and `--commit`. The client never writes to the index repository itself.
+- `yank` sets (or with `--undo` clears) `yanked` for that version: with `--index-dir`, as a commit in that checkout; otherwise through the registry API of the index `--registry <url>` names, else of the configured index.
+- Until 0.2.0 the old forms still work and warn with the form to write: `--index <dir>` for `--index-dir <dir>` (`publish` and `yank`), and `yank --vers <version> [name]` for `yank <name>@<version>` (without a name, this package's; a native package needs the name).
 - The registry API is at `api` of the index's `config.rokon`. Requests carry `Authorization: Bearer <token>`, and bodies are single-line ROKON (`application/rokon; charset=utf-8`):
   - `GET <api>/api/v1/me` → `Me { login: "..", publish: <bool> }`
   - `POST <api>/api/v1/publish`, body the index line (`Stone { .. }` / `Native { .. }`) → `Published { name, vers, file }`
   - `POST <api>/api/v1/yank`, body `Yank { name, vers, undo: <bool>, native: <bool> }` → `Yanked { name, vers, yanked }`
 
   A failure is a 4xx / 5xx status with `Error { message: ".." }`, whose message `rok` reports; 401 means the token is not valid.
-- The registry API needs a token; an `--index` checkout needs none. The token is `ROK_REGISTRY_TOKEN` if set and non-empty, else the one `rok login` saved. Without either, it is an error "run `rok login` first".
-- `rok login` takes a rokstones.io account token, created on the website (`<api>/me`, signed in with GitHub; currently only the registry's maintainers can create one). When the token is omitted it is read from standard input, not echoed (echo is restored on Ctrl-C). `login` asks `/api/v1/me`: it refuses a token the API rejects, and an account whose `publish` is false ("this account cannot publish yet: publishing is open to rokstones.io maintainers only"), saving nothing. Otherwise it saves `Credentials { token: ".." }` in `$ROK_HOME/credentials.rokon` (mode 0600 on Unix) and prints "Logged in as <login>". `rok logout` removes that file.
+- The registry API needs a token; an `--index-dir` checkout needs none. The token for an index is `ROK_REGISTRY_TOKEN` if set and non-empty, else the one `rok login` saved for that index, else the one in `credentials.rokon` (below). Without any, it is an error "run `rok login` first" (``run `rok login --registry <url>` first`` for an index other than the configured one).
+- `rok login` takes a rokstones.io account token, created on the website (`<api>/me`, signed in with GitHub; currently only the registry's maintainers can create one). When the token is omitted it is read from standard input, not echoed (echo is restored on Ctrl-C). `login` asks `/api/v1/me`: it refuses a token the API rejects, and an account whose `publish` is false ("this account cannot publish yet: publishing is open to rokstones.io maintainers only"), saving nothing. Otherwise it saves the token for the index, `--registry <url>` or else the configured one, in `$ROK_HOME/tokens.rokon` as `Tokens { tokens: { "<index url>": "<token>" } }` (keys without a trailing `/`; fields and other indexes already there are kept), and prints "Logged in as <login>". A token is sent only to the registry API of its own index.
+- For the configured index, `rok login` also saves `Credentials { token: ".." }` in `$ROK_HOME/credentials.rokon`, which rok 0.1.5 and older read and send to whichever index is configured. A `credentials.rokon` token is still used for an index with no `tokens.rokon` entry; for one other than rokstones.io that warns ``the token in <file> is not tied to an index; run `rok login --registry <url>` ``, and 0.2.0 sends it only to rokstones.io.
+- Both files are written mode 0600 on Unix. On Windows they get the default permissions of `$ROK_HOME`, which is under the user's profile.
+- `rok logout` removes the configured index's token from both files; `--registry <url>` removes that index's entry from `tokens.rokon`; `--all` removes every token from both.
 - The token reaches `curl` only on its standard input: never on a command line or in the environment, and never printed (errors show `***`).
 
 ## 9.10.4b. Native packages
@@ -361,11 +365,11 @@ The value is one index line, or a file for `Dep::native(url:, sha256:)`, whose a
 rok add --native <name>[@<req>]
 rok remove --native <name>
 rok search --native <query>
-rok publish --native <file> [--index <dir>] [--commit]
-rok yank --native --vers <version> [--undo] [--index <dir>] <name>
+rok publish --native <file> [--dry-run | --commit] [--registry <url> | --index-dir <dir>]
+rok yank --native <name>@<version> [--undo] [--registry <url> | --index-dir <dir>]
 ```
 
-`publish --native` fetches and checks every target, and requires absolute urls, a license file, and dependencies from an index only. `--commit` and `yank --native` follow the stone rules: an `--index` checkout, else the registry API with the token (`native: true` in `Yank`).
+`publish --native` fetches and checks every target, and requires absolute urls, a license file, and dependencies from an index only. `--commit` and `yank --native` follow the stone rules: an `--index-dir` checkout, else the registry API with the token (`native: true` in `Yank`).
 
 - On ELF targets a runtime library's soname must equal its file name. A `dylib` link for a `-musl` target is an error.
 - `repl` / `jupyter` load native packages: shared libraries through the system loader, static archives linked into the session. `check` / `lint` / `doc` link nothing.
@@ -428,20 +432,20 @@ rok repl --env <name>
 rok install <name>[@<req>] [--registry <url>]
 rok install [<name>] --path <dir | file.rok>
 rok install [<name>] --git <url> [--rev <rev> | --tag <tag> | --branch <branch>]
-rok install .. [--features <f,..>] [--no-default-features] [--lib] [--force]
+rok install .. [--features <f,..>] [--no-default-features] [--lib | --bin] [--force]
 rok install --native <name>[@<req>] [--registry <url>]
 rok install --list
 rok uninstall [--native] <name>..
 ```
 
-- The package at the source is fetched into the cache first ([9.10.4](#9104-dependencies-rok-add--remove--update--deps)). A package with `src/main.rok`, or a script file, is an executable: it is built with `--release` and its executable placed in `$ROK_HOME/bin/<name>`, as with `cargo install`. A git or stone package is built from a scratch copy of its checkout; a path package in place; a script file in place. `$ROK_HOME/installs.rokon` (`Package { deps: { "<name>": <source> } }`) records each executable and its exact source (a stone as `=<version>`, a git package with its `rev:`). When the package also has `src/lib.rok`, `rok install` says so and that `--lib` installs the library instead.
+- The package at the source is fetched into the cache first ([9.10.4](#9104-dependencies-rok-add--remove--update--deps)). A package with `src/main.rok`, or a script file, is an executable: it is built with `--release` and its executable placed in `$ROK_HOME/bin/<name>`, as with `cargo install`. A git or stone package is built from a scratch copy of its checkout; a path package in place; a script file in place. `$ROK_HOME/installs.rokon` (`Package { deps: { "<name>": <source> } }`) records each executable and its exact source (a stone as `=<version>`, a git package with its `rev:`). When the package also has `src/lib.rok` and neither `--bin` nor `--lib` is given, `rok install` installs the executable and warns, naming `--bin` for that and `--lib` for the library; 0.2.0 asks for one of them. `--bin` on a package without `src/main.rok` is an error, and so are `--bin` and `--lib` together.
 - A package with only `src/lib.rok`, or any package with `src/lib.rok` given `--lib`, is a library and goes into the active environment, as with `pip install`, for `rok repl`, `rok jupyter` and `:add` ([9.10.5](#9105-environments)): it is written into the environment's `rok.rokon` (a stone without a requirement as `^<newest version>`, a path as an absolute path), resolved into its `rok.lock`, and prebuilt into its `target/`. Scripts do not see it: a script gets a library with `rok add <name> <file.rok>`; the output line names this. If it does not build, nothing is installed. `--lib` on a package without `src/lib.rok`, or on a script, is an error.
 - `<name>` is the library's top-level name, or the executable's file name. If omitted, it is the package's `name`, else the directory name (path), the repository name without `.git` (git), or the file stem (script). It follows the naming rules of [9.10.3](#9103-rokrokon--roklock).
 - `--features` / `--no-default-features` go into the library's `Dep`, or to the executable's build; `--dev` / `--optional` are errors. `--native` adds a native package to the environment's `native` ([9.10.4b](#9104b-native-packages)).
 - The proxies `rok`, `rokc`, `rokls` ([9.10.6](#9106-toolchain)) are never replaced, and neither is a file in `$ROK_HOME/bin` that `rok install` did not put there (an error). Installing an executable again: one from the same stone version or git commit with the same features is kept, not rebuilt (`` `tool` 0.1.0 is installed already (<path>); to rebuild it, run `rok install tool --force` ``), and `--force` rebuilds it (`Reinstalled`); another version replaces it (`Upgraded tool from 0.1.0 to 0.2.0`, `Downgraded ...`), and another git commit too (`Replaced <url> at <commit> with ...`). One from a path or a script file is always rebuilt, as with `cargo install --path`. Library installs are unchanged.
 - `--list` prints ``libraries (environment `<env>`):`` and `executables (<bin dir>):`, each followed by `  <name> <source>` lines in install order.
 - `rok uninstall <name>..` removes each from the active environment's libraries (re-resolving its lock), or else removes the executable `rok install` put in `$ROK_HOME/bin`; `--native` removes a native package from the environment. A name that is neither is an error.
-- Apart from `rok install`, only `rok toolchain` (toolchains, proxies, `config.rokon`), `rok login` (`credentials.rokon`), `rok env` (environments) and the caches write under `$ROK_HOME`.
+- Apart from `rok install`, only `rok toolchain` (toolchains, proxies, `config.rokon`), `rok login` (`tokens.rokon`, `credentials.rokon`), `rok env` (environments) and the caches write under `$ROK_HOME`.
 
 ## 9.10.6. toolchain
 

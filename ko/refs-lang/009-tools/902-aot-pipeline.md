@@ -218,7 +218,7 @@ target/
 
 루트 파일이 둘 다 있는 패키지에는 산출물이 두 개 있습니다. `target/<profile>/<name>`과 `target/<profile>/lib<name>.a`(+ `<name>.rokhir`)입니다. `-o`는 실행 파일의 이름을 정합니다.
 
-이름 `foo`는 패키지 이름입니다(9.2.2). `-o`는 산출물 하나의 경로를 바꿉니다. `--target-dir=<dir>`와 환경 변수 `ROKC_TARGET_DIR`은 `target/` 자체의 위치를 바꿉니다. `rokc clean` / `rok clean`은 `target/` 전체를 지웁니다. 라이브러리의 ROKHIR은 아카이브 옆의 `foo.rokhir`입니다([9.4](904-rokhir-bytecode.md)).
+이름 `foo`는 패키지 이름입니다(9.2.2). `-o`는 산출물 하나의 경로를 바꿉니다. `--target-dir=<dir>`와 환경 변수 `ROK_TARGET_DIR`은 `target/` 자체의 위치를 바꿉니다. `rokc clean` / `rok clean`은 `target/` 전체를 지웁니다. 라이브러리의 ROKHIR은 아카이브 옆의 `foo.rokhir`입니다([9.4](904-rokhir-bytecode.md)).
 
 ## 9.2.16. 증분 빌드
 
@@ -244,15 +244,15 @@ target/
 - 인터페이스는 반환 타입을 적었거나 `()`인 plain 본체, 그리고 plain 함수의 매개변수와 반환 타입을 뺀 모든 항목입니다. 반환 타입을 추론하는 본체는 인터페이스에 속합니다. 호출자가 그 타입을 읽기 때문입니다. 본체를 고치면 그 본체를 다시 낮춥니다. 반환 타입을 추론하는 본체를 고치면 그 타입을 읽은 본체도 다시 낮춥니다. plain 함수의 시그니처를 고치면 그 함수와, 그 시그니처를 읽은 본체를 다시 낮춥니다. 항목의 그 밖의 변경(타입, 트레잇, `impl` 머리, 제네릭 함수, `use`)은 모든 본체를 다시 낮춥니다.
 - 재사용한 결과가 만든 함수, 타입, 인스턴스는 깨끗한 빌드와 같은 번호를 받습니다. 진단, 프로그램, 심볼도 깨끗한 빌드와 같습니다.
 
-시그니처, `impl` 등록, coherence, 프로그램 전체 검사는 모든 빌드에서 실행합니다. 라이브러리 항목을 모으며 만든 것(표준 라이브러리와 의존 패키지의 것)과 라이브러리 파일의 pre-pass 파싱 결과는 toolchain 캐시(`lib/rok-cache/library/`)에 보관합니다. 캐시 파일은 toolchain, 빌드 플래그, 라이브러리 소스의 해시마다 하나이고, 단독 파일 빌드를 포함해 모든 빌드가 이 캐시를 씁니다. `ROKC_INCREMENTAL`은 이 캐시를 옮기지도 끄지도 않습니다. 보관한 것이 꼭 있어야 하지는 않습니다. 없거나 망가졌거나 오래된 항목은 다시 계산합니다. 패키지 밖의 단독 파일은 `ROKC_INCREMENTAL`이 디렉터리를 가리킬 때만 자기 파싱 결과와 본체를 보관합니다. `ROKC_INCREMENTAL=<dir>`은 결과를 `<dir>/<name>-<hash>/`에 두고, `ROKC_INCREMENTAL=0`은 보관을 끕니다. `ROKC_INCR_VERIFY=1`은 모든 본체를 따로 다시 낮추고, 재사용한 결과가 다르면 빌드를 실패로 끝냅니다. `-v`는 파싱 결과와 본체를 재사용한 파일 수를 보고합니다.
+시그니처, `impl` 등록, coherence, 프로그램 전체 검사는 모든 빌드에서 실행합니다. 라이브러리 항목을 모으며 만든 것(표준 라이브러리와 의존 패키지의 것)과 라이브러리 파일의 pre-pass 파싱 결과는 toolchain 캐시(`lib/rok-cache/library/`)에 보관합니다. 캐시 파일은 toolchain, 빌드 플래그, 라이브러리 소스의 해시마다 하나이고, 단독 파일 빌드를 포함해 모든 빌드가 이 캐시를 씁니다. `ROK_INCREMENTAL`은 이 캐시를 옮기지도 끄지도 않습니다. 보관한 것이 꼭 있어야 하지는 않습니다. 없거나 망가졌거나 오래된 항목은 다시 계산합니다. 패키지 밖의 단독 파일은 `ROK_INCREMENTAL`이 디렉터리를 가리킬 때만 자기 파싱 결과와 본체를 보관합니다. `ROK_INCREMENTAL=<dir>`은 결과를 `<dir>/<name>-<hash>/`에 두고, `ROK_INCREMENTAL=0`은 보관을 끕니다. `ROKC_INCR_VERIFY=1`은 모든 본체를 따로 다시 낮추고, 재사용한 결과가 다르면 빌드를 실패로 끝냅니다. `-v`는 파싱 결과와 본체를 재사용한 파일 수를 보고합니다.
 
 ### 코드 생성 단위
 
 패키지 안에서 `Fresh`가 아닌 빌드는 컴파일한 코드를 codegen unit 단위로 재사용합니다. rokc는 패키지의 코드(실행 파일이든 라이브러리든)를 unit으로 나눕니다. 패키지의 모듈마다 하나, 그 인스턴스를 컴파일하는 라이브러리의 모듈마다 하나, 그리고 프로그램에 한 번만 있는 것(static, C `main`, GC 타입 등록)을 위한 unit이 하나입니다. 인스턴스는 타입 인자에 따라 여러 unit에 나뉠 수 있습니다.
 
 - unit은 같은 타깃 디렉터리에 출력한 지난 빌드 이후 키가 바뀌었을 때만 컴파일합니다. 키가 그대로면 `target/<profile>/incremental/<name>/`(라이브러리는 `lib<name>/`)에 둔 결과를 재사용합니다. 그 뒤 모두 링크합니다.
-- 익명 파일의 unit은 패키지 없이 쓰는 타깃 디렉터리(`--target-dir`, `ROKC_TARGET_DIR`, 없으면 단일 파일 캐시)의 `[<triple>/]<profile>/incremental/<stem>-<경로의 hash>/`에 둡니다. 단일 파일 캐시는 Unix에서 `<시스템 임시 디렉토리>/rokc-target-<uid>/`(`<uid>`는 유효 사용자 ID)이고, Windows에서는 `%TEMP%\rokc-target\`입니다. Windows의 임시 디렉터리는 이미 사용자마다 따로 있습니다. 이 디렉터리는 캐시입니다. rokc는 하루에 많아야 한 번, 일주일 동안 어떤 빌드도 쓰지 않은 파일을 지웁니다.
-- rokc는 단일 파일 캐시에서 찾은 것을 실행하므로, Unix에서는 이 디렉터리를 사용자 혼자만 쓰게 둡니다. rokc는 모드 `0700`으로 만들고, 쓰기 전에 심볼릭 링크가 아닌 디렉터리인지, 유효 사용자의 것인지, 그룹과 다른 사용자의 권한 비트가 없는지 확인합니다. 아니면 명령은 종료 코드 `1`과 ``rokc: error: <dir> is not private to you (owner uid N, mode 0755); remove it or set ROKC_TARGET_DIR``로 실패합니다. `--target-dir`와 `ROKC_TARGET_DIR`는 주어진 그대로 씁니다.
+- 익명 파일의 unit은 패키지 없이 쓰는 타깃 디렉터리(`--target-dir`, `ROK_TARGET_DIR`, 없으면 단일 파일 캐시)의 `[<triple>/]<profile>/incremental/<stem>-<경로의 hash>/`에 둡니다. 단일 파일 캐시는 Unix에서 `<시스템 임시 디렉토리>/rokc-target-<uid>/`(`<uid>`는 유효 사용자 ID)이고, Windows에서는 `%TEMP%\rokc-target\`입니다. Windows의 임시 디렉터리는 이미 사용자마다 따로 있습니다. 이 디렉터리는 캐시입니다. rokc는 하루에 많아야 한 번, 일주일 동안 어떤 빌드도 쓰지 않은 파일을 지웁니다.
+- rokc는 단일 파일 캐시에서 찾은 것을 실행하므로, Unix에서는 이 디렉터리를 사용자 혼자만 쓰게 둡니다. rokc는 모드 `0700`으로 만들고, 쓰기 전에 심볼릭 링크가 아닌 디렉터리인지, 유효 사용자의 것인지, 그룹과 다른 사용자의 권한 비트가 없는지 확인합니다. 아니면 명령은 종료 코드 `1`과 ``rokc: error: <dir> is not private to you (owner uid N, mode 0755); remove it or set ROK_TARGET_DIR``로 실패합니다. `--target-dir`와 `ROK_TARGET_DIR`는 주어진 그대로 씁니다.
 - unit의 키에는 그 함수들의 코드, 다른 unit에서 가져다 쓰는 것의 시그니처와 코드 생성 정보, 쓰는 static과 GC 타입, 타깃, 최적화 수준, 코드 생성 옵션, 컴파일러의 정체가 들어갑니다. `-g`이면 디버그 정보가 가리키는 소스 파일의 경로도 들어갑니다. 그래서 함수의 시그니처가 바뀌면 호출자의 unit을 다시 컴파일하고, 파일을 더하면 그 파일을 가리키는 unit만 다시 컴파일합니다.
 - 심볼과 GC type id는 다른 unit의 내용에 의존하지 않습니다. unit은 GC type id를 패키지의 공유 unit이 정의한 심볼에서 읽습니다([9.5.7](905-symbol-mangling.md#957-충돌-회피-typehash의-안정성)). 그래서 산출물은 깨끗한 빌드가 만드는 것과 같습니다.
 - 최적화 빌드도 unit 사이에서 인라인합니다(ThinLTO, unit별 결과도 캐시함).

@@ -67,14 +67,14 @@ option          ::= "--" identifier ("=" value)?
 rokc build [path]
 ```
 
-`[path]`는 위의 패키지 지정 규칙을 따릅니다. 산출물은 [9.2.15](902-aot-pipeline.md#9215-산출물)의 프로필별 `target/`에 놓입니다. `src/main.rok`은 `target/<profile>/<name>`을 만들고, `src/lib.rok`은 `target/<profile>/lib<name>.a`와 인터페이스 `target/<profile>/<name>.rokhir`([9.4](904-rokhir-bytecode.md))을 만듭니다. 둘 다 있는 패키지는 둘 다 만듭니다. 프로필은 `-O2` / `-O3` / `-Os`(`--release` 포함)이면 `release`이고, 그 밖에는 `debug`입니다. `--target=<target>`을 주면 `target/<name>/<profile>/`입니다. `--target-dir=<dir>`나 `ROKC_TARGET_DIR`이 있으면 `target/` 대신 그 디렉터리를 씁니다.
+`[path]`는 위의 패키지 지정 규칙을 따릅니다. 산출물은 [9.2.15](902-aot-pipeline.md#9215-산출물)의 프로필별 `target/`에 놓입니다. `src/main.rok`은 `target/<profile>/<name>`을 만들고, `src/lib.rok`은 `target/<profile>/lib<name>.a`와 인터페이스 `target/<profile>/<name>.rokhir`([9.4](904-rokhir-bytecode.md))을 만듭니다. 둘 다 있는 패키지는 둘 다 만듭니다. 프로필은 `-O2` / `-O3` / `-Os`(`--release` 포함)이면 `release`이고, 그 밖에는 `debug`입니다. `--target=<target>`을 주면 `target/<name>/<profile>/`입니다. `--target-dir=<dir>`나 `ROK_TARGET_DIR`이 있으면 `target/` 대신 그 디렉터리를 씁니다.
 
 단독 파일([4.16.8](../004-functions/416-entry-point.md#4168-단일-파일-실행))은 `rokc run`처럼 빌드합니다. 실행 파일은 파일 옆에 "파일 이름의 stem + 타깃의 실행 파일 접미사"라는 이름으로 복사합니다(`hello.rok`이면 `hello`, Windows에서는 `hello.exe`). `-o`로 다른 파일을 지정하면 그곳에 둡니다. 그 경로에 이 스크립트의 이전 빌드가 쓰지 않은 파일이 이미 있으면 그 파일은 건드리지 않습니다. 이때 빌드는 실패하고 `-o <file>`을 안내합니다.
 
 옵션은 다음과 같습니다.
 
 - `--release`는 `release` 프로필로 최적화 빌드(`-O2`와 같음)를 합니다. 기본값은 `debug` 프로필의 디버그 빌드(`-O0`)입니다. 두 프로필의 차이는 [9.2.15](902-aot-pipeline.md#9215-산출물)가 설명합니다.
-- `--target-dir=<dir>`는 `target/`의 위치를 바꿉니다(`ROKC_TARGET_DIR`과 같음).
+- `--target-dir=<dir>`는 `target/`의 위치를 바꿉니다(`ROK_TARGET_DIR`과 같음).
 - `--extern <name>=<dir | src/lib.rok | <name>.rokhir | lib<name>.a>`는 의존 패키지 하나를 최상위 경로 `name`에 마운트합니다([9.2.3](902-aot-pipeline.md#923-의존성-해소)). 소스(`dir` / `src/lib.rok`)는 같은 빌드에서 함께 컴파일합니다. 미리 빌드한 패키지(`.rokhir` / `.a`, 하나를 주면 옆의 짝을 찾음)는 ROKHIR을 읽고 아카이브를 링크합니다. 여러 번 쓸 수 있고, 보통 `rok`이 채웁니다. `name`은 식별자이고, 패키지 이름의 `-`를 `_`로 바꾼 것입니다([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)). `rok`은 표준 라이브러리용으로 예약되어 있습니다. `--extern rok=..`은 사용법 에러이고, `rok`이라는 라이브러리 패키지는 거부합니다. 키워드와 경로 시작점(`pkg`, `sup`)도 `name`으로 쓸 수 없고, 라이브러리나 라이브러리가 있는 패키지의 이름으로도 쓸 수 없습니다([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)).
 - `--extern-feature <name>=<f>`는 소스 의존 패키지 `name`을 `cfg(feature = "<f>")`로 빌드합니다. feature마다 하나씩, 여러 번 줄 수 있습니다. 의존 패키지가 보는 feature는 이것뿐입니다. `--cfg`의 `feature` 키는 지금 컴파일하는 패키지에만 적용됩니다. 보통 `rok`이 채웁니다.
 - `--name <n>`은 패키지 이름([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)의 이름 규칙)을 정합니다. 산출물은 `lib<n>.a` / `<n>.rokhir`이고, 마운트 이름은 `-`를 `_`로 바꾼 것입니다. 기본값은 디렉터리 이름입니다. `--extern a-b=..`도 `a_b`로 묶습니다.
@@ -83,10 +83,10 @@ rokc build [path]
 - `--target=<target>`은 타깃 플랫폼을 지정합니다. [플랫폼 타깃](../000-meta/006-platform-targets.md)의 Tier 1 15개 같은 내장 이름이나, `<name>.rokon` 타깃 사양 파일([0.6.5](../000-meta/006-platform-targets.md#065-타깃-사양))을 받습니다. 어느 호스트에서나 어느 타깃이든 빌드할 수 있습니다([0.2.4](../000-meta/002-pipeline.md#024-백엔드)).
 - `-L <dir>`은 `#[link]`의 라이브러리 검색 디렉터리를 더합니다([5.9.9](../005-modules/509-extern-block.md#599-linklibname-라이브러리-명시)). `LIBRARY_PATH`보다 먼저 찾습니다. 여러 번 쓸 수 있습니다.
 - `-l [static=|dylib=]<name>`은 라이브러리 `<name>`을 링크합니다(`#[link]`처럼 찾음). `--native-runtime <file>`은 실행 파일 옆에 둘 공유 라이브러리를 지정합니다([9.2.14](902-aot-pipeline.md#9214-링킹실행-파일의-경우)). 둘 다 여러 번 쓸 수 있고, native 패키지가 있으면 `rok`이 넘깁니다([9.10.4b](910-rok-frontend.md#9104b-네이티브-패키지)).
-- `-o` / `--out=<path>`(`--output`도 같음)는 출력 위치를 지정합니다.
+- `-o <path>` / `--output=<path>`는 출력 위치를 지정합니다. `--out`은 예전 철자입니다. 0.2.0 전까지는 그대로 동작하고 경고를 냅니다.
 - `--keep`은 빌드의 임시 디렉터리(오브젝트와 그 밖의 중간 파일)를 지우지 않고 남깁니다. 그 경로는 표준 에러에 알립니다(`rokc: kept temporaries in <dir>`).
 - `--cfg <flag>` / `--cfg <key>=<value>`는 [조건부 컴파일](../006-meta-system/603-cfg.md)의 cfg 플래그를 설정합니다. 여러 번 쓸 수 있습니다.
-- `--emit=<kind>[,<kind>..]`는 중간 산출물(`ast`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expanded`)을 `target/<profile>/build/<name>.<ext>`에 씁니다([9.9.1](909-debug-tools.md#991-중간-산출물-출력---emit)). 쉼표로 여러 종류를 한 번에 지정할 수 있고, 이때는 `-o`를 함께 쓸 수 없습니다. `--emit`이 있으면 실행 파일이나 아카이브는 만들지 않습니다.
+- `--emit=<kind>[,<kind>..]`는 중간 산출물(`source`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expansions`. 0.2.0 전까지는 `source` 대신 `ast`, `expansions` 대신 `expanded`도 받고 경고를 냄)을 `target/<profile>/build/<name>.<ext>`에 씁니다([9.9.1](909-debug-tools.md#991-중간-산출물-출력---emit)). 쉼표로 여러 종류를 한 번에 지정할 수 있고, 이때는 `-o`를 함께 쓸 수 없습니다. `--emit`이 있으면 실행 파일이나 아카이브는 만들지 않습니다.
 - `--load-mlir-plugin <path|name>`은 MLIR 다이얼렉트 plugin을 로드하고, `--load-mlir-pass-plugin <path|name>`은 패스 plugin을 로드합니다. 둘 다 `rokc`의 MLIR에 로드합니다(plugin은 같은 고정 LLVM으로 빌드하고, Windows에서는 `rokc.exe`의 import library에 링크한 것입니다). `--mlir-pass <pass>`는 LLVM 다이얼렉트로 변환하기 전에 그 패스를 실행합니다([stdlib 1.10](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-로드)). 모두 여러 번 쓸 수 있고, `rok`도 그대로 넘깁니다.
 - `-g`는 `release` 프로필 빌드에 디버그 정보를 더합니다. 디버그 정보는 DWARF이고, Windows 타깃에서는 PDB의 CodeView입니다([9.9.6](909-debug-tools.md#996-디버거-통합-gdb--lldb)). `debug` 프로필 빌드에는 항상 있습니다.
 - `-C <option>`은 `--codegen <option>`으로도 쓸 수 있습니다.
@@ -164,7 +164,7 @@ rokc test [path] [filter]
 
 옵션은 `rokc build`와 같고, 다음 세 가지가 더 있습니다.
 
-- `--threads=N`은 동시에 실행할 테스트 프로세스 수를 지정합니다. 기본값은 `ROKC_NUM_JOBS`이고, 그것도 없으면 CPU 수입니다.
+- `--threads=N`은 동시에 실행할 테스트 프로세스 수를 지정합니다. 기본값은 `ROK_NUM_JOBS`이고, 그것도 없으면 CPU 수입니다.
 - `--show-output`은 성공한 테스트의 stdout / stderr도 표시합니다. 실패한 테스트의 출력은 늘 표시합니다.
 - `--format=human|json`은 출력 형식을 고릅니다(기본값 `human`). `json`은 테스트마다 JSON 레코드 하나와 summary를 stdout에, 아래 텍스트를 stderr에 씁니다([9.9.12](909-debug-tools.md#9912-ci--테스트-통합)).
 
@@ -354,13 +354,7 @@ rokc demangle <symbol>...
 
 ### `rokc rokhir-text`: [ROKHIR](../000-meta/007-glossary.md#rokhir-rok-hir-bytecode) 텍스트 출력
 
-`rokc rokhir-text`는 미리 빌드한 라이브러리의 ROKHIR을 텍스트로 출력합니다.
-
-```
-rokc rokhir-text path/to/foo.rokhir      # 또는 libfoo.a. 옆의 foo.rokhir 를 읽음
-```
-
-헤더 필드, producer, meta와 interface 파일을 출력합니다. 포맷은 [ROKHIR 포맷](904-rokhir-bytecode.md)에서 정의합니다.
+`rokc rokhir-text <file>`은 `rokc inspect --text <file>`(아래)의 예전 이름입니다. 0.2.0 전까지는 그대로 동작하고, 대신 쓸 명령을 알리는 경고를 냅니다.
 
 ### `rokc inspect`: 패키지 검사
 
@@ -368,9 +362,12 @@ rokc rokhir-text path/to/foo.rokhir      # 또는 libfoo.a. 옆의 foo.rokhir �
 
 ```
 rokc inspect path/to/libfoo.a        # 또는 foo.rokhir
+rokc inspect --text path/to/foo.rokhir   # 또는 libfoo.a. 옆의 foo.rokhir 를 읽음
 ```
 
 패키지 이름과 해시, rokc 버전, ROKHIR 버전, GC type id 구간, 내보낸 항목, [제네릭](../000-meta/007-glossary.md#generic--제네릭) 항목, 아카이브 멤버와 크기를 한 번에 표시합니다([9.9.14](909-debug-tools.md#9914-패키지-검사)).
+
+`--text`를 주면 대신 미리 빌드한 라이브러리의 ROKHIR을 텍스트로 출력합니다. 헤더 필드, producer, meta와 interface 파일을 출력하고, 포맷은 [ROKHIR 포맷](904-rokhir-bytecode.md)에서 정의합니다.
 
 ## 9.1.4. 보조 서브명령
 
@@ -382,7 +379,7 @@ rokc inspect path/to/libfoo.a        # 또는 foo.rokhir
 rokc clean [path]
 ```
 
-패키지의 `target/` 디렉터리 전체를 지웁니다. 모든 프로필과 교차 빌드가 포함되고, `--target-dir` / `ROKC_TARGET_DIR`이 있으면 그 디렉터리를 지웁니다. 디렉터리가 없으면 아무 일도 하지 않습니다.
+패키지의 `target/` 디렉터리 전체를 지웁니다. 모든 프로필과 교차 빌드가 포함되고, `--target-dir` / `ROK_TARGET_DIR`이 있으면 그 디렉터리를 지웁니다. 디렉터리가 없으면 아무 일도 하지 않습니다.
 
 ### `rokc version`: 버전
 
@@ -418,7 +415,7 @@ rokc --print target-list
 rokc --print target-spec [--target=<target>]
 ```
 
-`target-list`는 내장 타깃 이름을 한 줄에 하나씩 출력합니다. `target-spec`은 타깃의 사양을 ROKON으로 출력합니다([0.6.5](../000-meta/006-platform-targets.md#065-타깃-사양)). `--target`이 없으면 호스트의 사양을 출력합니다.
+`target-list`는 내장 타깃 이름을 한 줄에 하나씩 출력합니다. 0.2.0에서 없어질 예전 이름([0.6](../000-meta/006-platform-targets.md))은 새 이름 다음 줄에 `<old> (deprecated: use <new>)`로 나옵니다. `target-spec`은 타깃의 사양을 ROKON으로 출력합니다([0.6.5](../000-meta/006-platform-targets.md#065-타깃-사양)). `--target`이 없으면 호스트의 사양을 출력합니다.
 
 ### `rokc --print lldbinit`: lldb 포매터
 
@@ -430,7 +427,7 @@ rokc --print target-spec [--target=<target>]
 rokc completions bash|zsh|fish|powershell
 ```
 
-그 셸의 자동 완성 스크립트를 stdout에 출력합니다. 스크립트는 `rokc help`와 같은 명령 / 옵션 텍스트에서 만들므로 둘은 어긋나지 않습니다. 서브명령과 그 옵션을 완성하고, 설치된 toolchain으로 `+<version>`(`rok`에서, [9.10.6](910-rok-frontend.md#9106-toolchain))을, `--print target-list`로 `--target`의 값을 완성합니다. 그 밖의 셸이거나 셸을 주지 않으면 사용법 에러(종료 코드 2)입니다.
+그 셸의 자동 완성 스크립트를 stdout에 출력합니다. 스크립트는 `rokc help`와 같은 명령 / 옵션 텍스트에서 만들므로 둘은 어긋나지 않습니다. 서브명령과 그 옵션을 완성하고, 설치된 toolchain으로 `+<version>`(`rok`에서, [9.10.6](910-rok-frontend.md#9106-toolchain))을, `--print target-list`가 한 줄에 홀로 출력하는 이름으로 `--target`의 값을 완성합니다. 그 밖의 셸이거나 셸을 주지 않으면 사용법 에러(종료 코드 2)입니다.
 
 ### `rokc help`: 도움말
 
@@ -480,7 +477,7 @@ rokc --cwd=examples/hello run
 | `2`   | 사용법 에러(잘못된 옵션, 모르는 서브명령 등)   |
 | `101` | rokc 내부 에러(panic)                          |
 
-사용법 에러는 `rokc: <메시지>` 다음에 ``run `rokc help <subcommand>` for usage`` 줄을 출력합니다(알려진 서브명령이 없으면 ``run `rokc help` for usage``). 메시지는 대신 쓸 것을 알려 줍니다. 모르는 서브명령이나 옵션은 가장 가까운 것이 있으면 그 이름을 댑니다(``unknown option `--relase`; did you mean `--release`?``). 파일을 가리키는(`/`를 담거나 `.rok`으로 끝나는) 모르는 서브명령에는 `rokc run <file>`을 제안합니다. `ROK_CLI`가 `rok`이면(9.1.7) 두 줄 모두 `rokc` 대신 `rok`이라고 씁니다.
+사용법 에러는 `rokc: <메시지>` 다음에 ``run `rokc help <subcommand>` for usage`` 줄을 출력합니다(알려진 서브명령이 없으면 ``run `rokc help` for usage``). 메시지는 대신 쓸 것을 알려 줍니다. 모르는 서브명령이나 옵션은 가장 가까운 것이 있으면 그 이름을 댑니다(``unknown option `--relase`; did you mean `--release`?``). 파일을 가리키는(`/`를 담거나 `.rok`으로 끝나는) 모르는 서브명령에는 `rokc run <file>`을 제안합니다. `__ROK_CLI`가 `rok`이면(9.1.7) 두 줄 모두 `rokc` 대신 `rok`이라고 씁니다.
 
 `rokc`는 `ROK_HOME`을 읽지 않습니다(sysroot는 실행 파일 기준). rokc 자신이 panic으로 끝나면(internal compiler error) 메시지를 출력하고 `101`로 끝납니다. `rokc lsp`, `rokc repl`, `rokc jupyter`는 이 panic을 견딥니다. language server는 이를 분석한 버퍼의 에러 진단으로 보고하고, REPL / 커널은 그 셀을 실패로 처리합니다([9.7.5](907-jit-cells.md#975-에러-모드)). 둘 다 계속 서비스합니다. `rokc run`은 실행한 프로그램의 종료 코드로 끝납니다(9.1.2).
 
@@ -494,23 +491,25 @@ rokc --cwd=examples/hello run
 |-------------------|------------------------------------------------------------------------------------------|
 | `ROK_CC`          | 내장 lld 대신 마지막 링크를 하는 선택적 C 컴파일러 드라이버([9.2.14](902-aot-pipeline.md#9214-링킹실행-파일의-경우)) |
 | `ROK_BACKEND`     | `native` 또는 `llvm`. `-C backend=`와 같음 |
-| `ROKC_VERBOSE`    | `--verbose`와 같음                                                                      |
+| `ROK_VERBOSE`     | `--verbose`와 같음                                                                      |
 | `ROK_TIME_PASSES` | `1`이면 패스별 실제 시간을 stderr에 출력([9.9.5](909-debug-tools.md#rok_time_passes)) |
 | `LLVM_PROFILE_FILE` | 계측한 프로그램(`-C profile-generate`)이 읽는 raw profile 경로 |
 | `ROK_MLIR_PLUGIN_PATH` | 이름만 준 `--load-mlir-plugin` / `--load-mlir-pass-plugin`을 찾는 디렉터리 목록(`PATH`처럼 구분) |
 | `ROK_LLVM_CACHE` | `rokc bindgen`이 libclang을 찾는 캐시 디렉터리(9.1.3) |
-| `ROK_ENV_LIBS`  | `rok`이 환경에서 스크립트를 실행할 때 설정하는, 그 환경에 설치된 라이브러리 목록(쉼표로 구분). 스크립트가 그중 하나를 선언 없이 쓰면 그 이름을 알리는 힌트를 받음 |
-| `ROK_CLI`         | `rok`이 `rokc`를 실행할 때 `rok`으로 설정(내부용). 사용법 에러(9.1.6), `--help`, 에러와 경고 줄의 `rokc:` 접두사에서 `rokc` 대신 `rok`이라고 씀. `rok run`이 시작한 프로그램도 물려받음 |
-| `ROKC_TARGET_DIR` | `target/`의 위치(기본값은 패키지 안)                                                     |
-| `ROKC_INCREMENTAL` | 프런트엔드가 패키지의 파싱 결과와 낮춘 본체를 두는 곳(기본값 `target/<profile>/incremental/`, `0`이면 두지 않음). 라이브러리에서 모은 항목은 `lib/rok-cache/library/`에 둠([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |
-| `ROKC_INCR_VERIFY` | `1`이면 모든 본체를 다시 낮추고, 결과가 다르면 실패([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |
-| `ROKC_NUM_JOBS`   | `rokc test --threads`의 기본값(없으면 CPU 코어 수)                                     |
+| `__ROK_ENV_LIBS` | `rok`이 환경에서 스크립트를 실행할 때 설정하는(내부용), 그 환경에 설치된 라이브러리 목록(쉼표로 구분). 스크립트가 그중 하나를 선언 없이 쓰면 그 이름을 알리는 힌트를 받음 |
+| `__ROK_CLI`       | `rok`이 `rokc`를 실행할 때 `rok`으로 설정(내부용). 사용법 에러(9.1.6), `--help`, 에러와 경고 줄의 `rokc:` 접두사에서 `rokc` 대신 `rok`이라고 씀. `rok run`이 시작한 프로그램도 물려받음 |
+| `ROK_TARGET_DIR`  | `target/`의 위치(기본값은 패키지 안)                                                     |
+| `ROK_INCREMENTAL` | 프런트엔드가 패키지의 파싱 결과와 낮춘 본체를 두는 곳(기본값 `target/<profile>/incremental/`, `0`이면 두지 않음). 라이브러리에서 모은 항목은 `lib/rok-cache/library/`에 둠([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |
+| `ROK_INCR_VERIFY` | `1`이면 모든 본체를 다시 낮추고, 결과가 다르면 실패([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |
+| `ROK_NUM_JOBS`    | `rokc test --threads`의 기본값(없으면 CPU 코어 수)                                     |
 | `NO_COLOR`        | 비어 있지 않으면 `--color=auto`가 색을 쓰지 않음(9.1.5)                                |
 | `CLICOLOR_FORCE`  | 비어 있지 않고 `0`이 아니면 스트림이 터미널이 아니어도 `--color=auto`가 색을 씀. `NO_COLOR`가 있으면 쓰지 않음(9.1.5) |
 | `COLORTERM`       | `truecolor`나 `24bit`이면 24비트 색 값을 씀(9.1.8)                                        |
 | `TERM`            | `dumb`이면 `--color=auto`가 색을 쓰지 않음. `256color`를 포함하면 256색 팔레트를 씀(9.1.8) |
 
 설정하지 않았거나 비어 있는 변수는 기본값을 씁니다. 표에 없는 값을 주면 stderr에 경고 한 줄을 출력하고, 그 변수는 기본값을 씁니다. 경고에는 변수, 값, 받는 값이 나옵니다.
+
+0.2.0 전까지는 예전 이름도 동작합니다. `ROKC_TARGET_DIR`, `ROKC_VERBOSE`, `ROKC_INCREMENTAL`, `ROKC_INCR_VERIFY`, `ROKC_NUM_JOBS`는 `ROK_` 이름이 없거나 비어 있을 때 읽고, 새 이름을 알리는 경고를 한 줄 출력합니다. `rok`은 `__ROK_CLI`, `__ROK_ENV`, `__ROK_ENV_LIBS`, `__ROK`(REPL의 `:add`와 언어 서버가 실행하는 `rok`) 옆에 `ROK_CLI`, `ROK_ENV`, `ROK_ENV_LIBS`, `ROK`도 설정합니다. `rokc`는 `__` 이름이 없으면 `__` 없는 이름을 읽습니다. `rokc run`, `test`, `bench`는 예전 이름으로만 설정한 런타임 변수에 경고를 냅니다([9.9.8](909-debug-tools.md#998-메모리--gc-도구)).
 
 ## 9.1.8. 출력 형식
 

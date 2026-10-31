@@ -29,11 +29,13 @@ Linux, macOS, Windows의 주요 아키텍처를 모두 다룹니다. 정적 바�
 | 타깃                     | 비고                             |
 |--------------------------|----------------------------------|
 | `wasm32-unknown-unknown` | 브라우저 환경. `target_os = "none"`([6.3.2](../006-meta-system/603-cfg.md)) |
-| `wasm32-wasi`            | 서버사이드 WASM: WASI preview 2 component. `wasi:sockets` 네트워크, 스레드 없음(`thread::spawn`은 panic을 일으키고, `thread::Builder::spawn`은 `Unsupported`를 던짐) |
-| `wasm32-wasi-threads`    | 스레드가 있는 서버사이드 WASM: wasi-threads를 쓰는 WASI preview 1 core module(공유 메모리). 네트워크는 호스트가 넘긴 listener에서만 쓸 수 있음. connect / bind / DNS는 `Unsupported`를 던짐 |
+| `wasm32-wasip2` (`wasm32-wasi`) | 서버사이드 WASM: WASI preview 2 component. `wasi:sockets` 네트워크, 스레드 없음(`thread::spawn`은 panic을 일으키고, `thread::Builder::spawn`은 `Unsupported`를 던짐) |
+| `wasm32-wasip1-threads` (`wasm32-wasi-threads`) | 스레드가 있는 서버사이드 WASM: wasi-threads를 쓰는 WASI preview 1 core module(공유 메모리). 네트워크는 호스트가 넘긴 listener에서만 쓸 수 있음. connect / bind / DNS는 `Unsupported`를 던짐 |
 
 > [!NOTE]
-> wasmtime이 v46 이후 wasi-threads를 제거했습니다. 그래서 `wasm32-wasi-threads`는 앞으로 WASI shared-everything-threads에 기댈 예정입니다.
+> wasmtime이 v46 이후 wasi-threads를 제거했습니다. 그래서 `wasm32-wasip1-threads`는 앞으로 WASI shared-everything-threads에 기댈 예정입니다.
+
+`wasm32-wasi`, `wasm32-wasi-threads`, `riscv32imac-unknown-none`은 `wasm32-wasip2`, `wasm32-wasip1-threads`, `riscv32imac-unknown-none-elf`의 예전 이름입니다. 다른 곳에서 `wasm32-wasi`는 WASI preview 1을 뜻합니다. 0.2.0 전까지는 두 이름이 같은 타깃을 고르고, `target/<name>/`, toolchain의 타깃 디렉터리, `cfg`에 쓰는 이름은 예전 이름 그대로입니다. 예전 이름을 `--target`에 주면 경고를 내고, `rokc --print target-list`는 그 이름에 deprecated 표시를 붙입니다([9.1.4](../009-tools/901-rokc-cli.md#914-보조-서브명령)). 0.2.0은 예전 이름을 없앱니다.
 
 ### 32비트
 
@@ -49,7 +51,7 @@ Linux, macOS, Windows의 주요 아키텍처를 모두 다룹니다. 정적 바�
 
 ## 0.6.2. Tier 1 외 타깃: 보증 없음
 
-다음 타깃은 Tier 1에 속하지 않습니다. 이 사양은 이 타깃의 동작을 보증하지 않습니다. 대상은 IBM Power HPC 환경의 `powerpc64le-unknown-linux-gnu`, FreeBSD용 `x86_64-unknown-freebsd`, RISC-V 임베디드용 `riscv32imac-unknown-none`, IBM Z 메인프레임용 `s390x-unknown-linux-gnu`입니다.
+다음 타깃은 Tier 1에 속하지 않습니다. 이 사양은 이 타깃의 동작을 보증하지 않습니다. 대상은 IBM Power HPC 환경의 `powerpc64le-unknown-linux-gnu`, FreeBSD용 `x86_64-unknown-freebsd`, RISC-V 임베디드용 `riscv32imac-unknown-none-elf`(예전 이름 `riscv32imac-unknown-none`), IBM Z 메인프레임용 `s390x-unknown-linux-gnu`입니다.
 
 ## 0.6.3. 32비트 지원의 함의
 

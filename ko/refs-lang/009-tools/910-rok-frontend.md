@@ -36,7 +36,7 @@
 
 `rok help`(`rok --help`도)는 짧은 페이지를 출력합니다. 묶음별로 서브명령을 한 줄씩 적고 전역 옵션을 적습니다. `rok help <subcommand>`(`rok <subcommand> --help`도)는 그 서브명령만의 도움말을 출력합니다. 사용 형태, 설명, 예제, 옵션이 들어갑니다. 위임하는 서브명령이면 `rokc`의 도움말을 `rok`으로 고쳐 쓰고 `rok`의 feature 옵션을 더합니다.
 
-모르는 서브명령이나 옵션은 사용법 에러(종료 코드 2)입니다. 가장 가까운 서브명령이나 옵션이 있으면 메시지가 그 이름을 댑니다. 흔히 쓰는 다른 이름도 알아듣습니다(`build` 대신 `compile`, `remove` 대신 `rm`). 이어서 ``run `rok help <subcommand>` for usage``를 출력합니다. index에 없는 stone이나 native 패키지는 그 index에서 가장 가까운 이름과 실행할 `rok search`를 알려 줍니다. `rok`은 자신이 실행하는 `rokc`에 `ROK_CLI=rok`을 설정합니다. 그래서 `rokc`의 사용법 에러, 도움말, 에러와 경고 줄의 접두사도 `rok`으로 나옵니다([9.1.7](901-rokc-cli.md#917-환경-변수)).
+모르는 서브명령이나 옵션은 사용법 에러(종료 코드 2)입니다. 가장 가까운 서브명령이나 옵션이 있으면 메시지가 그 이름을 댑니다. 흔히 쓰는 다른 이름도 알아듣습니다(`build` 대신 `compile`, `remove` 대신 `rm`). 이어서 ``run `rok help <subcommand>` for usage``를 출력합니다. index에 없는 stone이나 native 패키지는 그 index에서 가장 가까운 이름과 실행할 `rok search`를 알려 줍니다. `rok`은 자신이 실행하는 `rokc`에 `__ROK_CLI=rok`을 설정합니다. 그래서 `rokc`의 사용법 에러, 도움말, 에러와 경고 줄의 접두사도 `rok`으로 나옵니다([9.1.7](901-rokc-cli.md#917-환경-변수)).
 
 서브명령 없이 `rok [옵션]`만 실행하면 `rok repl`과 같이 REPL을 시작합니다.
 
@@ -326,31 +326,35 @@ Stone { name: "json", vers: "1.4.2", deps: [{ name: "util", req: "^0.3", kind: "
 
 ```
 rok search [--native] <query>
-rok login [<token>]
-rok logout
-rok publish [--index <checkout>] [--commit]
-rok yank [--native] --vers <version> [--undo] [--index <checkout>] [name]   # --native 면 name 필수
+rok login [--registry <url>] [<token>]
+rok logout [--registry <url> | --all]
+rok publish [--dry-run | --commit] [--registry <url> | --index-dir <checkout>]
+rok yank [--native] <name>@<version> [--undo] [--registry <url> | --index-dir <checkout>]
 ```
 
 - `search`는 index에서 이름으로 찾고, 찾은 것마다 `<name> <newest version> - <description>`을 한 줄씩 출력합니다. 항목에 description이 없으면 그 부분은 생략합니다. index 조회는 `-` / `_` 어느 쪽 철자든 받습니다.
-- `publish`는 기본이 dry run입니다.
+- `publish --dry-run`은 dry run입니다. `--dry-run`도 `--commit`도 없으면 `publish`는 역시 dry run이고 경고를 냅니다. 0.2.0은 둘 중 하나를 요구합니다.
   - `publish: false`인 패키지는 거부합니다. 에러는 지울 줄을 알려 줍니다.
   - readme(9.10.3)가 있어야 합니다. 깨끗한 작업 트리, 저장소 루트의 패키지, 그리고 `src/lib.rok`, `src/main.rok`, 또는 둘 다가 필요합니다.
   - `src/main.rok`만 있는 stone은 프로그램입니다. `rok install`이 그것을 빌드하고, 의존 패키지가 될 수 없습니다.
   - path / git의 normal 의존은 거부하고, path / git의 dev 의존은 뺍니다.
   - 같은 버전이 있는지, 그리고 `-` / `_`와 대소문자를 같게 보았을 때 이름이 충돌하는지 검사합니다. 다른 철자가 이미 차지한 이름은 거부합니다. 9.10.3의 규칙을 어기는 이름(Windows 장치 이름, 64자 초과)도 거부합니다.
-  - `--index` 없는 dry run은 항목만 출력합니다. `--index`가 있으면 그 checkout에 대해서도 검사합니다.
+  - `--index-dir` 없는 dry run은 항목만 출력합니다. `--index-dir`가 있으면 그 checkout에 대해서도 검사합니다.
   - 항목의 source는 설정된 그대로(`insteadOf` 재작성 전)의 git remote `origin` url입니다. 이 url은 `https://`여야 하고, `http://127.0.0.1`과 `http://localhost`만 예외입니다.
-- `--commit`이면 `publish`는 항목을 더합니다. `--index`가 있으면 그 checkout에 "Publish <name> <vers>" 커밋으로 더합니다(push하지 않음). 없으면 설정된 index("Which index")의 레지스트리 API로 보내고, API가 항목을 index에 넣습니다. 클라이언트는 index 저장소에 직접 쓰지 않습니다.
-- `yank`는 그 버전의 `yanked`를 켭니다(`--undo`면 끕니다). `--index`가 있으면 그 checkout의 커밋으로, 없으면 레지스트리 API로 처리합니다.
+- `--commit`이면 `publish`는 항목을 더합니다. `--index-dir`가 있으면 그 checkout에 "Publish <name> <vers>" 커밋으로 더합니다(push하지 않음). 없으면 `--registry <url>`이 가리키는 index, 그것도 없으면 설정된 index("Which index")의 레지스트리 API로 보내고, API가 항목을 index에 넣습니다. `--index-dir`와 `--registry`는 함께 쓸 수 없고, `--dry-run`과 `--commit`도 마찬가지입니다. 클라이언트는 index 저장소에 직접 쓰지 않습니다.
+- `yank`는 그 버전의 `yanked`를 켭니다(`--undo`면 끕니다). `--index-dir`가 있으면 그 checkout의 커밋으로, 없으면 `--registry <url>`이 가리키는 index, 그것도 없으면 설정된 index의 레지스트리 API로 처리합니다.
+- 0.2.0 전까지는 예전 형식도 동작하고, 대신 쓸 형식을 알리는 경고를 냅니다. `--index <dir>`은 `--index-dir <dir>`(`publish`와 `yank`)의, `yank --vers <version> [name]`은 `yank <name>@<version>`의 예전 형식입니다. 예전 형식에서 이름을 생략하면 이 패키지의 것이고, native 패키지는 이름이 있어야 합니다.
 - 레지스트리 API의 주소는 index의 `config.rokon`의 `api`에 있습니다. 요청은 `Authorization: Bearer <token>`을 싣고, 본문은 한 줄 ROKON(`application/rokon; charset=utf-8`)입니다.
   - `GET <api>/api/v1/me` → `Me { login: "..", publish: <bool> }`
   - `POST <api>/api/v1/publish`, 본문은 index 줄(`Stone { .. }` / `Native { .. }`) → `Published { name, vers, file }`
   - `POST <api>/api/v1/yank`, 본문 `Yank { name, vers, undo: <bool>, native: <bool> }` → `Yanked { name, vers, yanked }`
 
   실패는 4xx / 5xx 상태와 `Error { message: ".." }`로 옵니다. `rok`은 그 message를 보고합니다. 401은 토큰이 유효하지 않다는 뜻입니다.
-- 레지스트리 API에는 토큰이 필요하고, `--index` checkout에는 필요 없습니다. `ROK_REGISTRY_TOKEN`이 설정되어 있고 비어 있지 않으면 그 값을 토큰으로 씁니다. 아니면 `rok login`이 저장한 토큰을 씁니다. 둘 다 없으면 "run `rok login` first" 에러입니다.
-- `rok login`은 웹사이트에서 만든 rokstones.io 계정 토큰을 받습니다(`<api>/me`, GitHub로 로그인. 지금은 레지스트리 maintainer만 만들 수 있음). 토큰을 생략하면 표준 입력에서 화면에 보이지 않게 읽습니다(Ctrl-C에도 에코를 되돌림). `login`은 `/api/v1/me`에 물어봅니다. API가 거부하는 토큰과 `publish`가 false인 계정("this account cannot publish yet: publishing is open to rokstones.io maintainers only")은 아무것도 저장하지 않고 거절합니다. 그 밖에는 `$ROK_HOME/credentials.rokon`에 `Credentials { token: ".." }`를 저장하고(Unix에서는 mode 0600) "Logged in as <login>"을 출력합니다. `rok logout`은 그 파일을 지웁니다.
+- 레지스트리 API에는 토큰이 필요하고, `--index-dir` checkout에는 필요 없습니다. index의 토큰은 다음 순서로 고릅니다. `ROK_REGISTRY_TOKEN`이 설정되어 있고 비어 있지 않으면 그 값입니다. 아니면 `rok login`이 그 index에 저장한 토큰이고, 그것도 없으면 `credentials.rokon`의 토큰(아래)입니다. 모두 없으면 "run `rok login` first" 에러입니다. 설정된 index가 아닌 index에서는 ``run `rok login --registry <url>` first``입니다.
+- `rok login`은 웹사이트에서 만든 rokstones.io 계정 토큰을 받습니다(`<api>/me`, GitHub로 로그인. 지금은 레지스트리 maintainer만 만들 수 있음). 토큰을 생략하면 표준 입력에서 화면에 보이지 않게 읽습니다(Ctrl-C에도 에코를 되돌림). `login`은 `/api/v1/me`에 물어봅니다. API가 거부하는 토큰과 `publish`가 false인 계정("this account cannot publish yet: publishing is open to rokstones.io maintainers only")은 아무것도 저장하지 않고 거절합니다. 그 밖에는 `--registry <url>`이 가리키는 index, 없으면 설정된 index의 토큰을 `$ROK_HOME/tokens.rokon`에 `Tokens { tokens: { "<index url>": "<token>" } }`로 저장하고 "Logged in as <login>"을 출력합니다. 키에는 끝의 `/`를 붙이지 않고, 이미 있던 필드와 다른 index의 토큰은 그대로 둡니다. 토큰은 자기 index의 레지스트리 API로만 보냅니다.
+- 설정된 index라면 `rok login`은 `$ROK_HOME/credentials.rokon`에도 `Credentials { token: ".." }`를 저장합니다. rok 0.1.5 이하는 이 파일을 읽어 설정된 index가 무엇이든 그곳으로 보냅니다. `tokens.rokon`에 항목이 없는 index에는 `credentials.rokon`의 토큰을 여전히 씁니다. 그 index가 rokstones.io가 아니면 ``the token in <file> is not tied to an index; run `rok login --registry <url>` `` 경고를 내고, 0.2.0은 이 토큰을 rokstones.io로만 보냅니다.
+- 두 파일 모두 Unix에서는 mode 0600으로 씁니다. Windows에서는 사용자 프로필 아래에 있는 `$ROK_HOME`의 기본 권한을 받습니다.
+- `rok logout`은 설정된 index의 토큰을 두 파일에서 지웁니다. `--registry <url>`이면 `tokens.rokon`에서 그 index의 항목을 지우고, `--all`이면 두 파일의 토큰을 모두 지웁니다.
 - 토큰은 `curl`의 표준 입력으로만 전달합니다. 명령줄이나 환경에 넣지 않고 출력하지도 않습니다(에러에서는 `***`로 보임).
 
 ## 9.10.4b. 네이티브 패키지
@@ -385,11 +389,11 @@ Native {
 rok add --native <name>[@<req>]
 rok remove --native <name>
 rok search --native <query>
-rok publish --native <file> [--index <dir>] [--commit]
-rok yank --native --vers <version> [--undo] [--index <dir>] <name>
+rok publish --native <file> [--dry-run | --commit] [--registry <url> | --index-dir <dir>]
+rok yank --native <name>@<version> [--undo] [--registry <url> | --index-dir <dir>]
 ```
 
-`publish --native`는 모든 타깃을 받아 검사합니다. 절대 url, 라이선스 파일, index에서 온 의존성만 허용합니다. `--commit`과 `yank --native`는 stone과 같은 규칙을 따릅니다. `--index` checkout을 쓰고, 없으면 토큰으로 레지스트리 API를 씁니다(`Yank`의 `native: true`).
+`publish --native`는 모든 타깃을 받아 검사합니다. 절대 url, 라이선스 파일, index에서 온 의존성만 허용합니다. `--commit`과 `yank --native`는 stone과 같은 규칙을 따릅니다. `--index-dir` checkout을 쓰고, 없으면 토큰으로 레지스트리 API를 씁니다(`Yank`의 `native: true`).
 
 - ELF 타깃에서 runtime 라이브러리의 soname은 파일 이름과 같아야 합니다. `-musl` 타깃의 `dylib` link는 에러입니다.
 - `repl` / `jupyter`는 native 패키지를 로드합니다. 공유 라이브러리는 시스템 로더로 로드하고, static 아카이브는 세션에 링크합니다. `check` / `lint` / `doc`은 아무것도 링크하지 않습니다.
@@ -452,14 +456,14 @@ REPL의 `:add <dep> ..`는 현재 환경에서는 `rok install <dep> ..`을, 패
 rok install <name>[@<req>] [--registry <url>]
 rok install [<name>] --path <dir | file.rok>
 rok install [<name>] --git <url> [--rev <rev> | --tag <tag> | --branch <branch>]
-rok install .. [--features <f,..>] [--no-default-features] [--lib] [--force]
+rok install .. [--features <f,..>] [--no-default-features] [--lib | --bin] [--force]
 rok install --native <name>[@<req>] [--registry <url>]
 rok install --list
 rok uninstall [--native] <name>..
 ```
 
 - 소스의 패키지는 먼저 캐시로 가져옵니다([9.10.4](#9104-의존성-rok-add--remove--update--deps)).
-- `src/main.rok`이 있는 패키지나 스크립트 파일은 실행 파일입니다. `cargo install`처럼 `--release`로 빌드해 그 실행 파일을 `$ROK_HOME/bin/<name>`에 둡니다. git이나 stone 패키지는 checkout의 임시 사본에서, path 패키지와 스크립트 파일은 제자리에서 빌드합니다. `$ROK_HOME/installs.rokon`(`Package { deps: { "<name>": <source> } }`)이 각 실행 파일과 그 정확한 출처를 기록합니다. stone은 `=<version>`으로, git 패키지는 그 `rev:`와 함께 기록합니다. 패키지에 `src/lib.rok`도 있으면 `rok install`은 그 사실을 알리고, `--lib`를 주면 라이브러리를 대신 설치한다고 알립니다.
+- `src/main.rok`이 있는 패키지나 스크립트 파일은 실행 파일입니다. `cargo install`처럼 `--release`로 빌드해 그 실행 파일을 `$ROK_HOME/bin/<name>`에 둡니다. git이나 stone 패키지는 checkout의 임시 사본에서, path 패키지와 스크립트 파일은 제자리에서 빌드합니다. `$ROK_HOME/installs.rokon`(`Package { deps: { "<name>": <source> } }`)이 각 실행 파일과 그 정확한 출처를 기록합니다. stone은 `=<version>`으로, git 패키지는 그 `rev:`와 함께 기록합니다. 패키지에 `src/lib.rok`도 있는데 `--bin`도 `--lib`도 없으면 `rok install`은 실행 파일을 설치하고 경고를 냅니다. 경고는 이것을 원하면 `--bin`을, 라이브러리를 원하면 `--lib`를 쓰라고 알립니다. 0.2.0은 둘 중 하나를 요구합니다. `src/main.rok`이 없는 패키지에 `--bin`을 주거나 `--bin`과 `--lib`를 함께 주면 에러입니다.
 - `src/lib.rok`만 있는 패키지, 또는 `--lib`를 준 `src/lib.rok`이 있는 패키지는 라이브러리입니다. 라이브러리는 `pip install`처럼 `rok repl`, `rok jupyter`, `:add`를 위해 활성 환경([9.10.5](#9105-환경))에 들어갑니다. 환경의 `rok.rokon`에 적고(요구 없는 stone은 `^<가장 새 버전>`, path는 절대 경로), 그 `rok.lock`으로 해소하고, 그 `target/`에 미리 빌드합니다. 스크립트는 이 라이브러리를 보지 않습니다. 스크립트는 `rok add <name> <file.rok>`으로 라이브러리를 얻고, 출력 줄이 이를 알립니다. 빌드되지 않으면 아무것도 설치하지 않습니다. `src/lib.rok`이 없는 패키지나 스크립트에 `--lib`를 주면 에러입니다.
 - `<name>`은 라이브러리의 최상위 이름, 또는 실행 파일의 파일 이름입니다. 생략하면 패키지의 `name`을 씁니다. 그것도 없으면 디렉터리 이름(path), `.git`을 뗀 저장소 이름(git), 파일 stem(스크립트)을 씁니다. [9.10.3](#9103-rokrokon--roklock)의 이름 규칙을 따릅니다.
 - `--features` / `--no-default-features`는 라이브러리의 `Dep`에, 또는 실행 파일의 빌드에 들어갑니다. `--dev` / `--optional`은 에러입니다. `--native`는 환경의 `native`에 native 패키지를 더합니다([9.10.4b](#9104b-네이티브-패키지)).
@@ -470,7 +474,7 @@ rok uninstall [--native] <name>..
   - 라이브러리 설치는 그대로입니다.
 - `--list`는 ``libraries (environment `<env>`):``와 `executables (<bin dir>):`를 출력합니다. 각각 뒤에 설치 순서대로 `  <name> <source>` 줄이 옵니다.
 - `rok uninstall <name>..`은 각 이름을 활성 환경의 라이브러리에서 지웁니다(lock을 다시 해소). 라이브러리가 아니면 `rok install`이 `$ROK_HOME/bin`에 둔 실행 파일을 지웁니다. `--native`는 환경에서 native 패키지를 지웁니다. 둘 다 아닌 이름은 에러입니다.
-- `rok install` 말고 `$ROK_HOME` 아래에 쓰는 것은 `rok toolchain`(toolchain, 프록시, `config.rokon`), `rok login`(`credentials.rokon`), `rok env`(환경), 그리고 캐시뿐입니다.
+- `rok install` 말고 `$ROK_HOME` 아래에 쓰는 것은 `rok toolchain`(toolchain, 프록시, `config.rokon`), `rok login`(`tokens.rokon`, `credentials.rokon`), `rok env`(환경), 그리고 캐시뿐입니다.
 
 ## 9.10.6. toolchain
 
