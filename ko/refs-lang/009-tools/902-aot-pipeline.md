@@ -286,7 +286,7 @@ target/
 
 ```
 $ROK_HOME/
-├── bin/                         # proxy: 활성 toolchain 의 같은 이름 실행 파일을 실행
+├── bin/                         # proxy(가장 새 toolchain 의 rok): 활성 toolchain 의 같은 이름 실행 파일을 실행
 │   ├── rok
 │   ├── rokc
 │   ├── rokls

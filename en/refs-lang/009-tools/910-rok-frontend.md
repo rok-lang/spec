@@ -208,8 +208,9 @@ Lock {
 - A missing `packages` field is read as an empty list.
 - Features are not recorded: the lock pins every package of the graph, optional ones included, so it does not depend on the features a build enables.
 - Native packages from an index are pinned in an optional `natives: [LockedNative { name, vers, source: Dep::registry("<index>"), sha256 }]`, sorted by name and written only when non-empty. `sha256` is the SHA-256 of the entry's canonical index line with `yanked: false`; a changed entry is a "run `rok update`" error.
-- If `version` is not `1`, it is an "unsupported lockfile version" error.
-- Every error raised while reading the lock appends "(delete rok.lock and run `rok update` to make it again)".
+- `version` is read before the other fields. A `version` above `1` is a lock a newer `rok` wrote, and an error naming the toolchain to use instead of deleting it: ``rok.lock was written by a newer rok (lock version 2); run that rok's toolchain here: set `toolchain` in rok.rokon to its version, or run `rok +<version> ..` ``.
+- Any other `version` than `1` is an "unsupported lockfile version" error.
+- Every other error raised while reading the lock appends "(delete rok.lock and run `rok update` to make it again)".
 
 ## 9.10.4. Dependencies: `rok add` / `remove` / `update` / `deps`
 
@@ -448,7 +449,11 @@ rok uninstall [--native] <name>..
 3. `toolchain: "X"` in the manifest (the nearest `rok.rokon`; the proxy reads only this field, so fields it does not know keep the pin)
 4. The default (`Config { registry, toolchain }` in `$ROK_HOME/config.rokon`)
 
-A version prefix matches versions under it (`0.3` is the highest `0.3.*`). If no toolchain matches, it is an error suggesting `rok toolchain install`.
+A version prefix matches versions under it (`0.3` is the highest `0.3.*`); the name of an installed toolchain's directory (`0.3.1-x86_64-unknown-linux-gnu`) matches that toolchain. If no toolchain matches, it is an error suggesting `rok toolchain install`.
+
+The proxies are copies of the `rok` of the newest installed toolchain: the highest version for this host, a prerelease only when no release is installed. A newer `rok` keeps running older toolchains this way, so the proxy contract is fixed across 0.x: the order above, then running `toolchains/<dir>/bin/<tool>` with the same arguments and `ROK_HOME` set, and `ROK_TOOLCHAIN` set to the `+<version>` the proxy took off.
+
+Each toolchain's `rok` runs only its own `rokc`, the one beside it, so the flags, environment variables and files between `rok` and `rokc` are never a contract across versions. A `rok` run directly (a development build, a package manager's, a toolchain's `bin/rok`) where `+<version>`, `ROK_TOOLCHAIN` or the manifest's `toolchain` names another installed toolchain hands the command to that toolchain's `rok`: it runs it with the same arguments from the directory it started in, with `ROK_HOME` set, and exits with its status (on Unix it replaces itself; on Windows it waits). For a command that runs `rokc`, the manifest is that of the package the command works on (`rok build ../app` reads `../app/rok.rokon`); for `rok`'s own commands it is the nearest one. It does not hand off when the pin matches its own version, when the toolchain is the directory it runs from (compared by real path), or when that toolchain's `rok --version` prints the same line as its own (the same build). Without a pin, the default does not apply: a `rok` run directly keeps the command. `rok toolchain`, `help`, `version`, `completions` and `--version` never hand off. A toolchain handed the command that hands it back again is an error naming both executables, never a loop. A pin naming no installed toolchain is the error above for commands that run `rokc`; `rok`'s own commands go on.
 
 ```
 rok toolchain list                         # marks the default with * and (default)
@@ -462,11 +467,21 @@ rok toolchain clean                        # remove every installed toolchain bu
 - An installation is `$ROK_HOME/toolchains/<version>-<triple>/` and is self-contained ([9.2.19](902-aot-pipeline.md#9219-installation-layout)). `install` requires `--from`.
 - `install` verifies with `bin/rokc --version --verbose`; the version and host must match.
 - The first installed toolchain becomes the default, and the `bin/` proxies are created at that point.
-- `rok toolchain update` replaces the default toolchain under `$ROK_HOME`. Without an argument it installs the latest release; with a version it installs that version. The installed toolchain becomes the default and the `bin/` proxies are rewritten; on Windows a running proxy is renamed before its copy replaces it. It downloads the release archive and verifies its SHA-256 (Distribution, below), unpacks it apart and moves it into place, then checks that the proxies run it; on failure the previous default and proxies are restored and the new toolchain is removed. Earlier toolchains stay installed. A version already installed is made the default without a download. `rok update` re-resolves `rok.lock`; `rok toolchain update` replaces the toolchain (9.10.4).
+- `install`, `default`, `update`, `remove` and `clean` rewrite the `bin/` proxies when one is missing or is not the newest toolchain's `rok`, and otherwise leave them. Making an older toolchain the default keeps the newer proxies; removing the newest makes them the next newest's.
+- `rok toolchain update` replaces the default toolchain under `$ROK_HOME`. Without an argument it installs the latest release; with a version it installs that version. The installed toolchain becomes the default and the `bin/` proxies are rewritten when the newest changed; on Windows a running proxy is renamed before its copy replaces it. It downloads the release archive and verifies its SHA-256 (Distribution, below), unpacks it apart and moves it into place, then checks that the proxies run it; on failure the previous default and proxies are restored and the new toolchain is removed. Earlier toolchains stay installed. A version already installed is made the default without a download. `rok update` re-resolves `rok.lock`; `rok toolchain update` replaces the toolchain (9.10.4).
 - After `rok toolchain default <version>` or `rok toolchain update`, the completion scripts the installers wrote (Distribution, below) are rewritten from the new default toolchain's `rok completions` / `rokc completions`. Only files that exist are rewritten; none is created, and a toolchain without `completions` leaves them as they are. This prints nothing; `-v` names the files rewritten.
 - After `rok toolchain default <version>` or `rok toolchain update`, `rok` looks up `rok` on `PATH` (on Windows with each `PATHEXT` extension). When the first one found is not `$ROK_HOME/bin/rok` (compared by real path), it warns with that file and the version its `--version` prints: `warning: your shell runs <path> (rok X) before ~/.rok/bin/rok; put ~/.rok/bin first on PATH or remove the other one`. `-q` leaves the warning out (the installers run that way).
-- `rok --version -v` (or `rok version -v`) prints, after the version line, `binary` (this executable), `toolchain` (the active toolchain and why: `+` on the command line, `ROK_TOOLCHAIN`, the `rok.rokon` that pins it, or the default; `none` when there is none), `rokc` (the `rokc` it runs) and `host`.
+- `rok --version -v` (or `rok version -v`) prints, after the version line, `binary` (this executable), `toolchain` (the active toolchain and why: `+` on the command line, `ROK_TOOLCHAIN`, the `rok.rokon` that pins it, or the default; `none` when there is none), `rokc` (the `rokc` a command here runs: its own, or the pinned toolchain's when it hands off) and `host`.
 - `rok toolchain clean` removes every installed toolchain except the current default, an opt-in tidy-up for the earlier versions that `update` leaves installed. A version a project pins is removed too, so reinstall it if a build needs it; with no default set it is an error.
+
+### Files shared across toolchains
+
+Every toolchain installed in one `$ROK_HOME` reads and writes the same files there: `config.rokon`, `credentials.rokon`, `installs.rokon` and `envs/CURRENT`. A newer `rok` may have written fields into them that an older one does not know.
+
+- Reading them, `rok` skips fields it does not know, and in `installs.rokon` also `Dep` arguments and entry kinds it does not know (the entries of a kind it does not know are not listed). With `-v` it names what it skipped once per file: ``note: <file>: skipped `x`, written by a newer rok (kept in the file)``.
+- Writing them, it keeps what it does not know: `rok toolchain default` sets the one field of `config.rokon`, `rok install` / `rok uninstall` set or remove the one entry of `installs.rokon`, `rok login` sets `token` in `credentials.rokon`, and `rok logout` removes only `token` when the file holds other fields (else the file).
+- `rok.rokon` stays strict ([9.10.3](#9103-rokrokon--roklock)), and so does a `rok.lock` of a version `rok` knows.
+- A newer `rok` adds settings in new files, not as new fields of these, so that toolchains before this rule (which reject unknown fields) keep working beside it.
 
 ### Distribution
 

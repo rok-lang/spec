@@ -153,7 +153,7 @@ rokc test [path] [filter]
 
 It collects functions marked `#[test]` and builds a test executable (the harness). `#[test]` implies `#[cfg(test)]` ([6.2.5](../006-meta-system/602-built-in-attributes.md#625-test-test-function-marker)), so test functions are not part of a normal build. Tests are collected both from `src/` (under `#[cfg(test)]`) and from the `tests/` directory ([0.3.5](../000-meta/003-source-units.md#035-test-and-benchmark-directories)). A test build uses an entry point that selects tests instead of the package's entry point.
 
-`rokc` does not run the harness. `--emit-harness <file>` writes the built executables and the tests in them (the manifest `rok test` runs) to `<file>`; without it the built executables are named on standard error. Running the harness (selecting tests, the process isolation, parallelism and reporting below) is the `rok test` runner ([9.10](910-rok-frontend.md)).
+`rokc` does not run the harness. `--emit-harness <file>` writes the built executables and the tests in them (the manifest `rok test` runs) to `<file>`; its first line is `version 1`, the manifest format. The runner reads a manifest without that line (an older `rokc`'s) and refuses a newer version: ``the test harness is from a newer rokc (format version N); run the rok of the same toolchain, e.g. `rok +<version> test` ``. Without `--emit-harness` the built executables are named on standard error. Running the harness (selecting tests, the process isolation, parallelism and reporting below) is the `rok test` runner ([9.10](910-rok-frontend.md)).
 
 If there is a single argument and it is not an existing path, it is taken as `filter`. `filter` matches the test name including its module path (`math::adds`).
 

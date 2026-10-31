@@ -153,7 +153,7 @@ rokc test [path] [filter]
 
 `#[test]`가 붙은 함수를 모아 테스트 실행 파일(하네스)을 빌드합니다. `#[test]`는 `#[cfg(test)]`를 함의하므로([6.2.5](../006-meta-system/602-built-in-attributes.md#625-test-테스트-함수-마커)) 테스트 함수는 일반 빌드에 들어가지 않습니다. 테스트는 `src/`(`#[cfg(test)]` 아래)와 `tests/` 디렉터리([0.3.5](../000-meta/003-source-units.md#035-테스트와-벤치마크-디렉터리)) 양쪽에서 모읍니다. 테스트 빌드는 패키지의 진입점 대신 테스트를 고르는 진입점을 씁니다.
 
-`rokc`는 하네스를 실행하지 않습니다. `--emit-harness <file>`은 빌드한 실행 파일과 그 안의 테스트(`rok test`가 실행하는 매니페스트)를 `<file>`에 씁니다. 이 옵션을 주지 않으면 빌드한 실행 파일을 표준 에러에 알립니다. 하네스 실행(테스트 선택, 아래의 프로세스 격리, 병렬 실행, 보고)은 `rok test` 러너([9.10](910-rok-frontend.md))가 맡습니다.
+`rokc`는 하네스를 실행하지 않습니다. `--emit-harness <file>`은 빌드한 실행 파일과 그 안의 테스트(`rok test`가 실행하는 매니페스트)를 `<file>`에 씁니다. 첫 줄은 매니페스트 형식인 `version 1`입니다. 러너는 이 줄이 없는 매니페스트(옛 `rokc`가 쓴 것)도 읽고, 더 새 버전은 거부합니다. ``the test harness is from a newer rokc (format version N); run the rok of the same toolchain, e.g. `rok +<version> test` ``. `--emit-harness`를 주지 않으면 빌드한 실행 파일을 표준 에러에 알립니다. 하네스 실행(테스트 선택, 아래의 프로세스 격리, 병렬 실행, 보고)은 `rok test` 러너([9.10](910-rok-frontend.md))가 맡습니다.
 
 인자가 하나이고 그 인자가 존재하는 경로가 아니면 `filter`로 봅니다. `filter`는 모듈 경로를 포함한 테스트 이름(`math::adds`)과 맞춰 봅니다.
 

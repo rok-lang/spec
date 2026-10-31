@@ -286,7 +286,7 @@ The installation layout follows rustup / cargo. The default of `ROK_HOME` is `~/
 
 ```
 $ROK_HOME/
-├── bin/                         # proxy: runs the same-named executable of the active toolchain
+├── bin/                         # proxies (the newest toolchain's rok): run the active toolchain's same-named executable
 │   ├── rok
 │   ├── rokc
 │   ├── rokls

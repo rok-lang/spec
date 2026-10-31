@@ -221,8 +221,9 @@ Lock {
 - `packages` 필드가 없으면 빈 리스트로 읽습니다.
 - feature는 기록하지 않습니다. lock은 optional인 것을 포함해 그래프의 모든 패키지를 고정하므로 빌드가 켜는 feature에 의존하지 않습니다.
 - index의 native 패키지는 선택 필드 `natives: [LockedNative { name, vers, source: Dep::registry("<index>"), sha256 }]`에 고정합니다. 이름순으로 정렬하고 비어 있지 않을 때만 씁니다. `sha256`은 `yanked: false`로 둔 항목의 정규 index 줄의 SHA-256입니다. 항목이 바뀌면 "run `rok update`" 에러입니다.
-- `version`이 `1`이 아니면 "unsupported lockfile version" 에러입니다.
-- lock을 읽다 난 모든 에러는 "(delete rok.lock and run `rok update` to make it again)"를 덧붙입니다.
+- `version`은 다른 필드보다 먼저 읽습니다. `version`이 `1`보다 크면 새 `rok`이 쓴 lock이고, 지우라는 대신 쓸 toolchain을 알리는 에러입니다. ``rok.lock was written by a newer rok (lock version 2); run that rok's toolchain here: set `toolchain` in rok.rokon to its version, or run `rok +<version> ..` ``.
+- 그 밖에 `version`이 `1`이 아니면 "unsupported lockfile version" 에러입니다.
+- lock을 읽다 난 그 밖의 모든 에러는 "(delete rok.lock and run `rok update` to make it again)"를 덧붙입니다.
 
 ## 9.10.4. 의존성: `rok add` / `remove` / `update` / `deps`
 
@@ -477,7 +478,11 @@ rok uninstall [--native] <name>..
 3. 매니페스트의 `toolchain: "X"`(가장 가까운 `rok.rokon`). 프록시는 이 필드만 읽으므로 모르는 필드가 있어도 고정은 유지됩니다.
 4. 기본값(`$ROK_HOME/config.rokon`의 `Config { registry, toolchain }`)
 
-버전 접두사는 그 아래 버전과 맞습니다(`0.3`은 `0.3.*` 가운데 가장 높은 버전). 맞는 toolchain이 없으면 에러이고, 에러는 `rok toolchain install`을 안내합니다.
+버전 접두사는 그 아래 버전과 맞습니다(`0.3`은 `0.3.*` 가운데 가장 높은 버전). 설치된 toolchain의 디렉터리 이름(`0.3.1-x86_64-unknown-linux-gnu`)은 그 toolchain과 맞습니다. 맞는 toolchain이 없으면 에러이고, 에러는 `rok toolchain install`을 안내합니다.
+
+프록시는 설치된 toolchain 가운데 가장 새것의 `rok` 사본입니다. 이 호스트의 가장 높은 버전이고, 프리릴리스는 릴리스가 하나도 설치되지 않았을 때만 고릅니다. 이렇게 하면 새 `rok`이 옛 toolchain도 계속 실행하므로, 프록시 계약은 0.x 동안 고정됩니다. 위의 순서로 고른 뒤 `toolchains/<dir>/bin/<tool>`을 같은 인자와 `ROK_HOME`을 설정해 실행하고, 프록시가 떼어 낸 `+<version>`은 `ROK_TOOLCHAIN`으로 넘깁니다.
+
+각 toolchain의 `rok`은 자기 `rokc`, 곧 바로 옆의 `rokc`만 실행합니다. 따라서 `rok`과 `rokc` 사이의 플래그, 환경 변수, 파일은 버전 사이의 계약이 아닙니다. 직접 실행한 `rok`(개발 빌드, 패키지 관리자의 `rok`, toolchain의 `bin/rok`)은 `+<version>`, `ROK_TOOLCHAIN`, 매니페스트의 `toolchain`이 설치된 다른 toolchain을 가리키면 명령을 그 toolchain의 `rok`에 넘깁니다. 같은 인자로, 처음 시작한 디렉터리에서, `ROK_HOME`을 설정해 실행하고 그 종료 상태로 끝납니다(Unix에서는 자신을 그 프로세스로 바꾸고, Windows에서는 기다립니다). `rokc`를 실행하는 명령이면 매니페스트는 그 명령이 다루는 패키지의 것이고(`rok build ../app`은 `../app/rok.rokon`을 읽음), `rok` 자신의 명령이면 가장 가까운 것입니다. 고정한 버전이 자기 버전과 맞을 때, 그 toolchain이 자기가 실행되는 디렉터리일 때(실제 경로로 비교), 그 toolchain의 `rok --version`이 자기와 같은 줄을 출력할 때(같은 빌드)는 넘기지 않습니다. 고정이 없으면 기본값은 적용하지 않습니다. 직접 실행한 `rok`이 명령을 그대로 맡습니다. `rok toolchain`, `help`, `version`, `completions`, `--version`은 넘기지 않습니다. 명령을 넘겨받은 toolchain이 다시 되돌려 넘기면 두 실행 파일을 알리는 에러이고, 무한히 반복하지 않습니다. 설치된 toolchain을 가리키지 않는 고정은 `rokc`를 실행하는 명령이면 위의 에러이고, `rok` 자신의 명령은 그대로 진행합니다.
 
 ```
 rok toolchain list                         # 기본 toolchain 에 * 와 (default) 표시
@@ -491,11 +496,21 @@ rok toolchain clean                        # 기본값을 제외한 설치된 �
 - 설치본은 `$ROK_HOME/toolchains/<version>-<triple>/`에 있고, 그 안에서 완결됩니다([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)). `install`은 `--from`이 필수입니다.
 - `install`은 `bin/rokc --version --verbose`로 검증합니다. 버전과 호스트가 맞아야 합니다.
 - 처음 설치한 toolchain이 기본값이 되고, 이때 `bin/` 프록시를 만듭니다.
-- `rok toolchain update`는 `$ROK_HOME` 아래의 기본 toolchain을 교체합니다. 인자가 없으면 최신 릴리스를, 버전을 주면 그 버전을 설치합니다. 설치한 toolchain이 기본값이 되고 `bin/` 프록시를 다시 씁니다. Windows에서는 실행 중인 프록시의 이름을 바꾼 뒤 그 사본으로 교체합니다. 릴리스 아카이브를 받아 SHA-256을 검증하고(아래 배포), 따로 풀어 제자리로 옮깁니다. 그런 다음 프록시가 새 toolchain을 실행하는지 확인합니다. 실패하면 이전 기본값과 프록시를 되돌리고 새 toolchain을 지웁니다. 이전 toolchain은 설치된 채로 남습니다. 이미 설치된 버전은 내려받지 않고 기본값이 됩니다. `rok update`는 `rok.lock`을 다시 해소하고, `rok toolchain update`는 toolchain을 교체합니다(9.10.4).
+- `install`, `default`, `update`, `remove`, `clean`은 `bin/` 프록시가 하나라도 없거나 가장 새 toolchain의 `rok`이 아니면 다시 쓰고, 아니면 그대로 둡니다. 옛 toolchain을 기본값으로 해도 새 프록시가 남고, 가장 새 toolchain을 지우면 그다음으로 새것의 프록시가 됩니다.
+- `rok toolchain update`는 `$ROK_HOME` 아래의 기본 toolchain을 교체합니다. 인자가 없으면 최신 릴리스를, 버전을 주면 그 버전을 설치합니다. 설치한 toolchain이 기본값이 되고, 가장 새 toolchain이 바뀌었으면 `bin/` 프록시를 다시 씁니다. Windows에서는 실행 중인 프록시의 이름을 바꾼 뒤 그 사본으로 교체합니다. 릴리스 아카이브를 받아 SHA-256을 검증하고(아래 배포), 따로 풀어 제자리로 옮깁니다. 그런 다음 프록시가 새 toolchain을 실행하는지 확인합니다. 실패하면 이전 기본값과 프록시를 되돌리고 새 toolchain을 지웁니다. 이전 toolchain은 설치된 채로 남습니다. 이미 설치된 버전은 내려받지 않고 기본값이 됩니다. `rok update`는 `rok.lock`을 다시 해소하고, `rok toolchain update`는 toolchain을 교체합니다(9.10.4).
 - `rok toolchain default <version>`이나 `rok toolchain update` 뒤에는 설치 스크립트가 쓴 자동 완성 스크립트(아래 배포)를 다시 씁니다. 새 기본 toolchain의 `rok completions` / `rokc completions`로 씁니다. 있는 파일만 다시 쓰고 새로 만들지는 않습니다. `completions`가 없는 toolchain이면 그대로 둡니다. 아무것도 출력하지 않고, `-v`이면 다시 쓴 파일을 알려 줍니다.
 - `rok toolchain default <version>`이나 `rok toolchain update` 뒤에 `rok`은 `PATH`에서 `rok`을 찾습니다(Windows에서는 `PATHEXT`의 각 확장자로). 처음 찾은 것이 `$ROK_HOME/bin/rok`이 아니면(실제 경로로 비교) 경고합니다. 경고는 그 파일과 그 `--version`이 출력하는 버전을 알립니다. `warning: your shell runs <path> (rok X) before ~/.rok/bin/rok; put ~/.rok/bin first on PATH or remove the other one`. `-q`이면 경고하지 않습니다(설치 스크립트가 이렇게 실행함).
-- `rok --version -v`(또는 `rok version -v`)는 버전 줄 다음에 다음 줄을 출력합니다. `binary`(이 실행 파일), `toolchain`(활성 toolchain과 그 이유), `rokc`(실행할 `rokc`), `host`입니다. 이유는 명령줄의 `+`, `ROK_TOOLCHAIN`, 고정한 `rok.rokon`, 기본값 중 하나이고, toolchain이 없으면 `none`입니다.
+- `rok --version -v`(또는 `rok version -v`)는 버전 줄 다음에 다음 줄을 출력합니다. `binary`(이 실행 파일), `toolchain`(활성 toolchain과 그 이유), `rokc`(여기서 명령이 실행할 `rokc`. 자기 것이거나, 명령을 넘길 때는 고정한 toolchain의 것), `host`입니다. 이유는 명령줄의 `+`, `ROK_TOOLCHAIN`, 고정한 `rok.rokon`, 기본값 중 하나이고, toolchain이 없으면 `none`입니다.
 - `rok toolchain clean`은 지금의 기본값을 제외한 설치된 모든 toolchain을 지웁니다. `update`가 남겨 둔 이전 버전을 정리하는 선택(opt-in) 명령입니다. 프로젝트가 고정한 버전도 함께 지워지므로 빌드에 필요하면 다시 설치해야 합니다. 기본 toolchain이 없으면 에러입니다.
+
+### toolchain이 함께 쓰는 파일
+
+한 `$ROK_HOME`에 설치된 모든 toolchain은 그 안의 같은 파일을 읽고 씁니다. `config.rokon`, `credentials.rokon`, `installs.rokon`, `envs/CURRENT`입니다. 새 `rok`이 옛 `rok`이 모르는 필드를 써 두었을 수 있습니다.
+
+- 읽을 때 `rok`은 모르는 필드를 건너뜁니다. `installs.rokon`에서는 모르는 `Dep` 인자와 항목 종류도 건너뜁니다(모르는 종류의 항목은 목록에 나오지 않음). `-v`이면 건너뛴 것을 파일마다 한 번 알립니다. ``note: <file>: skipped `x`, written by a newer rok (kept in the file)``.
+- 쓸 때는 모르는 것을 그대로 둡니다. `rok toolchain default`는 `config.rokon`의 그 필드 하나만, `rok install` / `rok uninstall`은 `installs.rokon`의 그 항목 하나만 설정하거나 지웁니다. `rok login`은 `credentials.rokon`의 `token`을 설정하고, `rok logout`은 파일에 다른 필드가 있으면 `token`만 지웁니다(없으면 파일을 지움).
+- `rok.rokon`은 여전히 엄격하게 읽고([9.10.3](#9103-rokrokon--roklock)), `rok`이 아는 버전의 `rok.lock`도 마찬가지입니다.
+- 새 `rok`은 새 설정을 이 파일들의 새 필드가 아니라 새 파일에 둡니다. 그래야 이 규칙 이전의 toolchain(모르는 필드를 거부함)도 함께 계속 동작합니다.
 
 ### 배포
 
