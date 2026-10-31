@@ -306,9 +306,12 @@ rokc doc [path] [--std] [--open]
 ```
 target/doc/
 ├── index.html                 # 패키지 목록
+├── <pkg>/index.html           # 패키지의 루트 모듈
 ├── <pkg>/<mod>/index.html     # 모듈마다 한 쪽
 └── search-index.js            # 검색용 색인
 ```
+
+`<pkg>`는 패키지 이름(매니페스트의 `name`)이고, 표준 라이브러리 계층은 `rok-core` 등입니다. 공개 모듈마다 모듈 경로를 따라 `<pkg>/<mod>/.../index.html` 한 쪽이 있습니다. 그 쪽의 공개 항목마다 앵커 `#<kind>.<name>`이 붙고, `<kind>`는 `struct`, `enum`, `union`, `trait`, `type`, `fn`, `const`, `static` 중 하나입니다(`app/index.html#struct.Point`). 멤버의 앵커는 `#structfield.<Type>.<field>`(`union`은 `#unionfield.`), `#variant.<Type>.<variant>`, `#method.<Type>.<method>`, `#tymethod.<Trait>.<method>`, `#associatedtype.<Trait>.<name>`입니다. 이 URL 체계는 안정적입니다. docs.rok-lang.org 등 생성된 문서를 가리키는 링크는 툴체인 버전이 바뀌어도 계속 동작합니다.
 
 `--std`를 주면 표준 라이브러리 계층도 `rok-core/`, `rok-std/`, `rok-bare/`로 문서화합니다. 경로가 없으면 표준 라이브러리 문서만 `./target/doc/`에 만듭니다.
 
@@ -606,3 +609,5 @@ rokc build --message-format=json
 5. 파일은 줄바꿈 하나로 끝납니다.
 
 포매터는 토큰을 줄 사이로 옮기지 않고, 줄을 나누거나 합치지 않으며, 줄 안의 간격을 바꾸지 않습니다. 따라서 주석은 적힌 그대로 남고 토큰 순서는 바뀌지 않습니다. 여러 줄에 걸친 문자열과 블록 주석의 안쪽도 그대로 둡니다.
+
+1.0 전까지는 이 배치 규칙이 표준 포맷입니다. 그때까지 코드를 다시 짜는 pretty-printer(토큰을 옮기거나 줄을 나누고 합치는 포매터)로 바꾸지 않습니다. 따라서 `rokc fmt --check`를 통과한 파일은 이후 0.x 툴체인에서도 계속 통과합니다.

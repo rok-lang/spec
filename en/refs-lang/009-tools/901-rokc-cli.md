@@ -306,9 +306,12 @@ Generates HTML API documentation in `target/doc/` from the public items and docs
 ```
 target/doc/
 ├── index.html                 # package list
+├── <pkg>/index.html           # the package's root module
 ├── <pkg>/<mod>/index.html     # one page per module
 └── search-index.js            # search index
 ```
+
+`<pkg>` is the package's name (the manifest's `name`); a standard library tier is `rok-core` and so on. Each public module has one page, `<pkg>/<mod>/.../index.html`, following the module path. Each public item on it has the anchor `#<kind>.<name>`, `<kind>` being `struct`, `enum`, `union`, `trait`, `type`, `fn`, `const` or `static` (`app/index.html#struct.Point`); members have `#structfield.<Type>.<field>` (`#unionfield.` in a union), `#variant.<Type>.<variant>`, `#method.<Type>.<method>`, `#tymethod.<Trait>.<method>` and `#associatedtype.<Trait>.<name>`. This URL scheme is stable: links into generated docs, such as those on docs.rok-lang.org, keep working across toolchain versions.
 
 `--std` also documents the standard library tiers into `rok-core/`, `rok-std/`, `rok-bare/`; without a path it documents only them, into `./target/doc/`.
 
@@ -606,3 +609,5 @@ The standard format of `rokc fmt` is a **token-preserving layout rule**. It does
 5. The file ends with exactly one newline.
 
 The formatter does not move tokens between lines, does not split or join lines, and does not change spacing within a line. Comments therefore stay exactly as written and the token sequence is unchanged. The interior of multi-line strings and block comments is also left as is.
+
+This layout rule stays the standard format until 1.0: no pretty-printer that re-formats code (moving tokens, splitting or joining lines) replaces it before then, so a file `rokc fmt --check` accepts keeps passing on later 0.x toolchains.
