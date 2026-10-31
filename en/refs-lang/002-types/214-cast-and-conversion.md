@@ -45,6 +45,8 @@ The allowed pairs are a fixed set:
 
 From a floating-point type to an integer type, `as` truncates toward zero and saturates: a value past the target's range gives its nearest end (`1e10 as i32` is `i32::MAX`, `-1.5 as u8` is `0`), and NaN gives `0`, at every optimization level. The full table of `as` results is in [stdlib 2.11.6](../../refs-standard-libraries/200-core/211-conversion.md#2116-as-t---bit-reinterpretation--numeric-cast).
 
+To `bool`, an integer gives `x != 0` (`-1 as bool` and `256 as bool` are `true`). A floating-point value truncates toward zero and saturates first, so `0.5 as bool` and `-1.0 as bool` are `false`, `1.5 as bool` is `true`, and NaN is `false`. A float `as bool` warns (`float_to_bool`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)); write the comparison instead: `x != 0.0`.
+
 Any other pair is a compile error: ``cannot cast `str` as `i32` (only numeric / bool / char casts)``. An allowed `as` always succeeds. For a conversion that may fail, use `.try_into()` instead.
 
 ## 2.14.3. `.into()` calls

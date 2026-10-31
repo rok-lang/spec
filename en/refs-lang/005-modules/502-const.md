@@ -121,6 +121,8 @@ const A: i32 = id(42i32);                        // evaluated after monomorphiza
 
 If the result contains a heap allocation (`List`, buffers, closures, etc.), it is not embedded in the binary. Such a `const` is evaluated and checked at compile time and constructed at runtime at each use.
 
+Each use is a fresh value, so a mutating call on a `const` (`XS.push(4)` on a `List`, or a `ref self` method on a `const` struct) changes a copy that is dropped. The compiler warns (`const_mutation`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)): copy the value into a variable and change that (`let xs = XS; xs.push(4);`).
+
 ## 5.2.6. Orthogonality of `const` and other mechanisms
 
 ```

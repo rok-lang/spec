@@ -45,6 +45,8 @@ let z: f64 = x as f64;        // 256.0
 
 부동소수점 타입에서 정수 타입으로 바꾸는 `as`는 0 쪽으로 버리고 포화합니다. 대상 범위를 넘는 값은 가까운 끝 값이 되고(`1e10 as i32`는 `i32::MAX`, `-1.5 as u8`은 `0`), NaN은 `0`이 됩니다. 최적화 수준과 관계없이 같습니다. `as` 결과 전체 표는 [stdlib 2.11.6](../../refs-standard-libraries/200-core/211-conversion.md#2116-as-t-비트-재해석--숫자-캐스트)에 있습니다.
 
+`bool`로 바꿀 때 정수는 `x != 0`입니다(`-1 as bool`과 `256 as bool`은 `true`). 부동소수점 값은 먼저 0 쪽으로 버리고 포화하므로, `0.5 as bool`과 `-1.0 as bool`은 `false`, `1.5 as bool`은 `true`, NaN은 `false`입니다. 부동소수점의 `as bool`은 경고가 나옵니다(`float_to_bool`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). 대신 비교를 씁니다: `x != 0.0`.
+
 그 밖의 쌍은 컴파일 에러입니다(``cannot cast `str` as `i32` (only numeric / bool / char casts)``). 허용된 `as`는 항상 성공합니다. 실패할 수 있는 변환에는 `.try_into()`를 씁니다.
 
 ## 2.14.3. `.into()` 호출

@@ -164,6 +164,8 @@ try {
 
 The `finally` block runs in every case of leaving the left expression: normal completion, handling by `catch`, propagation of an unhandled error, and exit via `return` / `break` / `continue`. This makes it suitable for releasing resources, releasing locks, and restoring temporary state. If a `catch` block throws a new error or an error is thrown inside the `finally` block, the new error takes precedence.
 
+A `return`, `break` or `continue` that leaves the `finally` block itself ends the propagation: an error in flight is dropped, and the jump goes ahead. The compiler warns (`finally_jump`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)); move the jump after the `try` expression. A jump to a loop or a labelled block inside the `finally` block, or a `return` in a closure there, stays inside and is not reported.
+
 Panics and fatal errors (3.14.8) terminate the process, so `finally` does not run.
 
 ## 3.14.6. Value and type of the expression

@@ -110,6 +110,7 @@ The type of an unsuffixed literal (`42`, `3.14`) is determined by the expected t
 - In a binary operation, if the type of one operand is statically fixed, that type becomes the expected type for the literal side.
 - When an integer literal is placed where a floating-point type is expected and that floating-point type cannot represent the value exactly, it is a compile error (`let f: f32 = 16777217;`).
 - If the expected type is a sum type with an integer type member, an integer literal takes that integer type (the `1` in `let v: i64 | f64 = 1;` is `i64`).
+- If the sum has more than one integer member and a floating-point member, an unsuffixed integer literal takes the floating-point member (the `1` in `let v: u16 | u8 | f32 = 1;` is `f32`), with a warning (`ambiguous_int_literal`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)) that asks for a suffix: `1u16` or `1u8`. Without a floating-point member, such a literal is `i32` and is checked against the sum like any `i32` value.
 - Arithmetic among unsuffixed literals (`1 + 2`, `-1`, `2 * (3 + 4)`) remains untyped until it meets a typed operand or an expected type. When it does, the whole expression takes that type; if it never does, it takes the defaults above (`i32` / `f64`).
 - If one branch of `if` / `else` is an unsuffixed integer literal and the other branch has an integer type, the literal branch follows the other branch's type.
 

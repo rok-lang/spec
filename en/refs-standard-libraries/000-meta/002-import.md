@@ -65,6 +65,15 @@ struct List<T> { ... }                  // OK: shadows rok::core::collections::L
 let xs: rok::core::collections::List<i32> = [1, 2];   // the core List, by path
 ```
 
+### Free functions
+
+The import also brings the free functions of core's modules in as bare names (`sleep`, `join`, `hex_encode`). Some collide (`join` is in both `task` and `par`) or read as something else in plain code, so a bare call that only the implicit import resolves warns (`implicit_core_fn`, [refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)): write the module path, `task::sleep(..)`, or `use` the function. The printing and panic functions (`print`, `println`, `eprint`, `eprintln`, `panic`, `assert`, `assert_eq`, `assert_ne`, `unreachable`, `oom`) and `channel` / `channel_bounded` ([2.17](../200-core/217-channel.md)) stay bare names.
+
+```rok
+sleep(Duration::ms(10));          // warning: reached only through the implicit `use rok::core::**`
+task::sleep(Duration::ms(10));    // OK
+```
+
 ## 0.2.4. Tiers **not** applied implicitly
 
 Only `use rok::core::**;` is implicit. unsafe and std are **explicit only**.

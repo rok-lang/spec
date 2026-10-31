@@ -65,6 +65,15 @@ struct List<T> { ... }                  // OK: 여기서 rok::core::collections:
 let xs: rok::core::collections::List<i32> = [1, 2];   // 경로로 가리킨 core 의 List
 ```
 
+### 자유 함수
+
+이 import는 core 모듈의 자유 함수도 맨 이름으로 가져옵니다(`sleep`, `join`, `hex_encode`). 일부는 서로 겹치고(`join`은 `task`와 `par`에 다 있음), 일부는 평범한 코드에서 다른 뜻으로 읽힙니다. 그래서 묵시 import로만 해소되는 맨 이름 호출에는 경고가 나옵니다(`implicit_core_fn`, [refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). 모듈 경로를 붙여 `task::sleep(..)`으로 쓰거나, 그 함수를 `use`로 가져옵니다. 출력과 패닉 함수(`print`, `println`, `eprint`, `eprintln`, `panic`, `assert`, `assert_eq`, `assert_ne`, `unreachable`, `oom`)와 `channel` / `channel_bounded`([2.17](../200-core/217-channel.md))는 계속 맨 이름으로 씁니다.
+
+```rok
+sleep(Duration::ms(10));          // 경고: 묵시 `use rok::core::**`로만 닿음
+task::sleep(Duration::ms(10));    // OK
+```
+
 ## 0.2.4. 묵시 적용되지 않는 계층
 
 묵시적으로 적용하는 것은 `use rok::core::**;`뿐입니다. unsafe와 std는 **명시해야만** 쓸 수 있습니다.

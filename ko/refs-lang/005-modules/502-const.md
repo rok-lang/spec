@@ -121,6 +121,8 @@ const A: i32 = id(42i32);                        // T = i32 단형화 후 평가
 
 결과에 힙 할당(`List`, 버퍼, 클로저 등)이 있으면 바이너리에 넣지 않습니다. 그런 `const`는 컴파일 타임에 평가해 검사하고, 사용처에서 런타임에 만듭니다.
 
+사용할 때마다 새 값이므로 `const`에 값을 바꾸는 호출(`List`의 `XS.push(4)`, `const` 구조체의 `ref self` 메서드)은 곧 버려질 사본을 바꿉니다. 컴파일러는 경고합니다(`const_mutation`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). 값을 변수에 복사해 그 변수를 바꿉니다(`let xs = XS; xs.push(4);`).
+
 ## 5.2.6. `const`와 다른 메커니즘의 직교성
 
 ```

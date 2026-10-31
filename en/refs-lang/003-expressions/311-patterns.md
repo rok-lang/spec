@@ -53,6 +53,17 @@ name
 
 It always matches, whatever the value, and binds the value to the identifier. It must not collide with a reserved word of [keywords](../001-lexical/105-keywords.md). If a bare name resolves to an `enum` variant imported with `use`, it is not a binding but an `enum` pattern for that variant ([5.5.7](../005-modules/505-use.md#importing-enum-variants)). A bare name that is a variant of the scrutinee's `enum` type, but is not imported, is a compile error: as a binding it would match every value. Write the variant path `E::V`.
 
+A capitalised name that resolves to a `const` or `static`, or that is within two edits of a variant of the scrutinee's `enum` type (`Gren` for `Green`), is still a new binding and matches every value. The compiler warns (`pattern_binds_const`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)). To compare with a constant, write a guard: `x if x == LIMIT`.
+
+```rok
+const LIMIT: i32 = 5;
+match n {
+    LIMIT => ..,              // warning: `LIMIT` here is a new variable that matches every value
+    x if x == LIMIT => ..,    // compares with the const
+    _ => ..,
+}
+```
+
 ### Wildcard pattern: `_`
 
 ```rok

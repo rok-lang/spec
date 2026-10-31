@@ -123,6 +123,7 @@ Counter::increment(ref c);        // calling a ref self method by path also requ
 
 - **Exclusivity**: while the call is in progress, the receiver variable must not be accessed through another path (another argument, a capturing closure, etc.). If the compiler can see this, it is a compile error (like Swift's exclusivity rule).
 - **Temporary receivers**: if the receiver is a temporary (`make().increment()`), the write-back result is discarded.
+- **Elements, entries and statics**: an element (`cs[0].increment()`), a `Dict` entry (`d["a"].increment()`) or a `static` has no place to write back to, so the write is discarded too, with a warning (`discarded_ref_write`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)): ``the write to `cs[0]` is discarded``. Copy the element into a variable, call the method on it, and store it back (`let c = cs[0]; c.increment(); cs[0] = c;`). A `const` receiver warns `const_mutation` ([5.2](../005-modules/502-const.md)).
 
 ```rok
 c.increment();                     // copies c in, writes back to c at the end

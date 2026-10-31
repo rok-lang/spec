@@ -248,6 +248,15 @@ The default level of every lint is `warn`. The Since column is the release that 
 | `trailing_closure_operator` | 0.1.6   | An operator at the start of the line after a statement's trailing-closure call, which it continues; write `;` after the `}` ([1.3.4](../001-lexical/103-statement-terminator.md#134-block-like-expression-statements)) |
 | `fstring_g_precision`    | 0.1.6   | `{x:.3g}` on a number, which prints like `{x:.3}` until `g` becomes the general format in 0.2.0 ([1.7.3](../001-lexical/107-string-literals.md#173-format-strings)) |
 | `closure_return`         | 0.1.6   | A bare `return;` in the trailing closure of a call that is a statement: it ends only that call of the closure ([4.3.11](../004-functions/403-return.md#4311-return-in-closures-and-nested-functions)) |
+| `capture_field_write`    | 0.1.6   | A field write on a value-captured struct inside a closure: it changes the closure's copy; help `[ref p]` ([4.6.7](../004-functions/406-capture-semantics.md#467-capturing-structs-and-reference-handles)) |
+| `const_mutation`         | 0.1.6   | A `ref self` method, or a mutating method of a collection (`push`, `insert`, ...), called on a `const`: each use is a new value, so the change is dropped ([5.2](../005-modules/502-const.md)) |
+| `pattern_binds_const`    | 0.1.6   | A pattern name that resolves to a `const` or `static`, or is capitalised and within two edits of a variant of the scrutinee's `enum`: it binds every value ([3.11](../003-expressions/311-patterns.md)) |
+| `discarded_ref_write`    | 0.1.6   | A `ref self` method called on an element, a `Dict` entry or a `static`: there is no place to write back to ([4.7](../004-functions/407-ref-keyword.md)) |
+| `ambiguous_int_literal`  | 0.1.6   | An unsuffixed integer literal into a sum with more than one integer member and a floating-point member: it takes the float ([1.6.3](../001-lexical/106-numeric-literals.md#163-unsuffixed-literals)) |
+| `trait_not_in_scope`     | 0.1.6   | A method from a trait outside `rok::` that is neither defined nor `use`d in the module ([3.5](../003-expressions/305-member-access-and-method-call.md)) |
+| `finally_jump`           | 0.1.6   | `return`, `break` or `continue` that leaves a `finally` block and drops the error in flight ([3.14.5](../003-expressions/314-error-control-flow.md)) |
+| `float_to_bool`          | 0.1.6   | A floating-point `as bool`: it truncates first, so `0.5 as bool` is `false` ([2.14](../002-types/214-cast-and-conversion.md)); write `x != 0.0` |
+| `implicit_core_fn`       | 0.1.6   | A bare call of a core module's free function (`sleep`) that only the implicit `use rok::core::**` resolves ([stdlib 0.2.3](../../refs-standard-libraries/000-meta/002-import.md)); write `task::sleep(..)` |
 | `redundant_cast`         | 0.1.0   | `x as T` where `x` is already `T`                                   |
 | `redundant_clone`        | 0.1.0   | `.clone()` on a value of a primitive type                           |
 | `non_snake_case`         | 0.1.0   | Function, local variable, parameter, or module names not in snake_case |

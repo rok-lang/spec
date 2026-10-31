@@ -123,6 +123,7 @@ Counter::increment(ref c);        // ref self 메서드를 경로로 부를 때�
 
 - **배타성**: 호출이 진행되는 동안 수신자 변수에 다른 경로(다른 인자, 캡처한 클로저 등)로 접근하면 안 됩니다. 컴파일러가 이를 알아볼 수 있으면 컴파일 에러입니다. Swift의 배타성 규칙과 같습니다.
 - **임시 수신자**: 수신자가 임시 값(`make().increment()`)이면 되쓴 결과는 버려집니다.
+- **원소, 항목, static**: 원소(`cs[0].increment()`), `Dict` 항목(`d["a"].increment()`), `static`에는 되쓸 자리가 없으므로 쓴 결과도 버려지고, 경고가 나옵니다(`discarded_ref_write`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)): ``the write to `cs[0]` is discarded``. 원소를 변수에 복사해 그 변수로 메서드를 부르고 다시 저장합니다(`let c = cs[0]; c.increment(); cs[0] = c;`). `const` 수신자는 `const_mutation` 경고가 납니다([5.2](../005-modules/502-const.md)).
 
 ```rok
 c.increment();                     // c 를 복사해 들이고, 끝나면 c 에 되씀

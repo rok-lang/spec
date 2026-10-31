@@ -103,7 +103,7 @@ Go 1.22의 반복별 스코프(per-iteration scope) 같은 별도 규칙이 필�
 
 ## 4.6.7. struct와 참조 핸들의 캡처
 
-값 캡처는 값을 클로저 안으로 복사합니다. [`struct`](../002-types/203-struct.md)는 값 타입이므로 클로저 안에는 자기 사본이 있습니다. 클로저 안에서 필드에 써도 바깥 변수는 바뀌지 않습니다. 바깥 변수를 바꾸려면 `[ref p]`를 씁니다.
+값 캡처는 값을 클로저 안으로 복사합니다. [`struct`](../002-types/203-struct.md)는 값 타입이므로 클로저 안에는 자기 사본이 있습니다. 클로저 안에서 필드에 써도 바깥 변수는 바뀌지 않습니다. 바깥 변수를 바꾸려면 `[ref p]`를 씁니다. 값 캡처의 필드에 쓰면 경고가 나오고(`capture_field_write`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)), help는 ``add `[ref p]` to the closure's capture list``입니다.
 
 컬렉션(`List`, `Dict`, `Set`, `StrBuf` 등)은 참조 핸들입니다([stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md#참조-핸들)). 값 캡처는 핸들을 복사하므로 객체는 공유됩니다.
 

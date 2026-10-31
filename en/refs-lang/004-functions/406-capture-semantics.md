@@ -103,7 +103,7 @@ No separate rule like Go 1.22's per-iteration scope is needed; value capture pro
 
 ## 4.6.7. Capturing structs and reference handles
 
-Value capture copies the value into the closure. A [`struct`](../002-types/203-struct.md) is a value type, so the closure holds its own copy; a field write inside the closure does not reach the outer variable. Use `[ref p]` for that.
+Value capture copies the value into the closure. A [`struct`](../002-types/203-struct.md) is a value type, so the closure holds its own copy; a field write inside the closure does not reach the outer variable. Use `[ref p]` for that. A field write on a value capture warns (`capture_field_write`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)) with the help ``add `[ref p]` to the closure's capture list``.
 
 Collections (`List`, `Dict`, `Set`, `StrBuf`, ...) are reference handles ([stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md#reference-handles)). Value capture copies the handle, so the object is shared.
 

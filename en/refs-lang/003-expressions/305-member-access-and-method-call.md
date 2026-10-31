@@ -52,7 +52,9 @@ A method with the same name may be defined in several places. The compiler looks
 1. Methods defined in an inherent `impl` ([`impl`](../002-types/209-impl.md)) first.
 2. Then methods of trait `impl`s, limited to traits the left-hand type satisfies that are visible in the current module. Visibility comes from the automatically visible traits of `rok::**`, traits imported with `use`, or traits defined in the same module.
 
-If several candidates exist at once, it is an ambiguity compile error. The user must then resolve it explicitly with the fully qualified form of [type paths](../002-types/213-type-paths.md).
+If several trait candidates exist and exactly one of them comes from a trait defined or `use`d in the module (an inherent method always wins), that one is picked. Otherwise several candidates at once are an ambiguity compile error. The user must then resolve it explicitly with the fully qualified form of [type paths](../002-types/213-type-paths.md).
+
+In the 0.1 series a trait method still resolves when its trait is not visible, with a warning (`trait_not_in_scope`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)) that names the `use` to add: ``method `hi` comes from trait `a::Greet`, which is not in scope``, help ``add `use a::Greet;` ``.
 
 ### Automatic `ref` for the method receiver
 
