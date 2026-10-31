@@ -88,7 +88,7 @@ rok init --script <file.rok>
 
 `rok init --script <file.rok>`은 스크립트([9.10.7](#9107-단일-파일-스크립트의-인라인-매니페스트))를 패키지로 바꿉니다. 패키지는 그 스크립트의 디렉터리에 두고, 이름은 파일 이름에서 `.rok`을 뗀 것입니다. `rok.rokon`은 스크립트 블록을 합친 `deps`(와 `native`)를 받고, 경로는 그 파일 기준으로 다시 씁니다. 스크립트는 `src/main.rok`이 됩니다. 그 `mod`가 읽는 모든 파일은 같은 상대 경로로 `src/` 아래로 옮기고, 각 파일의 블록은 뺍니다. 다음 경우는 에러입니다. 스크립트가 패키지 안에 있을 때, 옮길 파일이나 `rok.rokon`이 이미 있을 때, 서브모듈 파일이 스크립트의 디렉터리 밖에 있을 때입니다.
 
-두 명령은 정규 형식([ROKON 3.9.4](../../refs-standard-libraries/300-std/309-rokon.md#394-정규-형식))의 `rok.rokon`과 `target/`을 담은 `.gitignore`도 씁니다. git 저장소 안이 아니면 `git init`을 실행합니다. `init`은 디렉터리 이름을 이름 규칙(9.10.3)에 맞게 바꿔 패키지 이름으로 씁니다.
+두 명령은 정규 형식([ROKON 3.9.4](../../refs-standard-libraries/300-std/309-rokon.md#394-정규-형식))의 `rok.rokon`과 `target/`을 담은 `.gitignore`도 씁니다. git 저장소 안이 아니면 `git init`을 실행합니다. `init`은 디렉터리 이름을 이름 규칙(9.10.3)에 맞게 바꿔 패키지 이름으로 씁니다. Windows 장치 이름이면 앞에 `pkg-`를 붙이고(`nul` → `pkg-nul`), 64자를 넘으면 자릅니다.
 
 두 명령은 `Created` 줄 아래에 이어서 실행할 명령을 출력합니다. 보통은 `cd <dir> && rok run`이고, 라이브러리만 있는 패키지는 `rok test`입니다. 패키지가 현재 디렉터리면 `cd` 없이 씁니다. Windows PowerShell에는 `&&`가 없으므로 Windows에서는 `cd <dir>`와 그 명령을 두 줄로 씁니다. `-q`면 둘 다 출력하지 않습니다.
 
@@ -156,6 +156,8 @@ Package {
 - 패키지 이름(`deps`의 키, `name`)은 `[a-z0-9_-]+`의 소문자 ASCII이고 글자로 시작해야 합니다. 숫자, `-`, `_`로 시작하면 에러입니다.
 - 이름 `rok`은 표준 라이브러리용으로 예약되어 있습니다. 패키지, 의존 패키지, native 패키지, 레지스트리 이름이 `rok`이면 에러입니다(`` `rok` is reserved for the standard library; name the package something else, e.g. `rok_util` ``). 그 이름으로 `rok new` / `rok init` / `rok add`를 실행해도 마찬가지입니다.
 - 코드가 패키지를 이름으로 부를 수 있어야 하므로 코드 이름(아래)은 키워드(1.5: `fn`, `match`, `self`, ..)나 경로 시작점(5.5.7: `pkg`, `sup`)일 수 없습니다. 실행 파일의 `use pkg::add;`는 언제나 자기 루트를 가리킵니다(`` `pkg` already names a package's own root (`pkg::`), so code can't name a package called that; name the package something else, e.g. `pkg_util` ``). 키는 문자열입니다(`"rok-syntax": Dep::version("^0.1")`).
+- 패키지 이름은 지원하는 모든 OS가 파일이나 디렉터리 이름으로 쓸 수 있어야 합니다. Windows 장치 이름(`con`, `prn`, `aux`, `nul`, `com1`-`com9`, `lpt1`-`lpt9`, 대소문자 무관)이 아니어야 하고 64자를 넘을 수 없습니다(`` `nul` is a device name on Windows, so no file can be called that; name the package something else, e.g. `my_nul` ``). `rok new` / `rok init --script` / `rok add` / `rok publish`는 이런 이름을 거부합니다. 읽는 `rok.rokon`(`name`과 `deps`, `dev_deps`, `native`의 키)에 있으면 `file:line:col`이 붙은 경고를 내고 빌드는 계속합니다.
+- `version`은 버전(`major.minor.patch`, 9.10.4a)입니다. 버전이 아니면 매니페스트를 읽을 때 경고하고(`` `banana` is not a version (major.minor.patch): it needs three numbers; `rok publish` needs one, e.g. `version: "0.1.0"` ``), `rok publish`에서는 에러입니다.
 - 코드에서는 `-`를 `_`로 바꾼 이름이 그 패키지를 가리키는 최상위 경로입니다(`rok-syntax` → `use rok_syntax::..`, `--extern rok_syntax=..`).
 - 레지스트리와 한 의존 그래프 안에서 이름은 `-`와 `_`를 같게, 대소문자를 구분하지 않고 비교합니다. 그래서 `rok-syntax`와 `rok_syntax`는 함께 있을 수 없습니다.
 - 의존 패키지에는 `src/lib.rok`이 있어야 합니다. 그 패키지에 `src/main.rok`이 있든 없든, 의존하는 쪽이 얻는 것은 그 라이브러리입니다. `src/main.rok`만 있는 의존 패키지는 에러이고, 에러는 그 패키지가 `rok install`용 프로그램이라고 알립니다. 전이 의존은 의존 패키지의 `deps`입니다(`dev_deps`는 전이되지 않음).
@@ -332,7 +334,7 @@ rok yank [--native] --vers <version> [--undo] [--index <checkout>] [name]   # --
   - readme(9.10.3)가 있어야 합니다. 깨끗한 작업 트리, 저장소 루트의 패키지, 그리고 `src/lib.rok`, `src/main.rok`, 또는 둘 다가 필요합니다.
   - `src/main.rok`만 있는 stone은 프로그램입니다. `rok install`이 그것을 빌드하고, 의존 패키지가 될 수 없습니다.
   - path / git의 normal 의존은 거부하고, path / git의 dev 의존은 뺍니다.
-  - 같은 버전이 있는지, 그리고 `-` / `_`와 대소문자를 같게 보았을 때 이름이 충돌하는지 검사합니다. 다른 철자가 이미 차지한 이름은 거부합니다.
+  - 같은 버전이 있는지, 그리고 `-` / `_`와 대소문자를 같게 보았을 때 이름이 충돌하는지 검사합니다. 다른 철자가 이미 차지한 이름은 거부합니다. 9.10.3의 규칙을 어기는 이름(Windows 장치 이름, 64자 초과)도 거부합니다.
   - `--index` 없는 dry run은 항목만 출력합니다. `--index`가 있으면 그 checkout에 대해서도 검사합니다.
   - 항목의 source는 설정된 그대로(`insteadOf` 재작성 전)의 git remote `origin` url입니다. 이 url은 `https://`여야 하고, `http://127.0.0.1`과 `http://localhost`만 예외입니다.
 - `--commit`이면 `publish`는 항목을 더합니다. `--index`가 있으면 그 checkout에 "Publish <name> <vers>" 커밋으로 더합니다(push하지 않음). 없으면 설정된 index("Which index")의 레지스트리 API로 보내고, API가 항목을 index에 넣습니다. 클라이언트는 index 저장소에 직접 쓰지 않습니다.
@@ -414,7 +416,10 @@ rok yank --native --vers <version> [--undo] [--index <dir>] <name>
 
 - 패키지(`src/main.rok`, `src/lib.rok`, `rok.rokon` 중 하나가 있는 디렉터리)는 자기 `rok.rokon`의 의존성만 씁니다. 환경에 설치한 라이브러리는 보지 않습니다. 스크립트도 마찬가지입니다. 패키지에 작용하는 명령을 `--env`와 함께 쓰면 에러입니다.
 - 이름 있는 환경은 `$ROK_HOME/envs/<name>/`에 `rok.rokon`, `rok.lock`, `target/`을 둡니다. 그 `deps`는 REPL과 Jupyter를 위해 `rok install`([9.10.5a](#9105a-rok-install--rok-uninstall))로 설치한 라이브러리입니다. 이 목록을 바꾸는 것은 `rok install` / `rok uninstall`과 `rok env import`뿐입니다. 그 안의 path 의존은 절대 경로입니다. 설치한 라이브러리는 그 `target/`에 미리 빌드합니다.
-- 패키지 밖(REPL, Jupyter, 언어 서버, `rok install`)에서 쓸 환경은 `--env <name>` > `ROK_ENV` > `rok env use`(`$ROK_HOME/envs/CURRENT`) > `default` 순으로 정합니다. `default` 환경은 그 환경으로 처음 `rok install`을 실행할 때 만들어집니다. 패키지 안에서 경로 없는 `rok repl` / `jupyter` / `lsp`는 그 패키지를 쓰고, `--env`가 있으면 그 환경을 씁니다.
+- 패키지 밖(REPL, Jupyter, 언어 서버, `rok install`)에서 쓸 환경은 `--env <name>` > `ROK_ENV` > `rok env use`(`$ROK_HOME/envs/.current`) > `default` 순으로 정합니다. `default` 환경은 그 환경으로 처음 `rok install`을 실행할 때 만들어집니다. 패키지 안에서 경로 없는 `rok repl` / `jupyter` / `lsp`는 그 패키지를 쓰고, `--env`가 있으면 그 환경을 씁니다.
+- 환경 이름은 ASCII 글자, 숫자, `_`, `-`, `.`로 쓰고, `.`로 시작할 수 없으며, 64자를 넘을 수 없고, Windows 장치 이름(`con`, `nul.txt`, ..)일 수 없습니다. `current`는 대소문자와 상관없이 예약되어 있습니다. `rok env create`는 다른 환경과 대소문자만 다른 이름(`foo`가 있을 때 `Foo`)을 거부합니다. Windows와 macOS는 둘을 한 디렉터리로 보기 때문입니다.
+- 이름이 오는 모든 곳(`--env`, `ROK_ENV`, `rok env use`의 파일, `rok env`의 인자)을 검사합니다. 구분자(`/`, `\`, `:`)가 들어 있거나 `.`, `..`인 이름은 어디서든 에러입니다(`` `../p` is a path, not an environment name; use a name from `rok env list`, e.g. `default` ``). `rok env create`가 거부할 다른 이름도 에러입니다. 다만 그 환경이 이미 있으면(예전 `rok`이 만든 것) 경고만 하고 명령을 계속합니다. `rok jupyter install --env <name>`은 그 환경이 있어야 합니다(`default`는 예외).
+- `rok env use`는 이름을 `$ROK_HOME/envs/.current`에 쓰고, 예전 `rok`이 읽는 `envs/CURRENT`에도 씁니다. 그 이름의 디렉터리가 있으면 `CURRENT`는 쓰지 않습니다. 첫 줄만 읽습니다. 두 파일이 다 있으면 더 새 파일을 따릅니다. `CURRENT` 없이 `.current`만 있으면 예전 `rok`이 고른 환경을 지운 것이므로 고른 환경이 없습니다. 고른 환경을 `rok env remove`로 지우면 두 파일을 다 지웁니다.
 
 ### 의존성의 출처
 
