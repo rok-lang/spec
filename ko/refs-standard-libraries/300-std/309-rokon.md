@@ -184,7 +184,7 @@ print(rokon::to_string(cfg));
 
 ### 한계
 
-- `Dict` / `Set`은 해시 순서로 씁니다. 순서를 지키려면 `OrderedDict` / `OrderedSet`을 씁니다.
+- `Dict` / `Set`은 순회하는 순서대로, 곧 삽입 순서로 씁니다(2.9).
 - `[T; 0]`은 읽을 수 없습니다.
 - 튜플은 원소 6개까지입니다.
 - 첫 키가 `none`인 dict는 읽을 수 없습니다(3.9.1).

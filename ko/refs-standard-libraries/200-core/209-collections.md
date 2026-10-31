@@ -353,7 +353,7 @@ let i = a.intersection(b);//→ {2, 3}
 
 ## 2.9.5. `OrderedDict<K, V>` / `OrderedSet<T>`: 삽입 순서
 
-두 타입은 `Dict` / `Set`과 API가 같지만 **삽입 순서를 지킵니다**. 의미는 Python 3.7 이상의 `dict`나 Java의 LinkedHashMap과 같습니다.
+두 타입은 `Dict` / `Set`과 API가 같고, 같은 삽입 순서로 순회합니다. Python 3.7 이상의 `dict`나 Java의 LinkedHashMap과 같습니다.
 
 ```rok
 struct OrderedDict<K: Hash + Eq, V> { /* ... */ }

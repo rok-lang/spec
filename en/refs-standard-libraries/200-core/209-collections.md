@@ -353,7 +353,7 @@ let i = a.intersection(b);//→ {2, 3}
 
 ## 2.9.5. `OrderedDict<K, V>` / `OrderedSet<T>` - insertion order
 
-These provide the same API as `Dict` / `Set` but **preserve insertion order**, equivalent in meaning to Python 3.7+ `dict` or Java's LinkedHashMap.
+These provide the same API as `Dict` / `Set` and iterate in the same insertion order, like Python 3.7+ `dict` or Java's LinkedHashMap.
 
 ```rok
 struct OrderedDict<K: Hash + Eq, V> { /* ... */ }
