@@ -2,6 +2,9 @@
 
 Every object managed by the [GC](../000-meta/007-glossary.md#gc-garbage-collector) starts with a fixed header. This document defines the header format and the four memory spaces an object can reside in.
 
+> [!NOTE]
+> This section is informative, except the 16-byte header, which is fixed as ABI in [8.1](../008-abi/801-object-header-abi.md). The memory spaces describe the reference runtime and may change in any release.
+
 ## 7.1.1. Byte header
 
 The first 16 bytes of every GC object are the header.

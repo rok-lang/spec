@@ -2,6 +2,9 @@
 
 Rok의 GC는 [Immix](../000-meta/007-glossary.md#immix) mark-region[^immix] 위에 sticky mark-bit 세대 수집[^whippet]을 얹은 수집기입니다. minor 수집과 evacuation은 stop-the-world 방식입니다. 이때 mutator는 safepoint([8.4](../008-abi/804-safepoint.md))에서 멈춥니다. full 수집의 mark 단계는 동시에 실행할 수 있습니다([7.5](705-concurrent-collection.md)). 루트와 write barrier는 [7.4](704-barriers-and-roots.md)에서 정의합니다.
 
+> [!NOTE]
+> 이 절은 비규범(참고용)입니다. 참조 런타임의 GC를 설명하며, 어느 릴리스에서든 바뀔 수 있습니다. 규범은 [8.1](../008-abi/801-object-header-abi.md)에서 ABI로 고정한 객체 레이아웃뿐입니다.
+
 ## 7.3.1. Immix mark-region
 
 ### block과 line

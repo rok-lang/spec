@@ -2,6 +2,9 @@
 
 This document defines the [GC](../000-meta/007-glossary.md#gc-garbage-collector)'s mark starting points (roots) and the recording of old → young references (write barrier).
 
+> [!NOTE]
+> This section is informative: it describes the reference runtime's GC, which may change in any release. Only the object layout fixed as ABI in [8.1](../008-abi/801-object-header-abi.md) is normative.
+
 ## 7.4.1. Root tracking: a shadow stack emitted directly by the compiler
 
 ### Choosing a shadow stack

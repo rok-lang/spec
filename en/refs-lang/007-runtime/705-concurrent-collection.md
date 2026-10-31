@@ -2,6 +2,9 @@
 
 A full collection may run its mark phase concurrently with mutators. Minor collection, explicit `rok_gc_collect`, and evacuation are always stop-the-world ([7.3](703-gc-algorithm.md)).
 
+> [!NOTE]
+> This section is informative: it describes the reference runtime's GC, which may change in any release. Only the object layout fixed as ABI in [8.1](../008-abi/801-object-header-abi.md) is normative.
+
 ## 7.5.1. When
 
 | `ROK_GC_CONCURRENT` | Full collection                                    |

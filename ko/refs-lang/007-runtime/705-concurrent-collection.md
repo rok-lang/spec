@@ -2,6 +2,9 @@
 
 full 수집은 mark 단계를 mutator와 동시에 실행할 수 있습니다. minor 수집, 명시적 `rok_gc_collect` 호출, evacuation은 언제나 stop-the-world입니다([7.3](703-gc-algorithm.md)).
 
+> [!NOTE]
+> 이 절은 비규범(참고용)입니다. 참조 런타임의 GC를 설명하며, 어느 릴리스에서든 바뀔 수 있습니다. 규범은 [8.1](../008-abi/801-object-header-abi.md)에서 ABI로 고정한 객체 레이아웃뿐입니다.
+
 ## 7.5.1. 언제
 
 | `ROK_GC_CONCURRENT` | full 수집                                    |

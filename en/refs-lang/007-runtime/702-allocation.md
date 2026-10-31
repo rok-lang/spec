@@ -2,6 +2,9 @@
 
 This document covers how the objects defined in [Object layout](701-object-layout.md) are placed in memory. The allocation algorithm is defined in two stages: a fast path and a slow path.
 
+> [!NOTE]
+> This section is informative: it describes the reference runtime's GC, which may change in any release. Only the object layout fixed as ABI in [8.1](../008-abi/801-object-header-abi.md) is normative.
+
 ## 7.2.1. TLAB (Thread-Local Allocation Buffer)
 
 Each scheduler worker (= OS thread) has its own TLAB. A TLAB consists of one [block](../000-meta/007-glossary.md#block) (or part of one) obtained from the [Immix](../000-meta/007-glossary.md#immix) space, and allocates quickly by bump pointer.

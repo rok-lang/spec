@@ -2,6 +2,9 @@
 
 이 절은 [GC](../000-meta/007-glossary.md#gc-garbage-collector)의 mark 출발점인 루트와, old → young 참조를 기록하는 write barrier를 정의합니다.
 
+> [!NOTE]
+> 이 절은 비규범(참고용)입니다. 참조 런타임의 GC를 설명하며, 어느 릴리스에서든 바뀔 수 있습니다. 규범은 [8.1](../008-abi/801-object-header-abi.md)에서 ABI로 고정한 객체 레이아웃뿐입니다.
+
 ## 7.4.1. 루트 추적: 컴파일러가 직접 내보내는 shadow stack
 
 ### shadow stack 선택

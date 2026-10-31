@@ -2,6 +2,9 @@
 
 Rok's GC is a collector that layers sticky mark-bit generational collection[^whippet] on top of [Immix](../000-meta/007-glossary.md#immix) mark-region[^immix]. Minor collection and evacuation are stop-the-world, with mutators stopped at safepoints ([8.4](../008-abi/804-safepoint.md)). The mark phase of a full collection may run concurrently ([7.5](705-concurrent-collection.md)). Roots and the write barrier are defined in [7.4](704-barriers-and-roots.md).
 
+> [!NOTE]
+> This section is informative: it describes the reference runtime's GC, which may change in any release. Only the object layout fixed as ABI in [8.1](../008-abi/801-object-header-abi.md) is normative.
+
 ## 7.3.1. Immix mark-region
 
 ### Blocks and lines

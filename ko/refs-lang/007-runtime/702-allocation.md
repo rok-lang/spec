@@ -2,6 +2,9 @@
 
 이 절은 [객체 레이아웃](701-object-layout.md)에서 정의한 객체를 메모리에 놓는 방식을 다룹니다. 할당 알고리듬은 fast path와 slow path 두 단계로 정의합니다.
 
+> [!NOTE]
+> 이 절은 비규범(참고용)입니다. 참조 런타임의 GC를 설명하며, 어느 릴리스에서든 바뀔 수 있습니다. 규범은 [8.1](../008-abi/801-object-header-abi.md)에서 ABI로 고정한 객체 레이아웃뿐입니다.
+
 ## 7.2.1. TLAB (Thread-Local Allocation Buffer)
 
 스케줄러 워커마다 자기 TLAB이 있습니다. 워커 하나는 OS 스레드 하나입니다. TLAB은 [Immix](../000-meta/007-glossary.md#immix) 공간에서 받은 [block](../000-meta/007-glossary.md#block-블록) 하나나 그 일부로 이루어집니다. TLAB은 bump pointer 방식으로 빠르게 할당합니다.

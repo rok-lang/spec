@@ -27,6 +27,10 @@ Coroutine   compiler-generated state machine (stackless)
 
 All three are implemented in-house, with zero dependencies on external libraries.
 
+## Normative status
+
+The GC sections, 7.1 to 7.5, are informative: they describe how the reference runtime allocates and collects today, and a later runtime may use other algorithms, spaces or barriers. What is normative is the object layout fixed as ABI in [8.1](../008-abi/801-object-header-abi.md): a 16-byte header before every GC object's payload. Library code depends on it: `Pinned::as_data_ptr` and `as_value_ptr` ([stdlib 1.6.6](../../refs-standard-libraries/100-bare/106-gc-pin.md#166-extraction-methods)) compute a payload address as the object's address plus 16.
+
 ## Zero-dependency principle
 
 The runtime does not depend on external libraries. Specifically, it does not use:
