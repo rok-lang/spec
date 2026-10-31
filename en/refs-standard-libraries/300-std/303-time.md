@@ -115,10 +115,12 @@ impl BootTime {
     fn now() -> BootTime;
     fn elapsed(self) -> Duration;
     fn duration_since(self, earlier: BootTime) -> Duration;
+    fn checked_duration_since(self, earlier: BootTime) -> Duration | none;
+    fn saturating_duration_since(self, earlier: BootTime) -> Duration;
 }
 ```
 
-`BootTime` and `Instant` differ in their behavior across suspend. `Instant`, like Linux `CLOCK_MONOTONIC`, stops during suspend, whereas `BootTime` follows `CLOCK_BOOTTIME` and keeps advancing during suspend.
+As with `Instant`, `duration_since` is negative when `earlier` is later, `checked_duration_since` gives `none` and `saturating_duration_since` gives `Duration::ZERO`. `BootTime` and `Instant` differ in their behavior across suspend. `Instant`, like Linux `CLOCK_MONOTONIC`, stops during suspend, whereas `BootTime` follows `CLOCK_BOOTTIME` and keeps advancing during suspend.
 
 This difference is decisive when a mobile or laptop app must measure "real elapsed time (including suspend)". Rust still has no stable API for this as of 2026; Rok exposes it on the surface early.
 
@@ -135,8 +137,10 @@ impl Duration {
     fn ns(n: i64) -> Duration;
     fn us(n: i64) -> Duration;        // microseconds
     fn ms(n: i64) -> Duration;        // milliseconds
-    fn sec(n: i64) -> Duration;
-    fn min(n: i64) -> Duration;
+    fn secs(n: i64) -> Duration;
+    fn mins(n: i64) -> Duration;
+    fn sec(n: i64) -> Duration;       // deprecated since 0.1.6: secs
+    fn min(n: i64) -> Duration;       // deprecated since 0.1.6: mins
     fn hours(n: i64) -> Duration;
     fn days(n: i64) -> Duration;
 

@@ -19,7 +19,8 @@ fn cpu_count() -> usize;                                // 온라인 CPU 수 (po
 async fn race<T>(tasks: List<Task<T>>) -> T;            // 첫 완료 task 결과
 fn select<F: Future>(futs: List<F>) -> SelectFuture<F>; // await: (index, 결과), spawn 하지 않음
 fn id() -> TaskId;                                      // 현재 task 의 id, task 밖이면 panic
-fn try_id() -> TaskId | none;
+fn current_id() -> TaskId | none;                       // 현재 task 의 id, task 밖이면 none
+fn try_id() -> TaskId | none;                           // 0.1.6부터 deprecated: current_id
 async fn join<T>(tasks: List<Task<T>>) -> List<T>;      // 모두 완료 후
 async fn timeout<T>(dur: Duration, task: Task<T>) throws (TimeoutError) -> T;   // try await 에서 던짐
 async fn sleep(dur: Duration);
@@ -148,13 +149,13 @@ enum Ev { Line(str), Timeout }
 
 let (_, ev) = await task::select([
     async { Ev::Line(await read_line()) },
-    async { await task::sleep(Duration::sec(5)); Ev::Timeout },
+    async { await task::sleep(Duration::secs(5)); Ev::Timeout },
 ]);
 ```
 
 ### `TaskId`
 
-`task::id()`는 실행 중인 task의 id입니다. task 밖에서 부르면 panic이 일어납니다(`try_id()`는 `none`을 돌려줍니다). `Task::id()`는 그 task의 id입니다. id는 프로세스 전역 카운터에서 나오고 다시 쓰이지 않습니다.
+`task::id()`는 실행 중인 task의 id입니다. task 밖에서 부르면 panic이 일어납니다(그 자리에서 `current_id()`는 `none`을 돌려줍니다. `try_id()`는 deprecated인 옛 이름입니다. [0.5.8](../000-meta/005-notation.md) 참고). `Task::id()`는 그 task의 id입니다. id는 프로세스 전역 카운터에서 나오고 다시 쓰이지 않습니다.
 
 ## 2.18.2. `Task<T>` 타입
 
@@ -214,7 +215,7 @@ Worker 0 ─┐      Worker 1 ─┐    ...    Worker N-1 ─┐
 
 표준 라이브러리의 권위는 API 시그니처까지입니다. 알고리듬 본문은 사양 밖의 런타임과 표준 라이브러리 본문에 속합니다.
 
-`rok::core::task`는 런타임 훅도 내보냅니다. `TaskRef`, `Pool`, `Worker`, `wake_task`, `cancel_requested`, `unwinding`, `cancel_point`, `cancel_left`, `cleanup_running`, `cleanup_done`, 그리고 `host_enter` / `host_leave` / `host_run`(WebAssembly 컴포넌트의 이벤트 루프 진입점)입니다. 이 훅은 컴파일러와 런타임을 위해 공개되어 있을 뿐 런타임 내부용입니다. 안정된 API가 아닙니다.
+`rok::core::task`는 런타임 훅도 내보냅니다. `TaskRef`, `Pool`, `Worker`, `wake_task`, `cancel_requested`, `unwinding`, 그리고 `host_enter` / `host_leave` / `host_run`(WebAssembly 컴포넌트의 이벤트 루프 진입점)입니다. 이 훅은 컴파일러와 런타임을 위해 공개되어 있을 뿐 런타임 내부용입니다. 안정된 API가 아닙니다. 0.1.6부터 이 훅을 쓰면 deprecated 경고가 나고([refs-lang 6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md)), 이후 릴리스에서 비공개가 됩니다. `host_enter` 밖에서 부른 `host_leave`는 그렇다고 알리며 panic합니다. `await`가 부르는 훅(`cancel_point`, `cancel_left`, `cleanup_running`, `cleanup_done`)은 lang 슬롯으로 찾으며([0.4.4](../000-meta/004-lang-slot-table.md)) 같은 방식으로 deprecated입니다.
 
 ## 2.18.4. 협력적 취소: `Task::cancel`
 
@@ -243,7 +244,7 @@ t.cancel();              // 협력적 신호. task 가 cancellation point 에서
 let t = task::spawn(async {
     using log = open_log();                      // 취소되면 여기서 drop
     loop {
-        await task::sleep(Duration::sec(1));     // cancellation point
+        await task::sleep(Duration::secs(1));     // cancellation point
         tick(log);
     }
 });
@@ -289,8 +290,10 @@ impl Duration {
     const fn ns(n: i64) -> Duration;
     const fn us(n: i64) -> Duration;
     const fn ms(n: i64) -> Duration;
-    const fn sec(n: i64) -> Duration;
-    const fn min(n: i64) -> Duration;
+    const fn secs(n: i64) -> Duration;
+    const fn mins(n: i64) -> Duration;
+    const fn sec(n: i64) -> Duration;    // 0.1.6부터 deprecated: secs
+    const fn min(n: i64) -> Duration;    // 0.1.6부터 deprecated: mins
     const fn hours(n: i64) -> Duration;
     const fn days(n: i64) -> Duration;
     const fn from_secs_f64(s: f64) -> Duration;
@@ -328,7 +331,7 @@ impl Instant {
 // Add<Duration>, Sub<Duration>, Sub<Instant> -> Duration
 ```
 
-오버플로가 나면 `ns`..`days`와 `+` `-` `*` 연산자는 debug 빌드에서 panic이 일어나고, 그 밖에는 포화(saturate)합니다. `checked_*` / `saturating_*` 형태로 동작을 직접 고를 수 있습니다. `Duration`은 부호가 있습니다. 그래서 `earlier`가 더 나중이면 `duration_since`는 음수 기간을 돌려줍니다. 이때 `checked_duration_since`는 `none`을, `saturating_duration_since`는 `Duration::ZERO`를 돌려줍니다.
+`sec`과 `min`은 `secs`와 `mins`의 옛 이름입니다. `min`은 `Ord::min`도 가려서 두 기간에 `a.min(b)`를 쓰면 컴파일되지 않습니다. 오버플로가 나면 생성 함수와 `+` `-` `*` 연산자는 debug 빌드에서 panic이 일어나고, 그 밖에는 포화(saturate)합니다. `checked_*` / `saturating_*` 형태로 동작을 직접 고를 수 있습니다. `Duration`은 부호가 있습니다. 그래서 `earlier`가 더 나중이면 `duration_since`는 음수 기간을 돌려줍니다. 이때 `checked_duration_since`는 `none`을, `saturating_duration_since`는 `Duration::ZERO`를 돌려줍니다.
 
 `await task::sleep(Duration::ms(100))`, `await task::sleep_until(t)` 같은 호출은 정확한 단조 시간(monotonic time)을 보장합니다. 두 타입은 `rok::core::task::time`에 있고(2.18.7), `rok::std::time`이 다시 내보냅니다.
 

@@ -6,15 +6,15 @@
 
 ## 0.4.1. 슬롯 분류
 
-슬롯 48개는 맡은 책임에 따라 네 그룹으로 나뉩니다. 아래 표는 그룹마다 역할과 슬롯 수를 보여 줍니다. 이어지는 절의 세부 표가 어느 그룹에 속하는지도 이 표로 알 수 있습니다.
+슬롯 63개는 맡은 책임에 따라 네 그룹으로 나뉩니다. 아래 표는 그룹마다 역할과 슬롯 수를 보여 줍니다. 이어지는 절의 세부 표가 어느 그룹에 속하는지도 이 표로 알 수 있습니다.
 
 | 그룹   | 책임                                                                 | slot 수 |
 |--------|----------------------------------------------------------------------|---------|
 | 타입   | Rok이 **구체 타입**으로 인식하는 표준 라이브러리 타입               | 14      |
 | 트레잇 | Rok이 **연산자 / 제어 흐름 풀어 쓰기**, derive, 스레드 경계 검사에 쓰는 트레잇 | 30      |
 | 메서드 | Rok이 **자동으로 호출**하는 메서드 (drop)                           | 1       |
-| 함수   | Rok이 **intrinsic처럼 호출**하는 표준 라이브러리 함수               | 3       |
-| 합계   |                                                                      | **48**  |
+| 함수   | Rok이 **intrinsic처럼 호출**하는 표준 라이브러리 함수, 낮춘 코드가 호출하는 훅 | 18 |
+| 합계   |                                                                      | **63**  |
 
 ## 0.4.2. 타입 슬롯(14)
 
@@ -93,7 +93,7 @@
 > [!NOTE]
 > 비교 슬롯 이름과 트레잇 이름은 일대일로 대응하지 않습니다. `eq_trait`는 동등 연산자를 정의하는 `PartialEq`에, `cmp_trait`는 순서 비교 연산자를 정의하는 `PartialOrd`에 붙습니다. marker 트레잇 `Eq`, `Copy`, `Default`에는 슬롯이 없습니다. 합 타입이 이 트레잇을 구조적으로 얻기 때문입니다. `T`가 `Eq`이면 `T | none`도 `Eq`이고, 그 `Default`는 `none`입니다. 컴파일러는 이 트레잇을 `rok::core`의 고정 경로로 찾습니다.
 
-## 0.4.4. 함수 슬롯(3)
+## 0.4.4. 함수 슬롯(18)
 
 함수 슬롯은 컴파일러가 intrinsic처럼 직접 호출하는 표준 라이브러리 함수를 가리킵니다. 주로 비정상 종료 경로(`throw`, OOM, 도달 불가)가 여기에 모입니다. 정상 흐름 밖에서 진입점을 하나로 모아야 할 때 씁니다.
 
@@ -102,6 +102,26 @@
 | `panic_fn`       | panic이 일어나면 호출하는 abort 함수 | `rok::core::panic::panic`       | 2.14 |
 | `oom_fn`         | OOM abort (런타임 할당 실패는 `rok_oom` 직접) | `rok::core::panic::oom`         | 2.14 |
 | `unreachable_fn` | 컴파일러가 unreachable 자리 호출 | `rok::core::panic::unreachable` | 2.14 |
+
+나머지 열다섯은 **훅**입니다. 컴파일러가 만든 코드가 음수 인덱스, 슬라이스 경계, 펼치기(spread), f-string 자리, 취소 지점에서 호출하는 함수입니다. 낮추기는 각 훅을 경로가 아니라 슬롯으로 찾습니다. 그래서 훅은 그 코드가 들어가는 자리에서 보이지 않아도 됩니다. 훅은 API가 아닙니다. 직접 적은 호출은 deprecated이며([refs-lang 6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md)), 이후 릴리스에서 훅은 비공개가 됩니다.
+
+| slot 이름            | 호출되는 자리                                  | 표준 라이브러리 함수                      | 참조 |
+|----------------------|------------------------------------------------|-------------------------------------------|------|
+| `spread_len_fn`      | `List` / `Slice` 펼치기 `f(..xs)`의 길이 검사  | `rok::core::index::spread_len`            | 2.3  |
+| `spread_names_fn`    | `Dict` 펼치기 `f(..d)`의 키 검사               | `rok::core::index::spread_names`          | 2.3  |
+| `spread_misfit_fn`   | `Dict` 펼치기가 채울 수 없는 매개변수의 키     | `rok::core::index::spread_misfit`         | 2.3  |
+| `index_from_end_fn`  | 부호 있는 인덱스 `xs[i]`, 음수는 끝에서부터    | `rok::core::index::index_from_end`        | 2.3  |
+| `slice_bound_fn`     | 부호 있는 슬라이스 경계 `xs[i:]`               | `rok::core::index::slice_bound`           | 2.3  |
+| `slice_range_fn`     | 간격 있는 슬라이스 `xs[a:b:k]`                 | `rok::core::index::slice_range`           | 2.3  |
+| `fstr_display_fn`    | f-string 자리 `{v}`                            | `rok::core::fmt::fstr_display`            | 2.10 |
+| `fstr_debug_fn`      | f-string 자리 `{v:?}`                          | `rok::core::fmt::fstr_debug`              | 2.10 |
+| `fstr_num_fn`        | spec이 있는 `int` / `float` 자리               | `rok::core::fmt::fstr_num`                | 2.10 |
+| `fstr_pack_fn`       | spec을 실행 중에 계산하는 자리 `{v:{spec}}`    | `rok::core::fmt::fstr_pack`               | 2.10 |
+| `fstr_text_any_fn`   | 숫자가 아닌 값의 계산된 spec                   | `rok::core::fmt::fstr_text_any`           | 2.10 |
+| `cancel_point_fn`    | poll이 `Pending`인 `await` (취소 지점)          | `rok::core::task::cancel_point`           | 2.18 |
+| `cancel_left_fn`     | poll이 `Ready`인 `await`                        | `rok::core::task::cancel_left`            | 2.18 |
+| `cleanup_running_fn` | 취소로 떠난 프레임이 정리 코드에 들어감         | `rok::core::task::cleanup_running`        | 2.18 |
+| `cleanup_done_fn`    | 그 프레임이 정리 코드를 마침                    | `rok::core::task::cleanup_done`           | 2.18 |
 
 ## 0.4.5. 메서드 슬롯(1)
 
@@ -135,6 +155,10 @@
 | panic 낮추기 (`try!` 실패 포함)              | `panic_fn`                               |
 | OOM 발생 시                                  | `oom_fn`                                 |
 | `match`의 모든 가지를 검사한 뒤 도달 불가 자리 | `unreachable_fn`                       |
+| 음수 인덱스와 슬라이스 경계, 간격 있는 슬라이스 | `index_from_end_fn`, `slice_bound_fn`, `slice_range_fn` |
+| 펼치기 `f(..xs)` / `f(..d)`                  | `spread_len_fn`, `spread_names_fn`, `spread_misfit_fn` |
+| f-string 자리                                | `fstr_display_fn` ... `fstr_text_any_fn` |
+| `await`, 취소가 실행하는 정리 코드           | `cancel_point_fn`, `cancel_left_fn`, `cleanup_running_fn`, `cleanup_done_fn` |
 | `using` 블록 해제                            | `drop_method`                            |
 | `Send` / `Sync` 자동 구현, `+ Send` 검사     | `send_trait`, `sync_trait`               |
 

@@ -137,7 +137,8 @@ impl Float {
     fn from_f32(x: f32) -> float;
     fn from_f64(x: f64) -> float;
     fn from_int(n: int) -> float;                  // 가장 가까운 float, 동률은 짝수 쪽
-    fn try_parse(s: str) -> float | none;          // FromStr 도 구현
+    fn parse_or_none(s: str) -> float | none;      // FromStr 은 대신 던짐
+    fn try_parse(s: str) -> float | none;          // 0.1.6부터 deprecated: parse_or_none
 
     fn to_f32(self) -> f32 | none;     // 유한 값이 f32 범위 밖일 때만 none
     fn to_f64(self) -> f64;            // 가장 가까운 f64; f64::MAX 를 넘으면 ±inf, subnormal 아래면 ±0
@@ -363,7 +364,7 @@ impl f64 {
     const LOG2_E: f64;
     const LOG10_E: f64;
 
-    fn nan() -> f64;             // f64::NAN
+    fn nan() -> f64;             // 0.1.6부터 deprecated: f64::NAN
     fn infinity() -> f64;        // f64::INFINITY
     fn neg_infinity() -> f64;
     fn epsilon() -> f64;         // f64::EPSILON
@@ -400,7 +401,7 @@ impl f64 {
     fn cbrt(self) -> f64;
     fn hypot(self, other: f64) -> f64;   // overflow 없는 sqrt(self² + other²)
     fn pow(self, exp: f64) -> f64;
-    fn powf(self, exp: f64) -> f64;      // = pow
+    fn powf(self, exp: f64) -> f64;      // 0.1.6부터 deprecated: = pow
     fn powi(self, n: i32) -> f64;
     fn exp(self) -> f64;
     fn exp2(self) -> f64;

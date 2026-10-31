@@ -52,6 +52,7 @@ impl<T> Sender<T> {
 impl<T> Receiver<T> {
     fn recv(self) -> T | none;               // none = every sender closed
     fn try_recv(self) -> T | none;           // none = empty or closed
+    fn try_recv_status(self) -> T | Empty | Closed;   // tells empty from closed
     fn recv_async(self) -> RecvFuture<T>;    // await rx.recv_async(): suspends only the task, Output = T | none
     fn iter(self) -> ChannelIter<T>;         // for x in rx { ... }
 }
@@ -69,6 +70,8 @@ impl<T> IntoIterator for Receiver<T> {   // for x in rx: ends when every sender 
 enum SendError<T> { Closed(T) }
 enum TrySendError<T> { Full(T), Closed(T) }
 // both implement Display, Debug and Error (the message names the case, not the value)
+struct Empty {}    // try_recv_status: nothing queued, a sender is still open
+struct Closed {}   // try_recv_status: nothing queued, every sender closed
 ```
 
 If `T: Send`, then `Sender<T>` and `Receiver<T>` are also `Send` and can be moved to other tasks or threads ([2.13.9](213-marker.md#2139-send--sync---thread-boundary-markers)). `send`, `try_send` and `send_async` queue a copy of the value's collections (2.13.9): the receiver shares no collection with the sender.

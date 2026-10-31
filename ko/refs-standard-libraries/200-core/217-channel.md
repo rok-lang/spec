@@ -52,6 +52,7 @@ impl<T> Sender<T> {
 impl<T> Receiver<T> {
     fn recv(self) -> T | none;               // none = 모든 sender 가 close
     fn try_recv(self) -> T | none;           // none = 비어있음 또는 closed
+    fn try_recv_status(self) -> T | Empty | Closed;   // 비어 있음과 closed 를 구별
     fn recv_async(self) -> RecvFuture<T>;    // await rx.recv_async(): task 만 중단, Output = T | none
     fn iter(self) -> ChannelIter<T>;         // for x in rx { ... }
 }
@@ -69,6 +70,8 @@ impl<T> IntoIterator for Receiver<T> {   // for x in rx: 모든 sender 가 close
 enum SendError<T> { Closed(T) }
 enum TrySendError<T> { Full(T), Closed(T) }
 // 둘 다 Display, Debug, Error 를 구현 (메시지는 값이 아니라 경우를 말함)
+struct Empty {}    // try_recv_status: 큐가 비었고 아직 열린 sender 가 있음
+struct Closed {}   // try_recv_status: 큐가 비었고 모든 sender 가 close 됨
 ```
 
 `T: Send`이면 `Sender<T>`와 `Receiver<T>`도 `Send`이므로 다른 task나 스레드로 옮길 수 있습니다([2.13.9](213-marker.md#2139-send--sync-스레드-경계-마커)). `send`, `try_send`, `send_async`는 값이 닿는 컬렉션의 복사본을 큐에 넣습니다(2.13.9). 그래서 받는 쪽은 보낸 쪽과 컬렉션을 공유하지 않습니다.

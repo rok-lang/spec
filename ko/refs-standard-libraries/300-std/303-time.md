@@ -115,10 +115,12 @@ impl BootTime {
     fn now() -> BootTime;
     fn elapsed(self) -> Duration;
     fn duration_since(self, earlier: BootTime) -> Duration;
+    fn checked_duration_since(self, earlier: BootTime) -> Duration | none;
+    fn saturating_duration_since(self, earlier: BootTime) -> Duration;
 }
 ```
 
-`BootTime`과 `Instant`는 절전(suspend) 동안의 동작이 다릅니다. `Instant`는 Linux `CLOCK_MONOTONIC`처럼 절전 동안 멈춥니다. `BootTime`은 `CLOCK_BOOTTIME`을 따라 절전 중에도 계속 흐릅니다.
+`Instant`처럼 `earlier`가 더 나중이면 `duration_since`는 음수이고, `checked_duration_since`는 `none`을, `saturating_duration_since`는 `Duration::ZERO`를 돌려줍니다. `BootTime`과 `Instant`는 절전(suspend) 동안의 동작이 다릅니다. `Instant`는 Linux `CLOCK_MONOTONIC`처럼 절전 동안 멈춥니다. `BootTime`은 `CLOCK_BOOTTIME`을 따라 절전 중에도 계속 흐릅니다.
 
 이 차이는 모바일이나 노트북 앱이 "실제 경과 시간(절전 포함)"을 측정해야 할 때 결정적입니다. Rust에는 2026년 현재도 이를 위한 안정 API가 없습니다. Rok은 처음부터 노출합니다.
 
@@ -135,8 +137,10 @@ impl Duration {
     fn ns(n: i64) -> Duration;
     fn us(n: i64) -> Duration;        // microseconds
     fn ms(n: i64) -> Duration;        // milliseconds
-    fn sec(n: i64) -> Duration;
-    fn min(n: i64) -> Duration;
+    fn secs(n: i64) -> Duration;
+    fn mins(n: i64) -> Duration;
+    fn sec(n: i64) -> Duration;       // 0.1.6부터 deprecated: secs
+    fn min(n: i64) -> Duration;       // 0.1.6부터 deprecated: mins
     fn hours(n: i64) -> Duration;
     fn days(n: i64) -> Duration;
 

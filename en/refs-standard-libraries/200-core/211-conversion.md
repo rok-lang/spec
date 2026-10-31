@@ -264,6 +264,8 @@ The `From<U> for T` impls provided by the standard library are tabulated below (
 | `u64`     |    |     |     |               | ✓ (target=64) | ✓                     |
 | `usize`   |    |     |     | ✓ (target≤64) |               | ✓                     |
 
+`TryFrom<u64> for usize` and `TryFrom<i64> for isize` exist on every target, beside the `From` that only 64-bit targets have, so `usize::try_from(n)` builds everywhere; on a 64-bit target it never throws.
+
 ### Unsigned → signed (lossless only)
 
 | from \ to | i8 | i16 | i32 | i64 | int |

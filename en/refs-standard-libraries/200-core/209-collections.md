@@ -7,8 +7,8 @@ This chapter defines the authoritative signatures of the following 6 collections
 | Collection          | Literal syntax             | Meaning                         |
 |---------------------|----------------------------|---------------------------------|
 | `List<T>`           | `[1, 2, 3]`                | Dynamic array (insertion order) |
-| `Dict<K, V>`        | `{"a": 1, "b": 2}`         | Hash map (unordered)   |
-| `Set<T>`            | `{1, 2, 3}`                | Hash set (unordered)            |
+| `Dict<K, V>`        | `{"a": 1, "b": 2}`         | Hash map (insertion order) |
+| `Set<T>`            | `{1, 2, 3}`                | Hash set (insertion order)      |
 | `OrderedDict<K, V>` | `OrderedDict::from([...])` | Insertion-order-preserving dict |
 | `OrderedSet<T>`     | `OrderedSet::from([...])`  | Insertion-order-preserving set  |
 | `Tuple<...>`        | `(1, "a", true)`           | Fixed-size heterogeneous        |
@@ -119,6 +119,7 @@ impl<T> List<T> {
     fn retain(self, keep: fn(T) -> bool);        // in place, order kept
     fn sort(self) where T: Ord;                  // ascending, stable
     fn sort_by(self, cmp: fn(T, T) -> Ordering); // stable
+    fn sort_by_key<K: Ord>(self, key: fn(T) -> K); // ascending by key, stable
     fn reserve(self, additional: usize);
     fn shrink_to_fit(self);
     fn reverse(self);                            // in place
@@ -215,7 +216,7 @@ struct Dict<K: Hash + Eq, V> {
 }
 ```
 
-It provides average O(1) lookup / insert / remove. Order is not guaranteed, so iteration order is nondeterministic.
+It provides average O(1) lookup / insert / remove. Iteration follows insertion order: a key inserted again while present keeps its place, and one removed and inserted again goes last. Where a key sits in the table depends on a seed chosen once per process ([2.5.6](205-cmp.md#256-hash---hashing-eq-consistency-promise)); the iteration order does not.
 
 ### Core methods
 
@@ -308,7 +309,7 @@ struct Set<T: Hash + Eq> {
 }
 ```
 
-Order is not guaranteed; average performance is O(1).
+It iterates in insertion order, as `Dict` does; average performance is O(1).
 
 ```rok
 impl<T: Hash + Eq> Set<T> {
@@ -359,7 +360,8 @@ struct OrderedDict<K: Hash + Eq, V> { /* ... */ }
 struct OrderedSet<T: Hash + Eq> { /* ... */ }
 ```
 
-They suit situations that need order preservation, such as config, JSON-like structures and reproducible output; the indices vector holding the order adds slight overhead.
+> [!NOTE]
+> `Dict` and `Set` keep insertion order too ([2.9.3](#293-dictk-v---hash-map)), so these types behave as they do. A later release may make them aliases of `Dict` / `Set`.
 
 - `OrderedDict` has `new` / `with_capacity` / `from` / `len` / `is_empty` / `insert` / `get` / `contains_key` / `remove` / `clear` / `retain` / `extend` / `keys` / `values` / `entries`, plus `d[k]` and `d[k] = v`. `keys` / `values` / `entries` iterate in insertion order. `insert` on an existing key changes only the value; the order is unchanged. `retain` keeps the survivors' order; `extend` inserts its pairs in order.
 - `OrderedSet` has `new` / `from` / `len` / `is_empty` / `insert` / `remove` / `contains` / `clear` / `retain` / `extend` / `iter` / `to_list` and the set operations `union` / `intersection` / `difference` / `symmetric_difference` / `is_subset` / `is_superset` / `is_disjoint`. The result of a set operation follows the order of the left operand first.
@@ -408,6 +410,8 @@ impl<T: Ord> BinaryHeap<T> {
     fn new() -> BinaryHeap<T>;                 // max-heap: largest first
 }
 impl<T> BinaryHeap<T> {
+    fn by_ordering(cmp: fn(T, T) -> Ordering) -> BinaryHeap<T>; // the greatest by cmp first, as new() by Ord::cmp
+    #[deprecated(since = "0.1.6", note = "use `BinaryHeap::by_ordering`")]
     fn by(before: fn(T, T) -> bool) -> BinaryHeap<T>;   // a comes first if before(a, b)
     fn len(self) -> usize;
     fn is_empty(self) -> bool;
@@ -420,7 +424,9 @@ impl<T> BinaryHeap<T> {
 }
 ```
 
-`retain` filters in place and restores the heap order, O(n). It implements `IntoIterator` (unordered, as `iter`), `Debug` (storage order, the top first) and `Clone` (`T: Clone`; the copy keeps the order of `by`); with `T: Ord`, `Default` and `FromIterator` build a max-heap, as `new`.
+`retain` filters in place and restores the heap order, O(n). It implements `IntoIterator` (unordered, as `iter`), `Debug` (storage order, the top first) and `Clone` (`T: Clone`; the copy keeps the heap's order); with `T: Ord`, `Default` and `FromIterator` build a max-heap, as `new`.
+
+A comparator returns `Ordering`, as `List::sort_by`'s does: `by_ordering(|a, b| b.cmp(a))` pops the least first. The deprecated `by` takes a `bool` comparator instead (`by(|a, b| a < b)` is that min-heap).
 
 A heap is not `Send`: its order is a `fn` without `+ Send`. To hand the items to another thread, send them as a `List` and `collect()` a `BinaryHeap` on the receiving side.
 
@@ -592,8 +598,8 @@ Every container implements `IntoIterator`.
 | Container           | `Item`              | Order                             |
 |---------------------|---------------------|-----------------------------------|
 | `List<T>`           | `T`                 | first → last                      |
-| `Dict<K, V>`        | `(K, V)`            | **nondeterministic**              |
-| `Set<T>`            | `T`                 | **nondeterministic**              |
+| `Dict<K, V>`        | `(K, V)`            | insertion order                   |
+| `Set<T>`            | `T`                 | insertion order                   |
 | `OrderedDict<K, V>` | `(K, V)`            | insertion order                   |
 | `OrderedSet<T>`     | `T`                 | insertion order                   |
 | `Deque<T>`          | `T`                 | front → back                      |
@@ -616,8 +622,8 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 | `List<T>`     | `rok::core::collections::list`            | inspired by Rust `Vec`              |
 | `Dict<K, V>`  | `rok::core::collections::dict`            | open addressing                     |
 | `Set<T>`      | `rok::core::collections::set`             | on top of `Dict<T, bool>`           |
-| `OrderedDict` | `rok::core::collections::ordered_dict`    | linked-hash or indices              |
-| `OrderedSet`  | `rok::core::collections::ordered_set`     | (same as above)                     |
+| `OrderedDict` | `rok::core::collections::ordered_dict`    | on top of `Dict`                    |
+| `OrderedSet`  | `rok::core::collections::ordered_set`     | on top of `OrderedDict`             |
 | `Deque<T>`    | `rok::core::collections::deque`           | ring buffer                         |
 | `BinaryHeap<T>` | `rok::core::collections::heap`          | implicit binary tree on a `List`    |
 | `Tuple`       | **compiler built-in** + standard library hook | `#[literal(...)]` + compiler lookup |
@@ -628,14 +634,14 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 | Aspect          | Rust                 | Python                     | Rok                                    |
 |-----------------|----------------------|----------------------------|----------------------------------------|
 | Dynamic array   | `Vec<T>`             | `list`                     | `List<T>`                              |
-| Hash map        | `HashMap<K, V>`      | `dict` (insertion-ordered) | `Dict<K, V>` + `OrderedDict<K, V>`     |
-| Hash set        | `HashSet<T>`         | `set`                      | `Set<T>` + `OrderedSet<T>`             |
+| Hash map        | `HashMap<K, V>`      | `dict` (insertion-ordered) | `Dict<K, V>` (insertion-ordered)       |
+| Hash set        | `HashSet<T>`         | `set`                      | `Set<T>` (insertion-ordered)           |
 | Fixed hetero    | `(T1, T2)` tuple     | `tuple`                    | `Tuple<T1, T2>`                        |
 | View            | `&[T]` / `&str`      | **slice object**           | `Slice<T>`                             |
 | Literals        | `vec![...]` (macro)  | `[...]` `{...}` `(...)`    | `[...]` `{...}` `(...)` (`#[literal]`) |
-| Ordered map     | `BTreeMap` (sorted map) | **default dict**        | separate `OrderedDict`                 |
+| Ordered map     | `BTreeMap` (sorted map) | **default dict**        | **default `Dict`**                     |
 
-Rok differs most in these ways. First, all 6 collections have first-class literal syntax, so no macro such as `vec![]` is used. Second, insertion order of `Dict` / `Set` is not guaranteed (unlike Python 3.7+), so `OrderedDict` must be used explicitly when order matters. Third, `Slice<T>` is a view with a stride, so even an expression like `xs[::2]` is zero-copy.
+Rok differs most in these ways. First, all 6 collections have first-class literal syntax, so no macro such as `vec![]` is used. Second, `Dict` / `Set` iterate in insertion order, as Python 3.7+ `dict` does, so no separate ordered type is needed. Third, `Slice<T>` is a view with a stride, so even an expression like `xs[::2]` is zero-copy.
 
 ## 2.9.12. `GcBuf<T>` - raw GC buffer
 

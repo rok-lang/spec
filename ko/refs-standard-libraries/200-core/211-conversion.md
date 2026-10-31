@@ -264,6 +264,8 @@ let w: u8 = 256;             // 컴파일 에러: 256 ∉ u8 0..=255
 | `u64`     |    |     |     |               | ✓ (target=64) | ✓                     |
 | `usize`   |    |     |     | ✓ (target≤64) |               | ✓                     |
 
+`TryFrom<u64> for usize`와 `TryFrom<i64> for isize`는 64비트 타깃에만 있는 `From`과 별개로 모든 타깃에 있습니다. 그래서 `usize::try_from(n)`은 어디서나 빌드되고, 64비트 타깃에서는 절대 던지지 않습니다.
+
 ### unsigned → signed(무손실만)
 
 | from \ to | i8 | i16 | i32 | i64 | int |

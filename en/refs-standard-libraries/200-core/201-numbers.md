@@ -163,7 +163,8 @@ impl Float {
     fn from_f32(x: f32) -> float;
     fn from_f64(x: f64) -> float;
     fn from_int(n: int) -> float;                  // nearest float, ties to even
-    fn try_parse(s: str) -> float | none;          // FromStr is implemented too
+    fn parse_or_none(s: str) -> float | none;      // FromStr throws instead
+    fn try_parse(s: str) -> float | none;          // deprecated since 0.1.6: parse_or_none
 
     fn to_f32(self) -> f32 | none;     // none only when a finite value is outside the f32 range
     fn to_f64(self) -> f64;            // nearest f64; ±inf past f64::MAX, ±0 below the subnormals
@@ -407,7 +408,7 @@ impl f64 {
     const LOG2_E: f64;
     const LOG10_E: f64;
 
-    fn nan() -> f64;             // f64::NAN
+    fn nan() -> f64;             // deprecated since 0.1.6: f64::NAN
     fn infinity() -> f64;        // f64::INFINITY
     fn neg_infinity() -> f64;
     fn epsilon() -> f64;         // f64::EPSILON
@@ -444,7 +445,7 @@ impl f64 {
     fn cbrt(self) -> f64;
     fn hypot(self, other: f64) -> f64;   // sqrt(self² + other²) without overflow
     fn pow(self, exp: f64) -> f64;
-    fn powf(self, exp: f64) -> f64;      // = pow
+    fn powf(self, exp: f64) -> f64;      // deprecated since 0.1.6: = pow
     fn powi(self, n: i32) -> f64;
     fn exp(self) -> f64;
     fn exp2(self) -> f64;

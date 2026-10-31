@@ -4,13 +4,14 @@
 
 Every item below is available at `rok::core::crypto::`; the comment names the submodule that also exports it.
 
-Byte arguments take `Bytes`:
+Byte arguments take `ByteInput`. Its old name `Bytes` is deprecated since 0.1.6 ([refs-lang 6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md)): it clashed with `rok::std::io::Bytes` under a glob import.
 
 ```rok
-pub type Bytes = List<u8> | Slice<u8> | str | Secret;   // a str gives its UTF-8 bytes; a Secret its bytes in place
+pub type ByteInput = List<u8> | Slice<u8> | str | Secret;   // a str gives its UTF-8 bytes; a Secret its bytes in place
+pub type Bytes = ByteInput;                         // deprecated since 0.1.6
 struct Secret {                                     // crypto::secret
     fn zeroed(len: usize) -> Secret;
-    fn new(bytes: Bytes) -> Secret;                 // a copy
+    fn new(bytes: ByteInput) -> Secret;                 // a copy
     fn len(self) -> usize;
     fn as_bytes(self) -> Slice<u8>;                 // the bytes in place, not a copy
     fn wipe(self);                                  // overwrite with zeros now
@@ -19,7 +20,8 @@ impl Index<usize> for Secret; impl IndexSet<usize> for Secret;   // s[i], s[i] =
 impl Sliceable<Range<usize>> for Secret;           // s[a:b]: a view in place
 impl Drop for Secret;                               // using release wipes
 impl Debug for Secret;                              // "Secret(n bytes)", never the bytes
-fn constant_time_eq(a: Bytes, b: Bytes) -> bool;   // time depends only on the lengths
+impl AsBytes for Secret;                            // byte_slice: as_bytes (2.9.7)
+fn constant_time_eq(a: ByteInput, b: ByteInput) -> bool;   // time depends only on the lengths
 ```
 
 A `Secret` is a fixed-length byte string in secret storage ([2.21.5](#2215-security-considerations)). Copies share the bytes, as with `List`, and it is not `Sync`. As for a collection, a hand-off to another thread gives the new owner its own copy, in secret storage, and `par` runs items that reach one `Secret` one at a time ([2.13.9](213-marker.md#2139-send--sync---thread-boundary-markers)). A view from `as_bytes` or slicing reads the storage itself: it sees later writes and reads zeros once the secret is wiped. `Secret` has no `==`; compare with `constant_time_eq`.
@@ -31,37 +33,47 @@ enum HashAlgorithm { Sha256, Sha384, Sha512 }       // crypto::sha2 (FIPS 180-4)
 impl HashAlgorithm {
     fn output_len(self) -> usize;
     fn block_len(self) -> usize;
-    fn digest(self, data: Bytes) -> List<u8>;
+    fn digest(self, data: ByteInput) -> List<u8>;
 }
 struct Digest {                                     // a running hash; a copy forks it
     fn new(alg: HashAlgorithm) -> Digest;
     fn algorithm(self) -> HashAlgorithm;
-    fn update(ref self, data: Bytes);
+    fn update(ref self, data: ByteInput);
     fn finish(self) -> List<u8>;
 }
 struct Sha3_256 / Sha3_512 {                        // crypto::sha3 (FIPS 202)
     const OUTPUT_LEN: usize;                        // 32 / 64
-    fn new() -> Self; fn update(ref self, data: Bytes); fn finish(self) -> List<u8>;
-    fn digest(data: Bytes) -> List<u8>;
+    fn new() -> Self; fn update(ref self, data: ByteInput); fn finish(self) -> List<u8>;
+    fn digest(data: ByteInput) -> List<u8>;
 }
 struct Shake128 / Shake256 {
-    fn new() -> Self; fn update(ref self, data: Bytes);
+    fn new() -> Self; fn update(ref self, data: ByteInput);
     fn squeeze(ref self, n: usize) -> List<u8>;     // the next n output bytes
 }
+enum Sha3Algorithm { Sha3_256, Sha3_512 }           // crypto::sha3: for the keyed forms
+impl Sha3Algorithm {
+    fn output_len(self) -> usize;                   // 32 / 64
+    fn block_len(self) -> usize;                    // the rate: 136 / 72
+    fn digest(self, data: ByteInput) -> List<u8>;
+}
 struct Hmac {                                       // crypto::hmac (RFC 2104)
-    fn new(alg: HashAlgorithm, key: Bytes) -> Hmac;
-    fn update(ref self, data: Bytes);
+    fn new(alg: HashAlgorithm, key: ByteInput) -> Hmac;
+    fn update(ref self, data: ByteInput);
     fn finish(self) -> List<u8>;
-    fn mac(alg: HashAlgorithm, key: Bytes, data: Bytes) -> List<u8>;
-    fn verify(alg: HashAlgorithm, key: Bytes, data: Bytes, tag: Bytes) -> bool;   // constant time
+    fn mac(alg: HashAlgorithm, key: ByteInput, data: ByteInput) -> List<u8>;
+    fn verify(alg: HashAlgorithm, key: ByteInput, data: ByteInput, tag: ByteInput) -> bool;   // constant time
+    fn mac_sha3(alg: Sha3Algorithm, key: ByteInput, data: ByteInput) -> List<u8>;
+    fn verify_sha3(alg: Sha3Algorithm, key: ByteInput, data: ByteInput, tag: ByteInput) -> bool;
 }
 struct Hkdf {                                       // RFC 5869
-    fn extract(alg: HashAlgorithm, salt: Bytes, ikm: Bytes) -> Secret;
-    fn expand(alg: HashAlgorithm, prk: Bytes, info: Bytes, len: usize) throws (ValueError) -> Secret;
+    fn extract(alg: HashAlgorithm, salt: ByteInput, ikm: ByteInput) -> Secret;
+    fn expand(alg: HashAlgorithm, prk: ByteInput, info: ByteInput, len: usize) throws (ValueError) -> Secret;
+    fn extract_sha3(alg: Sha3Algorithm, salt: ByteInput, ikm: ByteInput) -> Secret;
+    fn expand_sha3(alg: Sha3Algorithm, prk: ByteInput, info: ByteInput, len: usize) throws (ValueError) -> Secret;
 }
 ```
 
-`Digest`, `Hmac` and the SHA-3 / SHAKE states are values: a copy continues independently (a transcript hash read mid-way). Successive `squeeze` calls continue one output stream; `update` after the first `squeeze` panics. `Hmac::verify` compares the full-length tag in constant time. `Hkdf::extract` with an empty salt uses `output_len` zero bytes; `expand` throws `ValueError` for `len > 255 * output_len`.
+`Digest`, `Hmac` and the SHA-3 / SHAKE states are values: a copy continues independently (a transcript hash read mid-way). Successive `squeeze` calls continue one output stream; `update` after the first `squeeze` panics. `Hmac::verify` compares the full-length tag in constant time. `Hkdf::extract` with an empty salt uses `output_len` zero bytes; `expand` throws `ValueError` for `len > 255 * output_len`. The `_sha3` forms are the same over a SHA-3 function, whose block is its rate (`Hmac::mac_sha3(Sha3_256, key, data)`); they are one-shot, with no running `Hmac`.
 
 ## 2.21.2. AEAD
 
@@ -69,10 +81,10 @@ struct Hkdf {                                       // RFC 5869
 enum AeadAlgorithm { Aes128Gcm, Aes256Gcm, ChaCha20Poly1305 }   // crypto::aead
 impl AeadAlgorithm { fn key_len(self) -> usize; fn nonce_len(self) -> usize; fn tag_len(self) -> usize; }
 struct Aead {
-    fn new(alg: AeadAlgorithm, key: Bytes) throws (ValueError) -> Aead;
+    fn new(alg: AeadAlgorithm, key: ByteInput) throws (ValueError) -> Aead;
     fn algorithm(self) -> AeadAlgorithm;
-    fn seal(self, nonce: Bytes, aad: Bytes, plaintext: Bytes) throws (ValueError) -> List<u8>;   // ciphertext ‖ 16-byte tag
-    fn open(self, nonce: Bytes, aad: Bytes, ciphertext_and_tag: Bytes) throws (ValueError) -> List<u8> | none;  // none: not authentic
+    fn seal(self, nonce: ByteInput, aad: ByteInput, plaintext: ByteInput) throws (ValueError) -> List<u8>;   // ciphertext ‖ 16-byte tag
+    fn open(self, nonce: ByteInput, aad: ByteInput, ciphertext_and_tag: ByteInput) throws (ValueError) -> List<u8> | none;  // none: not authentic
     fn wipe(self);                                  // overwrite the key material with zeros
 }
 impl Drop for Aead;
@@ -86,17 +98,17 @@ AES-GCM follows NIST SP 800-38D with 96-bit nonces, ChaCha20-Poly1305 RFC 8439. 
 
 ```rok
 struct X25519 {                                     // crypto::x25519 (RFC 7748)
-    fn public_key(secret: Bytes) throws (ValueError) -> List<u8>;
-    fn shared_secret(secret: Bytes, peer_public: Bytes) throws (ValueError) -> Secret | none;  // none: all-zero result
+    fn public_key(secret: ByteInput) throws (ValueError) -> List<u8>;
+    fn shared_secret(secret: ByteInput, peer_public: ByteInput) throws (ValueError) -> Secret | none;  // none: all-zero result
 }
 struct MlKem768 {                                   // crypto::mlkem (FIPS 203)
     const ENCAPSULATION_KEY_LEN: usize = 1184;
     const DECAPSULATION_KEY_LEN: usize = 2400;
     const CIPHERTEXT_LEN: usize = 1088;
     const SHARED_KEY_LEN: usize = 32;
-    fn keygen(d: Bytes, z: Bytes) throws (ValueError) -> (List<u8>, Secret);       // (ek, dk) from 32-byte seeds
-    fn encapsulate(ek: Bytes, m: Bytes) throws (ValueError) -> (Secret, List<u8>);  // (key, ciphertext) from 32-byte m
-    fn decapsulate(dk: Bytes, c: Bytes) throws (ValueError) -> Secret;              // implicit rejection
+    fn keygen(d: ByteInput, z: ByteInput) throws (ValueError) -> (List<u8>, Secret);       // (ek, dk) from 32-byte seeds
+    fn encapsulate(ek: ByteInput, m: ByteInput) throws (ValueError) -> (Secret, List<u8>);  // (key, ciphertext) from 32-byte m
+    fn decapsulate(dk: ByteInput, c: ByteInput) throws (ValueError) -> Secret;              // implicit rejection
 }
 ```
 
@@ -106,31 +118,31 @@ X25519 keys are 32 bytes (else `ValueError`); the secret is clamped and the peer
 
 ```rok
 struct Ed25519 {                                    // crypto::ed25519 (RFC 8032)
-    fn public_key(seed: Bytes) throws (ValueError) -> List<u8>;
-    fn sign(seed: Bytes, msg: Bytes) throws (ValueError) -> List<u8>;
-    fn verify(public_key: Bytes, msg: Bytes, sig: Bytes) -> bool;
+    fn public_key(seed: ByteInput) throws (ValueError) -> List<u8>;
+    fn sign(seed: ByteInput, msg: ByteInput) throws (ValueError) -> List<u8>;
+    fn verify(public_key: ByteInput, msg: ByteInput, sig: ByteInput) -> bool;
 }
 enum EcCurve { P256, P384 }                         // crypto::ecdsa (FIPS 186-5)
 struct Ecdsa {
-    fn public_key(curve: EcCurve, private_key: Bytes) throws (ValueError) -> List<u8>;  // SEC1 uncompressed
-    fn sign(curve: EcCurve, hash: HashAlgorithm, private_key: Bytes, msg: Bytes) throws (ValueError) -> List<u8>;  // DER, RFC 6979 nonce
-    fn verify(curve: EcCurve, hash: HashAlgorithm, public_key: Bytes, msg: Bytes, signature: Bytes) -> bool;  // SEC1 uncompressed key, DER signature
+    fn public_key(curve: EcCurve, private_key: ByteInput) throws (ValueError) -> List<u8>;  // SEC1 uncompressed
+    fn sign(curve: EcCurve, hash: HashAlgorithm, private_key: ByteInput, msg: ByteInput) throws (ValueError) -> List<u8>;  // DER, RFC 6979 nonce
+    fn verify(curve: EcCurve, hash: HashAlgorithm, public_key: ByteInput, msg: ByteInput, signature: ByteInput) -> bool;  // SEC1 uncompressed key, DER signature
 }
 struct RsaPublicKey {                               // crypto::rsa (RFC 8017), 2048..4096 bits
-    fn new(n: Bytes, e: Bytes) throws (ValueError) -> RsaPublicKey;
-    fn from_pkcs1_der(der: Bytes) throws (ValueError) -> RsaPublicKey;
+    fn new(n: ByteInput, e: ByteInput) throws (ValueError) -> RsaPublicKey;
+    fn from_pkcs1_der(der: ByteInput) throws (ValueError) -> RsaPublicKey;
     fn bits(self) -> usize;
     fn modulus(self) -> List<u8>;                   // big-endian, no leading zero bytes
     fn exponent(self) -> List<u8>;
-    fn verify_pkcs1v15(self, hash: HashAlgorithm, msg: Bytes, signature: Bytes) -> bool;
-    fn verify_pss(self, hash: HashAlgorithm, msg: Bytes, signature: Bytes, salt_len: usize | none = none) -> bool;  // MGF1(hash); none: salt length = hash length
+    fn verify_pkcs1v15(self, hash: HashAlgorithm, msg: ByteInput, signature: ByteInput) -> bool;
+    fn verify_pss(self, hash: HashAlgorithm, msg: ByteInput, signature: ByteInput, salt_len: usize | none = none) -> bool;  // MGF1(hash); none: salt length = hash length
 }
 struct RsaPrivateKey {
-    fn from_pkcs1_der(der: Bytes) throws (ValueError) -> RsaPrivateKey;   // RSAPrivateKey, two primes
+    fn from_pkcs1_der(der: ByteInput) throws (ValueError) -> RsaPrivateKey;   // RSAPrivateKey, two primes
     fn public_key(self) -> RsaPublicKey;
     fn bits(self) -> usize;
-    fn sign_pkcs1v15(self, hash: HashAlgorithm, msg: Bytes) throws (ValueError) -> List<u8>;  // deterministic
-    fn sign_pss(self, hash: HashAlgorithm, msg: Bytes, salt: Bytes) throws (ValueError) -> List<u8>;  // salt: fresh random, hash length
+    fn sign_pkcs1v15(self, hash: HashAlgorithm, msg: ByteInput) throws (ValueError) -> List<u8>;  // deterministic
+    fn sign_pss(self, hash: HashAlgorithm, msg: ByteInput, salt: ByteInput) throws (ValueError) -> List<u8>;  // salt: fresh random, hash length
 }
 ```
 

@@ -7,8 +7,8 @@
 | 컬렉션              | 리터럴 문법                | 의미                          |
 |---------------------|----------------------------|-------------------------------|
 | `List<T>`           | `[1, 2, 3]`                | 동적 배열(삽입 순서)          |
-| `Dict<K, V>`        | `{"a": 1, "b": 2}`         | 해시 맵(순서 없음)            |
-| `Set<T>`            | `{1, 2, 3}`                | 해시 집합(순서 없음)          |
+| `Dict<K, V>`        | `{"a": 1, "b": 2}`         | 해시 맵(삽입 순서)            |
+| `Set<T>`            | `{1, 2, 3}`                | 해시 집합(삽입 순서)          |
 | `OrderedDict<K, V>` | `OrderedDict::from([...])` | 삽입 순서를 지키는 dict       |
 | `OrderedSet<T>`     | `OrderedSet::from([...])`  | 삽입 순서를 지키는 set        |
 | `Tuple<...>`        | `(1, "a", true)`           | 고정 크기, 원소 타입이 제각각 |
@@ -119,6 +119,7 @@ impl<T> List<T> {
     fn retain(self, keep: fn(T) -> bool);        // 제자리, 순서 유지
     fn sort(self) where T: Ord;                  // 오름차순, stable
     fn sort_by(self, cmp: fn(T, T) -> Ordering); // stable
+    fn sort_by_key<K: Ord>(self, key: fn(T) -> K); // 키 기준 오름차순, stable
     fn reserve(self, additional: usize);
     fn shrink_to_fit(self);
     fn reverse(self);                            // 제자리
@@ -215,7 +216,7 @@ struct Dict<K: Hash + Eq, V> {
 }
 ```
 
-조회, 삽입, 제거는 평균 O(1)입니다. 순서를 보장하지 않으므로 순회 순서는 비결정적입니다.
+조회, 삽입, 제거는 평균 O(1)입니다. 순회는 삽입 순서를 따릅니다. 이미 있는 키를 다시 삽입하면 자리를 지키고, 제거한 뒤 다시 삽입한 키는 맨 뒤로 갑니다. 키가 표의 어느 칸에 놓이는지는 프로세스마다 한 번 고르는 seed에 달려 있습니다([2.5.6](205-cmp.md)). 순회 순서는 그 seed와 상관없습니다.
 
 ### 핵심 메서드
 
@@ -308,7 +309,7 @@ struct Set<T: Hash + Eq> {
 }
 ```
 
-순서는 보장하지 않습니다. 연산은 평균 O(1)입니다.
+`Dict`처럼 삽입 순서로 순회합니다. 연산은 평균 O(1)입니다.
 
 ```rok
 impl<T: Hash + Eq> Set<T> {
@@ -359,7 +360,8 @@ struct OrderedDict<K: Hash + Eq, V> { /* ... */ }
 struct OrderedSet<T: Hash + Eq> { /* ... */ }
 ```
 
-설정, JSON 같은 구조, 재현 가능한 출력처럼 순서를 지켜야 할 때 알맞습니다. 순서를 담는 인덱스 벡터 때문에 오버헤드가 약간 있습니다.
+> [!NOTE]
+> `Dict`와 `Set`도 삽입 순서를 지키므로([2.9.3](#293-dictk-v-해시-맵)) 두 타입은 그것과 같이 동작합니다. 이후 릴리스에서 `Dict` / `Set`의 별칭이 될 수 있습니다.
 
 - `OrderedDict`는 `new` / `with_capacity` / `from` / `len` / `is_empty` / `insert` / `get` / `contains_key` / `remove` / `clear` / `retain` / `extend` / `keys` / `values` / `entries`와 `d[k]`, `d[k] = v`가 있습니다. `keys` / `values` / `entries`는 삽입 순서로 돕니다. 이미 있는 키에 `insert`하면 값만 바뀌고 순서는 그대로입니다. `retain`은 남는 항목의 순서를 지키고, `extend`는 쌍을 순서대로 삽입합니다.
 - `OrderedSet`은 `new` / `from` / `len` / `is_empty` / `insert` / `remove` / `contains` / `clear` / `retain` / `extend` / `iter` / `to_list`와 집합 연산 `union` / `intersection` / `difference` / `symmetric_difference` / `is_subset` / `is_superset` / `is_disjoint`가 있습니다. 집합 연산의 결과는 왼쪽 피연산자의 순서를 먼저 따릅니다.
@@ -408,6 +410,8 @@ impl<T: Ord> BinaryHeap<T> {
     fn new() -> BinaryHeap<T>;                 // max-heap: 가장 큰 것이 먼저
 }
 impl<T> BinaryHeap<T> {
+    fn by_ordering(cmp: fn(T, T) -> Ordering) -> BinaryHeap<T>; // cmp 기준 가장 큰 것이 먼저, new()가 Ord::cmp 기준인 것처럼
+    #[deprecated(since = "0.1.6", note = "use `BinaryHeap::by_ordering`")]
     fn by(before: fn(T, T) -> bool) -> BinaryHeap<T>;   // before(a, b) 이면 a 가 먼저
     fn len(self) -> usize;
     fn is_empty(self) -> bool;
@@ -420,7 +424,9 @@ impl<T> BinaryHeap<T> {
 }
 ```
 
-`retain`은 제자리에서 걸러 낸 뒤 힙 순서를 되살리며 O(n)입니다. `IntoIterator`(`iter`처럼 순서 없음), `Debug`(저장 순서, 꼭대기가 먼저), `Clone`(`T: Clone`, 사본도 `by`의 순서를 유지)을 구현합니다. `T: Ord`이면 `Default`와 `FromIterator`가 `new`처럼 최대 힙을 만듭니다.
+`retain`은 제자리에서 걸러 낸 뒤 힙 순서를 되살리며 O(n)입니다. `IntoIterator`(`iter`처럼 순서 없음), `Debug`(저장 순서, 꼭대기가 먼저), `Clone`(`T: Clone`, 사본도 힙의 순서를 유지)을 구현합니다. `T: Ord`이면 `Default`와 `FromIterator`가 `new`처럼 최대 힙을 만듭니다.
+
+비교 함수는 `List::sort_by`의 것처럼 `Ordering`을 반환합니다. `by_ordering(|a, b| b.cmp(a))`는 가장 작은 것을 먼저 꺼냅니다. deprecated인 `by`는 대신 `bool` 비교 함수를 받습니다(`by(|a, b| a < b)`가 같은 최소 힙입니다).
 
 힙은 `Send`가 아닙니다. 순서가 `+ Send` 없는 `fn`이기 때문입니다. 원소를 다른 스레드로 넘기려면 `List`로 보내고, 받는 쪽에서 `collect()`로 `BinaryHeap`을 만듭니다.
 
@@ -592,8 +598,8 @@ sum(..[4, 5]);               //→ 9 (리스트 spread)
 | 컨테이너            | `Item`            | 순서                              |
 |---------------------|-------------------|-----------------------------------|
 | `List<T>`           | `T`               | 첫 → 마지막                       |
-| `Dict<K, V>`        | `(K, V)`          | **비결정**                        |
-| `Set<T>`            | `T`               | **비결정**                        |
+| `Dict<K, V>`        | `(K, V)`          | 삽입 순서                         |
+| `Set<T>`            | `T`               | 삽입 순서                         |
 | `OrderedDict<K, V>` | `(K, V)`          | 삽입 순서                         |
 | `OrderedSet<T>`     | `T`               | 삽입 순서                         |
 | `Deque<T>`          | `T`               | 앞 → 뒤                           |
@@ -616,8 +622,8 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 | `List<T>`     | `rok::core::collections::list`            | Rust `Vec`을 본뜸                   |
 | `Dict<K, V>`  | `rok::core::collections::dict`            | 개방 주소법                         |
 | `Set<T>`      | `rok::core::collections::set`             | `Dict<T, bool>` 위                  |
-| `OrderedDict` | `rok::core::collections::ordered_dict`    | 연결 해시 또는 인덱스 벡터          |
-| `OrderedSet`  | `rok::core::collections::ordered_set`     | (위와 같음)                         |
+| `OrderedDict` | `rok::core::collections::ordered_dict`    | `Dict` 위에 구현                    |
+| `OrderedSet`  | `rok::core::collections::ordered_set`     | `OrderedDict` 위에 구현             |
 | `Deque<T>`    | `rok::core::collections::deque`           | 링 버퍼                             |
 | `BinaryHeap<T>` | `rok::core::collections::heap`          | `List` 위의 암묵적 이진 트리        |
 | `Tuple`       | **컴파일러 내장** + 표준 라이브러리 훅  | `#[literal(...)]` + 컴파일러 조회   |
@@ -628,14 +634,14 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 | 측면        | Rust                 | Python                     | Rok                                    |
 |-------------|----------------------|----------------------------|----------------------------------------|
 | 동적 배열   | `Vec<T>`             | `list`                     | `List<T>`                              |
-| 해시 맵     | `HashMap<K, V>`      | `dict`(삽입 순서 유지)     | `Dict<K, V>` + `OrderedDict<K, V>`     |
-| 해시 집합   | `HashSet<T>`         | `set`                      | `Set<T>` + `OrderedSet<T>`             |
+| 해시 맵     | `HashMap<K, V>`      | `dict`(삽입 순서 유지)     | `Dict<K, V>`(삽입 순서 유지)           |
+| 해시 집합   | `HashSet<T>`         | `set`                      | `Set<T>`(삽입 순서 유지)               |
 | 고정 이종   | `(T1, T2)` 튜플      | `tuple`                    | `Tuple<T1, T2>`                        |
 | 뷰          | `&[T]` / `&str`      | **slice 객체**             | `Slice<T>`                             |
 | 리터럴      | `vec![...]` (매크로) | `[...]` `{...}` `(...)`    | `[...]` `{...}` `(...)` (`#[literal]`) |
-| 순서 있는 맵 | `BTreeMap`(정렬 맵) | **기본 dict**              | 별도 `OrderedDict`                     |
+| 순서 있는 맵 | `BTreeMap`(정렬 맵) | **기본 dict**              | **기본 `Dict`**                        |
 
-Rok이 가장 크게 다른 점은 다음과 같습니다. 첫째, 컬렉션 6가지 모두에 1급 리터럴 문법이 있으므로 `vec![]` 같은 매크로를 쓰지 않습니다. 둘째, `Dict` / `Set`은 삽입 순서를 보장하지 않습니다(Python 3.7 이상과 다릅니다). 그래서 순서가 중요하면 `OrderedDict`를 직접 골라 써야 합니다. 셋째, `Slice<T>`는 stride가 있는 뷰이므로 `xs[::2]` 같은 식도 복사 없이 동작합니다.
+Rok이 가장 크게 다른 점은 다음과 같습니다. 첫째, 컬렉션 6가지 모두에 1급 리터럴 문법이 있으므로 `vec![]` 같은 매크로를 쓰지 않습니다. 둘째, `Dict` / `Set`은 Python 3.7 이상의 `dict`처럼 삽입 순서로 순회합니다. 그래서 순서를 지키는 타입을 따로 둘 필요가 없습니다. 셋째, `Slice<T>`는 stride가 있는 뷰이므로 `xs[::2]` 같은 식도 복사 없이 동작합니다.
 
 ## 2.9.12. `GcBuf<T>`: 원시 GC 버퍼
 

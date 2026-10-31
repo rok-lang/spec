@@ -152,7 +152,7 @@ par::for_each(xs, [ref buf] |x| { buf.push(x) });
 // ERROR: a [ref buf] cell cannot cross threads
 ```
 
-Instead, use a reduce (`par::reduce(xs, 0, |a, b| a + b)`), share through `Mutex` / `RwLock` / `Atomic` / channels, or return the value from the thread (`join()`).
+Instead, use a fold (`par::fold(xs, 0, |a, b| a + b)`), share through `Mutex` / `RwLock` / `Atomic` / channels, or return the value from the thread (`join()`).
 
 A value shared this way belongs to its new owner: after `Mutex::new(buf)` or `tx.send(buf)`, using `buf` is a compile error ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers)). Use it through the lock, or hand over `buf.clone()`.
 

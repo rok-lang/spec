@@ -55,6 +55,7 @@ impl<T: AtomicPrimitive + PartialEq> Atomic<T> {
 
 impl Atomic<i32> {
     fn wait(self, expected: i32, timeout_ns: i64 = -1);   // 값이 expected 인 동안, 최대 timeout_ns (< 0 이면 무한) 대기
+    fn wait_for(self, expected: i32, timeout: Duration);   // wait, 한도를 Duration 으로 (음수면 무한)
     fn wake(self);                                         // 이 cell 에서 wait 중인 스레드를 모두 깨움
 }
 ```
@@ -328,7 +329,7 @@ task::spawn(async { c.set(100) });       // ERROR: Cell 은 cross-task 안전 X
 
 `Send` / `Sync`는 [2.13.9](213-marker.md#2139-send--sync-스레드-경계-마커)의 자동 마커 트레잇입니다. 이 장의 타입은 다음 정책을 따릅니다.
 
-- `Atomic<T>`: Send + Sync
+- `Atomic<T>`: Send + Sync. `Atomic<Ptr<T>>`도 마찬가지입니다(cell은 주소를 담습니다)
 - `Mutex<T>`: `T: Send`이면 Send + Sync
 - `RwLock<T>`: `T: Send`이면 Send, `T: Send + Sync`이면 Sync. 여러 읽는 쪽이 값을 동시에 공유하므로 컬렉션(`!Sync`)의 `RwLock`은 스레드 사이에서 공유할 수 없습니다. `Mutex<T>`를 씁니다.
 - `MutexGuard<T>`, `RwLockReadGuard<T>`, `RwLockWriteGuard<T>`: Send, `!Sync`. 가드는 자기 `using` 블록 안에서만 씁니다.

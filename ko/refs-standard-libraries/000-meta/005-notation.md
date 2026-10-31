@@ -80,3 +80,13 @@ let z = x + y;        //→ 4.0 (f64)
 ## 0.5.7. 사양과 구현의 분리
 
 이 문서는 **사양**(specification)만 정의합니다. 컴파일러와 표준 라이브러리의 실제 구현은 별도 저장소에서 관리합니다. 구현이 이 사양과 충돌하면 이 사양이 우선합니다.
+
+## 0.5.8. `try_` 접두사
+
+`try_` 이름은 다음 세 형태 가운데 하나를 나타내며, 이 셋만 나타냅니다.
+
+1. 막히지 않는 시도: 기본 형태가 기다리는 일을 지금 하고, 할 수 없었으면 그렇다고 알립니다(`Mutex::try_lock`, `Receiver::try_recv`, `Sender::try_send`).
+2. 던지는 형태: 기본 형태가 panic하거나 결과를 낮추는 자리, 또는 기본 형태가 없는 자리에서 던집니다(`TryFrom::try_from`, `FormatSpec::try_parse`, `File::try_clone`).
+3. 받은 클로저가 던진 것을 그대로 넘기는 형태(`Iterator::try_fold`, `Iterator::try_for_each`, `par::try_scope`).
+
+기본 형태가 panic하는 자리에서 `none`을 돌려주는 형태는 `try_` 형태가 아닙니다. 그런 형태는 `task::current_id`(task 밖이면 `none`)나 `Float::parse_or_none`처럼 돌려주는 것을 이름에 담습니다. 옛 이름 `task::try_id`와 `Float::try_parse`는 0.1.6부터 deprecated입니다([refs-lang 6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md)). 표준 라이브러리의 새 이름은 이 규칙을 따릅니다. 규칙에 어긋나는 예전 이름은 이름을 바꿀 수 있는 릴리스까지 그대로 둡니다.

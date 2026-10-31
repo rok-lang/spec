@@ -152,7 +152,7 @@ par::for_each(xs, [ref buf] |x| { buf.push(x) });
 // ERROR: a [ref buf] cell cannot cross threads
 ```
 
-대신 reduce를 쓰거나(`par::reduce(xs, 0, |a, b| a + b)`), `Mutex` / `RwLock` / `Atomic` / 채널로 공유하거나, 스레드에서 값을 돌려받습니다(`join()`).
+대신 fold를 쓰거나(`par::fold(xs, 0, |a, b| a + b)`), `Mutex` / `RwLock` / `Atomic` / 채널로 공유하거나, 스레드에서 값을 돌려받습니다(`join()`).
 
 이렇게 공유한 값은 새 소유자의 것입니다. `Mutex::new(buf)`나 `tx.send(buf)` 뒤에 `buf`를 쓰면 컴파일 에러입니다([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync-스레드-경계-마커)). 락을 거쳐 쓰거나 `buf.clone()`을 넘깁니다.
 

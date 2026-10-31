@@ -235,6 +235,8 @@ impl char {
     fn is_control(self) -> bool;
     fn to_lowercase(self) -> char;       // 1:1 매핑만
     fn to_uppercase(self) -> char;
+    fn to_lowercase_str(self) -> str;    // 1:N 을 포함한 전체 매핑
+    fn to_uppercase_str(self) -> str;
 
     // ASCII
     fn is_ascii(self) -> bool;
@@ -248,7 +250,7 @@ impl char {
 }
 ```
 
-`char`의 `to_lowercase` / `to_uppercase`는 한 문자를 돌려주므로 1:1 매핑만 적용합니다. 한 문자가 여러 문자로 바뀌는 경우는 그대로 둡니다(`'ß'.to_uppercase() == 'ß'`). `str`의 `to_lowercase` / `to_uppercase`는 전체 매핑을 적용합니다. 1:N 매핑과 문맥 규칙(그리스어 끝 시그마 `Σ` → `ς`)도 포함합니다(`"ß".to_uppercase() == "SS"`).
+`char`의 `to_lowercase` / `to_uppercase`는 한 문자를 돌려주므로 1:1 매핑만 적용합니다. 한 문자가 여러 문자로 바뀌는 경우는 그대로 둡니다(`'ß'.to_uppercase() == 'ß'`). 전체 매핑은 `to_lowercase_str` / `to_uppercase_str`가 돌려줍니다(`'ß'.to_uppercase_str() == "SS"`). `str`의 `to_lowercase` / `to_uppercase`는 전체 매핑을 적용합니다. 1:N 매핑과 문맥 규칙(그리스어 끝 시그마 `Σ` → `ς`)도 포함합니다(`"ß".to_uppercase() == "SS"`).
 
 Unicode 속성과 대소문자 표는 UCD 18.0.0입니다.
 

@@ -235,6 +235,8 @@ impl char {
     fn is_control(self) -> bool;
     fn to_lowercase(self) -> char;       // 1:1 mappings only
     fn to_uppercase(self) -> char;
+    fn to_lowercase_str(self) -> str;    // the full mapping, 1:N included
+    fn to_uppercase_str(self) -> str;
 
     // ASCII
     fn is_ascii(self) -> bool;
@@ -248,7 +250,7 @@ impl char {
 }
 ```
 
-`char`'s `to_lowercase` / `to_uppercase` return a single character, so only 1:1 mappings apply. A character that maps to several characters is left unchanged (`'ß'.to_uppercase() == 'ß'`). `str`'s `to_lowercase` / `to_uppercase` apply the full mapping, including 1:N mappings and context rules (Greek final sigma `Σ` → `ς`) (`"ß".to_uppercase() == "SS"`).
+`char`'s `to_lowercase` / `to_uppercase` return a single character, so only 1:1 mappings apply. A character that maps to several characters is left unchanged (`'ß'.to_uppercase() == 'ß'`); `to_lowercase_str` / `to_uppercase_str` give its full mapping (`'ß'.to_uppercase_str() == "SS"`). `str`'s `to_lowercase` / `to_uppercase` apply the full mapping, including 1:N mappings and context rules (Greek final sigma `Σ` → `ς`) (`"ß".to_uppercase() == "SS"`).
 
 The Unicode property and case tables are UCD 18.0.0.
 

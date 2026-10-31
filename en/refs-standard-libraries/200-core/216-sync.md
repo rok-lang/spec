@@ -55,6 +55,7 @@ impl<T: AtomicPrimitive + PartialEq> Atomic<T> {
 
 impl Atomic<i32> {
     fn wait(self, expected: i32, timeout_ns: i64 = -1);   // waits while the value is expected, up to timeout_ns (< 0 means forever)
+    fn wait_for(self, expected: i32, timeout: Duration);   // wait, the limit a Duration (negative: forever)
     fn wake(self);                                         // wakes every thread waiting on this cell
 }
 ```
@@ -322,7 +323,7 @@ task::spawn(async { c.set(100) });       // ERROR: Cell is not cross-task safe
 
 `Send` / `Sync` are the automatic marker traits of [2.13.9](213-marker.md#2139-send--sync---thread-boundary-markers). The types in this chapter follow this policy:
 
-- `Atomic<T>`: Send + Sync
+- `Atomic<T>`: Send + Sync, `Atomic<Ptr<T>>` included (the cell holds an address)
 - `Mutex<T>`: Send + Sync when `T: Send`
 - `RwLock<T>`: Send when `T: Send`; Sync when `T: Send + Sync`. Its readers share the value at once, so an `RwLock` of a collection (`!Sync`) cannot be shared between threads; use `Mutex<T>`.
 - `MutexGuard<T>`, `RwLockReadGuard<T>`, `RwLockWriteGuard<T>`: Send, `!Sync`. A guard is good only inside its `using` block

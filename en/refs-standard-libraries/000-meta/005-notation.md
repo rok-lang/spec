@@ -79,3 +79,13 @@ References to other documents use one of two forms depending on location. Within
 ## 0.5.7. Separation of specification and implementation
 
 This document defines only the **specification**. The actual implementations of the compiler and the standard libraries are maintained in separate repositories; in case of conflict with this specification, this specification takes precedence.
+
+## 0.5.8. The `try_` prefix
+
+A `try_` name marks one of three forms, and only these:
+
+1. A non-blocking attempt: it does now what the plain form waits for, and reports that it could not (`Mutex::try_lock`, `Receiver::try_recv`, `Sender::try_send`).
+2. A throwing form: it throws where the plain form panics or degrades, or where no plain form exists (`TryFrom::try_from`, `FormatSpec::try_parse`, `File::try_clone`).
+3. A form that passes on the throw of the closure it takes (`Iterator::try_fold`, `Iterator::try_for_each`, `par::try_scope`).
+
+A form that returns `none` where the plain one panics is not a `try_` form: its name says what it returns, as `task::current_id` (`none` outside a task) and `Float::parse_or_none` do. Their old names `task::try_id` and `Float::try_parse` are deprecated since 0.1.6 ([refs-lang 6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md)). A new name in the standard library follows this rule; an older one that breaks it keeps its name until a release that may rename it.
