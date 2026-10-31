@@ -79,6 +79,8 @@ await task::yield_now();
 
 `spawn`은 클로저가 아니라 future를 받습니다. 그래서 `task::spawn(async { ... })`처럼 `async` 블록이나 `async fn` 호출 결과를 넘깁니다. `Send`가 아닌 future는 `spawn_local`로 현재 워커에서 실행합니다. `join` / `race` / `timeout`은 `await`로 기다려 결과를 받습니다.
 
+`race`와 `timeout`은 아무것도 취소하지 않습니다. `race`에서 진 task와 시간이 다 된 `timeout`의 task는 끝까지 계속 실행되고, 그 결과는 버려집니다. 그 일이 더는 필요 없으면 `Task` 핸들을 남겨 두었다가 `cancel`([2.18.4](#2184-협력적-취소-taskcancel))을 부릅니다. 아래 `select`는 task가 아니라 future를 실행하고, 남겨 둔 future를 취소합니다.
+
 ### `spawn_blocking`: 블로킹 작업
 
 ```rok

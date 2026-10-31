@@ -77,6 +77,8 @@ await task::yield_now();
 
 `spawn` takes a future, not a closure, so it is passed an `async` block or the result of an `async fn` call, as in `task::spawn(async { ... })`. A future that is not `Send` runs on the current worker through `spawn_local`. `join` / `race` / `timeout` are `await`ed to obtain their results.
 
+`race` and `timeout` cancel nothing: the tasks that lose a `race`, and the task of a `timeout` that runs out, keep running to the end, and their results are dropped. Keep their `Task` handles and call `cancel` ([2.18.4](#2184-cooperative-cancellation---taskcancel)) when their work is no longer wanted. `select` (below) runs futures rather than tasks and cancels the ones it leaves.
+
 ### `spawn_blocking` - blocking work
 
 ```rok
