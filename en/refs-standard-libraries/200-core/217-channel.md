@@ -90,7 +90,7 @@ rx.recv();             //→ 1
 rx.recv();             //→ none  (closed)
 ```
 
-## 2.17.4. Multi-producer
+## 2.17.4. Multiple producers and consumers
 
 `Sender<T>` implements `Clone`, so multiple tasks can send messages to the same channel.
 
@@ -105,7 +105,7 @@ let v1 = rx.recv();
 let v2 = rx.recv();
 ```
 
-`Receiver<T>` does not implement Clone, so it acts as a single consumer. This is the mpsc (multi producer single consumer) model. If multiple consumers are needed, use a separate fan-out task that distributes the messages.
+`Receiver<T>` does not implement `Clone`, but it is a handle: a copy (`let rx2 = rx;`, or one moved into another task or thread) shares the same queue. A channel is therefore multi-producer, multi-consumer (MPMC). Any number of receiver copies may call `recv` (or `try_recv`, `recv_async`, `for`) at once, and each value sent goes to exactly one of them, whichever takes it first; no receiver sees every value. Once every sender is closed and the queue is empty, every copy gets `none`. To give each value to several consumers, use a fan-out task that forwards it to a channel per consumer.
 
 ## 2.17.5. `for` / `Stream` integration
 

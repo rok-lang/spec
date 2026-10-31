@@ -90,7 +90,7 @@ rx.recv();             //→ 1
 rx.recv();             //→ none  (closed)
 ```
 
-## 2.17.4. 다중 생산자
+## 2.17.4. 다중 생산자와 다중 소비자
 
 `Sender<T>`는 `Clone`을 구현하므로 여러 task가 같은 채널에 메시지를 보낼 수 있습니다.
 
@@ -105,7 +105,7 @@ let v1 = rx.recv();
 let v2 = rx.recv();
 ```
 
-`Receiver<T>`는 Clone을 구현하지 않으므로 소비자 하나로 동작합니다. mpsc(multi producer single consumer) 모델입니다. 소비자가 여럿 필요하면 메시지를 나눠 주는 fan-out task를 따로 둡니다.
+`Receiver<T>`는 `Clone`을 구현하지 않지만 핸들입니다. 복사본(`let rx2 = rx;`, 또는 다른 task나 스레드로 옮긴 것)은 같은 큐를 공유합니다. 따라서 채널은 다중 생산자, 다중 소비자(MPMC)입니다. `Receiver` 복사본 여럿이 동시에 `recv`(또는 `try_recv`, `recv_async`, `for`)를 불러도 되고, 보낸 값 하나는 그중 먼저 가져간 쪽 하나에만 갑니다. 모든 값을 보는 받는 쪽은 없습니다. 모든 sender가 `close()`되고 큐가 비면 모든 복사본이 `none`을 받습니다. 값 하나를 여러 소비자에게 주려면 소비자마다 채널을 두고 값을 전달하는 fan-out task를 둡니다.
 
 ## 2.17.5. `for` / `Stream` 통합
 
