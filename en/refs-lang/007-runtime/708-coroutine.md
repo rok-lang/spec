@@ -37,7 +37,7 @@ Frame {
 3. Next next() → continues from the saved state. When finished, none.
 ```
 
-The caller drives progress (`for x in g { .. }`).
+The caller drives progress (`for x in g { .. }`). A `for` that leaves the generator early closes it: the generator resumes in a closing mode and leaves at the `yield` it waits at, as if by `return`, running its cleanups ([4.11.10](../004-functions/411-generators.md#41110-generator-termination)).
 
 ## 7.8.4. Async
 

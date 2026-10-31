@@ -135,7 +135,7 @@ let (i, v) = await task::select([fetch_a(), fetch_b()]);
 `race`와 달리 future를 띄우지 않고, 기다리는 task **안에서** 실행합니다.
 
 - 목록 순서대로 폴링합니다. 같은 poll에서 둘 이상이 끝나면 인덱스가 낮은 쪽이 이깁니다.
-- 하나가 끝나면 이미 시작한 나머지는 모두 취소됩니다. 취소된 상태로 한 번 더 폴링되어 `finally` / `using`이 실행됩니다(2.18.4). 한 번도 폴링되지 않은 future는 실행되지 않습니다.
+- 하나가 끝나면 이미 시작한 나머지는 모두 취소됩니다. 취소된 상태로 한 번 더 폴링되어 `finally` / `using`이 실행됩니다(2.18.4). 정리 중에 `await`하는 진 future는 따로 task가 되어 백그라운드에서 정리를 마칩니다. `select`는 그것을 기다리지 않습니다. 한 번도 폴링되지 않은 future는 실행되지 않습니다.
 - 진 future가 만든 깨우기 등록(타이머, parking)은 모두 풀립니다.
 - 기다리는 task가 취소되면 자식 future도 취소됩니다.
 - 목록이 비어 있으면 panic이 일어납니다.
@@ -214,7 +214,7 @@ Worker 0 ─┐      Worker 1 ─┐    ...    Worker N-1 ─┐
 
 표준 라이브러리의 권위는 API 시그니처까지입니다. 알고리듬 본문은 사양 밖의 런타임과 표준 라이브러리 본문에 속합니다.
 
-`rok::core::task`는 런타임 훅도 내보냅니다. `TaskRef`, `Pool`, `Worker`, `wake_task`, `cancel_requested`, `unwinding`, 그리고 `host_enter` / `host_leave` / `host_run`(WebAssembly 컴포넌트의 이벤트 루프 진입점)입니다. 이 훅은 컴파일러와 런타임을 위해 공개되어 있을 뿐 런타임 내부용입니다. 안정된 API가 아닙니다.
+`rok::core::task`는 런타임 훅도 내보냅니다. `TaskRef`, `Pool`, `Worker`, `wake_task`, `cancel_requested`, `unwinding`, `cancel_point`, `cancel_left`, `cleanup_running`, `cleanup_done`, 그리고 `host_enter` / `host_leave` / `host_run`(WebAssembly 컴포넌트의 이벤트 루프 진입점)입니다. 이 훅은 컴파일러와 런타임을 위해 공개되어 있을 뿐 런타임 내부용입니다. 안정된 API가 아닙니다.
 
 ## 2.18.4. 협력적 취소: `Task::cancel`
 
@@ -229,6 +229,7 @@ t.cancel();              // 협력적 신호. task 가 cancellation point 에서
 `cancel()`은 취소를 **요청**합니다. 규칙은 다음과 같습니다([refs-lang 7.7.9](../../refs-lang/007-runtime/707-io-and-timer.md#779-취소)).
 
 - 모든 `await`가 취소 지점(cancellation point)입니다. 취소된 task는 다음 `await`에서 `return`처럼 본문을 떠납니다. 그때 지나는 `finally`와 `using` 정리가 안쪽부터 실행됩니다.
+- 그 정리 안의 `await`는 취소 지점이 아닙니다. 끝까지 완료되고, task는 정리가 끝날 때까지 계속 폴링됩니다. 끝나지 않는 정리는 취소된 task를 계속 살려 둡니다. `task::timeout`으로 시간을 제한하세요.
 - 취소는 task 안에서 `catch`할 수 있는 에러가 아닙니다. task 안으로 `CancellationError`를 던지지 않습니다.
 - 블로킹 시스템 호출은 취소 지점이 아닙니다. task는 그 호출이 끝난 뒤 다음 `await`에서 떠납니다.
 - 소켓 I/O(`*_async`), `readable` / `writable`, `sleep` / `timeout`, `lock_async`, `recv_async` / `send_async`에서 기다리던 task는 취소되면 깨어나고 다음 `await`에서 떠납니다.

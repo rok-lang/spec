@@ -133,7 +133,7 @@ let (i, v) = await task::select([fetch_a(), fetch_b()]);
 Unlike `race`, it does not spawn the futures; it runs them **inside** the waiting task.
 
 - Futures are polled in list order; if two or more finish in the same poll, the lower index wins.
-- When one finishes, all the others that have already started are cancelled. They are polled once more in the cancelled state so that `finally` / `using` run (2.18.4). A future never polled is never run.
+- When one finishes, all the others that have already started are cancelled. They are polled once more in the cancelled state so that `finally` / `using` run (2.18.4). A loser whose cleanups `await` finishes them in the background, as a task of its own; `select` does not wait for it. A future never polled is never run.
 - All wakeup registrations (timers, parking) made by the losing futures are released.
 - If the waiting task is cancelled, the child futures are cancelled too.
 - An empty list panics.
@@ -212,7 +212,7 @@ Key properties of this structure: the local queue is a lock-free Chase-Lev deque
 
 Note that the standard library's authority is limited to the API signatures; the algorithm bodies belong to the runtime and standard library body, outside the spec.
 
-`rok::core::task` also exports runtime hooks: `TaskRef`, `Pool`, `Worker`, `wake_task`, `cancel_requested`, `unwinding`, and `host_enter` / `host_leave` / `host_run` (the event-loop entry for WebAssembly components). They are public for the compiler and the runtime, are internal to the runtime, and are not a stable API.
+`rok::core::task` also exports runtime hooks: `TaskRef`, `Pool`, `Worker`, `wake_task`, `cancel_requested`, `unwinding`, `cancel_point`, `cancel_left`, `cleanup_running`, `cleanup_done`, and `host_enter` / `host_leave` / `host_run` (the event-loop entry for WebAssembly components). They are public for the compiler and the runtime, are internal to the runtime, and are not a stable API.
 
 ## 2.18.4. Cooperative cancellation - `Task::cancel`
 
@@ -227,6 +227,7 @@ t.cancel();              // cooperative signal; the task ends at a cancellation 
 `cancel()` **requests** cancellation. The rules ([refs-lang 7.7.9](../../refs-lang/007-runtime/707-io-and-timer.md#779-cancellation)):
 
 - Every `await` is a cancellation point. A cancelled task leaves its body at the next `await` as if by `return`, running the `finally` and `using` cleanups it passes, innermost first.
+- An `await` inside those cleanups is not a cancellation point: it completes, and the task is polled until its cleanups end. A cleanup that never ends keeps the cancelled task alive; bound it with `task::timeout`.
 - Cancellation is not an error that can be `catch`ed inside the task. No `CancellationError` is thrown into the task.
 - A blocking syscall is not a cancellation point. The task leaves at the next `await` after the call finishes.
 - A task waiting in socket I/O (`*_async`), `readable` / `writable`, `sleep` / `timeout`, `lock_async`, or `recv_async` / `send_async` wakes when cancelled and leaves at the next `await`.

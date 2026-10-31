@@ -120,13 +120,14 @@ When enabled (`ROK_DYNAMIC_WORKERS=1`), an excessively idle worker parks and pus
 - Every `await` is a cancellation point. `await` checks the flag on entry and just before suspending.
 - The check after the awaited future returns `Ready` is not "is the flag set" but "**did the awaited coroutine leave because of cancellation**". So a value the future handed over (a received message, an acquired lock guard) is preserved, and the task leaves at the next `await`.
 - A cancelled task leaves its body at the next `await` as if by `return`. `finally` blocks passed through and `drop`s of `using` run from the innermost outward. Nested `async fn` calls are cleaned up starting from the innermost coroutine.
+- While a coroutine runs the cleanups of its cancel, no `await` checks the flag, in it or in what it awaits: the cleanups complete. The runtime keeps polling the task until they end; an outer coroutine leaves when the inner one has finished its cleanups.
 - This is not an error that can be `catch`ed inside the task. A non-throwing async body ends by the same path. The result is discarded.
 - A task cancelled after its last cancellation point finishes normally and has a result (`await` / `join` return that result). `CancellationError` applies only to tasks that ended without a result.
 - Blocking syscalls (`TcpStream::read` etc.) are not cancellation points. The task leaves at the next `await` after the call finishes.
 - A task waiting in socket I/O, `readable` / `writable`, `sleep` / `timeout`, `lock_async`, or `recv_async` / `send_async` is woken when cancelled and leaves at the next `await`.
 - When a task finishes, all its wake registrations (I/O readiness waits, timers, wakers in the parking table) are released. The number of registrations in the running pool can be inspected with the diagnostic `task::registrations()`; the exact meaning of that value is implementation-defined.
 
-After `task::timeout` expires or `task::race` decides a winner, the losing tasks keep running. To stop them, call `cancel`. `task::select` does not spawn, so it cancels the losing futures itself ([stdlib 2.18.1](../../refs-standard-libraries/200-core/218-task.md#select---the-first-future-to-finish)).
+After `task::timeout` expires or `task::race` decides a winner, the losing tasks keep running. To stop them, call `cancel`. `task::select` does not spawn, so it cancels the losing futures itself ([stdlib 2.18.1](../../refs-standard-libraries/200-core/218-task.md#select---the-first-future-to-finish)); a loser whose cleanups `await` finishes them as a task of its own.
 
 ## 7.7.10. Comparison with the reactor pattern
 

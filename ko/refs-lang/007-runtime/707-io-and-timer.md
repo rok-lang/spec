@@ -120,13 +120,14 @@ park된 동안 CPU 사용량은 0이므로 idle 워커가 많아도 추가 비�
 - 모든 `await`는 cancellation point입니다. `await`는 들어갈 때와 중단하기 직전에 플래그를 확인합니다.
 - 기다린 future가 `Ready`를 돌려준 뒤에는 "플래그가 섰는가"를 검사하지 않습니다. "**기다린 코루틴이 취소 때문에 떠났는가**"를 검사합니다. 그래서 future가 넘겨준 값(받은 메시지, 잡은 잠금 guard)은 보존되고, task는 다음 `await`에서 떠납니다.
 - 취소된 task는 다음 `await`에서 `return`한 것처럼 본문을 떠납니다. 그 과정에서 지나는 `finally` 블록과 `using`의 `drop`이 안쪽부터 실행됩니다. 중첩된 `async fn` 호출은 가장 안쪽 코루틴부터 정리됩니다.
+- 코루틴이 취소로 인한 정리를 실행하는 동안에는 그 안의 `await`도, 그것이 기다리는 쪽의 `await`도 플래그를 확인하지 않습니다. 정리는 끝까지 완료됩니다. 런타임은 정리가 끝날 때까지 task를 계속 폴링합니다. 바깥 코루틴은 안쪽 코루틴이 정리를 마친 뒤에 떠납니다.
 - 취소는 task 안에서 `catch`로 잡을 수 있는 에러가 아닙니다. 에러를 던지지 않는 async 본문도 같은 경로로 끝납니다. 결과는 버려집니다.
 - 마지막 cancellation point를 지난 뒤에 취소된 task는 정상적으로 끝나고 결과가 남습니다. `await` / `join`은 그 결과를 돌려줍니다. `CancellationError`는 결과 없이 끝난 task에만 해당합니다.
 - blocking syscall(`TcpStream::read` 등)은 cancellation point가 아닙니다. task는 호출이 끝난 뒤 다음 `await`에서 떠납니다.
 - 소켓 I/O, `readable` / `writable`, `sleep` / `timeout`, `lock_async`, `recv_async` / `send_async`에서 기다리던 task는 취소되면 깨어나 다음 `await`에서 떠납니다.
 - task가 끝나면 그 task의 깨우기 등록은 모두 해제됩니다. I/O readiness 대기, 타이머, parking 표의 waker가 여기에 들어갑니다. 실행 중인 pool의 등록 수는 진단용 `task::registrations()`로 볼 수 있습니다. 그 값의 정확한 의미는 구현이 정합니다.
 
-`task::timeout`이 시간을 넘기거나 `task::race`가 승자를 정한 뒤에도 진 쪽 task는 계속 실행됩니다. 멈추려면 `cancel`을 호출하세요. `task::select`는 task를 새로 띄우지 않으므로 진 future를 스스로 취소합니다([stdlib 2.18.1](../../refs-standard-libraries/200-core/218-task.md#select-먼저-끝나는-future)).
+`task::timeout`이 시간을 넘기거나 `task::race`가 승자를 정한 뒤에도 진 쪽 task는 계속 실행됩니다. 멈추려면 `cancel`을 호출하세요. `task::select`는 task를 새로 띄우지 않으므로 진 future를 스스로 취소합니다([stdlib 2.18.1](../../refs-standard-libraries/200-core/218-task.md#select-먼저-끝나는-future)). 정리 중에 `await`하는 진 future는 따로 task가 되어 정리를 마칩니다.
 
 ## 7.7.10. reactor 패턴과 비교
 

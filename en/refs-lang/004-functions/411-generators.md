@@ -165,6 +165,30 @@ yield fn early_stop(stop: i32) -> i32 {
 }
 ```
 
+A generator that a `for` loop leaves early is closed. This happens when the loop body leaves the loop by `break` (also a labelled `break` or `continue` of an outer loop), `return`, a thrown error, `try` propagation, a task's cancellation, or a `yield` of an enclosing generator. Closing resumes the generator at the `yield` it waits at, which then leaves the body as if by `return`: the `finally` blocks and the `using` drops around that `yield` run, innermost first. A `yield` reached while closing ends the generator the same way; its value is dropped. A generator closed before its first `next()` runs none of its body. After closing, `next()` returns `none`.
+
+```rok
+yield fn lines() -> str {
+    using f = open_file() {          // dropped when the loop below breaks
+        for l in f.lines() { yield l; }
+    }
+}
+
+for l in lines() {
+    if l == "" { break; }            // closes the generator: `f` is dropped
+}
+```
+
+Only a generator the loop itself holds is closed: the `for` expression is the generator value (a call, a `yield` block). A generator in a variable, a field or an element is not closed, so iteration may continue after the loop:
+
+```rok
+let g = lines();
+for header in g { if header == "" { break; } }   // g stays open
+for body in g { print(body); }                    // goes on after the blank line
+```
+
+A generator that is never closed and never finished keeps its cleanups pending until the GC reclaims it; they do not run then.
+
 ## 4.11.11. Generator state
 
 A generator keeps internal state between calls. The body's local variables, the iteration position and the coroutine frame are preserved until the next `next()` call.
