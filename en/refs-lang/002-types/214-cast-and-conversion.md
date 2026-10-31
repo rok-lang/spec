@@ -43,6 +43,8 @@ The allowed pairs are a fixed set:
 - A payload-less `enum` to an integer type, giving its tag or value ([2.4.2](204-enum.md#casting-to-an-integer)).
 - To or from the arbitrary-precision std types `int` / `float`. A cast into one runs the lossless `From` impl, so a pair without one (`f64 as int`) is an error; a cast out of one runs the target's `WrappingFrom` impl.
 
+From a floating-point type to an integer type, `as` truncates toward zero and saturates: a value past the target's range gives its nearest end (`1e10 as i32` is `i32::MAX`, `-1.5 as u8` is `0`), and NaN gives `0`, at every optimization level. The full table of `as` results is in [stdlib 2.11.6](../../refs-standard-libraries/200-core/211-conversion.md#2116-as-t---bit-reinterpretation--numeric-cast).
+
 Any other pair is a compile error: ``cannot cast `str` as `i32` (only numeric / bool / char casts)``. An allowed `as` always succeeds. For a conversion that may fail, use `.try_into()` instead.
 
 ## 2.14.3. `.into()` calls

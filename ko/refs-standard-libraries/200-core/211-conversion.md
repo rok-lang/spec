@@ -195,6 +195,8 @@ let b_neg: u8 = -1i32 as u8;     // 255
 
 let f: f64 = 1.7;
 let i: i32 = f as i32;            // 1 (절삭, IEEE 754 → integer)
+let big: i32 = 1e10 as i32;       // i32::MAX (포화)
+let nan: i32 = f64::NAN as i32;   // 0
 let f2: f32 = 3.14f64 as f32;     // 3.14 → f32 (IEEE 754 narrowing)
 ```
 
