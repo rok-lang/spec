@@ -28,7 +28,7 @@ The **ABI contract** is the block symbol `rok_tls` and each slot's offset, type 
 **Implementation-defined slots**: the runtime may keep further thread-local state, after the ABI slots or elsewhere, for scheduling, statistics, profiling, debugging and so on. The compiler and external packages must not reference it.
 
 > [!NOTE]
-> Rok's runtime places `no_safepoint` at 10p+10 (`u8`, the depth of `#[no_safepoint]` calls a debug rokc brackets with `rok_nosp_enter` / `rok_nosp_leave`, [8.4.10](804-safepoint.md#8410-native-calls)), `task_lane` at 10p+16, `static_inits` at 11p+16, `held_locks` (the locks this thread holds; in a session host, locks a thread that is gone held while blocked are released) at 12p+16 and `thread_name` at 13p+16 (`{ptr, len}`, the thread's name in reports; null when unnamed). The block is 15p+16 bytes.
+> Rok's runtime places `no_safepoint` at 10p+10 (`u8`, the depth of `#[no_safepoint]` calls a debug rokc brackets with `rok_nosp_enter` / `rok_nosp_leave`, [8.4.10](804-safepoint.md#8410-native-calls)), `attached` at 10p+11 (`u8`, how the thread joined the runtime: 0 not yet or no longer, 1 `rok_thread_init` or a thread the runtime started, 2 attached on the C entry of an `extern "C"` definition, 8.3.8), `task_lane` at 10p+16, `static_inits` at 11p+16, `held_locks` (the locks this thread holds; in a session host, locks a thread that is gone held while blocked are released) at 12p+16 and `thread_name` at 13p+16 (`{ptr, len}`, the thread's name in reports; null when unnamed). The block is 15p+16 bytes.
 
 ## 8.3.2. Access mechanism
 
@@ -155,6 +155,8 @@ rok_thread_shutdown():
 ## 8.3.8. Form of compiler emission
 
 The block is a `thread_local` global defined and exported by the runtime. The compiler references it as an external declaration and loads slots at their offsets from the block's address. A Rok function takes that address from its caller as a hidden last argument (8.6.6), so a call between Rok functions reads no TLS. Code entered from outside Rok takes the address itself, once (`llvm.threadlocal.address`) and passes it on: the C `main`, the C entry of an `extern "C"` definition, an `#[export_name]` Rok function, the `any` dispatcher, a lazy `static`'s initializer, and the thunk a function value goes through (8.6.11).
+
+The C entry of an `extern "C"` definition may run on a thread that C code started and the runtime does not know. On such a thread it attaches the thread first: it initializes the slots as `rok_thread_init` does (8.3.6) and registers the thread as a mutator, then runs the body. Back in C between such calls the thread counts as `PARKED` ([8.4.10](804-safepoint.md#8410-native-calls)), so a collection does not wait for it, and when the thread ends it leaves the registry as `rok_thread_shutdown` does (8.3.7). A target that cannot attach a thread this way (WebAssembly) aborts instead, with `rok: callback on a thread rok does not know; call rok_thread_init() first`.
 
 ```mlir
 ; LLVM IR: defined by the runtime; compiler output has an external declaration

@@ -137,6 +137,8 @@ using child = try Command::new("long_running")
 
 마지막 예처럼 `kill_on_drop`을 켠 `Child`를 `using`으로 묶으면 에러 전파나 조기 반환 같은 흐름에서도 자식이 함께 정리됩니다. `using` 블록을 빠져나갈 때 `Drop`이 자식을 죽입니다. `using` 밖의 `Child`는 자동으로 죽지 않습니다([2.13.4](../200-core/213-marker.md#2134-drop-using-해제-시-정리)). `ChildStdin` / `ChildStdout` / `ChildStderr`는 파이프의 파일 핸들입니다. `File`과 같은 방식으로 읽고 씁니다.
 
+`Child`의 복사본들은 같은 프로세스를 공유합니다. `wait` / `try_wait`는 다른 복사본으로 진행 중인 `signal` / `kill` 호출이 돌아온 뒤에야 자식을 회수합니다. 그래서 시그널이 재사용된 pid나 pidfd에 닿는 일은 없습니다. 자식이 끝나 회수되는 중에 보낸 `signal`은 아무 일도 하지 않습니다. 동시에 기다리는 복사본들은 모두 같은 `ExitStatus`를 받습니다.
+
 ## 3.7.4. 최신 추가 기능: pidfd / posix_spawn / CLOEXEC
 
 표준 라이브러리는 builder 패턴 위에 몇 가지 현대적인 보강을 더합니다. 각 기능의 의미와 효과는 다음과 같습니다.

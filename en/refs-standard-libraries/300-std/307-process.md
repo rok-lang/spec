@@ -137,6 +137,8 @@ using child = try Command::new("long_running")
 
 As the last example shows, binding a `Child` with `kill_on_drop` enabled in `using` cleans up the child even on flows such as error propagation or early return. `Drop` issues the kill when leaving the `using` block. A `Child` outside `using` is not killed automatically ([2.13.4](../200-core/213-marker.md#2134-drop---cleanup-on-using-release)). `ChildStdin` / `ChildStdout` / `ChildStderr` are file handles of the pipes and are read and written the same way as `File`.
 
+Copies of a `Child` share the process. `wait` / `try_wait` reap the child only after the `signal` / `kill` calls in flight through other copies return, so a signal never reaches a pid or pidfd that was reused. A `signal` once the child has ended and is being reaped is a no-op. Copies that wait at the same time all get the same `ExitStatus`.
+
 ## 3.7.4. Modern additions - pidfd / posix_spawn / CLOEXEC
 
 On top of the builder pattern, the standard library adds several modern reinforcements. What each means and what it achieves:

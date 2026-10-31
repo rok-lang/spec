@@ -31,6 +31,7 @@ TLS 슬롯은 `thread_local` 블록 `rok_tls` 하나에 모여 있습니다. 런
 > Rok의 런타임은 다음 슬롯을 더 둡니다. 블록은 15p+16바이트입니다.
 >
 > - 10p+10: `no_safepoint`(`u8`). debug rokc가 `rok_nosp_enter` / `rok_nosp_leave`로 감싸는 `#[no_safepoint]` 호출의 깊이입니다([8.4.10](804-safepoint.md#8410-네이티브-호출)).
+> - 10p+11: `attached`(`u8`). 스레드가 런타임에 들어온 방식입니다. 0은 아직 들어오지 않았거나 이미 나간 스레드, 1은 `rok_thread_init`을 호출했거나 런타임이 시작한 스레드, 2는 `extern "C"` 정의의 C 진입점에서 붙은 스레드(8.3.8)입니다.
 > - 10p+16: `task_lane`
 > - 11p+16: `static_inits`
 > - 12p+16: `held_locks`. 이 스레드가 쥔 lock입니다. 세션 호스트에서는 스레드가 사라지면 그 스레드가 block 중에 쥐고 있던 lock을 해제합니다.
@@ -161,6 +162,8 @@ rok_thread_shutdown():
 ## 8.3.8. 컴파일러 출력 형식
 
 블록은 런타임이 정의하고 내보내는 `thread_local` 전역입니다. 컴파일러는 블록을 외부 선언으로 참조하고, 블록 주소에 슬롯의 오프셋을 더한 곳에서 값을 읽습니다. Rok 함수는 이 주소를 호출자에게서 숨은 마지막 인자로 받습니다(8.6.6). 그래서 Rok 함수끼리 호출할 때는 TLS를 읽지 않습니다. Rok 바깥에서 들어오는 코드는 주소를 한 번 직접 얻어(`llvm.threadlocal.address`) 넘겨 줍니다. C `main`, `extern "C"` 정의의 C 진입점, `#[export_name]` Rok 함수, `any` dispatcher, lazy `static`의 초기화 함수, 그리고 함수 값이 거치는 thunk(8.6.11)가 여기에 해당합니다.
+
+`extern "C"` 정의의 C 진입점은 C 코드가 시작해 런타임이 모르는 스레드에서 실행될 수도 있습니다. 그런 스레드에서는 본문을 실행하기 전에 스레드를 먼저 붙입니다. `rok_thread_init`처럼 슬롯을 초기화하고(8.3.6) 스레드를 mutator로 등록합니다. 이런 호출 사이에 C로 돌아가 있는 동안 스레드는 `PARKED`로 셉니다([8.4.10](804-safepoint.md#8410-네이티브-호출)). 그래서 수집이 이 스레드를 기다리지 않습니다. 스레드가 끝나면 `rok_thread_shutdown`처럼 등록에서 빠집니다(8.3.7). 이렇게 스레드를 붙일 수 없는 타깃(WebAssembly)에서는 대신 `rok: callback on a thread rok does not know; call rok_thread_init() first`를 출력하고 중단합니다.
 
 ```mlir
 ; LLVM IR: 정의는 런타임, 컴파일러 산출물은 external 선언
