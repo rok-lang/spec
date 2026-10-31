@@ -30,10 +30,11 @@ With `ref` before a parameter name, reassigning that parameter in the body is re
 
 ### Meaning - copy-in / copy-out
 
-A `ref` parameter is copy-in / copy-out. At the call, the value at the caller's place (variable, field, element) is copied into the parameter; the callee works with that value; when the call ends, the parameter's final value is written back to the caller's place.
+A `ref` parameter is copy-in / copy-out. At the call, the value at the caller's place (a variable, or a field of one) is copied into the parameter; the callee works with that value; when the call ends, the parameter's final value is written back to the caller's place.
 
 - **Write-back timing**: write-back happens not only on normal return but also when the callee throws. Changes made before a `throw` are therefore visible to the caller.
 - **Exclusivity**: while the call is in progress, the same place must not be accessed through another path, and the compiler checks this. Passing the same place as `ref` twice, or passing it as `ref` in one argument and reading it in another, is a compile error. Distinct fields (`ref p.x`, `ref p.y`) do not overlap and are allowed.
+- **Places**: the argument must name a variable or a field of one. An element (`inc(ref xs[2])`) is a compile error: `` `ref` argument `n` of `inc` must name a variable or a field of one ``. Copy the element into a variable, pass that, and store it back.
 
 ```rok
 fn bump_then_fail(ref n: i32) throws {
