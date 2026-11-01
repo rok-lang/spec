@@ -11,14 +11,14 @@ Each process has **one reactor thread** that waits on the OS readiness multiplex
 | Linux                 | epoll (`EPOLLET`, edge-triggered)   |
 | BSD (FreeBSD / macOS) | kqueue (`EV_CLEAR`, edge-triggered) |
 | Windows               | IOCP + AFD poll (readiness emulation) |
-| WASI (`wasm32-wasi`)  | `wasi:io/poll`                      |
-| WASI (`wasm32-wasi-threads`) | `poll_oneoff`                |
+| WASI (`wasm32-wasip2`)  | `wasi:io/poll`                      |
+| WASI (`wasm32-wasip1-threads`) | `poll_oneoff`                |
 
 The driver for the target is compiled at build time, through the `target_os` branches of [Conditional compilation](../006-meta-system/603-cfg.md).
 
 The reactor thread starts on the first async I/O wait.
 
-On `wasm32-wasi` (a preview 2 component) the driver is `wasi:io/poll`, and `std::net` works through `wasi:sockets` when the host grants network access. On `wasm32-wasi-threads` (preview 1) `poll_oneoff` watches the sockets the host passes in.
+On `wasm32-wasip2` (a preview 2 component) the driver is `wasi:io/poll`, and `std::net` works through `wasi:sockets` when the host grants network access. On `wasm32-wasip1-threads` (preview 1) `poll_oneoff` watches the sockets the host passes in.
 
 ## 7.7.2. I/O wait pattern
 
@@ -111,7 +111,7 @@ CPU usage is zero while parked, so many idle workers cost nothing extra.
 
 By default, N is fixed to the number of CPU cores.
 
-When enabled (`ROK_DYNAMIC_WORKERS=1`), an excessively idle worker parks and pushes wake the others first; it is taken back when every active worker is busy. A worker blocked in a call is replaced in every mode ([7.6.7](706-scheduler.md#767-automatic-detection-of-blocking-syscalls)).
+When enabled (`ROKR_DYNAMIC_WORKERS=1`), an excessively idle worker parks and pushes wake the others first; it is taken back when every active worker is busy. A worker blocked in a call is replaced in every mode ([7.6.7](706-scheduler.md#767-automatic-detection-of-blocking-syscalls)).
 
 ## 7.7.9. Cancellation
 

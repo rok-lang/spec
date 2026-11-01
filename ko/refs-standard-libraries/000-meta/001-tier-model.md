@@ -70,7 +70,7 @@ use rok::std::time::Instant;
 
 ## 0.1.4. 타깃 가용성
 
-`rok::bare`와 foundation(`rok::core`)은 wasm32를 포함한 모든 [Tier 1 플랫폼](../../refs-lang/000-meta/006-platform-targets.md)에서 빌드됩니다. 반면 `rok::std`는 타깃에 따라 쓸 수 있는 범위가 다릅니다. 예를 들어 브라우저 환경은 메인 스레드 하나로만 동작하므로 wasm32는 `rok::std::thread`를 지원하지 않습니다. `rok::std::fs`도 wasm32-unknown-unknown에서는 쓸 수 없고 WASI 타깃(`wasm32-wasi`, `wasm32-wasi-threads`)에만 있습니다. 가용성은 각 `rok::std::*` 모듈 사양의 가용성 절에 적습니다. 그래도 API 자체는 모든 타깃에서 빌드됩니다. 타깃에 없는 연산은 실행 중에 `IoErrorKind::Unsupported`로 실패합니다. 브라우저에서 stdout / stderr는 호스트 콘솔로 가고, stdin은 EOF 상태입니다.
+`rok::bare`와 foundation(`rok::core`)은 wasm32를 포함한 모든 [Tier 1 플랫폼](../../refs-lang/000-meta/006-platform-targets.md)에서 빌드됩니다. 반면 `rok::std`는 타깃에 따라 쓸 수 있는 범위가 다릅니다. 예를 들어 브라우저 환경은 메인 스레드 하나로만 동작하므로 wasm32는 `rok::std::thread`를 지원하지 않습니다. `rok::std::fs`도 wasm32-unknown-unknown에서는 쓸 수 없고 WASI 타깃(`wasm32-wasip2`, `wasm32-wasip1-threads`)에만 있습니다. 가용성은 각 `rok::std::*` 모듈 사양의 가용성 절에 적습니다. 그래도 API 자체는 모든 타깃에서 빌드됩니다. 타깃에 없는 연산은 실행 중에 `IoErrorKind::Unsupported`로 실패합니다. 브라우저에서 stdout / stderr는 호스트 콘솔로 가고, stdin은 EOF 상태입니다.
 
 ## 0.1.5. 진화 정책
 

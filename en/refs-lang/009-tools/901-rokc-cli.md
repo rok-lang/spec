@@ -24,7 +24,7 @@ As grammar rules:
 cli_invocation  ::= "rokc" subcommand option* arg*
 subcommand      ::= "build" | "emit" | "run" | "test" | "bench" | "check"
                   | "fmt" | "lint" | "doc" | "repl" | "jupyter" | "lsp"
-                  | "clean" | "profdata" | "bindgen" | "demangle" | "rokhir-text" | "inspect" | "completions"
+                  | "clean" | "profdata" | "bindgen" | "demangle" | "inspect" | "completions"
                   | "version" | "help"
 option          ::= "--" identifier ("=" value)?
                   | "-" letter
@@ -40,7 +40,7 @@ The subcommand, options, their values and paths must be valid UTF-8. An argument
 | Package             | `clean`                                               |
 | Tools               | `fmt`, `lint`, `doc`, `lsp`, `profdata`, `bindgen`                |
 | Interactive         | `repl`, `jupyter`                                     |
-| Debug / diagnostic  | `demangle`, `rokhir-text`, `inspect`                    |
+| Debug / diagnostic  | `demangle`, `inspect`                                   |
 | Other               | `completions`, `version`, `help`                      |
 
 ### Package selection (`path`)
@@ -80,13 +80,13 @@ Options:
 - `--name <n>` sets the package name (naming rules of [9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)). The outputs are `lib<n>.a` / `<n>.rokhir` and the mount name is the name with `-` replaced by `_`. The default is the directory name. `--extern a-b=..` is likewise bound as `a_b`.
 - `--bootstrap <file>` gives a standard library root to preload (may be repeated); `--rokr <lib>` gives the runtime to link. The defaults are the sysroot's `lib/rok/{core,std,bare}/src/lib.rok` and `lib/librokr.a` ([9.2.19](902-aot-pipeline.md#9219-installation-layout)). A bootstrap root's tier is the name of the directory above its `src/`; given `core/src/lib.rok` without a `bare` root, `bare/src/lib.rok` beside it is loaded too. If not found, it is an error that lists the paths searched.
 - `-O0` / `-O1` / `-O2` / `-O3` / `-Os` select the optimization level explicitly. `-O0` uses the native backend, the others the MLIR → LLVM backend ([9.2.10](902-aot-pipeline.md#9210-backend-selection)).
-- `--target=<target>` selects the target platform: a built-in name such as the 15 Tier 1 targets of [Platform targets](../000-meta/006-platform-targets.md), or a `<name>.rokon` target specification file ([0.6.5](../000-meta/006-platform-targets.md#065-target-specifications)). Any target can be built from any host ([0.2.4](../000-meta/002-pipeline.md#024-backends)).
+- `--target=<target>` selects the target platform: a built-in name such as the 15 Tier 1 targets of [Platform targets](../000-meta/006-platform-targets.md), or a `<name>.rokon` target specification file ([0.6.5](../000-meta/006-platform-targets.md#065-target-specifications)). Any target can be built from any host ([0.2.4](../000-meta/002-pipeline.md#024-backends)). Any other name is an error that names the closest built-in target when there is one (``unknown target `wasm32-wasi`; did you mean `wasm32-wasip2`?``).
 - `-L <dir>` adds a library search directory for `#[link]` ([5.9.9](../005-modules/509-extern-block.md#599-linklibname-naming-the-library)), searched before `LIBRARY_PATH`. May be repeated.
 - `-l [static=|dylib=]<name>` links the library `<name>` (searched like `#[link]`), and `--native-runtime <file>` names a shared library to ship beside the executable ([9.2.14](902-aot-pipeline.md#9214-linking-for-executables)). Both may be repeated; `rok` passes them for native packages ([9.10.4b](910-rok-frontend.md#9104b-native-packages)).
-- `-o <path>` / `--output=<path>` selects the output location. `--out` is the old spelling: until 0.2.0 it still works and warns.
+- `-o <path>` / `--output=<path>` selects the output location.
 - `--keep` keeps the build's temporary directory (objects and other intermediate files) instead of removing it, and names it on standard error (`rokc: kept temporaries in <dir>`).
 - `--cfg <flag>` / `--cfg <key>=<value>` sets a cfg flag for [conditional compilation](../006-meta-system/603-cfg.md). May be repeated.
-- `--emit=<kind>[,<kind>..]` writes intermediate output (`source`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expansions`; until 0.2.0 also `ast` for `source` and `expanded` for `expansions`, which warn) to `target/<profile>/build/<name>.<ext>` ([9.9.1](909-debug-tools.md#991-intermediate-output---emit)). Several kinds may be given at once separated by commas; in that case `-o` cannot be used. With `--emit`, no executable or archive is produced.
+- `--emit=<kind>[,<kind>..]` writes intermediate output (`source`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expansions`) to `target/<profile>/build/<name>.<ext>` ([9.9.1](909-debug-tools.md#991-intermediate-output---emit)). Several kinds may be given at once separated by commas; in that case `-o` cannot be used. With `--emit`, no executable or archive is produced.
 - `--load-mlir-plugin <path|name>` loads an MLIR dialect plugin, `--load-mlir-pass-plugin <path|name>` loads a pass plugin (both into `rokc`'s MLIR; built against the same pinned LLVM, on Windows linked against `rokc.exe`'s import library), and `--mlir-pass <pass>` runs that pass before conversion to the LLVM dialect ([stdlib 1.10](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-loading)). All may be repeated, and `rok` passes them through unchanged.
 - `-g` adds debug information to a `release` profile build: DWARF, or CodeView in a PDB for Windows targets ([9.9.6](909-debug-tools.md#996-debugger-integration-gdb--lldb)). A `debug` profile build always has it.
 - `-C <option>` may also be written `--codegen <option>`.
@@ -352,10 +352,6 @@ rokc demangle <symbol>...
 
 For each symbol it prints a block in the [9.5.4](905-symbol-mangling.md) format, separated by blank lines ([9.9.3](909-debug-tools.md#993-symbol-demangle)). If any argument is not a Rok symbol, the exit code is `1`.
 
-### `rokc rokhir-text`: [ROKHIR](../000-meta/007-glossary.md#rokhir-rok-hir-bytecode) text output
-
-`rokc rokhir-text <file>` is the old name of `rokc inspect --dump <file>` (below). Until 0.2.0 it still works, and warns with the command to write instead.
-
 ### `rokc inspect`: package inspection
 
 `rokc inspect` gives an overview of an archive's contents.
@@ -415,7 +411,7 @@ rokc --print target-list
 rokc --print target-spec [--target=<target>]
 ```
 
-`target-list` prints the built-in target names, one per line. An old name that 0.2.0 drops ([0.6](../000-meta/006-platform-targets.md)) follows its new name as `<old> (deprecated: use <new>)`. `target-spec` prints the target's specification as ROKON ([0.6.5](../000-meta/006-platform-targets.md#065-target-specifications)); without `--target`, the host's.
+`target-list` prints the built-in target names, one per line. `target-spec` prints the target's specification as ROKON ([0.6.5](../000-meta/006-platform-targets.md#065-target-specifications)); without `--target`, the host's.
 
 ### `rokc --print lldbinit`: lldb formatters
 
@@ -475,11 +471,11 @@ Exit codes are defined as follows.
 | `0`   | Success                                              |
 | `1`   | User code error (compile error / test failure, etc.) |
 | `2`   | Usage error (invalid option, unknown subcommand, etc.) |
-| `101` | rokc internal error (panic)                          |
+| `70`  | rokc internal error (panic)                          |
 
 A usage error prints `rokc: <message>` and then the line ``run `rokc help <subcommand>` for usage`` (``run `rokc help` for usage`` when no known subcommand was given). The message says what to write instead: an unknown subcommand or option names the closest one when there is one (``unknown option `--relase`; did you mean `--release`?``), and an unknown subcommand that names a file (it contains `/` or ends in `.rok`) suggests `rokc run <file>`. When `__ROK_CLI` is `rok` (9.1.7), both lines say `rok` instead of `rokc`.
 
-`rokc` does not read `ROK_HOME` (the sysroot is relative to the executable). If rokc itself panics (internal compiler error), it prints a message and exits with `101`. `rokc lsp`, `rokc repl` and `rokc jupyter` survive it: the language server reports it as an error diagnostic of the analyzed buffer, the REPL / kernel fails that cell ([9.7.5](907-jit-cells.md#975-error-modes)); both keep serving. `rokc run` exits with the exit code of the program it ran (9.1.2).
+`rokc` does not read `ROK_HOME` (the sysroot is relative to the executable). If rokc itself panics (internal compiler error), it prints a message and exits with `70` (`EX_SOFTWARE`), apart from a program's panic, which exits with `101`. `rokc lsp`, `rokc repl` and `rokc jupyter` survive it: the language server reports it as an error diagnostic of the analyzed buffer, the REPL / kernel fails that cell ([9.7.5](907-jit-cells.md#975-error-modes)); both keep serving. `rokc run` exits with the exit code of the program it ran (9.1.2).
 
 If standard output or standard error is a pipe whose reader has gone, `rokc` stops without a message: on Unix it is terminated by `SIGPIPE` (a shell reports `141`); on Windows it exits with `1`. This is not an internal error.
 
@@ -497,7 +493,7 @@ The environment variables that affect `rokc` are:
 | `ROK_MLIR_PLUGIN_PATH` | Directories (separated like `PATH`) searched for a `--load-mlir-plugin` / `--load-mlir-pass-plugin` given as a bare name |
 | `ROK_LLVM_CACHE` | Cache directory `rokc bindgen` searches for libclang (9.1.3) |
 | `__ROK_ENV_LIBS` | Set by `rok` when it runs a script from an environment (internal): the comma-separated libraries installed there. A script that uses one of them without declaring it gets a hint naming it |
-| `__ROK_CLI`       | Set to `rok` by `rok` when it runs `rokc` (internal): usage errors (9.1.6), `--help` and the `rokc:` prefix of error and warning lines name `rok`, not `rokc`. Programs that `rok run` starts inherit it |
+| `__ROK_CLI`       | Set to `rok` by `rok` when it runs `rokc` (internal): usage errors (9.1.6), `--help` and the `rokc:` prefix of error and warning lines name `rok`, not `rokc` |
 | `ROK_TARGET_DIR`  | Location of `target/` (default: inside the package)                                      |
 | `ROK_INCREMENTAL` | Where the front end keeps the package's parses and lowered bodies (default `target/<profile>/incremental/`; `0`: nowhere); the library's collected items are kept in `lib/rok-cache/library/` ([9.2.16](902-aot-pipeline.md#9216-incremental-build)) |
 | `ROK_INCREMENTAL_VERIFY` | `1`: lower every body again and fail on a difference ([9.2.16](902-aot-pipeline.md#9216-incremental-build)) |
@@ -509,7 +505,7 @@ The environment variables that affect `rokc` are:
 
 An unset or empty variable has its default. A value outside those listed prints one warning line on stderr naming the variable, the value and the accepted values, and the variable has its default.
 
-Until 0.2.0 the old names still work. `ROKC_TARGET_DIR`, `ROKC_VERBOSE`, `ROKC_INCREMENTAL`, `ROKC_INCR_VERIFY` and `ROKC_NUM_JOBS` are read when the `ROK_` name is unset or empty, with one warning line naming the new name. `rok` also sets `ROK_CLI`, `ROK_ENV`, `ROK_ENV_LIBS` and `ROK` beside `__ROK_CLI`, `__ROK_ENV`, `__ROK_ENV_LIBS` and `__ROK` (the `rok` that the REPL's `:add` and the language server run), and `rokc` reads a name without `__` when the `__` one is unset. `rokc run`, `test` and `bench` warn about a runtime variable set only under its old name ([9.9.8](909-debug-tools.md#998-memory--gc-tools)).
+`rok` hands `rokc` the internal variables `__ROK_CLI`, `__ROK_ENV`, `__ROK_ENV_LIBS` and `__ROK` (the `rok` that the REPL's `:add` and the language server run); `rokc` reads no other spelling of them. `rokc run`, `test` and `bench` remove every variable whose name starts with `__ROK` from the environment of the program they start (on Windows, whatever the case of the name); the program sees the rest of the environment unchanged.
 
 ## 9.1.8. Output format
 

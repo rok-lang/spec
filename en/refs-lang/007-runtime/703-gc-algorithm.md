@@ -33,7 +33,7 @@ A full collection may move live objects out of fragmented blocks into other bloc
 - A forwarding pointer is left at a moved object's old location, and all precise references are updated to the new location within the same collection.
 - Objects not moved: objects pointed to directly by roots ([7.4.1](704-barriers-and-roots.md#objects-pointed-to-by-roots-are-not-moved)), objects pointed to by ambiguous words (`AMBIGUOUS_WORD`: type id `2` buffers, untagged `union`s), `PINNED` / `NOMOVE` objects, and LOS objects.
 - Free blocks beyond the next cycle's allocation budget are returned to the OS.
-- For testing, `ROK_GC_EVAC=always` evacuates on every full collection ([9.9.8](../009-tools/909-debug-tools.md#998-memory--gc-tools)).
+- For testing, `ROKR_GC_EVAC=always` evacuates on every full collection ([9.9.8](../009-tools/909-debug-tools.md#998-memory--gc-tools)).
 
 ## 7.3.2. Sticky mark-bit generational collection
 

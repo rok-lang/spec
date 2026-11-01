@@ -17,8 +17,6 @@ rokc build --emit=obj           # object 파일
 rokc build --emit=expansions    # 메타 확장 결과 (9.9.10)
 ```
 
-`ast`와 `expanded`는 `source`와 `expansions`의 예전 이름입니다. 0.2.0 전까지는 그대로 동작하고 경고를 냅니다.
-
 `mlir`과 `llvmir`은 최적화 수준과 관계없이 MLIR → LLVM 백엔드에서 나옵니다. `asm`과 `obj`는 최적화 수준에 따라 고른 백엔드에서 나옵니다([9.2.10](902-aot-pipeline.md#9210-백엔드-선택)).
 
 산출물은 다음 위치에 씁니다.
@@ -279,7 +277,7 @@ rokc profdata merge -o app.profdata prof          # 3. 병합한 뒤
 rokc build --release -C profile-use=app.profdata  #    profile 로 다시 빌드
 ```
 
-선택 단계인 context-sensitive 단계에서는 `-C profile-use=app.profdata -C cs-profile-generate=cs`로 빌드해 다시 실행합니다. 그런 다음 `cs`를 `app.profdata`와 합쳐 최종 프로필을 만듭니다. `wasm32-wasi`는 지원하고 `wasm32-unknown-unknown`은 지원하지 않습니다.
+선택 단계인 context-sensitive 단계에서는 `-C profile-use=app.profdata -C cs-profile-generate=cs`로 빌드해 다시 실행합니다. 그런 다음 `cs`를 `app.profdata`와 합쳐 최종 프로필을 만듭니다. `wasm32-wasip2`는 지원하고 `wasm32-unknown-unknown`은 지원하지 않습니다.
 
 ### Tracy / Chrome trace(선택)
 
@@ -302,8 +300,6 @@ rokc build --release -C profile-use=app.profdata  #    profile 로 다시 빌드
 | `ROKR_DYNAMIC_WORKERS=1`  | 쉬는 워커는 재우고, 활성 워커가 모두 바쁘면 다시 씀([7.7.8](../007-runtime/707-io-and-timer.md#778-워커-수의-동적-조절)) |
 
 설정하지 않았거나 비어 있는 변수는 기본값을 씁니다. 표에 없는 값을 주면 stderr에 경고를 한 줄 출력합니다. 경고는 변수, 준 값, 받는 값을 알립니다. 그 변수는 기본값을 씁니다.
-
-0.2.0 전까지 런타임은 `ROKR_` 이름이 없거나 비어 있으면 `ROKR_` 대신 `ROK_`로 시작하는 예전 이름(`ROK_GC_LOG`, `ROK_WORKERS` 등)도 읽습니다. 프로그램의 stderr는 프로그램의 것이므로 런타임은 이에 대해 아무것도 출력하지 않습니다. 예전 이름만 설정되어 있으면 `rokc run`, `test`, `bench`(그래서 `rok run`, `test`, `bench`도)가 경고를 냅니다.
 
 ## 9.9.9. REPL / Jupyter 디버그
 
@@ -405,7 +401,7 @@ summary는 하네스마다 그 case들 뒤에 옵니다. 그래서 루트 파일
 | `0`   | 성공             |
 | `1`   | 사용자 코드 에러 |
 | `2`   | CLI 에러         |
-| `101` | rokc 내부 panic  |
+| `70`  | rokc 내부 panic  |
 
 `rokc test`는 하네스를 빌드할 뿐 테스트를 실행하지 않습니다. 실행은 `rok test`가 하고, 실패한 테스트가 있으면 `1`로 끝납니다. 테스트마다 별도 프로세스에서 돌므로 테스트의 panic(`101`)이 러너의 `101`이 되지는 않습니다.
 

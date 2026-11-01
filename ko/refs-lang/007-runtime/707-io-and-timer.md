@@ -11,14 +11,14 @@
 | Linux                 | epoll (`EPOLLET`, edge-triggered)   |
 | BSD (FreeBSD / macOS) | kqueue (`EV_CLEAR`, edge-triggered) |
 | Windows               | IOCP + AFD poll (readiness 흉내)     |
-| WASI (`wasm32-wasi`)  | `wasi:io/poll`                      |
-| WASI (`wasm32-wasi-threads`) | `poll_oneoff`                |
+| WASI (`wasm32-wasip2`)  | `wasi:io/poll`                      |
+| WASI (`wasm32-wasip1-threads`) | `poll_oneoff`                |
 
 타깃에 맞는 드라이버는 [조건부 컴파일](../006-meta-system/603-cfg.md)의 `target_os` 분기로 빌드할 때 골라 컴파일합니다.
 
 reactor 스레드는 첫 async I/O 대기 때 시작합니다.
 
-`wasm32-wasi`(preview 2 component)에서는 드라이버가 `wasi:io/poll`입니다. 호스트가 네트워크 접근을 허락하면 `std::net`은 `wasi:sockets`로 동작합니다. `wasm32-wasi-threads`(preview 1)에서는 호스트가 넘겨준 소켓을 `poll_oneoff`로 지켜봅니다.
+`wasm32-wasip2`(preview 2 component)에서는 드라이버가 `wasi:io/poll`입니다. 호스트가 네트워크 접근을 허락하면 `std::net`은 `wasi:sockets`로 동작합니다. `wasm32-wasip1-threads`(preview 1)에서는 호스트가 넘겨준 소켓을 `poll_oneoff`로 지켜봅니다.
 
 ## 7.7.2. I/O 대기 패턴
 
@@ -111,7 +111,7 @@ park된 동안 CPU 사용량은 0이므로 idle 워커가 많아도 추가 비�
 
 기본 설정에서 N은 CPU 코어 수로 고정됩니다.
 
-동적 조절을 켜면(`ROK_DYNAMIC_WORKERS=1`) 너무 오래 idle 상태인 워커는 park합니다. push는 다른 워커를 먼저 깨웁니다. 활성 워커가 모두 바쁘면 park한 워커를 다시 씁니다. 호출 안에서 블록된 워커는 어느 모드에서든 다른 워커로 바뀝니다([7.6.7](706-scheduler.md#767-블로킹-syscall-자동-검출)).
+동적 조절을 켜면(`ROKR_DYNAMIC_WORKERS=1`) 너무 오래 idle 상태인 워커는 park합니다. push는 다른 워커를 먼저 깨웁니다. 활성 워커가 모두 바쁘면 park한 워커를 다시 씁니다. 호출 안에서 블록된 워커는 어느 모드에서든 다른 워커로 바뀝니다([7.6.7](706-scheduler.md#767-블로킹-syscall-자동-검출)).
 
 ## 7.7.9. 취소
 

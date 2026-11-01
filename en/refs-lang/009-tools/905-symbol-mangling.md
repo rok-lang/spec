@@ -225,7 +225,7 @@ main                                (Linux / macOS)
 mainCRTStartup                      (Windows console)
 WinMainCRTStartup + WinMain         (Windows GUI, -C subsystem=windows)
 _start                              (no-OS)
-__main_void                         (wasm32-wasi*; called by wasi-libc's _start)
+__main_void                         (wasm32-wasip*; called by wasi-libc's _start)
 _initialize, then main              (wasm32-unknown-unknown; reactor exports called by the host)
 ```
 

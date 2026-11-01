@@ -40,7 +40,7 @@ Each OS and architecture has its own TLS access mechanism.
 | Linux aarch64  | `tpidr_el0`                           |
 | macOS x86_64   | `%gs:offset`                          |
 | Windows x86_64 | TEB (Thread Environment Block) offset |
-| `wasm32-wasi-threads` | `__tls_base` global + offset   |
+| `wasm32-wasip1-threads` | `__tls_base` global + offset   |
 | other WASM (no threads) | the block is a plain global  |
 
 The compiler emits the appropriate instructions per target; LLVM's `__thread` and TLS models handle this automatically.

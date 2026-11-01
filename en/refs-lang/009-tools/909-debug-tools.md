@@ -17,8 +17,6 @@ rokc build --emit=obj           # object file
 rokc build --emit=expansions    # meta expansion result (9.9.10)
 ```
 
-`ast` and `expanded` are the old names of `source` and `expansions`: until 0.2.0 they still work and warn.
-
 `mlir` and `llvmir` come from the MLIR → LLVM backend at any optimization level; `asm` and `obj` come from the backend the level selects ([9.2.10](902-aot-pipeline.md#9210-backend-selection)).
 
 The output is written to the following locations.
@@ -274,7 +272,7 @@ rokc profdata merge -o app.profdata prof          # 3. merge, then
 rokc build --release -C profile-use=app.profdata  #    rebuild with the profile
 ```
 
-An optional context-sensitive stage builds with `-C profile-use=app.profdata -C cs-profile-generate=cs`, runs again, and merges `cs` with `app.profdata` into the final profile. `wasm32-wasi` is supported; `wasm32-unknown-unknown` is not.
+An optional context-sensitive stage builds with `-C profile-use=app.profdata -C cs-profile-generate=cs`, runs again, and merges `cs` with `app.profdata` into the final profile. `wasm32-wasip2` is supported; `wasm32-unknown-unknown` is not.
 
 ### Tracy / Chrome trace (optional)
 
@@ -297,8 +295,6 @@ The runtime reads the following environment variables.
 | `ROKR_DYNAMIC_WORKERS=1`  | Idle workers park and are taken back when every active worker is busy ([7.7.8](../007-runtime/707-io-and-timer.md#778-dynamic-adjustment-of-worker-count)) |
 
 An unset or empty variable has its default. A value outside those listed prints one warning line on stderr naming the variable, the value and the accepted values, and the variable has its default.
-
-Until 0.2.0 the runtime also reads each variable under its old name, `ROK_` in place of `ROKR_` (`ROK_GC_LOG`, `ROK_WORKERS`, ...), when the `ROKR_` name is unset or empty. The runtime itself prints nothing about it, since a program's stderr is its own; `rokc run`, `test` and `bench` (and so `rok run`, `test` and `bench`) warn when only the old name is set.
 
 ## 9.9.9. REPL / Jupyter debugging
 
@@ -400,7 +396,7 @@ The exit codes of the [`rokc` CLI interface](901-rokc-cli.md) are defined as fol
 | `0`   | Success          |
 | `1`   | User code error  |
 | `2`   | CLI error        |
-| `101` | rokc internal panic |
+| `70`  | rokc internal panic |
 
 `rokc test` builds the harness; it does not run the tests. `rok test` runs them and exits with `1` if any fails. Each test runs in a separate process, so a test's panic (`101`) does not become the runner's `101`.
 

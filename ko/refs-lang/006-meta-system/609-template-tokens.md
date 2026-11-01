@@ -453,7 +453,7 @@ let r = s.foo();                              // 메타가 만든 'temp' 와 충
 
 ## 6.9.10. 디버깅
 
-`rokc build --emit=expanded`([9.9.10](../009-tools/909-debug-tools.md#9910-메타-블록-디버그))는 사용자 패키지의 확장 결과를 소스 텍스트로 출력합니다. 확장마다 `// expanded from this #[derive(X)] (file:line:col)` 주석 뒤에 생성된 소스가 나옵니다. 생성물이 다시 확장되면 그 결과는 바깥 확장 뒤에 나옵니다.
+`rokc build --emit=expansions`([9.9.10](../009-tools/909-debug-tools.md#9910-메타-블록-디버그))는 사용자 패키지의 확장 결과를 소스 텍스트로 출력합니다. 확장마다 `// expanded from this #[derive(X)] (file:line:col)` 주석 뒤에 생성된 소스가 나옵니다. 생성물이 다시 확장되면 그 결과는 바깥 확장 뒤에 나옵니다.
 
 ## 6.9.11. 정리
 

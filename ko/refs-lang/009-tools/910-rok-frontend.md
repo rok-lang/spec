@@ -328,12 +328,12 @@ Stone { name: "json", vers: "1.4.2", deps: [{ name: "util", req: "^0.3", kind: "
 rok search [--native] <query>
 rok login [--registry <url>] [<token>]
 rok logout [--registry <url> | --all]
-rok publish [--dry-run | --commit] [--registry <url> | --index-dir <checkout>]
+rok publish [--dry-run] [--registry <url> | --index-dir <checkout>]
 rok yank [--native] <name>@<version> [--undo] [--registry <url> | --index-dir <checkout>]
 ```
 
 - `search`는 index에서 이름으로 찾고, 찾은 것마다 `<name> <newest version> - <description>`을 한 줄씩 출력합니다. 항목에 description이 없으면 그 부분은 생략합니다. index 조회는 `-` / `_` 어느 쪽 철자든 받습니다.
-- `publish --dry-run`은 dry run입니다. `--dry-run`도 `--commit`도 없으면 `publish`는 역시 dry run이고 경고를 냅니다. 0.2.0부터는 `cargo publish`처럼 옵션 없는 `publish`가 게시하고, 미리 보기는 `--dry-run`이며, `--commit`은 필요 없습니다. 계속 미리 보려면 `--dry-run`을 씁니다.
+- `publish`는 `cargo publish`처럼 게시합니다. `publish --dry-run`은 dry run입니다.
   - `publish: false`인 패키지는 거부합니다. 에러는 지울 줄을 알려 줍니다.
   - readme(9.10.3)가 있어야 합니다. 깨끗한 작업 트리, 저장소 루트의 패키지, 그리고 `src/lib.rok`, `src/main.rok`, 또는 둘 다가 필요합니다.
   - `src/main.rok`만 있는 stone은 프로그램입니다. `rok install`이 그것을 빌드하고, 의존 패키지가 될 수 없습니다.
@@ -341,9 +341,9 @@ rok yank [--native] <name>@<version> [--undo] [--registry <url> | --index-dir <c
   - 같은 버전이 있는지, 그리고 `-` / `_`와 대소문자를 같게 보았을 때 이름이 충돌하는지 검사합니다. 다른 철자가 이미 차지한 이름은 거부합니다. 9.10.3의 규칙을 어기는 이름(Windows 장치 이름, 64자 초과)도 거부합니다.
   - `--index-dir` 없는 dry run은 항목만 출력합니다. `--index-dir`가 있으면 그 checkout에 대해서도 검사합니다.
   - 항목의 source는 설정된 그대로(`insteadOf` 재작성 전)의 git remote `origin` url입니다. 이 url은 `https://`여야 하고, `http://127.0.0.1`과 `http://localhost`만 예외입니다.
-- `--commit`이면 `publish`는 항목을 더합니다. `--index-dir`가 있으면 그 checkout에 "Publish <name> <vers>" 커밋으로 더합니다(push하지 않음). 없으면 `--registry <url>`이 가리키는 index, 그것도 없으면 설정된 index("Which index")의 레지스트리 API로 보내고, API가 항목을 index에 넣습니다. `--index-dir`와 `--registry`는 함께 쓸 수 없고, `--dry-run`과 `--commit`도 마찬가지입니다. 클라이언트는 index 저장소에 직접 쓰지 않습니다.
+- `--dry-run`이 없으면 `publish`는 항목을 더합니다. `--index-dir`가 있으면 그 checkout에 "Publish <name> <vers>" 커밋으로 더합니다(push하지 않음). 없으면 `--registry <url>`이 가리키는 index, 그것도 없으면 설정된 index("Which index")의 레지스트리 API로 보내고, API가 항목을 index에 넣습니다. `--index-dir`와 `--registry`는 함께 쓸 수 없습니다. 클라이언트는 index 저장소에 직접 쓰지 않습니다.
 - `yank`는 그 버전의 `yanked`를 켭니다(`--undo`면 끕니다). `--index-dir`가 있으면 그 checkout의 커밋으로, 없으면 `--registry <url>`이 가리키는 index, 그것도 없으면 설정된 index의 레지스트리 API로 처리합니다.
-- 0.2.0 전까지는 예전 형식도 동작하고, 대신 쓸 형식을 알리는 경고를 냅니다. `--index <dir>`은 `--index-dir <dir>`(`publish`와 `yank`)의, `yank --vers <version> [name]`은 `yank <name>@<version>`의 예전 형식입니다. 예전 형식에서 이름을 생략하면 이 패키지의 것이고, native 패키지는 이름이 있어야 합니다.
+- `--commit`(`publish`), `--index`(`publish`와 `yank`), `--vers`(`yank`)는 에러이고, 대신 쓸 형식을 알립니다. 각각 옵션 없는 `publish`, `--index-dir <dir>`, `yank <name>@<version>`입니다.
 - 레지스트리 API의 주소는 index의 `config.rokon`의 `api`에 있습니다. 요청은 `Authorization: Bearer <token>`을 싣고, 본문은 한 줄 ROKON(`application/rokon; charset=utf-8`)입니다.
   - `GET <api>/api/v1/me` → `Me { login: "..", publish: <bool> }`
   - `POST <api>/api/v1/publish`, 본문은 index 줄(`Stone { .. }` / `Native { .. }`) → `Published { name, vers, file }`
@@ -389,11 +389,11 @@ Native {
 rok add --native <name>[@<req>]
 rok remove --native <name>
 rok search --native <query>
-rok publish --native <file> [--dry-run | --commit] [--registry <url> | --index-dir <dir>]
+rok publish --native <file> [--dry-run] [--registry <url> | --index-dir <dir>]
 rok yank --native <name>@<version> [--undo] [--registry <url> | --index-dir <dir>]
 ```
 
-`publish --native`는 모든 타깃을 받아 검사합니다. 절대 url, 라이선스 파일, index에서 온 의존성만 허용합니다. `--commit`과 `yank --native`는 stone과 같은 규칙을 따릅니다. `--index-dir` checkout을 쓰고, 없으면 토큰으로 레지스트리 API를 씁니다(`Yank`의 `native: true`).
+`publish --native`는 모든 타깃을 받아 검사합니다. 절대 url, 라이선스 파일, index에서 온 의존성만 허용합니다. 게시와 `yank --native`는 stone과 같은 규칙을 따릅니다. `--index-dir` checkout을 쓰고, 없으면 토큰으로 레지스트리 API를 씁니다(`Yank`의 `native: true`).
 
 - ELF 타깃에서 runtime 라이브러리의 soname은 파일 이름과 같아야 합니다. `-musl` 타깃의 `dylib` link는 에러입니다.
 - `repl` / `jupyter`는 native 패키지를 로드합니다. 공유 라이브러리는 시스템 로더로 로드하고, static 아카이브는 세션에 링크합니다. `check` / `lint` / `doc`은 아무것도 링크하지 않습니다.
@@ -463,7 +463,7 @@ rok uninstall [--native] <name>..
 ```
 
 - 소스의 패키지는 먼저 캐시로 가져옵니다([9.10.4](#9104-의존성-rok-add--remove--update--deps)).
-- `src/main.rok`이 있는 패키지나 스크립트 파일은 실행 파일입니다. `cargo install`처럼 `--release`로 빌드해 그 실행 파일을 `$ROK_HOME/bin/<name>`에 둡니다. git이나 stone 패키지는 checkout의 임시 사본에서, path 패키지와 스크립트 파일은 제자리에서 빌드합니다. `$ROK_HOME/installs.rokon`(`Package { deps: { "<name>": <source> } }`)이 각 실행 파일과 그 정확한 출처를 기록합니다. stone은 `=<version>`으로, git 패키지는 그 `rev:`와 함께 기록합니다. 패키지에 `src/lib.rok`도 있는데 `--bin`도 `--lib`도 없으면 `rok install`은 실행 파일을 설치하고 경고를 냅니다. 경고는 이것을 원하면 `--bin`을, 라이브러리를 원하면 `--lib`를 쓰라고 알립니다. 0.2.0은 둘 중 하나를 요구합니다. `src/main.rok`이 없는 패키지에 `--bin`을 주거나 `--bin`과 `--lib`를 함께 주면 에러입니다.
+- `src/main.rok`이 있는 패키지나 스크립트 파일은 실행 파일입니다. `cargo install`처럼 `--release`로 빌드해 그 실행 파일을 `$ROK_HOME/bin/<name>`에 둡니다. git이나 stone 패키지는 checkout의 임시 사본에서, path 패키지와 스크립트 파일은 제자리에서 빌드합니다. `$ROK_HOME/installs.rokon`(`Package { deps: { "<name>": <source> } }`)이 각 실행 파일과 그 정확한 출처를 기록합니다. stone은 `=<version>`으로, git 패키지는 그 `rev:`와 함께 기록합니다. 패키지에 `src/lib.rok`도 있으면 `rok install`에는 `--bin`이나 `--lib`가 있어야 합니다. 둘 다 없으면 에러이고 아무것도 설치하지 않습니다. 에러는 실행 파일을 원하면 `--bin`을, 라이브러리를 원하면 `--lib`를 쓰라고 알립니다. `src/main.rok`이 없는 패키지에 `--bin`을 주거나 `--bin`과 `--lib`를 함께 주면 에러입니다.
 - `src/lib.rok`만 있는 패키지, 또는 `--lib`를 준 `src/lib.rok`이 있는 패키지는 라이브러리입니다. 라이브러리는 `pip install`처럼 `rok repl`, `rok jupyter`, `:add`를 위해 활성 환경([9.10.5](#9105-환경))에 들어갑니다. 환경의 `rok.rokon`에 적고(요구 없는 stone은 `^<가장 새 버전>`, path는 절대 경로), 그 `rok.lock`으로 해소하고, 그 `target/`에 미리 빌드합니다. 스크립트는 이 라이브러리를 보지 않습니다. 스크립트는 `rok add <name> <file.rok>`으로 라이브러리를 얻고, 출력 줄이 이를 알립니다. 빌드되지 않으면 아무것도 설치하지 않습니다. `src/lib.rok`이 없는 패키지나 스크립트에 `--lib`를 주면 에러입니다.
 - `<name>`은 라이브러리의 최상위 이름, 또는 실행 파일의 파일 이름입니다. 생략하면 패키지의 `name`을 씁니다. 그것도 없으면 디렉터리 이름(path), `.git`을 뗀 저장소 이름(git), 파일 stem(스크립트)을 씁니다. [9.10.3](#9103-rokrokon--roklock)의 이름 규칙을 따릅니다.
 - `--features` / `--no-default-features`는 라이브러리의 `Dep`에, 또는 실행 파일의 빌드에 들어갑니다. `--dev` / `--optional`은 에러입니다. `--native`는 환경의 `native`에 native 패키지를 더합니다([9.10.4b](#9104b-네이티브-패키지)).

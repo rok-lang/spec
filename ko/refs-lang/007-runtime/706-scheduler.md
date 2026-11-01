@@ -90,7 +90,7 @@ work-stealing 모델에서는 task가 blocking syscall을 호출하면 그 워�
 
 기본 설정에서는 워커를 N개 두고, task가 스레드 사이를 자유롭게 옮겨 다닙니다. thread-per-core 옵션을 켜면 각 task가 정해진 워커에 고정(pinning)되고, 워커끼리 훔쳐 오지 않습니다. 그래서 캐시 지역성이 가장 높아지고, NUMA 환경이나 데이터센터 워크로드에 알맞습니다.
 
-환경 변수 `ROKR_THREAD_PER_CORE=1`로 켜고, `ROKR_WORKERS=<n>`으로 N을 정합니다(기본값: 온라인 CPU 수). 0.2.0 전까지는 새 이름이 없으면 예전 이름 `ROK_THREAD_PER_CORE`와 `ROK_WORKERS`를 읽습니다([9.9.8](../009-tools/909-debug-tools.md#998-메모리--gc-도구)).
+환경 변수 `ROKR_THREAD_PER_CORE=1`로 켜고, `ROKR_WORKERS=<n>`으로 N을 정합니다(기본값: 온라인 CPU 수).
 
 > [!NOTE]
 > task는 워커에 고정됩니다. 하지만 task가 블록된 워커는 다른 OS 스레드에서 이어질 수 있습니다([7.6.7](#767-블로킹-syscall-자동-검출)). 그래서 고정된 task라도 어느 스레드에서 도는지는 바뀔 수 있습니다.

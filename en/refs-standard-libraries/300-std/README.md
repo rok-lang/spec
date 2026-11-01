@@ -78,7 +78,7 @@ Waiting for readiness is **the runtime's responsibility** ([refs-lang 7.7](../..
 | Linux           | epoll (edge-triggered)      |
 | macOS / FreeBSD | kqueue (`EV_CLEAR`)         |
 | Windows         | IOCP                        |
-| WASI            | `wasi:io/poll` (`wasm32-wasi`), `poll_oneoff` (`wasm32-wasi-threads`) |
+| WASI            | `wasi:io/poll` (`wasm32-wasip2`), `poll_oneoff` (`wasm32-wasip1-threads`) |
 
 ### 3. TLS 1.3 in std - HTTP out
 
@@ -152,7 +152,7 @@ fn load_config() throws (ConfigError) -> Config {
 
 Module availability per platform:
 
-| Module              | linux/macos/windows | wasm32-wasi   | wasm32-wasi-threads | wasm32 (browser) |
+| Module              | linux/macos/windows | wasm32-wasip2   | wasm32-wasip1-threads | wasm32 (browser) |
 |---------------------|---------------------|---------------|---------------------|------------------|
 | `rok::std::fs`      | ✓                   | ✓ (cap-based) | ✓ (cap-based)       | ✗ (every call `Unsupported`) |
 | `rok::std::net`     | ✓ (+ TLS 1.3)       | ✓ (`wasi:sockets`) | listeners passed in by the host | ✗ (use `fetch`) |

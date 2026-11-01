@@ -78,7 +78,7 @@ async fn fetch_async(addr: str) throws (IoError) -> List<u8> {
 | Linux           | epoll (edge-triggered)      |
 | macOS / FreeBSD | kqueue (`EV_CLEAR`)         |
 | Windows         | IOCP                        |
-| WASI            | `wasi:io/poll` (`wasm32-wasi`), `poll_oneoff` (`wasm32-wasi-threads`) |
+| WASI            | `wasi:io/poll` (`wasm32-wasip2`), `poll_oneoff` (`wasm32-wasip1-threads`) |
 
 ### 3. std의 TLS 1.3: HTTP는 제외
 
@@ -152,7 +152,7 @@ fn load_config() throws (ConfigError) -> Config {
 
 플랫폼별 모듈 가용성은 다음과 같습니다.
 
-| 모듈                | linux/macos/windows | wasm32-wasi   | wasm32-wasi-threads | wasm32 (browser) |
+| 모듈                | linux/macos/windows | wasm32-wasip2   | wasm32-wasip1-threads | wasm32 (browser) |
 |---------------------|---------------------|---------------|---------------------|------------------|
 | `rok::std::fs`      | ✓                   | ✓ (cap-based) | ✓ (cap-based)       | ✗ (모든 호출이 `Unsupported`) |
 | `rok::std::net`     | ✓ (+ TLS 1.3)       | ✓ (`wasi:sockets`) | 호스트가 넘긴 listener만 | ✗ (`fetch` 사용) |

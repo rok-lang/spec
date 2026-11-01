@@ -153,11 +153,11 @@ try thread::spawn(|| {
 
 Per-platform support:
 
-| Item            | linux/macos/windows   | wasm32-wasi / browser     | wasm32-wasi-threads |
+| Item            | linux/macos/windows   | wasm32-wasip2 / browser     | wasm32-wasip1-threads |
 |-----------------|-----------------------|---------------------------|---------------------|
 | `spawn`         | ✓                     | panics (`Unsupported` from `Builder::spawn`) | ✓    |
 | `Builder::spawn` | ✓                    | throws `Unsupported`      | ✓                   |
 | `local`         | ✓                     | ✓ (one thread)            | ✓                   |
 | `park`/`unpark` | futex / WaitOnAddress | ✓                         | ✓                   |
 
-On `wasm32-wasi` and in the browser there is one thread: `thread::current().name()` is `none`. On `wasm32-wasi-threads`, `rok_cpu_count()` and the available parallelism are 4, since WASI cannot report a core count.
+On `wasm32-wasip2` and in the browser there is one thread: `thread::current().name()` is `none`. On `wasm32-wasip1-threads`, `rok_cpu_count()` and the available parallelism are 4, since WASI cannot report a core count.

@@ -47,7 +47,6 @@ rokc  (compiler)
   │
   ├── debug / diagnostic
   │   ├── rokc demangle   : symbol demangle
-  │   ├── rokc rokhir-text  : ROKHIR interface text dump
   │   └── rokc inspect    : package inspect
   │
   └── rokc version / help

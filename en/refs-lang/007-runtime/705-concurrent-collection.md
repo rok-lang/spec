@@ -7,8 +7,8 @@ A full collection may run its mark phase concurrently with mutators. Minor colle
 
 ## 7.5.1. When
 
-| `ROK_GC_CONCURRENT` | Full collection                                    |
-|---------------------|----------------------------------------------------|
+| `ROKR_GC_CONCURRENT` | Full collection                                    |
+|----------------------|----------------------------------------------------|
 | `auto` (default)    | Concurrent mark if old objects total 32 MiB or more |
 | `always`            | Always concurrent mark                             |
 | `off`               | Always STW                                         |

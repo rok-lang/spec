@@ -51,7 +51,7 @@ A cell may `await` in a top-level statement, as the implicit `main` may ([4.16.5
 
 Each step is transactional; on failure it rolls back to the previous state.
 
-A cell's standard input is the terminal when the REPL reads a terminal, and otherwise empty ([9.7.10](#9710-loading-a-program-repl-path)); a Jupyter cell reads through the client ([9.8.1](908-jupyter-integration.md#981-kernel)). A cell's standard output is flushed at each newline, also when it is not a terminal, so its output shows as it is written. The REPL host sets `ROK_GC_CONCURRENT=off` before the runtime starts, whatever the user's environment says: a concurrent marking thread would not be part of a snapshot, so full collections in a session mark without it ([7.5](../007-runtime/705-concurrent-collection.md)).
+A cell's standard input is the terminal when the REPL reads a terminal, and otherwise empty ([9.7.10](#9710-loading-a-program-repl-path)); a Jupyter cell reads through the client ([9.8.1](908-jupyter-integration.md#981-kernel)). A cell's standard output is flushed at each newline, also when it is not a terminal, so its output shows as it is written. The REPL host sets `ROKR_GC_CONCURRENT=off` before the runtime starts, whatever the user's environment says: a concurrent marking thread would not be part of a snapshot, so full collections in a session mark without it ([7.5](../007-runtime/705-concurrent-collection.md)).
 
 ## 9.7.3. Top-level variable storage
 

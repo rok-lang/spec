@@ -505,7 +505,7 @@ rok_net_splice
 
 ## 8.5.7. Diagnostic area
 
-Exit codes below (`101` etc.) reach the host as plain failure on `wasm32-wasi` ([4.16.4](../004-functions/416-entry-point.md#4164-exit-codes-and-unhandled-exceptions)).
+Exit codes below (`101` etc.) reach the host as plain failure on `wasm32-wasip2` ([4.16.4](../004-functions/416-entry-point.md#4164-exit-codes-and-unhandled-exceptions)).
 
 ### `rok_panic`
 

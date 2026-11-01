@@ -47,7 +47,7 @@ OS와 아키텍처마다 TLS 접근 메커니즘이 다릅니다.
 | Linux aarch64  | `tpidr_el0`                           |
 | macOS x86_64   | `%gs:offset`                          |
 | Windows x86_64 | TEB (Thread Environment Block) offset |
-| `wasm32-wasi-threads` | `__tls_base` global + offset   |
+| `wasm32-wasip1-threads` | `__tls_base` global + offset   |
 | 그 밖의 WASM (스레드 없음) | 블록은 일반 global         |
 
 컴파일러는 타깃에 맞는 명령어를 내보냅니다. 세부 처리는 LLVM의 `__thread`와 TLS 모델이 알아서 합니다.

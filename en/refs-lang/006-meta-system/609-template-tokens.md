@@ -453,7 +453,7 @@ Errors during expansion and parse errors of the expansion result point to the te
 
 ## 6.9.10. Debugging
 
-`rokc build --emit=expanded` ([9.9.10](../009-tools/909-debug-tools.md#9910-meta-block-debugging)) prints the expansion results of the user package as source text. Each expansion is a `// expanded from this #[derive(X)] (file:line:col)` comment followed by the generated source; if the output is expanded again, it follows the outer expansion.
+`rokc build --emit=expansions` ([9.9.10](../009-tools/909-debug-tools.md#9910-meta-block-debugging)) prints the expansion results of the user package as source text. Each expansion is a `// expanded from this #[derive(X)] (file:line:col)` comment followed by the generated source; if the output is expanded again, it follows the outer expansion.
 
 ## 6.9.11. Summary
 
