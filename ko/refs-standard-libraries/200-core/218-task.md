@@ -28,11 +28,9 @@ async fn yield_now();                                   // await: 다른 ready t
 fn registrations() -> usize;                            // 진단용: 실행 중 pool 의 park 한 waker + 대기 timer 수 (구현이 정함)
 fn readable(fd: i32) -> IoReady;                       // await: fd 가 읽기 가능해질 때까지 (refs-lang 7.7.2)
 fn writable(fd: i32) -> IoReady;
-fn park(key: usize, waker: Waker);                     // 저수준: 다음 unpark(key) 때 waker 를 깨움
-fn unpark(key: usize);                                 // key 에 park 된 task 를 모두 깨움
 ```
 
-`sleep`과 `timeout`은 첫 poll부터 시간을 잽니다. `park` / `unpark`는 [2.16](216-sync.md)의 락이 쓰는 대기 큐입니다. 직접 작성한 `Future`는 자신이 고른 키에 `ctx.waker()`([2.20](220-future.md))를 걸어 두고(park) `Pending`을 돌려줍니다. 상태를 바꾸는 쪽이 같은 키로 `unpark`를 부릅니다. 걸어 둔 항목은 그 task가 끝날 때에도 지워집니다.
+`sleep`과 `timeout`은 첫 poll부터 시간을 잽니다. 직접 작성한 `Future`는 `Waker`로 기다립니다([2.20](220-future.md)). `ctx.waker()`를 보관하고 `Pending`을 돌려주면, 상태를 바꾸는 쪽이 그 waker의 `wake()`를 부릅니다.
 
 이 함수들이 돌려주는 future와 에러는 다음과 같습니다.
 
@@ -156,7 +154,7 @@ let (_, ev) = await task::select([
 
 ### `TaskId`
 
-`task::id()`는 실행 중인 task의 id입니다. task 밖에서 부르면 panic이 일어납니다(그 자리에서 `current_id()`는 `none`을 돌려줍니다. `try_id()`는 deprecated인 옛 이름입니다. [0.5.8](../000-meta/005-notation.md) 참고). `Task::id()`는 그 task의 id입니다. id는 프로세스 전역 카운터에서 나오고 다시 쓰이지 않습니다.
+`task::id()`는 실행 중인 task의 id입니다. task 밖에서 부르면 panic이 일어납니다(그 자리에서 `current_id()`는 `none`을 돌려줍니다). `Task::id()`는 그 task의 id입니다. id는 프로세스 전역 카운터에서 나오고 다시 쓰이지 않습니다.
 
 ## 2.18.2. `Task<T>` 타입
 
@@ -216,7 +214,7 @@ Worker 0 ─┐      Worker 1 ─┐    ...    Worker N-1 ─┐
 
 표준 라이브러리의 권위는 API 시그니처까지입니다. 알고리듬 본문은 사양 밖의 런타임과 표준 라이브러리 본문에 속합니다.
 
-`rok::core::task`는 런타임 훅도 내보냅니다. `TaskRef`, `Pool`, `Worker`, `wake_task`, `cancel_requested`, `unwinding`입니다. 이 훅은 컴파일러와 런타임을 위해 공개되어 있을 뿐 런타임 내부용입니다. 안정된 API가 아닙니다. 0.1.6부터 이 훅을 쓰면 deprecated 경고가 나고([refs-lang 6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md)), 이후 릴리스에서 비공개가 됩니다. `wake_io`(close나 shutdown 뒤에 디스크립터의 readable / writable 대기자를 깨움)와 `host_enter` / `host_leave` / `host_run`(WebAssembly 컴포넌트 export의 이벤트 루프 진입점)은 `#[internal]`입니다. `rok::std`가 부르며, 다른 패키지에서 쓰면 에러입니다([0.4.4](../000-meta/004-lang-slot-table.md#044-함수-슬롯18)). `await`가 부르는 훅(`cancel_point`, `cancel_left`, `cleanup_running`, `cleanup_done`)은 lang 슬롯으로 찾으며([0.4.4](../000-meta/004-lang-slot-table.md)) 같은 방식으로 deprecated입니다.
+실행기 자신의 타입과 함수(`TaskRef`, `Pool`, `Worker`, `wake_task`, `cancel_requested`, `unwinding`, `park`, `unpark`)는 `rok::core` 안에서 `pub(pkg)`입니다. 다른 패키지는 이 이름을 쓸 수 없습니다. `await`가 부르는 훅(`cancel_point`, `cancel_left`, `cleanup_running`, `cleanup_done`)도 `pub(pkg)`이고, 낮춘 코드는 lang 슬롯으로 이 훅에 닿습니다([0.4.4](../000-meta/004-lang-slot-table.md)). `wake_io`(close나 shutdown 뒤에 디스크립터의 readable / writable 대기자를 깨움)와 WebAssembly 컴포넌트의 이벤트 루프 진입점인 `host_enter` / `host_leave` / `host_run`은 `#[internal]`입니다. `rok::std`가 부르며, 다른 패키지에서 쓰면 에러입니다([0.4](../000-meta/004-lang-slot-table.md)). `host_enter` 밖에서 부른 `host_leave`는 그렇다고 알리며 panic합니다.
 
 ## 2.18.4. 협력적 취소: `Task::cancel`
 
@@ -294,8 +292,6 @@ impl Duration {
     const fn ms(n: i64) -> Duration;
     const fn secs(n: i64) -> Duration;
     const fn mins(n: i64) -> Duration;
-    const fn sec(n: i64) -> Duration;    // 0.1.6부터 deprecated: secs
-    const fn min(n: i64) -> Duration;    // 0.1.6부터 deprecated: mins
     const fn hours(n: i64) -> Duration;
     const fn days(n: i64) -> Duration;
     const fn from_secs_f64(s: f64) -> Duration;
@@ -333,7 +329,7 @@ impl Instant {
 // Add<Duration>, Sub<Duration>, Sub<Instant> -> Duration
 ```
 
-`sec`과 `min`은 `secs`와 `mins`의 옛 이름입니다. `min`은 `Ord::min`도 가려서 두 기간에 `a.min(b)`를 쓰면 컴파일되지 않습니다. 오버플로가 나면 생성 함수와 `+` `-` `*` 연산자는 debug 빌드에서 panic이 일어나고, 그 밖에는 포화(saturate)합니다. `checked_*` / `saturating_*` 형태로 동작을 직접 고를 수 있습니다. `Duration`은 부호가 있습니다. 그래서 `earlier`가 더 나중이면 `duration_since`는 음수 기간을 돌려줍니다. 이때 `checked_duration_since`는 `none`을, `saturating_duration_since`는 `Duration::ZERO`를 돌려줍니다.
+두 기간의 `a.min(b)`는 `Ord::min`입니다. 오버플로가 나면 생성 함수와 `+` `-` `*` 연산자는 debug 빌드에서 panic이 일어나고, 그 밖에는 포화(saturate)합니다. `checked_*` / `saturating_*` 형태로 동작을 직접 고를 수 있습니다. `Duration`은 부호가 있습니다. 그래서 `earlier`가 더 나중이면 `duration_since`는 음수 기간을 돌려줍니다. 이때 `checked_duration_since`는 `none`을, `saturating_duration_since`는 `Duration::ZERO`를 돌려줍니다.
 
 `await task::sleep(Duration::ms(100))`, `await task::sleep_until(t)` 같은 호출은 정확한 단조 시간(monotonic time)을 보장합니다. 두 타입은 `rok::core::task::time`에 있고(2.18.7), `rok::std::time`이 다시 내보냅니다.
 

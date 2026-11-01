@@ -412,4 +412,4 @@ pub fn wake_io(fd: i32) { .. }
 - 새 가시성 단계가 아닙니다([5.6.1](../005-modules/506-visibility.md#561-네-단계)). 항목은 `pub`이고, 이 검사는 가시성과 따로 이루어집니다.
 - toolchain의 패키지만 이 속성을 쓸 수 있습니다. 다른 패키지의 항목에 붙이면 에러입니다. 항목을 패키지 안에만 두려면 `pub(pkg)`로 만드세요.
 
-이 속성이 붙은 항목은 [stdlib 0.4.4](../../refs-standard-libraries/000-meta/004-lang-slot-table.md#044-함수-슬롯18)에 있습니다. 한 계층 안에서만 쓰는 항목은 `pub(pkg)`이고, 컴파일러가 lowering한 코드에서 부르는 함수는 lang 슬롯으로 찾으므로 둘 다 `#[internal]`이 필요 없습니다.
+이 속성이 붙은 항목은 [stdlib 0.4.4](../../refs-standard-libraries/000-meta/004-lang-slot-table.md)에 있습니다. 한 계층 안에서만 쓰는 항목은 `pub(pkg)`이고, 컴파일러가 lowering한 코드에서 부르는 함수는 lang 슬롯으로 찾으므로 둘 다 `#[internal]`이 필요 없습니다.

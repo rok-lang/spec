@@ -412,4 +412,4 @@ pub fn wake_io(fd: i32) { .. }
 - It is no new visibility level ([5.6.1](../005-modules/506-visibility.md#561-four-levels)): the item is `pub`, and the check is separate from visibility.
 - Only the toolchain's packages may write it. On an item of any other package it is an error; to keep an item inside a package, make it `pub(pkg)`.
 
-The items that carry it are listed in [stdlib 0.4.4](../../refs-standard-libraries/000-meta/004-lang-slot-table.md#044-function-slots-18). An item used inside one tier only is `pub(pkg)`, and a function the compiler calls from lowered code is reached through a lang slot, so neither needs `#[internal]`.
+The items that carry it are listed in [stdlib 0.4.4](../../refs-standard-libraries/000-meta/004-lang-slot-table.md). An item used inside one tier only is `pub(pkg)`, and a function the compiler calls from lowered code is reached through a lang slot, so neither needs `#[internal]`.

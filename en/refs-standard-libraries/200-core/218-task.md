@@ -28,11 +28,9 @@ async fn yield_now();                                   // await: yields once to
 fn registrations() -> usize;                            // diagnostic: parked wakers + pending timers of the running pool (implementation-defined)
 fn readable(fd: i32) -> IoReady;                       // await: until fd becomes readable (refs-lang 7.7.2)
 fn writable(fd: i32) -> IoReady;
-fn park(key: usize, waker: Waker);                     // low-level: wakes waker at the next unpark(key)
-fn unpark(key: usize);                                 // wakes every task parked on key
 ```
 
-`sleep` and `timeout` measure their duration from the first poll. `park` / `unpark` are the wait queue the locks of [2.16](216-sync.md) are built on: a hand-written `Future` parks `ctx.waker()` ([2.20](220-future.md)) on a key of its choosing, returns `Pending`, and whoever changes the state calls `unpark` with the same key. A parked entry is also removed when its task finishes.
+`sleep` and `timeout` measure their duration from the first poll. A hand-written `Future` waits through its `Waker` ([2.20](220-future.md)): it keeps `ctx.waker()`, returns `Pending`, and whoever changes the state calls `wake()` on it.
 
 The futures and the error these functions return:
 
@@ -154,7 +152,7 @@ let (_, ev) = await task::select([
 
 ### `TaskId`
 
-`task::id()` is the id of the running task; calling it outside a task panics (`current_id()` returns `none` there; `try_id()` is its deprecated old name, see [0.5.8](../000-meta/005-notation.md)). `Task::id()` is the id of that task. Ids come from a process-wide counter and are never reused.
+`task::id()` is the id of the running task; calling it outside a task panics (`current_id()` returns `none` there). `Task::id()` is the id of that task. Ids come from a process-wide counter and are never reused.
 
 ## 2.18.2. `Task<T>` type
 
@@ -214,7 +212,7 @@ Key properties of this structure: the local queue is a lock-free Chase-Lev deque
 
 Note that the standard library's authority is limited to the API signatures; the algorithm bodies belong to the runtime and standard library body, outside the spec.
 
-`rok::core::task` also exports runtime hooks: `TaskRef`, `Pool`, `Worker`, `wake_task`, `cancel_requested` and `unwinding`. They are public for the compiler and the runtime, are internal to the runtime, and are not a stable API: since 0.1.6 a use of one is deprecated ([refs-lang 6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md)), and a later release makes them private. `wake_io` (waking the readable and writable waiters of a descriptor after a close or shutdown) and `host_enter` / `host_leave` / `host_run` (the event-loop entry for WebAssembly component exports) are `#[internal]`: `rok::std` calls them, and a use from any other package is an error ([0.4.4](../000-meta/004-lang-slot-table.md#044-function-slots-18)). The hooks an `await` calls (`cancel_point`, `cancel_left`, `cleanup_running`, `cleanup_done`) are found through their lang slots ([0.4.4](../000-meta/004-lang-slot-table.md)) and are deprecated the same way.
+The executor's own types and functions (`TaskRef`, `Pool`, `Worker`, `wake_task`, `cancel_requested`, `unwinding`, `park`, `unpark`) are `pub(pkg)` in `rok::core`: no other package names them. The hooks an `await` calls (`cancel_point`, `cancel_left`, `cleanup_running`, `cleanup_done`) are `pub(pkg)` too; lowered code reaches them through their lang slots ([0.4.4](../000-meta/004-lang-slot-table.md)). `wake_io` (waking the readable and writable waiters of a descriptor after a close or shutdown) and `host_enter` / `host_leave` / `host_run` (the event-loop entry of WebAssembly components) are `#[internal]`: `rok::std` calls them, and a use from any other package is an error ([0.4](../000-meta/004-lang-slot-table.md)). `host_leave` outside `host_enter` panics and says so.
 
 ## 2.18.4. Cooperative cancellation - `Task::cancel`
 
@@ -292,8 +290,6 @@ impl Duration {
     const fn ms(n: i64) -> Duration;
     const fn secs(n: i64) -> Duration;
     const fn mins(n: i64) -> Duration;
-    const fn sec(n: i64) -> Duration;    // deprecated since 0.1.6: secs
-    const fn min(n: i64) -> Duration;    // deprecated since 0.1.6: mins
     const fn hours(n: i64) -> Duration;
     const fn days(n: i64) -> Duration;
     const fn from_secs_f64(s: f64) -> Duration;
@@ -331,7 +327,7 @@ impl Instant {
 // Add<Duration>, Sub<Duration>, Sub<Instant> -> Duration
 ```
 
-`sec` and `min` are the old names of `secs` and `mins`; `min` also hides `Ord::min`, so `a.min(b)` on two durations does not compile. On overflow the constructors and the `+` `-` `*` operators panic in a debug build and saturate otherwise; the `checked_*` / `saturating_*` forms choose explicitly. `Duration` is signed, so `duration_since` returns a negative duration when `earlier` is later; `checked_duration_since` returns `none` and `saturating_duration_since` returns `Duration::ZERO` instead.
+`a.min(b)` on two durations is `Ord::min`. On overflow the constructors and the `+` `-` `*` operators panic in a debug build and saturate otherwise; the `checked_*` / `saturating_*` forms choose explicitly. `Duration` is signed, so `duration_since` returns a negative duration when `earlier` is later; `checked_duration_since` returns `none` and `saturating_duration_since` returns `Duration::ZERO` instead.
 
 Calls such as `await task::sleep(Duration::ms(100))` or `await task::sleep_until(t)` are guaranteed accurate monotonic time. Both types live in `rok::core::task::time` (2.18.7), and `rok::std::time` re-exports them.
 

@@ -417,11 +417,6 @@ impl f64 {
     const LOG2_E: f64;
     const LOG10_E: f64;
 
-    fn nan() -> f64;             // deprecated since 0.1.6: f64::NAN
-    fn infinity() -> f64;        // f64::INFINITY
-    fn neg_infinity() -> f64;
-    fn epsilon() -> f64;         // f64::EPSILON
-
     fn is_nan(self) -> bool;
     fn is_infinite(self) -> bool;
     fn is_finite(self) -> bool;
@@ -454,8 +449,7 @@ impl f64 {
     fn cbrt(self) -> f64;
     fn hypot(self, other: f64) -> f64;   // sqrt(self² + other²) without overflow
     fn pow(self, exp: f64) -> f64;
-    fn powf(self, exp: f64) -> f64;      // deprecated since 0.1.6: = pow
-    fn powi(self, n: i32) -> f64;
+    fn powi(self, n: i32) -> f64;        // repeated multiplication (LLVM powi): may round unlike pow
     fn exp(self) -> f64;
     fn exp2(self) -> f64;
     fn exp_m1(self) -> f64;      // e^self - 1, exact near zero

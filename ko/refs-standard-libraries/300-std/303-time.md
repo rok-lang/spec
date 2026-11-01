@@ -139,8 +139,6 @@ impl Duration {
     fn ms(n: i64) -> Duration;        // milliseconds
     fn secs(n: i64) -> Duration;
     fn mins(n: i64) -> Duration;
-    fn sec(n: i64) -> Duration;       // 0.1.6부터 deprecated: secs
-    fn min(n: i64) -> Duration;       // 0.1.6부터 deprecated: mins
     fn hours(n: i64) -> Duration;
     fn days(n: i64) -> Duration;
 

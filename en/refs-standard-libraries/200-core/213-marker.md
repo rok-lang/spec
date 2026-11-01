@@ -385,7 +385,7 @@ pub fn hand_over<T>(x: T) -> T;
 
 `Handoff<T>` carries a value between threads under an outside protocol (a join, a lock, a channel hand-off) that keeps any two threads from using it at once. It is `Send + Sync` whenever `T` is `Send`, even when `T` is not `Sync` (a collection). `new` is `unsafe`: the caller guarantees that no two threads use the value, or another copy of its handle, at the same time. `new` makes no copy (see above); `get` returns the wrapped value.
 
-`hand_over(x)` returns what a hand-off gives the new owner: `x` with a copy of every collection it reaches, or `x` itself when it reaches none. It is `#[internal]`: `rok::core` and `rok::std` call it, and a use from any other package is an error ([0.4.4](../000-meta/004-lang-slot-table.md#044-function-slots-18)).
+`hand_over(x)` returns what a hand-off gives the new owner: `x` with a copy of every collection it reaches, or `x` itself when it reaches none. It is `#[internal]`: `rok::core` and `rok::std` call it, and a use from any other package is an error ([0.4.4](../000-meta/004-lang-slot-table.md)).
 
 `Transfer` and `Memo` are public only so that the hand-off copy can reach the standard collections in other modules.
 

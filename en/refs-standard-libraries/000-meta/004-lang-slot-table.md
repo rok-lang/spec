@@ -6,15 +6,15 @@ The slot table is the authoritative location in the spec; the compiler, the stan
 
 ## 0.4.1. Slot classification
 
-The 66 slots fall into four groups according to their responsibility. The table below shows the role and slot count of each group at a glance, indicating which category the detailed tables in the following sections belong to.
+The 67 slots fall into four groups according to their responsibility. The table below shows the role and slot count of each group at a glance, indicating which category the detailed tables in the following sections belong to.
 
 | Group   | Responsibility                                                              | Slots   |
 |---------|-----------------------------------------------------------------------------|---------|
 | Type    | Standard library types Rok recognizes as **concrete types**                 | 14      |
 | Trait   | Traits Rok uses for **operator / control-flow desugaring**, derive, and thread-boundary checks | 32 |
 | Method  | Methods Rok **calls automatically** (drop)                                  | 1       |
-| Function | Standard library functions Rok calls as **intrinsic calls**, and the hooks lowered code calls | 19 |
-| Total   |                                                                             | **66**  |
+| Function | Standard library functions Rok calls as **intrinsic calls**, and the hooks lowered code calls | 20 |
+| Total   |                                                                             | **67**  |
 
 ## 0.4.2. Type slots (14)
 
@@ -95,7 +95,7 @@ Next come the operator trait slots. The dispatch target of an operator token is 
 > [!NOTE]
 > Comparison slot names and trait names do not correspond one-to-one. `eq_trait` is attached to `PartialEq`, which defines the equality operators, and `cmp_trait` to `PartialOrd`, which defines the ordering operators. The marker traits `Eq`, `Copy` and `Default` have no slots: sum types get them structurally (`T | none` is `Eq` when `T` is; its `Default` is `none`), so the compiler finds them by their fixed paths in `rok::core`.
 
-## 0.4.4. Function slots (19)
+## 0.4.4. Function slots (20)
 
 Function slots are for standard library functions that the compiler calls directly, like intrinsics. They mainly cover abnormal termination paths (`throw`, OOM, unreachable) and are used where a uniform entry point is needed outside normal flow.
 
@@ -105,7 +105,7 @@ Function slots are for standard library functions that the compiler calls direct
 | `oom_fn`         | OOM abort (runtime allocation failure calls `rok_oom` directly) | `rok::core::panic::oom` | 2.14 |
 | `unreachable_fn` | Called by the compiler at unreachable points | `rok::core::panic::unreachable` | 2.14 |
 
-The other sixteen are **hooks**: functions that code the compiler writes calls, for a negative index, a slice bound, a writable view, a spread, an f-string hole and a cancellation point. Lowering finds each through its slot, not by its path, so a hook need not be visible to the code it is lowered into. A hook is not API: a call written by hand is deprecated ([refs-lang 6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md)), and a later release makes the hooks private.
+The other seventeen are **hooks**: functions that code the compiler writes calls, for a negative index, a slice bound, a writable view, a spread, an f-string hole, a cancellation point and a broadcast over collections. Lowering finds each through its slot, not by its path, so a hook need not be visible to the code it is lowered into. A hook is not API: each is `pub(pkg)` in `rok::core`, and a call written by hand in another package is an error.
 
 | Slot name            | Called for                                             | Standard library function                 | Ref  |
 |----------------------|--------------------------------------------------------|-------------------------------------------|------|
@@ -125,6 +125,7 @@ The other sixteen are **hooks**: functions that code the compiler writes calls, 
 | `cancel_left_fn`     | An `await` whose poll was `Ready`                      | `rok::core::task::cancel_left`            | 2.18 |
 | `cleanup_running_fn` | A frame left by a cancel enters its cleanups           | `rok::core::task::cleanup_running`        | 2.18 |
 | `cleanup_done_fn`    | That frame finished its cleanups                       | `rok::core::task::cleanup_done`           | 2.18 |
+| `broadcast_len_fn`   | A broadcast `xs .+ ys` checks the lengths agree        | `rok::core::collections::broadcast::check_len` | 2.6 |
 
 ### Items the tiers share: `#[internal]`
 
@@ -175,6 +176,7 @@ Where the previous sections listed "which slots exist", this section summarizes 
 | A spread `f(..xs)` / `f(..d)`                      | `spread_len_fn`, `spread_names_fn`, `spread_misfit_fn` |
 | An f-string hole                                   | `fstr_display_fn` ... `fstr_text_any_fn` |
 | An `await`, and the cleanups a cancel runs         | `cancel_point_fn`, `cancel_left_fn`, `cleanup_running_fn`, `cleanup_done_fn` |
+| A broadcast over two or more collections           | `broadcast_len_fn`                       |
 | Releasing a `using` block                          | `drop_method`                            |
 | Automatic `Send` / `Sync` implementation, `+ Send` checks | `send_trait`, `sync_trait`        |
 
