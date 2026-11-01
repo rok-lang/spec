@@ -32,7 +32,7 @@ trait Reflect {
 
 - 손으로 쓴 `impl Reflect for T`는 에러입니다. `T: Reflect` 바운드는 늘 성립합니다.
 - 타입에 `size()` / `type_name()`처럼 이름이 같은 메서드가 있으면 그 메서드가 리플렉션 메서드를 가립니다.
-- 이름(`type_name`)에는 모듈 경로가 붙지 않습니다(`List<i64>`, `Config`). 합 타입의 정적 이름은 정규 순서([2.6.4](../../refs-lang/002-types/206-sum-types.md#264-집합-의미론))로 적습니다(`f64 | i32`, `none`은 마지막). `type_name_of_val(self)` 같은 인스턴스 형태는 런타임에 실제로 든 항(합 타입일 때)이나 `any`의 내용을 보고합니다.
+- 이름(`type_name`)에는 모듈 경로도, 기본값과 같은 뒤쪽 타입 인자도 붙지 않습니다(`List<i64>`, `Config`, `Dict<str, i32>`, [refs-lang 2.10.5](../../refs-lang/002-types/210-generics.md#2105-기본값)). 합 타입의 정적 이름은 정규 순서([2.6.4](../../refs-lang/002-types/206-sum-types.md#264-집합-의미론))로 적습니다(`f64 | i32`, `none`은 마지막). `type_name_of_val(self)` 같은 인스턴스 형태는 런타임에 실제로 든 항(합 타입일 때)이나 `any`의 내용을 보고합니다.
 - `rok::core::reflect::cast<T>(value: any) -> T | none`은 `set_field`와 같은 규칙으로 `any`를 `T`로 꺼냅니다. 타입의 메서드나 필드를 돌려주는 자유 함수는 없습니다. `T::methods()` / `T::fields()`로 얻으며, 타입의 동의인 `#[derive(Inspect)]`가 있어야 합니다.
 
 ### 정적과 인스턴스의 차이

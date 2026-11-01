@@ -32,7 +32,7 @@ The compiler provides `Reflect` for every type; there is no impl in source.
 
 - A hand-written `impl Reflect for T` is an error. The bound `T: Reflect` always holds.
 - If a type has its own method with the same name, such as `size()` / `type_name()`, that method shadows the reflection method.
-- The name (`type_name`) carries no module path (`List<i64>`, `Config`). The static name of a sum type is written in canonical order ([2.6.4](../../refs-lang/002-types/206-sum-types.md#264-set-semantics)) (`f64 | i32`, with `none` last). Instance forms such as `type_name_of_val(self)` report the member present at runtime (for a sum) or the content of an `any`.
+- The name (`type_name`) carries no module path (`List<i64>`, `Config`), nor trailing type arguments equal to their default (`Dict<str, i32>`, [refs-lang 2.10.5](../../refs-lang/002-types/210-generics.md#2105-defaults)). The static name of a sum type is written in canonical order ([2.6.4](../../refs-lang/002-types/206-sum-types.md#264-set-semantics)) (`f64 | i32`, with `none` last). Instance forms such as `type_name_of_val(self)` report the member present at runtime (for a sum) or the content of an `any`.
 - `rok::core::reflect::cast<T>(value: any) -> T | none` extracts a `T` from an `any` using the same rules as `set_field`. There is no free function for a type's methods or fields: they are `T::methods()` / `T::fields()` and need `#[derive(Inspect)]`, the type's consent.
 
 ### Static vs instance

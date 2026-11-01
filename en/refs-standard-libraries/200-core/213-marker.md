@@ -435,7 +435,7 @@ The built-in traits that `#[derive(...)]` ([refs-lang 6.2.1](../../refs-lang/006
 | `Eq`          | marker                                        | `PartialEq` also derived/implemented   |
 | `PartialOrd`  | lexicographic comparison in field declaration order | every field `PartialOrd`, `PartialEq` |
 | `Ord`         | lexicographic comparison in field declaration order | `Eq`, `PartialOrd` also derived/implemented |
-| `Hash`        | combination of per-field hashes (combining function unspecified) | every field `Hash` |
+| `Hash`        | each field's `hash` in declaration order; an enum writes its variant index first (writes unspecified) | every field `Hash` |
 
 - `Display` cannot be derived ([2.10](210-fmt.md)).
 - Deriving `Eq` / `Ord` without its supertrait is a compile error.

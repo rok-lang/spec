@@ -254,7 +254,7 @@ These families are runtime-internal helpers of the reference runtime and are not
 
 On the Rok side they are declared in an `extern "rok"` block marked `#[no_safepoint]` ([5.9.2](../005-modules/509-extern-block.md#592-abi-specifiers)).
 
-The following runtime functions are guaranteed never to allocate and never to block, so a call to them is not a safepoint ([8.4.2](804-safepoint.md#842-emission-sites), [8.9.12](809-lowering-control.md#8912-shadow-stack-frame)): `rok_str_len`, `rok_str_byte`, `rok_str_cmp`, `rok_str_eq`, `rok_str_eq_at`, `rok_str_find`, `rok_str_rfind`, `rok_str_char_count`, `rok_str_hash`, `rok_str_bytes_buf`, `rok_buf_copy`, the `rok_char_*` property and case functions, `rok_fmt_len`, `rok_f64_*`, `rok_f32_*`.
+The following runtime functions are guaranteed never to allocate and never to block, so a call to them is not a safepoint ([8.4.2](804-safepoint.md#842-emission-sites), [8.9.12](809-lowering-control.md#8912-shadow-stack-frame)): `rok_str_len`, `rok_str_byte`, `rok_str_cmp`, `rok_str_eq`, `rok_str_eq_at`, `rok_str_find`, `rok_str_rfind`, `rok_str_char_count`, `rok_str_bytes_buf`, `rok_buf_copy`, the `rok_char_*` property and case functions, `rok_fmt_len`, `rok_f64_*`, `rok_f32_*`.
 
 ## 8.5.3. Coroutine area
 

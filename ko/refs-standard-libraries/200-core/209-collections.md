@@ -7,8 +7,8 @@
 | 컬렉션              | 리터럴 문법                | 의미                          |
 |---------------------|----------------------------|-------------------------------|
 | `List<T>`           | `[1, 2, 3]`                | 동적 배열(삽입 순서)          |
-| `Dict<K, V>`        | `{"a": 1, "b": 2}`         | 해시 맵(삽입 순서)            |
-| `Set<T>`            | `{1, 2, 3}`                | 해시 집합(삽입 순서)          |
+| `Dict<K, V, S>`     | `{"a": 1, "b": 2}`         | 해시 맵(삽입 순서)            |
+| `Set<T, S>`         | `{1, 2, 3}`                | 해시 집합(삽입 순서)          |
 | `Tuple<...>`        | `(1, "a", true)`           | 고정 크기, 원소 타입이 제각각 |
 | `Slice<T>`          | `xs[1:3]`                  | 복사 없는 컨테이너 뷰         |
 | `SliceMut<T>`       | `SliceMut`을 기대하는 자리의 `xs[1:3]` | 리스트에 쓰는 뷰 |
@@ -202,7 +202,7 @@ let (a, b) = zs.split_at(1);                 //→ [1] 과 [2, 4] 의 view
 ### 비교 / 해시 / Debug: 공통 규칙
 
 - `List<T>`는 `PartialEq` / `Eq` / `Hash`를 순서대로 원소별로 구현합니다.
-- `Dict<K, V>`와 `Set<T>`는 순서와 무관하게 비교하고 해시합니다. 든 원소(키와 값)가 같으면 같습니다.
+- `Dict<K, V, S>`와 `Set<T, S>`는 순서와 무관하게 비교하고 해시합니다. 든 원소(키와 값)가 같으면 같습니다. 원소마다 프로세스 키로 따로 해시해 결과를 더하므로([2.5.6](205-cmp.md#256-hash-해시eq-일관성-약속)) 해시도 `S`와 무관합니다.
 - 세 컬렉션 모두 원소가 그 트레잇을 구현하면 `Debug`를 구현합니다. 출력은 순회 순서를 따릅니다.
 - 따라서 원소가 `Eq + Hash`인 컬렉션은 `Set` 원소나 `Dict` 키가 될 수 있습니다(`Set<List<i32>>`).
 
@@ -212,15 +212,18 @@ let (a, b) = zs.split_at(1);                 //→ [1] 과 [2, 4] 의 view
 - `reserve`, `with_capacity`, `repeat`, 확장에서 크기가 넘치면 "capacity overflow" panic이 일어납니다. 최적화 수준과 관계없이 같습니다.
 - 원소를 빼면(`pop`, `remove`, `clear`, `truncate`, `drain` 등) 그 참조도 놓습니다. 그 뒤로 GC는 그 컬렉션을 거쳐 그 원소에 닿지 않습니다.
 
-## 2.9.3. `Dict<K, V>`: 해시 맵
+## 2.9.3. `Dict<K, V, S>`: 해시 맵
 
 ```rok
-struct Dict<K: Hash + Eq, V> {
-    // 내부: HashMap (open addressing 또는 chain)
+struct Dict<K: Hash + Eq, V, S = RandomState> {
+    // 내부: 삽입 순서로 놓인 원소 배열과 선형 탐사 슬롯의 인덱스
+    // (작은 표는 인덱스 없음)
 }
 ```
 
-조회, 삽입, 제거는 평균 O(1)입니다. 순회는 삽입 순서를 따릅니다. 이미 있는 키를 다시 삽입하면 자리를 지키고, 제거한 뒤 다시 삽입한 키는 맨 뒤로 갑니다. 키가 표의 어느 칸에 놓이는지는 프로세스마다 한 번 고르는 seed에 달려 있습니다([2.5.6](205-cmp.md)). 순회 순서는 그 seed와 상관없습니다.
+조회, 삽입, 제거는 평균 O(1)입니다. 순회는 삽입 순서를 따릅니다. 이미 있는 키를 다시 삽입하면 자리를 지키고, 제거한 뒤 다시 삽입한 키는 맨 뒤로 갑니다.
+
+`S`가 해셔를 만듭니다([2.5.11](205-cmp.md#2511-rokcorehash-해셔)). 기본값 `RandomState`는 프로세스마다 한 번 뽑은 키를 쓰므로 키가 표의 어느 칸에 놓이는지는 실행마다 바뀝니다. 순회 순서는 바뀌지 않습니다. 상수 평가 중에 만든 dict는 런타임에 처음 쓸 때 프로세스 키로 다시 해시합니다. `Dict<K, V>`는 `Dict<K, V, RandomState>`이고, `{k: v}` 리터럴도 모두 그렇습니다.
 
 ### 핵심 메서드
 
@@ -228,6 +231,12 @@ struct Dict<K: Hash + Eq, V> {
 impl<K: Hash + Eq, V> Dict<K, V> {
     fn new() -> Dict<K, V>;
     fn with_capacity(cap: usize) -> Dict<K, V>;
+}
+
+impl<K: Hash + Eq, V, S: BuildHasher> Dict<K, V, S> {
+    fn with_hasher(s: S) -> Dict<K, V, S>;
+    fn with_capacity_and_hasher(cap: usize, s: S) -> Dict<K, V, S>;
+    fn hasher(self) -> S;
 
     fn len(self) -> usize;
     fn is_empty(self) -> bool;
@@ -240,11 +249,11 @@ impl<K: Hash + Eq, V> Dict<K, V> {
     fn retain(self, keep: fn(K, V) -> bool);      // 제자리
     fn extend<I: IntoIterator<Item = (K, V)>>(self, pairs: I);   // 뒤의 쌍의 값이 이김
 
-    fn iter(self) -> DictIter<K, V>;              // (K, V) 쌍
-    fn keys(self) -> Keys<K, V>;
-    fn values(self) -> Values<K, V>;
+    fn iter(self) -> DictIter<K, V, S>;              // (K, V) 쌍
+    fn keys(self) -> Keys<K, V, S>;
+    fn values(self) -> Values<K, V, S>;
 
-    fn entry(self, k: K) -> Entry<K, V>;          // 그 키의 자리 (있든 없든)
+    fn entry(self, k: K) -> Entry<K, V, S>;       // 그 키의 자리 (있든 없든)
 }
 
 struct Entry<K, V> { /* dict + key */ }
@@ -259,6 +268,14 @@ impl<K: Hash + Eq, V> Entry<K, V> {
 impl<K: Hash + Eq, V: Default> Entry<K, V> {
     fn or_default(self) -> V;                         // 없으면 V::default() 를 넣고, 그 값
 }
+```
+
+`Default`, `FromIterator`, `From<List<(K, V)>>`는 `S: BuildHasher + Default`가 필요합니다. 나머지 구현은 모든 `S: BuildHasher`를 받습니다.
+
+```rok
+use rok::core::hash::BuildHasherDefault;
+
+let fixed: Dict<str, i32, BuildHasherDefault<Fnv>> = Dict::with_hasher(BuildHasherDefault::new());
 ```
 
 ```rok
@@ -305,19 +322,25 @@ impl<K: Hash + Eq, V> Index<K> for Dict<K, V> {
 
 `iter` / `keys` / `values`는 사본이 아닙니다. 현재 테이블을 그대로 보는 지연 뷰입니다. 순회 도중 dict를 바꾸면 결과는 사양이 정하지 않습니다. 원소를 빠뜨리거나 두 번 볼 수 있습니다. 그래도 메모리 안전성은 지켜집니다.
 
-## 2.9.4. `Set<T>`: 해시 집합
+## 2.9.4. `Set<T, S>`: 해시 집합
 
 ```rok
-struct Set<T: Hash + Eq> {
-    // 내부: Dict<T, bool>
+struct Set<T: Hash + Eq, S = RandomState> {
+    // 내부: Dict<T, bool, S>
 }
 ```
 
-`Dict`처럼 삽입 순서로 순회합니다. 연산은 평균 O(1)입니다.
+`Dict`처럼 삽입 순서로 순회합니다. 연산은 평균 O(1)입니다. `Dict`처럼 `S`가 해셔를 만듭니다.
 
 ```rok
 impl<T: Hash + Eq> Set<T> {
     fn new() -> Set<T>;
+}
+
+impl<T: Hash + Eq, S: BuildHasher> Set<T, S> {
+    fn with_hasher(s: S) -> Set<T, S>;
+    fn with_capacity_and_hasher(cap: usize, s: S) -> Set<T, S>;
+    fn hasher(self) -> S;
     fn len(self) -> usize;
     fn is_empty(self) -> bool;
 
@@ -328,16 +351,16 @@ impl<T: Hash + Eq> Set<T> {
     fn retain(self, keep: fn(T) -> bool);         // 제자리
     fn extend<I: IntoIterator<Item = T>>(self, items: I);
 
-    fn union(self, other: Set<T>) -> Set<T>;
-    fn intersection(self, other: Set<T>) -> Set<T>;
-    fn difference(self, other: Set<T>) -> Set<T>;
-    fn symmetric_difference(self, other: Set<T>) -> Set<T>;
+    fn union(self, other: Set<T, S>) -> Set<T, S>;
+    fn intersection(self, other: Set<T, S>) -> Set<T, S>;
+    fn difference(self, other: Set<T, S>) -> Set<T, S>;
+    fn symmetric_difference(self, other: Set<T, S>) -> Set<T, S>;
 
-    fn is_subset(self, other: Set<T>) -> bool;
-    fn is_superset(self, other: Set<T>) -> bool;
-    fn is_disjoint(self, other: Set<T>) -> bool;
+    fn is_subset(self, other: Set<T, S>) -> bool;
+    fn is_superset(self, other: Set<T, S>) -> bool;
+    fn is_disjoint(self, other: Set<T, S>) -> bool;
 
-    fn iter(self) -> SetIter<T>;
+    fn iter(self) -> SetIter<T, S>;
     fn to_list(self) -> List<T>;
 }
 ```
@@ -707,8 +730,8 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 | 컨테이너      | 모듈                                     | 내부 구조                           |
 |---------------|------------------------------------------|-------------------------------------|
 | `List<T>`     | `rok::core::collections::list`            | Rust `Vec`을 본뜸                   |
-| `Dict<K, V>`  | `rok::core::collections::dict`            | 개방 주소법                         |
-| `Set<T>`      | `rok::core::collections::set`             | `Dict<T, bool>` 위                  |
+| `Dict<K, V, S>` | `rok::core::collections::dict`          | 원소 배열 + 선형 탐사               |
+| `Set<T, S>`   | `rok::core::collections::set`             | `Dict<T, bool, S>` 위               |
 | `Deque<T>`    | `rok::core::collections::deque`           | 링 버퍼                             |
 | `BinaryHeap<T>` | `rok::core::collections::heap`          | `List` 위의 암묵적 이진 트리        |
 | `Tuple`       | **컴파일러 내장** + 표준 라이브러리 훅  | `#[literal(...)]` + 컴파일러 조회   |

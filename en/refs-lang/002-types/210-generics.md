@@ -149,6 +149,8 @@ trait Add<Rhs = Self> {
 
 If the parameter is omitted at a call or instantiation, the default is used. A parameter without a default cannot follow one with a default; defaults must be trailing.
 
+Where a type is shown (diagnostics, help text, `type_name`), trailing arguments equal to their parameter's default are left out: for `struct W<T = i32>`, `W<i32>` is shown as `W`, and `Dict<str, i32, RandomState>` as `Dict<str, i32>`.
+
 ### Argument counts
 
 A generic `struct`, `union`, `enum` or type alias takes at most as many arguments as it has parameters, and at least as many as its parameters without defaults. Anything else is an error naming the declaration:

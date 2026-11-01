@@ -435,7 +435,7 @@ trait Default {
 | `Eq`          | marker                                      | `PartialEq`도 derive/구현          |
 | `PartialOrd`  | 필드 선언 순서의 사전식 비교                | 모든 필드 `PartialOrd`, `PartialEq` |
 | `Ord`         | 필드 선언 순서의 사전식 비교                | `Eq`, `PartialOrd`도 derive/구현   |
-| `Hash`        | 필드별 해시의 결합 (결합 함수는 정하지 않음) | 모든 필드 `Hash`                   |
+| `Hash`        | 선언 순서대로 각 필드의 `hash`. 열거형은 variant 번호를 먼저 씀 (쓰기는 정하지 않음) | 모든 필드 `Hash`                   |
 
 - `Display`는 derive로 구현할 수 없습니다([2.10](210-fmt.md)).
 - `Eq` / `Ord`를 상위 트레잇 없이 derive로 구현하면 컴파일 에러입니다.

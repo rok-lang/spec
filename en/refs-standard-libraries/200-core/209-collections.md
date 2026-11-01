@@ -7,8 +7,8 @@ This chapter defines the authoritative signatures of the following collections, 
 | Collection          | Literal syntax             | Meaning                         |
 |---------------------|----------------------------|---------------------------------|
 | `List<T>`           | `[1, 2, 3]`                | Dynamic array (insertion order) |
-| `Dict<K, V>`        | `{"a": 1, "b": 2}`         | Hash map (insertion order) |
-| `Set<T>`            | `{1, 2, 3}`                | Hash set (insertion order)      |
+| `Dict<K, V, S>`     | `{"a": 1, "b": 2}`         | Hash map (insertion order) |
+| `Set<T, S>`         | `{1, 2, 3}`                | Hash set (insertion order)      |
 | `Tuple<...>`        | `(1, "a", true)`           | Fixed-size heterogeneous        |
 | `Slice<T>`          | `xs[1:3]`                  | Zero-copy view of a container   |
 | `SliceMut<T>`       | `xs[1:3]` where a `SliceMut` is expected | Writable view of a list |
@@ -202,7 +202,7 @@ let (a, b) = zs.split_at(1);                 //→ views of [1] and [2, 4]
 ### Comparison / hashing / Debug - common rules
 
 - `List<T>` implements `PartialEq` / `Eq` / `Hash` element by element, in order.
-- `Dict<K, V>` and `Set<T>` compare and hash independently of order. They are equal if they hold the same elements (keys and values).
+- `Dict<K, V, S>` and `Set<T, S>` compare and hash independently of order. They are equal if they hold the same elements (keys and values). Each entry is hashed alone with the process key and the results are summed ([2.5.6](205-cmp.md#256-hash---hashing-eq-consistency-promise)), so the hash does not depend on `S` either.
 - All three collections implement `Debug` when their elements implement it, printing in iteration order.
 - A collection whose elements are `Eq + Hash` can therefore be a `Set` element or a `Dict` key (`Set<List<i32>>`).
 
@@ -212,15 +212,18 @@ let (a, b) = zs.split_at(1);                 //→ views of [1] and [2, 4]
 - A size that overflows in `reserve`, `with_capacity`, `repeat` or growth panics with "capacity overflow", at every optimization level.
 - Removing an element (`pop`, `remove`, `clear`, `truncate`, `drain`, ..) releases the reference: the GC no longer sees it through the collection.
 
-## 2.9.3. `Dict<K, V>` - hash map
+## 2.9.3. `Dict<K, V, S>` - hash map
 
 ```rok
-struct Dict<K: Hash + Eq, V> {
-    // internal: HashMap (open addressing or chaining)
+struct Dict<K: Hash + Eq, V, S = RandomState> {
+    // internal: compact entries in insertion order, plus an index of
+    // linear-probed slots (none for a small table)
 }
 ```
 
-It provides average O(1) lookup / insert / remove. Iteration follows insertion order: a key inserted again while present keeps its place, and one removed and inserted again goes last. Where a key sits in the table depends on a seed chosen once per process ([2.5.6](205-cmp.md#256-hash---hashing-eq-consistency-promise)); the iteration order does not.
+It provides average O(1) lookup / insert / remove. Iteration follows insertion order: a key inserted again while present keeps its place, and one removed and inserted again goes last.
+
+`S` builds the hashers ([2.5.11](205-cmp.md#2511-rokcorehash---hashers)). The default, `RandomState`, uses a key drawn once per process, so where a key sits in the table changes between runs; the iteration order does not. A dict built during constant evaluation is rehashed with the process key on its first use at run time. `Dict<K, V>` is `Dict<K, V, RandomState>`, and so is every `{k: v}` literal.
 
 ### Core methods
 
@@ -228,6 +231,12 @@ It provides average O(1) lookup / insert / remove. Iteration follows insertion o
 impl<K: Hash + Eq, V> Dict<K, V> {
     fn new() -> Dict<K, V>;
     fn with_capacity(cap: usize) -> Dict<K, V>;
+}
+
+impl<K: Hash + Eq, V, S: BuildHasher> Dict<K, V, S> {
+    fn with_hasher(s: S) -> Dict<K, V, S>;
+    fn with_capacity_and_hasher(cap: usize, s: S) -> Dict<K, V, S>;
+    fn hasher(self) -> S;
 
     fn len(self) -> usize;
     fn is_empty(self) -> bool;
@@ -240,11 +249,11 @@ impl<K: Hash + Eq, V> Dict<K, V> {
     fn retain(self, keep: fn(K, V) -> bool);      // in place
     fn extend<I: IntoIterator<Item = (K, V)>>(self, pairs: I);   // a later pair's value wins
 
-    fn iter(self) -> DictIter<K, V>;              // (K, V) pairs
-    fn keys(self) -> Keys<K, V>;
-    fn values(self) -> Values<K, V>;
+    fn iter(self) -> DictIter<K, V, S>;              // (K, V) pairs
+    fn keys(self) -> Keys<K, V, S>;
+    fn values(self) -> Values<K, V, S>;
 
-    fn entry(self, k: K) -> Entry<K, V>;          // the slot for that key (present or not)
+    fn entry(self, k: K) -> Entry<K, V, S>;       // the slot for that key (present or not)
 }
 
 struct Entry<K, V> { /* dict + key */ }
@@ -259,6 +268,14 @@ impl<K: Hash + Eq, V> Entry<K, V> {
 impl<K: Hash + Eq, V: Default> Entry<K, V> {
     fn or_default(self) -> V;                         // inserts V::default() if absent; returns the value
 }
+```
+
+`Default`, `FromIterator` and `From<List<(K, V)>>` need `S: BuildHasher + Default`; the other impls take any `S: BuildHasher`.
+
+```rok
+use rok::core::hash::BuildHasherDefault;
+
+let fixed: Dict<str, i32, BuildHasherDefault<Fnv>> = Dict::with_hasher(BuildHasherDefault::new());
 ```
 
 ```rok
@@ -305,19 +322,25 @@ The `d[k]` notation assumes the key is present; use `.get(k)` when safe access i
 
 `iter` / `keys` / `values` are lazy views onto the current table, not copies. Modifying the dict during iteration gives unspecified results (elements may be missed or seen twice), but memory safety is preserved.
 
-## 2.9.4. `Set<T>` - hash set
+## 2.9.4. `Set<T, S>` - hash set
 
 ```rok
-struct Set<T: Hash + Eq> {
-    // internal: Dict<T, bool>
+struct Set<T: Hash + Eq, S = RandomState> {
+    // internal: Dict<T, bool, S>
 }
 ```
 
-It iterates in insertion order, as `Dict` does; average performance is O(1).
+It iterates in insertion order, as `Dict` does; average performance is O(1). `S` builds the hashers, as for `Dict`.
 
 ```rok
 impl<T: Hash + Eq> Set<T> {
     fn new() -> Set<T>;
+}
+
+impl<T: Hash + Eq, S: BuildHasher> Set<T, S> {
+    fn with_hasher(s: S) -> Set<T, S>;
+    fn with_capacity_and_hasher(cap: usize, s: S) -> Set<T, S>;
+    fn hasher(self) -> S;
     fn len(self) -> usize;
     fn is_empty(self) -> bool;
 
@@ -328,16 +351,16 @@ impl<T: Hash + Eq> Set<T> {
     fn retain(self, keep: fn(T) -> bool);         // in place
     fn extend<I: IntoIterator<Item = T>>(self, items: I);
 
-    fn union(self, other: Set<T>) -> Set<T>;
-    fn intersection(self, other: Set<T>) -> Set<T>;
-    fn difference(self, other: Set<T>) -> Set<T>;
-    fn symmetric_difference(self, other: Set<T>) -> Set<T>;
+    fn union(self, other: Set<T, S>) -> Set<T, S>;
+    fn intersection(self, other: Set<T, S>) -> Set<T, S>;
+    fn difference(self, other: Set<T, S>) -> Set<T, S>;
+    fn symmetric_difference(self, other: Set<T, S>) -> Set<T, S>;
 
-    fn is_subset(self, other: Set<T>) -> bool;
-    fn is_superset(self, other: Set<T>) -> bool;
-    fn is_disjoint(self, other: Set<T>) -> bool;
+    fn is_subset(self, other: Set<T, S>) -> bool;
+    fn is_superset(self, other: Set<T, S>) -> bool;
+    fn is_disjoint(self, other: Set<T, S>) -> bool;
 
-    fn iter(self) -> SetIter<T>;
+    fn iter(self) -> SetIter<T, S>;
     fn to_list(self) -> List<T>;
 }
 ```
@@ -707,8 +730,8 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 | Container     | Module                                   | Internal structure                  |
 |---------------|------------------------------------------|-------------------------------------|
 | `List<T>`     | `rok::core::collections::list`            | inspired by Rust `Vec`              |
-| `Dict<K, V>`  | `rok::core::collections::dict`            | open addressing                     |
-| `Set<T>`      | `rok::core::collections::set`             | on top of `Dict<T, bool>`           |
+| `Dict<K, V, S>` | `rok::core::collections::dict`          | compact entries + linear probing    |
+| `Set<T, S>`   | `rok::core::collections::set`             | on top of `Dict<T, bool, S>`        |
 | `Deque<T>`    | `rok::core::collections::deque`           | ring buffer                         |
 | `BinaryHeap<T>` | `rok::core::collections::heap`          | implicit binary tree on a `List`    |
 | `Tuple`       | **compiler built-in** + standard library hook | `#[literal(...)]` + compiler lookup |

@@ -254,7 +254,7 @@ extern "rok" {
 
 Rok 쪽에서는 `#[no_safepoint]`가 붙은 `extern "rok"` 블록에 선언합니다([5.9.2](../005-modules/509-extern-block.md#592-abi-명시)).
 
-다음 런타임 함수는 할당도 block도 하지 않음이 보장됩니다. 그래서 이 함수를 호출하는 곳은 safepoint가 아닙니다([8.4.2](804-safepoint.md#842-삽입-위치), [8.9.12](809-lowering-control.md#8912-shadow-stack-프레임)). `rok_str_len`, `rok_str_byte`, `rok_str_cmp`, `rok_str_eq`, `rok_str_eq_at`, `rok_str_find`, `rok_str_rfind`, `rok_str_char_count`, `rok_str_hash`, `rok_str_bytes_buf`, `rok_buf_copy`, `rok_char_*` 속성 / 대소문자 함수, `rok_fmt_len`, `rok_f64_*`, `rok_f32_*`.
+다음 런타임 함수는 할당도 block도 하지 않음이 보장됩니다. 그래서 이 함수를 호출하는 곳은 safepoint가 아닙니다([8.4.2](804-safepoint.md#842-삽입-위치), [8.9.12](809-lowering-control.md#8912-shadow-stack-프레임)). `rok_str_len`, `rok_str_byte`, `rok_str_cmp`, `rok_str_eq`, `rok_str_eq_at`, `rok_str_find`, `rok_str_rfind`, `rok_str_char_count`, `rok_str_bytes_buf`, `rok_buf_copy`, `rok_char_*` 속성 / 대소문자 함수, `rok_fmt_len`, `rok_f64_*`, `rok_f32_*`.
 
 ## 8.5.3. 코루틴 영역
 
