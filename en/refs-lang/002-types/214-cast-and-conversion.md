@@ -39,13 +39,13 @@ let z: f64 = x as f64;        // 256.0
 The allowed pairs are a fixed set:
 
 - Any type to itself (a no-op).
-- Between any two of the integer types, the floating-point types, `bool`, `char` and `c_char`. The one restriction is the target `char`: only `u8 as char` (and `char as char`) is allowed, since a wider value may be a surrogate or lie past `U+10FFFF`. Other integer, floating-point, `bool` and `c_char` → `char` casts are type errors, with the message ``only `u8` can be cast as `char`, not `u32`; use `char::from_u32(n)` (`char | none`) for a wider value``.
+- Between any two of the integer types, the floating-point types, `bool`, `char` and `c_char`. There are two restrictions. The target `bool`: only `bool` casts to `bool`. The target `char`: only `u8 as char` (and `char as char`) is allowed, since a wider value may be a surrogate or lie past `U+10FFFF`. Other integer, floating-point, `bool` and `c_char` → `char` casts are type errors, with the message ``only `u8` can be cast as `char`, not `u32`; use `char::from_u32(n)` (`char | none`) for a wider value``.
 - A payload-less `enum` to an integer type, giving its tag or value ([2.4.2](204-enum.md#casting-to-an-integer)).
 - To or from the arbitrary-precision std types `int` / `float`. A cast into one runs the lossless `From` impl, so a pair without one (`f64 as int`) is an error; a cast out of one runs the target's `WrappingFrom` impl.
 
 From a floating-point type to an integer type, `as` truncates toward zero and saturates: a value past the target's range gives its nearest end (`1e10 as i32` is `i32::MAX`, `-1.5 as u8` is `0`), and NaN gives `0`, at every optimization level. The full table of `as` results is in [stdlib 2.11.6](../../refs-standard-libraries/200-core/211-conversion.md#2116-as-t---bit-reinterpretation--numeric-cast).
 
-To `bool`, an integer gives `x != 0` (`-1 as bool` and `256 as bool` are `true`). A floating-point value truncates toward zero and saturates first, so `0.5 as bool` and `-1.0 as bool` are `false`, `1.5 as bool` is `true`, and NaN is `false`. A float `as bool` warns (`float_to_bool`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)); write the comparison instead: `x != 0.0`.
+An integer, floating-point or `char` value `as bool` is a compile error, ``cannot cast `i32` as `bool` ``: write the comparison instead, `x != 0` for an integer and `x != 0.0` for a floating-point value. The error carries that edit as a fix. `bool` casts to the integer types as `0` and `1`.
 
 Any other pair is a compile error: ``cannot cast `str` as `i32` (only numeric / bool / char casts)``. An allowed `as` always succeeds. For a conversion that may fail, use `.try_into()` instead.
 

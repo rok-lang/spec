@@ -39,13 +39,13 @@ let z: f64 = x as f64;        // 256.0
 허용하는 쌍은 정해져 있습니다.
 
 - 임의의 타입에서 자기 자신으로(아무 일도 하지 않음).
-- 정수 타입, 부동소수 타입, `bool`, `char`, `c_char` 중 임의의 두 타입 사이. 제약은 대상이 `char`일 때 하나뿐입니다. `u8 as char`와 `char as char`만 쓸 수 있습니다. 더 넓은 값은 서로게이트이거나 `U+10FFFF`를 넘을 수 있기 때문입니다. 그 밖의 정수, 부동소수, `bool`, `c_char` → `char`는 타입 에러입니다. 에러 메시지는 ``only `u8` can be cast as `char`, not `u32`; use `char::from_u32(n)` (`char | none`) for a wider value``입니다.
+- 정수 타입, 부동소수 타입, `bool`, `char`, `c_char` 중 임의의 두 타입 사이. 제약은 두 가지입니다. 대상이 `bool`이면 `bool`만 바꿀 수 있습니다. 대상이 `char`이면 `u8 as char`와 `char as char`만 쓸 수 있습니다. 더 넓은 값은 서로게이트이거나 `U+10FFFF`를 넘을 수 있기 때문입니다. 그 밖의 정수, 부동소수, `bool`, `c_char` → `char`는 타입 에러입니다. 에러 메시지는 ``only `u8` can be cast as `char`, not `u32`; use `char::from_u32(n)` (`char | none`) for a wider value``입니다.
 - 페이로드가 없는 `enum`에서 정수 타입으로. 결과는 그 태그나 값입니다([2.4.2](204-enum.md#정수로-캐스트)).
 - 임의 정밀도 표준 타입 `int` / `float`로, 또는 그 타입에서. 그 타입으로 캐스트하면 무손실 `From` impl을 실행합니다. 그래서 그런 impl이 없는 쌍(`f64 as int`)은 에러입니다. 그 타입에서 캐스트하면 대상의 `WrappingFrom` impl을 실행합니다.
 
 부동소수점 타입에서 정수 타입으로 바꾸는 `as`는 0 쪽으로 버리고 포화합니다. 대상 범위를 넘는 값은 가까운 끝 값이 되고(`1e10 as i32`는 `i32::MAX`, `-1.5 as u8`은 `0`), NaN은 `0`이 됩니다. 최적화 수준과 관계없이 같습니다. `as` 결과 전체 표는 [stdlib 2.11.6](../../refs-standard-libraries/200-core/211-conversion.md#2116-as-t-비트-재해석--숫자-캐스트)에 있습니다.
 
-`bool`로 바꿀 때 정수는 `x != 0`입니다(`-1 as bool`과 `256 as bool`은 `true`). 부동소수점 값은 먼저 0 쪽으로 버리고 포화하므로, `0.5 as bool`과 `-1.0 as bool`은 `false`, `1.5 as bool`은 `true`, NaN은 `false`입니다. 부동소수점의 `as bool`은 경고가 나옵니다(`float_to_bool`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). 대신 비교를 씁니다: `x != 0.0`.
+정수, 부동소수점, `char` 값의 `as bool`은 컴파일 에러입니다(``cannot cast `i32` as `bool` ``). 대신 비교를 씁니다. 정수는 `x != 0`, 부동소수점은 `x != 0.0`입니다. 에러는 이 편집을 수정 제안(fix)으로 함께 냅니다. `bool`을 정수 타입으로 바꾸면 `0`과 `1`입니다.
 
 그 밖의 쌍은 컴파일 에러입니다(``cannot cast `str` as `i32` (only numeric / bool / char casts)``). 허용된 `as`는 항상 성공합니다. 실패할 수 있는 변환에는 `.try_into()`를 씁니다.
 

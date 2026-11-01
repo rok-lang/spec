@@ -245,14 +245,8 @@ fn strict_zone() { ... }
 | `deprecated`             | 0.1.0   | `#[deprecated]` 함수, 메서드, 필드, 타입, 상수, static 사용 ([6.2.7](#627-deprecated-사용-자제-표시)) |
 | `deprecated_safe`        | 0.1.6   | `unsafe` 밖에서 `#[deprecated_safe]` 함수를 호출하거나 그런 static을 씀 ([6.2.14](#6214-deprecated_safe-지금은-안전-나중에-unsafe)) |
 | `fstring_g_precision`    | 0.1.6   | 수에 쓴 `{x:.3g}`. 0.2.0에서 `g`가 일반 형식이 되기 전까지는 `{x:.3}`처럼 출력됨 ([1.7.3](../001-lexical/107-string-literals.md#173-형식-문자열)) |
-| `capture_field_write`    | 0.1.6   | 클로저 안에서 값 캡처한 구조체의 필드에 씀: 클로저의 사본이 바뀜. help는 `[ref p]` ([4.6.7](../004-functions/406-capture-semantics.md#467-struct와-참조-핸들의-캡처)) |
-| `const_item_mutation`    | 0.1.6   | `const`에 `ref self` 메서드나 컬렉션의 변경 메서드(`push`, `insert` 등)를 부름: 쓸 때마다 새 값이므로 변경이 버려짐 ([5.2](../005-modules/502-const.md)) |
-| `pattern_binds_const`    | 0.1.6   | `const`나 `static`으로 해소되거나, 대문자로 시작하고 피검사 식 `enum`의 변형과 편집 거리 2 이내인 패턴 이름: 모든 값을 바인딩함 ([3.11](../003-expressions/311-patterns.md)) |
-| `discarded_ref_write`    | 0.1.6   | 원소, `Dict` 항목, `static`에 `ref self` 메서드를 부름: 되쓸 자리가 없음 ([4.7](../004-functions/407-ref-keyword.md)) |
-| `ambiguous_int_literal`  | 0.1.6   | 정수 항이 둘 이상이고 부동소수점 항이 있는 합 타입에 접미사 없는 정수 리터럴: 부동소수점이 됨 ([1.6.3](../001-lexical/106-numeric-literals.md#163-접미사-없는-리터럴)) |
+| `discarded_ref_write`    | 0.1.6   | 원소나 `Dict` 항목에 `ref self` 메서드를 부름: 되쓸 자리가 없음 ([4.7](../004-functions/407-ref-keyword.md)) |
 | `trait_not_in_scope`     | 0.1.6   | `rok::` 밖의 트레잇 중 그 모듈에서 정의하지도 `use`로 가져오지도 않은 트레잇의 메서드 ([3.5](../003-expressions/305-member-access-and-method-call.md)) |
-| `finally_jump`           | 0.1.6   | `finally` 블록을 벗어나 전파 중인 에러를 버리는 `return`, `break`, `continue` ([3.14.5](../003-expressions/314-error-control-flow.md)) |
-| `float_to_bool`          | 0.1.6   | 부동소수점의 `as bool`: 먼저 버리므로 `0.5 as bool`은 `false` ([2.14](../002-types/214-cast-and-conversion.md)). `x != 0.0`으로 씀 |
 | `implicit_core_fn`       | 0.1.6   | 묵시 `use rok::core::**`로만 해소되는 core 모듈 자유 함수의 맨 이름 호출(`sleep`) ([stdlib 0.2.3](../../refs-standard-libraries/000-meta/002-import.md)). `task::sleep(..)`으로 씀 |
 | `redundant_cast`         | 0.1.0   | `x`가 이미 `T`인 `x as T`                                         |
 | `redundant_clone`        | 0.1.0   | 원시 타입 값의 `.clone()`                                          |
@@ -273,6 +267,8 @@ fn strict_zone() { ... }
 | `builtin_attribute_name` | 0.2.0   | 메타 블록이 내장 속성의 이름을 가져감 |
 
 `unclosed_sender`, `using_twice`, `guard_escape`, `thread_local_across_await`, `extern_static_unsafe`, `improper_ctypes`는 0.1.6에서 추가되었습니다. `guard_escape`, `extern_static_unsafe`, `improper_ctypes`가 보고하는 코드는 0.2.0에서 에러가 됩니다.
+
+`capture_field_write`, `const_item_mutation`, `pattern_binds_const`, `ambiguous_int_literal`, `finally_jump`, `float_to_bool`(0.1.6)이 보고하던 코드는 0.2.0부터 에러입니다: [4.6.7](../004-functions/406-capture-semantics.md), [5.2](../005-modules/502-const.md), [3.11](../003-expressions/311-patterns.md), [1.6.3](../001-lexical/106-numeric-literals.md#163-접미사-없는-리터럴), [3.14.5](../003-expressions/314-error-control-flow.md), [2.14](../002-types/214-cast-and-conversion.md). 이 이름들은 린트 이름을 쓰는 곳에 여전히 쓸 수 있고, 아무것도 설정하지 않습니다.
 
 | 그룹                | 포함                                                                                         |
 |---------------------|----------------------------------------------------------------------------------------------|

@@ -88,7 +88,7 @@ impl TryFrom<RawPath> for Path { type Error = NonUtf8Error; ... }   // overridde
 impl TryFrom<Celsius> for Kelvin { ... }                           // Error = ConversionError
 ```
 
-Inside a trait and all impls (trait impls and inherent impls), both the bare name `Item` and `Self::Item` denote the associated type, usable in both method signatures and bodies. In an impl it is the concrete type that impl chose. If an associated type shadows an outer type of the same name (a module's `struct Item`, a primitive type, etc.), a warning is issued. A trait of the same name is not a type, so no warning is issued (`trait IntoFuture { type IntoFuture; }` is fine).
+Inside a trait and all impls (trait impls and inherent impls), both the bare name `Item` and `Self::Item` denote the associated type, usable in both method signatures and bodies. In an impl it is the concrete type that impl chose. If an associated type shadows an outer type of the same name (a module's `struct Item`, a primitive type, etc.), the bare name is ambiguous there: using it inside the trait or impl is a compile error, whose help asks for `Self::Item` or the outer type's path (`pkg::Item`, `rok::std::process::Output`). Declaring such an associated type without using the bare name warns (`assoc_type_shadowing`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)). A trait of the same name is not a type, so no warning is issued (`trait IntoFuture { type IntoFuture; }` is fine).
 
 If a type implements two traits that have an associated type of the same name, a bare `X` / `Self::X` in that type's impl bodies is ambiguous and is an error. In that case, name the trait with `<Self as Tr>::X`.
 

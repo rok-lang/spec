@@ -213,7 +213,7 @@ let f2: f32 = 3.14f64 as f32;     // 3.14 → f32 (IEEE 754 narrowing)
 | `u8` → `char`                                      | that code point (U+0000..=U+00FF)                  |
 | `char` → integer                                   | code point (truncated for a narrow integer)        |
 
-`as` to `char` works only from `u8`. Other integers / floating-point / `bool` / `c_char` are a type error; a wider value is converted with `char::from_u32(n)` (`char | none`) ([2.15.4](215-string.md)).
+`as` to `char` works only from `u8`. Other integers / floating-point / `bool` / `c_char` are a type error; a wider value is converted with `char::from_u32(n)` (`char | none`) ([2.15.4](215-string.md)). `as` to `bool` works only from `bool`; compare instead (`x != 0`, `x != 0.0`).
 
 ### Limits of `as`
 

@@ -78,7 +78,7 @@ extern "C" {
 
 - `static mut`는 `extern "C"` 블록 안에서만 쓸 수 있습니다.
 - 일반 Rok 코드의 `static mut`는 에러입니다.
-- extern `static mut`가 아닌 `static`에 대입하면 컴파일 에러입니다(`COUNTER = ...`). 내부 변경은 위 래퍼의 메서드로 합니다.
+- extern `static mut`가 아닌 `static`에 대입하거나(`COUNTER = ...`) `ref self` 메서드를 부르면(`S.set(3)`, [4.7](../004-functions/407-ref-keyword.md)) 컴파일 에러입니다. 내부 변경은 위 래퍼의 메서드로 합니다.
 
 공유되는 가변 상태는 데이터 경쟁의 직접 원인이므로 이렇게 제한합니다. 일반 코드는 래퍼로 안전하게 다루고, 원시 접근은 FFI 영역에서만 허용합니다.
 

@@ -88,7 +88,7 @@ impl TryFrom<RawPath> for Path { type Error = NonUtf8Error; ... }   // 덮어씀
 impl TryFrom<Celsius> for Kelvin { ... }                           // Error = ConversionError
 ```
 
-트레잇 안과 모든 impl(트레잇 impl과 고유 impl) 안에서 맨 이름 `Item`과 `Self::Item`은 둘 다 그 연관 타입을 가리킵니다. 메서드 시그니처와 본문에서 모두 쓸 수 있습니다. impl에서는 그 impl이 정한 구체 타입을 가리킵니다. 연관 타입이 바깥에 있는 같은 이름의 타입(모듈의 `struct Item`, 원시 타입 등)을 가리면 컴파일러가 경고합니다. 같은 이름의 트레잇은 타입이 아니므로 경고하지 않습니다(`trait IntoFuture { type IntoFuture; }`는 괜찮습니다).
+트레잇 안과 모든 impl(트레잇 impl과 고유 impl) 안에서 맨 이름 `Item`과 `Self::Item`은 둘 다 그 연관 타입을 가리킵니다. 메서드 시그니처와 본문에서 모두 쓸 수 있습니다. impl에서는 그 impl이 정한 구체 타입을 가리킵니다. 연관 타입이 바깥에 있는 같은 이름의 타입(모듈의 `struct Item`, 원시 타입 등)을 가리면, 그 트레잇이나 impl 안에서 맨 이름은 모호합니다. 그 안에서 맨 이름을 쓰면 컴파일 에러이고, help는 `Self::Item`이나 바깥 타입의 경로(`pkg::Item`, `rok::std::process::Output`)를 쓰라고 안내합니다. 맨 이름을 쓰지 않고 그런 연관 타입을 선언만 하면 경고합니다(`assoc_type_shadowing`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). 같은 이름의 트레잇은 타입이 아니므로 경고하지 않습니다(`trait IntoFuture { type IntoFuture; }`는 괜찮습니다).
 
 한 타입이 이름이 같은 연관 타입이 있는 트레잇 둘을 구현할 수 있습니다. 그러면 그 타입의 impl 본문에서 맨 `X` / `Self::X`는 어느 쪽인지 모호하므로 에러입니다. 이때는 `<Self as Tr>::X`로 트레잇을 밝힙니다.
 

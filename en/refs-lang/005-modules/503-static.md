@@ -78,7 +78,7 @@ extern "C" {
 
 - `static mut` is allowed only inside an `extern "C"` block.
 - `static mut` in ordinary Rok code is an ERROR.
-- Assigning to a `static` that is not an extern `static mut` is a compile error (`COUNTER = ...`). Interior mutation goes through the methods of the wrappers above.
+- Assigning to a `static` that is not an extern `static mut` is a compile error (`COUNTER = ...`), and so is calling a `ref self` method on one (`S.set(3)`, [4.7](../004-functions/407-ref-keyword.md)). Interior mutation goes through the methods of the wrappers above.
 
 Shared mutable state is a direct cause of data races, hence this restriction. Ordinary code gets safety through wrappers; raw access is allowed only in the FFI domain.
 

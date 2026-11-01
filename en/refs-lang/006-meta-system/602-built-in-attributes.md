@@ -245,14 +245,8 @@ The default level of every lint is `warn`. The Since column is the release that 
 | `deprecated`             | 0.1.0   | Use of a `#[deprecated]` function, method, field, type, constant or static ([6.2.7](#627-deprecated-discouraged-use-marker)) |
 | `deprecated_safe`        | 0.1.6   | A call of a `#[deprecated_safe]` function, or a use of such a static, outside `unsafe` ([6.2.14](#6214-deprecated_safe-safe-today-unsafe-later)) |
 | `fstring_g_precision`    | 0.1.6   | `{x:.3g}` on a number, which prints like `{x:.3}` until `g` becomes the general format in 0.2.0 ([1.7.3](../001-lexical/107-string-literals.md#173-format-strings)) |
-| `capture_field_write`    | 0.1.6   | A field write on a value-captured struct inside a closure: it changes the closure's copy; help `[ref p]` ([4.6.7](../004-functions/406-capture-semantics.md#467-capturing-structs-and-reference-handles)) |
-| `const_item_mutation`    | 0.1.6   | A `ref self` method, or a mutating method of a collection (`push`, `insert`, ...), called on a `const`: each use is a new value, so the change is dropped ([5.2](../005-modules/502-const.md)) |
-| `pattern_binds_const`    | 0.1.6   | A pattern name that resolves to a `const` or `static`, or is capitalised and within two edits of a variant of the scrutinee's `enum`: it binds every value ([3.11](../003-expressions/311-patterns.md)) |
-| `discarded_ref_write`    | 0.1.6   | A `ref self` method called on an element, a `Dict` entry or a `static`: there is no place to write back to ([4.7](../004-functions/407-ref-keyword.md)) |
-| `ambiguous_int_literal`  | 0.1.6   | An unsuffixed integer literal into a sum with more than one integer member and a floating-point member: it takes the float ([1.6.3](../001-lexical/106-numeric-literals.md#163-unsuffixed-literals)) |
+| `discarded_ref_write`    | 0.1.6   | A `ref self` method called on an element or a `Dict` entry: there is no place to write back to ([4.7](../004-functions/407-ref-keyword.md)) |
 | `trait_not_in_scope`     | 0.1.6   | A method from a trait outside `rok::` that is neither defined nor `use`d in the module ([3.5](../003-expressions/305-member-access-and-method-call.md)) |
-| `finally_jump`           | 0.1.6   | `return`, `break` or `continue` that leaves a `finally` block and drops the error in flight ([3.14.5](../003-expressions/314-error-control-flow.md)) |
-| `float_to_bool`          | 0.1.6   | A floating-point `as bool`: it truncates first, so `0.5 as bool` is `false` ([2.14](../002-types/214-cast-and-conversion.md)); write `x != 0.0` |
 | `implicit_core_fn`       | 0.1.6   | A bare call of a core module's free function (`sleep`) that only the implicit `use rok::core::**` resolves ([stdlib 0.2.3](../../refs-standard-libraries/000-meta/002-import.md)); write `task::sleep(..)` |
 | `redundant_cast`         | 0.1.0   | `x as T` where `x` is already `T`                                   |
 | `redundant_clone`        | 0.1.0   | `.clone()` on a value of a primitive type                           |
@@ -273,6 +267,8 @@ The default level of every lint is `warn`. The Since column is the release that 
 | `builtin_attribute_name` | 0.2.0   | A meta block that takes the name of a built-in attribute |
 
 `unclosed_sender`, `using_twice`, `guard_escape`, `thread_local_across_await`, `extern_static_unsafe` and `improper_ctypes` were added in 0.1.6. 0.2.0 makes what `guard_escape`, `extern_static_unsafe` and `improper_ctypes` report errors.
+
+`capture_field_write`, `const_item_mutation`, `pattern_binds_const`, `ambiguous_int_literal`, `finally_jump` and `float_to_bool` (0.1.6) are errors from 0.2.0: [4.6.7](../004-functions/406-capture-semantics.md), [5.2](../005-modules/502-const.md), [3.11](../003-expressions/311-patterns.md), [1.6.3](../001-lexical/106-numeric-literals.md#163-unsuffixed-literals), [3.14.5](../003-expressions/314-error-control-flow.md), [2.14](../002-types/214-cast-and-conversion.md). Their names are still accepted where a lint name is and set nothing.
 
 | Group               | Includes                                                                                     |
 |---------------------|----------------------------------------------------------------------------------------------|
