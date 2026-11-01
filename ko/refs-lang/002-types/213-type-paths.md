@@ -14,7 +14,7 @@ path_segment    ::= identifier type_args?
 타입이 다른 모듈에 정의되어 있으면 그 모듈까지의 경로와 타입 이름을 함께 적습니다.
 
 ```rok
-rok::std::time::Duration
+rok::core::time::Duration
 rok::core::collections::List
 pkg::geom::Point
 ```

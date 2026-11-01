@@ -50,7 +50,7 @@ array_type  ::= "[" type_expr ";" const_expr "]"
 | 형태          | 예                                          |
 |---------------|---------------------------------------------|
 | 단순 이름     | `i32`, `bool`, `Point`                      |
-| 경로          | `rok::std::time::Duration`                  |
+| 경로          | `rok::core::time::Duration`                 |
 | 제네릭 적용   | `List<i32>`, `Dict<str, f64>`, `Pair<A, B>` |
 | 합 타입 (`\|`) | `i32 \| f32`, `T \| none`                     |
 | optional (`?`)  | `i32?`, `(i32 \| str)?`, `List<T>?`           |
@@ -90,7 +90,7 @@ Point
 식별자 여럿을 `::`로 이은 형태도 타입 표현식으로 쓸 수 있습니다.
 
 ```rok
-rok::std::time::Duration
+rok::core::time::Duration
 rok::core::collections::List
 pkg::geom::Point
 ```

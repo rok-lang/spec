@@ -107,7 +107,7 @@ rok::std   (target-dep; uses rok::core + rok::bare)
 - 3.7. [`process::` - `Command` / pidfd / kill_on_drop](300-std/307-process.md)
 - 3.8. [`path::` - UTF-8 `Path` + `/` 연산자 (Python pathlib 식)](300-std/308-path.md)
 - 3.9. [`rokon::` - ROKON 데이터 형식 (`.rokon`)](300-std/309-rokon.md)
-- 3.10. [`crypto::`: OS 난수 원천](300-std/310-crypto.md)
+- 3.10. [`random::`: OS 난수 원천](300-std/310-random.md)
 - 3.11. [`os::`: 일부 OS에만 있는 것 (`unix` / `linux` / `windows`)](300-std/311-os.md)
 
 ---

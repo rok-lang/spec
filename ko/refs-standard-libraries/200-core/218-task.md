@@ -280,58 +280,9 @@ let r = t.join();              // OS-level 동기 대기
 
 ## 2.18.6. `Duration` / `Instant`
 
-시간을 나타내는 `Duration`과 `Instant`의 정의입니다.
+task 함수가 받는 시간 타입은 `rok::core::time::Duration`(부호 있는 `i64` 나노초 간격)과 `rok::core::time::Instant`(단조 시계 값)입니다. 정의는 [3.3](../300-std/303-time.md)(3.3.2, 3.3.5)에 있습니다. 두 타입은 `task` 안이 아니라 그 옆에 있습니다. `sleep`, `sleep_until`, `timeout`은 task를 멈추는 함수이므로 `task`에 남습니다.
 
-```rok
-struct Duration { /* i64 나노초, 비공개 */ }
-struct Instant { /* 단조 시계, 비공개 */ }
-
-impl Duration {
-    const fn ns(n: i64) -> Duration;
-    const fn us(n: i64) -> Duration;
-    const fn ms(n: i64) -> Duration;
-    const fn secs(n: i64) -> Duration;
-    const fn mins(n: i64) -> Duration;
-    const fn hours(n: i64) -> Duration;
-    const fn days(n: i64) -> Duration;
-    const fn from_secs_f64(s: f64) -> Duration;
-    const ZERO: Duration;
-    const MAX: Duration;
-
-    const fn as_ns(self) -> i64;
-    const fn as_us(self) -> i64;
-    const fn as_ms(self) -> i64;
-    const fn as_secs(self) -> i64;
-    const fn as_secs_f64(self) -> f64;
-    const fn subsec_ns(self) -> u32;
-    const fn subsec_us(self) -> u32;
-    const fn subsec_ms(self) -> u32;
-
-    const fn checked_add(self, rhs: Duration) -> Duration | none;
-    const fn checked_sub(self, rhs: Duration) -> Duration | none;
-    const fn checked_mul(self, factor: i64) -> Duration | none;
-    const fn checked_div(self, divisor: i64) -> Duration | none;
-    const fn saturating_add(self, rhs: Duration) -> Duration;
-    const fn saturating_sub(self, rhs: Duration) -> Duration;
-    const fn saturating_mul(self, factor: i64) -> Duration;
-}
-// Add, Sub (Duration); Mul<i64>, Div<i64>; Mul<Duration> for f64; Display, Debug
-
-impl Instant {
-    fn now() -> Instant;
-    fn elapsed(self) -> Duration;
-    const fn duration_since(self, earlier: Instant) -> Duration;
-    const fn checked_duration_since(self, earlier: Instant) -> Duration | none;
-    const fn saturating_duration_since(self, earlier: Instant) -> Duration;
-    const fn checked_add(self, d: Duration) -> Instant | none;
-    const fn checked_sub(self, d: Duration) -> Instant | none;
-}
-// Add<Duration>, Sub<Duration>, Sub<Instant> -> Duration
-```
-
-두 기간의 `a.min(b)`는 `Ord::min`입니다. 오버플로가 나면 생성 함수와 `+` `-` `*` 연산자는 debug 빌드에서 panic이 일어나고, 그 밖에는 포화(saturate)합니다. `checked_*` / `saturating_*` 형태로 동작을 직접 고를 수 있습니다. `Duration`은 부호가 있습니다. 그래서 `earlier`가 더 나중이면 `duration_since`는 음수 기간을 돌려줍니다. 이때 `checked_duration_since`는 `none`을, `saturating_duration_since`는 `Duration::ZERO`를 돌려줍니다.
-
-`await task::sleep(Duration::ms(100))`, `await task::sleep_until(t)` 같은 호출은 정확한 단조 시간(monotonic time)을 보장합니다. 두 타입은 `rok::core::task::time`에 있고(2.18.7), `rok::std::time`이 다시 내보냅니다.
+`await task::sleep(Duration::ms(100))`, `await task::sleep_until(t)` 같은 호출은 정확한 단조 시간(monotonic time)을 보장합니다.
 
 ## 2.18.7. 모듈 매핑
 
@@ -344,6 +295,6 @@ impl Instant {
 | `task::join`         | `rok::core::task`                     | join all                 |
 | `task::timeout`      | `rok::core::task`                     | race + timer             |
 | `Task<T>`            | `rok::core::task`                     | coroutine frame ref      |
-| `Duration`/`Instant` | `rok::core::task::time`               | i64 ns + monotonic clock |
+| `Duration`/`Instant` | `rok::core::time`                     | i64 ns + monotonic clock |
 | `Future` (lang slot) | `rok::core::future`                   | poll-based               |
 | `IntoFuture`         | `rok::core::future`                   | await 진입점             |

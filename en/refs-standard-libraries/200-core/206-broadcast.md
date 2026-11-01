@@ -1,10 +1,10 @@
 # 2.6. Broadcast - element-wise operators
 
-The `rok::core::ops::broadcast` module is the trait authority for Julia-style dot operators. Dot operators (`.+` / `.*` / `.==` / `f.(x)`) make element-wise meaning visually distinct in the syntax itself, which rules out confusion with a user-defined `*` (e.g. matrix multiply).
+The broadcast traits in `rok::core::ops` are the trait authority for Julia-style dot operators. Dot operators (`.+` / `.*` / `.==` / `f.(x)`) make element-wise meaning visually distinct in the syntax itself, which rules out confusion with a user-defined `*` (e.g. matrix multiply).
 
 This chapter defines the 19 broadcast traits together with the desugaring rules for function broadcast.
 
-The traits themselves are declared in `rok::core::ops`; `rok::core::ops::broadcast` re-exports them under one path. It also re-exports `Dot`, the `⋅` dot-product trait of [2.3.10](203-ops.md#2310-unicode-math-operator-traits). `Dot` is not one of the 19 broadcast traits: `a ⋅ b` reduces two operands to one value (`fn dot(self, rhs: Rhs) -> Output`) instead of working element-wise, and the standard library implements it for no type.
+The traits are declared in `rok::core::ops`, their one path (0.1.6); there is no `broadcast` submodule. `Dot`, the `⋅` dot-product trait of [2.3.10](203-ops.md#2310-unicode-math-operator-traits), sits beside them. `Dot` is not one of the 19 broadcast traits: `a ⋅ b` reduces two operands to one value (`fn dot(self, rhs: Rhs) -> Output`) instead of working element-wise, and the standard library implements it for no type.
 
 ## 2.6.1. Motivation - why separate dot operators
 

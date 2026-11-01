@@ -41,9 +41,9 @@ The normative definition of the `**` syntax is given in [refs-lang 5.5 use](../.
 
 The names below are exactly the names of `rok::core::prelude`. Modules, types and traits share one namespace and functions another, as everywhere in Rok, so `channel`, `panic` and `print` are each a module and a function.
 
-**Modules (28).** The top-level modules of `rok::core`:
+**Modules (29).** The top-level modules of `rok::core`:
 
-`array` `bench` `channel` `cmp` `collections` `convert` `crypto` `encoding` `error` `fmt` `future` `hint` `index` `io` `iter` `marker` `num` `ops` `panic` `par` `print` `range` `reflect` `str` `stream` `sync` `task` `tuple`
+`array` `bench` `channel` `cmp` `collections` `convert` `crypto` `encoding` `error` `fmt` `future` `hint` `index` `io` `iter` `marker` `num` `ops` `panic` `par` `print` `range` `reflect` `str` `stream` `sync` `task` `time` `tuple`
 
 **Types (32).**
 

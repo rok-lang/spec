@@ -1,6 +1,6 @@
 # 2.21. `crypto::`: 암호 알고리듬
 
-`rok::core::crypto`는 TLS 스택에 필요한 알고리듬을 순수 계산으로 구현합니다. 모든 타깃에서 똑같이 동작하므로 `rok::core`(0.1)에 둡니다. 난수는 OS가 필요하므로 `rok::std::crypto::random`(3.10)에 있습니다. 무작위 입력이 필요한 함수(키, nonce, 캡슐화)는 그 입력을 인자로 받습니다. 비밀 데이터를 다루는 연산은 2.21.5가 정의하는 대로 상수 시간(constant time)에 실행됩니다.
+`rok::core::crypto`는 TLS 스택에 필요한 알고리듬을 순수 계산으로 구현합니다. 모든 타깃에서 똑같이 동작하므로 `rok::core`(0.1)에 둡니다. 난수는 OS가 필요하므로 `rok::std::random`(3.10)에 있습니다. 무작위 입력이 필요한 함수(키, nonce, 캡슐화)는 그 입력을 인자로 받습니다. 비밀 데이터를 다루는 연산은 2.21.5가 정의하는 대로 상수 시간(constant time)에 실행됩니다.
 
 `rok::core::crypto` 안에서 하나뿐인 이름(`Secret`, `constant_time_eq`, `HashAlgorithm`, `Digest`, SHA-3와 SHAKE 상태, `Hmac`, `AeadAlgorithm`, `Aead`, `EcCurve`)은 `rok::core::crypto::`에서 쓸 수 있습니다. 주석은 그 항목을 함께 내보내는 하위 모듈을 가리킵니다. 키와 HKDF는 알고리듬 모듈로만 닿습니다(`crypto::ed25519::SigningKey`, `crypto::hkdf::extract`). `PublicKey`가 있는 모듈이 여럿이기 때문입니다.
 
@@ -229,4 +229,4 @@ ECDSA 서명 키는 곡선의 크기 이하인 빅 엔디언 스칼라 `1 <= d <
 - **RAM에 고정하지 않음.** 비밀 저장소는 메모리에 고정하지 않습니다(`mlock` / `VirtualLock`). 스왑이나 최대 절전 파일에 쓰일 수 있고, 코어 덤프와 프로세스 스냅숏에 나타납니다. 고정은 페이지 단위이고, 프로세스마다 제한되며(RLIMIT_MEMLOCK), 페이지 단위로 풀립니다. 그래서 고정하려면 페이지 단위로 할당하는 자체 할당기가 필요합니다.
 - **프로세스 종료와 wasm.** 프로세스가 끝나면서 놓이는 메모리는 지우지 않습니다. wasm 타깃에서는 호스트가 언제든 선형 메모리를 읽을 수 있습니다.
 
-**난수.** 알고리듬은 모든 무작위 입력을 인자로 받습니다. 호출자는 무작위 입력을 OS의 CSPRNG인 `rok::std::crypto::random`(3.10)에서 꺼냅니다. ML-KEM seed, X25519와 Ed25519 secret, ECDSA 개인 키, PSS salt는 그런 원천의 새 출력이어야 합니다.
+**난수.** 알고리듬은 모든 무작위 입력을 인자로 받습니다. 호출자는 무작위 입력을 OS의 CSPRNG인 `rok::std::random`(3.10)에서 꺼냅니다. ML-KEM seed, X25519와 Ed25519 secret, ECDSA 개인 키, PSS salt는 그런 원천의 새 출력이어야 합니다.

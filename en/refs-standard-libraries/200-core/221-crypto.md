@@ -1,6 +1,6 @@
 # 2.21. `crypto::` - cryptographic algorithms
 
-`rok::core::crypto` provides the algorithms a TLS stack needs, as pure computation: they behave identically on every target, so they live in `rok::core` (0.1). Randomness needs the OS and is `rok::std::crypto::random` (3.10); functions that need random input (keys, nonces, encapsulation) take it as an argument. Operations on secret data run in constant time as 2.21.5 defines it.
+`rok::core::crypto` provides the algorithms a TLS stack needs, as pure computation: they behave identically on every target, so they live in `rok::core` (0.1). Randomness needs the OS and is `rok::std::random` (3.10); functions that need random input (keys, nonces, encapsulation) take it as an argument. Operations on secret data run in constant time as 2.21.5 defines it.
 
 The names that are unique in `rok::core::crypto` (`Secret`, `constant_time_eq`, `HashAlgorithm`, `Digest`, the SHA-3 and SHAKE states, `Hmac`, `AeadAlgorithm`, `Aead`, `EcCurve`) are available at `rok::core::crypto::`; the comment names the submodule that also exports them. Keys and HKDF are reached through their algorithm module only (`crypto::ed25519::SigningKey`, `crypto::hkdf::extract`), since several modules have a `PublicKey`.
 
@@ -213,4 +213,4 @@ The guarantee has limits an implementation states and does not hide:
 - **Not locked in RAM.** Secret storage is not locked (`mlock` / `VirtualLock`). It may be written to swap or a hibernation file and appears in core dumps and process snapshots. Locking is per page, limited per process (RLIMIT_MEMLOCK), and undone per page, so it would need a page-granular allocator of its own.
 - **Process exit and wasm.** Memory released by process exit is not wiped. On wasm targets the host can read linear memory at any time.
 
-**Randomness.** The algorithms take every random input as an argument; callers draw it from `rok::std::crypto::random` (3.10), the operating system's CSPRNG. The ML-KEM seeds, X25519 and Ed25519 secrets, ECDSA private keys and PSS salts must be fresh output of such a source.
+**Randomness.** The algorithms take every random input as an argument; callers draw it from `rok::std::random` (3.10), the operating system's CSPRNG. The ML-KEM seeds, X25519 and Ed25519 secrets, ECDSA private keys and PSS salts must be fresh output of such a source.

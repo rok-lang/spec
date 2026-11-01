@@ -215,16 +215,16 @@ impl<T, E> TryAsyncFuture<T, E> {
 
 ## 2.20.9. Module mapping
 
-The module location and lang slot / role of each item:
+The module location and lang slot / role of each item; each has that one path (0.1.6):
 
-| Item             | Module                           | Role                        |
-|------------------|----------------------------------|-----------------------------|
-| `Future`         | `rok::core::future::Future`      | `#[lang("future_trait")]`   |
-| `Poll<T>`        | `rok::core::future::poll`        | enum Ready/Pending          |
-| `Context`        | `rok::core::future::context`     | waker holder                |
-| `Waker`          | `rok::core::future::waker`       | scheduler callback          |
-| `IntoFuture`     | `rok::core::future::into_future` | ordinary trait (no lang slot) |
-| `task::block_on` | `rok::core::task`                | sync entry point            |
+| Item             | Module              | Role                        |
+|------------------|---------------------|-----------------------------|
+| `Future`         | `rok::core::future` | `#[lang("future_trait")]`   |
+| `Poll<T>`        | `rok::core::future` | enum Ready/Pending          |
+| `Context`        | `rok::core::future` | waker holder                |
+| `Waker`          | `rok::core::future` | scheduler callback          |
+| `IntoFuture`     | `rok::core::future` | ordinary trait (no lang slot) |
+| `task::block_on` | `rok::core::task`   | sync entry point            |
 
 ## 2.20.10. Comparison with other languages
 

@@ -38,7 +38,7 @@ unsafe fn write<T>(dst: Ptr<T>, value: T);
 ```
 
 같은 동작을 `Ptr<T>::read_volatile` / `write_volatile` 메서드로도 쓸 수 있습니다.
-그쪽이 더 자연스러운 경우가 많습니다([1.1.2](101-ptr.md#112-ptrt-strict-provenance-api)).
+그쪽이 더 자연스러운 경우가 많습니다([1.1.2](101-ptr.md#112-ptrt-strict-provenance-api)). `rok::bare::mem`에는 volatile 함수가 없습니다. 자유 함수 경로는 이 둘입니다.
 
 ## 1.5.3. 사용처
 

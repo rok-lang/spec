@@ -74,6 +74,7 @@ Rok tier의 모듈을 영역별로 나누면 다음과 같습니다.
 - [2.16. sync primitive (`Atomic`, `Mutex`, `RwLock`, `Cell`)](216-sync.md)
 - [2.17. `Channel` - 메시지 패싱](217-channel.md)
 - [2.18. `task::` - M:N 스케줄러 task API](218-task.md)
+- `time::` - `Duration` / `Instant`, std 시계와 함께 [3.3](../300-std/303-time.md)에서 정의
 - [2.19. `par::` - 병렬 처리 API](219-par.md)
 - [2.20. `Future` / `await` 통합](220-future.md)
 

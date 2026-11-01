@@ -201,15 +201,15 @@ The adapters of `AsyncStream<T>` (`map`, `filter`, `collect`, etc.) are the defa
 
 ## 2.8.9. Module mapping
 
-Every item is defined in `rok::core::stream` (or `rok::core::channel` for `Receiver<T>`); the submodules below re-export it under a narrower path.
+Every item is defined in `rok::core::stream` (or `rok::core::channel` for `Receiver<T>`), its one path (0.1.6); there are no submodules.
 
-| Item                          | Module                           | Form                         |
-|-------------------------------|----------------------------------|------------------------------|
-| `Stream`                      | `rok::core::stream::stream`      | poll-based                   |
-| `IntoStream`                  | `rok::core::stream::into_stream` |                              |
-| `Receiver<T>`                 | `rok::core::channel::receiver`   | implements `Stream<Item = T>` |
-| `Map`/`Filter`/`Take`/`Skip`/`Throttle`/`Buffered`/`BufferUnordered` | `rok::core::stream::adapter` | adapter structs (implementing `Stream`) |
-| `merge`/`zip`/`select`        | `rok::core::stream::combinator`  | `Merge`/`Zip`/`Select` structs |
+| Item                          | Module               | Form                         |
+|-------------------------------|----------------------|------------------------------|
+| `Stream`                      | `rok::core::stream`  | poll-based                   |
+| `IntoStream`                  | `rok::core::stream`  |                              |
+| `Receiver<T>`                 | `rok::core::channel` | implements `Stream<Item = T>` |
+| `Map`/`Filter`/`Take`/`Skip`/`Throttle`/`Buffered`/`BufferUnordered` | `rok::core::stream` | adapter structs (implementing `Stream`) |
+| `merge`/`zip`/`select`        | `rok::core::stream`  | `Merge`/`Zip`/`Select` structs |
 | `TryStream`, `from_results`, `TryMap`/`TryFilter`/`MapErr`/`TryTake`/`TrySkip`/`Results`/`FromResults` | `rok::core::stream` | fallible streams (2.8.11) |
 
 ## 2.8.10. Whether `Stream` has a lang slot

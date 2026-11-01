@@ -42,11 +42,11 @@ prelude는 정해 둔 이름 목록입니다([0.2.3](002-import.md)). `rok::core
 
 ### `rok::std`
 
-맨 위 계층인 `rok::std`는 필요에 따라 foundation과 `rok::bare`를 모두 씁니다. 이 층에는 `fs`, `net`, `time`, `thread`(OS 스레드), `env`, `process`, `path`처럼 플랫폼에 의존하는 항목이 있습니다. 타깃마다 쓸 수 있는 항목이 다르므로 사용하는 쪽은 항상 명시적으로 가져와야 합니다. 그래야 어떤 플랫폼 기능을 쓰는지 코드에 드러납니다.
+맨 위 계층인 `rok::std`는 필요에 따라 foundation과 `rok::bare`를 모두 씁니다. 이 층에는 `fs`, `net`, `time`(벽시계와 부팅 시계), `thread`(OS 스레드), `env`, `process`, `path`, `random`처럼 플랫폼에 의존하는 항목이 있습니다. 타깃마다 쓸 수 있는 항목이 다르므로 사용하는 쪽은 항상 명시적으로 가져와야 합니다. 그래야 어떤 플랫폼 기능을 쓰는지 코드에 드러납니다.
 
 ```rok
 use rok::std::fs;
-use rok::std::time::Instant;
+use rok::std::time::SystemTime;
 ```
 
 ## 0.1.2. 의존성 규칙(강제)
@@ -77,3 +77,7 @@ use rok::std::time::Instant;
 세 계층은 안정성 정책도 다릅니다. `rok::bare` API는 안정적이지 않고 컴파일러, 런타임과 함께 바뀝니다. 그래서 사용자 코드는 버전을 고정(pin)하기를 권장합니다. foundation(`rok::core`) API는 SemVer 안정성을 목표로 하고, API를 직접 바꾸면 메이저 버전을 올립니다. `rok::std` API는 타깃별 가용성 차이만큼 변동이 크지만, 시그니처 자체는 안정적으로 유지합니다.
 
 한 릴리스 시리즈 안에서는 항목을 없애거나 호환되지 않게 바꾸지 않습니다. 대체되는 항목은 계속 동작하고, `#[deprecated(since = "..", note = "..")]`로 표시합니다([6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md#627-deprecated-사용-자제-표시)). 메시지에는 대신 쓸 것을 적습니다. `unsafe`가 되어야 하는 안전한 함수는 `#[deprecated_safe]`로 표시합니다([6.2.14](../../refs-lang/006-meta-system/602-built-in-attributes.md#6214-deprecated_safe-지금은-안전-나중에-unsafe)). 다음 호환성이 깨지는 릴리스에서 그 항목을 없애거나 `unsafe`로 만듭니다.
+
+## 0.1.6. 항목마다 경로 하나
+
+모든 항목의 경로는 그 항목을 정의한 모듈 하나입니다. 같은 항목에 둘째 경로를 주는 `pub use` 재내보내기는 두 가지 꼴만 있습니다. 부모 모듈이 자식 모듈을 펼치는 꼴(`rok::core::collections::list::List`에 대한 `rok::core::collections::List`, `rok::core::crypto::Secret`, `rok::bare` 루트의 캐스트)과 암시적 가져오기(0.2)입니다. 어떤 모듈도 부모나 형제, 다른 계층의 항목을 다시 내보내지 않습니다. `Duration`은 `rok::core::time::Duration`일 뿐이고, `SeekFrom`은 `rok::std::io::SeekFrom`, `size_of`는 `rok::bare::mem::size_of`입니다. 문서와 진단은 정의한 모듈을 씁니다. 표준 라이브러리 자체의 테스트가 이 밖의 `pub use`를 거부합니다.

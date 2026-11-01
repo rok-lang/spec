@@ -133,12 +133,12 @@ See [2.7 iter](207-iter.md) and [2.8 stream](208-stream.md) for details.
 
 ## 2.17.6. Module mapping
 
-Where each type and function is implemented:
+Every type and function is defined in `rok::core::channel`, its one path (0.1.6):
 
-| Type           | Module                         | Internal structure       |
-|----------------|--------------------------------|--------------------------|
-| `Sender<T>`    | `rok::core::channel::sender`   | atomic ref count + queue |
-| `Receiver<T>`  | `rok::core::channel::receiver` | queue + parking          |
-| `channel<T>()` | `rok::core::channel`           | Arc-like internal state  |
+| Type           | Module               | Internal structure       |
+|----------------|----------------------|--------------------------|
+| `Sender<T>`    | `rok::core::channel` | atomic ref count + queue |
+| `Receiver<T>`  | `rok::core::channel` | queue + parking          |
+| `channel<T>()` | `rok::core::channel` | Arc-like internal state  |
 
 For the internal queue, bounded channels use a ring buffer similar to Tokio mpsc, and unbounded channels use a segmented linked list. A bounded channel's queue is lock-free; an unbounded one's segment list may use a lock.

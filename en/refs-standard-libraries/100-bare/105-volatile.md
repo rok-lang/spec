@@ -33,7 +33,7 @@ unsafe fn read<T>(src: ConstPtr<T>) -> T;
 unsafe fn write<T>(dst: Ptr<T>, value: T);
 ```
 
-The same operations are available as the methods `Ptr<T>::read_volatile` / `write_volatile`, which often read more naturally ([1.1.2](101-ptr.md#112-ptrt---strict-provenance-api)).
+The same operations are available as the methods `Ptr<T>::read_volatile` / `write_volatile`, which often read more naturally ([1.1.2](101-ptr.md#112-ptrt---strict-provenance-api)). `rok::bare::mem` has no volatile functions: these two are the free-function path.
 
 ## 1.5.3. Uses
 

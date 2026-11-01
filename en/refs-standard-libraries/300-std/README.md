@@ -16,7 +16,7 @@ The implicit prelude does not include std items; `rok::std::*` requires a separa
 
 ```rok
 use rok::std::fs;
-use rok::std::time::Instant;
+use rok::std::time::SystemTime;
 use rok::std::thread::Builder;
 ```
 
@@ -26,14 +26,14 @@ This tier consists of the following twelve modules.
 
 - [3.1. `fs::` - file system (atomic ops, Dir capability, reflink copy)](301-fs.md)
 - [3.2. `net::` - TCP / UDP / Unix + TLS 1.3](302-net.md)
-- [3.3. `time::` - `Instant` / `SystemTime` / `Duration` / `BootTime`](303-time.md)
+- [3.3. `time::` - `SystemTime` / `BootTime` (with `Instant` / `Duration` from `rok::core::time`)](303-time.md)
 - [3.4. `thread::` - OS threads (1:1, separate from `task::`)](304-thread.md)
 - [3.5. `io::` - moved to `rok::core::io` (2.23)](305-io.md)
 - [3.6. `env::` - environment variables / args / current_dir / home_dir](306-env.md)
 - [3.7. `process::` - `Command` / `Child` / pidfd / kill_on_drop](307-process.md)
 - [3.8. `path::` - UTF-8 `Path` (Python-style) + `RawPath` escape hatch](308-path.md)
 - [3.9. `rokon::` - the ROKON data format (`.rokon`)](309-rokon.md)
-- [3.10. `crypto::` - the OS random source](310-crypto.md)
+- [3.10. `random::` - the OS random source](310-random.md)
 - [3.11. `os::` - what only some OSes have: `unix` / `linux` / `windows`](311-os.md)
 - `wit::` - the component model's async ABI that generated WIT bindings call ([1.8](../100-bare/108-wit.md)). Bindings-internal: public so the generated code can reach it, not meant to be called directly, and not specified here.
 

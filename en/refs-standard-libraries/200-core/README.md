@@ -74,6 +74,7 @@ The modules provided by the Rok tier, grouped by area:
 - [2.16. Sync primitives (`Atomic`, `Mutex`, `RwLock`, `Cell`)](216-sync.md)
 - [2.17. `Channel` - message passing](217-channel.md)
 - [2.18. `task::` - M:N scheduler task API](218-task.md)
+- `time::` - `Duration` / `Instant`, specified with the std clocks in [3.3](../300-std/303-time.md)
 - [2.19. `par::` - parallel processing API](219-par.md)
 - [2.20. `Future` / `await` integration](220-future.md)
 

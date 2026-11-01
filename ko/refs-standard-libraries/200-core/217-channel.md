@@ -133,12 +133,12 @@ for await v in rx {
 
 ## 2.17.6. 모듈 매핑
 
-각 타입과 함수가 구현된 위치입니다.
+모든 타입과 함수는 `rok::core::channel`에 정의되고, 그 경로 하나만 있습니다(0.1.6).
 
-| 타입           | 모듈                          | 내부 구조                |
-|----------------|-------------------------------|--------------------------|
-| `Sender<T>`    | `rok::core::channel::sender`   | atomic ref count + queue |
-| `Receiver<T>`  | `rok::core::channel::receiver` | queue + parking          |
-| `channel<T>()` | `rok::core::channel`           | Arc-like internal state  |
+| 타입           | 모듈                 | 내부 구조                |
+|----------------|----------------------|--------------------------|
+| `Sender<T>`    | `rok::core::channel` | atomic ref count + queue |
+| `Receiver<T>`  | `rok::core::channel` | queue + parking          |
+| `channel<T>()` | `rok::core::channel` | Arc-like internal state  |
 
 내부 큐로 bounded 채널은 Tokio mpsc와 비슷한 링 버퍼를 쓰고, unbounded 채널은 세그먼트 연결 리스트를 씁니다. bounded 채널의 큐는 lock-free입니다. unbounded 채널의 세그먼트 리스트는 락을 써도 됩니다.

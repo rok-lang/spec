@@ -201,15 +201,15 @@ impl<T, E> TryStream for TryAsyncStream<T, E> {
 
 ## 2.8.9. 모듈 매핑
 
-모든 항목은 `rok::core::stream`에 정의됩니다. `Receiver<T>`만 `rok::core::channel`에 있습니다. 아래 하위 모듈은 각 항목을 더 좁은 경로로 다시 내보냅니다.
+모든 항목은 `rok::core::stream`에 정의됩니다. `Receiver<T>`만 `rok::core::channel`에 있습니다. 항목마다 경로는 그 하나뿐이고(0.1.6), 하위 모듈은 없습니다.
 
-| 항목                          | 모듈                            | 형태                         |
-|-------------------------------|---------------------------------|------------------------------|
-| `Stream`                      | `rok::core::stream::stream`      | 폴링 기반                    |
-| `IntoStream`                  | `rok::core::stream::into_stream` |                              |
-| `Receiver<T>`                 | `rok::core::channel::receiver`   | `Stream<Item = T>` 구현      |
-| `Map`/`Filter`/`Take`/`Skip`/`Throttle`/`Buffered`/`BufferUnordered` | `rok::core::stream::adapter` | 어댑터 struct(`Stream` 구현) |
-| `merge`/`zip`/`select`        | `rok::core::stream::combinator`  | `Merge`/`Zip`/`Select` struct |
+| 항목                          | 모듈                 | 형태                         |
+|-------------------------------|----------------------|------------------------------|
+| `Stream`                      | `rok::core::stream`  | 폴링 기반                    |
+| `IntoStream`                  | `rok::core::stream`  |                              |
+| `Receiver<T>`                 | `rok::core::channel` | `Stream<Item = T>` 구현      |
+| `Map`/`Filter`/`Take`/`Skip`/`Throttle`/`Buffered`/`BufferUnordered` | `rok::core::stream` | 어댑터 struct(`Stream` 구현) |
+| `merge`/`zip`/`select`        | `rok::core::stream`  | `Merge`/`Zip`/`Select` struct |
 | `TryStream`, `from_results`, `TryMap`/`TryFilter`/`MapErr`/`TryTake`/`TrySkip`/`Results`/`FromResults` | `rok::core::stream` | 실패할 수 있는 스트림(2.8.11) |
 
 ## 2.8.10. `Stream` lang slot 여부

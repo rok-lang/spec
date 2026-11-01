@@ -56,13 +56,13 @@ through a prelude module (`task::sleep`, `ops::Add`) or imported.
 ### `rok::std`
 
 The top tier, `rok::std`, uses both the foundation and `rok::bare` as needed. This tier holds
-platform-dependent items such as `fs`, `net`, `time`, `thread` (OS threads), `env`, `process`
-and `path`. Because availability varies by target, users must always import them explicitly, making
+platform-dependent items such as `fs`, `net`, `time` (the wall and boot clocks), `thread` (OS
+threads), `env`, `process`, `path` and `random`. Because availability varies by target, users must always import them explicitly, making
 clear which platform features they are stepping into.
 
 ```rok
 use rok::std::fs;
-use rok::std::time::Instant;
+use rok::std::time::SystemTime;
 ```
 
 ## 0.1.2. Dependency rules (enforced)
@@ -119,3 +119,13 @@ keeps working and is marked `#[deprecated(since = "..", note = "..")]`
 the note naming what to use instead. A safe function that must become `unsafe` is marked
 `#[deprecated_safe]` ([6.2.14](../../refs-lang/006-meta-system/602-built-in-attributes.md#6214-deprecated_safe-safe-today-unsafe-later)).
 The next breaking release removes the item or makes it `unsafe`.
+
+## 0.1.6. One path per item
+
+Every item has one path, the module that defines it. A second path to the same item (a `pub use`
+re-export) exists only in two shapes: a parent module that flattens its child modules
+(`rok::core::collections::List` for `rok::core::collections::list::List`, `rok::core::crypto::Secret`,
+the `rok::bare` root casts), and the implicit import (0.2). No module re-exports its parent's
+items, a sibling's or another tier's: `Duration` is `rok::core::time::Duration` and nothing else,
+`SeekFrom` is `rok::std::io::SeekFrom`, `size_of` is `rok::bare::mem::size_of`. Documentation and
+diagnostics name the defining module. The standard library's own tests reject any other `pub use`.

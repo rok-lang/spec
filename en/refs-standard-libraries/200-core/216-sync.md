@@ -338,12 +338,12 @@ task::spawn(async { c.set(100) });       // ERROR: Cell is not cross-task safe
 
 ## 2.16.6. Module mapping
 
-The implementation of each primitive maps as follows.
+Every primitive is defined in `rok::core::sync`, its one path (0.1.6); there are no per-type submodules.
 
-| Type         | Module                    | Internal structure               |
-|--------------|---------------------------|----------------------------------|
-| `Atomic<T>`  | `rok::core::sync::atomic` | LLVM atomic ops (`rok.atomic.*`) |
-| `Mutex<T>`   | `rok::core::sync::mutex`  | futex / wait queue (per target)  |
-| `RwLock<T>`  | `rok::core::sync::rwlock` | futex + reader counter           |
-| `Cell<T>`    | `rok::core::sync::cell`   | plain wrapper, no lock           |
-| `MutexGuard` | `rok::core::sync::mutex`  | RAII via Drop                    |
+| Type         | Module            | Internal structure               |
+|--------------|-------------------|----------------------------------|
+| `Atomic<T>`  | `rok::core::sync` | LLVM atomic ops (`rok.atomic.*`) |
+| `Mutex<T>`   | `rok::core::sync` | futex / wait queue (per target)  |
+| `RwLock<T>`  | `rok::core::sync` | futex + reader counter           |
+| `Cell<T>`    | `rok::core::sync` | plain wrapper, no lock           |
+| `MutexGuard` | `rok::core::sync` | RAII via Drop                    |

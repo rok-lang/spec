@@ -41,9 +41,9 @@ use foo::**;             // recursive glob (foo + 하위 모듈 모두)
 
 아래 이름이 `rok::core::prelude`의 이름 전부입니다. Rok 어디서나 그렇듯 모듈, 타입, 트레잇이 이름공간 하나를 함께 쓰고 함수는 따로 씁니다. 그래서 `channel`, `panic`, `print`는 각각 모듈이면서 함수입니다.
 
-**모듈 (28).** `rok::core`의 최상위 모듈입니다.
+**모듈 (29).** `rok::core`의 최상위 모듈입니다.
 
-`array` `bench` `channel` `cmp` `collections` `convert` `crypto` `encoding` `error` `fmt` `future` `hint` `index` `io` `iter` `marker` `num` `ops` `panic` `par` `print` `range` `reflect` `str` `stream` `sync` `task` `tuple`
+`array` `bench` `channel` `cmp` `collections` `convert` `crypto` `encoding` `error` `fmt` `future` `hint` `index` `io` `iter` `marker` `num` `ops` `panic` `par` `print` `range` `reflect` `str` `stream` `sync` `task` `time` `tuple`
 
 **타입 (32).**
 

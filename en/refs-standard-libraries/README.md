@@ -107,7 +107,7 @@ Target-dependent area. Explicit import.
 - 3.7. [`process::` - `Command` / pidfd / kill_on_drop](300-std/307-process.md)
 - 3.8. [`path::` - UTF-8 `Path` + `/` operator (Python pathlib style)](300-std/308-path.md)
 - 3.9. [`rokon::` - the ROKON data format (`.rokon`)](300-std/309-rokon.md)
-- 3.10. [`crypto::` - the OS random source](300-std/310-crypto.md)
+- 3.10. [`random::` - the OS random source](300-std/310-random.md)
 - 3.11. [`os::` - what only some OSes have (`unix` / `linux` / `windows`)](300-std/311-os.md)
 
 ---

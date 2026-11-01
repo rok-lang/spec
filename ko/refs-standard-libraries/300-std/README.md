@@ -16,7 +16,7 @@
 
 ```rok
 use rok::std::fs;
-use rok::std::time::Instant;
+use rok::std::time::SystemTime;
 use rok::std::thread::Builder;
 ```
 
@@ -26,14 +26,14 @@ use rok::std::thread::Builder;
 
 - [3.1. `fs::` - 파일 시스템 (atomic ops, Dir capability, reflink copy)](301-fs.md)
 - [3.2. `net::` - TCP / UDP / Unix + TLS 1.3](302-net.md)
-- [3.3. `time::` - `Instant` / `SystemTime` / `Duration` / `BootTime`](303-time.md)
+- [3.3. `time::` - `SystemTime` / `BootTime` (`Instant` / `Duration`은 `rok::core::time`)](303-time.md)
 - [3.4. `thread::` - OS 스레드 (1:1, `task::`와 별개)](304-thread.md)
 - [3.5. `io::` - `rok::core::io`로 옮김 (2.23)](305-io.md)
 - [3.6. `env::` - 환경 변수 / args / current_dir / home_dir](306-env.md)
 - [3.7. `process::` - `Command` / `Child` / pidfd / kill_on_drop](307-process.md)
 - [3.8. `path::` - UTF-8 `Path` (Python 식) + `RawPath` 이스케이프](308-path.md)
 - [3.9. `rokon::` - ROKON 데이터 형식 (`.rokon`)](309-rokon.md)
-- [3.10. `crypto::`: OS 난수 원천](310-crypto.md)
+- [3.10. `random::`: OS 난수 원천](310-random.md)
 - [3.11. `os::`: 일부 OS에만 있는 것, `unix` / `linux` / `windows`](311-os.md)
 - `wit::`: 생성된 WIT 바인딩이 부르는 component model의 async ABI([1.8](../100-bare/108-wit.md)). 바인딩 내부용입니다. 생성된 코드가 닿을 수 있도록 공개했지만 직접 호출하라고 둔 것은 아닙니다. 여기서 정의하지 않습니다.
 

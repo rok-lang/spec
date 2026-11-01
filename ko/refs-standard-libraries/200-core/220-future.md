@@ -215,16 +215,16 @@ impl<T, E> TryAsyncFuture<T, E> {
 
 ## 2.20.9. 모듈 매핑
 
-각 항목의 모듈 위치와 lang slot / 역할은 다음과 같습니다.
+각 항목의 모듈 위치와 lang slot / 역할은 다음과 같습니다. 항목마다 경로는 그 하나뿐입니다(0.1.6).
 
-| 항목             | 모듈                          | 역할                      |
-|------------------|-------------------------------|---------------------------|
-| `Future`         | `rok::core::future::Future`    | `#[lang("future_trait")]` |
-| `Poll<T>`        | `rok::core::future::poll`      | enum Ready/Pending        |
-| `Context`        | `rok::core::future::context`   | waker holder              |
-| `Waker`          | `rok::core::future::waker`     | scheduler callback        |
-| `IntoFuture`     | `rok::core::future::into_future` | 일반 트레잇(lang slot 없음) |
-| `task::block_on` | `rok::core::task`              | sync entry point          |
+| 항목             | 모듈                | 역할                      |
+|------------------|---------------------|---------------------------|
+| `Future`         | `rok::core::future` | `#[lang("future_trait")]` |
+| `Poll<T>`        | `rok::core::future` | enum Ready/Pending        |
+| `Context`        | `rok::core::future` | waker holder              |
+| `Waker`          | `rok::core::future` | scheduler callback        |
+| `IntoFuture`     | `rok::core::future` | 일반 트레잇(lang slot 없음) |
+| `task::block_on` | `rok::core::task`   | sync entry point          |
 
 ## 2.20.10. 다른 언어와 비교
 

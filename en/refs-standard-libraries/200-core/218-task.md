@@ -278,58 +278,9 @@ Use `task::spawn` by default, and choose `thread::spawn` only when an OS thread 
 
 ## 2.18.6. `Duration` / `Instant`
 
-`Duration` and `Instant`, for representing time, are defined as follows.
+The time types the task functions take are `rok::core::time::Duration` (a signed `i64` nanosecond span) and `rok::core::time::Instant` (a monotonic clock reading), defined in [3.3](../300-std/303-time.md) (3.3.2, 3.3.5). They live beside `task`, not in it: `sleep`, `sleep_until` and `timeout` stay in `task` because they suspend a task.
 
-```rok
-struct Duration { /* i64 nanoseconds, opaque */ }
-struct Instant { /* monotonic clock, opaque */ }
-
-impl Duration {
-    const fn ns(n: i64) -> Duration;
-    const fn us(n: i64) -> Duration;
-    const fn ms(n: i64) -> Duration;
-    const fn secs(n: i64) -> Duration;
-    const fn mins(n: i64) -> Duration;
-    const fn hours(n: i64) -> Duration;
-    const fn days(n: i64) -> Duration;
-    const fn from_secs_f64(s: f64) -> Duration;
-    const ZERO: Duration;
-    const MAX: Duration;
-
-    const fn as_ns(self) -> i64;
-    const fn as_us(self) -> i64;
-    const fn as_ms(self) -> i64;
-    const fn as_secs(self) -> i64;
-    const fn as_secs_f64(self) -> f64;
-    const fn subsec_ns(self) -> u32;
-    const fn subsec_us(self) -> u32;
-    const fn subsec_ms(self) -> u32;
-
-    const fn checked_add(self, rhs: Duration) -> Duration | none;
-    const fn checked_sub(self, rhs: Duration) -> Duration | none;
-    const fn checked_mul(self, factor: i64) -> Duration | none;
-    const fn checked_div(self, divisor: i64) -> Duration | none;
-    const fn saturating_add(self, rhs: Duration) -> Duration;
-    const fn saturating_sub(self, rhs: Duration) -> Duration;
-    const fn saturating_mul(self, factor: i64) -> Duration;
-}
-// Add, Sub (Duration); Mul<i64>, Div<i64>; Mul<Duration> for f64; Display, Debug
-
-impl Instant {
-    fn now() -> Instant;
-    fn elapsed(self) -> Duration;
-    const fn duration_since(self, earlier: Instant) -> Duration;
-    const fn checked_duration_since(self, earlier: Instant) -> Duration | none;
-    const fn saturating_duration_since(self, earlier: Instant) -> Duration;
-    const fn checked_add(self, d: Duration) -> Instant | none;
-    const fn checked_sub(self, d: Duration) -> Instant | none;
-}
-// Add<Duration>, Sub<Duration>, Sub<Instant> -> Duration
-```
-
-`a.min(b)` on two durations is `Ord::min`. On overflow the constructors and the `+` `-` `*` operators panic in a debug build and saturate otherwise; the `checked_*` / `saturating_*` forms choose explicitly. `Duration` is signed, so `duration_since` returns a negative duration when `earlier` is later; `checked_duration_since` returns `none` and `saturating_duration_since` returns `Duration::ZERO` instead.
-
-Calls such as `await task::sleep(Duration::ms(100))` or `await task::sleep_until(t)` are guaranteed accurate monotonic time. Both types live in `rok::core::task::time` (2.18.7), and `rok::std::time` re-exports them.
+Calls such as `await task::sleep(Duration::ms(100))` or `await task::sleep_until(t)` are guaranteed accurate monotonic time.
 
 ## 2.18.7. Module mapping
 
@@ -342,6 +293,6 @@ The module where each item lives:
 | `task::join`         | `rok::core::task`                     | join all                 |
 | `task::timeout`      | `rok::core::task`                     | race + timer             |
 | `Task<T>`            | `rok::core::task`                     | coroutine frame ref      |
-| `Duration`/`Instant` | `rok::core::task::time`               | i64 ns + monotonic clock |
+| `Duration`/`Instant` | `rok::core::time`                     | i64 ns + monotonic clock |
 | `Future` (lang slot) | `rok::core::future`                   | poll-based               |
 | `IntoFuture`         | `rok::core::future`                   | await entry point        |

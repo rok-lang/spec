@@ -50,7 +50,7 @@ The forms are summarized below.
 | Form              | Example                                     |
 |-------------------|---------------------------------------------|
 | Simple name       | `i32`, `bool`, `Point`                      |
-| Path              | `rok::std::time::Duration`                  |
+| Path              | `rok::core::time::Duration`                 |
 | Generic application | `List<i32>`, `Dict<str, f64>`, `Pair<A, B>` |
 | Sum type (`\|`)   | `i32 \| f32`, `T \| none`                     |
 | Optional (`?`)    | `i32?`, `(i32 \| str)?`, `List<T>?`           |
@@ -90,7 +90,7 @@ Which item the name refers to is decided during name resolution. Candidates incl
 Several identifiers joined by `::` can also be used as a type expression.
 
 ```rok
-rok::std::time::Duration
+rok::core::time::Duration
 rok::core::collections::List
 pkg::geom::Point
 ```

@@ -14,7 +14,7 @@ path_segment    ::= identifier type_args?
 If a type name is defined in another module, write the module path to that location together with the type name.
 
 ```rok
-rok::std::time::Duration
+rok::core::time::Duration
 rok::core::collections::List
 pkg::geom::Point
 ```

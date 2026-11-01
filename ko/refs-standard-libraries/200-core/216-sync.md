@@ -346,12 +346,12 @@ task::spawn(async { c.set(100) });       // ERROR: Cell 은 cross-task 안전 X
 
 ## 2.16.6. 모듈 매핑
 
-각 기본 요소의 구현 위치입니다.
+모든 기본 요소는 `rok::core::sync`에 정의되고, 그 경로 하나만 있습니다(0.1.6). 타입별 하위 모듈은 없습니다.
 
-| 타입         | 모듈                     | 내부 구조                        |
-|--------------|--------------------------|----------------------------------|
-| `Atomic<T>`  | `rok::core::sync::atomic` | LLVM atomic ops (`rok.atomic.*`) |
-| `Mutex<T>`   | `rok::core::sync::mutex`  | futex / wait queue (타깃별)      |
-| `RwLock<T>`  | `rok::core::sync::rwlock` | futex + reader counter           |
-| `Cell<T>`    | `rok::core::sync::cell`   | 단순 래퍼, 잠금 없음             |
-| `MutexGuard` | `rok::core::sync::mutex`  | RAII via Drop                    |
+| 타입         | 모듈              | 내부 구조                        |
+|--------------|-------------------|----------------------------------|
+| `Atomic<T>`  | `rok::core::sync` | LLVM atomic ops (`rok.atomic.*`) |
+| `Mutex<T>`   | `rok::core::sync` | futex / wait queue (타깃별)      |
+| `RwLock<T>`  | `rok::core::sync` | futex + reader counter           |
+| `Cell<T>`    | `rok::core::sync` | 단순 래퍼, 잠금 없음             |
+| `MutexGuard` | `rok::core::sync` | RAII via Drop                    |
