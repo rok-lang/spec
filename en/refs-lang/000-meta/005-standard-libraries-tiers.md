@@ -7,7 +7,7 @@ The standard libraries are divided into three package tiers under the virtual na
 The overall structure is as follows.
 
 ```
-  rok::bare   ←   no safety guarantees. Raw memory, FFI, transmutable bit casts, direct MLIR access.
+  rok::bare   ←   no safety guarantees. Raw memory, FFI, transmutable bit casts.
      ↑
   rok::core   ←   safe foundation available on every target. Uses rok::bare internally.
      ↑
@@ -22,7 +22,7 @@ All three tiers live under the virtual namespace `rok::` ([5.7.4 rok::](../005-m
 
 ### `rok::bare`
 
-`rok::bare` is the low-level, dangerous area. Behavior whose safety the compiler cannot guarantee gathers here; representative items include raw pointer forms (the raw pointer abstraction) and arbitrary bit casts (`transmute`-like). Pinning, volatile memory access, and the primitives of C [ABI](007-glossary.md#abi-application-binary-interface)-compatible memory allocation are also part of `rok::bare`. Direct calls into MLIR dialects (`rok::bare::mlir`) and the compiler's loading of user-defined dialect plugins ([stdlib 1.10](../../refs-standard-libraries/100-bare/110-mlir-plugin.md)) also live in this tier and serve as the channel through which external tensor / SIMD / GPU libraries reach the acceleration domain.
+`rok::bare` is the low-level, dangerous area. Behavior whose safety the compiler cannot guarantee gathers here; representative items include raw pointer forms (the raw pointer abstraction) and arbitrary bit casts (`transmute`-like). Pinning, volatile memory access, and the primitives of C [ABI](007-glossary.md#abi-application-binary-interface)-compatible memory allocation are also part of `rok::bare`.
 
 The caller of a function in this tier is responsible for safety, and the path itself makes that fact clear.
 
@@ -30,7 +30,7 @@ The caller of a function in this tier is responsible for safety, and the path it
 
 `rok::core` is the most frequently used safe library; every module of the foundation lives here (e.g. `rok::core::collections`, `rok::core::iter`, `rok::core::ops`). It must be available identically on every build target this specification guarantees. Its contents are very broad: numeric, character and string types and their methods, and collections (lists, maps, sets, tuples). It has the trait definitions for arithmetic, comparison, logical and bitwise operators, and also provides iterators, streams and futures. Concurrency primitives (atomic, mutex, channel) and the API surface for tasks and parallel execution also belong to this tier. Finally, it covers formatting, display, debug, reflection and inspection.
 
-Acceleration domains such as tensors / automatic differentiation / SIMD / GPU are not part of `rok::core`; external libraries implement them directly on top of `rok::bare::mlir`. The standard libraries are responsible only for the surface semantics of ordinary code and leave the acceleration domain to decisions at the library layer.
+Acceleration domains such as tensors / automatic differentiation / SIMD / GPU are not part of `rok::core`; external libraries implement them and reach the compiler's backend through the backend interface, planned for Rok 0.2.2. The standard libraries are responsible only for the surface semantics of ordinary code and leave the acceleration domain to decisions at the library layer.
 
 The items of `rok::core` are made visible by the compiler implicitly applying `use rok::core::**;` at the start of every Rok source. That is, `rok::core::collections::List` can be written simply as `List`. There is no separate prelude module; the implicit recursive glob itself plays that role.
 

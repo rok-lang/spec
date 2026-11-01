@@ -7,7 +7,7 @@
 전체 구조는 다음과 같습니다.
 
 ```
-  rok::bare   ←   안전 보장 없음. 원시 메모리·FFI·전송 가능 비트 캐스팅·MLIR 직접 접근.
+  rok::bare   ←   안전 보장 없음. 원시 메모리·FFI·전송 가능 비트 캐스팅.
      ↑
   rok::core   ←   모든 타깃에서 사용 가능한 안전 foundation. 내부적으로는 rok::bare 를 쓴다.
      ↑
@@ -22,7 +22,7 @@
 
 ### `rok::bare`
 
-`rok::bare`는 저수준의 위험한 영역입니다. 컴파일러가 안전성을 보증할 수 없는 동작이 여기에 모입니다. 대표적으로 원시 포인터 형태(raw pointer 추상)와 임의 비트 캐스트(`transmute` 류)가 있습니다. 핀(pinning), volatile 메모리 접근, C [ABI](007-glossary.md#abi-application-binary-interface) 호환 메모리 할당의 원형도 `rok::bare` 영역입니다. MLIR 다이얼렉트 직접 호출(`rok::bare::mlir`)도 이 계층에 있습니다. 컴파일러가 사용자 정의 다이얼렉트 플러그인을 불러오는 기능([stdlib 1.10](../../refs-standard-libraries/100-bare/110-mlir-plugin.md))도 마찬가지입니다. 외부 텐서 / SIMD / GPU 라이브러리는 이 둘을 통로로 가속 영역에 접근합니다.
+`rok::bare`는 저수준의 위험한 영역입니다. 컴파일러가 안전성을 보증할 수 없는 동작이 여기에 모입니다. 대표적으로 원시 포인터 형태(raw pointer 추상)와 임의 비트 캐스트(`transmute` 류)가 있습니다. 핀(pinning), volatile 메모리 접근, C [ABI](007-glossary.md#abi-application-binary-interface) 호환 메모리 할당의 원형도 `rok::bare` 영역입니다.
 
 이 계층의 함수를 호출하는 쪽이 안전성을 책임집니다. 경로 이름 자체가 이 사실을 분명히 드러냅니다.
 
@@ -30,7 +30,7 @@
 
 `rok::core`는 가장 자주 쓰는 안전한 라이브러리입니다. foundation의 모든 모듈이 여기에 있습니다(예: `rok::core::collections`, `rok::core::iter`, `rok::core::ops`). 이 계층은 이 사양이 보증하는 모든 빌드 타깃에서 똑같이 쓸 수 있어야 합니다. 범위가 넓어서 숫자, 문자, 문자열 타입과 그 메서드, 컬렉션(리스트, 맵, 셋, 튜플)이 들어 있습니다. 산술, 비교, 논리, 비트 연산자의 트레잇 정의와 반복자, 스트림, future도 있습니다. 동시성 프리미티브(atomic, mutex, channel)와 task, 병렬 실행의 API 표면도 이 계층에 속합니다. 형식화, 표시, 디버그, 리플렉션, 인스펙션까지 포함합니다.
 
-텐서 / 자동 미분 / SIMD / GPU 같은 가속 영역은 `rok::core`에 들어 있지 않습니다. 외부 라이브러리가 `rok::bare::mlir` 위에서 직접 구현합니다. 표준 라이브러리는 일반 코드의 표면 의미만 책임집니다. 가속 영역은 라이브러리 계층에서 정합니다.
+텐서 / 자동 미분 / SIMD / GPU 같은 가속 영역은 `rok::core`에 들어 있지 않습니다. 외부 라이브러리가 구현하고, Rok 0.2.2에 도입할 예정인 백엔드 인터페이스로 컴파일러 백엔드에 닿습니다. 표준 라이브러리는 일반 코드의 표면 의미만 책임집니다. 가속 영역은 라이브러리 계층에서 정합니다.
 
 컴파일러는 모든 Rok 소스의 시작 지점에 묵시적으로 `use rok::core::**;`를 적용합니다. 그래서 `rok::core`의 항목이 보입니다. 예를 들어 `rok::core::collections::List`를 그냥 `List`로 쓸 수 있습니다. 별도의 prelude 모듈은 두지 않습니다. 묵시적 재귀 glob이 그 역할을 합니다.
 

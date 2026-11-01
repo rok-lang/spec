@@ -35,7 +35,6 @@ type_args   ::= "<" trait_arg ("," trait_arg)* ","? ">"
 const_arg   ::= literal                         // int, char, true / false
               | "-" literal
               | "{" expr "}"                    // 2.11.4
-              | string_lit                      // e.g. an MLIR op name
 fn_type     ::= "unsafe"? ("extern" string_lit)? "fn" "( (type_expr ("," type_expr)*)? ")" ("throws" ("(" type_expr ")")?)? ("->" unary_type)? fn_bound*
 fn_bound    ::= "+" ("Send" | "Sync")
 tuple_type  ::= "(" ")"

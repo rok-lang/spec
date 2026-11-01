@@ -62,8 +62,6 @@ rok::std   (target-dep; uses rok::core + rok::bare)
 - 1.6. [`Pinned<T>` - GC pin (Go 1.21 Pinner 모델)](100-bare/106-gc-pin.md)
 - 1.7. [FFI - `extern "C"` / `CStr` / `CString`](100-bare/107-ffi.md)
 - 1.8. [WASM Component Model (`ffi.wit`)](100-bare/108-wit.md)
-- 1.9. [`rok::bare::mlir`: MLIR 다이얼렉트 직접 접근](100-bare/109-mlir.md)
-- 1.10. [MLIR 다이얼렉트 plugin - 사용자 정의 다이얼렉트를 `rokc`에 로드](100-bare/110-mlir-plugin.md)
 
 ### 2. Rok: [200-core/](200-core/README.md)
 
@@ -93,7 +91,7 @@ rok::std   (target-dep; uses rok::core + rok::bare)
 - 2.22. [`encoding::` - hex와 base64](200-core/222-encoding.md)
 
 > [!NOTE]
-> 텐서 / 자동 미분 / SIMD / GPU 같은 과학 컴퓨팅 / AI 영역은 표준 라이브러리에 넣지 않고 외부 라이브러리로 나눕니다. 외부 라이브러리는 [`rok::bare::mlir`](100-bare/109-mlir.md) 모듈로 MLIR 다이얼렉트에 직접 접근할 수 있습니다.
+> 텐서 / 자동 미분 / SIMD / GPU 같은 과학 컴퓨팅 / AI 영역은 표준 라이브러리에 넣지 않고 외부 라이브러리로 나눕니다. 외부 라이브러리는 Rok 0.2.2에 도입할 예정인 백엔드 인터페이스로 컴파일러 백엔드에 닿습니다.
 
 ### 3. Std: [300-std/](300-std/README.md)
 

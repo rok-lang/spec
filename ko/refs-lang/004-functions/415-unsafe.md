@@ -86,7 +86,6 @@ unsafe {
 - `unsafe fn`으로 선언한 함수 / 메서드 호출
 - 원시 포인터(`Ptr<T>`, `ConstPtr<T>`, `ManyPtr<T>`) 역참조(`p.read()`, `p.write(v)`)
 - [`rok::bare::*`](../../refs-standard-libraries/100-bare/README.md) 모듈의 위험 함수 직접 호출
-- [`rok::bare::mlir::__mlir_op`](../../refs-standard-libraries/100-bare/109-mlir.md) MLIR op 직접 호출
 - `union` 필드 읽기(비트 재해석, [union](../002-types/205-union.md)). 필드 쓰기는 `unsafe` 없이 할 수 있습니다.
 - 다른 소유자에게 넘긴 값을 그 뒤에 사용([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync-스레드-경계-마커)). 다른 스레드가 동시에 그 값을 쓰지 않는다는 점은 블록 작성자가 보장합니다.
 

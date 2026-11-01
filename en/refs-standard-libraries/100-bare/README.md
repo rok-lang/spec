@@ -1,6 +1,6 @@
 # 1. Unsafe tier
 
-The unsafe tier defines the standard library items that are low-level or dangerous. Tools that operate outside safe abstractions, such as raw pointers, transmute, raw allocation, GC pinning, FFI primitives and direct access to MLIR dialects, are all gathered here.
+The unsafe tier defines the standard library items that are low-level or dangerous. Tools that operate outside safe abstractions, such as raw pointers, transmute, raw allocation, GC pinning and FFI primitives, are all gathered here.
 
 ## Dependencies
 
@@ -39,11 +39,6 @@ The implicitly applied `use rok::core::**;` does not include unsafe items. `rok:
 
 - [1.7. extern "C" / `CStr` / `CString` / `CPtr` - C ABI compatibility](107-ffi.md)
 - [1.8. WASM Component Model interface (`ffi.wit`)](108-wit.md)
-
-### MLIR backend
-
-- [1.9. `rok::bare::mlir` - direct access to MLIR dialects](109-mlir.md)
-- [1.10. MLIR dialect plugins - loading user-defined dialects into `rokc`](110-mlir-plugin.md)
 
 ## Core design principles
 

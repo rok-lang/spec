@@ -1,6 +1,6 @@
 # 8.7. MLIR dialect usage
 
-Applies the standard MLIR dialects set out in the [compilation pipeline](../000-meta/002-pipeline.md) to the lowering specification of this [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) block. This is the lowering of the MLIR → LLVM backend (`-O1` and above); the native backend (`-O0`, REPL) generates machine code from rok-mir directly and follows the same ABI ([0.2.4](../000-meta/002-pipeline.md#024-backends)). Ordinary code is lowered to seven core dialects; libraries in acceleration domains may use additional dialects such as `linalg` / `tensor` / `vector` / `gpu` / `affine` / `async` directly through [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md).
+Applies the standard MLIR dialects set out in the [compilation pipeline](../000-meta/002-pipeline.md) to the lowering specification of this [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) block. This is the lowering of the MLIR → LLVM backend (`-O1` and above); the native backend (`-O0`, REPL) generates machine code from rok-mir directly and follows the same ABI ([0.2.4](../000-meta/002-pipeline.md#024-backends)). Ordinary code is lowered to seven core dialects; acceleration-domain libraries are covered in 8.7.5.
 
 ## 8.7.1. Dialects used by ordinary code (recap)
 
@@ -16,7 +16,7 @@ The table from the [compilation pipeline](../000-meta/002-pipeline.md), repeated
 | `math`     | Math functions                           | sqrt / sin / cos, etc.                                                  |
 | `llvm`     | Low-level ops (intrinsic, `struct`, `alloca`, load / store) | Stack slots, objects / arrays, [GC](../000-meta/007-glossary.md#gc-garbage-collector) |
 
-There is no custom Rok dialect. The semantics of ordinary Rok code are expressed with the seven standard dialects above; additional dialects used by acceleration libraries are covered in 8.7.5.
+There is no custom Rok dialect. The semantics of ordinary Rok code are expressed with the seven standard dialects above; acceleration libraries are covered in 8.7.5.
 
 ## 8.7.2. Translation flow
 
@@ -132,22 +132,9 @@ Stack slots, object access and low-level intrinsics belong to the `llvm` dialect
 
 Lowering may use `scf`, `index` and `math` where they express the semantics, and `llvm` where nothing else does; the choice is implementation-defined (8.7.3).
 
-## 8.7.5. Library / acceleration-domain dialects
+## 8.7.5. Acceleration-domain libraries
 
-The following dialects are not used in lowering Rok's *ordinary code*, but library authors can use them directly through [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md).
-
-| Dialect    | Domain                                        |
-|------------|-----------------------------------------------|
-| `affine`   | Loops amenable to affine analysis (numeric libraries) |
-| `linalg`   | element-wise / matmul / reduction (tensor lib) |
-| `tensor`   | shape / extract / insert / reshape (tensor lib) |
-| `vector`   | SIMD width / alignment / shuffle (SIMD lib)   |
-| `gpu`      | GPU launch / kernel / shared memory (GPU lib) |
-| `async`    | async fork / await (dedicated runtime library) |
-
-Lowering ordinary Rok code needs only the seven dialects of 8.7.1, but libraries in acceleration domains such as tensors / automatic differentiation / SIMD / GPU call the dialects above directly to build a performance surface comparable to PyTorch / JAX / Mojo.
-
-The mechanism by which library authors call dialects, and their safety responsibilities, are defined in [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md).
+Rok source has no direct access to MLIR: only the compiler emits MLIR, and only the dialects of 8.7.1. Libraries in acceleration domains such as tensors / automatic differentiation / SIMD / GPU (`affine`, `linalg`, `tensor`, `vector`, `gpu`, `async`) reach the compiler's backend through the backend interface, planned for Rok 0.2.2.
 
 ## 8.7.6. `extern` functions (runtime functions)
 

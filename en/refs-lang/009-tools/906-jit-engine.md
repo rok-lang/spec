@@ -14,7 +14,7 @@ rokc (front end)                         JIT host (one per session)
                                              → run the cell entry function once
 ```
 
-- Cells follow the backend selection of [9.2.10](902-aot-pipeline.md#9210-backend-selection). At `-O0` a cell is a native object ([9.2.11](902-aot-pipeline.md#9211-native-backend)) mapped and linked by the host, with no LLVM. Above `-O0`, and for code the native backend does not take (`__mlir_op`, other targets), cells go through the embedded MLIR → LLVM pipeline into an object loaded into the same executable memory.
+- Cells follow the backend selection of [9.2.10](902-aot-pipeline.md#9210-backend-selection). At `-O0` a cell is a native object ([9.2.11](902-aot-pipeline.md#9211-native-backend)) mapped and linked by the host, with no LLVM. Above `-O0`, and for targets the native backend does not take, cells go through the embedded MLIR → LLVM pipeline into an object loaded into the same executable memory.
 - The host places the code in executable memory, resolves its relocations against the runtime, libc and earlier cells, and runs the cell's entry function once.
 - The host exports every symbol of the runtime (`librokr.a`), and cell code finds runtime and libc symbols in the host process.
 

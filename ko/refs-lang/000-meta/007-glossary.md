@@ -112,11 +112,7 @@ work-stealing은 스케줄러의 부하 분산(load balancing) 메커니즘입�
 
 ## unsafe block / unsafe fn
 
-`unsafe { ... }` 블록 표현식과 `unsafe fn` 함수 수식어는 Rok의 유일한 격리 메커니즘입니다. 안전 추상의 보장 밖에 있는 영역을 눈에 보이게 가둡니다. 원시 포인터 역참조, `unsafe fn` 호출, MLIR op 직접 호출 등은 unsafe 범위 안에서만 할 수 있습니다. 자세한 내용은 [4.15 unsafe](../004-functions/415-unsafe.md)에 있습니다.
-
-## MLIR plugin
-
-MLIR 플러그인은 외부에서 빌드한 MLIR 다이얼렉트를 Rok 컴파일러에 내장된 MLIR에 동적으로 등록하는 메커니즘입니다. `--load-mlir-plugin=<path>` CLI 옵션이나 패키지 매니페스트 선언으로 불러옵니다. 불러온 op은 `rok::bare::mlir::__mlir_op`으로 호출할 수 있습니다. 도메인 특화 컴파일러(암호화, 신호 처리, 새 가속기 ISA 등) 영역에서 씁니다. 자세한 내용은 [refs-standard-libraries 1.10](../../refs-standard-libraries/100-bare/110-mlir-plugin.md)에 있습니다.
+`unsafe { ... }` 블록 표현식과 `unsafe fn` 함수 수식어는 Rok의 유일한 격리 메커니즘입니다. 안전 추상의 보장 밖에 있는 영역을 눈에 보이게 가둡니다. 원시 포인터 역참조, `unsafe fn` 호출 등은 unsafe 범위 안에서만 할 수 있습니다. 자세한 내용은 [4.15 unsafe](../004-functions/415-unsafe.md)에 있습니다.
 
 ## rokc / rok / rokls / rokr
 

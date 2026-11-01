@@ -87,7 +87,6 @@ Options:
 - `--keep` keeps the build's temporary directory (objects and other intermediate files) instead of removing it, and names it on standard error (`rokc: kept temporaries in <dir>`).
 - `--cfg <flag>` / `--cfg <key>=<value>` sets a cfg flag for [conditional compilation](../006-meta-system/603-cfg.md). May be repeated.
 - `--emit=<kind>[,<kind>..]` writes intermediate output (`source`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expansions`) to `target/<profile>/build/<name>.<ext>` ([9.9.1](909-debug-tools.md#991-intermediate-output---emit)). Several kinds may be given at once separated by commas; in that case `-o` cannot be used. With `--emit`, no executable or archive is produced.
-- `--load-mlir-plugin <path|name>` loads an MLIR dialect plugin, `--load-mlir-pass-plugin <path|name>` loads a pass plugin (both into `rokc`'s MLIR; built against the same pinned LLVM, on Windows linked against `rokc.exe`'s import library), and `--mlir-pass <pass>` runs that pass before conversion to the LLVM dialect ([stdlib 1.10](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-loading)). All may be repeated, and `rok` passes them through unchanged.
 - `-g` adds debug information to a `release` profile build: DWARF, or CodeView in a PDB for Windows targets ([9.9.6](909-debug-tools.md#996-debugger-integration-gdb--lldb)). A `debug` profile build always has it.
 - `-C <option>` may also be written `--codegen <option>`.
 - `-C overflow-checks[=yes|no]` turns overflow checks (panic) for fixed-width integer arithmetic on or off. The default is on only at `-O0`. An omitted value means `yes`. Operations on constant operands that cannot overflow skip the check.
@@ -490,7 +489,6 @@ The environment variables that affect `rokc` are:
 | `ROK_VERBOSE`     | Equivalent to `--verbose`                                                                |
 | `ROK_TIME_PASSES` | Per-pass wall time on stderr when `1` ([9.9.5](909-debug-tools.md#rok_time_passes)) |
 | `LLVM_PROFILE_FILE` | Read by instrumented programs (`-C profile-generate`): the raw profile path |
-| `ROK_MLIR_PLUGIN_PATH` | Directories (separated like `PATH`) searched for a `--load-mlir-plugin` / `--load-mlir-pass-plugin` given as a bare name |
 | `ROK_LLVM_CACHE` | Cache directory `rokc bindgen` searches for libclang (9.1.3) |
 | `__ROK_ENV_LIBS` | Set by `rok` when it runs a script from an environment (internal): the comma-separated libraries installed there. A script that uses one of them without declaring it gets a hint naming it |
 | `__ROK_CLI`       | Set to `rok` by `rok` when it runs `rokc` (internal): usage errors (9.1.6), `--help` and the `rokc:` prefix of error and warning lines name `rok`, not `rokc` |

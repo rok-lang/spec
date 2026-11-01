@@ -112,11 +112,7 @@ Work-stealing is the scheduler's load-balancing mechanism. Each worker has a loc
 
 ## unsafe block / unsafe fn
 
-The `unsafe { ... }` block expression and the `unsafe fn` function modifier are Rok's single mechanism for visibly confining regions outside the guarantees of safe abstractions. Raw pointer dereference, calls to `unsafe fn`, direct calls of MLIR ops, etc. are allowed only inside an unsafe scope. See [4.15 unsafe](../004-functions/415-unsafe.md) for details.
-
-## MLIR plugin
-
-An MLIR plugin is the mechanism for dynamically registering an externally built MLIR dialect with the MLIR embedded in the Rok compiler. It is loaded via the `--load-mlir-plugin=<path>` CLI option or a package manifest declaration, and loaded ops become callable through `rok::bare::mlir::__mlir_op`. It is used in domain-specific compiler areas (cryptography, signal processing, new accelerator ISAs, etc.). See [refs-standard-libraries 1.10](../../refs-standard-libraries/100-bare/110-mlir-plugin.md) for details.
+The `unsafe { ... }` block expression and the `unsafe fn` function modifier are Rok's single mechanism for visibly confining regions outside the guarantees of safe abstractions. Raw pointer dereference, calls to `unsafe fn`, etc. are allowed only inside an unsafe scope. See [4.15 unsafe](../004-functions/415-unsafe.md) for details.
 
 ## rokc / rok / rokls / rokr
 

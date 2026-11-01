@@ -1,6 +1,6 @@
 # 1. Unsafe 계층
 
-Unsafe tier는 저수준이거나 위험한 표준 라이브러리 항목을 정의합니다. 원시 포인터, transmute, 원시 할당, GC 고정(pinning), FFI 기본 요소, MLIR 다이얼렉트 직접 접근처럼 안전한 추상화 바깥에서 동작하는 도구는 모두 여기에 있습니다.
+Unsafe tier는 저수준이거나 위험한 표준 라이브러리 항목을 정의합니다. 원시 포인터, transmute, 원시 할당, GC 고정(pinning), FFI 기본 요소처럼 안전한 추상화 바깥에서 동작하는 도구는 모두 여기에 있습니다.
 
 ## 의존성
 
@@ -39,11 +39,6 @@ let p: CPtr<u8> = unsafe { alloc(layout) };    // 실패 시 null
 
 - [1.7. extern "C" / `CStr` / `CString` / `CPtr` - C ABI 호환](107-ffi.md)
 - [1.8. WASM Component Model 인터페이스 (`ffi.wit`)](108-wit.md)
-
-### MLIR 백엔드
-
-- [1.9. `rok::bare::mlir`: MLIR 다이얼렉트 직접 접근](109-mlir.md)
-- [1.10. MLIR 다이얼렉트 plugin - 사용자 정의 다이얼렉트를 `rokc`에 로드](110-mlir-plugin.md)
 
 ## 핵심 설계 원칙
 

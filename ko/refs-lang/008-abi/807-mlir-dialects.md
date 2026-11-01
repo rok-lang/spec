@@ -1,6 +1,6 @@
 # 8.7. MLIR 다이얼렉트 사용
 
-[컴파일 파이프라인](../000-meta/002-pipeline.md)에서 정한 표준 MLIR 다이얼렉트를 이 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 블록의 lowering 사양에 적용합니다. 일반 코드는 핵심 다이얼렉트 7개로 낮춥니다. 가속 영역의 라이브러리는 `linalg` / `tensor` / `vector` / `gpu` / `affine` / `async` 같은 추가 다이얼렉트를 [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md)로 직접 쓸 수 있습니다. 이 문서는 MLIR → LLVM 백엔드(`-O1` 이상)의 lowering을 다룹니다. 네이티브 백엔드(`-O0`, REPL)는 rok-mir에서 바로 기계어를 만들고 같은 ABI를 따릅니다([0.2.4](../000-meta/002-pipeline.md#024-백엔드)).
+[컴파일 파이프라인](../000-meta/002-pipeline.md)에서 정한 표준 MLIR 다이얼렉트를 이 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 블록의 lowering 사양에 적용합니다. 일반 코드는 핵심 다이얼렉트 7개로 낮춥니다. 가속 영역의 라이브러리는 8.7.5에서 다룹니다. 이 문서는 MLIR → LLVM 백엔드(`-O1` 이상)의 lowering을 다룹니다. 네이티브 백엔드(`-O0`, REPL)는 rok-mir에서 바로 기계어를 만들고 같은 ABI를 따릅니다([0.2.4](../000-meta/002-pipeline.md#024-백엔드)).
 
 ## 8.7.1. 일반 코드 사용 다이얼렉트(재확인)
 
@@ -16,7 +16,7 @@
 | `math`     | 수학 함수                                | sqrt / sin / cos 등                                                     |
 | `llvm`     | 저수준 op (intrinsic, `struct`, `alloca`, load / store) | 스택 슬롯, 객체 / 배열, [GC](../000-meta/007-glossary.md#gc-garbage-collector) |
 
-커스텀 Rok 다이얼렉트는 없습니다. 일반 Rok 코드의 의미는 위의 표준 다이얼렉트 일곱 개로 표현합니다. 가속 라이브러리가 추가로 쓰는 다이얼렉트는 8.7.5에서 다룹니다.
+커스텀 Rok 다이얼렉트는 없습니다. 일반 Rok 코드의 의미는 위의 표준 다이얼렉트 일곱 개로 표현합니다. 가속 라이브러리는 8.7.5에서 다룹니다.
 
 ## 8.7.2. 변환 흐름
 
@@ -132,22 +132,9 @@ llvm.intr.expect / llvm.intr.assume
 
 lowering 단계는 `scf`, `index`, `math`로 의미를 표현할 수 있으면 이들을 써도 됩니다. 다른 것으로 표현할 수 없는 곳에서는 `llvm`을 써도 됩니다. 어느 쪽을 고를지는 구현이 정합니다(8.7.3).
 
-## 8.7.5. 라이브러리 / 가속 영역 다이얼렉트
+## 8.7.5. 가속 영역 라이브러리
 
-다음 다이얼렉트는 Rok의 '일반 코드'를 낮출 때는 쓰지 않습니다. 하지만 라이브러리 작성자가 [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md)로 직접 쓸 수 있습니다.
-
-| 다이얼렉트 | 활용 영역                                     |
-|------------|-----------------------------------------------|
-| `affine`   | affine 분석 가능한 루프 (수치 라이브러리)     |
-| `linalg`   | element-wise / matmul / reduction (텐서 lib)  |
-| `tensor`   | shape / extract / insert / reshape (텐서 lib) |
-| `vector`   | SIMD 폭 / 정렬 / shuffle (SIMD lib)           |
-| `gpu`      | GPU launch / kernel / shared memory (GPU lib) |
-| `async`    | async fork / await (전용 런타임 라이브러리)   |
-
-일반 Rok 코드를 낮출 때는 8.7.1의 다이얼렉트 일곱 개면 충분합니다. 텐서 / 자동 미분 / SIMD / GPU 같은 가속 영역의 라이브러리는 위 다이얼렉트를 직접 호출합니다. 이렇게 PyTorch / JAX / Mojo에 견줄 만한 성능 표면을 만듭니다.
-
-라이브러리 작성자가 다이얼렉트를 호출하는 메커니즘과 작성자가 지는 안전 책임은 [`rok::bare::mlir`](../../refs-standard-libraries/100-bare/109-mlir.md)에서 정의합니다.
+Rok 소스는 MLIR에 직접 접근하지 않습니다. MLIR은 컴파일러만 만들고, 8.7.1의 다이얼렉트만 씁니다. 텐서 / 자동 미분 / SIMD / GPU 같은 가속 영역의 라이브러리(`affine`, `linalg`, `tensor`, `vector`, `gpu`, `async`)는 Rok 0.2.2에 도입할 예정인 백엔드 인터페이스로 컴파일러 백엔드에 닿습니다.
 
 ## 8.7.6. `extern` 함수(런타임 함수)
 

@@ -86,7 +86,7 @@ The modules provided by the Rok tier, grouped by area:
 - [2.22. `encoding::` - hex and base64](222-encoding.md)
 
 > [!NOTE]
-> Scientific computing areas such as tensors, automatic differentiation, SIMD and GPU are not part of the Rok tier; they are split out into **external libraries**. External libraries can access MLIR dialects directly through the [`rok::bare::mlir`](../100-bare/) module.
+> Scientific computing areas such as tensors, automatic differentiation, SIMD and GPU are not part of the Rok tier; they are split out into **external libraries**. External libraries reach the compiler's backend through the backend interface, planned for Rok 0.2.2.
 
 ## Core design principles
 

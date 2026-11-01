@@ -87,7 +87,6 @@ rokc build [path]
 - `--keep`은 빌드의 임시 디렉터리(오브젝트와 그 밖의 중간 파일)를 지우지 않고 남깁니다. 그 경로는 표준 에러에 알립니다(`rokc: kept temporaries in <dir>`).
 - `--cfg <flag>` / `--cfg <key>=<value>`는 [조건부 컴파일](../006-meta-system/603-cfg.md)의 cfg 플래그를 설정합니다. 여러 번 쓸 수 있습니다.
 - `--emit=<kind>[,<kind>..]`는 중간 산출물(`source`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expansions`)을 `target/<profile>/build/<name>.<ext>`에 씁니다([9.9.1](909-debug-tools.md#991-중간-산출물-출력---emit)). 쉼표로 여러 종류를 한 번에 지정할 수 있고, 이때는 `-o`를 함께 쓸 수 없습니다. `--emit`이 있으면 실행 파일이나 아카이브는 만들지 않습니다.
-- `--load-mlir-plugin <path|name>`은 MLIR 다이얼렉트 plugin을 로드하고, `--load-mlir-pass-plugin <path|name>`은 패스 plugin을 로드합니다. 둘 다 `rokc`의 MLIR에 로드합니다(plugin은 같은 고정 LLVM으로 빌드하고, Windows에서는 `rokc.exe`의 import library에 링크한 것입니다). `--mlir-pass <pass>`는 LLVM 다이얼렉트로 변환하기 전에 그 패스를 실행합니다([stdlib 1.10](../../refs-standard-libraries/100-bare/110-mlir-plugin.md#1103-plugin-로드)). 모두 여러 번 쓸 수 있고, `rok`도 그대로 넘깁니다.
 - `-g`는 `release` 프로필 빌드에 디버그 정보를 더합니다. 디버그 정보는 DWARF이고, Windows 타깃에서는 PDB의 CodeView입니다([9.9.6](909-debug-tools.md#996-디버거-통합-gdb--lldb)). `debug` 프로필 빌드에는 항상 있습니다.
 - `-C <option>`은 `--codegen <option>`으로도 쓸 수 있습니다.
 - `-C overflow-checks[=yes|no]`는 고정 폭 정수 산술의 오버플로 검사(panic)를 켜거나 끕니다. 기본으로는 `-O0`에서만 켭니다. 값을 생략하면 `yes`입니다. 오버플로가 일어날 수 없는 상수 피연산자 연산은 검사하지 않습니다.
@@ -490,7 +489,6 @@ rokc --cwd=examples/hello run
 | `ROK_VERBOSE`     | `--verbose`와 같음                                                                      |
 | `ROK_TIME_PASSES` | `1`이면 패스별 실제 시간을 stderr에 출력([9.9.5](909-debug-tools.md#rok_time_passes)) |
 | `LLVM_PROFILE_FILE` | 계측한 프로그램(`-C profile-generate`)이 읽는 raw profile 경로 |
-| `ROK_MLIR_PLUGIN_PATH` | 이름만 준 `--load-mlir-plugin` / `--load-mlir-pass-plugin`을 찾는 디렉터리 목록(`PATH`처럼 구분) |
 | `ROK_LLVM_CACHE` | `rokc bindgen`이 libclang을 찾는 캐시 디렉터리(9.1.3) |
 | `__ROK_ENV_LIBS` | `rok`이 환경에서 스크립트를 실행할 때 설정하는(내부용), 그 환경에 설치된 라이브러리 목록(쉼표로 구분). 스크립트가 그중 하나를 선언 없이 쓰면 그 이름을 알리는 힌트를 받음 |
 | `__ROK_CLI`       | `rok`이 `rokc`를 실행할 때 `rok`으로 설정(내부용). 사용법 에러(9.1.6), `--help`, 에러와 경고 줄의 `rokc:` 접두사에서 `rokc` 대신 `rok`이라고 씀 |

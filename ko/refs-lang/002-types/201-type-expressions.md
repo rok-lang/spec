@@ -35,7 +35,6 @@ type_args   ::= "<" trait_arg ("," trait_arg)* ","? ">"
 const_arg   ::= literal                         // 정수, 문자, true / false
               | "-" literal
               | "{" expr "}"                    // 2.11.4
-              | string_lit                      // 예: MLIR op 이름
 fn_type     ::= "unsafe"? ("extern" string_lit)? "fn" "( (type_expr ("," type_expr)*)? ")" ("throws" ("(" type_expr ")")?)? ("->" unary_type)? fn_bound*
 fn_bound    ::= "+" ("Send" | "Sync")
 tuple_type  ::= "(" ")"

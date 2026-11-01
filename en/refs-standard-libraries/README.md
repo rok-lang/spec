@@ -62,8 +62,6 @@ Low-level / dangerous area. Explicit import required.
 - 1.6. [`Pinned<T>` - GC pin (Go 1.21 Pinner model)](100-bare/106-gc-pin.md)
 - 1.7. [FFI - `extern "C"` / `CStr` / `CString`](100-bare/107-ffi.md)
 - 1.8. [WASM Component Model (`ffi.wit`)](100-bare/108-wit.md)
-- 1.9. [`rok::bare::mlir` - direct access to MLIR dialects](100-bare/109-mlir.md)
-- 1.10. [MLIR dialect plugins - loading user-defined dialects into `rokc`](100-bare/110-mlir-plugin.md)
 
 ### 2. Rok - [200-core/](200-core/README.md)
 
@@ -93,7 +91,7 @@ Safe area. All targets. `use rok::core::**;` applied implicitly (no separate pre
 - 2.22. [`encoding::` - hex and base64](200-core/222-encoding.md)
 
 > [!NOTE]
-> Scientific computing / AI areas such as tensors / automatic differentiation / SIMD / GPU are not part of the standard libraries and are split out into external libraries. External libraries can access MLIR dialects directly through the [`rok::bare::mlir`](100-bare/109-mlir.md) module.
+> Scientific computing / AI areas such as tensors / automatic differentiation / SIMD / GPU are not part of the standard libraries and are split out into external libraries. External libraries reach the compiler's backend through the backend interface, planned for Rok 0.2.2.
 
 ### 3. Std - [300-std/](300-std/README.md)
 

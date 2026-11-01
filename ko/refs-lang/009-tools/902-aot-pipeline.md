@@ -144,7 +144,7 @@ MIR은 HIR보다 한 단계 낮은 IR입니다. 이 단계에서 연산자 문�
 | `-O0`                    | native       |
 | `-O1` `-O2` `-O3` `-Os`  | MLIR → LLVM  |
 
-native 백엔드는 {aarch64, x86_64} × {macOS, Linux}를 지원합니다. 그 밖의 타깃, [`__mlir_op` / `__mlir_type`](../../refs-standard-libraries/100-bare/109-mlir.md)을 쓰는 모듈, MLIR plugin을 쓰는 빌드, `-C profile-generate` / `-C profile-use` 빌드는 어느 수준에서나 MLIR → LLVM 백엔드를 씁니다. REPL도 같은 선택을 따릅니다(9.6.1). 두 백엔드는 [8](../008-abi/README.md)의 런타임 ABI를 따릅니다. 그래서 어느 쪽 오브젝트든 함께 링크할 수 있고, 다른 수준으로 미리 빌드한 의존 패키지도 마찬가지입니다.
+native 백엔드는 {aarch64, x86_64} × {macOS, Linux}를 지원합니다. 그 밖의 타깃과 `-C profile-generate` / `-C profile-use` 빌드는 어느 수준에서나 MLIR → LLVM 백엔드를 씁니다. REPL도 같은 선택을 따릅니다(9.6.1). 두 백엔드는 [8](../008-abi/README.md)의 런타임 ABI를 따릅니다. 그래서 어느 쪽 오브젝트든 함께 링크할 수 있고, 다른 수준으로 미리 빌드한 의존 패키지도 마찬가지입니다.
 
 ## 9.2.11. 네이티브 백엔드
 
@@ -228,12 +228,12 @@ target/
 - 패키지와 의존성의 `src/` 아래 파일, 그 `rok.rokon`, 그리고 빌드가 읽은 그 밖의 모든 파일(`src/` 밖의 `#[path]` / `include_str!`)
 - `include_str!` / `include_bytes!`([6.11](../006-meta-system/611-include.md))가 읽는 파일과 그 내용
 - 린트 수준(`-A` / `-W` / `-D`, 그리고 이 옵션을 거친 매니페스트의 `lints`)
-- toolchain이 그 타깃용으로 배포하는 런타임 라이브러리, C 런타임 오브젝트, C 라이브러리, 링커([9.2.19](#9219-설치-레이아웃)), 미리 빌드한 의존성의 `.a`, MLIR plugin 파일, `-C profile-use` 파일과 프로필 런타임. 각 파일은 크기, 수정 시각, 파일 정체(inode와 상태 변경 시각, Windows에서는 생성 시각)로 비교하므로, 수정 시각을 유지한 복사도 변경으로 봄
+- toolchain이 그 타깃용으로 배포하는 런타임 라이브러리, C 런타임 오브젝트, C 라이브러리, 링커([9.2.19](#9219-설치-레이아웃)), 미리 빌드한 의존성의 `.a`, `-C profile-use` 파일과 프로필 런타임. 각 파일은 크기, 수정 시각, 파일 정체(inode와 상태 변경 시각, Windows에서는 생성 시각)로 비교하므로, 수정 시각을 유지한 복사도 변경으로 봄
 - 산출물의 크기, 수정 시각, 파일 정체
 
 빌드가 낸 경고는 린트 경고와 백엔드 경고까지 기록해 둡니다. `Fresh`인 빌드는 그 경고를 다시 출력합니다.
 
-`--cfg`, `--target`, MLIR plugin, 프로필 옵션, `-O3`이 없는 native 빌드는 `lib/rok-cache/`(9.2.19)의 미리 빌드한 표준 라이브러리를 링크합니다. 폴더는 toolchain, 옵션, 소스의 해시마다 하나이고, 처음 쓸 때 잠금을 걸고 빌드합니다. `-O3`에서는 표준 라이브러리를 프로그램과 함께 컴파일합니다(전체 프로그램 최적화). REPL은 표준 라이브러리를 소스에서 컴파일합니다.
+`--cfg`, `--target`, 프로필 옵션, `-O3`이 없는 native 빌드는 `lib/rok-cache/`(9.2.19)의 미리 빌드한 표준 라이브러리를 링크합니다. 폴더는 toolchain, 옵션, 소스의 해시마다 하나이고, 처음 쓸 때 잠금을 걸고 빌드합니다. `-O3`에서는 표준 라이브러리를 프로그램과 함께 컴파일합니다(전체 프로그램 최적화). REPL은 표준 라이브러리를 소스에서 컴파일합니다.
 
 ### 프런트엔드
 
@@ -256,7 +256,7 @@ target/
 - unit의 키에는 그 함수들의 코드, 다른 unit에서 가져다 쓰는 것의 시그니처와 코드 생성 정보, 쓰는 static과 GC 타입, 타깃, 최적화 수준, 코드 생성 옵션, 컴파일러의 정체가 들어갑니다. `-g`이면 디버그 정보가 가리키는 소스 파일의 경로도 들어갑니다. 그래서 함수의 시그니처가 바뀌면 호출자의 unit을 다시 컴파일하고, 파일을 더하면 그 파일을 가리키는 unit만 다시 컴파일합니다.
 - 심볼과 GC type id는 다른 unit의 내용에 의존하지 않습니다. unit은 GC type id를 패키지의 공유 unit이 정의한 심볼에서 읽습니다([9.5.7](905-symbol-mangling.md#957-충돌-회피-typehash의-안정성)). 그래서 산출물은 깨끗한 빌드가 만드는 것과 같습니다.
 - 최적화 빌드도 unit 사이에서 인라인합니다(ThinLTO, unit별 결과도 캐시함).
-- 프로필 기반 빌드(`-C profile-generate`, `-C profile-use`)와 MLIR plugin이나 pass를 쓰는 빌드는 통째로 컴파일합니다.
+- 프로필 기반 빌드(`-C profile-generate`, `-C profile-use`)는 통째로 컴파일합니다.
 - `-v`는 재사용한 unit과 컴파일한 unit의 수를 보고하고, `-vv`는 컴파일한 unit의 이름을 보고합니다.
 
 ## 9.2.17. 컴파일러와 런타임의 분리
@@ -311,5 +311,3 @@ $ROK_HOME/
 `rokc`는 표준 라이브러리와 런타임을 자기 실행 파일 기준으로 찾습니다(sysroot = 실행 파일의 `..`). `ROK_HOME`은 보지 않습니다. 표준 라이브러리의 각 계층은 라이브러리 패키지처럼 놓입니다. 루트 모듈은 `lib/rok/<tier>/src/lib.rok`이고 모듈은 `lib/rok/<tier>/src/` 아래에 있습니다. 구현 저장소에서 빌드한 `rokc`는 같은 레이아웃을 저장소의 `library/<tier>/src/`에서 읽습니다. 자기 캐시는 toolchain의 `lib/rok-cache/`입니다(저장소 빌드는 `target/<profile>/rok-cache/`). 이 캐시에는 toolchain, 빌드 옵션, 소스를 키로 미리 빌드한 표준 라이브러리가 있고(9.2.16), `.facts/`에는 캐시한 타깃 data layout과 도구 정보가 있습니다. 활성 toolchain은 [9.10.6](910-rok-frontend.md#9106-toolchain)이 정한 대로 고릅니다.
 
 Linux(glibc) toolchain은 자신이 만드는 실행 파일과 마찬가지로 glibc 2.34 이상이 필요합니다(9.2.14).
-
-릴리스에는 MLIR plugin 개발 아카이브(`rok-mlir-dev-<version>-<triple>`: 고정 LLVM / MLIR 헤더와, Windows에서는 `rokc.lib`)가 함께 올 수 있습니다([stdlib 1.10.2](../../refs-standard-libraries/100-bare/110-mlir-plugin.md)).

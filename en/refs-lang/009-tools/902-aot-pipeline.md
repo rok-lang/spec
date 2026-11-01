@@ -144,7 +144,7 @@ The optimization level selects the code generator by default ([0.2.4](../000-met
 | `-O0`                    | native       |
 | `-O1` `-O2` `-O3` `-Os`  | MLIR → LLVM  |
 
-The native backend supports {aarch64, x86_64} × {macOS, Linux}. Other targets, modules that use [`__mlir_op` / `__mlir_type`](../../refs-standard-libraries/100-bare/109-mlir.md), builds with MLIR plugins, and builds with `-C profile-generate` / `-C profile-use` use the MLIR → LLVM backend at every level. The REPL follows the same selection (9.6.1). Both backends follow the runtime ABI of [8](../008-abi/README.md), so objects from either link together, including prebuilt dependencies built at another level.
+The native backend supports {aarch64, x86_64} × {macOS, Linux}. Other targets and builds with `-C profile-generate` / `-C profile-use` use the MLIR → LLVM backend at every level. The REPL follows the same selection (9.6.1). Both backends follow the runtime ABI of [8](../008-abi/README.md), so objects from either link together, including prebuilt dependencies built at another level.
 
 ## 9.2.11. Native backend
 
@@ -228,12 +228,12 @@ Incremental builds work at three levels: a package whose inputs did not change i
 - The files under `src/` of the package and its dependencies, their `rok.rokon`, and every other file the build read (`#[path]` / `include_str!` outside `src/`)
 - Files read by `include_str!` / `include_bytes!` ([6.11](../006-meta-system/611-include.md)), with their contents
 - The lint levels (`-A` / `-W` / `-D`, and the manifest's `lints` through them)
-- The runtime library, the C runtime objects, C library and linker the toolchain ships for the target ([9.2.19](#9219-installation-layout)), the `.a` of prebuilt dependencies, MLIR plugin files, a `-C profile-use` file and the profile runtime, each by its size, modification time and file identity (inode and status change time; on Windows its creation time), so a copy that keeps the modification time is a change
+- The runtime library, the C runtime objects, C library and linker the toolchain ships for the target ([9.2.19](#9219-installation-layout)), the `.a` of prebuilt dependencies, a `-C profile-use` file and the profile runtime, each by its size, modification time and file identity (inode and status change time; on Windows its creation time), so a copy that keeps the modification time is a change
 - The size, modification time and file identity of the outputs
 
 Warnings emitted by a build, lint warnings and the back end's included, are recorded, and a `Fresh` build prints them again.
 
-A native build without `--cfg`, `--target`, MLIR plugins, profile options or `-O3` links the prebuilt standard library from `lib/rok-cache/` (9.2.19), one folder per hash of toolchain, options and sources, built on first use under a lock. At `-O3` the standard library is compiled with the program (whole-program optimization). The REPL compiles the standard library from source.
+A native build without `--cfg`, `--target`, profile options or `-O3` links the prebuilt standard library from `lib/rok-cache/` (9.2.19), one folder per hash of toolchain, options and sources, built on first use under a lock. At `-O3` the standard library is compiled with the program (whole-program optimization). The REPL compiles the standard library from source.
 
 ### Front end
 
@@ -256,7 +256,7 @@ Within a package, a build that is not `Fresh` reuses compiled code by codegen un
 - A unit's key covers its functions' code, the signatures and code-generation facts of what it uses from other units (a function's signature change recompiles its callers' units), the statics and GC types it uses, the target, the optimization level, the code generation options, the compiler's identity and, under `-g`, the paths of the source files its debug info names (adding a file recompiles only the units that refer to it).
 - Symbols and GC type ids do not depend on what other units contain (a unit reads GC type ids from symbols the package's shared unit defines; [9.5.7](905-symbol-mangling.md#957-collision-avoidance-typehash-stability)), so the output is the one a clean build makes.
 - Optimized builds still inline across units (ThinLTO, whose per-unit results are cached too).
-- Profile-guided builds (`-C profile-generate`, `-C profile-use`), and builds with MLIR plugins or passes are compiled whole.
+- Profile-guided builds (`-C profile-generate`, `-C profile-use`) are compiled whole.
 - `-v` reports how many units were reused and compiled; `-vv` names the compiled ones.
 
 ## 9.2.17. Separation of compiler and runtime
@@ -311,5 +311,3 @@ $ROK_HOME/
 `rokc` finds the standard library and runtime relative to its own executable (sysroot = the executable's `..`) and does not look at `ROK_HOME`. Each tier of the standard library is laid out like a library package: its root module is `lib/rok/<tier>/src/lib.rok` and its modules are under `lib/rok/<tier>/src/`. A `rokc` built in the implementation repository reads the same layout from the repository's `library/<tier>/src/`. Its own cache is the toolchain's `lib/rok-cache/` (a repository build uses `target/<profile>/rok-cache/`). It holds the prebuilt standard library, keyed by toolchain, build options and sources (9.2.16), and in `.facts/` the cached target data layout and tool facts. Selection of the active toolchain is defined by [9.10.6](910-rok-frontend.md#9106-toolchain).
 
 A Linux (glibc) toolchain needs glibc 2.34 or later, as the executables it builds do (9.2.14).
-
-A release may be accompanied by an MLIR plugin development archive (`rok-mlir-dev-<version>-<triple>`: the pinned LLVM / MLIR headers and, on Windows, `rokc.lib`) ([stdlib 1.10.2](../../refs-standard-libraries/100-bare/110-mlir-plugin.md)).
