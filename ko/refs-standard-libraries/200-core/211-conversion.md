@@ -21,6 +21,8 @@ Rok은 변환을 **의도**에 따라 네 갈래로 나눕니다. 사용자는 �
 
 소리 없는 포화나 랩어라운드는 사용자 모르게 값을 바꿉니다. 그 결과 디버그하기 어려운 버그가 생깁니다. Rok은 두 교훈을 함께 받아들였습니다. 하나는 JS가 Number → BigInt를 도입하며 얻은 교훈이고, 다른 하나는 NumPy가 랩어라운드에서 OverflowError로 옮겨 가며 얻은 교훈입니다.
 
+같은 이유로 고정 폭 산술(`+ - *`, 단항 `-`)은 Swift처럼 모든 프로필에서 오버플로가 나면 panic이 일어납니다. 검사 비용은 작습니다. Apple M 계열에서 `bench/`를 `-O2`로 잰 결과(실행 명령어 수, 3회 중 최소)는 `fannkuch`(정수 리스트) +5.6%, `json_tokenizer`(바이트 단위 스캔) +9.2%이고, `nbody`(f64)는 잡음 범위(-2.8%)입니다. 마지막 몇 퍼센트가 필요한 프로그램은 `-C overflow-checks=no`나 `rok.rokon` 프로필(`profile: { "release": { overflow_checks: false } }`, [refs-lang 9.10.3](../../refs-lang/009-tools/910-rok-frontend.md#9103-rokrokon--roklock))로 검사를 끄고, 그러면 오버플로는 랩어라운드합니다.
+
 ## 2.11.2. `From<U>` 트레잇: 무손실 변환
 
 ```rok
@@ -360,7 +362,7 @@ let b: i32 = 3;
 let c: i32 = a + b;          // OK: i32 + i32 = i32
 
 let big: i32 = a + b * 1000000;
-// → a + b * 1000000 의 결과가 i32 범위면 OK, 밖이면 (debug=panic / release=wrap)
+// → a + b * 1000000 의 결과가 i32 범위면 OK, 밖이면 panic (overflow 검사를 끄면 wrap)
 // silent saturate / silent promote 안 함
 
 let auto: i64 = a + b;       // 컴파일 에러: i32 결과를 i64 에 silent promote 안 함
@@ -373,7 +375,7 @@ let auto: i64 = (a + b).into();  // From<i32> for i64 (lossless) 명시
 | 언어   | 변환 모델                                               | Rok과의 차이                                                                     |
 |--------|---------------------------------------------------------|-----------------------------------------------------------------------------------|
 | Rust   | `From`/`Into` 무손실, `as` 랩어라운드, `try_into` Result | Rok과 가장 비슷함. Rok은 `saturating_into`/`wrapping_into` 메서드를 더함 |
-| Swift  | 모든 정수 변환이 기본으로 트랩, `.init(clamping:)`은 선택 | Rok은 트랩을 거부함: debug=panic + release=랩어라운드(고정 폭 산술), 변환은 명시 |
+| Swift  | 모든 정수 변환이 기본으로 트랩, `.init(clamping:)`은 선택 | 고정 폭 산술도 트랩함(모든 프로필에서 panic). 변환은 트랩하는 초기화 대신 명시적 메서드 |
 | Julia  | `Int32(big)`은 트랩, `convert` 함수 묶음                | Rok은 트레잇 메서드(`from`/`into`)로 통일                                        |
 | Python | `int(x)`/`float(x)` 함수, 항상 무한 정밀도              | Rok의 `int` / `float`도 같은 생각, 고정 폭 원시 타입은 별개 세계               |
 | C      | 암묵적 변환(`int` → `long` 자동)                        | Rok은 이를 거부해 소리 없는 타입 섞임을 막음                                     |

@@ -99,13 +99,14 @@ extern "C" {
 - `#[repr(C)]` `struct` / `union`: C ABI 호환 표시가 붙은 사용자 정의 타입.
 - 함수 포인터: `extern "C" fn(...) -> ...`(아래 "C 함수 포인터 타입" 참고).
 - 함수 타입 매개변수: `extern "C"` 선언의 `fn(..) -> R` 매개변수는 `extern "C" fn(..) -> R`과 같습니다.
+- 널 가능 포인터: `Ptr<T> | none`, `ConstPtr<T> | none`, `extern "C" fn(..) -> R | none`(널 니치가 있는 포인터, [2.7.2](../002-types/207-niche-optimization.md#272-자동-niche)). `none`은 null입니다.
 - `str`: 아래 규칙으로 변환합니다.
 
 `extern "C"` 시그니처의 `str` 매개변수는 NUL로 끝나는 `char*` 하나입니다. 바이트 뒤에 NUL이 있으면 그 바이트를 그대로 넘기고, 없으면(슬라이스 등) 호출 동안 고정한 사본을 넘깁니다. C는 호출이 끝난 뒤 그 포인터를 보관하면 안 됩니다. `str` 반환은 `char*`이며 길이는 `strlen`으로 잽니다. 중간에 NUL이 있으면 C 쪽에서는 첫 NUL까지만 보입니다. 반환된 `char*`가 null이면 미정의 동작입니다. 그래서 null일 수 있는 C 문자열은 `CPtr<c_char>`로 받습니다([stdlib 1.7.2](../../refs-standard-libraries/100-bare/107-ffi.md#172-cstr--cstring-null-종료-문자열)).
 
 모듈 `m`의 `extern` 블록에 있는 `pub` 함수는 `m::f`로도 닿을 수 있습니다. 그 심볼에는 접두어가 붙지 않습니다. `extern "C"` 블록의 `rok_*` 이름은 `str`을 받거나 돌려줄 수 없습니다([8.5](../008-abi/805-extern-symbols.md)).
 
-호환되지 않는 타입을 쓰면 정의되지 않은 동작입니다. C는 GC 참조(`List`, `Dict`)를 그저 비트로 보고, 수집기는 그것을 옮기거나 해제할 수 있습니다. 컴파일러는 `extern "C"`와 `extern "system"` 블록, `extern "C" fn` 정의의 매개변수, 결과, `static`에 GC 타입(`List`, `Dict`, 클로저, 합 타입, `any`, 이런 것을 담은 struct)이 있으면 경고합니다(`improper_ctypes`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). 0.2.0에서는 에러가 됩니다. `extern "C" fn` 정의의 `str`은 거부합니다([5.9.10](#5910-extern-fn-정의외부에-노출)). 그 밖의 불일치는 프로그램이 피해야 합니다. 타입별 호출 규약은 [호출 규약](../008-abi/806-calling-convention.md)에서 정의합니다.
+호환되지 않는 타입을 쓰면 정의되지 않은 동작입니다. C는 GC 참조(`List`, `Dict`)를 그저 비트로 보고, 수집기는 그것을 옮기거나 해제할 수 있습니다. `extern "C"`와 `extern "system"` 블록, `extern "C" fn` 정의의 매개변수, 결과, `static`에 GC 타입(`List`, `Dict`, 클로저, 널 가능 포인터가 아닌 합 타입, `any`, 이런 것을 담은 struct)이 있으면 에러입니다(`` parameter `xs` of extern function `f` has type `List<i64>`, which C cannot hold ``. 도움말은 기본 타입, `CPtr<T>`와 길이, 또는 그런 것으로 된 `#[repr(C)]` struct를 쓰라고 알려 줍니다). `extern "C" fn` 정의의 `str`은 거부합니다([5.9.10](#5910-extern-fn-정의외부에-노출)). 그 밖의 불일치는 프로그램이 피해야 합니다. 타입별 호출 규약은 [호출 규약](../008-abi/806-calling-convention.md)에서 정의합니다.
 
 ### C 함수 포인터 타입
 
@@ -175,7 +176,7 @@ fn use_malloc() {
 }
 ```
 
-사용자가 선언한 `extern "C"` 함수는 unsafe이므로 `unsafe { ... }` 안에서 호출합니다([4.15](../004-functions/415-unsafe.md)). toolchain이 선언하는 런타임 함수(`rok_print_*`, `rok_panic_str` 등)는 안전하게 호출할 수 있습니다. 그 밖에는 `extern` 함수 호출도 외부 심볼이라는 점만 빼면 일반 호출과 같습니다. 결과 타입에는 Rok의 일반 의미론이 그대로 적용됩니다. `extern static`은 일반 변수처럼 읽고, `mut`이면 씁니다. Rok은 C 전역 변수를 검사할 수 없으므로 `unsafe` 밖에서 그렇게 하면 `extern_static_unsafe` 경고가 납니다([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). 0.2.0에서는 `unsafe`가 필요합니다. `unsafe { optind = 6; }`처럼 씁니다. `addr_of`로 주소를 얻는 것은 아무것도 읽지 않으므로 `unsafe`가 필요 없습니다. 그래도 타입은 FFI 호환이어야 합니다(5.9.4). Rok은 외부 메모리를 그 타입으로 읽으므로 `static environ: List<str>;`는 정의되지 않은 동작입니다. 포인터로 선언합니다(`static environ: Ptr<Ptr<c_char>>;`).
+사용자가 선언한 `extern "C"` 함수는 unsafe이므로 `unsafe { ... }` 안에서 호출합니다([4.15](../004-functions/415-unsafe.md)). toolchain이 선언하는 런타임 함수(`rok_print_*`, `rok_panic_str` 등)는 안전하게 호출할 수 있습니다. 그 밖에는 `extern` 함수 호출도 외부 심볼이라는 점만 빼면 일반 호출과 같습니다. 결과 타입에는 Rok의 일반 의미론이 그대로 적용됩니다. `extern static`은 일반 변수처럼 읽고, `mut`이면 씁니다. Rok은 C 전역 변수를 검사할 수 없으므로 읽거나 쓰려면 `unsafe`(`unsafe` 블록이나 `unsafe fn` 본문)가 필요합니다. 밖에서 하면 에러이고, 도움말이 고친 형태를 보여 줍니다. `unsafe { optind = 6; }`처럼 씁니다. `addr_of`로 주소를 얻는 것은 아무것도 읽지 않으므로 `unsafe`가 필요 없습니다. 그래도 타입은 FFI 호환이어야 합니다(5.9.4). Rok은 외부 메모리를 그 타입으로 읽으므로 `static environ: List<str>;`는 정의되지 않은 동작입니다. 포인터로 선언합니다(`static environ: Ptr<Ptr<c_char>>;`).
 
 ## 5.9.7. 가시성
 

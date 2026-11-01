@@ -224,7 +224,7 @@ fn strict_zone() { ... }
 
 수준은 다음 순서로 정해지고, 뒤에 오는 것이 앞의 것보다 우선합니다. 각 린트의 기본 수준 < `rok.rokon`의 `lints` 필드(`lints_from` 사슬을 적용한 뒤)([9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) < CLI의 `-A` / `-W` / `-D` < 소스의 속성(가장 안쪽 것이 우선). `lints`는 CLI 플래그 앞에 붙은 것처럼 처리되므로 뒤에 쓴 CLI 플래그가 이 설정을 덮어씁니다. 린트 진단의 코드는 `E503`입니다.
 
-`missing_docs`의 기본 수준은 `allow`이고, 나머지 린트의 기본 수준은 모두 `warn`입니다. 도입 열은 그 린트를 추가한 릴리스입니다.
+모든 린트의 기본 수준은 `warn`입니다. 다만 늘 실수인 `nan_comparison`과 `self_assignment`는 `deny`이고, `missing_docs`는 `allow`입니다. 도입 열은 그 린트를 추가한 릴리스입니다.
 
 | 린트                     | 도입    | 검사                                                               |
 |--------------------------|---------|--------------------------------------------------------------------|
@@ -238,10 +238,10 @@ fn strict_zone() { ... }
 | `write_to_copy`          | 0.1.0   | 아무도 나중에 읽지 않는 사본에 필드를 대입함. 사본은 값으로 받은 매개변수나 `self`, `for` 바인딩, 원소의 `let`(`xs[i]`, [2.3.8](../002-types/203-struct.md#238-값-의미))이고, 이후의 읽기, 루프 반복, 반환, 호출 어느 것도 그 변경을 볼 수 없을 때. 같은 변수에 다시 쓰는 데에만 쓰이는 읽기는 세지 않음. 클로저나 코루틴 블록이 언급하는 변수는 검사하지 않음 |
 | `ignored_error`          | 0.1.0   | `try? f();` 문장이 에러를 조용히 버림. `let _ = try? f();`는 실패해도 괜찮은 호출이라는 표시이므로 보고하지 않음 |
 | `shadowed_loop_var`      | 0.1.0   | `for` 본체의 `let`이 루프 변수를 다시 묶음                        |
-| `nan_comparison`         | 0.1.0   | NaN과 비교 (늘 거짓, `!=`는 늘 참)                               |
+| `nan_comparison`         | 0.1.0   | NaN과 비교 (늘 거짓, `!=`는 늘 참). `.is_nan()`을 씁니다 (deny) |
 | `none_comparison`        | 0.1.0   | `x is none` 대신 `x == none`                                       |
 | `bool_comparison`        | 0.1.0   | `bool`을 `true` / `false`와 비교                                 |
-| `self_assignment`        | 0.1.0   | `x = x;`                                                           |
+| `self_assignment`        | 0.1.0   | `x = x;` (deny)                                                    |
 | `while_true`             | 0.1.0   | `loop` 대신 `while true`                                           |
 | `deprecated`             | 0.1.0   | `#[deprecated]` 함수, 메서드, 필드, 타입, 상수, static 사용 ([6.2.7](#627-deprecated-사용-자제-표시)) |
 | `deprecated_safe`        | 0.1.6   | `unsafe` 밖에서 `#[deprecated_safe]` 함수를 호출하거나 그런 static을 씀 ([6.2.14](#6214-deprecated_safe-지금은-안전-나중에-unsafe)) |
@@ -259,14 +259,12 @@ fn strict_zone() { ... }
 | `literal_spread_mismatch` | 0.1.6   | 고정 매개변수에 펼친 `List`나 Dict 리터럴이 자리를 채울 수 없음: 길이가 다르거나 남은 매개변수 어느 것의 이름도 아닌 키가 있음([4.2](../004-functions/402-parameters.md)). 그 호출은 런타임에 panic이 일어남 (warn) |
 | `guard_escape`           | 0.1.6   | 잠금 가드의 `using` 블록 안에서 잠금이 보호하는 것을 담은 에러를 `throw`함 ([stdlib 2.16.3](../../refs-standard-libraries/200-core/216-sync.md#2163-mutext-배타적-잠금)) (warn) |
 | `thread_local_across_await` | 0.1.6   | `async` 본체에서 `ThreadLocal::get()` 값을 `await` 뒤에 씀 ([stdlib 3.4.4](../../refs-standard-libraries/300-std/304-thread.md#344-스레드-로컬-저장소)) (warn) |
-| `extern_static_unsafe`   | 0.1.6   | extern `static`을 `unsafe` 밖에서 읽거나 씀 ([5.9.6](../005-modules/509-extern-block.md#596-호출--사용)) (warn) |
-| `improper_ctypes`        | 0.1.6   | `extern "C"` / `"system"` 블록이나 `extern "C" fn` 정의의 매개변수, 결과, `static`에 GC 타입(`List`, `Dict`, 클로저, 합 타입, `any`, 이런 것을 담은 struct)이 있음 ([5.9.4](../005-modules/509-extern-block.md#594-ffi-호환-타입)) (warn) |
 | `unqualified_meta`       | 0.1.6   | 다른 패키지의 macro, derive, 속성을 이름만 써서 0.2.0이 없애는 빌드 전역 범위로만 찾음. `dep::name!`, `#[derive(dep::Name)]`, `#[dep::name]`, `use dep::name!;`으로 씀 ([6.8.11](608-meta-blocks.md#6811-등록가시성과-결합)) |
 | `assoc_type_shadowing`   | 0.2.0   | 연관 타입이 바깥 타입과 이름이 같아 트레이트나 `impl` 안에서 그 타입을 가림 |
 | `builtin_attribute_name` | 0.2.0   | 메타 블록이 내장 속성의 이름을 가져감 |
 | `missing_docs`           | 0.2.0   | `///` 문서 주석이 없는 `pub` 항목, 고유 impl의 `pub` 메서드, `pub` 트레잇의 메서드, 인라인 `pub mod`. `#[doc(hidden)]`은 문서가 있는 것으로 보고, 트레잇 impl의 메서드는 검사하지 않음 (allow) |
 
-`unclosed_sender`, `using_twice`, `guard_escape`, `thread_local_across_await`, `extern_static_unsafe`, `improper_ctypes`는 0.1.6에서 추가되었습니다. `guard_escape`, `extern_static_unsafe`, `improper_ctypes`가 보고하는 코드는 0.2.0에서 에러가 됩니다.
+`unclosed_sender`, `using_twice`, `guard_escape`, `thread_local_across_await`는 0.1.6에서 추가되었습니다. `guard_escape`가 보고하는 코드는 0.2.0에서 에러가 됩니다. 0.2.0에서는 `unsafe` 밖에서 extern `static`을 읽거나 쓰는 것([5.9.6](../005-modules/509-extern-block.md#596-호출--사용))과 extern 항목의 GC 타입([5.9.4](../005-modules/509-extern-block.md#594-ffi-호환-타입))이 에러입니다. 0.1.6의 린트 이름 `extern_static_unsafe`, `improper_ctypes`는 제거된 이름이라 `allow` / `-A` / `lints`에 써도 받아들이고 무시합니다.
 
 `capture_field_write`, `const_item_mutation`, `pattern_binds_const`, `ambiguous_int_literal`, `finally_jump`, `float_to_bool`(0.1.6)이 보고하던 코드는 0.2.0부터 에러입니다: [4.6.7](../004-functions/406-capture-semantics.md), [5.2](../005-modules/502-const.md), [3.11](../003-expressions/311-patterns.md), [1.6.3](../001-lexical/106-numeric-literals.md#163-접미사-없는-리터럴), [3.14.5](../003-expressions/314-error-control-flow.md), [2.14](../002-types/214-cast-and-conversion.md). 이 이름들은 린트 이름을 쓰는 곳에 여전히 쓸 수 있고, 아무것도 설정하지 않습니다.
 

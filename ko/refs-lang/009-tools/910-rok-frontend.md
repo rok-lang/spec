@@ -156,6 +156,7 @@ Package {
     native: { "zlib": "^1.3", "png": Dep::native(url: "vendor/png.rokon", sha256: "<64 hex>") },
     lints_from: "..",                // 문자열, 선택 (../rok.rokon 의 lints 에서 시작)
     lints: { "dead_code": "allow", "nonstandard_style": "deny" },
+    profile: { "release": { overflow_checks: false } },   // 빌드 프로필별 설정
 }
 ```
 
@@ -176,6 +177,7 @@ Package {
 - `native`는 native 패키지 이름을 `Dep::native("req"[, registry: "url"])`, 요구 문자열, 또는 `Dep::native(url: "<url 또는 매니페스트 기준 경로>", sha256: "<64 자리 hex>")`에 연결합니다(9.10.4b). native 패키지 이름은 따로 이름 공간을 쓰므로 패키지와 native 패키지는 같은 이름을 쓸 수 있습니다. `deps` / `dev_deps`의 `Dep::native`는 에러입니다. 그래프에 있는 모든 패키지의 native 의존이 실행 파일에 링크됩니다(`dev_deps`로만 닿는 것은 test / bench에서만).
 - `lints`는 린트 수준을 정합니다(린트나 그룹 이름 → `"allow"` | `"warn"` | `"deny"`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). 이 수준은 `rok`이 실행하는 모든 `rokc` 명령의 CLI 플래그 앞에 붙은 것처럼 다룹니다. 그래서 CLI `-A/-W/-D`와 코드의 속성이 이를 덮습니다.
 - `lints_from`은 시작 린트 수준을 주는 `rok.rokon`이 있는 디렉터리를 가리킵니다(이 매니페스트의 디렉터리 기준 상대 경로, 또는 절대 경로). 먼저 그 매니페스트의 `lints`를 그 자신의 `lints_from` 사슬 뒤에 적용합니다. 이 매니페스트의 `lints`는 그 뒤에 옵니다. 그래서 여기 항목이 사슬의 같은 린트나 그룹을 덮습니다. 모든 항목은 이 순서로 `-A`/`-W`/`-D`로 넘어가고, 뒤의 플래그가 이깁니다. 이 설정은 빌드하거나 검사하는 패키지(와 환경의 매니페스트)에만 적용합니다. 의존 패키지의 매니페스트는 린트에 쓰지 않습니다. 디렉터리가 없거나, `rok.rokon`이 없거나, 사슬이 이미 지난 매니페스트로 돌아오면(순환) 에러입니다. `rok env import`는 상대 `lints_from`을 절대 경로로 바꿔 씁니다. 스크립트의 `//! ```rokon` 블록에서는 쓸 수 없습니다.
+- `profile`은 빌드 프로필(`"debug"` 또는 `"release"`, [9.2.15](902-aot-pipeline.md#9215-산출물))을 그 설정 `{ overflow_checks: bool }`에 대응시킵니다(레코드 이름 `Profile`은 써도 됩니다). `overflow_checks: false`는 `-C overflow-checks=no`([9.1.2](901-rokc-cli.md))처럼 그 프로필에서 정수 오버플로 검사를 끕니다. 명령줄의 `-C overflow-checks`가 이 설정보다 우선합니다. 다른 프로필 이름이나 설정은 에러입니다. 빌드하는 패키지(또는 환경)의 것만 읽고 의존 패키지의 프로필은 읽지 않습니다. 스크립트의 `//! ```rokon` 블록에는 쓸 수 없습니다.
 - 패키지 메타데이터
   - `authors`는 `"Name <email>"` 문자열입니다. `rok new` / `rok init`은 채우지 않습니다.
   - `keywords`와 `categories`는 각각 많아야 5개입니다. `authors`, `keywords`, `categories`, `include`, `exclude`의 빈 항목은 에러입니다.

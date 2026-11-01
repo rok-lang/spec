@@ -224,7 +224,7 @@ These attributes change the level of lint diagnostics within the scope of the it
 
 The level is determined in the following order, later overriding earlier: each lint's default level < the `lints` field of `rok.rokon` (after its `lints_from` chain) ([9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) < CLI `-A` / `-W` / `-D` < attributes in source (the innermost wins). `lints` is treated as if prepended to the CLI flags, so CLI flags written after it override it. The code of lint diagnostics is `E503`.
 
-The default level of every lint is `warn`, except `missing_docs`, which is `allow`. The Since column is the release that added the lint.
+The default level of every lint is `warn`, except `nan_comparison` and `self_assignment`, which are always a mistake and default to `deny`, and `missing_docs`, which is `allow`. The Since column is the release that added the lint.
 
 | lint                     | Since   | Checks                                                              |
 |--------------------------|---------|---------------------------------------------------------------------|
@@ -238,10 +238,10 @@ The default level of every lint is `warn`, except `missing_docs`, which is `allo
 | `write_to_copy`          | 0.1.0   | A field assigned on a copy that nothing reads afterwards: a by-value parameter or `self`, a `for` binding, or a `let` of an element (`xs[i]`, [2.3.8](../002-types/203-struct.md#238-value-semantics)), when no later read, loop iteration, return or call can see the change. A read that only feeds another write to the same variable does not count; a variable a closure or coroutine block mentions is not checked |
 | `ignored_error`          | 0.1.0   | A `try? f();` statement silently discarding an error; `let _ = try? f();` marks a deliberate best-effort call and is not reported |
 | `shadowed_loop_var`      | 0.1.0   | A `let` in a `for` body rebinding the loop variable                 |
-| `nan_comparison`         | 0.1.0   | Comparison with NaN (always false; `!=` always true)                |
+| `nan_comparison`         | 0.1.0   | Comparison with NaN (always false; `!=` always true); use `.is_nan()` (deny) |
 | `none_comparison`        | 0.1.0   | `x == none` instead of `x is none`                                  |
 | `bool_comparison`        | 0.1.0   | Comparing a `bool` with `true` / `false`                            |
-| `self_assignment`        | 0.1.0   | `x = x;`                                                            |
+| `self_assignment`        | 0.1.0   | `x = x;` (deny)                                                     |
 | `while_true`             | 0.1.0   | `while true` instead of `loop`                                      |
 | `deprecated`             | 0.1.0   | Use of a `#[deprecated]` function, method, field, type, constant or static ([6.2.7](#627-deprecated-discouraged-use-marker)) |
 | `deprecated_safe`        | 0.1.6   | A call of a `#[deprecated_safe]` function, or a use of such a static, outside `unsafe` ([6.2.14](#6214-deprecated_safe-safe-today-unsafe-later)) |
@@ -259,14 +259,12 @@ The default level of every lint is `warn`, except `missing_docs`, which is `allo
 | `literal_spread_mismatch` | 0.1.6   | A `List` or Dict literal spread into fixed parameters that cannot fill them: a length that differs, or a key that names no parameter left ([4.2](../004-functions/402-parameters.md)); the call panics at run time (warn) |
 | `guard_escape`           | 0.1.6   | A `throw` inside a lock guard's `using` block whose error holds what the lock protects ([stdlib 2.16.3](../../refs-standard-libraries/200-core/216-sync.md#2163-mutext---exclusive-lock)) (warn) |
 | `thread_local_across_await` | 0.1.6   | A `ThreadLocal::get()` value used after an `await` in an `async` body ([stdlib 3.4.4](../../refs-standard-libraries/300-std/304-thread.md#344-thread-local-storage)) (warn) |
-| `extern_static_unsafe`   | 0.1.6   | An extern `static` read or written outside `unsafe` ([5.9.6](../005-modules/509-extern-block.md#596-calls--use)) (warn) |
-| `improper_ctypes`        | 0.1.6   | A GC type (`List`, `Dict`, a closure, a sum, `any`, a struct holding one) as a parameter, result or `static` of an `extern "C"` / `"system"` block, or of an `extern "C" fn` definition ([5.9.4](../005-modules/509-extern-block.md#594-ffi-compatible-types)) (warn) |
 | `unqualified_meta`       | 0.1.6   | Another package's macro, derive or attribute used by its bare name, found only through the build-wide scope that 0.2.0 removes; write `dep::name!`, `#[derive(dep::Name)]`, `#[dep::name]` or `use dep::name!;` ([6.8.11](608-meta-blocks.md#6811-combination-with-registrationvisibility)) |
 | `assoc_type_shadowing`   | 0.2.0   | An associated type named like an outer type, which it hides inside its trait or `impl` (2.8.3) |
 | `builtin_attribute_name` | 0.2.0   | A meta block that takes the name of a built-in attribute |
 | `missing_docs`           | 0.2.0   | A `pub` item, a `pub` method of an inherent impl, a method of a `pub` trait or an inline `pub mod` without a `///` doc comment; `#[doc(hidden)]` counts as documented, a trait impl's methods are not checked (allow) |
 
-`unclosed_sender`, `using_twice`, `guard_escape`, `thread_local_across_await`, `extern_static_unsafe` and `improper_ctypes` were added in 0.1.6. 0.2.0 makes what `guard_escape`, `extern_static_unsafe` and `improper_ctypes` report errors.
+`unclosed_sender`, `using_twice`, `guard_escape` and `thread_local_across_await` were added in 0.1.6. 0.2.0 makes what `guard_escape` reports an error. In 0.2.0 an extern `static` read or written outside `unsafe` ([5.9.6](../005-modules/509-extern-block.md#596-calls--use)) and a GC type in an extern item ([5.9.4](../005-modules/509-extern-block.md#594-ffi-compatible-types)) are errors; their 0.1.6 lint names `extern_static_unsafe` and `improper_ctypes` are removed names, accepted in `allow` / `-A` / `lints` and ignored.
 
 `capture_field_write`, `const_item_mutation`, `pattern_binds_const`, `ambiguous_int_literal`, `finally_jump` and `float_to_bool` (0.1.6) are errors from 0.2.0: [4.6.7](../004-functions/406-capture-semantics.md), [5.2](../005-modules/502-const.md), [3.11](../003-expressions/311-patterns.md), [1.6.3](../001-lexical/106-numeric-literals.md#163-unsuffixed-literals), [3.14.5](../003-expressions/314-error-control-flow.md), [2.14](../002-types/214-cast-and-conversion.md). Their names are still accepted where a lint name is and set nothing.
 

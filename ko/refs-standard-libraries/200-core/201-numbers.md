@@ -246,7 +246,7 @@ impl i32 {
     const MAX: i32 = 2147483647;
     const BITS: u32 = 32;
 
-    fn pow(self, exp: u32) -> i32;                // overflow 는 산술을 따름 (debug panic, release wrap)
+    fn pow(self, exp: u32) -> i32;                // overflow 는 산술을 따름 (panic, overflow 검사를 끄면 wrap)
     fn abs(self) -> i32;
     fn unsigned_abs(self) -> u32;                 // overflow 없는 |self| (i32::MIN 이면 2^31)
     fn abs_diff(self, rhs: i32) -> u32;

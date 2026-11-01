@@ -189,7 +189,7 @@ The profiles differ as in cargo:
 | `debug` | `-O0`, `-O1` | on | unreferenced code and data removed |
 | `release` | `-O2`, `-O3`, `-Os` | only with `-g` | also identical functions folded (not one whose address an object marks as taken); without `-g`, no symbols beyond what the loader needs |
 
-Debug information belongs to the executable or archive a build makes (`build`, `run`, `test`), not to `--emit` output or REPL and Jupyter cells. A panic names its source location in either profile. A build's objects are linked from one place beside the output, so the same inputs make the same executable. Profiles have no settings in `rok.rokon`.
+Debug information belongs to the executable or archive a build makes (`build`, `run`, `test`), not to `--emit` output or REPL and Jupyter cells. A panic names its source location in either profile. A build's objects are linked from one place beside the output, so the same inputs make the same executable. Overflow checks are on in both profiles; `profile` in `rok.rokon` can turn them off for one ([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)). Profiles have no other settings.
 
 ```
 target/

@@ -287,7 +287,7 @@ impl i32 {
     const MAX: i32 = 2147483647;
     const BITS: u32 = 32;
 
-    fn pow(self, exp: u32) -> i32;                // overflow follows the arithmetic (debug panic, release wrap)
+    fn pow(self, exp: u32) -> i32;                // overflow follows the arithmetic (panic; wrap with overflow checks off)
     fn abs(self) -> i32;
     fn unsigned_abs(self) -> u32;                 // |self| without overflow (i32::MIN gives 2^31)
     fn abs_diff(self, rhs: i32) -> u32;

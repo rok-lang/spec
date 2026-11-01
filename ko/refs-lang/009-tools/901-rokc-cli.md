@@ -89,7 +89,7 @@ rokc build [path]
 - `--emit=<kind>[,<kind>..]`는 중간 산출물(`source`, `hir`, `mir`, `mlir`, `llvmir`, `asm`, `obj`, `expansions`)을 `target/<profile>/build/<name>.<ext>`에 씁니다([9.9.1](909-debug-tools.md#991-중간-산출물-출력---emit)). 쉼표로 여러 종류를 한 번에 지정할 수 있고, 이때는 `-o`를 함께 쓸 수 없습니다. `--emit`이 있으면 실행 파일이나 아카이브는 만들지 않습니다.
 - `-g`는 `release` 프로필 빌드에 디버그 정보를 더합니다. 디버그 정보는 DWARF이고, Windows 타깃에서는 PDB의 CodeView입니다([9.9.6](909-debug-tools.md#996-디버거-통합-gdb--lldb)). `debug` 프로필 빌드에는 항상 있습니다.
 - `-C <option>`은 `--codegen <option>`으로도 쓸 수 있습니다.
-- `-C overflow-checks[=yes|no]`는 고정 폭 정수 산술의 오버플로 검사(panic)를 켜거나 끕니다. 기본으로는 `-O0`에서만 켭니다. 값을 생략하면 `yes`입니다. 오버플로가 일어날 수 없는 상수 피연산자 연산은 검사하지 않습니다.
+- `-C overflow-checks[=yes|no]`는 고정 폭 정수 산술의 오버플로 검사(panic)를 켜거나 끕니다. 기본으로는 모든 프로필에서 켭니다. `rok.rokon` 프로필로 끌 수 있고([9.10.3](910-rok-frontend.md#9103-rokrokon--roklock)), `-C overflow-checks`가 그 설정보다 우선합니다. 값을 생략하면 `yes`입니다. 오버플로가 일어날 수 없는 상수 피연산자 연산은 검사하지 않습니다.
 - `-C backend=native|llvm`은 최적화 수준이 고른 백엔드를 바꿉니다([9.2.10](902-aot-pipeline.md#9210-백엔드-선택)).
 - `-C target-cpu=<cpu>|native`는 트리플의 baseline 대신 그 CPU를 대상으로 합니다([0.6.4](../000-meta/006-platform-targets.md#064-simd)). `native`는 빌드하는 기계의 CPU입니다. `-C target-feature=+f1,-f2,..`는 개별 기능(`+avx2` 등)을 켜거나 끕니다. 그렇게 만든 바이너리는 그 기능이 없는 CPU에서 돌지 않을 수 있습니다. native 백엔드(`-O0`)에서는 이 옵션을 경고로 알리고 baseline용으로 빌드합니다. `native`는 타깃이 호스트 플랫폼일 때만 받습니다.
 - `-C subsystem=console|windows`는 Windows subsystem을 고릅니다. `console`(기본값, `mainCRTStartup`)이나 `windows`(GUI, `WinMainCRTStartup`, [9.5.9](905-symbol-mangling.md#959-main-함수의-심볼))를 받습니다.

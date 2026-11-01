@@ -21,6 +21,8 @@ Each kind's method name states the intent by itself. Writing `.into()` means **l
 
 A silent saturate or silent wrap alters a value without the user knowing, producing bugs that are hard to debug. Rok adopts both the lesson JS learned in introducing Number → BigInt and the lesson NumPy learned in moving from wrap to OverflowError.
 
+For the same reason fixed-width arithmetic (`+ - *`, unary `-`) panics on overflow in every profile, as in Swift. The checks cost little: measured with `bench/` at `-O2` on Apple M-series (instructions retired, best of 3), `fannkuch` (integer lists) +5.6%, `json_tokenizer` (byte scanning) +9.2%, and `nbody` (f64) within noise (-2.8%). A program that needs the last few percent turns them off with `-C overflow-checks=no` or a `rok.rokon` profile (`profile: { "release": { overflow_checks: false } }`, [refs-lang 9.10.3](../../refs-lang/009-tools/910-rok-frontend.md#9103-rokrokon--roklock)), and then overflow wraps.
+
 ## 2.11.2. `From<U>` trait - lossless conversion
 
 ```rok
@@ -360,7 +362,7 @@ let b: i32 = 3;
 let c: i32 = a + b;          // OK: i32 + i32 = i32
 
 let big: i32 = a + b * 1000000;
-// → OK if a + b * 1000000 is within i32 range; otherwise (debug=panic / release=wrap)
+// → OK if a + b * 1000000 is within i32 range; otherwise a panic (a wrap with overflow checks off)
 // no silent saturate / silent promote
 
 let auto: i64 = a + b;       // compile error: no silent promotion of an i32 result to i64
@@ -373,7 +375,7 @@ let auto: i64 = (a + b).into();  // explicit From<i32> for i64 (lossless)
 | Language | Conversion model                                         | Difference from Rok                                                               |
 |----------|----------------------------------------------------------|-----------------------------------------------------------------------------------|
 | Rust     | `From`/`Into` lossless, `as` wrap, `try_into` Result     | closest to Rok; Rok adds explicit `saturating_into`/`wrapping_into` methods       |
-| Swift    | all integer conversions trap by default, `.init(clamping:)` opt-in | Rok rejects trapping: debug=panic + release=wrap (fixed-width arithmetic), conversions are explicit  |
+| Swift    | all integer conversions trap by default, `.init(clamping:)` opt-in | fixed-width arithmetic traps too (a panic in every profile); conversions are explicit methods instead of trapping initializers |
 | Julia    | `Int32(big)` traps, `convert` function family            | Rok unifies on trait methods (`from`/`into`)                                      |
 | Python   | `int(x)`/`float(x)` functions, always arbitrary precision  | Rok's `int` / `float` share the spirit; fixed primitives are a separate world   |
 | C        | implicit conversion (`int` → `long` automatically)       | Rok explicitly rejects it, blocking silent type mixing                            |
