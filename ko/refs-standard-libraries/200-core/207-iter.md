@@ -73,7 +73,7 @@ impl Iterator {
     fn rev(self) -> Rev<Self>;                    // DoubleEndedIterator 만
     fn flatten(self) -> Flatten<Self> where Item: IntoIterator;
     fn flat_map<U: IntoIterator>(self, f: fn(Item) -> U) -> FlatMap<Self, U>;
-    fn peekable(self) -> Peekable<Self>;          // 다음 원소 미리 보기
+    fn peekable(self) -> Peekable<Self>;          // peek(ref self) -> Item | none
     fn take_while(self, pred: fn(Item) -> bool) -> TakeWhile<Self>;
     fn skip_while(self, pred: fn(Item) -> bool) -> SkipWhile<Self>;
     fn scan<S>(self, init: S, f: fn(S, Item) -> S) -> Scan<Self, S>;   // Item = S
@@ -117,6 +117,8 @@ impl Iterator {
 
 - `take_while(pred)`는 `pred`가 처음 거부하는 원소 전까지 내놓습니다. 그 원소는 안쪽 반복자에서 꺼낸 뒤 버립니다. 그 뒤로는 아무것도 꺼내지 않으므로 멈춘 지점 뒤의 부수 효과는 실행되지 않습니다. `skip_while(pred)`는 `pred`가 처음 거부하는 원소 전까지 버리고, 그 원소부터 그 뒤 원소를 검사 없이 모두 내놓습니다.
 - `scan(init, f)`는 누적 상태를 내놓습니다. 먼저 `f(init, x0)`, 그다음 그 값과 `x1`로 계산한 `f`를 내놓는 식입니다. 단계마다 값을 내놓는 `fold`이므로 안쪽 반복자와 같은 개수를 내놓습니다.
+- `step_by(step)`은 첫 원소를 내놓고 그 뒤로 `step`번째 원소마다 내놓습니다. `step`이 0이면 패닉합니다.
+- `peekable()`은 `Peekable<Self>`를 돌려줍니다. 그 `peek(ref self) -> Item | none`은 다음 원소를 돌려주되, 다음 `next`가 그 원소를 내놓도록 남겨 둡니다.
 - `inspect(f)`는 각 원소를 `f`에 넘긴 뒤 그대로 내놓습니다.
 - `cycle()`은 다 돌 때마다 `cycle`이 받은 반복자의 복사본에서 다시 시작합니다. 그래서 반복자가 비어 있지 않으면 끝이 없고, 비어 있으면 아무것도 내놓지 않습니다. 제너레이터의 복사본은 한 위치를 공유하므로(2.7.10a) 제너레이터를 순환 반복자로 감싸도 원소가 반복되지 않습니다.
 - `chunks(size)`는 `size`개씩 순서대로 묶은 리스트를 내놓고, 원소가 모자라면 마지막 것이 더 짧습니다. `windows(size)`는 연속한 `size`개를 하나씩 밀면서 리스트로 내놓습니다. 원소가 `size`개보다 적으면 아무것도 내놓지 않습니다. 둘 다 `size`가 0이면 panic이 일어납니다. `List`와 `Slice`에는 뷰를 내놓는 자체 `chunks` / `windows`가 있습니다([2.9.7](209-collections.md#297-slicet-뷰)).
@@ -244,12 +246,15 @@ loop {
 `Range<T>`의 순회는 "다음 값으로 한 칸 이동"이라는 단순한 동작에 기대고 있습니다. 이 동작은 일반 산술(`Add`)과 의미가 다릅니다. 예를 들어 `char`의 다음 값은 코드 포인트 + 1이지만 `char + char` 자체는 정의되지 않습니다. 그래서 Rok은 한 칸 진행을 별도의 트레잇으로 나눕니다.
 
 ```rok
+// rok::core::range::Step
 trait Step: PartialOrd + Clone {
     fn forward_checked(self, count: usize) -> Self | none;
     fn backward_checked(self, count: usize) -> Self | none;
     fn steps_between(start: Self, end: Self) -> usize | none;
 }
 ```
+
+`Step`은 `rok::core::range`에 있고 prelude에는 없습니다. 사용자가 `impl Step for T`를 쓰려면 `use rok::core::range::Step;`이 필요합니다.
 
 각 메서드의 의미는 다음과 같습니다.
 
@@ -263,7 +268,7 @@ trait Step: PartialOrd + Clone {
 
 - **의미 분리**: `+1`은 단순한 1 증가이지 임의 산술이 아닙니다. `MyVec3 + MyVec3`는 의미가 있지만 `Range<MyVec3>`는 의미가 없습니다. `Step`을 따로 구현하지 않으면 컴파일러가 거부합니다.
 - **부동소수 배제**: `f32` / `f64`에는 `Step` 구현이 없습니다. 따라서 `Range<f64>`는 컴파일 에러입니다. `0.0..1.0`처럼 의미가 모호한 표기는 사양 수준에서 사라집니다.
-- **효율적인 건너뛰기**: `Iterator::nth(n)`과 `step_by(n)`은 `forward_checked(_, n)`을 한 번 호출해 O(1)로 동작합니다. `succ`만 있다면 같은 동작이 O(n)입니다.
+- **효율적인 건너뛰기**: `Range`, `RangeInclusive`, `RangeFrom`은 `Iterator::nth(n)`을 `forward_checked(_, n)` 한 번 호출로 재정의합니다. 그래서 범위에서 `nth(n)`과 (`nth`로 진행하는) `step_by(n)`은 O(1)로 동작합니다. `succ`만 있다면 같은 동작이 O(n)입니다.
 
 ### Step impl 매트릭스
 
@@ -282,6 +287,8 @@ trait Step: PartialOrd + Clone {
 사용자 정의 타입에는 `impl Step for MyType`을 자유롭게 추가해도 됩니다. 그러면 바로 `Range<MyType>`을 쓸 수 있습니다.
 
 ```rok
+use rok::core::range::Step;
+
 enum Weekday { Mon, Tue, Wed, Thu, Fri, Sat, Sun }
 
 impl Step for Weekday {
@@ -466,10 +473,14 @@ g.(a, b)   ≡   a.into_iter().zip(b.into_iter()).map(|(x, y)| g(x, y)).collect(
 ```rok
 trait DoubleEndedIterator: Iterator {
     fn next_back(ref self) -> Item | none;
+
+    // 기본 구현 제공
+    fn rfold<B>(self, init: B, f: fn(B, Item) -> B) -> B;     // 뒤에서부터 fold
+    fn rfind(self, pred: fn(Item) -> bool) -> Item | none;    // pred가 받아들이는 마지막 원소
 }
 ```
 
-이 트레잇은 뒤에서부터 진행할 수 있는 반복자를 나타냅니다. `rev()` 어댑터와 `rfold`, `rfind` 등 일부 메서드가 이 트레잇을 요구합니다.
+이 트레잇은 뒤에서부터 진행할 수 있는 반복자를 나타냅니다. `rev()` 어댑터와 `rfold`, `rfind`가 이 트레잇을 요구합니다.
 
 `List<T>`, `Slice<T>`의 반복자와 다음 타입은 이 트레잇을 구현해야 합니다.
 
@@ -524,12 +535,13 @@ impl<T, E> TryIterator for TryGenIter<T, E> {
 |-----------------------|-----------------------|----------------------|
 | `Iterator` 트레잇     | `iterator_trait`      | 표준 라이브러리      |
 | `IntoIterator` 트레잇 | `into_iterator_trait` | 표준 라이브러리      |
-| `Step` 트레잇         | (없음)                | 표준 라이브러리      |
+| `Step` 트레잇         | (없음)                | `rok::core::range`   |
 | `FromIterator` 트레잇 | (없음)                | 표준 라이브러리      |
 | `DoubleEndedIterator` | (없음)                | 표준 라이브러리      |
 | `ExactSizeIterator`   | (없음)                | 표준 라이브러리      |
 | `TryIterator` 트레잇  | `try_iterator_trait`  | 표준 라이브러리      |
-| `Range<T>` 등 5종     | `range_type`          | `rok/range/`         |
+| `Range<T>`            | `range_type`          | `rok::core::range`   |
+| 나머지 범위 타입 5종  | (없음)                | `rok::core::range`   |
 
 원시 타입 자체에는 `Iterator` 구현이 없습니다. i32는 `for`의 대상이 아닙니다. 컬렉션과 Range만 대상입니다.
 
@@ -557,14 +569,14 @@ trait TryIterator {
     fn chain<J: TryIterator<Item = Item, Error = Error>>(self, other: J) -> TryChain<Self, J>;
     fn take(self, n: usize) -> TryTake<Self>;
     fn skip(self, n: usize) -> TrySkip<Self>;
-    fn step_by(self, step: usize) -> TryStepBy<Self>;
+    fn step_by(self, step: usize) -> TryStepBy<Self>;    // step 0이면 패닉
     fn take_while(self, pred: fn(Item) throws (Error) -> bool) -> TryTakeWhile<Self>;
     fn skip_while(self, pred: fn(Item) throws (Error) -> bool) -> TrySkipWhile<Self>;
     fn flat_map<U: IntoIterator>(self, f: fn(Item) throws (Error) -> U) -> TryFlatMap<Self, U>;
     fn scan<S>(self, init: S, f: fn(S, Item) throws (Error) -> S) -> TryScan<Self, S>;
     fn inspect(self, f: fn(Item) throws (Error)) -> TryInspect<Self>;
     fn peekable(self) -> TryPeekable<Self>;      // peek(ref self) throws (Error) -> Item | none
-    fn chunks(self, size: usize) -> TryChunks<Self>;
+    fn chunks(self, size: usize) -> TryChunks<Self>;     // size 0이면 패닉
 
     // Result를 주는 일반 반복자로
     fn results(self) -> Results<Self>;           // Iterator<Item = Result<Item, Error>>
@@ -584,10 +596,10 @@ trait TryIterator {
     fn partition(self, pred: fn(Item) throws (Error) -> bool) throws (Error) -> (List<Item>, List<Item>);
     fn sum(self) throws (Error) -> Item where Item: Add<Output = Item> + Zero;
     fn product(self) throws (Error) -> Item where Item: Mul<Output = Item> + One;
-    fn min(self) throws (Error) -> Item | none where Item: Ord;
-    fn max(self) throws (Error) -> Item | none where Item: Ord;
-    fn min_by_key<K: Ord>(self, key: fn(Item) throws (Error) -> K) throws (Error) -> Item | none;
-    fn max_by_key<K: Ord>(self, key: fn(Item) throws (Error) -> K) throws (Error) -> Item | none;
+    fn min(self) throws (Error) -> Item | none where Item: Ord;     // 같은 최솟값 중 첫 번째
+    fn max(self) throws (Error) -> Item | none where Item: Ord;     // 같은 최댓값 중 마지막
+    fn min_by_key<K: Ord>(self, key: fn(Item) throws (Error) -> K) throws (Error) -> Item | none;  // 같은 값 중 첫 번째
+    fn max_by_key<K: Ord>(self, key: fn(Item) throws (Error) -> K) throws (Error) -> Item | none;  // 같은 값 중 마지막
 }
 ```
 

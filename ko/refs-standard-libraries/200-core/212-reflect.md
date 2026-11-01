@@ -90,18 +90,22 @@ trait Inspect: Reflect {
     fn field_names_of_val(self) -> List<str>; // self 가 지닌 필드
 }
 
-struct FieldInfo {
-    name: str;                 // 튜플 필드는 "0", "1", ..
-    type_name: str;            // 인스턴스화된 타입: Box<f64> 의 `v: T` 는 f64
-    is_pub: bool;              // 그냥 `pub` 인 필드만 true
+#[non_exhaustive]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub struct FieldInfo {
+    pub name: str;                 // 튜플 필드는 "0", "1", ..
+    pub type_name: str;            // 인스턴스화된 타입: Box<f64> 의 `v: T` 는 f64
+    pub is_pub: bool;              // 그냥 `pub` 인 필드만 true
 }
 
-struct MethodInfo {
-    name: str;
-    arity: usize;              // self 를 뺀 인자 수
-    is_static: bool;           // self 를 받지 않는 메서드
-    arg_types: List<str>;      // self 를 뺀 인자 타입 이름
-    return_type: str;
+#[non_exhaustive]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub struct MethodInfo {
+    pub name: str;
+    pub arity: usize;              // self 를 뺀 인자 수
+    pub is_static: bool;           // self 를 받지 않는 메서드
+    pub arg_types: List<str>;      // self 를 뺀 인자 타입 이름
+    pub return_type: str;
 }
 ```
 

@@ -170,10 +170,10 @@ for await event in rx {
 ```rok
 fn merge<S1: Stream, S2: Stream>(a: S1, b: S2) -> Merge<S1, S2>;    // Stream<Item = S1::Item | S2::Item>
 fn zip<S1: Stream, S2: Stream>(a: S1, b: S2) -> Zip<S1, S2>;        // Stream<Item = (S1::Item, S2::Item)>
-fn select<S1: Stream, S2: Stream>(a: S1, b: S2) -> Select<S1, S2>;  // Stream<Item = S1::Item | S2::Item>, 먼저 준비된 쪽
+fn select<S1: Stream, S2: Stream>(a: S1, b: S2) -> Select<S1, S2>;  // Stream<Item = S1::Item | S2::Item>, 한쪽이 끝나면 끝남
 ```
 
-`merge`는 두 스트림을 하나로 합칩니다. `zip`은 두 스트림의 원소를 쌍으로 묶습니다. `select`는 두 스트림을 경쟁시켜 먼저 준비된 쪽을 가져옵니다.
+`merge`는 두 스트림의 원소를 준비되는 대로 내놓고, 두 스트림이 모두 끝나면 끝납니다. `select`는 `merge`와 같되 어느 한쪽이 끝나는 즉시 끝납니다. `zip`은 두 스트림의 원소를 쌍으로 묶습니다. `merge`와 `select`는 매번 poll할 때 첫 번째 스트림을 두 번째보다 먼저 시도하므로, 늘 준비된 첫 번째 스트림은 두 번째 스트림을 굶깁니다.
 
 > [!NOTE]
 > `select`는 `task::select`와 이름이 같습니다. 둘 다 [prelude](../000-meta/002-import.md)에 없습니다. `stream::select`로 적거나 가져와서(import) 씁니다.
@@ -201,7 +201,7 @@ impl<T, E> TryStream for TryAsyncStream<T, E> {
 
 ## 2.8.9. 모듈 매핑
 
-모든 항목은 `rok::core::stream`에 정의됩니다. `Receiver<T>`만 `rok::core::channel`에 있습니다. 항목마다 경로는 그 하나뿐이고(0.1.6), 하위 모듈은 없습니다.
+모든 항목은 `rok::core::stream`에 정의됩니다. `Receiver<T>`만 `rok::core::channel`에 있습니다. 항목마다 경로는 그 하나뿐이고([0.1.6](../000-meta/001-tier-model.md#016-항목마다-경로-하나)), 하위 모듈은 없습니다.
 
 | 항목                          | 모듈                 | 형태                         |
 |-------------------------------|----------------------|------------------------------|

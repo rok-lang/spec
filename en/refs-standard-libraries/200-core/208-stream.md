@@ -170,10 +170,10 @@ Combinators that combine several streams are also provided.
 ```rok
 fn merge<S1: Stream, S2: Stream>(a: S1, b: S2) -> Merge<S1, S2>;    // Stream<Item = S1::Item | S2::Item>
 fn zip<S1: Stream, S2: Stream>(a: S1, b: S2) -> Zip<S1, S2>;        // Stream<Item = (S1::Item, S2::Item)>
-fn select<S1: Stream, S2: Stream>(a: S1, b: S2) -> Select<S1, S2>;  // Stream<Item = S1::Item | S2::Item>, whichever is ready first
+fn select<S1: Stream, S2: Stream>(a: S1, b: S2) -> Select<S1, S2>;  // Stream<Item = S1::Item | S2::Item>, ends when either ends
 ```
 
-`merge` produces the union of two streams, `zip` pairs two streams, and `select` races them, taking whichever is ready first.
+`merge` yields the items of both streams as they become ready and ends when both have ended. `select` is `merge` that ends as soon as either stream ends. `zip` pairs two streams. Each poll of `merge` and `select` tries the first stream before the second, so a first stream that is always ready starves the second.
 
 > [!NOTE]
 > `select` shares its name with `task::select`; neither is in the [prelude](../000-meta/002-import.md): write `stream::select` or import it.
@@ -201,7 +201,7 @@ The adapters of `AsyncStream<T>` (`map`, `filter`, `collect`, etc.) are the defa
 
 ## 2.8.9. Module mapping
 
-Every item is defined in `rok::core::stream` (or `rok::core::channel` for `Receiver<T>`), its one path (0.1.6); there are no submodules.
+Every item is defined in `rok::core::stream` (or `rok::core::channel` for `Receiver<T>`), its one path ([0.1.6](../000-meta/001-tier-model.md#016-one-path-per-item)); there are no submodules.
 
 | Item                          | Module               | Form                         |
 |-------------------------------|----------------------|------------------------------|

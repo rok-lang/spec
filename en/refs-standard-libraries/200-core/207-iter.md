@@ -73,7 +73,7 @@ impl Iterator {
     fn rev(self) -> Rev<Self>;                    // DoubleEndedIterator only
     fn flatten(self) -> Flatten<Self> where Item: IntoIterator;
     fn flat_map<U: IntoIterator>(self, f: fn(Item) -> U) -> FlatMap<Self, U>;
-    fn peekable(self) -> Peekable<Self>;          // peek at the next element
+    fn peekable(self) -> Peekable<Self>;          // peek(ref self) -> Item | none
     fn take_while(self, pred: fn(Item) -> bool) -> TakeWhile<Self>;
     fn skip_while(self, pred: fn(Item) -> bool) -> SkipWhile<Self>;
     fn scan<S>(self, init: S, f: fn(S, Item) -> S) -> Scan<Self, S>;   // Item = S
@@ -117,6 +117,8 @@ impl Iterator {
 
 - `take_while(pred)` yields items until `pred` first rejects one. That item is taken from the inner iterator and dropped; nothing after it is taken, so side effects past the stop do not run. `skip_while(pred)` drops items until `pred` first rejects one, then yields that one and every later item unchecked.
 - `scan(init, f)` yields the running state: `f(init, x0)`, then `f` of that and `x1`, and so on. It is `fold` that yields every step, so it yields as many items as the inner iterator.
+- `step_by(step)` yields the first item and then every `step`th one. A `step` of 0 panics.
+- `peekable()` returns a `Peekable<Self>` whose `peek(ref self) -> Item | none` gives the next item and leaves it for the following `next`.
 - `inspect(f)` passes each item to `f` and yields it unchanged.
 - `cycle()` restarts from a copy of the iterator as `cycle` received it whenever it runs out, so it is endless unless the iterator is empty, in which case it yields nothing. A generator's copies share one position (2.7.10a), so cycling one does not repeat it.
 - `chunks(size)` yields lists of `size` items in order, the last one shorter when the items run out. `windows(size)` yields lists of `size` consecutive items sliding by one, and nothing when there are fewer than `size` items. A `size` of 0 panics for both. `List` and `Slice` have their own `chunks` / `windows` that yield views ([2.9.7](209-collections.md#297-slicet---view)).
@@ -244,12 +246,15 @@ See [refs-lang 3.13](../../refs-lang/003-expressions/313-loop-expressions.md) fo
 Iteration over `Range<T>` rests on the simple operation "move to the next value". This differs in meaning from general arithmetic (`Add`): for example, the next value of a `char` is codepoint + 1, but `char + char` itself is undefined. Rok therefore puts stepping in a separate trait.
 
 ```rok
+// rok::core::range::Step
 trait Step: PartialOrd + Clone {
     fn forward_checked(self, count: usize) -> Self | none;
     fn backward_checked(self, count: usize) -> Self | none;
     fn steps_between(start: Self, end: Self) -> usize | none;
 }
 ```
+
+`Step` lives in `rok::core::range` and is not in the prelude: a user `impl Step for T` needs `use rok::core::range::Step;`.
 
 The methods mean:
 
@@ -263,7 +268,7 @@ The methods mean:
 
 - **Separation of meaning**: `+1` is a simple increment, not arbitrary arithmetic. `MyVec3 + MyVec3` is meaningful but `Range<MyVec3>` is not; without a separate `Step` impl it is rejected.
 - **Excluding floating-point**: `f32` / `f64` have no `Step` impl. `Range<f64>` is therefore a compile error, and ambiguous notation such as `0.0..1.0` is removed at the specification level.
-- **Efficient skipping**: `Iterator::nth(n)` and `step_by(n)` call `forward_checked(_, n)` once and run in O(1). With only `succ`, the same operation would be O(n).
+- **Efficient skipping**: `Range`, `RangeInclusive` and `RangeFrom` override `Iterator::nth(n)` with one `forward_checked(_, n)` call, so `nth(n)` and `step_by(n)` (which steps through `nth`) run in O(1) on a range. With only `succ`, the same operation would be O(n).
 
 ### Step impl matrix
 
@@ -282,6 +287,8 @@ The standard library implements `Step` only for integer primitives and `char`.
 User-defined types may add `impl Step for MyType` freely, which immediately enables `Range<MyType>`.
 
 ```rok
+use rok::core::range::Step;
+
 enum Weekday { Mon, Tue, Wed, Thu, Fri, Sat, Sun }
 
 impl Step for Weekday {
@@ -466,10 +473,14 @@ Iterators that can step in both directions are modeled by the `DoubleEndedIterat
 ```rok
 trait DoubleEndedIterator: Iterator {
     fn next_back(ref self) -> Item | none;
+
+    // provided
+    fn rfold<B>(self, init: B, f: fn(B, Item) -> B) -> B;     // fold from the back
+    fn rfind(self, pred: fn(Item) -> bool) -> Item | none;    // the last item pred accepts
 }
 ```
 
-This trait represents iterators that can step from the back; the `rev()` adapter and some methods such as `rfold` and `rfind` require it.
+This trait represents iterators that can step from the back; the `rev()` adapter, `rfold` and `rfind` require it.
 
 The iterators of `List<T>` and `Slice<T>`, and the following types, must implement this trait.
 
@@ -524,12 +535,13 @@ The mapping of each trait to its lang slot and standard library location:
 |-----------------------|-----------------------|---------------------------|
 | `Iterator` trait      | `iterator_trait`      | Standard library          |
 | `IntoIterator` trait  | `into_iterator_trait` | Standard library          |
-| `Step` trait          | (none)                | Standard library          |
+| `Step` trait          | (none)                | `rok::core::range`        |
 | `FromIterator` trait  | (none)                | Standard library          |
 | `DoubleEndedIterator` | (none)                | Standard library          |
 | `ExactSizeIterator`   | (none)                | Standard library          |
 | `TryIterator` trait   | `try_iterator_trait`  | Standard library          |
-| `Range<T>` and the other 5 types | `range_type` | `rok/range/`            |
+| `Range<T>`            | `range_type`          | `rok::core::range`        |
+| the other 5 range types | (none)              | `rok::core::range`        |
 
 Primitives themselves have no `Iterator` impl (i32 is not a `for` target). Only collections and Ranges are.
 
@@ -557,14 +569,14 @@ trait TryIterator {
     fn chain<J: TryIterator<Item = Item, Error = Error>>(self, other: J) -> TryChain<Self, J>;
     fn take(self, n: usize) -> TryTake<Self>;
     fn skip(self, n: usize) -> TrySkip<Self>;
-    fn step_by(self, step: usize) -> TryStepBy<Self>;
+    fn step_by(self, step: usize) -> TryStepBy<Self>;    // step 0 panics
     fn take_while(self, pred: fn(Item) throws (Error) -> bool) -> TryTakeWhile<Self>;
     fn skip_while(self, pred: fn(Item) throws (Error) -> bool) -> TrySkipWhile<Self>;
     fn flat_map<U: IntoIterator>(self, f: fn(Item) throws (Error) -> U) -> TryFlatMap<Self, U>;
     fn scan<S>(self, init: S, f: fn(S, Item) throws (Error) -> S) -> TryScan<Self, S>;
     fn inspect(self, f: fn(Item) throws (Error)) -> TryInspect<Self>;
     fn peekable(self) -> TryPeekable<Self>;      // peek(ref self) throws (Error) -> Item | none
-    fn chunks(self, size: usize) -> TryChunks<Self>;
+    fn chunks(self, size: usize) -> TryChunks<Self>;     // size 0 panics
 
     // to a plain iterator of results
     fn results(self) -> Results<Self>;           // Iterator<Item = Result<Item, Error>>
@@ -584,10 +596,10 @@ trait TryIterator {
     fn partition(self, pred: fn(Item) throws (Error) -> bool) throws (Error) -> (List<Item>, List<Item>);
     fn sum(self) throws (Error) -> Item where Item: Add<Output = Item> + Zero;
     fn product(self) throws (Error) -> Item where Item: Mul<Output = Item> + One;
-    fn min(self) throws (Error) -> Item | none where Item: Ord;
-    fn max(self) throws (Error) -> Item | none where Item: Ord;
-    fn min_by_key<K: Ord>(self, key: fn(Item) throws (Error) -> K) throws (Error) -> Item | none;
-    fn max_by_key<K: Ord>(self, key: fn(Item) throws (Error) -> K) throws (Error) -> Item | none;
+    fn min(self) throws (Error) -> Item | none where Item: Ord;     // the first of equal minima
+    fn max(self) throws (Error) -> Item | none where Item: Ord;     // the last of equal maxima
+    fn min_by_key<K: Ord>(self, key: fn(Item) throws (Error) -> K) throws (Error) -> Item | none;  // the first of equals
+    fn max_by_key<K: Ord>(self, key: fn(Item) throws (Error) -> K) throws (Error) -> Item | none;  // the last of equals
 }
 ```
 

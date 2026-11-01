@@ -10,7 +10,7 @@ Rok은 변환을 **의도**에 따라 네 갈래로 나눕니다. 사용자는 �
 
 | 갈래         | 메서드                              | 의미                                  | 실패 시                     |
 |--------------|-------------------------------------|---------------------------------------|-----------------------------|
-| **lossless** | `.into::<T>()`                      | 정보 손실 없음, 항상 성공             | 컴파일 / 런타임 에러        |
+| **lossless** | `.into::<T>()`                      | 정보 손실 없음, 항상 성공             | 컴파일 에러(`From` 구현 없음) |
 | **fallible** | `.try_into::<T>()`                  | 정보를 잃을 수 있음, 호출자가 처리    | 대상의 `TryFrom::Error`를 던짐 |
 | **saturate** | `.saturating_into::<T>()`           | 범위 밖이면 i32::MAX / MIN으로 고정   | 명시한 포화(사용자 선택)    |
 | **bit**      | `.wrapping_into::<T>()` 또는 `as T` | 비트 재해석: 모듈러 산술 / 비트 패턴  | 명시한 랩어라운드(사용자 선택) |
@@ -270,14 +270,14 @@ let w: u8 = 256;             // 컴파일 에러: 256 ∉ u8 0..=255
 
 ### unsigned → signed(무손실만)
 
-| from \ to | i8 | i16 | i32 | i64 | int |
-|-----------|----|-----|-----|-----|-----|
-| `u8`      |    | ✓   | ✓   | ✓   | ✓   |
-| `u16`     |    |     | ✓   | ✓   | ✓   |
-| `u32`     |    |     |     | ✓   | ✓   |
-| `u64`     |    |     |     |     | ✓   |
+| from \ to | i8 | i16 | i32 | i64 | isize | int |
+|-----------|----|-----|-----|-----|-------|-----|
+| `u8`      |    | ✓   | ✓   | ✓   | ✓     | ✓   |
+| `u16`     |    |     | ✓   | ✓   | ✓     | ✓   |
+| `u32`     |    |     |     | ✓   |       | ✓   |
+| `u64`     |    |     |     |     |       | ✓   |
 
-부호 없는 정수에서 폭이 같거나 더 좁은 부호 있는 정수로 가는 변환(예: u32 → i32)은 무손실을 보장하지 않습니다. 그래서 `try_into`나 `as`를 써야 합니다.
+부호 없는 정수에서 폭이 같거나 더 좁은 부호 있는 정수로 가는 변환(예: u32 → i32)은 무손실을 보장하지 않습니다. 그래서 `try_into`나 `as`를 써야 합니다. `u32` → `isize`는 64비트 타깃에서만 무손실이므로 `u64` → `usize`처럼 `TryFrom`만 있습니다.
 
 ### 정수 → 부동소수
 
@@ -340,9 +340,9 @@ let f: Fahrenheit = c.into();   //→ Fahrenheit { degree: 212.0 }
 
 ```rok
 impl TryFrom<str> for i32 {
-    type Error = OverflowError;
+    type Error = ParseError;
     fn try_from(s: str) throws (Self::Error) -> i32 {
-        // s 가 i32 range 안의 정수 string 이면 그 값, 아니면 OverflowError 를 throw
+        // i32::from_str(s): i32 range 안의 정수 string 이면 그 값, 아니면 ParseError
         ...
     }
 }
@@ -350,7 +350,7 @@ impl TryFrom<str> for i32 {
 let n: i32 = try "42".try_into();
 ```
 
-모든 고정 폭 정수 타입은 자기 `FromStr` 위에 이런 식으로 `TryFrom<str>`을 구현합니다. 빈 텍스트, 잘못된 숫자, 범위 밖의 값은 `OverflowError::new("try_from", ty)`를 던집니다. 부동소수 타입, `bool`, `char`에는 `FromStr`만 있습니다.
+모든 고정 폭 정수 타입은 자기 `FromStr` 위에 이런 식으로 `TryFrom<str>`을 구현합니다. `FromStr::from_str`과 같으므로 빈 텍스트, 잘못된 숫자, 범위 밖의 값은 같은 `ParseError`를 던집니다(0.5.9: 입력 텍스트 때문에 생긴 실패는 `ParseError`). 부동소수 타입, `bool`, `char`에는 `FromStr`만 있습니다.
 
 ## 2.11.10. 산술 결과의 자동 변환: 없음
 
@@ -413,7 +413,7 @@ impl From<i32> for i64 {
 
 ## 2.11.13. `AsBytes` 트레잇: 바이트 뷰
 
-`rok::core::convert::AsBytes`는 표준 라이브러리의 모든 바이트 인자가 받는 트레잇입니다. `str::from_utf8`([2.15.6](215-string.md)), `hex`와 `base64`([2.22](222-encoding.md)), `crypto`([2.21](221-crypto.md)), `CString::new`([1.7.2](../100-bare/107-ffi.md)), `fs`와 `net`의 쓰기 함수([2.23.3](223-io.md)), `Slice<u8>::find`([2.9.7](209-collections.md))가 그렇습니다. 이런 매개변수는 `<B: AsBytes>`로 쓰고 바이트 인자마다 타입 매개변수를 따로 두므로, 키와 메시지의 타입이 같지 않아도 됩니다.
+`rok::core::convert::AsBytes`는 표준 라이브러리의 모든 바이트 인자가 받는 트레잇입니다. `str::from_utf8`([2.15.6](215-string.md#2156-utf-8-불변식-프로세스-안의-모든-문자열)), `hex`와 `base64`([2.22](222-encoding.md)), `crypto`([2.21](221-crypto.md)), `CString::new`([1.7.2](../100-bare/107-ffi.md)), `fs`와 `net`의 쓰기 함수([2.23.3](223-io.md)), `Slice<u8>::find`([2.9.7](209-collections.md))가 그렇습니다. 이런 매개변수는 `<B: AsBytes>`로 쓰고 바이트 인자마다 타입 매개변수를 따로 두므로, 키와 메시지의 타입이 같지 않아도 됩니다.
 
 ```rok
 trait AsBytes {

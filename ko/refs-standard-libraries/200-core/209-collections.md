@@ -94,6 +94,7 @@ struct List<T> {
 impl<T> List<T> {
     fn new() -> List<T>;
     fn with_capacity(cap: usize) -> List<T>;
+    fn filled(n: usize, x: T) -> List<T>;        // x 를 n 개
 
     fn len(self) -> usize;
     fn is_empty(self) -> bool;
@@ -120,6 +121,7 @@ impl<T> List<T> {
     fn sort_by_key<K: Ord>(self, key: fn(T) -> K); // 키 기준 오름차순, stable
     fn reserve(self, additional: usize);
     fn shrink_to_fit(self);
+    unsafe fn set_len(self, n: usize);           // n > capacity() 면 panic
     fn reverse(self);                            // 제자리
 
     fn split_at(self, mid: usize) -> (Slice<T>, Slice<T>);   // [0, mid) 와 [mid, len) 의 view; mid > len 이면 panic
@@ -142,6 +144,8 @@ impl<T: Ord> List<T> {
 ```
 
 위치로 읽는 연산에는 `T | none` 형태가 있습니다(`get`, `first`, `last`, `pop`). 그 밖의 위치 연산은 범위를 벗어나면 panic이 일어납니다(`xs[i]`, `xs[i] = v`, `insert`, `remove`, `swap`, `drain`, `split_at`). `set`은 없습니다. 쓰기는 `xs[i] = v`이고, 범위 밖 인덱스를 건너뛰려면 먼저 검사합니다(`if i < xs.len() { xs[i] = v }`).
+
+`set_len(n)`은 원소를 쓰지 않고 길이만 정합니다. 제자리에서 채우는 버퍼(뷰의 `raw_parts`, 런타임 호출)를 위한 것입니다. 옛 길이 너머의 원소는 저장소에 있던 값(쓴 적 없거나 비워진 칸은 0)을 그대로 가지며, 이 값이 올바른 `T`라는 보장은 없으므로 `unsafe`입니다. 호출자는 읽기 전에 그 원소를 써야 합니다. 이 방식으로 줄이면 잘린 원소는 버퍼에 그대로 남습니다. `n`이 용량을 넘으면 패닉하므로 먼저 `reserve`를 부릅니다.
 
 `partition_point(pred)`는 원소가 `pred`를 처음으로 만족하지 않는 인덱스입니다. `pred`는 리스트의 앞부분에서 참이고 나머지에서 거짓이어야 하며, O(log n)입니다. 오름차순 리스트에서 `x`가 들어갈 자리는 `xs.partition_point(|e| e < x)`이고, 키 기준이면 `xs.partition_point(|e| key(e) < k)`입니다. `binary_search(x)`는 `x`와 같은 원소 가운데 첫 인덱스(하한)를 돌려주고, 없으면 `none`입니다.
 
@@ -195,8 +199,10 @@ let (a, b) = zs.split_at(1);                 //→ [1] 과 [2, 4] 의 view
 | `Sliceable<Range<usize>>` | 항상            | `xs[1:3]`                       |
 | `Display`             | **아님**            | **수동 출력 권장**              |
 | `Debug`               | `T: Debug`          | `f"{xs:?}"` → `[1, 2, 3]`       |
+| `Default`             | 항상                | `List::new()`                   |
 | `Clone`               | `T: Clone`          | 깊은 복제                       |
 | `PartialEq`           | `T: PartialEq`      | 원소별                          |
+| `PartialOrd`          | `T: PartialOrd`     | 사전식, 접두사가 먼저           |
 | `Eq`/`Ord`/`Hash`     | T가 같은 트레잇을 구현할 때 | 사전식                  |
 
 ### 비교 / 해시 / Debug: 공통 규칙
@@ -256,21 +262,21 @@ impl<K: Hash + Eq, V, S: BuildHasher> Dict<K, V, S> {
     fn entry(self, k: K) -> Entry<K, V, S>;       // 그 키의 자리 (있든 없든)
 }
 
-struct Entry<K, V> { /* dict + key */ }
+struct Entry<K, V, S = RandomState> { /* dict + key */ }
 
-impl<K: Hash + Eq, V> Entry<K, V> {
+impl<K: Hash + Eq, V, S: BuildHasher> Entry<K, V, S> {
     fn key(self) -> K;
     fn or_insert(self, v: V) -> V;                   // 없으면 v 를 넣고, 그 값
     fn or_insert_with(self, f: fn() -> V) -> V;      // 없으면 f() 를 넣고, 그 값
-    fn and_modify(self, f: fn(V) -> V) -> Entry<K, V>;   // 있으면 f(값) 으로 바꿈
+    fn and_modify(self, f: fn(V) -> V) -> Entry<K, V, S>;   // 있으면 f(값) 으로 바꿈
 }
 
-impl<K: Hash + Eq, V: Default> Entry<K, V> {
+impl<K: Hash + Eq, V: Default, S: BuildHasher> Entry<K, V, S> {
     fn or_default(self) -> V;                         // 없으면 V::default() 를 넣고, 그 값
 }
 ```
 
-`Default`, `FromIterator`, `From<List<(K, V)>>`는 `S: BuildHasher + Default`가 필요합니다. 나머지 구현은 모든 `S: BuildHasher`를 받습니다.
+`Dict`는 `IntoIterator`, `Index<K>`, `IndexSet<K>`, `AddAssign<Dict<K, V, S>>`, `PartialEq` / `Eq` / `Hash`(`V` 기준), `Debug`(`K: Debug, V: Debug`), `Clone`(`K: Clone, V: Clone`, 키와 값을 복제하고 해셔는 같음), `Default`, `FromIterator<(K, V)>`, `From<List<(K, V)>>`를 구현합니다. `Default`, `FromIterator`, `From<List<(K, V)>>`는 `S: BuildHasher + Default`가 필요합니다. 나머지 구현은 모든 `S: BuildHasher`를 받습니다.
 
 ```rok
 use rok::core::hash::BuildHasherDefault;
@@ -365,6 +371,8 @@ impl<T: Hash + Eq, S: BuildHasher> Set<T, S> {
 }
 ```
 
+`Set`은 `IntoIterator`, `AddAssign<T>`(삽입), `PartialEq` / `Eq` / `Hash`, `Debug`(`T: Debug`), `Clone`(`T: Clone`, 원소를 복제하고 해셔는 같음), `Default`, `FromIterator<T>`, `From<List<T>>`를 구현합니다. 마지막 세 가지는 `S: BuildHasher + Default`가 필요합니다.
+
 ```rok
 let s: Set<i32> = {1, 2, 3};
 s.contains(2);            //→ true
@@ -433,7 +441,7 @@ impl<T> BinaryHeap<T> {
 }
 ```
 
-`retain`은 제자리에서 걸러 낸 뒤 힙 순서를 되살리며 O(n)입니다. `IntoIterator`(`iter`처럼 순서 없음), `Debug`(저장 순서, 꼭대기가 먼저), `Clone`(`T: Clone`, 사본도 힙의 순서를 유지)을 구현합니다. `T: Ord`이면 `Default`와 `FromIterator`가 `new`처럼 최대 힙을 만듭니다.
+`retain`은 제자리에서 걸러 낸 뒤 힙 순서를 되살리며 O(n)입니다. `HeapIter<T>`는 `ExactSizeIterator`입니다. 힙은 `IntoIterator`(`iter`처럼 순서 없음), `Debug`(저장 순서, 꼭대기가 먼저), `Clone`(`T: Clone`, 사본도 힙의 순서를 유지)을 구현합니다. `T: Ord`이면 `Default`와 `FromIterator`가 `new`처럼 최대 힙을 만듭니다.
 
 비교 함수는 `List::sort_by`의 것처럼 `Ordering`을 반환합니다. `by_ordering(|a, b| b.cmp(a))`는 가장 작은 것을 먼저 꺼냅니다.
 
@@ -520,6 +528,8 @@ impl<T> Slice<T> {
     fn chunks(self, size: usize) -> slice::Chunks<T>;     // size 개씩의 view, 마지막은 더 짧음; size == 0 은 panic
     fn iter(self) -> SliceIter<T>;
     fn to_list(self) -> List<T>;             // 새 List 할당
+    unsafe fn raw_parts(self) -> (GcBuf<T>, usize, usize);   // (버퍼, 시작, 길이); 보폭 있는 뷰는 먼저 복사
+    unsafe fn from_raw_parts(buf: GcBuf<T>, start: usize, len: usize) -> Slice<T>;   // buf 의 start 부터 len 개
 }
 
 impl<T> Slice<T> {
@@ -544,6 +554,8 @@ impl<T> IntoIterator for Slice<T> { ... }
 impl<T: PartialEq> PartialEq for Slice<T> { ... }
 impl<T: Debug> Debug for Slice<T> { ... }
 ```
+
+`raw_parts`는 뷰의 원소를 버퍼의 연속된 한 구간으로 돌려줍니다. 버퍼 영역을 다루는 런타임 호출용입니다. 보폭 있는 뷰(`xs[::2]`)는 먼저 새 버퍼로 복사하므로, 그 구간에 쓴 값은 뷰나 그 리스트에 닿지 않습니다. `from_raw_parts(buf, start, len)`은 그 반대입니다. 둘 다 `unsafe`입니다. `start + len`이 `buf` 안에 있는지, 원소가 초기화되었는지 아무것도 검사하지 않습니다.
 
 `slice::Windows<T>`와 `slice::Chunks<T>`는 `Item = Slice<T>`인 `ExactSizeIterator`입니다. 각 창(window)과 덩어리(chunk)는 복사본이 아니라 같은 버퍼의 뷰입니다. `Iterator::windows` / `chunks`([2.7.1](207-iter.md#271-iterator-단계-진행))는 버퍼가 없는 반복자에서 동작하므로 대신 리스트로 모읍니다.
 
@@ -755,7 +767,7 @@ Rok이 가장 크게 다른 점은 다음과 같습니다. 첫째, `List`, `Dict
 
 ## 2.9.12. `GcBuf<T>`: 원시 GC 버퍼
 
-`rok::core::collections::raw`의 `GcBuf<T>`는 `List` / `Dict` 같은 컬렉션 구현이 쓰는 고정 길이 GC 버퍼입니다. 컴파일러가 아는 타입입니다. `GcBuf`는 `rok::bare`(`rok::bare::mem`)가 정의하고 여기서 다시 내보냅니다. 이 버퍼는 런타임의 워드 단위 추적 버퍼(type id `2`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-런타임-예약-type-id)) 위에 놓입니다.
+`GcBuf<T>`(`rok::bare::mem::GcBuf`)는 `List` / `Dict` 같은 컬렉션 구현이 쓰는 고정 길이 GC 버퍼입니다. 컴파일러가 아는 타입입니다. 공개 경로는 `rok::bare::mem` 하나뿐이고([0.1.6](../000-meta/001-tier-model.md#016-항목마다-경로-하나)), 컬렉션은 core 내부 모듈을 거쳐 씁니다. 이 버퍼는 런타임의 워드 단위 추적 버퍼(type id `2`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-런타임-예약-type-id)) 위에 놓입니다.
 
 ```rok
 struct GcBuf<T> { /* 컴파일러가 아는 표현 */ }
@@ -772,11 +784,9 @@ impl<T> GcBuf<T> {
 
 원소 하나는 워드 하나를 차지합니다. 일반 코드는 `List<T>`를 씁니다. `GcBuf<T>`는 컬렉션을 구현할 때 씁니다.
 
-`GcBuf<T>`와 그 기본 연산(`buf_new` / `buf_get` / `buf_set`, `new` / `get` / `set`, `GcBuf` 인덱싱)은 `unsafe`입니다. 컬렉션이 지키는 원소 타입 검사와 초기화 검사를 건너뛰기 때문입니다.
+`GcBuf<T>`와 그 기본 연산(`rok::bare::mem::{buf_new, buf_get, buf_set}`, `new` / `get` / `set`, `GcBuf` 인덱싱)은 `unsafe`입니다. 컬렉션이 지키는 원소 타입 검사와 초기화 검사를 건너뛰기 때문입니다.
 
 ```rok
 #[intrinsic("rok.buf_same")]
 fn buf_same<T>(a: GcBuf<T>, b: GcBuf<T>) -> bool;   // 같은 buffer 인가 (내용이 아니라 정체). 아무것도 고정하지 않음
-#[intrinsic("rok.buf_erase")]
-pub(pkg) fn buf_erase<T>(buf: GcBuf<T>) -> GcBuf<u8>;   // 어떤 GC 객체든 받는 런타임 매개변수를 위해 GcBuf<u8> 로 타입을 바꿈
 ```

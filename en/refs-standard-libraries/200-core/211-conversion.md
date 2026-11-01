@@ -10,7 +10,7 @@ Rok separates conversions into four kinds by **intent**. The user must state whi
 
 | Kind         | Method                              | Meaning                                    | On failure                  |
 |--------------|-------------------------------------|--------------------------------------------|-----------------------------|
-| **lossless** | `.into::<T>()`                      | zero information loss; always succeeds     | compile / runtime error     |
+| **lossless** | `.into::<T>()`                      | zero information loss; always succeeds     | compile error (no `From` impl) |
 | **fallible** | `.try_into::<T>()`                  | may lose information; caller handles it    | throws the target's `TryFrom::Error` |
 | **saturate** | `.saturating_into::<T>()`           | out of range clamps to i32::MAX / MIN      | explicit saturate (user's choice) |
 | **bit**      | `.wrapping_into::<T>()` or `as T`   | bit reinterpretation: modular arithmetic / bit pattern  | explicit wrap (user's choice) |
@@ -270,14 +270,14 @@ The `From<U> for T` impls provided by the standard library are tabulated below (
 
 ### Unsigned → signed (lossless only)
 
-| from \ to | i8 | i16 | i32 | i64 | int |
-|-----------|----|-----|-----|-----|-----|
-| `u8`      |    | ✓   | ✓   | ✓   | ✓   |
-| `u16`     |    |     | ✓   | ✓   | ✓   |
-| `u32`     |    |     |     | ✓   | ✓   |
-| `u64`     |    |     |     |     | ✓   |
+| from \ to | i8 | i16 | i32 | i64 | isize | int |
+|-----------|----|-----|-----|-----|-------|-----|
+| `u8`      |    | ✓   | ✓   | ✓   | ✓     | ✓   |
+| `u16`     |    |     | ✓   | ✓   | ✓     | ✓   |
+| `u32`     |    |     |     | ✓   |       | ✓   |
+| `u64`     |    |     |     |     |       | ✓   |
 
-A conversion from unsigned to a signed type of the same or smaller width (e.g. u32 → i32) is not guaranteed lossless, so `try_into` or `as` must be used.
+A conversion from unsigned to a signed type of the same or smaller width (e.g. u32 → i32) is not guaranteed lossless, so `try_into` or `as` must be used. `u32` → `isize` is lossless only on a 64-bit target, so it is `TryFrom` only, as `u64` → `usize` is.
 
 ### Integer → floating-point
 
@@ -340,9 +340,9 @@ The blanket `Into` routes `c.into()` to `Fahrenheit::from(c)`, so the user does 
 
 ```rok
 impl TryFrom<str> for i32 {
-    type Error = OverflowError;
+    type Error = ParseError;
     fn try_from(s: str) throws (Self::Error) -> i32 {
-        // if s is an integer string within i32 range, that value; otherwise throw OverflowError
+        // i32::from_str(s): an integer string within i32 range, else ParseError
         ...
     }
 }
@@ -350,7 +350,7 @@ impl TryFrom<str> for i32 {
 let n: i32 = try "42".try_into();
 ```
 
-Every fixed-width integer type implements `TryFrom<str>` this way, on top of its `FromStr`: empty text, an invalid digit or an out-of-range value throws `OverflowError::new("try_from", ty)`. Floating-point types, `bool` and `char` provide only `FromStr`.
+Every fixed-width integer type implements `TryFrom<str>` this way, on top of its `FromStr`: it is `FromStr::from_str`, so empty text, an invalid digit or an out-of-range value throws the same `ParseError` (0.5.9: a failure caused by the input text is a `ParseError`). Floating-point types, `bool` and `char` provide only `FromStr`.
 
 ## 2.11.10. Automatic conversion of arithmetic results - none
 

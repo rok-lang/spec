@@ -90,18 +90,22 @@ trait Inspect: Reflect {
     fn field_names_of_val(self) -> List<str>; // the fields self holds
 }
 
-struct FieldInfo {
-    name: str;                 // "0", "1", .. for a tuple field
-    type_name: str;            // instantiated: f64 for `v: T` in Box<f64>
-    is_pub: bool;              // true only for a plain `pub` field
+#[non_exhaustive]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub struct FieldInfo {
+    pub name: str;                 // "0", "1", .. for a tuple field
+    pub type_name: str;            // instantiated: f64 for `v: T` in Box<f64>
+    pub is_pub: bool;              // true only for a plain `pub` field
 }
 
-struct MethodInfo {
-    name: str;
-    arity: usize;              // number of arguments excluding self
-    is_static: bool;           // method that does not take self
-    arg_types: List<str>;      // argument type names excluding self
-    return_type: str;
+#[non_exhaustive]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub struct MethodInfo {
+    pub name: str;
+    pub arity: usize;              // number of arguments excluding self
+    pub is_static: bool;           // method that does not take self
+    pub arg_types: List<str>;      // argument type names excluding self
+    pub return_type: str;
 }
 ```
 

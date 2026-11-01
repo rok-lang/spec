@@ -94,6 +94,7 @@ Internally it consists of a contiguous memory buffer plus `len` / `capacity`, an
 impl<T> List<T> {
     fn new() -> List<T>;
     fn with_capacity(cap: usize) -> List<T>;
+    fn filled(n: usize, x: T) -> List<T>;        // n copies of x
 
     fn len(self) -> usize;
     fn is_empty(self) -> bool;
@@ -120,6 +121,7 @@ impl<T> List<T> {
     fn sort_by_key<K: Ord>(self, key: fn(T) -> K); // ascending by key, stable
     fn reserve(self, additional: usize);
     fn shrink_to_fit(self);
+    unsafe fn set_len(self, n: usize);           // n > capacity() panics
     fn reverse(self);                            // in place
 
     fn split_at(self, mid: usize) -> (Slice<T>, Slice<T>);   // views of [0, mid) and [mid, len); mid > len panics
@@ -142,6 +144,8 @@ impl<T: Ord> List<T> {
 ```
 
 A positional read has a `T | none` form (`get`, `first`, `last`, `pop`); every other positional operation panics out of range (`xs[i]`, `xs[i] = v`, `insert`, `remove`, `swap`, `drain`, `split_at`). There is no `set`: the write is `xs[i] = v`, and a write that skips an out-of-range index checks first (`if i < xs.len() { xs[i] = v }`).
+
+`set_len(n)` sets the length without writing elements, for a buffer filled in place (`raw_parts` of a view, a runtime call). It is `unsafe`: elements past the old length hold whatever the storage holds (zero for slots never written or vacated), which need not be a valid `T`; the caller writes them before they are read. Shrinking this way leaves the cut elements in the buffer. `n` past the capacity panics; `reserve` first.
 
 `partition_point(pred)` is the first index whose element fails `pred`, which must hold for a prefix of the list and fail for the rest; O(log n). The insertion point of `x` in an ascending list is `xs.partition_point(|e| e < x)`, and by a key `xs.partition_point(|e| key(e) < k)`. `binary_search(x)` returns the first index of an element equal to `x` (the lower bound), or `none`.
 
@@ -195,8 +199,10 @@ let (a, b) = zs.split_at(1);                 //→ views of [1] and [2, 4]
 | `Sliceable<Range<usize>>` | Always          | `xs[1:3]`                       |
 | `Display`             | **No**              | **Manual output recommended**   |
 | `Debug`               | `T: Debug`          | `f"{xs:?}"` → `[1, 2, 3]`       |
+| `Default`             | Always              | `List::new()`                   |
 | `Clone`               | `T: Clone`          | Deep copy                       |
 | `PartialEq`           | `T: PartialEq`      | element-wise                    |
+| `PartialOrd`          | `T: PartialOrd`     | lexicographic; a prefix sorts first |
 | `Eq`/`Ord`/`Hash`     | When T has the same trait | lexicographic             |
 
 ### Comparison / hashing / Debug - common rules
@@ -256,21 +262,21 @@ impl<K: Hash + Eq, V, S: BuildHasher> Dict<K, V, S> {
     fn entry(self, k: K) -> Entry<K, V, S>;       // the slot for that key (present or not)
 }
 
-struct Entry<K, V> { /* dict + key */ }
+struct Entry<K, V, S = RandomState> { /* dict + key */ }
 
-impl<K: Hash + Eq, V> Entry<K, V> {
+impl<K: Hash + Eq, V, S: BuildHasher> Entry<K, V, S> {
     fn key(self) -> K;
     fn or_insert(self, v: V) -> V;                   // inserts v if absent; returns the value
     fn or_insert_with(self, f: fn() -> V) -> V;      // inserts f() if absent; returns the value
-    fn and_modify(self, f: fn(V) -> V) -> Entry<K, V>;   // if present, replaces it with f(value)
+    fn and_modify(self, f: fn(V) -> V) -> Entry<K, V, S>;   // if present, replaces it with f(value)
 }
 
-impl<K: Hash + Eq, V: Default> Entry<K, V> {
+impl<K: Hash + Eq, V: Default, S: BuildHasher> Entry<K, V, S> {
     fn or_default(self) -> V;                         // inserts V::default() if absent; returns the value
 }
 ```
 
-`Default`, `FromIterator` and `From<List<(K, V)>>` need `S: BuildHasher + Default`; the other impls take any `S: BuildHasher`.
+`Dict` implements `IntoIterator`, `Index<K>`, `IndexSet<K>`, `AddAssign<Dict<K, V, S>>`, `PartialEq` / `Eq` / `Hash` (on `V`), `Debug` (`K: Debug, V: Debug`), `Clone` (`K: Clone, V: Clone`; keys and values cloned, same hasher), `Default`, `FromIterator<(K, V)>` and `From<List<(K, V)>>`. `Default`, `FromIterator` and `From<List<(K, V)>>` need `S: BuildHasher + Default`; the other impls take any `S: BuildHasher`.
 
 ```rok
 use rok::core::hash::BuildHasherDefault;
@@ -365,6 +371,8 @@ impl<T: Hash + Eq, S: BuildHasher> Set<T, S> {
 }
 ```
 
+`Set` implements `IntoIterator`, `AddAssign<T>` (inserts), `PartialEq` / `Eq` / `Hash`, `Debug` (`T: Debug`), `Clone` (`T: Clone`; elements cloned, same hasher), `Default`, `FromIterator<T>` and `From<List<T>>`; the last three need `S: BuildHasher + Default`.
+
 ```rok
 let s: Set<i32> = {1, 2, 3};
 s.contains(2);            //→ true
@@ -433,7 +441,7 @@ impl<T> BinaryHeap<T> {
 }
 ```
 
-`retain` filters in place and restores the heap order, O(n). It implements `IntoIterator` (unordered, as `iter`), `Debug` (storage order, the top first) and `Clone` (`T: Clone`; the copy keeps the heap's order); with `T: Ord`, `Default` and `FromIterator` build a max-heap, as `new`.
+`retain` filters in place and restores the heap order, O(n). `HeapIter<T>` is an `ExactSizeIterator`. The heap implements `IntoIterator` (unordered, as `iter`), `Debug` (storage order, the top first) and `Clone` (`T: Clone`; the copy keeps the heap's order); with `T: Ord`, `Default` and `FromIterator` build a max-heap, as `new`.
 
 A comparator returns `Ordering`, as `List::sort_by`'s does: `by_ordering(|a, b| b.cmp(a))` pops the least first.
 
@@ -520,6 +528,8 @@ impl<T> Slice<T> {
     fn chunks(self, size: usize) -> slice::Chunks<T>;     // views of size elements, the last shorter; size == 0 panics
     fn iter(self) -> SliceIter<T>;
     fn to_list(self) -> List<T>;             // allocates a new List
+    unsafe fn raw_parts(self) -> (GcBuf<T>, usize, usize);   // (buffer, start, len); a strided view is copied first
+    unsafe fn from_raw_parts(buf: GcBuf<T>, start: usize, len: usize) -> Slice<T>;   // len elements of buf from start
 }
 
 impl<T> Slice<T> {
@@ -544,6 +554,8 @@ impl<T> IntoIterator for Slice<T> { ... }
 impl<T: PartialEq> PartialEq for Slice<T> { ... }
 impl<T: Debug> Debug for Slice<T> { ... }
 ```
+
+`raw_parts` gives the viewed elements as one contiguous run of a buffer, for runtime calls on a region. A strided view (`xs[::2]`) is copied to a new buffer first, so writes through that run do not reach the view or its list. `from_raw_parts(buf, start, len)` is the inverse. Both are `unsafe`: nothing checks that `start + len` lies within `buf` or that its elements are initialized.
 
 `slice::Windows<T>` and `slice::Chunks<T>` are `ExactSizeIterator`s with `Item = Slice<T>`: each window or chunk is a view of the same buffer, not a copy. `Iterator::windows` / `chunks` ([2.7.1](207-iter.md#271-iterator---stepping)) collect lists instead, for iterators that have no buffer.
 
@@ -755,7 +767,7 @@ Rok differs most in these ways. First, `List`, `Dict`, `Set`, `Tuple` and `Slice
 
 ## 2.9.12. `GcBuf<T>` - raw GC buffer
 
-`GcBuf<T>` in `rok::core::collections::raw` is the fixed-length GC buffer used by collection implementations such as `List` / `Dict`, and is a type known to the compiler. `GcBuf` is defined by `rok::bare` (`rok::bare::mem`) and re-exported here. It sits on top of the runtime's word-traced buffer (type id `2`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-runtime-reserved-type-ids)).
+`GcBuf<T>` (`rok::bare::mem::GcBuf`) is the fixed-length GC buffer used by collection implementations such as `List` / `Dict`, and is a type known to the compiler. Its one public path is `rok::bare::mem` ([0.1.6](../000-meta/001-tier-model.md#016-one-path-per-item)); the collections reach it through a module internal to core. It sits on top of the runtime's word-traced buffer (type id `2`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-runtime-reserved-type-ids)).
 
 ```rok
 struct GcBuf<T> { /* representation known to the compiler */ }
@@ -772,11 +784,9 @@ impl<T> GcBuf<T> {
 
 Each element occupies one word. Ordinary user code uses `List<T>`; `GcBuf<T>` is for implementing collections.
 
-`GcBuf<T>` and its primitives (`buf_new` / `buf_get` / `buf_set`, `new` / `get` / `set`, indexing a `GcBuf`) are `unsafe`: they skip the element-type and initialization checks the collections keep.
+`GcBuf<T>` and its primitives (`rok::bare::mem::{buf_new, buf_get, buf_set}`, `new` / `get` / `set`, indexing a `GcBuf`) are `unsafe`: they skip the element-type and initialization checks the collections keep.
 
 ```rok
 #[intrinsic("rok.buf_same")]
 fn buf_same<T>(a: GcBuf<T>, b: GcBuf<T>) -> bool;   // whether they are the same buffer (identity, not contents). Pins nothing
-#[intrinsic("rok.buf_erase")]
-pub(pkg) fn buf_erase<T>(buf: GcBuf<T>) -> GcBuf<u8>;   // typed as GcBuf<u8> for runtime parameters taking any GC object
 ```
