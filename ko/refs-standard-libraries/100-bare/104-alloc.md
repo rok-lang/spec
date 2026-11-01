@@ -5,7 +5,7 @@
 ## 1.4.1. API
 
 ```rok
-struct LayoutError { .. }                      // 비공개 필드 (0.5.10)
+struct LayoutError { .. }                      // 비공개 필드. 라이브러리만 만듦 (0.5.10)
 impl LayoutError {
     fn message(self) -> str;
 }
@@ -37,7 +37,7 @@ unsafe fn dealloc_one<T>(ptr: Ptr<T>);
 unsafe fn dealloc_array<T>(ptr: Ptr<T>, n: usize);
 ```
 
-`alloc`이 실패하면 `CPtr::null()`을 반환합니다. 프로세스를 중단(abort)하지 않으므로 호출자가 결과를 확인하고 처리해야 합니다. `Layout`의 필드는 비공개이므로 `size()` / `align()`으로 읽습니다. `array`는 원소 `n`개가 `usize`를 넘칠 때 `LayoutError`를 던집니다. `from_size_align`은 `align`이 2의 거듭제곱이 아닐 때 던집니다. 둘 중 어느 경우인지는 `message()`가 알려 줍니다.
+`alloc`이 실패하면 `CPtr::null()`을 반환합니다. 프로세스를 중단(abort)하지 않으므로 호출자가 결과를 확인하고 처리해야 합니다. `alloc_array`는 원소 `n`개가 `usize`를 넘칠 때도 `CPtr::null()`을 반환합니다. `Layout`의 필드는 비공개이므로 `size()` / `align()`으로 읽습니다. `array`는 원소 `n`개가 `usize`를 넘칠 때 `LayoutError`를 던집니다. `from_size_align`은 `align`이 2의 거듭제곱이 아닐 때 던집니다. 둘 중 어느 경우인지는 `message()`가 알려 줍니다.
 
 ## 1.4.2. 예
 
@@ -81,7 +81,7 @@ impl<T> Allocation<T> {
 impl<T> Drop for Allocation<T> { /* block 을 해제 */ }
 ```
 
-`new`는 크기가 `usize`를 넘치거나 시스템에 메모리가 없을 때 `LayoutError`를 던집니다(`message()`는 `"out of memory"`). `Allocation`의 복사본은 블록 하나를 함께 씁니다. 그래서 그 블록을 해제하는 `using` 블록 안에서만 씁니다.
+`new`는 크기가 `usize`를 넘치거나 시스템에 메모리가 없을 때 `LayoutError`를 던집니다(`message()`는 `"out of memory"`). `Allocation`은 `Drop`을 구현하므로 affine 값입니다([2.13.4](../200-core/213-marker.md#2134-drop-해제-시-정리)). `let b = a`는 값을 옮기고, 블록은 마지막 소유자가 놓는 곳(`using` 블록 끝이나 소유자가 스코프를 벗어나는 곳)에서 해제됩니다.
 
 ## 1.4.3. GC와 관계
 
@@ -92,7 +92,7 @@ impl<T> Drop for Allocation<T> { /* block 을 해제 */ }
 | FFI `malloc`             | C `malloc`                  | ✗                  |
 | 큰 객체 (8 KB 이상)      | LOS (이동 없는 mark-sweep)  | ✓ (단, 이동 없음)  |
 
-GC가 관리하는 원시 버퍼가 필요하면 이 모듈 대신 `rok::core::collections::raw::GcBuf<T>`([2.9.12](../200-core/209-collections.md#2912-gcbuft-원시-gc-버퍼))를 씁니다.
+GC가 관리하는 원시 버퍼가 필요하면 이 모듈 대신 `rok::bare::mem::GcBuf<T>`([2.9.12](../200-core/209-collections.md#2912-gcbuft-원시-gc-버퍼))를 씁니다.
 
 GC는 바깥 영역을 추적하지 않으므로 정리는 사용자 책임입니다. 대신 이 영역의 객체는 이동하지 않습니다. 그래서 `Ptr<T>`는 별도의 pin guard 없이도 유효합니다.
 

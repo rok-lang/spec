@@ -138,6 +138,11 @@ A few `pub` items are called by another tier of the toolchain, not by the compil
 | `rok::core::task::host_enter`          | `rok::std::wit` (a component export enters the host loop)  | 2.18 |
 | `rok::core::task::host_run`            | `rok::std::wit` (one turn of the host loop)                | 2.18 |
 | `rok::core::task::host_leave`          | `rok::std::wit` (ends `host_enter`)                        | 2.18 |
+| `rok::core::task::readable` / `writable` | `rok::std::net` (waiting until a socket is ready)          | 2.18 |
+| `rok::core::io::IoError::retold`       | `rok::std::fs` (an error told again for a path)            | 2.23 |
+| `rok::core::io::IoError::resolver`     | `rok::std::net` (a failed name lookup)                     | 2.23 |
+| `rok::core::io::Read::copy_handle` / `Write::copy_handle` | `rok::std` fs, net, process and `os::unix::net` (the OS handle `io::copy` gives the kernel) | 2.23 |
+| `rok::core::num::bigint::Int::from_literal` / `bigfloat::Float::from_literal` | `rok::std::rokon` (a number literal's digits) | 2.1 |
 | `rok::bare::gc::Pinnable::gc_object`   | `rok::core::marker` (a hand-off copying a `GcPtr`)         | 1.6  |
 
 ## 0.4.5. Method slots (1)
@@ -178,14 +183,14 @@ Where the previous sections listed "which slots exist", this section summarizes 
 | An f-string hole                                   | `fstr_display_fn` ... `fstr_text_any_fn` |
 | An `await`, and the cleanups a cancel runs         | `cancel_point_fn`, `cancel_left_fn`, `cleanup_running_fn`, `cleanup_done_fn` |
 | A broadcast over two or more collections           | `broadcast_len_fn`                       |
-| Releasing a `using` block                          | `drop_method`                            |
+| Releasing a value (a `using` block ends, or its last owner leaves scope) | `drop_method`              |
 | Automatic `Send` / `Sync` implementation, `+ Send` checks | `send_trait`, `sync_trait`        |
 
 ## 0.4.7. Duplicate / missing detection
 
 If two standard library items are attached to the same slot, the compiler rejects it (the duplicate detection rule of refs-lang 6.4.6). Conversely, if a required slot such as `iterator_trait` is missing, compilation of the features that depend on it (here, `for` loops) is rejected. Both are devices that force the slot contract to have a single source of truth.
 
-The actual attached items are stated in each chapter of [200-core/](../200-core/). Every slot in this table has its `#[lang(...)]` attachment site in the chapter indicated by the "Ref" column. A slot name not in this table is a compile error per [refs-lang 6.4.8](../../refs-lang/006-meta-system/604-lang-magic.md). For example, `Stream` has no slot ([2.8.10](../200-core/208-stream.md)).
+The actual attached items are stated in each chapter of [200-core/](../200-core/). Every trait, method, type and abort-function slot that is attached has its `#[lang(...)]` attachment site in the chapter indicated by the "Ref" column. The hook `_fn` slots (`index_from_end_fn` ... `broadcast_len_fn`) are compiler-facing and named only in this table, and the built-in type slots that 0.4.2 leaves unattached have no attachment site. A slot name not in this table is a compile error per [refs-lang 6.4.8](../../refs-lang/006-meta-system/604-lang-magic.md). For example, `Stream` has no slot ([2.8.10](../200-core/208-stream.md)).
 
 ## 0.4.8. Slot naming policy
 

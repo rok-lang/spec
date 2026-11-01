@@ -21,7 +21,7 @@
 표준 라이브러리는 하나의 평면이 아니라 세 층으로 나뉩니다. 시스템 코드는 거의 모두 안전한 추상 위에서 작성합니다. 하지만 그 추상을 구현하려면 어딘가에서는 원시 메모리와 FFI를 다뤄야 합니다. 또 파일이나 네트워크처럼 호스트 환경이 있어야 의미가 있는 기능은, 임베디드처럼 그런 환경이 없는 타깃에는 아예 있으면 안 됩니다. 이 차이를 의존성 그래프에 그대로 드러내려고 가상 네임스페이스 `rok::` 아래에 3계층 구조를 둡니다. `rok::bare` / `rok::core` / `rok::std`입니다.
 
 ```
-rok::bare   (base, runtime extern "C" 만 의존)
+rok::bare   (base, runtime ABI extern "rok" 만 의존)
   ↓
 rok::core   (foundation, 안전, 모든 target; uses rok::bare internally)
   ↓
@@ -50,7 +50,7 @@ rok::std   (target-dep; uses rok::core + rok::bare)
 - [0.4. `#[lang]` 슬롯 매핑 표](000-meta/004-lang-slot-table.md)
 - [0.5. 표기법](000-meta/005-notation.md)
 
-### 1. Unsafe: [100-bare/](100-bare/README.md)
+### 1. Bare: [100-bare/](100-bare/README.md)
 
 저수준 / 위험 영역입니다. 명시적으로 가져와야 합니다.
 
@@ -61,13 +61,13 @@ rok::std   (target-dep; uses rok::core + rok::bare)
 - 1.5. [volatile 메모리 접근](100-bare/105-volatile.md)
 - 1.6. [`Pinned<T>` - GC pin (Go 1.21 Pinner 모델)](100-bare/106-gc-pin.md)
 - 1.7. [FFI - `extern "C"` / `CStr` / `CString`](100-bare/107-ffi.md)
-- 1.8. [WASM Component Model (`ffi.wit`)](100-bare/108-wit.md)
+- 1.8. [WASM Component Model (`ffi::wit`)](100-bare/108-wit.md)
 
-### 2. Rok: [200-core/](200-core/README.md)
+### 2. Core: [200-core/](200-core/README.md)
 
 안전 영역입니다. 모든 타깃에서 쓸 수 있습니다. prelude `use rok::core::prelude::*;`가 묵시적으로 적용됩니다.
 
-- 2.1. [숫자 타입 (`int`, `float`, auto-promote)](200-core/201-numbers.md)
+- 2.1. [숫자 타입 (고정 폭, `Int`, `Float`)](200-core/201-numbers.md)
 - 2.2. [niche wrapper (`NonZero`, `NonNan`, `Finite`, `Positive`)](200-core/202-non-zero.md)
 - 2.3. [산술 / 비트 트레잇 (`Add`, `Sub`, ..., `Shl`, `Shr`)](200-core/203-ops.md)
 - 2.4. [복합 대입 트레잇 (`AddAssign`, ...)](200-core/204-ops-assign.md)
@@ -75,13 +75,13 @@ rok::std   (target-dep; uses rok::core + rok::bare)
 - 2.6. [broadcast 트레잇 (`DotAdd`, `DotMul`, ...)](200-core/206-broadcast.md)
 - 2.7. [iter 트레잇 (`Iterator`, `IntoIterator`)](200-core/207-iter.md)
 - 2.8. [`Stream` (async iterator)](200-core/208-stream.md)
-- 2.9. [컬렉션 (`List`, `Dict`, `Set`, `Tuple`, `Slice`)](200-core/209-collections.md)
+- 2.9. [컬렉션 (`List`, `Dict`, `Set`, `Slice`, 튜플)](200-core/209-collections.md)
 - 2.10. [fmt (`Display`, `Debug`, `Formatter`)](200-core/210-fmt.md)
 - 2.11. [변환 (`From`, `Into`, `TryFrom`, `saturating_into`, ...)](200-core/211-conversion.md)
 - 2.12. [리플렉션 (`Reflect`, `Inspect`)](200-core/212-reflect.md)
-- 2.13. [marker 트레잇 (`Clone`, `Copy`)](200-core/213-marker.md)
+- 2.13. [marker 트레잇 (`Clone`, `Copy`, `Drop`)](200-core/213-marker.md)
 - 2.14. [에러 타입 (`TypeError`, `ValueError`, ...)](200-core/214-error.md)
-- 2.15. [문자열 (`str` 가변 단일, `char`, `c_char`)](200-core/215-string.md)
+- 2.15. [문자열 (`str`, `StrBuf`, `char`, `c_char`)](200-core/215-string.md)
 - 2.16. [sync primitive (`Atomic`, `Mutex`, `RwLock`, `Cell`)](200-core/216-sync.md)
 - 2.17. [`Channel`](200-core/217-channel.md)
 - 2.18. [`task::` API](200-core/218-task.md)
@@ -100,7 +100,7 @@ rok::std   (target-dep; uses rok::core + rok::bare)
 
 - 3.1. [`fs::` - 파일 시스템 (atomic ops, Dir capability, reflink)](300-std/301-fs.md)
 - 3.2. [`net::` - TCP/UDP/Unix + TLS 1.3 (HTTP 외부)](300-std/302-net.md)
-- 3.3. [`time::` - `Instant` / `SystemTime` / `Duration` / `BootTime`](300-std/303-time.md)
+- 3.3. [`time::` - `SystemTime` / `BootTime` (`Instant` / `Duration`은 `rok::core::time`)](300-std/303-time.md)
 - 3.4. [`thread::` - OS 스레드 (1:1, task와 별개)](300-std/304-thread.md)
 - 3.5. [`io::` - `rok::core::io`로 옮김 (2.23)](300-std/305-io.md)
 - 3.6. [`env::` - 환경 변수 / args / 디렉터리](300-std/306-env.md)
@@ -125,7 +125,7 @@ rok::std   (target-dep; uses rok::core + rok::bare)
 ```
 refs-standard-libraries 2.3        →  rok ops (Add/Sub/...)
 refs-standard-libraries 1.1        →  unsafe Ptr<T>
-refs-standard-libraries 3.5.2      →  std io (특정 하위 섹션)
+refs-standard-libraries 3.1.2      →  std fs (특정 하위 섹션)
 ```
 
 ### 검색

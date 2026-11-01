@@ -38,7 +38,7 @@ trait Add<Rhs = Self> {
 | `i64` | `#[intrinsic("rok.add.i64")]`   |                      |
 | `f32` | `#[intrinsic("rok.add.f32")]`   |                      |
 | `f64` | `#[intrinsic("rok.add.f64")]`   |                      |
-| `int` | (intrinsic 없음, auto-promote) | 표준 라이브러리 정의 |
+| `Int` | (intrinsic 없음, 임의 정밀도) | 표준 라이브러리 정의 |
 ```
 
 ## 0.5.4. 의미 정의(semantics)
@@ -50,9 +50,9 @@ trait Add<Rhs = Self> {
 
 산술 덧셈. 두 값을 더한 결과를 반환합니다.
 
-- `i32 + i32`: 오버플로하면 panic (모든 프로필에서 검사, `-C overflow-checks=no`에서는 wrap)
+- `i32 + i32`: 오버플로에서 panic (모든 프로필에서 검사, `-C overflow-checks=no`이면 wrap)
 - `f64 + f64`: IEEE 754 덧셈
-- `Int + Int`: 임의 정밀도. 오버플로하지 않음
+- `Int + Int`: 임의 정밀도. 오버플로 없음
 
 오버플로 처리는 [2.1 숫자 타입](../200-core/201-numbers.md)의 고정 폭 산술
 규칙을 따릅니다. saturating / checked / wrapping 변형은 별도 메서드(`saturating_add` 등)
@@ -104,17 +104,20 @@ let z = x + y;        //→ 4.0 (f64)
 2. **sentinel 값을 쓰지 않습니다.** 결과는 실패를 자기 타입의 값(`0`, `-1`, `""`)으로 나타내지 않습니다. `T | none`을 돌려주거나 던집니다.
 3. **닫기는 던집니다.** OS 자원(파일, 소켓, TLS 연결)의 `close()`는 OS가 알린 오류를 던집니다. `Drop`은 던지지 않으며, `Drop`이 놓아 주는 값의 오류는 버려집니다.
 4. 연산자와 그 이름 붙은 메서드는 다를 수 있습니다. `xs[i]`는 panic하지만 `xs.get(i)`는 `none`을 돌려줍니다.
+5. 연산자는 던질 수 없습니다([2.3](../200-core/203-ops.md)). 실패할 수 있는 연산자는 `Result`를 돌려줍니다(`Finite<F> + Finite<F>`는 `Result<Finite<F>, OverflowError>`).
+
 
 ## 0.5.10. 에러 타입
 
 표준 라이브러리의 에러 타입은 모두 다음 규칙을 따릅니다.
 
-1. **필드는 비공개입니다.** 에러는 구조체 리터럴이 아니라 생성자(`new(..)`, 또는 `IoError::from_os_code` 같은 이름 붙은 생성자)로 만들고, 사실을 이름으로 삼은 getter(`kind()`, `position()`, `path()`, `os_code()`)로 읽습니다. 모든 에러 타입에는 `message() -> str`이 있습니다. 무엇이 잘못됐는지를 `Display`가 덧붙일 수 있는 문맥 없이 돌려줍니다.
+1. **필드는 비공개입니다.** 에러는 구조체 리터럴이 아니라 생성자(`new(..)`, 또는 `IoError::from_os_code` 같은 이름 붙은 생성자)로 만들고, 사실을 이름으로 삼은 getter(`kind()`, `position()`, `path()`, `os_code()`)로 읽습니다. 라이브러리만 만드는 에러(`LayoutError`, `NulError`)에는 공개 생성자가 없을 수 있습니다. 원인을 나열한 enum인 에러(`FromBytesWithNulError`, `VarError`)는 데이터를 변형 필드에 담고, 패턴으로 읽습니다. 모든 에러 타입에는 `message() -> str`이 있습니다. 무엇이 잘못됐는지를 `Display`가 덧붙일 수 있는 문맥 없이 돌려줍니다.
 2. **트레잇 묶음.** 모든 에러 타입은 `Display`, `Debug`, `Error`, `PartialEq`, `Eq`, `Clone`을 구현합니다. 타입 매개변수의 값을 담는 에러(`SendError<T>`, `TrySendError<T>`)는 앞의 셋을 구현합니다.
-3. **종류.** 종류 getter는 `str`이나 정수가 아니라 enum(`IoErrorKind`, `TlsErrorKind`, `JoinErrorKind`)을 돌려주며, 그 enum은 `#[non_exhaustive]`입니다. OS 에러 코드는 `os_code() -> i32 | none`이고, OS에서 온 에러가 아니면 `none`입니다.
+3. **종류.** 종류 getter는 `str`이나 정수가 아니라 enum(`IoErrorKind`, `TlsErrorKind`, `JoinErrorKind`)을 돌려주며, 그 enum은 `#[non_exhaustive]`입니다(`DecodeErrorKind`도 같습니다). OS 에러 코드는 `os_code() -> i32 | none`이고, OS에서 온 에러가 아니면 `none`입니다.
 4. **unit 구조체.** 필드가 없는 에러는 unit 구조체(`struct TimeoutError;`)이며, `TimeoutError {}`가 아니라 `TimeoutError`로 씁니다.
-5. **실패 영역마다 에러 하나.** core는 함께 쓰는 에러(`ValueError`, `ParseError`, `OverflowError`, `ConversionError`, `TypeError`, `Utf8Error`)를 둡니다. 자기 실패 영역이 있는 std 모듈은 에러 타입을 하나 둡니다(`IoError`, `TlsError`, `RokonError`). UTF-8 검사가 실패하면 모두 `Utf8Error`를 던집니다.
+5. **실패 영역마다 에러 하나.** core는 함께 쓰는 에러(`ValueError`, `ParseError`, `OverflowError`, `ConversionError`, `TypeError`, `Utf8Error`)와 자기 실패 영역의 에러(`ZeroError`, `DecodeError`, `FmtError`, `CancellationError`, `TimeoutError`)를 둡니다. std 모듈은 실패 영역마다 에러 타입을 하나 둡니다(`IoError`, `TlsError`, `RokonError`. `env`는 변수 읽기의 `VarError`와 `join_paths`의 `JoinPathsError`를, `process`는 `IoError` 옆에 핸들러 설치의 `SignalError`를 둡니다). 두 에러가 같은 실패를 다루는 일은 없습니다. UTF-8 검사가 실패하면 모두 `Utf8Error`를 던집니다.
 6. **메시지.** 메시지는 소문자로 시작하고(고유명사와 타입 이름은 예외), 끝에 마침표나 `error:` 접두사를 붙이지 않습니다. 연산자의 panic은 Rust의 문구(`index 5 out of bounds for length 3`)를 씁니다. 메서드의 panic은 `Type::method: `(자유 함수는 `module::fn: `)로 시작하고, 문제를 말한 뒤, 대신 쓸 것이 있으면 `; <대신 쓸 것>`을 붙입니다. 예: `i32::isqrt: the number is negative; use `checked_isqrt` to get `none` instead`. 잘못된 인자에 panic하는 공개 함수는 `#[track_caller]`입니다.
+
 
 ## 0.5.11. 이름 짓기
 
@@ -122,18 +125,18 @@ let z = x + y;        //→ 4.0 (f64)
 
 | 종류 | 규칙 |
 |---|---|
-| 생성자 | `new`(필수 인자), `with_<x>`(인자 하나 더), `from_<src>`(변환, `Formatter::from_sink`), 특별한 값은 `empty()` / `zeroed()`. `to_<x>`는 쓰지 않음 |
+| 생성자 | `new`(필수 인자), `with_<x>`(인자 하나 더), `from_<src>`(변환, `Formatter::from_sink`), 특별한 값은 `empty()` / `zeroed()`. 단위 생성자는 단위 이름(`Duration::secs(n)`, `ms`, `ns`). `List::filled(n, x)`(n개 복사)와 `BinaryHeap::by_ordering(cmp)`는 이름 붙은 예외. `to_<x>`는 쓰지 않음 |
 | 변환 | `as_`는 비용 없는 뷰, `to_`는 새로 소유하는 값(비용 있음), `into_`는 소비. 문자열 타입이 `str`이므로 `to_str`, `read_to_str`, `from_str`이고 `to_string`은 쓰지 않음 |
-| 수 변환 | 손실 없는 변환과 검사하는 변환은 `From` / `TryFrom` / `SaturatingFrom` / `WrappingFrom`으로만. 고유 `to_<num>`은 손실 있는 반올림(`to_f64`)에만 |
-| 게터 | `get_` 접두사 없음. `get`은 키나 인덱스로 찾을 때, 또는 래퍼의 값(`NonZero::get`)에만 |
+| 수 변환 | 손실 없는 변환과 검사하는 변환은 `From` / `TryFrom` / `SaturatingFrom` / `WrappingFrom`으로만. 고유 `to_<num>`은 손실 있는 반올림(`to_f64`)에만 쓰고, `Int` / `Float`에는 `TryFrom` 옆에 검사하는 `to_<num>() -> T \| none`도 둠([2.1.2](../200-core/201-numbers.md)). Rust처럼 `Ipv4Addr::to_bits` / `from_bits`는 `From<Ipv4Addr> for u32`, `From<u32> for Ipv4Addr` 옆에 둠 |
+| 게터 | `get_` 접두사 없음. `get`은 키나 인덱스로 찾을 때, 또는 래퍼의 값(`NonZero::get`)에만. 이름 붙은 예외는 guard의 `get_clone()` 하나로, 범위가 정해진 `get()` 옆의 깊은 복사본([2.16](../200-core/216-sync.md)) |
 | 술어 | `is_` / `has_`, 또는 Rust에서 굳은 단어(`success`, `readonly`) |
-| 세터 | `set_<x>(ref self, ..)`는 unit을 돌려줌. 빌더는 필드 이름을 그대로 쓰고 `Self`를 돌려줌 |
+| 세터 | `set_<x>(ref self, ..)`는 unit을 돌려줌. 핸들(파일, 소켓, 커서, 리더)은 OS 상태나 공유 상태를 바꾸므로 세터가 `self`를 받음(`File::set_len`, `TcpStream::set_nodelay`, `Cursor::set_position`). 빌더는 필드 이름을 그대로 쓰고 `Self`를 돌려줌 |
 | 크기 | `len`은 컨테이너의 원소 수나 바이트 수, `<x>_len`은 길이 속성, `count`는 센 것(`count_ones`), `size`는 메모리 크기 |
 | 추가 / 제거 | 양 끝은 `push` / `pop`, 키나 인덱스는 `insert` / `remove`, 여럿은 `extend`, `clear`, `retain`, 꺼내 옮기기는 `take` |
-| 순회 | `iter()`는 `<Type>Iter`를 돌려줌. 다른 순회 메서드는 정의한 모듈에서 메서드 이름의 CamelCase를 돌려줌(아래) |
+| 순회 | `iter()`는 `<Type>Iter`를 돌려줌(`BinaryHeap::iter`는 `HeapIter`). 다른 순회 메서드는 정의한 모듈에서 메서드 이름의 CamelCase를 돌려줌(아래). 단 `Iterator::inspect`는 `InspectIter`를 돌려줌(`Inspect`는 2.12의 리플렉션 트레잇) |
 | 리플렉션 | 접미사 없는 형태는 타입의 답(`T::type_name()`, `T::size()`), `_of_val` 형태는 실행 중 값의 답(`x.type_name_of_val()`, `x.size_of_val()`, `x.field_names_of_val()`) |
 | async | `<name>_async`는 막히는 `<name>`의 짝. `async_` 접두사는 쓰지 않음 |
-| 약어 | 풀어 씀. 정해진 집합만 예외: `len`, `fd`, `io`, `utf8`, `ns` / `us` / `ms` / `secs` / `mins`, `tls`, `der` / `pem`, `mmap`, `pid` |
+| 약어 | 풀어 씀. 정해진 집합만 예외: `len`, `fd`, `io`, `utf8`, `ns` / `us` / `ms` / `secs` / `mins`, `tls`, `der` / `pem`, `mmap`, `pid`, `alpn`, `ocsp`, `dns`, 그리고 Rust에서 굳은 줄임말 `addr`, `dir`, `temp`, `exe`, `env`, `var` / `vars`, `args`, `arg`, `ty`, `os`, `std`(`Stdio`), `ptr`, `buf`, `recv`, `ttl`, `subsec`, 수학 이름 `abs`, `rem`, `ln`, `exp`, `cbrt`, `min` / `max` |
 | 상수 | `SCREAMING_SNAKE`. 상수와 짝을 이루는 함수는 두지 않음(`f64::INFINITY`) |
 | 모듈 | 단수 명사나 영역 이름(`fs`, `net`, `iter`). `collections`와 `ops`는 복수 그대로 |
 
@@ -152,17 +155,19 @@ let z = x + y;        //→ 4.0 (f64)
 
 부류별 `Debug` 출력은 다음과 같습니다.
 
-- 값은 내용을 보여 줍니다: `0..3`, `0..=3`, `Start(3)`, `SocketAddrV4 { ip: 127.0.0.1, port: 80 }`, `Permissions { mode: 0o644, readonly: false }`. `StrBuf`는 담은 텍스트를 따옴표로 감싸 보여 줍니다.
+- 값은 내용을 보여 줍니다: `0..3`, `0..=3`, `Start(3)`, `Permissions { mode: 0o644, readonly: false }`. 주소는 `Display`처럼 텍스트를 보여 줍니다(`127.0.0.1:80`, [3.2.4](../300-std/302-net.md#324-socketaddr--ipaddr)). `StrBuf`는 담은 텍스트를 따옴표로 감싸 보여 줍니다.
 - 핸들은 타입과 그 핸들이 가리키는 것을 보여 줍니다: `File { path: "a.txt" }`, `Child { pid: 42 }`, `Thread { id: ThreadId(3), name: "worker" }`. 싸게 보여 줄 것이 없는 핸들은 타입 이름만 보여 줍니다(`TcpStream`, `Mutex`).
 - 반복자, 스트림, future는 타입 이름을 보여 줍니다(`Map`, `Chars`, `AsyncFuture`).
-- 비밀을 담은 값은 그 비밀을 보여 주지 않습니다: `PrivateKey { .. }`, `Hmac { .. }`, `RsaPrivateKey { bits: 2048, .. }`.
+- 비밀을 담은 값은 그 비밀을 보여 주지 않습니다. 타입과 공개 매개변수만 한 가지 꼴 `Type { field: value, .. }`로 보여 줍니다: `x25519::PrivateKey { .. }`, `Hmac { .. }`, `DecapsulationKey768 { .. }`, `rsa::PrivateKey { bits: 2048, .. }`, `Secret { len: 32, .. }`.
 
-0.2.0에서 더한 값 트레잇입니다(`Dict` 키와 `Set` 원소로 쓰고, 비교하고, 정렬합니다).
+`Dict` 키와 `Set` 원소로 쓰고, 비교하고, 정렬하는 라이브러리 타입의 값 트레잇입니다.
 
 | 타입 | 트레잇 |
 |---|---|
-| `Path` | `Clone`, `Eq`, `Hash`, `PartialOrd`, `Ord`(텍스트 순), `Default`(빈 경로) |
+| `Path` | `Clone`, `Eq`, `Hash`, `PartialOrd`, `Ord`(텍스트 순), `Default`(빈 경로), `Display`(텍스트) |
 | `Ipv4Addr`, `Ipv6Addr` | `Clone`, `Copy`, `Eq`, `Hash`, `PartialOrd`, `Ord` |
+| `IpAddr` | `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`, `Debug` |
+| `Domain`, `SocketType`, `Protocol`, `Access` | `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`, `Debug` |
 | `SocketAddr`, `SocketAddrV4`, `SocketAddrV6` | `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`, `Debug` |
 | `Ordering` | `Clone`, `Copy`, `Hash`, `PartialOrd`, `Ord`(`Less < Equal < Greater`) |
 | `IoErrorKind` | `Clone`, `Copy`, `Eq`, `Hash`, `Display`(`not found`) |
@@ -179,10 +184,10 @@ let z = x + y;        //→ 4.0 (f64)
 
 `#[non_exhaustive]`([refs-lang 6.2.10](../../refs-lang/006-meta-system/602-built-in-attributes.md))는 변형이 늘 수 있는 공개 enum과 필드가 늘 수 있는 옵션 레코드에 붙습니다. 정의한 패키지 밖에서 이런 enum을 `match`하려면 `_` 갈래가 있어야 하고, 구조체 패턴에는 `..`가 있어야 합니다.
 
-- enum: `IoErrorKind`, `TlsErrorKind`, `CipherSuite`, `AeadAlgorithm`, `EcCurve`, `HashAlgorithm`, `rokon::Value`, `Stdio`, `FileType`, `Signal`, `JoinErrorKind`
-- 레코드: `tls::ClientConfig`, `tls::ServerConfig`, `FieldInfo`, `MethodInfo`
+- enum: `IoErrorKind`, `TlsErrorKind`, `CipherSuite`, `AeadAlgorithm`, `EcCurve`, `HashAlgorithm`, `DecodeErrorKind`, `base64::Alphabet`, `rokon::Value`, `Stdio`, `FileType`, `Signal`, `JoinErrorKind`, `fs::Access`, `net::Domain`, `net::SocketType`
+- 레코드: `tls::ClientConfig`, `tls::ServerConfig`, `FieldInfo`, `MethodInfo`, `fs::OpenFlags`, `fs::CreateFlags`, `os::unix::fs::OsOpenFlags` / `OsCreateFlags`, `os::windows::fs::OsOpenFlags` / `OsCreateFlags` / `CreateFileParams`
 
-닫힌 enum은 그대로 exhaustive입니다: `Ordering`, `Poll`, `Result`, `SeekFrom`, `Shutdown`, `Alignment`, `Sign`, `SocketAddr`, `Component`, `LoadOrdering`, `StoreOrdering`, `UpdateOrdering`, `SendError`, `TrySendError`.
+닫힌 enum은 그대로 exhaustive입니다: `Ordering`, `Poll`, `Result`, `SeekFrom`, `Shutdown`, `Alignment`, `Sign`, `IpAddr`, `SocketAddr`, `Component`, `LoadOrdering`, `StoreOrdering`, `UpdateOrdering`, `hex::Case`, `base64::Padding`, `VarError`, `FromBytesWithNulError`, `SendError`, `TrySendError`. 두 목록을 합치면 모든 공개 enum이 들어갑니다.
 
 `#[sealed]`([refs-lang 6.2](../../refs-lang/006-meta-system/602-built-in-attributes.md))는 라이브러리가 건전성이나 의미를 기대는 구현을 가진 트레잇에 붙습니다. 정의한 패키지만 구현할 수 있고, 바운드와 호출은 그대로입니다: `AtomicPrimitive`(2.16), `NicheInt`, `NicheFloat`(2.2), `Pinnable`(1.6). `Step`(2.7)은 사용자 범위 타입을 위해 열어 둡니다. `Pod`(1.3)는 sealed가 아니며(`#[derive(Pod)]`가 사용자 struct를 검사합니다), `bool`과 `char`는 `Pod`가 아닙니다.
 
@@ -194,7 +199,7 @@ let z = x + y;        //→ 4.0 (f64)
 
 | 타입 | async 트레잇 | 고유 짝 |
 |---|---|---|
-| `File` | `AsyncRead`, `AsyncWrite`, `AsyncSeek`, `AsyncClose` | `open_async`와 다른 열기 함수, `sync_all_async`, `set_len_async`, `metadata_async`, `lock_*_async` |
+| `File` | `AsyncRead`, `AsyncWrite`, `AsyncSeek`, `AsyncClose` | `open_async`와 다른 열기 함수, `sync_all_async`, `set_len_async`, `metadata_async`, `lock_exclusive_async`, `lock_shared_async`(`unlock`은 기다리지 않음) |
 | `TcpStream` | `AsyncRead`, `AsyncWrite`, `AsyncClose` | `connect_async`, `shutdown_async` |
 | `TcpListener` | `AsyncClose` | `accept_async` |
 | `UdpSocket` | `AsyncClose` | `connect_async`, `send_async`, `recv_async`, `send_to_async`, `recv_from_async` |
@@ -209,7 +214,7 @@ let z = x + y;        //→ 4.0 (f64)
 | `Command` | | `output_async`, `status_async` |
 | `BufReader`, `BufWriter`, `LineWriter`, `Cursor` | 안쪽 스트림을 따름([2.23.6](../200-core/223-io.md#2236-버퍼와-cursor)) | |
 
-`Sender`의 `close`는 I/O가 아니므로 짝이 없습니다.
+`Sender`의 `close`는 I/O가 아니므로 짝이 없습니다. `File`과 `Dir`의 짝은 `ref self`를 받고, `close_async`만 핸들을 소비합니다.
 
 ## 0.5.14. 문서와 속성
 
@@ -236,6 +241,6 @@ let z = x + y;        //→ 4.0 (f64)
 | 스트림 | `AsyncStream`, `TryAsyncStream`, `stream` 어댑터와 조합자, `TryStream` 어댑터, `io::BytesStream`, `io::LinesStream`, `fs::ReadDirStream` |
 | future | `async fn` 호출이나 `async` 블록의 값, `LockFuture`, `ReadFuture`, `WriteFuture`, `CondvarWait`, `RecvFuture`, `SendFuture`, `task::Join`, `SelectFuture` |
 | 빌더와 결과 | `process::Command`, `thread::Builder`, `thread::JoinHandle`, `Result` |
-| 함수 | `str`와 `Path`의 값 메서드, 모든 `Duration` 함수와 `Instant`의 산술, `Set::union`, `intersection`, `difference`, `symmetric_difference`, 정수와 부동소수점 기본 타입, `Int`, `Float`의 모든 메서드 |
+| 함수 | `str`와 `Path`의 값 메서드, 모든 `Duration` 함수와 `Instant`, `SystemTime`, `BootTime`의 산술(`duration_since`, `checked_add`, `checked_sub`), `Iterator`, `DoubleEndedIterator`, `TryIterator`의 순수한 종결 메서드(`find`, `rfind`, `min`, `max`, `min_by_key`, `max_by_key`, `reduce`, `last`, `position`), `Set::union`, `intersection`, `difference`, `symmetric_difference`, 정수와 부동소수점 기본 타입, `Int`, `Float`의 모든 메서드 |
 
 `spawn`과 `spawn_blocking`이 돌려주는 `Task`는 `#[must_use]`가 아닙니다. 기다리든 말든 작업은 실행됩니다. 가드에는 표시가 필요 없습니다. 문장에서 `MutexGuard`를 버리면 오류입니다. `#[discardable]` 함수는 refs-lang 6.2.11에 나온 것들입니다.

@@ -1,6 +1,6 @@
 # 1.2. cast operations - explicitly named casts
 
-Conversions between pointers and types exist only as **named functions**. There is no `cast` module: `ptr_cast`, `align_cast`, `align_cast_unchecked` and `const_cast` are defined in `rok::bare::ptr`, `reinterpret` and `transmute_unchecked` in `rok::bare::mem`, and the `rok::bare` root re-exports all six (`rok::bare::ptr_cast`). The reason `as` casts in C and Rust are so dangerous is that the conversion happens silently; to avoid that pitfall, Rok requires every cast to carry an **explicit name**.
+Conversions between pointers and types exist only as **named functions**. There is no `cast` module: `ptr_cast`, `align_cast`, `align_cast_unchecked` and `const_cast` are defined in `rok::bare::ptr`, `reinterpret` and `transmute_unchecked` in `rok::bare::mem`, and the `rok::bare` root re-exports all six (`rok::bare::ptr_cast`) together with `Pod` ([1.2.5](#125-reinterpreta-pod-b-pod---bit-cast-safe)). The reason `as` casts in C and Rust are so dangerous is that the conversion happens silently; to avoid that pitfall, Rok requires every cast to carry an **explicit name**.
 
 ## 1.2.1. The 4 cast functions
 
@@ -162,7 +162,7 @@ This design follows the [Project Safe Transmute (Rust RFC 2835)](https://rust-la
 unsafe fn transmute_unchecked<A, B>(a: A) -> B;   // no size check either
 ```
 
-This function moves bits as is, **without** even `Pod` checking. As the name says, it is the most dangerous cast, so it is an `unsafe fn`: uninit exposure, size mismatch, alignment problems and the GC references inside are all the caller's responsibility. A size mismatch is not rejected; the value goes through a zeroed scratch block as large as the larger type, so the bytes past the source's size read as zero.
+This function moves bits as is, **without** even `Pod` checking. As the name says, it is the most dangerous cast, so it is an `unsafe fn`: uninit exposure, size mismatch, alignment problems and the GC references inside are all the caller's responsibility. It panics `mem::transmute_unchecked: out of memory` when the scratch block cannot be allocated. A size mismatch is not rejected; the value goes through a zeroed scratch block as large as the larger type, so the bytes past the source's size read as zero.
 
 Its use is limited to the **lowest layer** inside the standard library, only for cases that cannot be expressed with any other tool, such as writing a `Pod` impl itself. Ordinary user code must never use it.
 
@@ -178,15 +178,15 @@ let bits: u64 = unsafe { rok::bare::transmute_unchecked(s) };   // code where So
 
 ## 1.2.7. Where `as` casts apply
 
-`as` is allowed only for numeric conversions, and among those only when lossless or when saturate / wrap is explicit.
+`as` is a numeric cast ([refs-lang 2.14.2](../../refs-lang/002-types/214-cast-and-conversion.md#2142-as-casts)): it is allowed between any two of the integer types, the floating-point types, `bool`, `char` and `c_char`, with the target restrictions refs-lang gives, and gives the same result as `.wrapping_into()`. A lossy pair wraps (integers) or truncates toward zero and saturates (float to integer). Only pointers are rejected.
 
 | Expression         | Result                                                 |
 |--------------------|--------------------------------------------------------|
 | `i32 as i64`       | OK (lossless widening)                                 |
-| `i64 as i32`       | **Compile error**: `try_into` / `saturating_into`      |
+| `i64 as i32`       | OK, wraps (`try_into` / `saturating_into` to check or saturate) |
 | `f32 as f64`       | OK (lossless)                                          |
-| `i32 as f32`       | **Compile error**: `as f32` may lose precision         |
-| `u32 as i32`       | **Compile error**: bit reinterpret (use `reinterpret`)  |
+| `i32 as f32`       | OK, rounds to the nearest `f32`                        |
+| `u32 as i32`       | OK, the same bits (`0xFFFF_FFFF` is `-1`)              |
 | `Ptr<T> as Ptr<U>` | **Compile error**: `rok::bare::ptr_cast::<U>`           |
 | `Ptr<T> as usize`  | **Compile error**: `.addr()` or `expose_provenance`    |
 | `usize as Ptr<T>`  | **Compile error**: `from_exposed_provenance`           |
@@ -197,9 +197,9 @@ See [2.11 conversion](../200-core/211-conversion.md) for the full conversion mat
 
 The cast policy of this chapter comes down to four points.
 
-- `as` casts allow only **lossless numeric** conversions; pointers and bit reinterpretation are rejected.
+- `as` casts are numeric only; pointers never go through `as`, and a non-numeric bit reinterpretation goes through `reinterpret`.
 - The four functions `rok::bare::ptr_cast` / `align_cast` / `const_cast` / `reinterpret` are the channels for explicit casts.
 - The `Pod` marker trait provides the safety condition for bit reinterpretation.
 - `transmute_unchecked` is exposed only as an escape hatch.
 
-With this policy Rok avoids both C's cumbersome type conversions and Rust's `as` pitfalls.
+With this policy Rok avoids both C's cumbersome type conversions and Rust's `as` pitfalls on pointers.

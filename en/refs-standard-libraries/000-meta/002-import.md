@@ -22,7 +22,7 @@ The prelude holds no enum variants. A bare variant name resolves from the type t
 
 ### Why a curated list
 
-An implicit glob over all of `rok::core` would make every public core item a bare name in every file: about 160 types, 100 traits, 90 functions and every enum variant. Several of them collide (`Map`, `Filter`, `Zip` in `iter` and `stream`; `join` in `task` and `par`; the variant `Equal` in `Ordering` and `fmt::Alignment`), and each new core item would change name resolution in user code.
+An implicit glob over all of `rok::core` would make every public core item a bare name in every file: about 160 types, 100 traits, 90 functions and every enum variant. Several of them would collide (`Map`, `Filter`, `Zip` in `iter` and `stream`; `join` in `task` and `par`; the variant `Equal` in `Ordering` and `fmt::Alignment`), and each new core item would change name resolution in user code.
 
 The prelude keeps what code writes in nearly every file: the collection and core types, the traits written in `impl` headers and bounds, the printing and panic functions, and the top-level core modules, so `task::sleep` and `par::map` stay short. Every name in it is unique in its namespace (a library test checks this on every target), so a bare prelude name is never ambiguous. Because the implicit import has the lowest priority (0.2.4), adding a name to the prelude never breaks a program that defines or imports the same name.
 
@@ -41,7 +41,7 @@ The normative definition of the `**` syntax is given in [refs-lang 5.5 use](../.
 
 The names below are exactly the names of `rok::core::prelude`. Modules, types and traits share one namespace and functions another, as everywhere in Rok, so `channel`, `panic` and `print` are each a module and a function.
 
-**Modules (29).** The top-level modules of `rok::core`:
+**Modules (29).** The top-level modules of `rok::core`, except `prelude` itself and `hash` (imported with a `use`, [2.5.11](../200-core/205-cmp.md)):
 
 `array` `bench` `channel` `cmp` `collections` `convert` `crypto` `encoding` `error` `fmt` `future` `hint` `index` `io` `iter` `marker` `num` `ops` `panic` `par` `print` `range` `reflect` `str` `stream` `sync` `task` `time` `tuple`
 

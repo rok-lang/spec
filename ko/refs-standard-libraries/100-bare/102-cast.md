@@ -1,6 +1,6 @@
 # 1.2. 캐스트 연산: 이름 있는 명시적 캐스트
 
-포인터와 타입 사이의 변환은 **이름 붙은 함수**로만 있습니다. `cast` 모듈은 없습니다. `ptr_cast`, `align_cast`, `align_cast_unchecked`, `const_cast`는 `rok::bare::ptr`에 정의합니다. `reinterpret`와 `transmute_unchecked`는 `rok::bare::mem`에 정의합니다. `rok::bare` 루트가 여섯 개 모두를 다시 내보냅니다(`rok::bare::ptr_cast`). C와 Rust의 `as` 캐스트가 위험한 까닭은 변환이 조용히 일어나기 때문입니다. Rok은 이 함정을 피하려고 모든 캐스트에 **명시적인 이름**을 요구합니다.
+포인터와 타입 사이의 변환은 **이름 붙은 함수**로만 있습니다. `cast` 모듈은 없습니다. `ptr_cast`, `align_cast`, `align_cast_unchecked`, `const_cast`는 `rok::bare::ptr`에 정의합니다. `reinterpret`와 `transmute_unchecked`는 `rok::bare::mem`에 정의합니다. `rok::bare` 루트가 여섯 개 모두와 `Pod`([1.2.5](#125-reinterpreta-pod-b-pod-비트-캐스트안전))를 다시 내보냅니다(`rok::bare::ptr_cast`). C와 Rust의 `as` 캐스트가 위험한 까닭은 변환이 조용히 일어나기 때문입니다. Rok은 이 함정을 피하려고 모든 캐스트에 **명시적인 이름**을 요구합니다.
 
 ## 1.2.1. 캐스트 함수 4종
 
@@ -162,7 +162,7 @@ let v2: Vec3 = rok::bare::reinterpret(bytes);
 unsafe fn transmute_unchecked<A, B>(a: A) -> B;   // size check 도 안 함
 ```
 
-이 함수는 `Pod` 검증조차 **없이** 비트를 그대로 옮깁니다. 이름대로 가장 위험한 캐스트이므로 `unsafe fn`입니다. 초기화되지 않은 메모리 노출, 크기 불일치, 정렬 문제, 안에 든 GC 참조는 모두 호출자 책임입니다. 크기 불일치는 거부하지 않습니다. 값은 0으로 채운 임시 블록을 거칩니다. 이 블록의 크기는 두 타입 중 큰 쪽입니다. 그래서 원본 크기를 넘는 바이트는 0으로 읽힙니다.
+이 함수는 `Pod` 검증조차 **없이** 비트를 그대로 옮깁니다. 이름대로 가장 위험한 캐스트이므로 `unsafe fn`입니다. 초기화되지 않은 메모리 노출, 크기 불일치, 정렬 문제, 안에 든 GC 참조는 모두 호출자 책임입니다. 임시 블록을 할당하지 못하면 `mem::transmute_unchecked: out of memory`로 panic합니다. 크기 불일치는 거부하지 않습니다. 값은 0으로 채운 임시 블록을 거칩니다. 이 블록의 크기는 두 타입 중 큰 쪽입니다. 그래서 원본 크기를 넘는 바이트는 0으로 읽힙니다.
 
 표준 라이브러리 내부의 가장 **낮은 층**에서만 씁니다. `Pod` impl 자체를 작성할 때처럼 다른 도구로는 표현할 수 없는 경우뿐입니다. 일반 사용자 코드에서는 어떤 경우에도 쓰면 안 됩니다.
 
@@ -178,15 +178,15 @@ let bits: u64 = unsafe { rok::bare::transmute_unchecked(s) };   // SomeNewtype �
 
 ## 1.2.7. `as` 캐스트의 적용 자리
 
-`as`는 수치 변환에만 쓸 수 있습니다. 그중에서도 손실이 없거나 포화(saturate) / 래핑(wrap)을 명시한 경우뿐입니다.
+`as`는 수치 캐스트입니다([refs-lang 2.14.2](../../refs-lang/002-types/214-cast-and-conversion.md#2142-as-캐스트)). 정수 타입, 부동소수점 타입, `bool`, `char`, `c_char` 중 아무 둘 사이에 쓸 수 있고(대상 제약은 refs-lang을 따릅니다), 결과는 `.wrapping_into()`와 같습니다. 손실이 있는 쌍은 래핑(정수)하거나, 0 쪽으로 자르고 포화(부동소수점에서 정수로)합니다. 거부하는 것은 포인터뿐입니다.
 
 | 표현               | 결과                                                   |
 |--------------------|--------------------------------------------------------|
 | `i32 as i64`       | OK (손실 없는 확장)                                    |
-| `i64 as i32`       | **컴파일 에러**: `try_into` / `saturating_into`        |
+| `i64 as i32`       | OK, 래핑 (검사나 포화는 `try_into` / `saturating_into`) |
 | `f32 as f64`       | OK (손실 없음)                                         |
-| `i32 as f32`       | **컴파일 에러**: `as f32` 정밀도 손실 가능             |
-| `u32 as i32`       | **컴파일 에러**: 비트 재해석 (`reinterpret` 사용)      |
+| `i32 as f32`       | OK, 가장 가까운 `f32`로 반올림                         |
+| `u32 as i32`       | OK, 같은 비트 (`0xFFFF_FFFF`는 `-1`)                   |
 | `Ptr<T> as Ptr<U>` | **컴파일 에러**: `rok::bare::ptr_cast::<U>`             |
 | `Ptr<T> as usize`  | **컴파일 에러**: `.addr()` 또는 `expose_provenance`    |
 | `usize as Ptr<T>`  | **컴파일 에러**: `from_exposed_provenance`             |
@@ -197,9 +197,9 @@ let bits: u64 = unsafe { rok::bare::transmute_unchecked(s) };   // SomeNewtype �
 
 이 장의 캐스트 정책은 네 가지로 정리됩니다.
 
-- `as` 캐스트는 **손실 없는 수치 변환**만 허용합니다. 포인터와 비트 재해석은 거부합니다.
+- `as` 캐스트는 수치 전용입니다. 포인터는 `as`를 거치지 않고, 수치가 아닌 비트 재해석은 `reinterpret`를 거칩니다.
 - `rok::bare::ptr_cast` / `align_cast` / `const_cast` / `reinterpret` 네 함수가 명시 캐스트의 통로입니다.
 - `Pod` marker 트레잇이 비트 재해석의 안전 조건입니다.
 - `transmute_unchecked`는 탈출구로만 노출합니다.
 
-이 정책으로 Rok은 C의 번거로운 형 변환과 Rust의 `as` 함정을 함께 피합니다.
+이 정책으로 Rok은 C의 번거로운 형 변환과 포인터에 대한 Rust의 `as` 함정을 함께 피합니다.

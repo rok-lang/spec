@@ -3,7 +3,7 @@
 Rok 표준 라이브러리는 세 계층(tier)으로 나뉩니다. 계층마다 의존할 수 있는 영역이 다르고, 사용자 코드에서 가져오는 규칙도 다릅니다.
 
 ```
-rok::bare   (base, runtime extern "C" 만 의존)
+rok::bare   (base, runtime ABI extern "rok" 만 의존)
   ↓
 rok::core     (foundation, 안전, 모든 target; uses bare internally)
   ↓
@@ -55,14 +55,16 @@ use rok::std::time::SystemTime;
 
 | 의존하는 측 | 의존 가능 대상                                          |
 |-------------|---------------------------------------------------------|
-| `rok::bare`  | runtime extern "C"                                      |
+| `rok::bare`  | runtime ABI `extern "rok"`                              |
 | `rok::core`  | `rok::bare`                                              |
 | `rok::std`  | `rok::core`, `rok::bare`                                  |
 | 사용자 코드 | `rok::core` (묵시), `rok::std` (명시), `rok::bare` (명시) |
 
 다음 방향의 의존은 **금지**합니다. foundation(`rok::core`)은 `rok::std`를 가져오면 안 됩니다. foundation은 모든 타깃에서 빌드할 수 있어야 하므로, 플랫폼 의존 코드를 끌어들이는 순간 이식성이 무너집니다. `rok::bare`도 foundation이나 `rok::std`를 가져오면 안 됩니다. 저수준 층이 고수준 층에 의존하기 시작하면 계층 구조 자체가 의미를 잃습니다. 마지막으로 개별 `rok::std::*` 모듈끼리 순환 의존하면 안 됩니다. 그래서 std 모듈 하나하나는 독립적으로 빌드할 수 있는 단위로 남습니다.
 
-이 규칙이 다스리는 대상은 계층이 직접 적는 것, 곧 그 계층의 `use`와 경로입니다. 각 계층 내부의 `use rok::core::**`는 여전히 그 계층에 언어 어휘를 공급합니다. bare 자신의 시그니처가 쓰는 0.4의 slot 항목, `List`, `Slice`, `Result`, `panic`이 여기에 들어갑니다(1.6, 1.7).
+이 규칙이 다스리는 대상은 계층이 직접 적는 것, 곧 그 계층의 `use`와 경로입니다. 각 계층 내부의 `use rok::core::**`는 여전히 그 계층에 언어 어휘를 공급합니다. bare 자신의 시그니처와 impl이 쓰는 0.4의 slot 항목, `List`, `Slice`, `Result`, `panic`, 그리고 bare의 타입이 구현하는 트레잇 `Debug` / `Formatter` / `FmtError`, `Hash` / `Hasher`, `Error`, `AsBytes`와 `Utf8Error`, `str::from_utf8`이 여기에 들어갑니다(1.6, 1.7).
+
+`rok::core`가 `rok::std`의 항목을 이름으로 적는 곳은 prelude 하나뿐입니다. `rok::core::prelude`는 해당 타깃에서 `rok::std::os`의 Ext 트레잇을 나열하므로(0.2.3) 그 메서드는 `use` 없이 씁니다. 이것은 암시적 가져오기(0.2)이지 core 자체 코드의 의존이 아니며, core 코드는 여전히 `rok::std` 없이 빌드됩니다.
 
 ## 0.1.3. 빌드 단위
 
@@ -80,4 +82,4 @@ use rok::std::time::SystemTime;
 
 ## 0.1.6. 항목마다 경로 하나
 
-모든 항목의 경로는 그 항목을 정의한 모듈 하나입니다. 같은 항목에 둘째 경로를 주는 `pub use` 재내보내기는 두 가지 꼴만 있습니다. 부모 모듈이 자식 모듈을 펼치는 꼴(`rok::core::collections::list::List`에 대한 `rok::core::collections::List`, `rok::core::crypto::Secret`, `rok::bare` 루트의 캐스트)과 암시적 가져오기(0.2)입니다. 어떤 모듈도 부모나 형제, 다른 계층의 항목을 다시 내보내지 않습니다. `Duration`은 `rok::core::time::Duration`일 뿐이고, `SeekFrom`은 `rok::core::io::SeekFrom`, `size_of`는 `rok::bare::mem::size_of`입니다. 문서와 진단은 정의한 모듈을 씁니다. 표준 라이브러리 자체의 테스트가 이 밖의 `pub use`를 거부합니다.
+모든 항목의 경로는 그 항목을 정의한 모듈 하나입니다. 같은 항목에 둘째 경로를 주는 `pub use` 재내보내기는 두 가지 꼴만 있습니다. 부모 모듈이 자식 모듈을 펼치는 꼴(`rok::core::collections::list::List`에 대한 `rok::core::collections::List`, `rok::core::crypto::Secret`, `rok::bare` 루트의 캐스트)과 암시적 가져오기(0.2)입니다. 암시적 가져오기는 해당 타깃에서 `rok::std::os`의 Ext 트레잇도 이름으로 적습니다(0.1.2). 어떤 모듈도 부모나 형제, 다른 계층의 항목을 다시 내보내지 않습니다. `Duration`은 `rok::core::time::Duration`일 뿐이고, `SeekFrom`은 `rok::core::io::SeekFrom`, `size_of`는 `rok::bare::mem::size_of`입니다. 문서와 진단은 정의한 모듈을 씁니다. 표준 라이브러리 자체의 테스트가 이 밖의 `pub use`를 거부합니다.

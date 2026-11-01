@@ -205,12 +205,12 @@ A benchmark takes a `Bench` handle and times a closure, so setup stays out of th
 #[bench]
 fn parse_1kb(b: Bench) {
     let input = sample(1024);               // setup: run once, not timed
-    b.bytes(1024);                          // optional: report throughput
+    b.set_bytes(1024);                       // optional: report throughput
     b.iter(|| parse(black_box(input)));     // the timed region
 }
 ```
 
-`b.iter(f)` performs the whole measurement (calibrate, warm up, sample); its result is black-boxed. `black_box` ([`rok::core`](../../refs-standard-libraries/README.md)) is an identity the optimizer cannot see through. Apply it to the inputs and result of the timed region so the work is neither hoisted out nor folded away. `b.bytes(n)` / `b.items(n)` add a throughput column. `Bench`, `black_box` and the statistics are library API; the method is defined in [9.9.11](909-debug-tools.md#9911-benchmarks).
+`b.iter(f)` performs the whole measurement (calibrate, warm up, sample); its result is black-boxed. `black_box` ([`rok::core::hint`](../../refs-standard-libraries/200-core/README.md#benchmarks--optimizer-hints)) is an identity the optimizer cannot see through. Apply it to the inputs and result of the timed region so the work is neither hoisted out nor folded away. `b.set_bytes(n)` / `b.set_items(n)` add a throughput column. `Bench`, `black_box` and the statistics are library API; the method is defined in [9.9.11](909-debug-tools.md#9911-benchmarks).
 
 - `--iters=N` fixes the number of calls per sample instead of calibrating.
 - `--samples=N` is the number of samples measured (default 10).

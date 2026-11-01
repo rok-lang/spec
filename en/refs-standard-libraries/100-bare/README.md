@@ -1,6 +1,6 @@
-# 1. Unsafe tier
+# 1. Bare tier
 
-The unsafe tier defines the standard library items that are low-level or dangerous. Tools that operate outside safe abstractions, such as raw pointers, transmute, raw allocation, GC pinning and FFI primitives, are all gathered here.
+The bare tier (`rok::bare`) defines the standard library items that are low-level or dangerous. Tools that operate outside safe abstractions, such as raw pointers, transmute, raw allocation, GC pinning and FFI primitives, are all gathered here.
 
 ## Dependencies
 
@@ -38,7 +38,7 @@ The implicitly applied prelude does not include unsafe items. `rok::bare::*` the
 ### FFI
 
 - [1.7. extern "C" / `CStr` / `CString` / `CPtr` - C ABI compatibility](107-ffi.md)
-- [1.8. WASM Component Model interface (`ffi.wit`)](108-wit.md)
+- [1.8. WASM Component Model interface (`ffi::wit`)](108-wit.md)
 
 ## Core design principles
 
@@ -65,7 +65,7 @@ let r: Ptr<i32> = rok::bare::ptr::from_exposed_provenance(addr);  // unsafe: fre
 | `Slice<T>`    | **N contiguous** Ts (length included)    | (ptr, len)      |
 | `CPtr<T>`     | C-compatible **nullable** pointer        | `T*` (nullable) |
 
-`Slice<T>` is a safe view defined in [2.9 collections](../200-core/209-collections.md) and does not belong to the unsafe tier. This chapter covers only the raw paths between a `Slice` and pointers: `ManyPtr::slice`, and a pin for the data pointer of a list.
+`Slice<T>` is a safe view defined in [2.9 collections](../200-core/209-collections.md) and does not belong to the bare tier. This chapter covers only the raw paths between a `Slice` and pointers: `ManyPtr::slice`, and a pin for the data pointer of a list.
 
 ### 3. GC + raw pointer - two separate type levels
 
@@ -97,24 +97,24 @@ The pitfalls of `as` casts on pointers in C and Rust are the biggest hazard. Rok
 
 ### 5. RAII via `using` block - no reliance on finalizers
 
-Every GC language has learned that finalizers are unreliable in a GC environment. External resources such as files, sockets and mutexes are therefore released by explicit `using` blocks. The GC never calls `drop` and there are no finalizers; the compiler releases a resource where its owner leaves scope, and a resource whose close can fail must be closed explicitly ([stdlib 2.13.4](../200-core/213-marker.md#2134-drop---cleanup-on-using-release)).
+Every GC language has learned that finalizers are unreliable in a GC environment. External resources such as files, sockets and mutexes are therefore released deterministically, never by the GC: a `Drop` type is affine, the compiler releases it where its last owner leaves scope (on every exit) or at the end of its `using` block, and a resource whose close can fail must be closed explicitly. The GC never calls `drop` and there are no finalizers ([stdlib 2.13.4](../200-core/213-marker.md#2134-drop---cleanup-on-release)).
 
 ```rok
-use rok::bare::ptr::{ConstPtr, CPtr, Ptr};
+use rok::bare::ptr::{ConstPtr, CPtr};
 
 extern "C" {
     fn fopen(path: ConstPtr<c_char>, mode: ConstPtr<c_char>) -> CPtr<u8>;
-    fn fclose(f: Ptr<u8>) -> i32;
+    fn fclose(f: CPtr<u8>) -> i32;
 }
 
 // a user-written wrapper: Drop closes the C handle
-struct File { raw: Ptr<u8>; }
+struct File { raw: CPtr<u8>; }
 
 impl Drop for File {
     fn drop(ref self) { unsafe { fclose(self.raw) }; }
 }
 
-using f = File { raw: opened } {   // opened: Ptr<u8> from fopen
+using f = File { raw: opened } {   // opened: non-null CPtr<u8> from fopen
     // ... use f.raw ...
 }     // ← _guaranteed_ fclose at end of scope (RAII via Drop)
 

@@ -1,6 +1,6 @@
-# 1. Unsafe 계층
+# 1. bare 계층
 
-Unsafe tier는 저수준이거나 위험한 표준 라이브러리 항목을 정의합니다. 원시 포인터, transmute, 원시 할당, GC 고정(pinning), FFI 기본 요소처럼 안전한 추상화 바깥에서 동작하는 도구는 모두 여기에 있습니다.
+bare 계층(`rok::bare`)은 저수준이거나 위험한 표준 라이브러리 항목을 정의합니다. 원시 포인터, transmute, 원시 할당, GC 고정(pinning), FFI 기본 요소처럼 안전한 추상화 바깥에서 동작하는 도구는 모두 여기에 있습니다.
 
 ## 의존성
 
@@ -38,7 +38,7 @@ let p: CPtr<u8> = unsafe { alloc(layout) };    // 실패 시 null
 ### FFI
 
 - [1.7. extern "C" / `CStr` / `CString` / `CPtr` - C ABI 호환](107-ffi.md)
-- [1.8. WASM Component Model 인터페이스 (`ffi.wit`)](108-wit.md)
+- [1.8. WASM Component Model 인터페이스 (`ffi::wit`)](108-wit.md)
 
 ## 핵심 설계 원칙
 
@@ -65,7 +65,7 @@ let r: Ptr<i32> = rok::bare::ptr::from_exposed_provenance(addr);  // unsafe: pro
 | `Slice<T>`    | **연속 N개** T (길이 포함)         | (ptr, len)      |
 | `CPtr<T>`     | C 호환 **nullable** 포인터         | `T*` (nullable) |
 
-`Slice<T>`는 [2.9 collections](../200-core/209-collections.md)에 정의된 안전한 뷰이므로 unsafe tier에 속하지 않습니다. 이 장은 `Slice`와 포인터 사이의 원시 경로만 다룹니다. `ManyPtr::slice`, 그리고 리스트의 데이터 포인터를 얻는 pin입니다.
+`Slice<T>`는 [2.9 collections](../200-core/209-collections.md)에 정의된 안전한 뷰이므로 bare 계층에 속하지 않습니다. 이 장은 `Slice`와 포인터 사이의 원시 경로만 다룹니다. `ManyPtr::slice`, 그리고 리스트의 데이터 포인터를 얻는 pin입니다.
 
 ### 3. GC와 원시 포인터: 두 타입 수준 분리
 
@@ -97,24 +97,24 @@ C와 Rust에서 포인터에 쓰는 `as` 캐스트의 함정은 가장 큰 위�
 
 ### 5. `using` 블록으로 RAII: finalizer에 의존하지 않음
 
-GC 환경에서는 finalizer를 믿을 수 없습니다. 모든 GC 언어가 겪어서 배운 사실입니다. 따라서 파일, 소켓, 뮤텍스 같은 외부 자원은 명시적인 `using` 블록으로 해제합니다. GC는 `drop`을 호출하지 않고, finalizer도 없습니다. 컴파일러는 주인이 스코프를 벗어나는 곳에서 자원을 해제하고, 닫기가 실패할 수 있는 자원은 직접 닫아야 합니다([stdlib 2.13.4](../200-core/213-marker.md#2134-drop-using-해제-시-정리)).
+GC 환경에서는 finalizer를 믿을 수 없습니다. 모든 GC 언어가 겪어서 배운 사실입니다. 따라서 파일, 소켓, 뮤텍스 같은 외부 자원은 GC가 아니라 정해진 지점에서 해제합니다. `Drop` 타입은 affine이어서, 컴파일러는 마지막 소유자가 스코프를 벗어나는 곳(모든 출구)이나 `using` 블록 끝에서 자원을 해제합니다. 닫기가 실패할 수 있는 자원은 직접 닫아야 합니다. GC는 `drop`을 호출하지 않고, finalizer도 없습니다([stdlib 2.13.4](../200-core/213-marker.md#2134-drop-해제-시-정리)).
 
 ```rok
-use rok::bare::ptr::{ConstPtr, CPtr, Ptr};
+use rok::bare::ptr::{ConstPtr, CPtr};
 
 extern "C" {
     fn fopen(path: ConstPtr<c_char>, mode: ConstPtr<c_char>) -> CPtr<u8>;
-    fn fclose(f: Ptr<u8>) -> i32;
+    fn fclose(f: CPtr<u8>) -> i32;
 }
 
 // 사용자가 쓴 wrapper: Drop 이 C handle 을 닫음
-struct File { raw: Ptr<u8>; }
+struct File { raw: CPtr<u8>; }
 
 impl Drop for File {
     fn drop(ref self) { unsafe { fclose(self.raw) }; }
 }
 
-using f = File { raw: opened } {   // opened: fopen 이 준 Ptr<u8>
+using f = File { raw: opened } {   // opened: fopen 이 준 null 아닌 CPtr<u8>
     // ... f.raw 사용 ...
 }     // ← scope 끝에서 _보장된_ fclose (RAII via Drop)
 

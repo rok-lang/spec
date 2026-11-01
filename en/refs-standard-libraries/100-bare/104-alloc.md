@@ -5,7 +5,7 @@ The `rok::bare::alloc` module provides an API for allocating and freeing memory 
 ## 1.4.1. API
 
 ```rok
-struct LayoutError { .. }                      // private fields (0.5.10)
+struct LayoutError { .. }                      // private fields; only the library builds one (0.5.10)
 impl LayoutError {
     fn message(self) -> str;
 }
@@ -37,7 +37,7 @@ unsafe fn dealloc_one<T>(ptr: Ptr<T>);
 unsafe fn dealloc_array<T>(ptr: Ptr<T>, n: usize);
 ```
 
-If `alloc` fails it returns `CPtr::null()`; it does not abort, so the caller must check and handle the result. `Layout`'s fields are private: read them with `size()` / `align()`. `array` throws `LayoutError` when `n` elements overflow `usize`, `from_size_align` when `align` is not a power of two; `message()` says which.
+If `alloc` fails it returns `CPtr::null()`; it does not abort, so the caller must check and handle the result. `alloc_array` also returns `CPtr::null()` when `n` elements overflow `usize`. `Layout`'s fields are private: read them with `size()` / `align()`. `array` throws `LayoutError` when `n` elements overflow `usize`, `from_size_align` when `align` is not a power of two; `message()` says which.
 
 ## 1.4.2. Example
 
@@ -81,7 +81,7 @@ impl<T> Allocation<T> {
 impl<T> Drop for Allocation<T> { /* frees the block */ }
 ```
 
-`new` throws `LayoutError` when the size overflows `usize` or the system has no memory (`message()` is `"out of memory"`). Copies of an `Allocation` share one block, so use it only inside the `using` block that frees it.
+`new` throws `LayoutError` when the size overflows `usize` or the system has no memory (`message()` is `"out of memory"`). `Allocation` implements `Drop`, so it is affine ([2.13.4](../200-core/213-marker.md#2134-drop---cleanup-on-release)): `let b = a` moves it, and its block is freed where its last owner releases it (the end of a `using` block or the owner leaving scope).
 
 ## 1.4.3. Relationship with the GC
 
@@ -92,7 +92,7 @@ impl<T> Drop for Allocation<T> { /* frees the block */ }
 | FFI `malloc`             | C `malloc`                  | ✗                  |
 | Large object (≥8KB)      | LOS (non-moving mark-sweep) | ✓ (but non-moving) |
 
-If a GC-managed raw buffer is needed, use `rok::core::collections::raw::GcBuf<T>` ([2.9.12](../200-core/209-collections.md#2912-gcbuft---raw-gc-buffer)) instead of this module.
+If a GC-managed raw buffer is needed, use `rok::bare::mem::GcBuf<T>` ([2.9.12](../200-core/209-collections.md#2912-gcbuft---raw-gc-buffer)) instead of this module.
 
 Regions outside the GC are not traced by it, so cleanup is the user's responsibility. Since objects there do not move, however, a `Ptr<T>` stays valid without a separate pin guard.
 

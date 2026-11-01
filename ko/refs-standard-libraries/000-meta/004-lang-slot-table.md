@@ -138,6 +138,11 @@
 | `rok::core::task::host_enter`          | `rok::std::wit` (컴포넌트 export가 호스트 루프에 들어감)   | 2.18 |
 | `rok::core::task::host_run`            | `rok::std::wit` (호스트 루프 한 바퀴)                      | 2.18 |
 | `rok::core::task::host_leave`          | `rok::std::wit` (`host_enter`를 끝냄)                      | 2.18 |
+| `rok::core::task::readable` / `writable` | `rok::std::net` (소켓이 준비될 때까지 대기)             | 2.18 |
+| `rok::core::io::IoError::retold`       | `rok::std::fs` (경로를 붙여 다시 말한 에러)                | 2.23 |
+| `rok::core::io::IoError::resolver`     | `rok::std::net` (실패한 이름 조회)                         | 2.23 |
+| `rok::core::io::Read::copy_handle` / `Write::copy_handle` | `rok::std`의 fs, net, process, `os::unix::net` (`io::copy`가 커널에 넘기는 OS 핸들) | 2.23 |
+| `rok::core::num::bigint::Int::from_literal` / `bigfloat::Float::from_literal` | `rok::std::rokon` (수 리터럴의 숫자열) | 2.1 |
 | `rok::bare::gc::Pinnable::gc_object`   | `rok::core::marker` (`GcPtr`를 복사하는 hand-off)          | 1.6  |
 
 ## 0.4.5. 메서드 슬롯(1)
@@ -178,14 +183,14 @@
 | f-string 자리                                | `fstr_display_fn` ... `fstr_text_any_fn` |
 | `await`, 취소가 실행하는 정리 코드           | `cancel_point_fn`, `cancel_left_fn`, `cleanup_running_fn`, `cleanup_done_fn` |
 | 컬렉션 둘 이상에 대한 브로드캐스트           | `broadcast_len_fn`                       |
-| `using` 블록 해제                            | `drop_method`                            |
+| 값 해제(`using` 블록 끝, 또는 마지막 주인이 스코프를 벗어남) | `drop_method`                 |
 | `Send` / `Sync` 자동 구현, `+ Send` 검사     | `send_trait`, `sync_trait`               |
 
 ## 0.4.7. 중복 / 누락 검출
 
 같은 슬롯에 표준 라이브러리 항목이 두 개 붙으면 컴파일러가 거부합니다(refs-lang 6.4.6의 중복 검출 규칙). 반대로 `iterator_trait` 같은 필수 슬롯이 비어 있으면 컴파일러는 그 슬롯에 의존하는 기능을 컴파일하지 않습니다. 여기서는 `for` 루프가 그런 기능입니다. 두 규칙 모두 슬롯이라는 약속에 진실의 원천이 하나만 있도록 강제합니다.
 
-실제로 붙는 항목은 [200-core/](../200-core/)의 각 장에 적혀 있습니다. 이 표의 모든 슬롯은 "참조" 열이 가리키는 장에 `#[lang(...)]`을 붙이는 위치가 있습니다. 이 표에 없는 슬롯 이름은 [refs-lang 6.4.8](../../refs-lang/006-meta-system/604-lang-magic.md)에 따라 컴파일 에러입니다. 예를 들어 `Stream`에는 슬롯이 없습니다([2.8.10](../200-core/208-stream.md)).
+실제로 붙는 항목은 [200-core/](../200-core/)의 각 장에 적혀 있습니다. 붙는 트레잇, 메서드, 타입, 중단 함수 슬롯은 모두 "참조" 열이 가리키는 장에 `#[lang(...)]`을 붙이는 위치가 있습니다. 훅 `_fn` 슬롯(`index_from_end_fn` ... `broadcast_len_fn`)은 컴파일러용이라 이 표에만 이름이 나오고, 0.4.2가 붙이지 않고 두는 내장 타입 슬롯에는 붙는 위치가 없습니다. 이 표에 없는 슬롯 이름은 [refs-lang 6.4.8](../../refs-lang/006-meta-system/604-lang-magic.md)에 따라 컴파일 에러입니다. 예를 들어 `Stream`에는 슬롯이 없습니다([2.8.10](../200-core/208-stream.md)).
 
 ## 0.4.8. 슬롯 이름 정책
 

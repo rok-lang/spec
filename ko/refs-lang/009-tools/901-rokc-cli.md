@@ -205,12 +205,12 @@ rokc bench [path] [filter]
 #[bench]
 fn parse_1kb(b: Bench) {
     let input = sample(1024);               // setup: 한 번만, 측정 안 함
-    b.bytes(1024);                          // 선택: 처리량 보고
+    b.set_bytes(1024);                       // 선택: 처리량 보고
     b.iter(|| parse(black_box(input)));     // 측정 구간
 }
 ```
 
-`b.iter(f)`가 측정 전체(보정, 예열, 표본 수집)를 맡고, 결과는 black_box를 거칩니다. `black_box`([`rok::core`](../../refs-standard-libraries/README.md))는 옵티마이저가 꿰뚫어 볼 수 없는 항등 함수입니다. 측정 구간의 입력과 결과에 적용하면 작업이 구간 밖으로 끌려 나가거나 상수로 접히지 않습니다. `b.bytes(n)` / `b.items(n)`은 처리량 열을 더합니다. `Bench`, `black_box`, 통계는 라이브러리 API이고, 측정 방법은 [9.9.11](909-debug-tools.md#9911-벤치마크)에서 정의합니다.
+`b.iter(f)`가 측정 전체(보정, 예열, 표본 수집)를 맡고, 결과는 black_box를 거칩니다. `black_box`([`rok::core::hint`](../../refs-standard-libraries/200-core/README.md#벤치마크--최적화-힌트))는 옵티마이저가 꿰뚫어 볼 수 없는 항등 함수입니다. 측정 구간의 입력과 결과에 적용하면 작업이 구간 밖으로 끌려 나가거나 상수로 접히지 않습니다. `b.set_bytes(n)` / `b.set_items(n)`은 처리량 열을 더합니다. `Bench`, `black_box`, 통계는 라이브러리 API이고, 측정 방법은 [9.9.11](909-debug-tools.md#9911-벤치마크)에서 정의합니다.
 
 - `--iters=N`은 보정 대신 표본 하나의 호출 횟수를 고정합니다.
 - `--samples=N`은 측정할 표본 수입니다(기본값 10).

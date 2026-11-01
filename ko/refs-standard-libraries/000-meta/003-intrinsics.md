@@ -14,7 +14,7 @@
 표준 라이브러리:    impl Add for i32 { fn add(self, rhs) { ... } }
               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
               여기 "..." 자리에 무엇을 적나?
-              "self + rhs" 라 쓰면 또 Add::add 디스패치 → 무한 재귀
+              intrinsic 이 없으면 "self + rhs" 가 또 Add::add 디스패치 → 무한 재귀
               raw `arith.addi` 을 적을 수도 없음 (사용자 언어 표면 아님)
 ↓
 LLVM:        add i32 %a, %b
@@ -38,13 +38,21 @@ impl Add for i32 {
 }
 ```
 
+자유 함수(`mem::size_of`, `ptr::addr_of`)와 고유 메서드(`MaybeUninit::as_ptr`)에도 같은 방식으로 `#[intrinsic]`을 붙입니다. 그 호출이 곧 intrinsic입니다.
+
 컴파일러는 다음 순서로 동작합니다. `Add::add(a, b)` 호출을 디스패치할 때 method_table에서 `i32::add`를 찾습니다. 그다음 그 메서드에 `#[intrinsic("rok.add.i32")]`가 붙어 있는지 확인합니다. 붙어 있으면 본문을 낮추는 대신 `PrimOp::Add { ty: i32 }`를 직접 내보냅니다. 이 PrimOp는 MIR / MLIR / LLVM으로 낮추는 단계를 거쳐 결국 `add i32` 명령이 됩니다.
 
 이 메커니즘 덕분에 컴파일러의 가로채기가 트레잇 디스패치 안에 녹아듭니다.
 
 ## 0.3.3. intrinsic 이름 규약
 
-intrinsic 이름은 `rok.<OP>.<TYPE>` 형태입니다.
+intrinsic 이름은 세 형태 중 하나입니다.
+
+- `rok.<OP>.<TYPE>`: 한 타입의 primitive 연산(`rok.add.i32`). 복합 대입 `rok.<OP>_assign.<TYPE>`(`rok.add_assign.i32`)도 이 형태입니다.
+- `rok.<area>.<op>`: `ptr`, `atomic`, `buf`, `transfer` 같은 한 영역의 연산(`rok.ptr.read`, `rok.atomic.cas`).
+- `rok.<name>`: 이름에 타입이 없는 제네릭 연산(`rok.size_of`, `rok.align_of`, `rok.addr_of`, `rok.drop_in_place`, `rok.hand_over`).
+
+primitive 형태는 다음과 같습니다.
 
 ```
 rok.add.i32        i32 + i32
@@ -69,7 +77,7 @@ rok.not.i32        bitwise not (정수)
 rok.cast.i32.i64   type cast
 ```
 
-각 OP는 컴파일러의 `PrimOp` enum과 1:1로 대응합니다. 이름은 LLVM 명령어와 Rust의 intrinsic 명명 규약을 참고했습니다.
+primitive 형태의 각 OP는 컴파일러의 `PrimOp` enum과 1:1로 대응합니다. 이름은 LLVM 명령어와 Rust의 intrinsic 명명 규약을 참고했습니다.
 
 ## 0.3.4. 본문 fallback 정책
 
@@ -99,7 +107,9 @@ impl Add for i32 {
 
 규칙을 요약하면 다음과 같습니다. intrinsic을 켠 정상 컴파일 경로에서는 본문을 무시합니다. intrinsic을 알아보지 못하는 실험용 백엔드나 인터프리터 환경에서는 본문을 실제로 씁니다. 본문이 비어 있으면 stub `panic("intrinsic not available")`로 처리합니다.
 
-메서드를 `fn` 값으로 꺼내면(`let f = i32::add;`) 그 값을 호출할 때 본문이 실행됩니다. intrinsic은 직접 호출 지점에만 적용됩니다. 그래서 intrinsic 메서드의 본문도 같은 의미의 올바른 구현이어야 합니다.
+메서드를 `fn` 값으로 꺼내면(`let f = i32::add;`) 그 값을 호출할 때 본문이 실행됩니다. intrinsic은 직접 호출 지점에만 적용됩니다. 그래서 intrinsic 메서드의 본문도 같은 의미의 올바른 구현이어야 합니다. 본문 안의 primitive `self + rhs`는 그 자체가 이 intrinsic의 직접 호출이므로 본문으로 돌아가지 않고 기계 연산으로 낮아집니다.
+
+intrinsic은 본문 없는 선언(`pub fn size_of<T>() -> usize;`)일 수도 있습니다. 이 경우 fallback이 없습니다. intrinsic이 유일한 구현이고, 직접 호출로만 씁니다.
 
 ## 0.3.5. 사용자 코드의 intrinsic 사용
 

@@ -14,7 +14,7 @@ compiler:          dispatch Add::add(a, b) call     (refs-lang 3.1)
 standard library:  impl Add for i32 { fn add(self, rhs) { ... } }
               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
               what goes in the "..." here?
-              writing "self + rhs" dispatches Add::add again → infinite recursion
+              without an intrinsic, "self + rhs" would dispatch Add::add again → infinite recursion
               raw `arith.addi` cannot be written either (not part of the user language surface)
 ↓
 LLVM:        add i32 %a, %b
@@ -38,13 +38,21 @@ impl Add for i32 {
 }
 ```
 
+Free functions (`mem::size_of`, `ptr::addr_of`) and inherent methods (`MaybeUninit::as_ptr`) carry `#[intrinsic]` the same way; a call to one is the intrinsic.
+
 The compiler proceeds as follows. When dispatching an `Add::add(a, b)` call, it finds `i32::add` in the method_table and then checks whether `#[intrinsic("rok.add.i32")]` is attached to that method. If so, it emits `PrimOp::Add { ty: i32 }` directly instead of lowering the body; this then passes through the MIR / MLIR / LLVM lowering stages and ultimately reaches the `add i32` instruction.
 
 This mechanism absorbs the compiler's interception into trait dispatch.
 
 ## 0.3.3. Intrinsic naming convention
 
-Intrinsic names have the form `rok.<OP>.<TYPE>`.
+Intrinsic names take one of three forms:
+
+- `rok.<OP>.<TYPE>`: a primitive operation on one type (`rok.add.i32`), including the compound assignments `rok.<OP>_assign.<TYPE>` (`rok.add_assign.i32`);
+- `rok.<area>.<op>`: an operation of one area, such as `ptr`, `atomic`, `buf` or `transfer` (`rok.ptr.read`, `rok.atomic.cas`);
+- `rok.<name>`: a generic operation with no type in its name (`rok.size_of`, `rok.align_of`, `rok.addr_of`, `rok.drop_in_place`, `rok.hand_over`).
+
+The primitive form:
 
 ```
 rok.add.i32        i32 + i32
@@ -69,7 +77,7 @@ rok.not.i32        bitwise not (integer)
 rok.cast.i32.i64   type cast
 ```
 
-Each OP corresponds 1:1 to the compiler's `PrimOp` enum. The names themselves are influenced by LLVM instructions and Rust's intrinsic naming conventions.
+Each OP of the primitive form corresponds 1:1 to the compiler's `PrimOp` enum. The names themselves are influenced by LLVM instructions and Rust's intrinsic naming conventions.
 
 ## 0.3.4. Body fallback policy
 
@@ -99,7 +107,9 @@ impl Add for i32 {
 
 The rules are summarized as follows. On the normal compilation path with intrinsics enabled, the body is ignored; in experimental backends or interpreted environments that do not recognize the intrinsic, the body is actually used. If the body is empty, it is treated as a stub `panic("intrinsic not available")`.
 
-When the method is taken out as an `fn` value (`let f = i32::add;`), calling that value runs the body. The intrinsic applies only at direct call sites, so the body of an intrinsic method must also be a correct implementation with the same meaning.
+When the method is taken out as an `fn` value (`let f = i32::add;`), calling that value runs the body. The intrinsic applies only at direct call sites, so the body of an intrinsic method must also be a correct implementation with the same meaning. Inside the body, `self + rhs` on a primitive is itself a direct call of this intrinsic, so it lowers to the machine operation, not back into the body.
+
+An intrinsic may also be a declaration with no body (`pub fn size_of<T>() -> usize;`). It has no fallback: the intrinsic is its only implementation, and it is used only by direct calls.
 
 ## 0.3.5. Intrinsics in user code
 

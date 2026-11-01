@@ -490,7 +490,7 @@ rok bench
 5. **Statistics.** The median, the quartiles and the median absolute deviation (MAD) of the samples are computed. Samples outside the Tukey fences (1.5 IQR beyond the quartiles) are counted as outliers. The reported figure is the **median (+/- MAD)** of all samples, which an occasional slow sample barely moves.
 6. **GC awareness.** The runtime's collection counter is read around each sample, and the samples during which a collection ran are counted. The human line ends with `[<n> outliers, <m> gc]` when either count is not zero; `--format=rokbench` always gives both.
 
-`black_box(x)` is an identity the optimizer cannot see through; apply it to the inputs and result of the timed closure so the work is neither hoisted out nor folded away. `b.bytes(n)` / `b.items(n)` turn the per-call time into a throughput (`MiB/s`, `Melem/s`).
+`black_box(x)` is an identity the optimizer cannot see through; apply it to the inputs and result of the timed closure so the work is neither hoisted out nor folded away. `b.set_bytes(n)` / `b.set_items(n)` turn the per-call time into a throughput (`MiB/s`, `Melem/s`).
 
 Output is aligned and in human units, to a terminal or not; `--format=rokbench` gives a stable one-line-per-bench machine form for regression tools ([9.1.2](901-rokc-cli.md#rokc-bench-benchmarks)), and `--format=json` gives JSON records ([9.9.12](#9912-ci--test-integration)). A benchmark that never calls `b.iter` is reported as having measured nothing, a warning and not a failure. `--iters` / `--samples` adjust the sampling.
 

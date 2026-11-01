@@ -49,7 +49,7 @@ struct Pinned<T> {
 #[sealed]
 trait Pinnable {
     // 값의 data 를 담은 GC 객체; 움직일 것이 없으면 none
-    #[internal]
+    #[internal("write `pin(x)` to keep a value in place")]
     fn gc_object(self) -> GcBuf<u8> | none;
 }
 impl<T> Pinnable for List<T> { /* list 의 buffer; 비어 있으면 none */ }
@@ -71,7 +71,7 @@ impl<T> Drop for Pinned<T> {
 ```
 
 guard입니다. `pin()`이 반환한 `Pinned<T>`가 살아 있는 동안 GC는 그 객체를 옮기지 않습니다.
-`Pinned<T>`는 한 번만 해제되는 `Drop` 값입니다([2.13.4](../200-core/213-marker.md#2134-drop-using-해제-시-정리)). guard의 소유자가 스코프를 벗어나는 곳에서,
+`Pinned<T>`는 한 번만 해제되는 `Drop` 값입니다([2.13.4](../200-core/213-marker.md#2134-drop-해제-시-정리)). guard의 소유자가 스코프를 벗어나는 곳에서,
 또는 guard를 묶은 `using` 블록이 끝날 때 `Pinned::drop`이 호출되어 고정이 풀립니다. pin은 횟수를 셉니다. 객체는 고정한 횟수만큼 풀어 준 뒤에야 다시 움직입니다. `pin`은 `gc_object`가 가리키는 객체를 고정합니다. `none`이 돌아오면 아무것도 고정하지 않습니다. `GcBuf<u8>`은 [1.3.9](103-mem.md#139-gcbuft와-buf_-기본-요소)에 나오는, 타입이 지워진 GC 버퍼입니다. `Pinnable`은 sealed이고 `gc_object`는 toolchain 내부 항목입니다([6.2.16](../../refs-lang/006-meta-system/602-built-in-attributes.md#6216-internal-toolchain-패키지끼리-공유)). 프로그램은 `pin(x)`로 고정하고 `gc_object`를 부르지 않습니다.
 
 ### 예: FFI 호출

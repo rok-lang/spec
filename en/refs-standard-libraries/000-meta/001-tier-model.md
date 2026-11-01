@@ -4,7 +4,7 @@ The Rok standard libraries are divided into three tiers. Each tier may depend on
 area, and the import rules in user code differ as well.
 
 ```
-rok::bare   (base, depends only on runtime extern "C")
+rok::bare   (base, depends only on the runtime ABI extern "rok")
   ↓
 rok::core     (foundation, safe, all targets; uses bare internally)
   ↓
@@ -71,7 +71,7 @@ The following dependencies are allowed.
 
 | Dependent   | May depend on                                             |
 |-------------|-----------------------------------------------------------|
-| `rok::bare`  | runtime extern "C"                                       |
+| `rok::bare`  | the runtime ABI `extern "rok"`                           |
 | `rok::core`  | `rok::bare`                                              |
 | `rok::std`  | `rok::core`, `rok::bare`                                  |
 | User code   | `rok::core` (implicit), `rok::std` (explicit), `rok::bare` (explicit) |
@@ -83,7 +83,9 @@ either: once a low-level tier starts depending on a high-level one, the layering
 meaning. Finally, circular dependencies among individual `rok::std::*` modules are forbidden, so
 each std module remains a unit that can be built independently.
 
-The rule governs what a tier writes: its `use`s and paths. Each tier's internal `use rok::core::**` still supplies it the language's vocabulary (the 0.4 slot items, `List`, `Slice`, `Result`, `panic`) that bare's own signatures use (1.6, 1.7).
+The rule governs what a tier writes: its `use`s and paths. Each tier's internal `use rok::core::**` still supplies it the language's vocabulary that bare's own signatures and impls use (1.6, 1.7): the 0.4 slot items, `List`, `Slice`, `Result`, `panic`, and the traits bare's types implement, `Debug` / `Formatter` / `FmtError`, `Hash` / `Hasher`, `Error`, `AsBytes`, with `Utf8Error` and `str::from_utf8`.
+
+The prelude is the one place `rok::core` names `rok::std` items: on their targets `rok::core::prelude` lists the `rok::std::os` Ext traits (0.2.3), so their methods need no `use`. That is the implicit import (0.2), not a dependency of core's own code, which still builds without `rok::std`.
 
 ## 0.1.3. Build units
 
@@ -125,7 +127,7 @@ The next breaking release removes the item or makes it `unsafe`.
 Every item has one path, the module that defines it. A second path to the same item (a `pub use`
 re-export) exists only in two shapes: a parent module that flattens its child modules
 (`rok::core::collections::List` for `rok::core::collections::list::List`, `rok::core::crypto::Secret`,
-the `rok::bare` root casts), and the implicit import (0.2). No module re-exports its parent's
+the `rok::bare` root casts), and the implicit import (0.2), which also names the `rok::std::os` Ext traits on their targets (0.1.2). No module re-exports its parent's
 items, a sibling's or another tier's: `Duration` is `rok::core::time::Duration` and nothing else,
 `SeekFrom` is `rok::core::io::SeekFrom`, `size_of` is `rok::bare::mem::size_of`. Documentation and
 diagnostics name the defining module. The standard library's own tests reject any other `pub use`.

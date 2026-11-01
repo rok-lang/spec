@@ -19,7 +19,7 @@ The **3-tier model** prescribes the direction of dependencies: `std` may use `co
 `core` may use `bare`, but dependencies in the opposite direction are not allowed. The **import policy**
 specifies the prelude, `rok::core::prelude`, that every user file imports implicitly, and lists its names. The **intrinsic** entry that follows covers how
 standard library methods are connected to the compiler backend (PrimOp, etc.), and finally the **lang
-slot** entry shows how the 48 slots the compiler looks up through the `#[lang(...)]` attribute map to
+slot** entry shows how the 67 slots the compiler looks up through the `#[lang(...)]` attribute map to
 standard library items.
 
 Only once these policies are defined can the trait definitions of [200-core/](../200-core/) follow.

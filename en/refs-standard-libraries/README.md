@@ -21,7 +21,7 @@ The language specification is collected separately in [`refs-lang/`](../refs-lan
 The standard libraries are not a single flat plane but are divided into three layers. Almost all systems code is written on top of safe abstractions, but implementing those abstractions eventually requires handling raw memory and FFI somewhere. Moreover, features that are meaningful only with a host environment, such as files or networking, must not exist at all on targets without such an environment, such as embedded. To expose these differences directly in the dependency graph, the libraries follow a 3-tier structure under the virtual namespace `rok::`: `rok::bare` / `rok::core` / `rok::std`.
 
 ```
-rok::bare   (base, depends only on runtime extern "C")
+rok::bare   (base, depends only on the runtime ABI extern "rok")
   ↓
 rok::core   (foundation, safe, all targets; uses rok::bare internally)
   ↓
@@ -50,7 +50,7 @@ Library-wide policies and tables.
 - [0.4. `#[lang]` slot mapping table](000-meta/004-lang-slot-table.md)
 - [0.5. Notation](000-meta/005-notation.md)
 
-### 1. Unsafe - [100-bare/](100-bare/README.md)
+### 1. Bare - [100-bare/](100-bare/README.md)
 
 Low-level / dangerous area. Explicit import required.
 
@@ -61,13 +61,13 @@ Low-level / dangerous area. Explicit import required.
 - 1.5. [Volatile memory access](100-bare/105-volatile.md)
 - 1.6. [`Pinned<T>` - GC pin (Go 1.21 Pinner model)](100-bare/106-gc-pin.md)
 - 1.7. [FFI - `extern "C"` / `CStr` / `CString`](100-bare/107-ffi.md)
-- 1.8. [WASM Component Model (`ffi.wit`)](100-bare/108-wit.md)
+- 1.8. [WASM Component Model (`ffi::wit`)](100-bare/108-wit.md)
 
-### 2. Rok - [200-core/](200-core/README.md)
+### 2. Core - [200-core/](200-core/README.md)
 
 Safe area. All targets. Its prelude, `use rok::core::prelude::*;`, applied implicitly.
 
-- 2.1. [Numeric types (`int`, `float`, auto-promote)](200-core/201-numbers.md)
+- 2.1. [Numeric types (fixed-width, `Int`, `Float`)](200-core/201-numbers.md)
 - 2.2. [Niche wrappers (`NonZero`, `NonNan`, `Finite`, `Positive`)](200-core/202-non-zero.md)
 - 2.3. [Arithmetic / bitwise traits (`Add`, `Sub`, ..., `Shl`, `Shr`)](200-core/203-ops.md)
 - 2.4. [Compound assignment traits (`AddAssign`, ...)](200-core/204-ops-assign.md)
@@ -75,13 +75,13 @@ Safe area. All targets. Its prelude, `use rok::core::prelude::*;`, applied impli
 - 2.6. [Broadcast traits (`DotAdd`, `DotMul`, ...)](200-core/206-broadcast.md)
 - 2.7. [Iter traits (`Iterator`, `IntoIterator`)](200-core/207-iter.md)
 - 2.8. [`Stream` (async iterator)](200-core/208-stream.md)
-- 2.9. [Collections (`List`, `Dict`, `Set`, `Tuple`, `Slice`)](200-core/209-collections.md)
+- 2.9. [Collections (`List`, `Dict`, `Set`, `Slice`, tuples)](200-core/209-collections.md)
 - 2.10. [fmt (`Display`, `Debug`, `Formatter`)](200-core/210-fmt.md)
 - 2.11. [Conversion (`From`, `Into`, `TryFrom`, `saturating_into`, ...)](200-core/211-conversion.md)
 - 2.12. [Reflection (`Reflect`, `Inspect`)](200-core/212-reflect.md)
-- 2.13. [Marker traits (`Clone`, `Copy`)](200-core/213-marker.md)
+- 2.13. [Marker traits (`Clone`, `Copy`, `Drop`)](200-core/213-marker.md)
 - 2.14. [Error types (`TypeError`, `ValueError`, ...)](200-core/214-error.md)
-- 2.15. [Strings (`str` single mutable, `char`, `c_char`)](200-core/215-string.md)
+- 2.15. [Strings (`str`, `StrBuf`, `char`, `c_char`)](200-core/215-string.md)
 - 2.16. [Sync primitives (`Atomic`, `Mutex`, `RwLock`, `Cell`)](200-core/216-sync.md)
 - 2.17. [`Channel`](200-core/217-channel.md)
 - 2.18. [`task::` API](200-core/218-task.md)
@@ -100,7 +100,7 @@ Target-dependent area. Explicit import.
 
 - 3.1. [`fs::` - file system (atomic ops, Dir capability, reflink)](300-std/301-fs.md)
 - 3.2. [`net::` - TCP/UDP/Unix + TLS 1.3 (HTTP is external)](300-std/302-net.md)
-- 3.3. [`time::` - `Instant` / `SystemTime` / `Duration` / `BootTime`](300-std/303-time.md)
+- 3.3. [`time::` - `SystemTime` / `BootTime` (with `Instant` / `Duration` from `rok::core::time`)](300-std/303-time.md)
 - 3.4. [`thread::` - OS threads (1:1, separate from tasks)](300-std/304-thread.md)
 - 3.5. [`io::` - moved to `rok::core::io` (2.23)](300-std/305-io.md)
 - 3.6. [`env::` - environment variables / args / directories](300-std/306-env.md)
@@ -125,7 +125,7 @@ Each item is identified by a stable section number (`<chapter>.<section>`). The 
 ```
 refs-standard-libraries 2.3        →  rok ops (Add/Sub/...)
 refs-standard-libraries 1.1        →  unsafe Ptr<T>
-refs-standard-libraries 3.5.2      →  std io (specific subsection)
+refs-standard-libraries 3.1.2      →  std fs (specific subsection)
 ```
 
 ### Search
