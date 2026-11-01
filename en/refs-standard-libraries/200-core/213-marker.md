@@ -148,7 +148,8 @@ trait Drop {
 A value whose type implements `Drop` is affine: it has one owner, and it is released once. A struct, tuple, enum or sum that holds one is affine too.
 
 - `let b = a` moves the value: `b` owns it, and using `a` afterwards is a compile error (E202). Storing it into a struct, a tuple, an enum or a container, capturing it in a closure or an `async` block, and returning it move it the same way.
-- A call takes the value only when the callee keeps it: stores it, returns it, closes it, or passes it to a call that keeps it. Any other call borrows it, and the caller still owns it.
+- A call takes the value only when the callee keeps it: stores it, returns it, closes it, or passes it to a call that keeps it. Any other call borrows it, and the caller still owns it. An `async fn` call that is awaited at once is such a call too: the argument comes back to the caller when the `await` ends, unless the function's body keeps it.
+- An element seen while iterating a container (`for x in list`) or read from one stays the container's.
 - `clone()` (`try_clone()` for a `File`) makes an independent value with its own owner.
 - A part moves out of a struct only through `marker::replace(ref s.f, v)` or `marker::take(ref s.f)`, which leave a new value in its place.
 - `unsafe { marker::share(x) }` makes a second handle the compiler does not follow: it neither moves nor releases `x`. Using it after the owner released the value is the program's to rule out.
@@ -164,7 +165,7 @@ let copy = other.clone(); // a second sender with its own owner
 
 The compiler releases a value where its owner leaves scope, on every exit (normal completion, `return`, `break`, error propagation), and when a task finishes or is cancelled, for what its `async` block captured. `using` releases its value at the end of its block ([refs-lang 3.17 `using`](../../refs-lang/003-expressions/317-using-expression.md)). A value that moved away is released by its new owner, not here.
 
-A type whose close can fail implements `io::Close` (`fn close(self) throws (IoError)`): `File`, a `BufWriter` or `LineWriter` over one, and any struct holding one. The compiler does not close such a value for you, since the close's error would be lost: close it with `try x.close()` or bind it with `using`. Leaving its scope open on some path is a compile error; a path that leaves with an error releases it (the close's own error is dropped there).
+A type whose close can fail implements `io::Close` (`fn close(self) throws (IoError)`): `File`, a `BufWriter` or `LineWriter` over one, and any struct holding one. The compiler does not close such a value for you, since the close's error would be lost: close it with `try x.close()` or bind it with `using`. Leaving its scope open on some path is a compile error; a path that leaves with an error releases it (the close's own error is dropped there). `try?` drops the error it catches, so `try?` on a call whose error can hold such a value (`SendError<File>` hands back the unsent value) is a compile error: catch the error with `try .. catch`, take the value out and close it. A failed `try!` panics, so the error it holds needs no close.
 
 - It is called on normal completion, `return`, `break` and error propagation alike.
 - Multiple bindings are dropped in reverse declaration order (LIFO).
