@@ -36,17 +36,22 @@ Reads and writes map to different traits, so attempting to write to read-only da
 
 For types indexed by position (`List`, `Slice`, fixed arrays `[T; N]`, and the slice bounds of `str` / `StrBuf`), a negative **signed integer** index counts from the end. The actual position is `len + i`.
 
+This is a rule of the index's value, not of how it is written: a negative value computed at run time counts from the end exactly as a literal does, and there is no separate from-the-end form. With `i = 0`, `xs[i - 1]` is the last element, not a panic.
+
 ```rok
 let xs = [10, 20, 30];
 xs[-1];                // 30
 let i = -2;
 xs[i];                 // 20 (variables too, not just literals)
+let j = 0;
+xs[j - 1];             // 30 (a computed -1 is the last element)
 xs[-4];                // panic: index -4 out of bounds for length 3
 ```
 
 - An unsigned integer index is the position as is, with no extra cost for counting from the end.
 - An untyped negative literal index is `isize`.
-- If `len + i < 0`, it panics (`index -4 out of bounds for length 3`).
+- If `len + i < 0`, it panics (`index -4 out of bounds for length 3`). A non-negative index past the end panics too (`xs[3]`).
+- An index that must not count from the end is unsigned (`usize`), or is checked before use.
 - Types indexed by key (`Dict`) are unaffected. A negative key is just a key.
 - The conversion uses `rok::core::index::index_from_end(i: isize, len: usize) -> usize`.
 
@@ -84,7 +89,7 @@ slice_expr  := expr? ':' expr? (':' expr?)?
 
 The basic form `[start : end]` denotes the region from start (inclusive) to end (exclusive). A step may be added: `[start : end : step]`. The semantics are **the same as Python slices**.
 
-- Bounds are clamped to the length. Slicing never panics because of range. `xs[5:100]` takes as much as possible; `start >= end` (positive step) gives an empty result.
+- Bounds are clamped to the length. Slicing never panics because of range, whichever form writes the bounds (`a:b` or a range `a..b`). `xs[5:100]` takes as much as possible; `start >= end` (positive step) gives an empty result.
 - A negative signed integer bound counts from the end (`len + i`) and is then clamped. `xs[-10:]` is everything; `xs[:-10]` is empty.
 - With a positive step, an omitted `start` is 0 and an omitted `end` is the length. An omitted step is 1.
 - With a negative step, bounds are read as in Python: walk backward from `start` up to just before `end`. An omitted `start` is the last element; an omitted `end` is before the first element.
@@ -98,6 +103,9 @@ xs[5:100];             // [] (clamp)
 xs[-10:];              // [1, 2, 3, 4, 5]
 xs[:-10];              // []
 xs[3:1];               // [] (start >= end)
+xs[1..10];             // [2, 3, 4, 5] (a range clamps too)
+xs[3..1];              // []
+"abc"[1..10];          // "bc"
 xs[::-1];              // [5, 4, 3, 2, 1]
 xs[-1:0:-1];           // [5, 4, 3, 2]
 xs[3:1:-1];            // [4, 3] (positions 3, 2)
@@ -105,7 +113,7 @@ xs[1:4:-2];            // []
 xs[::0];               // panic: step 0
 ```
 
-Single-element indexing (3.6.1) differs: negatives count from the end, but going out of range panics.
+Single-element indexing (3.6.1) differs: negatives count from the end, but going out of range panics. Both rules are by design: an index names one element, which must exist; a slice names a region, which may be empty.
 
 Bounds of `str` / `StrBuf` are byte offsets; they are clamped first, and if the resulting position falls in the middle of a UTF-8 character, it panics. `str` slices have no step (`s[::2]` is a type error).
 

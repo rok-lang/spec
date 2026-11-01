@@ -509,8 +509,18 @@ Every toolchain installed in one `$ROK_HOME` reads and writes the same files the
 - `install.ps1` puts `$ROK_HOME\bin` first on the user's `Path` and writes `$ROK_HOME\completions\rok.ps1`, loaded by a guarded line in the PowerShell profile, added once.
 - `install.sh` and `install.ps1` print status lines on stderr as `rok` does, in the same palette and by the same rules ([9.1.5](901-rokc-cli.md#915-global-options), [9.1.8](901-rokc-cli.md#colour)), without `tput`. `install.sh` tests its stderr, so `curl .. | sh` on a terminal is coloured.
 - `--no-modify-path` (`install.ps1 -NoModifyPath`), or `ROK_NO_MODIFY_PATH=1`, leaves the shell files, `Path` and the profile alone and prints what to add to `PATH`.
-- Releases are served from `$ROK_DIST` (default `https://github.com/rok-lang/rok/releases`): `<dist>/download/v<version>/<archive>` with its `.sha256`; `<dist>/download/channels/rok-version-<series>`, one line naming the newest release of that series; and `<dist>/latest/download/rok-version`, one line naming the newest release of any series.
+- Releases are served from `$ROK_DIST` (default `https://github.com/rok-lang/rok/releases`): `<dist>/download/v<version>/<archive>` with its `.sha256`; `<dist>/download/channels/rok-version-<series>`, one line naming the newest release of that series; and `<dist>/latest/download/rok-version`, one line naming the newest release of any series. A release candidate (`<version>-rc.N`) is a prerelease: `latest/` never names it, so it is installed only by its full version.
 - `rok toolchain update <series>` / `install <series>` and `install.sh --version <series>` (`install.ps1 -Version <series>`) read the series' channel file. While it does not exist (HTTP 404) they read `latest/download/rok-version` instead and use it only when it names a release of that series; otherwise it is an error asking for a full version.
+
+### Installer contract
+
+The `rok toolchain update` / `install` of the 0.1.0 through 0.1.6 toolchains and the install scripts of those releases must be able to install every later release, so a release archive keeps what they rely on. This contract is frozen; a release that breaks it is not published.
+
+- The name: `rok-<version>-<triple>.tar.gz` (Windows `rok-<version>-<triple>.zip`), and outside Windows also `.tar.xz`, served as in Distribution above, each with its `.sha256`.
+- The layout: one top directory `rok-<version>-<triple>/` holding `bin/rok` and `bin/rokc` (Windows `bin\rok.exe` and `bin\rokc.exe`), `lib/<runtime>` (`lib/librokr.a`; Windows `lib\rokr.lib`) and `lib/rok/core/src/lib.rok`.
+- `bin/rokc --version --verbose` prints `rokc <version>` as its first line (optionally followed by a space and more text) and a line `host: <triple>`.
+
+The `rok-mlir-dev-<version>-<triple>` bundle beside a release is not part of the contract.
 
 ## 9.10.7. Inline manifest for single-file scripts
 

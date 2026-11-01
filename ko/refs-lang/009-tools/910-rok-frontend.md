@@ -544,8 +544,18 @@ rok toolchain clean                        # 기본값을 제외한 설치된 �
 - `install.ps1`은 `$ROK_HOME\bin`을 사용자 `Path` 맨 앞에 둡니다. 그리고 `$ROK_HOME\completions\rok.ps1`을 쓰고, PowerShell 프로필에 가드한 줄을 한 번 더해 이 파일을 읽게 합니다.
 - `install.sh`와 `install.ps1`은 `rok`처럼 stderr에 상태 줄을 출력하고, 같은 팔레트와 규칙([9.1.5](901-rokc-cli.md#915-전역-옵션), [9.1.8](901-rokc-cli.md#색))을 `tput` 없이 따릅니다. `install.sh`는 stderr를 보므로 터미널에서 `curl .. | sh`도 색이 납니다.
 - `--no-modify-path`(`install.ps1 -NoModifyPath`)나 `ROK_NO_MODIFY_PATH=1`을 주면 셸 파일, `Path`, 프로필을 건드리지 않고 `PATH`에 더할 내용을 출력합니다.
-- 릴리스는 `$ROK_DIST`(기본값 `https://github.com/rok-lang/rok/releases`)에서 내려받습니다. `<dist>/download/v<version>/<archive>`와 그 `.sha256`이 있습니다. `<dist>/download/channels/rok-version-<series>`는 그 시리즈의 가장 새 릴리스를 한 줄로 적습니다. `<dist>/latest/download/rok-version`은 시리즈와 상관없이 가장 새 릴리스를 한 줄로 적습니다.
+- 릴리스는 `$ROK_DIST`(기본값 `https://github.com/rok-lang/rok/releases`)에서 내려받습니다. `<dist>/download/v<version>/<archive>`와 그 `.sha256`이 있습니다. `<dist>/download/channels/rok-version-<series>`는 그 시리즈의 가장 새 릴리스를 한 줄로 적습니다. `<dist>/latest/download/rok-version`은 시리즈와 상관없이 가장 새 릴리스를 한 줄로 적습니다. 릴리스 후보(`<version>-rc.N`)는 prerelease입니다. `latest/`는 이를 적지 않으므로, 전체 버전으로만 설치합니다.
 - `rok toolchain update <series>` / `install <series>`와 `install.sh --version <series>`(`install.ps1 -Version <series>`)는 그 시리즈의 채널 파일을 읽습니다. 채널 파일이 아직 없으면(HTTP 404) 대신 `latest/download/rok-version`을 읽고, 그것이 그 시리즈의 릴리스를 적을 때만 씁니다. 그렇지 않으면 전체 버전을 적으라는 에러입니다.
+
+### 설치 계약
+
+0.1.0부터 0.1.6까지 toolchain의 `rok toolchain update` / `install`과 그 릴리스들의 설치 스크립트는 이후의 모든 릴리스를 설치할 수 있어야 합니다. 그래서 릴리스 아카이브는 이들이 기대는 것을 지킵니다. 이 계약은 고정이며, 이를 깨는 릴리스는 내보내지 않습니다.
+
+- 이름: `rok-<version>-<triple>.tar.gz`(Windows는 `rok-<version>-<triple>.zip`)이고, Windows가 아니면 `.tar.xz`도 있습니다. 위의 배포 절에서처럼 내려받으며, 각각 옆에 `.sha256`이 있습니다.
+- 레이아웃: 최상위 디렉터리 `rok-<version>-<triple>/` 하나에 `bin/rok`과 `bin/rokc`(Windows는 `bin\rok.exe`와 `bin\rokc.exe`), `lib/<runtime>`(`lib/librokr.a`, Windows는 `lib\rokr.lib`), `lib/rok/core/src/lib.rok`이 있습니다.
+- `bin/rokc --version --verbose`는 첫 줄에 `rokc <version>`(뒤에 공백과 다른 글이 올 수 있음)을, 그리고 `host: <triple>` 줄을 출력합니다.
+
+릴리스 옆의 `rok-mlir-dev-<version>-<triple>` 묶음은 계약에 들지 않습니다.
 
 ## 9.10.7. 단일 파일 스크립트의 인라인 매니페스트
 
