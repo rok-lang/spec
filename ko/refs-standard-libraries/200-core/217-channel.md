@@ -53,7 +53,7 @@ impl<T> Receiver<T> {
     fn recv(self) -> T | none;               // none = 모든 sender 가 close
     fn try_recv(self) -> T | Empty | Closed; // 큐가 비면: 열린 sender 가 있으면 Empty, 없으면 Closed
     fn recv_async(self) -> RecvFuture<T>;    // await rx.recv_async(): task 만 중단, Output = T | none
-    fn iter(self) -> ChannelIter<T>;         // for x in rx { ... }
+    fn iter(self) -> ReceiverIter<T>;         // for x in rx { ... }
 }
 
 impl<T> Stream for Receiver<T> {         // for await v in rx: task 만 중단
@@ -63,7 +63,7 @@ impl<T> Stream for Receiver<T> {         // for await v in rx: task 만 중단
 
 impl<T> IntoIterator for Receiver<T> {   // for x in rx: 모든 sender 가 close 되면 끝
     type Item = T;
-    type IntoIter = ChannelIter<T>;
+    type IntoIter = ReceiverIter<T>;
 }
 
 enum SendError<T> { Closed(T) }

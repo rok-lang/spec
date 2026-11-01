@@ -176,7 +176,7 @@ error: the cell panicked; the session is unchanged
 hi
 ```
 
-마지막 식의 값을 `Display`로, 없으면 `Debug`로 자동 출력합니다. 뒤에 `?`를 붙이면(`xs?`) `Debug`로 출력하고, `:type xs`는 타입만 출력합니다. `Display`와 `Debug`가 모두 없는 값(`?`를 붙였다면 `Debug`가 없는 값)은 타입 이름만 출력합니다. 이름은 `type_name_of`([stdlib 2.12.4](../../refs-standard-libraries/200-core/212-reflect.md#2124-repl-출력))로 얻고, `any` 값이면 담은 타입의 이름입니다. `let` 셀은 아무것도 출력하지 않습니다.
+마지막 식의 값을 `Display`로, 없으면 `Debug`로 자동 출력합니다. 뒤에 `?`를 붙이면(`xs?`) `Debug`로 출력하고, `:type xs`는 타입만 출력합니다. `Display`와 `Debug`가 모두 없는 값(`?`를 붙였다면 `Debug`가 없는 값)은 타입 이름만 출력합니다. 이름은 `type_name_of_val`([stdlib 2.12.4](../../refs-standard-libraries/200-core/212-reflect.md#2124-repl-출력))로 얻고, `any` 값이면 담은 타입의 이름입니다. `let` 셀은 아무것도 출력하지 않습니다.
 
 ```
 >>> let xs = [1, 2, 3];

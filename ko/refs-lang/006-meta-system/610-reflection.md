@@ -21,8 +21,8 @@ trait Reflect {
     fn align() -> usize;
 
     // 인스턴스: any 슬롯 / 합 타입에서 런타임 dispatch
-    fn type_name_of(self) -> str;
-    fn size_of(self) -> usize;
+    fn type_name_of_val(self) -> str;
+    fn size_of_val(self) -> usize;
 }
 ```
 
@@ -32,10 +32,10 @@ i32::size()      == 4
 i32::align()     == 4
 
 let x: any = 42i32;
-x.type_name_of() == "i32"        // 런타임 type tag 검사
+x.type_name_of_val() == "i32"    // 런타임 type tag 검사
 
 let v: i32 | f64 = pick();
-v.type_name_of()                  // "i32" 또는 "f64" (합 타입 variant 검사)
+v.type_name_of_val()              // "i32" 또는 "f64" (합 타입 variant 검사)
 ```
 
 자동으로 구현되므로 사용자 코드는 필요 없습니다. 컴파일러는 모든 타입의 `type_name`, `size`, `align`을 이미 알고 있으므로 비용 없이 합성합니다.
@@ -44,8 +44,8 @@ v.type_name_of()                  // "i32" 또는 "f64" (합 타입 variant 검�
 
 - 손으로 쓴 `impl Reflect for T`는 에러입니다. `T: Reflect` 바운드는 항상 성립합니다.
 - 타입에 `size()` / `type_name()`처럼 이름이 같은 메서드가 있으면 그 메서드가 리플렉션 메서드를 가립니다.
-- 이름(`type_name`)에는 모듈 경로가 붙지 않습니다(`List<i64>`, `Config`). 합 타입의 정적 이름은 정규 순서([2.6.4](../002-types/206-sum-types.md#264-집합-의미론))로 씁니다(`f64 | i32`, `none`은 마지막). `type_name_of(self)` 같은 인스턴스 형태는 런타임에 실제로 들어 있는 것을 보고합니다. 합 타입이면 그 항을, `any`면 그 내용을 보고합니다.
-- `rok::core::reflect::cast<T>(value: any) -> T | none`은 `set_field`와 같은 규칙으로 `any`에서 `T`를 꺼냅니다. `rok::core::reflect::methods_of<T>() -> List<MethodInfo>`는 `T`의 고유 메서드 목록입니다.
+- 이름(`type_name`)에는 모듈 경로가 붙지 않습니다(`List<i64>`, `Config`). 합 타입의 정적 이름은 정규 순서([2.6.4](../002-types/206-sum-types.md#264-집합-의미론))로 씁니다(`f64 | i32`, `none`은 마지막). `type_name_of_val(self)` 같은 인스턴스 형태는 런타임에 실제로 들어 있는 것을 보고합니다. 합 타입이면 그 항을, `any`면 그 내용을 보고합니다.
+- `rok::core::reflect::cast<T>(value: any) -> T | none`은 `set_field`와 같은 규칙으로 `any`에서 `T`를 꺼냅니다. 타입의 메서드와 필드는 `T::methods()` / `T::fields()`([6.10.2](#6102-inspect-opt-in-트레잇))로 얻습니다. 이를 돌려주는 자유 함수는 없습니다.
 
 ## 6.10.2. `Inspect`: opt-in 트레잇
 
@@ -56,13 +56,13 @@ trait Inspect: Reflect {
     fn field_names() -> List<str>;
     fn get_field(self, name: str) -> any | none;            // 비공개 필드도
     fn set_field(ref self, name: str, value: any) -> bool;  // 성공 여부
-    fn methods() -> List<MethodInfo>;
 
     // 기본 본문이 있으며, enum 에서는 derive 가 덮어씁니다.
-    fn fields() -> List<FieldInfo>;          // fields_of::<Self>()
+    fn fields() -> List<FieldInfo>;          // the field table of Self
+    fn methods() -> List<MethodInfo>;        // the method table of Self
     fn variant_names() -> List<str>;         // struct 는 빈 목록
-    fn variant_name(self) -> str;            // struct: self.type_name_of()
-    fn field_names_of(self) -> List<str>;    // self 가 지닌 필드
+    fn variant_name(self) -> str;            // struct: self.type_name_of_val()
+    fn field_names_of_val(self) -> List<str>; // self 가 지닌 필드
 }
 
 struct FieldInfo {
@@ -83,10 +83,10 @@ struct MethodInfo {
 - `get_field`는 그 필드의 값을 `any`로 돌려줍니다. 없는 이름이면 `none`입니다. 비공개 필드도 꺼낼 수 있습니다.
 - `set_field`는 두 경우에 대입하고 `true`를 돌려줍니다. 값의 타입이 필드의 타입과 **정확히 같을 때**, 그리고 정수가 다른 정수 타입이더라도 **손실 없이 들어갈 때**(`u.set_field("id", 42)`를 `u64` 필드에)입니다. 그 밖에는 대입하지 않고 `false`를 돌려줍니다. 그 외의 변환(예: `i32` → `f64`)은 없습니다.
 - `methods()`는 그 타입의 **고유 메서드만**(트레잇 메서드 제외) 이름순으로 돌려줍니다. 제네릭 `impl`의 메서드는 타입을 쓰인 그대로(`T`) 보여 줍니다.
-- `fields()`는 모든 필드를 선언 순서대로 타입 이름, `pub` 여부와 함께 돌려줍니다. **비공개 필드도 나옵니다.** `get_field`와 마찬가지로 `Inspect`를 derive로 구현하는 것이 곧 타입 작성자의 동의입니다. 타입 이름은 인스턴스화된 타입입니다(`Box<f64>`는 `v: f64`, `items: List<f64>`). `type_name`처럼 모듈 경로가 없습니다. `rok::core::reflect::fields_of<T: Inspect>() -> List<FieldInfo>`는 같은 목록을 돌려주는 함수입니다.
-- `enum`에는 타입 수준의 필드가 없습니다(`field_names()`와 `fields()`는 빈 목록). `variant_names()`는 변형을 선언 순서대로 돌려줍니다. 값에서 `variant_name()`은 지금 들고 있는 변형(`"Circle"`)을 돌려줍니다. `field_names_of()`는 그 변형의 필드를 돌려줍니다. 튜플 변형은 `"0"`, `"1"`이고, 이름 있는 변형은 필드 이름입니다. 이 필드는 `get_field`로 읽을 수 있습니다. 변형의 페이로드는 `Inspect`로는 읽기만 할 수 있습니다. enum의 `set_field`는 `false`를 돌려줍니다.
-- struct에서 `variant_names()`는 빈 목록, `variant_name()`은 그 타입 이름(`type_name_of()`), `field_names_of()`는 그 필드입니다.
-- `fields()`, `variant_names()`, `variant_name()`, `field_names_of()`에는 기본 본문이 있습니다. 그래서 손으로 쓰는 `impl Inspect`는 앞의 네 메서드만 구현하면 됩니다.
+- `fields()`는 모든 필드를 선언 순서대로 타입 이름, `pub` 여부와 함께 돌려줍니다. **비공개 필드도 나옵니다.** `get_field`와 마찬가지로 `Inspect`를 derive로 구현하는 것이 곧 타입 작성자의 동의입니다. 타입 이름은 인스턴스화된 타입입니다(`Box<f64>`는 `v: f64`, `items: List<f64>`). `type_name`처럼 모듈 경로가 없습니다.
+- `enum`에는 타입 수준의 필드가 없습니다(`field_names()`와 `fields()`는 빈 목록). `variant_names()`는 변형을 선언 순서대로 돌려줍니다. 값에서 `variant_name()`은 지금 들고 있는 변형(`"Circle"`)을 돌려줍니다. `field_names_of_val()`는 그 변형의 필드를 돌려줍니다. 튜플 변형은 `"0"`, `"1"`이고, 이름 있는 변형은 필드 이름입니다. 이 필드는 `get_field`로 읽을 수 있습니다. 변형의 페이로드는 `Inspect`로는 읽기만 할 수 있습니다. enum의 `set_field`는 `false`를 돌려줍니다.
+- struct에서 `variant_names()`는 빈 목록, `variant_name()`은 그 타입 이름(`type_name_of_val()`), `field_names_of_val()`는 그 필드입니다.
+- `fields()`, `methods()`, `variant_names()`, `variant_name()`, `field_names_of_val()`에는 기본 본문이 있습니다. 그래서 손으로 쓰는 `impl Inspect`는 앞의 세 메서드만 구현하면 됩니다.
 - derive로 구현하지 않은 타입에서 `Inspect` 메서드를 부르면 에러입니다. 도움말은 ``add `#[derive(Inspect)]` to `Point` ``처럼 무엇을 써야 하는지 알려 줍니다.
 
 사용 예는 다음과 같습니다.
@@ -135,7 +135,7 @@ Opaque
 ```rok
 // rok: 메서드 호출
 T::size()
-x.type_name_of()
+x.type_name_of_val()
 
 // 다른 언어: 키워드
 sizeof(T)        // C / C++
@@ -146,12 +146,12 @@ typeof(x)        // JS / TS
 
 ## 6.10.5. `any` 슬롯과 합 타입의 디스패치
 
-`any` 슬롯과 `T1 | T2` 형태의 합 타입은 실제 타입이 런타임에 정해지므로 `type_name_of` 호출이 중요합니다.
+`any` 슬롯과 `T1 | T2` 형태의 합 타입은 실제 타입이 런타임에 정해지므로 `type_name_of_val` 호출이 중요합니다.
 
 ```rok
 fn handle(x: any) {
-    if x.type_name_of() == "i32" { handle_int(x); }
-    else if x.type_name_of() == "str" { handle_str(x); }
+    if x.type_name_of_val() == "i32" { handle_int(x); }
+    else if x.type_name_of_val() == "str" { handle_str(x); }
 }
 
 fn classify(v: i32 | f64) -> str {

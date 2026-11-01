@@ -176,7 +176,7 @@ Within a session the host reuses functions it has already compiled (9.6.4). Ther
 hi
 ```
 
-The last expression's value is printed with `Display`, else with `Debug`. A trailing `?` (as in `xs?`) prints the `Debug` form instead, and `:type xs` prints the type alone. A value without `Display` and `Debug` (`Debug` for `?`) prints only its type name (`type_name_of`, [stdlib 2.12.4](../../refs-standard-libraries/200-core/212-reflect.md#2124-repl-output): an `any` value names the type it holds). A `let` cell prints nothing.
+The last expression's value is printed with `Display`, else with `Debug`. A trailing `?` (as in `xs?`) prints the `Debug` form instead, and `:type xs` prints the type alone. A value without `Display` and `Debug` (`Debug` for `?`) prints only its type name (`type_name_of_val`, [stdlib 2.12.4](../../refs-standard-libraries/200-core/212-reflect.md#2124-repl-output): an `any` value names the type it holds). A `let` cell prints nothing.
 
 ```
 >>> let xs = [1, 2, 3];

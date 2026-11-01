@@ -21,8 +21,8 @@ trait Reflect {
     fn size() -> usize;
     fn align() -> usize;
 
-    fn type_name_of(self) -> str; // 인스턴스: x.type_name_of() (any / sum 도 OK)
-    fn size_of(self) -> usize;
+    fn type_name_of_val(self) -> str; // 인스턴스: x.type_name_of_val() (any / sum 도 OK)
+    fn size_of_val(self) -> usize;
 }
 ```
 
@@ -32,10 +32,12 @@ trait Reflect {
 
 - 손으로 쓴 `impl Reflect for T`는 에러입니다. `T: Reflect` 바운드는 늘 성립합니다.
 - 타입에 `size()` / `type_name()`처럼 이름이 같은 메서드가 있으면 그 메서드가 리플렉션 메서드를 가립니다.
-- 이름(`type_name`)에는 모듈 경로가 붙지 않습니다(`List<i64>`, `Config`). 합 타입의 정적 이름은 정규 순서([2.6.4](../../refs-lang/002-types/206-sum-types.md#264-집합-의미론))로 적습니다(`f64 | i32`, `none`은 마지막). `type_name_of(self)` 같은 인스턴스 형태는 런타임에 실제로 든 항(합 타입일 때)이나 `any`의 내용을 보고합니다.
-- `rok::core::reflect::cast<T>(value: any) -> T | none`은 `set_field`와 같은 규칙으로 `any`를 `T`로 꺼냅니다. `rok::core::reflect::methods_of<T>() -> List<MethodInfo>`는 `T`의 고유 메서드 목록입니다.
+- 이름(`type_name`)에는 모듈 경로가 붙지 않습니다(`List<i64>`, `Config`). 합 타입의 정적 이름은 정규 순서([2.6.4](../../refs-lang/002-types/206-sum-types.md#264-집합-의미론))로 적습니다(`f64 | i32`, `none`은 마지막). `type_name_of_val(self)` 같은 인스턴스 형태는 런타임에 실제로 든 항(합 타입일 때)이나 `any`의 내용을 보고합니다.
+- `rok::core::reflect::cast<T>(value: any) -> T | none`은 `set_field`와 같은 규칙으로 `any`를 `T`로 꺼냅니다. 타입의 메서드나 필드를 돌려주는 자유 함수는 없습니다. `T::methods()` / `T::fields()`로 얻으며, 타입의 동의인 `#[derive(Inspect)]`가 있어야 합니다.
 
 ### 정적과 인스턴스의 차이
+
+접미사 규칙은 하나입니다. 접미사 없는 형태는 타입의 답으로 컴파일 시점에 정해지고, `_of_val` 형태는 실행 중 값의 답입니다.
 
 ```rok
 i32::type_name();          //→ "i32"           (정적, 컴파일 타임 결정)
@@ -43,16 +45,16 @@ i32::size();               //→ 4
 i32::align();              //→ 4
 
 let x: i32 = 42;
-x.type_name_of();          //→ "i32"           (인스턴스, 보통 정적과 같음)
+x.type_name_of_val();      //→ "i32"           (인스턴스, 보통 정적과 같음)
 
 let y: i32 | f64 = 42i32;
-y.type_name_of();          //→ "i32"           (런타임 dispatch, sum tag 검사)
+y.type_name_of_val();      //→ "i32"           (런타임 dispatch, sum tag 검사)
 
 let z: any = "hello";
-z.type_name_of();          //→ "str"           (런타임, any slot dispatch)
+z.type_name_of_val();      //→ "str"           (런타임, any slot dispatch)
 ```
 
-`type_name_of`는 런타임 디스패치이므로 합 타입이나 any 슬롯에서는 지금 들어 있는 변형의 이름을 반환합니다.
+`type_name_of_val`는 런타임 디스패치이므로 합 타입이나 any 슬롯에서는 지금 들어 있는 변형의 이름을 반환합니다.
 
 ### 전역 함수 없음
 
@@ -64,7 +66,7 @@ sizeof(T);                 // ERROR: 글로벌 sizeof 없음
 대신 모두 메서드입니다.
 
 ```rok
-x.type_name_of()           // 인스턴스
+x.type_name_of_val()       // 인스턴스
 T::type_name()             // 정적
 T::size()
 T::align()
@@ -79,13 +81,13 @@ trait Inspect: Reflect {
     fn field_names() -> List<str>;
     fn get_field(self, name: str) -> any | none;            // 비공개 필드도
     fn set_field(ref self, name: str, value: any) -> bool;  // 성공 여부
-    fn methods() -> List<MethodInfo>;
 
     // 기본 본문이 있으며, enum 에서는 derive 가 덮어씁니다.
-    fn fields() -> List<FieldInfo>;          // fields_of::<Self>()
+    fn fields() -> List<FieldInfo>;          // the field table of Self
+    fn methods() -> List<MethodInfo>;        // the method table of Self
     fn variant_names() -> List<str>;         // struct 는 빈 목록
-    fn variant_name(self) -> str;            // struct: self.type_name_of()
-    fn field_names_of(self) -> List<str>;    // self 가 지닌 필드
+    fn variant_name(self) -> str;            // struct: self.type_name_of_val()
+    fn field_names_of_val(self) -> List<str>; // self 가 지닌 필드
 }
 
 struct FieldInfo {
@@ -106,10 +108,10 @@ struct MethodInfo {
 - `get_field`는 그 필드의 값을 `any`로 돌려주고, 없는 이름이면 `none`을 돌려줍니다. 비공개 필드도 꺼낼 수 있습니다.
 - `set_field`는 값의 타입이 필드 타입과 **정확히 같으면** 대입하고 `true`를 돌려줍니다. 정수는 타입이 달라도 **손실 없이 들어가면** 대입합니다(`u.set_field("id", 42)`가 `u64` 필드에). 그 밖에는 대입하지 않고 `false`를 돌려줍니다. 다른 변환(예: `i32` → `f64`)은 없습니다.
 - `methods()`는 트레잇 메서드를 빼고 그 타입의 **고유 메서드만** 이름순으로 돌려줍니다. 제네릭 `impl`의 메서드는 타입을 적힌 그대로(`T`) 보여 줍니다.
-- `fields()`는 모든 필드를 선언 순서대로 돌려줍니다. 항목마다 타입 이름과 `pub` 여부가 있습니다. **비공개 필드도 나옵니다**. `get_field`와 마찬가지로, 타입 작성자가 `Inspect`를 derive로 구현한 것을 동의로 봅니다. 타입 이름은 인스턴스화된 이름입니다(`Box<f64>`는 `v: f64`, `items: List<f64>`). `type_name`처럼 모듈 경로는 붙지 않습니다. `rok::core::reflect::fields_of<T: Inspect>() -> List<FieldInfo>`는 같은 목록을 돌려주는 함수입니다.
-- `enum`에는 타입 수준 필드가 없습니다(`field_names()`와 `fields()`는 빈 목록). `variant_names()`는 변형을 선언 순서대로 돌려줍니다. 값에서 `variant_name()`은 지금 든 변형(`"Circle"`)입니다. `field_names_of()`는 그 변형의 필드입니다. 튜플 변형은 `"0"`, `"1"`이고 이름 있는 변형은 필드 이름입니다. 이 필드는 `get_field`로 읽습니다. 변형의 페이로드는 `Inspect`로 읽기만 할 수 있습니다. enum에서 `set_field`는 `false`를 돌려줍니다.
-- struct에서 `variant_names()`는 빈 목록이고, `variant_name()`은 그 타입 이름(`type_name_of()`)이며, `field_names_of()`는 그 필드입니다.
-- `fields()`, `variant_names()`, `variant_name()`, `field_names_of()`에는 기본 본문이 있습니다. 그래서 손으로 쓰는 `impl Inspect`는 앞의 네 메서드만 구현하면 됩니다.
+- `fields()`는 모든 필드를 선언 순서대로 돌려줍니다. 항목마다 타입 이름과 `pub` 여부가 있습니다. **비공개 필드도 나옵니다**. `get_field`와 마찬가지로, 타입 작성자가 `Inspect`를 derive로 구현한 것을 동의로 봅니다. 타입 이름은 인스턴스화된 이름입니다(`Box<f64>`는 `v: f64`, `items: List<f64>`). `type_name`처럼 모듈 경로는 붙지 않습니다.
+- `enum`에는 타입 수준 필드가 없습니다(`field_names()`와 `fields()`는 빈 목록). `variant_names()`는 변형을 선언 순서대로 돌려줍니다. 값에서 `variant_name()`은 지금 든 변형(`"Circle"`)입니다. `field_names_of_val()`는 그 변형의 필드입니다. 튜플 변형은 `"0"`, `"1"`이고 이름 있는 변형은 필드 이름입니다. 이 필드는 `get_field`로 읽습니다. 변형의 페이로드는 `Inspect`로 읽기만 할 수 있습니다. enum에서 `set_field`는 `false`를 돌려줍니다.
+- struct에서 `variant_names()`는 빈 목록이고, `variant_name()`은 그 타입 이름(`type_name_of_val()`)이며, `field_names_of_val()`는 그 필드입니다.
+- `fields()`, `methods()`, `variant_names()`, `variant_name()`, `field_names_of_val()`에는 기본 본문이 있습니다. 그래서 손으로 쓰는 `impl Inspect`는 앞의 세 메서드만 구현하면 됩니다.
 - derive가 없는 타입에서 `Inspect` 메서드를 부르면 에러입니다. 도움말이 무엇을 쓸지 알려 줍니다(``add `#[derive(Inspect)]` to `Point` ``).
 
 ### derive 예
@@ -136,7 +138,7 @@ enum Shape { Circle(f64), Rect { w: f64; h: f64; } }
 let s = Shape::Rect { w: 2.0, h: 3.0 };
 Shape::variant_names();    //→ ["Circle", "Rect"]
 s.variant_name();          //→ "Rect"
-s.field_names_of();        //→ ["w", "h"]
+s.field_names_of_val();    //→ ["w", "h"]
 s.get_field("w");          //→ any(2.0)
 ```
 
@@ -190,17 +192,13 @@ pub @derive {
             return false;
         }
 
-        fn methods() -> List<rok::core::reflect::MethodInfo> {
-            return rok::core::reflect::methods_of::<@Self>();
-        }
-
         @if_enum {
             fn variant_name(self) -> str {
                 return match self {
                     @for_variants { @variant.pattern => @variant.name.as_str(), }
                 };
             }
-            // variant_names() and field_names_of(self) likewise, per variant
+            // variant_names() and field_names_of_val(self) likewise, per variant
         }
     }
 }
@@ -216,7 +214,7 @@ pub @derive {
 fn dump_struct<T: Inspect>(x: T) {
     for f in T::fields() {
         if let v: any = x.get_field(f.name) {
-            println(f"{f.name}: {f.type_name} ({v.type_name_of()})");
+            println(f"{f.name}: {f.type_name} ({v.type_name_of_val()})");
         }
     }
 }
@@ -224,7 +222,7 @@ fn dump_struct<T: Inspect>(x: T) {
 
 ## 2.12.4. REPL 출력
 
-REPL은 평범한 마지막 식을 `Display`로, 없으면 `Debug`로 출력합니다. 뒤에 `?`를 붙이면 `Debug`로 출력합니다. 그 트레잇이 없는 값은 이 장의 `Reflect::type_name_of`로 출력합니다([2.10 fmt](210-fmt.md), [refs-lang 6.10.3](../../refs-lang/006-meta-system/610-reflection.md#6103-repl--jupyter-자동-출력)).
+REPL은 평범한 마지막 식을 `Display`로, 없으면 `Debug`로 출력합니다. 뒤에 `?`를 붙이면 `Debug`로 출력합니다. 그 트레잇이 없는 값은 이 장의 `Reflect::type_name_of_val`로 출력합니다([2.10 fmt](210-fmt.md), [refs-lang 6.10.3](../../refs-lang/006-meta-system/610-reflection.md#6103-repl--jupyter-자동-출력)).
 
 ```
 >>> let x = 42i32;
@@ -250,14 +248,14 @@ User { id: 1, name: "Alice" }
 | `Reflect` 자동   | 컴파일러 + `rok::core::reflect`                   | 타입 정보 테이블, 바이너리에 부착  |
 | `Inspect` derive | `rok::core::reflect` + 메타 블록 `#[impl_derive]` | 템플릿 토큰 기반 코드 생성 |
 | `MethodInfo`     | `rok::core::reflect`                              | 단순 struct                   |
-| `FieldInfo`, `fields_of` | `rok::core::reflect`                      | 컴파일러 필드 테이블 (인스턴스화된 타입) |
+| `FieldInfo`      | `rok::core::reflect`                              | 컴파일러 필드 테이블 (인스턴스화된 타입) |
 | `any` 타입       | 컴파일러 내장                                     | 타입 태그 + 페이로드            |
 
 ## 2.12.6. 다른 언어와 비교
 
 | 측면               | Rust                         | Java             | Python              | Rok                                         |
 |--------------------|------------------------------|------------------|---------------------|---------------------------------------------|
-| 타입 이름          | `std::any::type_name::<T>()` | `getClass()`     | `type(x).__name__`  | `x.type_name_of()` 메서드                   |
+| 타입 이름          | `std::any::type_name::<T>()` | `getClass()`     | `type(x).__name__`  | `x.type_name_of_val()` 메서드                   |
 | 필드 introspection | **없음** (lib `bincode` 등)  | Reflection API   | `vars(x)` `getattr` | `x.get_field(name)` (opt-in)                |
 | 런타임 디스패치    | `dyn Trait` (vtable)         | 자동             | 자동                | 합 타입 태그 + `any` / `any Trait` (opt-in) |
 | 자동 구현          | **없음**                     | 모든 객체        | 모든 객체           | `Reflect` 자동, `Inspect` opt-in            |

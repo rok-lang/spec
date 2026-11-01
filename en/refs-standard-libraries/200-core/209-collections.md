@@ -123,8 +123,8 @@ impl<T> List<T> {
     fn reverse(self);                            // in place
 
     fn split_at(self, mid: usize) -> (Slice<T>, Slice<T>);   // views of [0, mid) and [mid, len); mid > len panics
-    fn windows(self, size: usize) -> SliceWindows<T>;   // self[:].windows(size)
-    fn chunks(self, size: usize) -> SliceChunks<T>;     // self[:].chunks(size)
+    fn windows(self, size: usize) -> slice::Windows<T>;   // self[:].windows(size)
+    fn chunks(self, size: usize) -> slice::Chunks<T>;     // self[:].chunks(size)
     fn partition_point(self, pred: fn(T) -> bool) -> usize;   // self[:].partition_point(pred)
 
     fn iter(self) -> ListIter<T>;
@@ -241,8 +241,8 @@ impl<K: Hash + Eq, V> Dict<K, V> {
     fn extend<I: IntoIterator<Item = (K, V)>>(self, pairs: I);   // a later pair's value wins
 
     fn iter(self) -> DictIter<K, V>;              // (K, V) pairs
-    fn keys(self) -> KeysIter<K, V>;
-    fn values(self) -> ValuesIter<K, V>;
+    fn keys(self) -> Keys<K, V>;
+    fn values(self) -> Values<K, V>;
 
     fn entry(self, k: K) -> Entry<K, V>;          // the slot for that key (present or not)
 }
@@ -493,8 +493,8 @@ impl<T> Slice<T> {
     fn last(self) -> T | none;
     fn step(self, k: isize) -> Slice<T>;     // every k-th; from the end if k < 0. k == 0 panics
     fn split_at(self, mid: usize) -> (Slice<T>, Slice<T>);   // [0, mid) and [mid, len); mid > len panics
-    fn windows(self, size: usize) -> SliceWindows<T>;   // overlapping views of size elements; size == 0 panics
-    fn chunks(self, size: usize) -> SliceChunks<T>;     // views of size elements, the last shorter; size == 0 panics
+    fn windows(self, size: usize) -> slice::Windows<T>;   // overlapping views of size elements; size == 0 panics
+    fn chunks(self, size: usize) -> slice::Chunks<T>;     // views of size elements, the last shorter; size == 0 panics
     fn iter(self) -> SliceIter<T>;
     fn to_list(self) -> List<T>;             // allocates a new List
 }
@@ -522,7 +522,7 @@ impl<T: PartialEq> PartialEq for Slice<T> { ... }
 impl<T: Debug> Debug for Slice<T> { ... }
 ```
 
-`SliceWindows<T>` and `SliceChunks<T>` are `ExactSizeIterator`s with `Item = Slice<T>`: each window or chunk is a view of the same buffer, not a copy. `Iterator::windows` / `chunks` ([2.7.1](207-iter.md#271-iterator---stepping)) collect lists instead, for iterators that have no buffer.
+`slice::Windows<T>` and `slice::Chunks<T>` are `ExactSizeIterator`s with `Item = Slice<T>`: each window or chunk is a view of the same buffer, not a copy. `Iterator::windows` / `chunks` ([2.7.1](207-iter.md#271-iterator---stepping)) collect lists instead, for iterators that have no buffer.
 
 The needle of `find` is any `AsBytes` type ([2.11.13](211-conversion.md#21113-asbytes-trait---bytes-as-a-view)):
 

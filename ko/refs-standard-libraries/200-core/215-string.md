@@ -49,16 +49,16 @@ impl str {
     fn as_ptr(self) -> ConstPtr<u8>;        // FFI
 
     // 읽기 메서드
-    fn chars(self) -> CharsIter;            // Unicode scalar iterator
-    fn bytes(self) -> BytesIter;            // u8 iterator
-    fn char_indices(self) -> CharIndicesIter;
-    fn lines(self) -> LinesIter;            // 끝의 \r 제거, 마지막 빈 줄은 내지 않음
-    fn split(self, sep: str) -> SplitIter;  // 빈 조각도 유지 ("a,,b" → "a", "", "b")
-    fn split_whitespace(self) -> SplitWhitespaceIter;   // Unicode White_Space 로 나눔 (trim 과 같은 집합)
-    fn splitn(self, n: usize, sep: str) -> SplitNIter;    // 최대 n 조각, 마지막은 나누지 않은 나머지
-    fn rsplit(self, sep: str) -> RSplitIter;              // split 의 조각을 끝에서부터
-    fn rsplitn(self, n: usize, sep: str) -> RSplitNIter;  // 끝에서부터 최대 n 조각
-    fn match_indices(self, pat: str) -> MatchIndicesIter; // (byte offset, 일치한 str), 겹치지 않음
+    fn chars(self) -> Chars;            // Unicode scalar iterator
+    fn bytes(self) -> Bytes;            // u8 iterator
+    fn char_indices(self) -> CharIndices;
+    fn lines(self) -> Lines;            // 끝의 \r 제거, 마지막 빈 줄은 내지 않음
+    fn split(self, sep: str) -> Split;  // 빈 조각도 유지 ("a,,b" → "a", "", "b")
+    fn split_whitespace(self) -> SplitWhitespace;   // Unicode White_Space 로 나눔 (trim 과 같은 집합)
+    fn splitn(self, n: usize, sep: str) -> SplitN;    // 최대 n 조각, 마지막은 나누지 않은 나머지
+    fn rsplit(self, sep: str) -> RSplit;              // split 의 조각을 끝에서부터
+    fn rsplitn(self, n: usize, sep: str) -> RSplitN;  // 끝에서부터 최대 n 조각
+    fn match_indices(self, pat: str) -> MatchIndices; // (byte offset, 일치한 str), 겹치지 않음
 
     fn starts_with(self, pat: str) -> bool;
     fn ends_with(self, pat: str) -> bool;

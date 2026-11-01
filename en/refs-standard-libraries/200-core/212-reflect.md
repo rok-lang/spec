@@ -21,8 +21,8 @@ trait Reflect {
     fn size() -> usize;
     fn align() -> usize;
 
-    fn type_name_of(self) -> str; // instance: x.type_name_of() (any / sum also OK)
-    fn size_of(self) -> usize;
+    fn type_name_of_val(self) -> str; // instance: x.type_name_of_val() (any / sum also OK)
+    fn size_of_val(self) -> usize;
 }
 ```
 
@@ -32,10 +32,12 @@ The compiler provides `Reflect` for every type; there is no impl in source.
 
 - A hand-written `impl Reflect for T` is an error. The bound `T: Reflect` always holds.
 - If a type has its own method with the same name, such as `size()` / `type_name()`, that method shadows the reflection method.
-- The name (`type_name`) carries no module path (`List<i64>`, `Config`). The static name of a sum type is written in canonical order ([2.6.4](../../refs-lang/002-types/206-sum-types.md#264-set-semantics)) (`f64 | i32`, with `none` last). Instance forms such as `type_name_of(self)` report the member present at runtime (for a sum) or the content of an `any`.
-- `rok::core::reflect::cast<T>(value: any) -> T | none` extracts a `T` from an `any` using the same rules as `set_field`. `rok::core::reflect::methods_of<T>() -> List<MethodInfo>` is the list of `T`'s inherent methods.
+- The name (`type_name`) carries no module path (`List<i64>`, `Config`). The static name of a sum type is written in canonical order ([2.6.4](../../refs-lang/002-types/206-sum-types.md#264-set-semantics)) (`f64 | i32`, with `none` last). Instance forms such as `type_name_of_val(self)` report the member present at runtime (for a sum) or the content of an `any`.
+- `rok::core::reflect::cast<T>(value: any) -> T | none` extracts a `T` from an `any` using the same rules as `set_field`. There is no free function for a type's methods or fields: they are `T::methods()` / `T::fields()` and need `#[derive(Inspect)]`, the type's consent.
 
 ### Static vs instance
+
+One suffix rule: the plain form is the type's answer, fixed at compile time; the `_of_val` form is the value's answer at run time.
 
 ```rok
 i32::type_name();          //→ "i32"           (static, decided at compile time)
@@ -43,16 +45,16 @@ i32::size();               //→ 4
 i32::align();              //→ 4
 
 let x: i32 = 42;
-x.type_name_of();          //→ "i32"           (instance, usually the same as static)
+x.type_name_of_val();      //→ "i32"           (instance, usually the same as static)
 
 let y: i32 | f64 = 42i32;
-y.type_name_of();          //→ "i32"           (runtime dispatch, checks the sum tag)
+y.type_name_of_val();      //→ "i32"           (runtime dispatch, checks the sum tag)
 
 let z: any = "hello";
-z.type_name_of();          //→ "str"           (runtime, any slot dispatch)
+z.type_name_of_val();      //→ "str"           (runtime, any slot dispatch)
 ```
 
-`type_name_of` is a runtime dispatch, so for a sum type or `any` it returns the name of the variant currently held.
+`type_name_of_val` is a runtime dispatch, so for a sum type or `any` it returns the name of the variant currently held.
 
 ### No global functions
 
@@ -64,7 +66,7 @@ sizeof(T);                 // ERROR: no global sizeof
 Instead, everything is uniformly a method.
 
 ```rok
-x.type_name_of()           // instance
+x.type_name_of_val()   // instance
 T::type_name()             // static
 T::size()
 T::align()
@@ -79,13 +81,13 @@ trait Inspect: Reflect {
     fn field_names() -> List<str>;
     fn get_field(self, name: str) -> any | none;            // private fields too
     fn set_field(ref self, name: str, value: any) -> bool;  // whether it succeeded
-    fn methods() -> List<MethodInfo>;
 
-    // Default bodies; the derive overrides them for an enum.
-    fn fields() -> List<FieldInfo>;          // fields_of::<Self>()
+    // Default bodies; the derive overrides the value forms for an enum.
+    fn fields() -> List<FieldInfo>;          // the field table of Self
+    fn methods() -> List<MethodInfo>;        // the method table of Self
     fn variant_names() -> List<str>;         // empty for a struct
-    fn variant_name(self) -> str;            // a struct: self.type_name_of()
-    fn field_names_of(self) -> List<str>;    // the fields self holds
+    fn variant_name(self) -> str;            // a struct: self.type_name_of_val()
+    fn field_names_of_val(self) -> List<str>; // the fields self holds
 }
 
 struct FieldInfo {
@@ -106,10 +108,10 @@ struct MethodInfo {
 - `get_field` returns the field's value as `any`, or `none` for an unknown name. Private fields can be read too.
 - `set_field` assigns and returns `true` when the value's type is **exactly the same** as the field's type, or when an integer of a different integer type **fits without loss** (`u.set_field("id", 42)` into a `u64` field). Otherwise it does not assign and returns `false`. There are no other conversions (e.g. `i32` → `f64`).
 - `methods()` returns **only the type's inherent methods** (excluding trait methods), sorted by name. Methods of a generic `impl` show the types as written (`T`).
-- `fields()` lists every field in declaration order with its type name and whether it is `pub`. **Private fields are listed too**: deriving `Inspect` is the type author's consent, the same as for `get_field`. The type name is the instantiated one (`Box<f64>` reports `v: f64`, `items: List<f64>`), with no module path, as `type_name` writes it. `rok::core::reflect::fields_of<T: Inspect>() -> List<FieldInfo>` is the same list as a function.
-- An `enum` has no fields at the type level (`field_names()` and `fields()` are empty lists). `variant_names()` lists its variants in declaration order. On a value, `variant_name()` is the variant it holds (`"Circle"`), `field_names_of()` that variant's fields (`"0"`, `"1"` for a tuple variant, the names for a named one), and `get_field` reads them. A variant's payload is read-only through `Inspect`: `set_field` on an enum is `false`.
-- On a struct, `variant_names()` is an empty list, `variant_name()` is its type name (`type_name_of()`), and `field_names_of()` is its fields.
-- `fields()`, `variant_names()`, `variant_name()` and `field_names_of()` have default bodies, so a hand-written `impl Inspect` needs only the first four methods.
+- `fields()` lists every field in declaration order with its type name and whether it is `pub`. **Private fields are listed too**: deriving `Inspect` is the type author's consent, the same as for `get_field`. The type name is the instantiated one (`Box<f64>` reports `v: f64`, `items: List<f64>`), with no module path, as `type_name` writes it.
+- An `enum` has no fields at the type level (`field_names()` and `fields()` are empty lists). `variant_names()` lists its variants in declaration order. On a value, `variant_name()` is the variant it holds (`"Circle"`), `field_names_of_val()` that variant's fields (`"0"`, `"1"` for a tuple variant, the names for a named one), and `get_field` reads them. A variant's payload is read-only through `Inspect`: `set_field` on an enum is `false`.
+- On a struct, `variant_names()` is an empty list, `variant_name()` is its type name (`type_name_of_val()`), and `field_names_of_val()` is its fields.
+- `fields()`, `methods()`, `variant_names()`, `variant_name()` and `field_names_of_val()` have default bodies, so a hand-written `impl Inspect` needs only the first three methods.
 - Calling an `Inspect` method on a type without the derive is an error whose help says what to write: ``add `#[derive(Inspect)]` to `Point` ``.
 
 ### Derive example
@@ -136,7 +138,7 @@ enum Shape { Circle(f64), Rect { w: f64; h: f64; } }
 let s = Shape::Rect { w: 2.0, h: 3.0 };
 Shape::variant_names();    //→ ["Circle", "Rect"]
 s.variant_name();          //→ "Rect"
-s.field_names_of();        //→ ["w", "h"]
+s.field_names_of_val();    //→ ["w", "h"]
 s.get_field("w");          //→ any(2.0)
 ```
 
@@ -190,17 +192,13 @@ pub @derive {
             return false;
         }
 
-        fn methods() -> List<rok::core::reflect::MethodInfo> {
-            return rok::core::reflect::methods_of::<@Self>();
-        }
-
         @if_enum {
             fn variant_name(self) -> str {
                 return match self {
                     @for_variants { @variant.pattern => @variant.name.as_str(), }
                 };
             }
-            // variant_names() and field_names_of(self) likewise, per variant
+            // variant_names() and field_names_of_val(self) likewise, per variant
         }
     }
 }
@@ -216,7 +214,7 @@ For meta block details see [refs-lang 6.8 Meta blocks](../../refs-lang/006-meta-
 fn dump_struct<T: Inspect>(x: T) {
     for f in T::fields() {
         if let v: any = x.get_field(f.name) {
-            println(f"{f.name}: {f.type_name} ({v.type_name_of()})");
+            println(f"{f.name}: {f.type_name} ({v.type_name_of_val()})");
         }
     }
 }
@@ -224,7 +222,7 @@ fn dump_struct<T: Inspect>(x: T) {
 
 ## 2.12.4. REPL output
 
-The REPL prints a bare last expression with `Display`, else `Debug`, a trailing `?` with `Debug`, and a value without them with this chapter's `Reflect::type_name_of` ([2.10 fmt](210-fmt.md), [refs-lang 6.10.3](../../refs-lang/006-meta-system/610-reflection.md#6103-repl--jupyter-auto-printing)).
+The REPL prints a bare last expression with `Display`, else `Debug`, a trailing `?` with `Debug`, and a value without them with this chapter's `Reflect::type_name_of_val` ([2.10 fmt](210-fmt.md), [refs-lang 6.10.3](../../refs-lang/006-meta-system/610-reflection.md#6103-repl--jupyter-auto-printing)).
 
 ```
 >>> let x = 42i32;
@@ -250,14 +248,14 @@ A bare expression uses `Display`, else `Debug`, and a trailing `?` uses `Debug`.
 | `Reflect` (automatic) | compiler + `rok::core::reflect`                | type info table, attached to the binary  |
 | `Inspect` derive   | `rok::core::reflect` + meta block `#[impl_derive]` | code generation from template tokens |
 | `MethodInfo`       | `rok::core::reflect`                              | plain struct                      |
-| `FieldInfo`, `fields_of` | `rok::core::reflect`                        | compiler field table (instantiated types) |
+| `FieldInfo`       | `rok::core::reflect`                              | compiler field table (instantiated types) |
 | `any` type         | compiler built-in                                 | type tag + payload                |
 
 ## 2.12.6. Comparison with other languages
 
 | Aspect              | Rust                         | Java               | Python              | Rok                                         |
 |---------------------|------------------------------|--------------------|---------------------|---------------------------------------------|
-| Type name           | `std::any::type_name::<T>()` | `getClass()`       | `type(x).__name__`  | `x.type_name_of()` method                   |
+| Type name           | `std::any::type_name::<T>()` | `getClass()`       | `type(x).__name__`  | `x.type_name_of_val()` method                   |
 | Field introspection | **none** (libraries such as `bincode`) | Reflection API | `vars(x)` `getattr` | `x.get_field(name)` (opt-in)          |
 | Runtime dispatch    | `dyn Trait` (vtable)         | automatic          | automatic           | sum type tag + `any` / `any Trait` (opt-in) |
 | Automatic impl      | **none**                     | every object       | every object        | `Reflect` automatic, `Inspect` opt-in       |

@@ -49,16 +49,16 @@ impl str {
     fn as_ptr(self) -> ConstPtr<u8>;        // FFI
 
     // reading methods
-    fn chars(self) -> CharsIter;            // Unicode scalar iterator
-    fn bytes(self) -> BytesIter;            // u8 iterator
-    fn char_indices(self) -> CharIndicesIter;
-    fn lines(self) -> LinesIter;            // strips a trailing \r, does not yield a final empty line
-    fn split(self, sep: str) -> SplitIter;  // keeps empty pieces ("a,,b" → "a", "", "b")
-    fn split_whitespace(self) -> SplitWhitespaceIter;   // splits on Unicode White_Space (same set as trim)
-    fn splitn(self, n: usize, sep: str) -> SplitNIter;    // at most n pieces; the last is the unsplit rest
-    fn rsplit(self, sep: str) -> RSplitIter;              // split's pieces, last first
-    fn rsplitn(self, n: usize, sep: str) -> RSplitNIter;  // at most n pieces from the end, last first
-    fn match_indices(self, pat: str) -> MatchIndicesIter; // (byte offset, match), non-overlapping
+    fn chars(self) -> Chars;            // Unicode scalar iterator
+    fn bytes(self) -> Bytes;            // u8 iterator
+    fn char_indices(self) -> CharIndices;
+    fn lines(self) -> Lines;            // strips a trailing \r, does not yield a final empty line
+    fn split(self, sep: str) -> Split;  // keeps empty pieces ("a,,b" → "a", "", "b")
+    fn split_whitespace(self) -> SplitWhitespace;   // splits on Unicode White_Space (same set as trim)
+    fn splitn(self, n: usize, sep: str) -> SplitN;    // at most n pieces; the last is the unsplit rest
+    fn rsplit(self, sep: str) -> RSplit;              // split's pieces, last first
+    fn rsplitn(self, n: usize, sep: str) -> RSplitN;  // at most n pieces from the end, last first
+    fn match_indices(self, pat: str) -> MatchIndices; // (byte offset, match), non-overlapping
 
     fn starts_with(self, pat: str) -> bool;
     fn ends_with(self, pat: str) -> bool;

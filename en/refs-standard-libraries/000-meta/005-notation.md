@@ -118,3 +118,26 @@ Every error type in the standard libraries follows these rules:
 6. **Messages.** A message starts in lower case (proper nouns and type names excepted), with no trailing period and no `error:` prefix. An operator's panic uses Rust's text (`index 5 out of bounds for length 3`). A method's panic starts `Type::method: ` (a free function's `module::fn: `), then the problem, then `; <what to write instead>` when there is one: `i32::isqrt: the number is negative; use `checked_isqrt` to get `none` instead`. A public function that panics on a bad argument is `#[track_caller]`.
 
 The forms 0.2.0 removed under these rules: the public fields of every error type (and of `Ipv4Addr` / `Ipv6Addr`), `IoError::new(message)`, `IoError::with_kind`, `IoError::from_os` and `IoError::code` (`IoError::new(kind, message)`, `IoError::from_os_code`, `IoError::os_code`), `JOIN_LOST` / `JOIN_TAKEN` (`JoinError::kind`), `NonUtf8Error` (`Utf8Error`), and `process::signal(i32, handler)` (`process::on_signal(Signal, handler)`).
+
+## 0.5.11. Naming
+
+Every name in the standard library follows this table. A name that breaks it is a defect of the library, not a precedent.
+
+| Kind | Rule |
+|---|---|
+| constructors | `new` (required arguments), `with_<x>` (an extra argument), `from_<src>` (a conversion, `Formatter::from_sink`), `empty()` / `zeroed()` for special values; never `to_<x>` |
+| conversions | `as_` a free view, `to_` a new owned value (costly), `into_` consumes; `str` is the string type, so `to_str`, `read_to_str`, `from_str`, never `to_string` |
+| numeric conversions | lossless and checked ones go through `From` / `TryFrom` / `SaturatingFrom` / `WrappingFrom`; an inherent `to_<num>` only for a lossy rounding (`to_f64`) |
+| getters | no `get_` prefix; `get` only for a keyed or indexed lookup, or the value of a wrapper (`NonZero::get`) |
+| predicates | `is_` / `has_`, or Rust's established word (`success`, `readonly`) |
+| setters | `set_<x>(ref self, ..)` returns unit; a builder uses the bare field name and returns `Self` |
+| sizes | `len` = element or byte count of a container; `<x>_len` = a length property; `count` = something counted (`count_ones`); `size` = memory size |
+| add / remove | `push` / `pop` at the ends, `insert` / `remove` keyed or indexed, `extend` many, `clear`, `retain`, `take` moves out |
+| iteration | `iter()` returns `<Type>Iter`; any other iterator method returns its own name in CamelCase, in the defining module (below) |
+| reflection | the plain form is the type's answer (`T::type_name()`, `T::size()`), the `_of_val` form the value's answer at run time (`x.type_name_of_val()`, `x.size_of_val()`, `x.field_names_of_val()`) |
+| async | `<name>_async` is the twin of a blocking `<name>`; never an `async_` prefix |
+| abbreviations | spelled out, except the fixed set: `len`, `fd`, `io`, `utf8`, `ns` / `us` / `ms` / `secs` / `mins`, `tls`, `der` / `pem`, `mmap`, `pid` |
+| constants | `SCREAMING_SNAKE`; no function twin of a constant (`f64::INFINITY`) |
+| modules | a singular noun or area (`fs`, `net`, `iter`); `collections` and `ops` stay plural |
+
+Iterator types. `str`: `chars()` -> `Chars`, `bytes()` -> `Bytes`, `char_indices()` -> `CharIndices`, `lines()` -> `Lines`, `split()` -> `Split`, `splitn()` -> `SplitN`, `rsplit()` -> `RSplit`, `rsplitn()` -> `RSplitN`, `split_whitespace()` -> `SplitWhitespace`, `match_indices()` -> `MatchIndices`. `Dict`: `keys()` -> `Keys`, `values()` -> `Values`. `List` / `Slice`: `windows()` -> `slice::Windows`, `chunks()` -> `slice::Chunks` (beside the adapters `iter::Windows` / `iter::Chunks`). `Receiver::iter()` -> `ReceiverIter`. A leaf name that two modules share is written with its module (`slice::Windows`, `str::Bytes`).

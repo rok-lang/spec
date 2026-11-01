@@ -189,7 +189,7 @@ impl<T> Pinned<GcPtr<T>> {
 
 impl Pinned<str> {
     fn as_bytes_ptr(self) -> ConstPtr<u8>;   // UTF-8 bytes
-    fn as_c_str(self) -> ConstPtr<c_char>;   // null-terminated 보장 안 함. 별도 변환
+    fn as_c_ptr(self) -> ConstPtr<c_char>;   // null-terminated 보장 안 함. 별도 변환
 }
 ```
 

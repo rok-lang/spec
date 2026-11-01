@@ -119,3 +119,26 @@ let z = x + y;        //→ 4.0 (f64)
 6. **메시지.** 메시지는 소문자로 시작하고(고유명사와 타입 이름은 예외), 끝에 마침표나 `error:` 접두사를 붙이지 않습니다. 연산자의 panic은 Rust의 문구(`index 5 out of bounds for length 3`)를 씁니다. 메서드의 panic은 `Type::method: `(자유 함수는 `module::fn: `)로 시작하고, 문제를 말한 뒤, 대신 쓸 것이 있으면 `; <대신 쓸 것>`을 붙입니다. 예: `i32::isqrt: the number is negative; use `checked_isqrt` to get `none` instead`. 잘못된 인자에 panic하는 공개 함수는 `#[track_caller]`입니다.
 
 0.2.0에서 이 규칙에 따라 없앤 형태는 다음과 같습니다. 모든 에러 타입의 공개 필드(그리고 `Ipv4Addr` / `Ipv6Addr`의 공개 필드), `IoError::new(message)`, `IoError::with_kind`, `IoError::from_os`, `IoError::code`(`IoError::new(kind, message)`, `IoError::from_os_code`, `IoError::os_code`), `JOIN_LOST` / `JOIN_TAKEN`(`JoinError::kind`), `NonUtf8Error`(`Utf8Error`), `process::signal(i32, handler)`(`process::on_signal(Signal, handler)`).
+
+## 0.5.11. 이름 짓기
+
+표준 라이브러리의 모든 이름은 이 표를 따릅니다. 표에 어긋나는 이름은 라이브러리의 결함이지 선례가 아닙니다.
+
+| 종류 | 규칙 |
+|---|---|
+| 생성자 | `new`(필수 인자), `with_<x>`(인자 하나 더), `from_<src>`(변환, `Formatter::from_sink`), 특별한 값은 `empty()` / `zeroed()`. `to_<x>`는 쓰지 않음 |
+| 변환 | `as_`는 비용 없는 뷰, `to_`는 새로 소유하는 값(비용 있음), `into_`는 소비. 문자열 타입이 `str`이므로 `to_str`, `read_to_str`, `from_str`이고 `to_string`은 쓰지 않음 |
+| 수 변환 | 손실 없는 변환과 검사하는 변환은 `From` / `TryFrom` / `SaturatingFrom` / `WrappingFrom`으로만. 고유 `to_<num>`은 손실 있는 반올림(`to_f64`)에만 |
+| 게터 | `get_` 접두사 없음. `get`은 키나 인덱스로 찾을 때, 또는 래퍼의 값(`NonZero::get`)에만 |
+| 술어 | `is_` / `has_`, 또는 Rust에서 굳은 단어(`success`, `readonly`) |
+| 세터 | `set_<x>(ref self, ..)`는 unit을 돌려줌. 빌더는 필드 이름을 그대로 쓰고 `Self`를 돌려줌 |
+| 크기 | `len`은 컨테이너의 원소 수나 바이트 수, `<x>_len`은 길이 속성, `count`는 센 것(`count_ones`), `size`는 메모리 크기 |
+| 추가 / 제거 | 양 끝은 `push` / `pop`, 키나 인덱스는 `insert` / `remove`, 여럿은 `extend`, `clear`, `retain`, 꺼내 옮기기는 `take` |
+| 순회 | `iter()`는 `<Type>Iter`를 돌려줌. 다른 순회 메서드는 정의한 모듈에서 메서드 이름의 CamelCase를 돌려줌(아래) |
+| 리플렉션 | 접미사 없는 형태는 타입의 답(`T::type_name()`, `T::size()`), `_of_val` 형태는 실행 중 값의 답(`x.type_name_of_val()`, `x.size_of_val()`, `x.field_names_of_val()`) |
+| async | `<name>_async`는 막히는 `<name>`의 짝. `async_` 접두사는 쓰지 않음 |
+| 약어 | 풀어 씀. 정해진 집합만 예외: `len`, `fd`, `io`, `utf8`, `ns` / `us` / `ms` / `secs` / `mins`, `tls`, `der` / `pem`, `mmap`, `pid` |
+| 상수 | `SCREAMING_SNAKE`. 상수와 짝을 이루는 함수는 두지 않음(`f64::INFINITY`) |
+| 모듈 | 단수 명사나 영역 이름(`fs`, `net`, `iter`). `collections`와 `ops`는 복수 그대로 |
+
+순회 타입. `str`: `chars()` -> `Chars`, `bytes()` -> `Bytes`, `char_indices()` -> `CharIndices`, `lines()` -> `Lines`, `split()` -> `Split`, `splitn()` -> `SplitN`, `rsplit()` -> `RSplit`, `rsplitn()` -> `RSplitN`, `split_whitespace()` -> `SplitWhitespace`, `match_indices()` -> `MatchIndices`. `Dict`: `keys()` -> `Keys`, `values()` -> `Values`. `List` / `Slice`: `windows()` -> `slice::Windows`, `chunks()` -> `slice::Chunks`(어댑터 `iter::Windows` / `iter::Chunks`와 나란히). `Receiver::iter()` -> `ReceiverIter`. 두 모듈이 같은 끝 이름을 쓰면 모듈과 함께 적습니다(`slice::Windows`, `str::Bytes`).

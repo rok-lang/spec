@@ -123,8 +123,8 @@ impl<T> List<T> {
     fn reverse(self);                            // 제자리
 
     fn split_at(self, mid: usize) -> (Slice<T>, Slice<T>);   // [0, mid) 와 [mid, len) 의 view; mid > len 이면 panic
-    fn windows(self, size: usize) -> SliceWindows<T>;   // self[:].windows(size)
-    fn chunks(self, size: usize) -> SliceChunks<T>;     // self[:].chunks(size)
+    fn windows(self, size: usize) -> slice::Windows<T>;   // self[:].windows(size)
+    fn chunks(self, size: usize) -> slice::Chunks<T>;     // self[:].chunks(size)
     fn partition_point(self, pred: fn(T) -> bool) -> usize;   // self[:].partition_point(pred)
 
     fn iter(self) -> ListIter<T>;
@@ -241,8 +241,8 @@ impl<K: Hash + Eq, V> Dict<K, V> {
     fn extend<I: IntoIterator<Item = (K, V)>>(self, pairs: I);   // 뒤의 쌍의 값이 이김
 
     fn iter(self) -> DictIter<K, V>;              // (K, V) 쌍
-    fn keys(self) -> KeysIter<K, V>;
-    fn values(self) -> ValuesIter<K, V>;
+    fn keys(self) -> Keys<K, V>;
+    fn values(self) -> Values<K, V>;
 
     fn entry(self, k: K) -> Entry<K, V>;          // 그 키의 자리 (있든 없든)
 }
@@ -493,8 +493,8 @@ impl<T> Slice<T> {
     fn last(self) -> T | none;
     fn step(self, k: isize) -> Slice<T>;     // k 번째마다, k < 0 이면 끝에서부터. k == 0 은 panic
     fn split_at(self, mid: usize) -> (Slice<T>, Slice<T>);   // [0, mid) 와 [mid, len); mid > len 이면 panic
-    fn windows(self, size: usize) -> SliceWindows<T>;   // size 개씩 겹치는 view; size == 0 은 panic
-    fn chunks(self, size: usize) -> SliceChunks<T>;     // size 개씩의 view, 마지막은 더 짧음; size == 0 은 panic
+    fn windows(self, size: usize) -> slice::Windows<T>;   // size 개씩 겹치는 view; size == 0 은 panic
+    fn chunks(self, size: usize) -> slice::Chunks<T>;     // size 개씩의 view, 마지막은 더 짧음; size == 0 은 panic
     fn iter(self) -> SliceIter<T>;
     fn to_list(self) -> List<T>;             // 새 List 할당
 }
@@ -522,7 +522,7 @@ impl<T: PartialEq> PartialEq for Slice<T> { ... }
 impl<T: Debug> Debug for Slice<T> { ... }
 ```
 
-`SliceWindows<T>`와 `SliceChunks<T>`는 `Item = Slice<T>`인 `ExactSizeIterator`입니다. 각 창(window)과 덩어리(chunk)는 복사본이 아니라 같은 버퍼의 뷰입니다. `Iterator::windows` / `chunks`([2.7.1](207-iter.md#271-iterator-단계-진행))는 버퍼가 없는 반복자에서 동작하므로 대신 리스트로 모읍니다.
+`slice::Windows<T>`와 `slice::Chunks<T>`는 `Item = Slice<T>`인 `ExactSizeIterator`입니다. 각 창(window)과 덩어리(chunk)는 복사본이 아니라 같은 버퍼의 뷰입니다. `Iterator::windows` / `chunks`([2.7.1](207-iter.md#271-iterator-단계-진행))는 버퍼가 없는 반복자에서 동작하므로 대신 리스트로 모읍니다.
 
 `find`의 needle은 `AsBytes`([2.11.13](211-conversion.md#21113-asbytes-트레잇-바이트-뷰)) 타입이면 무엇이든 됩니다.
 
