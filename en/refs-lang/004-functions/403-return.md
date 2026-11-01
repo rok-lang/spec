@@ -57,7 +57,7 @@ fn maybe_int(cond: bool) -> i32 | str {
 
 ## 4.3.4. Omitting the return type
 
-As shown in [function declarations](401-function-declaration.md), the return type may be omitted, in which case it is inferred from the body.
+As shown in [function declarations](401-function-declaration.md), the return type may be omitted, in which case it is inferred from the body. On a `pub` or `pub(pkg)` function a missing `->` means `()` instead ([4.1.3](401-function-declaration.md#413-omitting-the-return-type)).
 
 ```rok
 fn double(x: i32) {

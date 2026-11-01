@@ -49,7 +49,7 @@ async fn fetch_user(id: i64) -> User {
 }
 ```
 
-본체 안에서는 `await`로 다른 비동기 결과를 기다립니다. `-> R` 자리에는 완료될 때 나오는 값의 타입을 적습니다. 호출 결과는 `AsyncFuture<R>`입니다. `-> R`은 생략할 수 있습니다. 그러면 컴파일러가 [4.1.3](401-function-declaration.md#413-반환-타입-생략)처럼 `R`을 본체에서 추론합니다.
+본체 안에서는 `await`로 다른 비동기 결과를 기다립니다. `-> R` 자리에는 완료될 때 나오는 값의 타입을 적습니다. 호출 결과는 `AsyncFuture<R>`입니다. `-> R`은 생략할 수 있습니다. 그러면 `R`은 [4.1.3](401-function-declaration.md#413-반환-타입-생략)을 따릅니다. 컴파일러가 본체에서 추론하고, `pub`나 `pub(pkg)` 함수에서는 `()`입니다.
 
 ```rok
 let f = fetch_user(42i64);        // f: `AsyncFuture<User>`

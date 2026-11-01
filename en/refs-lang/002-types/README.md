@@ -58,7 +58,7 @@ The names and meanings of all primitive types: `i32`, `f64`, `bool`, `str`, and 
 
 Gradual typing applies only where `any` is written. Omitting a type annotation never produces a dynamic slot.
 
-A variable without a type annotation becomes a static slot inferred from its initializer's type. A function parameter without a type annotation makes the function generic, monomorphized at the call site; it does not become a dynamic slot, so a parameter that should behave gradually must be written as `any` explicitly. Struct fields require a type annotation. A function whose return type is omitted has it inferred from the body; if it cannot be inferred, it is a compile error.
+A variable without a type annotation becomes a static slot inferred from its initializer's type. A function parameter without a type annotation makes the function generic, monomorphized at the call site (a `pub` or `pub(pkg)` function writes every parameter type); it does not become a dynamic slot, so a parameter that should behave gradually must be written as `any` explicitly. Struct fields require a type annotation. A function whose return type is omitted has it inferred from the body; if it cannot be inferred, it is a compile error. On a `pub` or `pub(pkg)` function a missing return type means `()`.
 
 This boundary confines runtime [dispatch](../000-meta/007-glossary.md#dispatch) cost to positions written as `any`. Variables, parameters and fields are all either static or explicitly `any`.
 

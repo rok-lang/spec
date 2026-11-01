@@ -49,7 +49,7 @@ async fn fetch_user(id: i64) -> User {
 }
 ```
 
-Inside the body, `await` waits on other asynchronous results; the `-> R` position gives the type of the value produced on completion. The call result is `AsyncFuture<R>`. `-> R` may be omitted; `R` is then inferred from the body as in [4.1.3](401-function-declaration.md#413-omitting-the-return-type).
+Inside the body, `await` waits on other asynchronous results; the `-> R` position gives the type of the value produced on completion. The call result is `AsyncFuture<R>`. `-> R` may be omitted; `R` then follows [4.1.3](401-function-declaration.md#413-omitting-the-return-type): inferred from the body, or `()` on a `pub` or `pub(pkg)` function.
 
 ```rok
 let f = fetch_user(42i64);        // f: `AsyncFuture<User>`

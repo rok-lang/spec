@@ -18,7 +18,7 @@ Each parameter is written as ` name: type`, separated by commas. Parameter names
 
 ## 4.2.2. Omitting the type
 
-A parameter without a type is treated as generic. See the monomorphization rules of [generics](../002-types/210-generics.md) for details. In a trait `impl`, a method parameter without a type takes the type the trait declares at that position (trait parameters and associated types substituted), not an implicit type parameter.
+On a module-private or `pub(sub)` function, a parameter without a type is treated as generic. See the monomorphization rules of [generics](../002-types/210-generics.md) for details. In a trait `impl`, a method parameter without a type takes the type the trait declares at that position (trait parameters and associated types substituted), not an implicit type parameter.
 
 ```rok
 fn id(x) { x }                                   // x is generic; monomorphized at call
@@ -46,7 +46,15 @@ compute(MyType, 1i32);                           // error at the call site:
                                                  //    not at the signature)
 ```
 
-There are two reasons for this design. First, it preserves module boundaries: changing one line of the body to use more traits does not change the signature, so external callers do not break. Second, it avoids bloated signatures: an automatically synthesized `where` clause accumulating every trait in the body would bloat the signature, and the types inferred from it would surface in tooling in huge forms.
+A synthesized `where` clause accumulating every trait in the body would bloat the signature, and the types inferred from it would surface in tooling in huge forms; so none is synthesized.
+
+A `pub` or `pub(pkg)` function writes the type of every parameter (the trait `impl` methods above excepted). Other modules call it, and an implicit parameter would let a body edit change what they may pass. An untyped parameter there is a compile error; write the type, or a type parameter with the bounds the body needs.
+
+```rok
+pub fn add(x, y) { x + y }                       // ERROR: `x` and `y` have no type
+pub fn add(x: i32, y: i32) -> i32 { x + y }      // OK
+pub fn add<T: ops::Add<Output = T>>(x: T, y: T) -> T { x + y }   // OK: any T with Add
+```
 
 If a parameter is meant to be a dynamic slot, write `any` explicitly (see [`any` slot](../002-types/202-any-slot.md)).
 

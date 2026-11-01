@@ -47,7 +47,9 @@ fn add(x: i32, y: i32) -> i32 {
 
 ## 4.1.3. Omitting the return type
 
-The `->` part of the return type may be omitted, with the following meaning:
+The `->` part of the return type may be omitted. What that means depends on the function's [visibility](../005-modules/506-visibility.md).
+
+On a module-private or `pub(sub)` function:
 
 - The return type is inferred from the body; the type of the last expression of the body becomes the return type.
 - If it cannot be inferred or is ambiguous, it is a compile error.
@@ -69,6 +71,24 @@ fn print_msg(s: str) {
 }
 ```
 
+On a `pub` or `pub(pkg)` function, other modules call it, so its signature is written out and a body edit cannot change it. A missing `->` there means `()`, whatever the body does, also when the body never returns. If the body gives a value (its last expression or a `return v` has a type other than `()`), it is a compile error, and the error names the type to write.
+
+```rok
+pub fn log(s: str) {              // returns ()
+    print(s);
+}
+
+pub fn double(x: i32) {           // ERROR: the body gives i32; write `-> i32`
+    x * 2
+}
+
+pub fn double2(x: i32) -> i32 {   // OK
+    x * 2
+}
+```
+
+Methods of an inherent `impl` follow the same rule by their own visibility. Methods of a trait `impl` take the trait's signature ([4.9](409-method.md)).
+
 If the return type is written but the function body does not match it, it is a compile error.
 
 ```rok
@@ -79,7 +99,7 @@ fn bad() -> i32 {
 
 ## 4.1.4. Omitting parameter types
 
-A parameter without a type is treated as an implicit generic ([`any` slot](../002-types/202-any-slot.md), [generics](../002-types/210-generics.md)).
+On a module-private or `pub(sub)` function, a parameter without a type is treated as an implicit generic ([`any` slot](../002-types/202-any-slot.md), [generics](../002-types/210-generics.md)).
 
 ```rok
 fn id(x) {                        // x: T (generic)
@@ -89,6 +109,8 @@ fn id(x) {                        // x: T (generic)
 let a = id(42i32);                // id<i32>
 let b = id("hi");                 // id<str>
 ```
+
+A `pub` or `pub(pkg)` function writes the type of every parameter; an untyped one is a compile error ([4.2.2](402-parameters.md#422-omitting-the-type)).
 
 If a parameter is meant to be a dynamic slot, write `any` explicitly.
 

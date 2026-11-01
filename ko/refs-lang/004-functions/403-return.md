@@ -57,7 +57,7 @@ fn maybe_int(cond: bool) -> i32 | str {
 
 ## 4.3.4. 반환 타입 생략
 
-[함수 선언](401-function-declaration.md)에서 본 대로 반환 타입은 생략할 수 있습니다. 생략하면 컴파일러가 본체에서 추론합니다.
+[함수 선언](401-function-declaration.md)에서 본 대로 반환 타입은 생략할 수 있습니다. 생략하면 컴파일러가 본체에서 추론합니다. `pub`나 `pub(pkg)` 함수에서는 `->`를 생략하면 대신 `()`입니다([4.1.3](401-function-declaration.md#413-반환-타입-생략)).
 
 ```rok
 fn double(x: i32) {
