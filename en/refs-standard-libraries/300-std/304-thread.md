@@ -80,9 +80,16 @@ fn panicking() -> bool;                        // true on a thread that panicked
 fn local<T>(init: fn() -> T + Sync) -> ThreadLocal<T>;     // init is called on first use in each thread
 
 impl<T> ThreadLocal<T> {
-    fn get(self) -> T;                       // value of the current thread
-    fn set(self, value: T);
-    fn with<R>(self, f: fn(T) -> R) -> R;
+    fn with<R>(self, f: fn(T) -> R) -> R;    // f of this thread's value, lent to f (scoped)
+    fn set(self, value: T);                  // replaces this thread's value
+    fn replace(self, value: T) -> T;         // replaces it, returns the old one
+    unsafe fn as_ptr(self) -> Ptr<T>;        // this thread's value, pinned until the thread ends
+}
+impl<T: Copy> ThreadLocal<T> {
+    fn get(self) -> T;                       // a copy of this thread's value
+}
+impl<T: Default> ThreadLocal<T> {
+    fn take(self) -> T;                      // the value, leaving T::default()
 }
 ```
 
@@ -139,7 +146,20 @@ try thread::spawn(|| {
 }).join();
 ```
 
-`get` returns the current thread's value. A task may resume on another worker thread after an `await`, so a `get()` value kept across an `await` is then another thread's, used by two threads without a lock. Call `get()` again after the `await`. The `thread_local_across_await` lint ([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)) reports such a value.
+The shape follows Rust's `LocalKey`. `with(f)` lends the current thread's value to `f` and returns what `f` returns. The value is a scoped view, tracked like a lock guard's value ([stdlib 2.16.3](../200-core/216-sync.md#2163-mutext---exclusive-lock)): returning it out of `f`, storing it past the call (a capture, a field, a `Cell`), sending it, or passing it to a callee that keeps it is compile error E202, and so is giving `with` an `async` closure, whose future would hold the value across an `await` and could resume on another worker thread. Keep a `clone()`, or what `f` computes, instead.
+
+```rok
+static SEEN: ThreadLocal<List<str>> = thread::local(|| -> List<str> { [] });
+
+SEEN.with(|l| l.push("a"));             // changes this thread's list in place
+let n = SEEN.with(|l| l.len());          // what f computes comes out
+let copy = SEEN.with(|l| l.clone());     // so does a copy
+let all = SEEN.take();                   // the list itself, leaving []
+```
+
+The owned forms move values in and out: `set(v)` stores `v`, `replace(v)` stores `v` and returns the old value, `take()` returns the value and leaves `T::default()`. `get()` returns a copy and needs `T: Copy`; for any other `T` it is a compile error (use `with`, `replace` or `take`). `unsafe fn as_ptr()` points at the current thread's value; the slot stays pinned until the thread ends, and reads and writes through the pointer are the caller's responsibility.
+
+0.1.6 had `get()` for every `T` and the `thread_local_across_await` lint for a `get()` value kept across an `await`. 0.2.0 removes both: `with` cannot await, so the race cannot be written. The lint's name is still accepted in lint levels and does nothing ([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)).
 
 ## 3.4.5. impl / target
 

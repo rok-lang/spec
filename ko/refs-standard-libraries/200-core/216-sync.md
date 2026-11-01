@@ -141,7 +141,8 @@ impl<T> Drop for MutexGuard<T> {
 }
 
 impl<T> MutexGuard<T> {
-    fn get(self) -> T;                  // 보호된 값
+    fn get(self) -> T;                  // 보호된 값의 범위 한정 뷰
+    fn get_clone(self) -> T where T: Clone;   // 깊은 복사본, 잠금보다 오래 살아도 됨
     fn set(self, value: T);             // 값 교체
     fn update(self, f: fn(T) -> T);     // 읽고 바꿔 씀
 }
@@ -158,10 +159,10 @@ impl<T> MutexGuard<T> {
 - 가드의 `using` 블록이 끝난 뒤 `get`이 돌려준 것이나 `set`이 준 것을 쓰는 것
 - 가드가 쥐고 있는 동안(set으로 잠금에 새 값을 주기 전까지) 그 값을 넘기는 것
 - 그것을 돌려주거나, yield하거나, 블록의 값으로 삼거나, 블록 뒤에 실행하는 코루틴에 주는 것
+- 그것을 담은 에러를 던지는 것(`throw Leak { xs: g.get() };`). 잡는 쪽은 잠금이 풀린 뒤에 실행됩니다(0.1.6은 `guard_escape`로 경고했습니다. 이 이름은 린트 수준에 여전히 쓸 수 있고 아무것도 하지 않습니다)
+- 그것을 간직하는 함수(`Cell`, 필드, 캡처, 스레드 로컬에 저장하는 함수)에 넘기는 것. 이 에러(E202)는 호출 위치에서 나며 도움말이 `get_clone()`을 알려 줍니다
 
-그것을 담은 에러를 던지는 것(`throw Leak { xs: g.get() };`)은 `guard_escape` 경고입니다([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). 0.2.0에서는 이것도 에러가 됩니다.
-
-값은 `using` 블록 안에서 다루거나 `clone()`을 남겨 두세요. 가드는 `!Sync`이고 자기 `using` 블록 안에서만 쓸 수 있습니다. 블록이 끝난 뒤 가드의 복사본(컬렉션, 클로저, 필드 안의 것)을 쓰면 컴파일 에러입니다. 다른 스레드에서 도는 클로저에서 값을 쓰려면 먼저 읽고(`let v = g.get();`) `v`를 캡처합니다. 실행 시에는 `new`, `set`, `update`가 값이 들여오는 컬렉션의 복사본을 저장합니다(2.13.9). `new_unshared`는 복사를 건너뜁니다. 이때 `value`의 컬렉션에 다른 것이 닿지 않는다는 점(방금 만든 값)은 호출자가 보장합니다.
+`get`이 돌려주는 것은 범위가 한정된 뷰입니다. 가드처럼 `Send`도 `Sync`도 아닙니다. `get_clone()`은 깊은 복사본을 돌려주며(`T: Clone`), 이것은 잠금보다 오래 살아도 됩니다. 뷰는 `using` 블록 안에서 다루거나 `get_clone()`을 남겨 두세요. 가드는 `!Sync`이고 자기 `using` 블록 안에서만 쓸 수 있습니다. 블록이 끝난 뒤 가드의 복사본(컬렉션, 클로저, 필드 안의 것)을 쓰면 컴파일 에러입니다. 다른 스레드에서 도는 클로저에서 값을 쓰려면 먼저 깊은 복사본을 받고(`let v = g.get_clone();`) `v`를 캡처합니다. `RwLockReadGuard`와 `RwLockWriteGuard`에도 같은 `get`, `get_clone`이 있습니다. 실행 시에는 `new`, `set`, `update`가 값이 들여오는 컬렉션의 복사본을 저장합니다(2.13.9). `new_unshared`는 복사를 건너뜁니다. 이때 `value`의 컬렉션에 다른 것이 닿지 않는다는 점(방금 만든 값)은 호출자가 보장합니다.
 
 ```rok
 static STATE: Mutex<List<i32>> = Mutex::new([]);
@@ -335,7 +336,7 @@ task::spawn(async { c.set(100) });       // ERROR: Cell 은 cross-task 안전 X
 - `Atomic<T>`: Send + Sync. `Atomic<Ptr<T>>`도 마찬가지입니다(cell은 주소를 담습니다)
 - `Mutex<T>`: `T: Send`이면 Send + Sync
 - `RwLock<T>`: `T: Send`이면 Send, `T: Send + Sync`이면 Sync. 여러 읽는 쪽이 값을 동시에 공유하므로 컬렉션(`!Sync`)의 `RwLock`은 스레드 사이에서 공유할 수 없습니다. `Mutex<T>`를 씁니다.
-- `MutexGuard<T>`, `RwLockReadGuard<T>`, `RwLockWriteGuard<T>`: Send, `!Sync`. 가드는 자기 `using` 블록 안에서만 씁니다.
+- `MutexGuard<T>`, `RwLockReadGuard<T>`, `RwLockWriteGuard<T>`: Send, `!Sync`. 가드는 자기 `using` 블록 안에서만 쓰며, `get`이 돌려주는 뷰는 `Send`도 `Sync`도 아닙니다(E202가 추적합니다, 2.16.3).
 - `Frozen<T>`: `T: Send`이면 Sync (2.16.4b)
 - `Cell<T>`: 둘 다 아님(단일 task 전용). 위 `task::spawn`이 에러인 이유는 `async` 블록이 `Cell`을 캡처해서 `Send`가 아니기 때문입니다.
 

@@ -254,8 +254,6 @@ The default level of every lint is `warn`, except `nan_comparison` and `self_ass
 | `confusable_idents`      | 0.1.0   | Identifiers that resemble each other ([1.4](../001-lexical/104-identifiers.md)) |
 | `missing_f_prefix`       | 0.1.0   | A plain string literal containing `{name}` where `name` is a local in scope: the `f` prefix is missing (warn) |
 | `literal_spread_mismatch` | 0.1.6   | A `List` or Dict literal spread into fixed parameters that cannot fill them: a length that differs, or a key that names no parameter left ([4.2](../004-functions/402-parameters.md)); the call panics at run time (warn) |
-| `guard_escape`           | 0.1.6   | A `throw` inside a lock guard's `using` block whose error holds what the lock protects ([stdlib 2.16.3](../../refs-standard-libraries/200-core/216-sync.md#2163-mutext---exclusive-lock)) (warn) |
-| `thread_local_across_await` | 0.1.6   | A `ThreadLocal::get()` value used after an `await` in an `async` body ([stdlib 3.4.4](../../refs-standard-libraries/300-std/304-thread.md#344-thread-local-storage)) (warn) |
 | `unqualified_meta`       | 0.1.6   | Another package's macro, derive or attribute used by its bare name, found only through the build-wide scope that 0.2.0 removes; write `dep::name!`, `#[derive(dep::Name)]`, `#[dep::name]` or `use dep::name!;` ([6.8.11](608-meta-blocks.md#6811-combination-with-registrationvisibility)) |
 | `assoc_type_shadowing`   | 0.2.0   | An associated type named like an outer type, which it hides inside its trait or `impl` (2.8.3) |
 | `builtin_attribute_name` | 0.2.0   | A meta block that takes the name of a built-in attribute |

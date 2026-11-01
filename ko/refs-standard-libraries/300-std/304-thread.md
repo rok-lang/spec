@@ -80,9 +80,16 @@ fn panicking() -> bool;                        // panic 한 스레드에서, 프
 fn local<T>(init: fn() -> T + Sync) -> ThreadLocal<T>;     // 각 스레드에서 처음 쓸 때 init 호출
 
 impl<T> ThreadLocal<T> {
-    fn get(self) -> T;                       // 현재 스레드의 값
-    fn set(self, value: T);
-    fn with<R>(self, f: fn(T) -> R) -> R;
+    fn with<R>(self, f: fn(T) -> R) -> R;    // 이 스레드의 값을 f에 빌려 준 결과 (범위 한정)
+    fn set(self, value: T);                  // 이 스레드의 값 교체
+    fn replace(self, value: T) -> T;         // 교체하고 이전 값을 돌려줌
+    unsafe fn as_ptr(self) -> Ptr<T>;        // 이 스레드의 값, 스레드가 끝날 때까지 고정됨
+}
+impl<T: Copy> ThreadLocal<T> {
+    fn get(self) -> T;                       // 이 스레드의 값의 복사본
+}
+impl<T: Default> ThreadLocal<T> {
+    fn take(self) -> T;                      // 값을 꺼내고 T::default()를 남김
 }
 ```
 
@@ -139,7 +146,20 @@ try thread::spawn(|| {
 }).join();
 ```
 
-`get`은 현재 스레드의 값을 돌려줍니다. task는 `await` 뒤에 다른 worker 스레드에서 다시 이어질 수 있으므로, `await`를 넘어 들고 있던 `get()` 값은 그때 다른 스레드의 값이 되어 두 스레드가 잠금 없이 함께 씁니다. `await` 뒤에 `get()`을 다시 부릅니다. `thread_local_across_await` 린트([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어))가 이런 값을 보고합니다.
+모양은 Rust의 `LocalKey`를 따릅니다. `with(f)`는 현재 스레드의 값을 `f`에 빌려 주고 `f`가 돌려준 것을 돌려줍니다. 이 값은 범위가 한정된 뷰이며 잠금 가드의 값처럼 추적됩니다([stdlib 2.16.3](../200-core/216-sync.md#2163-mutext-배타적-잠금)). 값을 `f` 밖으로 돌려주거나, 호출 뒤까지 저장하거나(캡처, 필드, `Cell`), 보내거나, 값을 간직하는 함수에 넘기면 컴파일 에러 E202입니다. `with`에 `async` 클로저를 주는 것도 에러입니다. 그 future가 `await`를 넘어 값을 들고 있다가 다른 worker 스레드에서 이어질 수 있기 때문입니다. 대신 `clone()`이나 `f`가 계산한 것을 남겨 둡니다.
+
+```rok
+static SEEN: ThreadLocal<List<str>> = thread::local(|| -> List<str> { [] });
+
+SEEN.with(|l| l.push("a"));             // 이 스레드의 리스트를 그 자리에서 바꿈
+let n = SEEN.with(|l| l.len());          // f가 계산한 것은 밖으로 나옴
+let copy = SEEN.with(|l| l.clone());     // 복사본도 나옴
+let all = SEEN.take();                   // 리스트 자체를 꺼내고 []를 남김
+```
+
+소유하는 형태는 값을 넣고 꺼냅니다. `set(v)`는 `v`를 저장하고, `replace(v)`는 `v`를 저장하고 이전 값을 돌려주며, `take()`는 값을 돌려주고 `T::default()`를 남깁니다. `get()`은 복사본을 돌려주므로 `T: Copy`가 필요합니다. 다른 `T`에 쓰면 컴파일 에러입니다(`with`, `replace`, `take`를 씁니다). `unsafe fn as_ptr()`는 현재 스레드의 값을 가리킵니다. 그 자리는 스레드가 끝날 때까지 고정되며, 포인터로 읽고 쓰는 일은 호출자가 책임집니다.
+
+0.1.6에는 모든 `T`에 대한 `get()`과, `await`를 넘어 든 `get()` 값을 보고하는 `thread_local_across_await` 린트가 있었습니다. 0.2.0은 둘 다 없앱니다. `with`는 `await`할 수 없으므로 그런 경쟁을 쓸 수 없습니다. 린트 이름은 린트 수준에 여전히 쓸 수 있고 아무것도 하지 않습니다([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)).
 
 ## 3.4.5. 구현 / 타깃
 
