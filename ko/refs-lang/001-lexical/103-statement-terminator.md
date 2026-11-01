@@ -40,7 +40,7 @@ Rok은 JavaScript의 ASI(Automatic Semicolon Insertion), Go의 줄 끝 자동 �
 
 블록류 식은 `}`로 끝나는 식입니다. `if`, `match`, `loop`, `while`, `for`, 블록(`{ }`, `unsafe { }`, 라벨 블록)이 여기에 속합니다. 블록류 식이 문장 자리에 오면 뒤의 `;`를 생략할 수 있습니다. Rust와 같은 규칙입니다. 이때 그 식의 값은 unit이어야 합니다. unit이 아닌 값을 버리려면 `;`를 붙입니다.
 
-본문이 블록인 [트레일링 클로저](../004-functions/408-trailing-closure.md)가 붙은 호출(`retry(3) { .. }`, `xs.each |x| { .. }`)도 클로저의 `}` 뒤에 이어지는 것이 없으면 `;` 없이 문장을 끝냅니다([4.8.8](../004-functions/408-trailing-closure.md)). 이때 호출의 값은 `;`를 붙인 것처럼 버려집니다. 호출이 문장을 시작하면 키워드로 시작하는 문장처럼 그 `}`에서 끝나므로, `}` 뒤의 이항 연산자는 새 문장을 시작합니다(아래 참고).
+본문이 블록인 [트레일링 클로저](../004-functions/408-trailing-closure.md)가 붙은 호출(`retry(3) { .. }`, `xs.each |x| { .. }`)도 클로저의 `}` 뒤에 이어지는 것이 없으면 `;` 없이 문장을 끝냅니다([4.8.8](../004-functions/408-trailing-closure.md)). 이때 호출은 `;`를 붙인 것처럼 식 문장이 됩니다. 값이 unit이 아니어도 되고 그 값은 버려집니다. 값이 `()`, `none`, `Never`가 아니면 다른 식 문장과 똑같이 `unused_result` 린트로 경고합니다. `_ = run { .. };`로 쓰거나 `#[discardable]` 함수를 부르면 경고하지 않습니다([6.2.11](../006-meta-system/602-built-in-attributes.md#6211-쓰지-않은-결과-unused_result-discardable-must_use)). 호출이 문장을 시작하면 키워드로 시작하는 문장처럼 그 `}`에서 끝나므로, `}` 뒤의 이항 연산자는 새 문장을 시작합니다(아래 참고).
 
 ```rok
 if ready { start(); }        // ; 없음
