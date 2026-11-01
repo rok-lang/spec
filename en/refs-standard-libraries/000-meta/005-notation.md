@@ -188,3 +188,28 @@ Value traits added in 0.2.0 (used as `Dict` keys and `Set` elements, compared an
 Closed enums stay exhaustive: `Ordering`, `Poll`, `Result`, `SeekFrom`, `Shutdown`, `Alignment`, `Sign`, `SocketAddr`, `Component`, `AtomicOrdering`, `SendError`, `TrySendError`.
 
 `#[sealed]` ([refs-lang 6.2](../../refs-lang/006-meta-system/602-built-in-attributes.md)) marks the traits whose implementations the library relies on for soundness or meaning; only the defining package implements them, and bounds and calls are unaffected: `AtomicPrimitive` (2.16), `NicheInt`, `NicheFloat` (2.2), `Pinnable` (1.6). `Step` (2.7) stays open for user range types. `Pod` (1.3) is not sealed (`#[derive(Pod)]` checks a user struct), and `bool` and `char` are not `Pod`.
+
+## 0.5.14. Async twins
+
+`x_async` is the async twin of the blocking `x`: the same arguments and the same errors, awaited (`try await s.x_async(..)`) and suspending only the task. A twin takes `ref self` where `x` works on its receiver in place, and `self` where `x` consumes it (`close_async`).
+
+Stream operations get their twins from traits, not from methods of each type: a type that implements `Read`, `BufRead`, `Write`, `Seek` or `Close` gets `read_async`, `fill_buf_async`, `write_async`, `flush_async`, `seek_async` or `close_async` by implementing `AsyncRead`, `AsyncBufRead`, `AsyncWrite`, `AsyncSeek` or `AsyncClose` ([2.23.5](../200-core/223-io.md#2235-async-traits)). Only operations that are not stream I/O are inherent `_async` methods: opening and connecting (`open_async`, `connect_async`), `accept_async`, `shutdown_async`, datagram and fd passing calls, TLS control and process waits (`wait_async`, `output_async`, `status_async`).
+
+| Type | Async traits | Inherent twins |
+|---|---|---|
+| `File` | `AsyncRead`, `AsyncWrite`, `AsyncSeek`, `AsyncClose` | `open_async` and the other open functions, `sync_all_async`, `set_len_async`, `metadata_async`, `lock_*_async` |
+| `TcpStream` | `AsyncRead`, `AsyncWrite`, `AsyncClose` | `connect_async`, `shutdown_async` |
+| `TcpListener` | `AsyncClose` | `accept_async` |
+| `UdpSocket` | `AsyncClose` | `connect_async`, `send_async`, `recv_async`, `send_to_async`, `recv_from_async` |
+| `Socket` | `AsyncRead`, `AsyncWrite`, `AsyncClose` | `connect_async`, `accept_async`, `shutdown_async`, `send_to_async`, `recv_from_async` |
+| `UnixStream` | `AsyncRead`, `AsyncWrite`, `AsyncClose` | `connect_async`, `shutdown_async`, `send_with_fd_async`, `recv_with_fd_async` |
+| `UnixListener` | `AsyncClose` | `accept_async` |
+| `UnixDatagram` | `AsyncClose` | `connect_async`, `send_async`, `recv_async`, `send_with_fd_async`, `recv_with_fd_async` |
+| `tls::Client`, `tls::Server` | `AsyncRead`, `AsyncWrite`, `AsyncClose` | `new_async`, `with_config_async`, `close_notify_async`, `key_update_async` |
+| `ChildStdin` | `AsyncWrite`, `AsyncClose` | |
+| `ChildStdout`, `ChildStderr` | `AsyncRead`, `AsyncClose` | |
+| `Child` | | `wait_async` |
+| `Command` | | `output_async`, `status_async` |
+| `BufReader`, `BufWriter`, `LineWriter`, `Cursor` | as their inner stream ([2.23.6](../200-core/223-io.md#2236-buffers-and-cursor)) | |
+
+A `Sender`'s `close` is not I/O and has no twin.

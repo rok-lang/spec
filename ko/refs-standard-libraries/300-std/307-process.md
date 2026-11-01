@@ -33,6 +33,8 @@ impl Command {
     fn spawn(self) throws (IoError) -> Child;
     fn output(self) throws (IoError) -> Output;          // 대기 + 수집: Inherit 인 stdout / stderr 는 pipe, Inherit 인 stdin 은 null
     fn status(self) throws (IoError) -> ExitStatus;      // wait, no output
+    async fn output_async(self) throws (IoError) -> Output;
+    async fn status_async(self) throws (IoError) -> ExitStatus;
 }
 
 enum Stdio {
@@ -68,6 +70,7 @@ impl Child {
     fn id(self) -> u32;                                  // pid
     fn kill(self) throws (IoError);
     fn wait(self) throws (IoError) -> ExitStatus;
+    async fn wait_async(ref self) throws (IoError) -> ExitStatus;
     fn try_wait(self) throws (IoError) -> ExitStatus | none;
 
     // Linux: pidfd, ChildExt (3.11.5)
@@ -75,13 +78,13 @@ impl Child {
     fn send_signal(self, sig: Signal) throws (IoError);  // Windows: Kill 만
 }
 
-impl ChildStdin {                        // 자식 stdin pipe 의 쓰기 끝, impl io::Write + io::Close
+impl ChildStdin {                        // 자식 stdin pipe 의 쓰기 끝, impl io::Write + io::Close, io::AsyncWrite + io::AsyncClose
     fn close(self) throws (IoError);     // 자식은 입력 끝을 읽음
 }
-impl ChildStdout {                       // 자식 stdout pipe 의 읽기 끝, impl io::Read + io::Close
+impl ChildStdout {                       // 자식 stdout pipe 의 읽기 끝, impl io::Read + io::Close, io::AsyncRead + io::AsyncClose
     fn close(self) throws (IoError);
 }
-impl ChildStderr {                       // 자식 stderr pipe 의 읽기 끝, impl io::Read + io::Close
+impl ChildStderr {                       // 자식 stderr pipe 의 읽기 끝, impl io::Read + io::Close, io::AsyncRead + io::AsyncClose
     fn close(self) throws (IoError);
 }
 // + 세 pipe 모두 AsRawFd (unix), AsRawHandle (Windows): 3.11

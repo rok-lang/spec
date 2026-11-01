@@ -189,3 +189,28 @@ let z = x + y;        //→ 4.0 (f64)
 닫힌 enum은 그대로 exhaustive입니다: `Ordering`, `Poll`, `Result`, `SeekFrom`, `Shutdown`, `Alignment`, `Sign`, `SocketAddr`, `Component`, `AtomicOrdering`, `SendError`, `TrySendError`.
 
 `#[sealed]`([refs-lang 6.2](../../refs-lang/006-meta-system/602-built-in-attributes.md))는 라이브러리가 건전성이나 의미를 기대는 구현을 가진 트레잇에 붙습니다. 정의한 패키지만 구현할 수 있고, 바운드와 호출은 그대로입니다: `AtomicPrimitive`(2.16), `NicheInt`, `NicheFloat`(2.2), `Pinnable`(1.6). `Step`(2.7)은 사용자 범위 타입을 위해 열어 둡니다. `Pod`(1.3)는 sealed가 아니며(`#[derive(Pod)]`가 사용자 struct를 검사합니다), `bool`과 `char`는 `Pod`가 아닙니다.
+
+## 0.5.14. async 짝
+
+`x_async`는 블로킹하는 `x`의 async 짝입니다. 인자와 에러는 같고, `try await s.x_async(..)`처럼 await하며 task만 중단합니다. `x`가 리시버를 제자리에서 다루면 짝은 `ref self`를 받고, `x`가 리시버를 소비하면 `self`를 받습니다(`close_async`).
+
+스트림 연산의 짝은 타입마다 따로 둔 메서드가 아니라 트레잇에서 옵니다. `Read`, `BufRead`, `Write`, `Seek`, `Close`를 구현하는 타입은 `AsyncRead`, `AsyncBufRead`, `AsyncWrite`, `AsyncSeek`, `AsyncClose`를 구현해서 `read_async`, `fill_buf_async`, `write_async`, `flush_async`, `seek_async`, `close_async`를 얻습니다([2.23.5](../200-core/223-io.md#2235-async-트레잇)). 스트림 입출력이 아닌 연산만 고유 `_async` 메서드입니다. 열기와 연결(`open_async`, `connect_async`), `accept_async`, `shutdown_async`, 데이터그램과 fd 넘기기 호출, TLS 제어, 프로세스 대기(`wait_async`, `output_async`, `status_async`)가 그렇습니다.
+
+| 타입 | async 트레잇 | 고유 짝 |
+|---|---|---|
+| `File` | `AsyncRead`, `AsyncWrite`, `AsyncSeek`, `AsyncClose` | `open_async`와 다른 열기 함수, `sync_all_async`, `set_len_async`, `metadata_async`, `lock_*_async` |
+| `TcpStream` | `AsyncRead`, `AsyncWrite`, `AsyncClose` | `connect_async`, `shutdown_async` |
+| `TcpListener` | `AsyncClose` | `accept_async` |
+| `UdpSocket` | `AsyncClose` | `connect_async`, `send_async`, `recv_async`, `send_to_async`, `recv_from_async` |
+| `Socket` | `AsyncRead`, `AsyncWrite`, `AsyncClose` | `connect_async`, `accept_async`, `shutdown_async`, `send_to_async`, `recv_from_async` |
+| `UnixStream` | `AsyncRead`, `AsyncWrite`, `AsyncClose` | `connect_async`, `shutdown_async`, `send_with_fd_async`, `recv_with_fd_async` |
+| `UnixListener` | `AsyncClose` | `accept_async` |
+| `UnixDatagram` | `AsyncClose` | `connect_async`, `send_async`, `recv_async`, `send_with_fd_async`, `recv_with_fd_async` |
+| `tls::Client`, `tls::Server` | `AsyncRead`, `AsyncWrite`, `AsyncClose` | `new_async`, `with_config_async`, `close_notify_async`, `key_update_async` |
+| `ChildStdin` | `AsyncWrite`, `AsyncClose` | |
+| `ChildStdout`, `ChildStderr` | `AsyncRead`, `AsyncClose` | |
+| `Child` | | `wait_async` |
+| `Command` | | `output_async`, `status_async` |
+| `BufReader`, `BufWriter`, `LineWriter`, `Cursor` | 안쪽 스트림을 따름([2.23.6](../200-core/223-io.md#2236-버퍼와-cursor)) | |
+
+`Sender`의 `close`는 I/O가 아니므로 짝이 없습니다.

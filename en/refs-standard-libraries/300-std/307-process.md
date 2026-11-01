@@ -33,6 +33,8 @@ impl Command {
     fn spawn(self) throws (IoError) -> Child;
     fn output(self) throws (IoError) -> Output;          // wait + collect: stdout / stderr left at Inherit are piped; an Inherit stdin is null
     fn status(self) throws (IoError) -> ExitStatus;      // wait, no output
+    async fn output_async(self) throws (IoError) -> Output;
+    async fn status_async(self) throws (IoError) -> ExitStatus;
 }
 
 enum Stdio {
@@ -68,6 +70,7 @@ impl Child {
     fn id(self) -> u32;                                  // pid
     fn kill(self) throws (IoError);
     fn wait(self) throws (IoError) -> ExitStatus;
+    async fn wait_async(ref self) throws (IoError) -> ExitStatus;
     fn try_wait(self) throws (IoError) -> ExitStatus | none;
 
     // Linux: pidfd, ChildExt (3.11.5)
@@ -75,13 +78,13 @@ impl Child {
     fn send_signal(self, sig: Signal) throws (IoError);  // Windows: Kill only
 }
 
-impl ChildStdin {                        // write end of the child's stdin pipe; impl io::Write + io::Close
+impl ChildStdin {                        // write end of the child's stdin pipe; impl io::Write + io::Close, io::AsyncWrite + io::AsyncClose
     fn close(self) throws (IoError);     // the child reads end of input
 }
-impl ChildStdout {                       // read end of the child's stdout pipe; impl io::Read + io::Close
+impl ChildStdout {                       // read end of the child's stdout pipe; impl io::Read + io::Close, io::AsyncRead + io::AsyncClose
     fn close(self) throws (IoError);
 }
-impl ChildStderr {                       // read end of the child's stderr pipe; impl io::Read + io::Close
+impl ChildStderr {                       // read end of the child's stderr pipe; impl io::Read + io::Close, io::AsyncRead + io::AsyncClose
     fn close(self) throws (IoError);
 }
 // + AsRawFd (unix), AsRawHandle (Windows) for the three pipes: 3.11
