@@ -495,10 +495,10 @@ rok_net_send          rok_net_recv          rok_net_send_to       rok_net_recv_f
 rok_net_shutdown      rok_net_setopt        rok_net_multicast_v4  rok_net_wait
 rok_net_resolve       rok_net_unix          rok_net_unix_pair     rok_net_unix_path
 rok_net_send_fd       rok_net_recv_fd       rok_net_sendfile      rok_net_send_zerocopy
-rok_net_splice
+rok_net_splice        rok_net_getopt
 ```
 
-`rok_net_wait`는 blocking 호출이 준비를 기다리는 `poll(2)`입니다(GC가 보기에는 네이티브 구간). `rok_net_resolve`는 `getaddrinfo`입니다. 그 실패 코드 `e`는 `-(100000 + |e|)`로 돌려줍니다. `rok_os_strerror`와 `rok_os_errno_kind`는 이 값을 errno처럼 받습니다. `rok_net_unix*`, `rok_net_send_fd` / `rok_net_recv_fd`, `rok_net_sendfile`, `rok_net_send_zerocopy`, `rok_net_splice`는 Windows에서 export하지 않습니다.
+`rok_net_socket`은 `net::Socket`의 도메인, 타입, 프로토콜을 받습니다. `rok_net_setopt` / `rok_net_getopt`는 라이브러리가 정한 코드로 소켓 옵션을 쓰고 읽습니다. `rok_net_wait`는 blocking 호출이 준비를 기다리는 `poll(2)`입니다(GC가 보기에는 네이티브 구간). `rok_net_resolve`는 `getaddrinfo`입니다. 그 실패 코드 `e`는 `-(100000 + |e|)`로 돌려줍니다. `rok_os_strerror`와 `rok_os_errno_kind`는 이 값을 errno처럼 받습니다. `rok_net_unix*`, `rok_net_send_fd` / `rok_net_recv_fd`, `rok_net_sendfile`, `rok_net_send_zerocopy`, `rok_net_splice`는 Windows에서 export하지 않습니다.
 
 ## 8.5.6. 에러 전달(심볼 없음)
 

@@ -495,10 +495,10 @@ rok_net_send          rok_net_recv          rok_net_send_to       rok_net_recv_f
 rok_net_shutdown      rok_net_setopt        rok_net_multicast_v4  rok_net_wait
 rok_net_resolve       rok_net_unix          rok_net_unix_pair     rok_net_unix_path
 rok_net_send_fd       rok_net_recv_fd       rok_net_sendfile      rok_net_send_zerocopy
-rok_net_splice
+rok_net_splice        rok_net_getopt
 ```
 
-`rok_net_wait` is a `poll(2)` with which a blocking call waits for readiness (a native section for the GC); `rok_net_resolve` is `getaddrinfo`; its failure code `e` is returned as `-(100000 + |e|)`, which `rok_os_strerror` and `rok_os_errno_kind` accept like an errno. `rok_net_unix*`, `rok_net_send_fd` / `rok_net_recv_fd`, `rok_net_sendfile`, `rok_net_send_zerocopy` and `rok_net_splice` are not exported on Windows.
+`rok_net_socket` takes the domain, type and protocol of `net::Socket`; `rok_net_setopt` / `rok_net_getopt` set and read socket options by codes the library defines. `rok_net_wait` is a `poll(2)` with which a blocking call waits for readiness (a native section for the GC); `rok_net_resolve` is `getaddrinfo`; its failure code `e` is returned as `-(100000 + |e|)`, which `rok_os_strerror` and `rok_os_errno_kind` accept like an errno. `rok_net_unix*`, `rok_net_send_fd` / `rok_net_recv_fd`, `rok_net_sendfile`, `rok_net_send_zerocopy` and `rok_net_splice` are not exported on Windows.
 
 ## 8.5.6. Error propagation (no symbols)
 
