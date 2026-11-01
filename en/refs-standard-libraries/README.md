@@ -89,6 +89,7 @@ Safe area. All targets. Its prelude, `use rok::core::prelude::*;`, applied impli
 - 2.20. [`Future` / `await` integration](200-core/220-future.md)
 - 2.21. [`crypto::` - hashes, MACs, AEADs, key exchange, signatures](200-core/221-crypto.md)
 - 2.22. [`encoding::` - hex and base64](200-core/222-encoding.md)
+- 2.23. [`io::` - byte streams and standard I/O (`Read`, `BufRead`, `Write`, `Seek`, async twins)](200-core/223-io.md)
 
 > [!NOTE]
 > Scientific computing / AI areas such as tensors / automatic differentiation / SIMD / GPU are not part of the standard libraries and are split out into external libraries. External libraries reach the compiler's backend through the backend interface, planned for Rok 0.2.2.
@@ -101,7 +102,7 @@ Target-dependent area. Explicit import.
 - 3.2. [`net::` - TCP/UDP/Unix + TLS 1.3 (HTTP is external)](300-std/302-net.md)
 - 3.3. [`time::` - `Instant` / `SystemTime` / `Duration` / `BootTime`](300-std/303-time.md)
 - 3.4. [`thread::` - OS threads (1:1, separate from tasks)](300-std/304-thread.md)
-- 3.5. [`io::` - `Reader` / `Writer` / stdin/out/err (sync only, no async traits)](300-std/305-io.md)
+- 3.5. [`io::` - moved to `rok::core::io` (2.23)](300-std/305-io.md)
 - 3.6. [`env::` - environment variables / args / directories](300-std/306-env.md)
 - 3.7. [`process::` - `Command` / pidfd / kill_on_drop](300-std/307-process.md)
 - 3.8. [`path::` - UTF-8 `Path` + `/` operator (Python pathlib style)](300-std/308-path.md)

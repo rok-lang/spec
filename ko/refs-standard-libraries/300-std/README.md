@@ -28,7 +28,7 @@ use rok::std::thread::Builder;
 - [3.2. `net::` - TCP / UDP / Unix + TLS 1.3](302-net.md)
 - [3.3. `time::` - `Instant` / `SystemTime` / `Duration` / `BootTime`](303-time.md)
 - [3.4. `thread::` - OS 스레드 (1:1, `task::`와 별개)](304-thread.md)
-- [3.5. `io::` - `Reader` / `Writer` / stdin/out/err / `BufReader`](305-io.md)
+- [3.5. `io::` - `rok::core::io`로 옮김 (2.23)](305-io.md)
 - [3.6. `env::` - 환경 변수 / args / current_dir / home_dir](306-env.md)
 - [3.7. `process::` - `Command` / `Child` / pidfd / kill_on_drop](307-process.md)
 - [3.8. `path::` - UTF-8 `Path` (Python 식) + `RawPath` 이스케이프](308-path.md)
@@ -41,13 +41,13 @@ use rok::std::thread::Builder;
 이 tier의 모든 시그니처에는 두 가지 약식 표기가 적용됩니다.
 
 - `Path`로 적은 경로 매개변수는 타입 매개변수 `P: AsPath`를 뜻합니다. 그래서 `str` 타입과 `Path`를 모두 받습니다([3.8.3a](308-path.md#383a-aspath-경로-인자)). 경로 매개변수 두 개는 서로 독립입니다(`P: AsPath, Q: AsPath`).
-- 고유 쓰기 함수(`write`, `write_all`, `send`, `send_to`, `send_with_fd`와 그 `_async` 판, `fs`의 쓰기 함수)의 데이터는 `B: AsBytes`입니다. 그래서 `str`, `List<u8>`, `Slice<u8>`, `[u8; N]`을 넘길 수 있습니다([3.5.1](305-io.md#351-asbytes)). `Writer` 트레잇 메서드와 `write_zerocopy`는 `List<u8>`을 받습니다.
+- 쓰기(`Write::write` / `write_all`, `send`, `send_to`, `send_with_fd`, 그 `_async` 판, `fs`의 쓰기 함수)의 데이터는 `B: AsBytes`입니다. 그래서 `str`, `List<u8>`, `Slice<u8>`, `[u8; N]`을 넘길 수 있습니다([2.23.3](../200-core/223-io.md#2233-write와-close)). `write_zerocopy`는 `List<u8>`을 받습니다.
 
-읽기 버퍼는 길이를 미리 잡아 둔 `List<u8>`입니다. `read(buf)`는 `buf[0..n]`을 채우고 `n`을 돌려줍니다. 스트림 끝에서는 `0`을 돌려줍니다.
+읽기 버퍼는 `SliceMut<u8>`입니다. `read(buf)`는 `buf[0..n]`을 채우고 `n`을 돌려줍니다. 스트림 끝에서는 `0`을 돌려줍니다. `List<u8>`는 리스트 전체의 뷰로, `buf[a:b]`는 그 일부로 넘어갑니다.
 
 ## 핵심 설계 원칙
 
-### 1. 블로킹 API와 `*_async`: 비동기 트레잇 없음
+### 1. 블로킹 API와 `*_async`: 트레잇 두 벌
 
 std의 I/O 함수는 동기 함수이고, 호출한 OS 스레드를 막습니다. task 안에서 기다리는 동안 워커를 내주려면 같은 연산의 `*_async` 메서드를 `await`로 기다립니다([3.2.0](302-net.md#320-공통-규칙)). 스택 없는(stackless) 코루틴에서는 일반 함수가 task를 중단할 수 없습니다. 그래서 동기 호출이 저절로 비동기가 되지는 않습니다.
 
@@ -67,7 +67,7 @@ async fn fetch_async(addr: str) throws (IoError) -> List<u8> {
 }
 ```
 
-`AsyncRead` / `AsyncWrite` 트레잇은 **두지 않습니다**. async 판은 타입의 고유 메서드와 함수입니다. 소켓은 I/O 드라이버의 준비 상태를 기다립니다([3.2.0](302-net.md#320-공통-규칙)). 일반 파일은 블로킹 호출을 다른 OS 스레드에서 돌립니다([3.1.4a](301-fs.md#314a-비동기-파일-io_async)).
+스트림 입출력은 `rok::core::io`의 트레잇을 거칩니다([2.23](../200-core/223-io.md)). `Read` / `Write`는 블로킹하고 `AsyncRead` / `AsyncWrite`는 task만 중단합니다. 메서드 이름에 `_async`가 붙으므로 둘을 함께 들여와도 됩니다. 스트림 입출력이 아닌 연산(`connect_async`, `accept_async`, `open_async` 등)은 타입의 고유 메서드와 함수입니다. 소켓은 I/O 드라이버의 준비 상태를 기다립니다([3.2.0](302-net.md#320-공통-규칙)). 일반 파일은 블로킹 호출을 다른 OS 스레드에서 돌립니다([3.1.4a](301-fs.md#314a-비동기-파일-io_async)).
 
 ### 2. I/O 백엔드: 런타임 세부 사항
 
@@ -158,7 +158,6 @@ fn load_config() throws (ConfigError) -> Config {
 | `rok::std::net`     | ✓ (+ TLS 1.3)       | ✓ (`wasi:sockets`) | 호스트가 넘긴 listener만 | ✗ (`fetch` 사용) |
 | `rok::std::time`    | ✓                   | ✓             | ✓                   | ✓ (Date.now)     |
 | `rok::std::thread`  | ✓                   | 스레드 하나 (`Builder::spawn` `Unsupported`) | ✓ (wasi-threads) | 스레드 하나 (`Builder::spawn` `Unsupported`) |
-| `rok::std::io`      | ✓                   | ✓             | ✓                   | console / stdin은 EOF |
 | `rok::std::env`     | ✓                   | ✓             | ✓                   | ✗                |
 | `rok::std::process` | ✓                   | ✗             | ✗                   | ✗                |
 | `rok::std::path`    | ✓                   | ✓             | ✓                   | ✓                |

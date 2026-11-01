@@ -69,23 +69,23 @@ impl Child {
 
     // pidfd (Linux only): race-free signal
     #[cfg(target_os = "linux")]
-    fn pidfd(self) throws (IoError) -> RawFd;
+    fn pidfd(self) throws (IoError) -> i32;
 
     fn send_signal(self, sig: Signal) throws (IoError);  // Windows: Kill only
     #[deprecated(since = "0.1.6", note = "use `Child::send_signal(Signal::..)`")]
     fn signal(self, sig: i32) throws (IoError);          // unix
 }
 
-impl ChildStdin {                        // write end of the child's stdin pipe; impl Writer
-    fn fd(self) -> RawFd;
+impl ChildStdin {                        // write end of the child's stdin pipe; impl io::Write + io::Close
+    fn fd(self) -> i32;
     fn close(self) throws (IoError);     // the child reads end of input
 }
-impl ChildStdout {                       // read end of the child's stdout pipe; impl Reader
-    fn fd(self) -> RawFd;
+impl ChildStdout {                       // read end of the child's stdout pipe; impl io::Read + io::Close
+    fn fd(self) -> i32;
     fn close(self) throws (IoError);
 }
-impl ChildStderr {                       // read end of the child's stderr pipe; impl Reader
-    fn fd(self) -> RawFd;
+impl ChildStderr {                       // read end of the child's stderr pipe; impl io::Read + io::Close
+    fn fd(self) -> i32;
     fn close(self) throws (IoError);
 }
 

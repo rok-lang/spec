@@ -69,23 +69,23 @@ impl Child {
 
     // pidfd (Linux only): race-free signal
     #[cfg(target_os = "linux")]
-    fn pidfd(self) throws (IoError) -> RawFd;
+    fn pidfd(self) throws (IoError) -> i32;
 
     fn send_signal(self, sig: Signal) throws (IoError);  // Windows: Kill 만
     #[deprecated(since = "0.1.6", note = "use `Child::send_signal(Signal::..)`")]
     fn signal(self, sig: i32) throws (IoError);          // unix
 }
 
-impl ChildStdin {                        // 자식 stdin pipe 의 쓰기 끝, impl Writer
-    fn fd(self) -> RawFd;
+impl ChildStdin {                        // 자식 stdin pipe 의 쓰기 끝, impl io::Write + io::Close
+    fn fd(self) -> i32;
     fn close(self) throws (IoError);     // 자식은 입력 끝을 읽음
 }
-impl ChildStdout {                       // 자식 stdout pipe 의 읽기 끝, impl Reader
-    fn fd(self) -> RawFd;
+impl ChildStdout {                       // 자식 stdout pipe 의 읽기 끝, impl io::Read + io::Close
+    fn fd(self) -> i32;
     fn close(self) throws (IoError);
 }
-impl ChildStderr {                       // 자식 stderr pipe 의 읽기 끝, impl Reader
-    fn fd(self) -> RawFd;
+impl ChildStderr {                       // 자식 stderr pipe 의 읽기 끝, impl io::Read + io::Close
+    fn fd(self) -> i32;
     fn close(self) throws (IoError);
 }
 

@@ -78,7 +78,7 @@ collect::<List<f64>>(iter)
 경로 자체는 [타입 표현식](201-type-expressions.md)의 단순 이름 형태나 경로 형태입니다. 그래서 합 타입(`|`), 제네릭 적용(`<...>`) 같은 다른 결합자와 자유롭게 섞을 수 있습니다.
 
 ```rok
-rok::std::io::Result<T>
+rok::core::io::Lines<T>
 pkg::Foo | rok::std::Bar
 List<rok::core::Range<i32>>
 ```

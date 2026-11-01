@@ -413,7 +413,7 @@ impl From<i32> for i64 {
 
 ## 2.11.13. `AsBytes` 트레잇: 바이트 뷰
 
-`rok::core::convert::AsBytes`는 표준 라이브러리의 모든 바이트 인자가 받는 트레잇입니다. `str::from_utf8`([2.15.6](215-string.md)), `hex`와 `base64`([2.22](222-encoding.md)), `crypto`([2.21](221-crypto.md)), `CString::new`([1.7.2](../100-bare/107-ffi.md)), `fs`와 `net`의 쓰기 함수([3.5.1](../300-std/305-io.md#351-asbytes)), `Slice<u8>::find`([2.9.7](209-collections.md))가 그렇습니다. 이런 매개변수는 `<B: AsBytes>`로 쓰고 바이트 인자마다 타입 매개변수를 따로 두므로, 키와 메시지의 타입이 같지 않아도 됩니다.
+`rok::core::convert::AsBytes`는 표준 라이브러리의 모든 바이트 인자가 받는 트레잇입니다. `str::from_utf8`([2.15.6](215-string.md)), `hex`와 `base64`([2.22](222-encoding.md)), `crypto`([2.21](221-crypto.md)), `CString::new`([1.7.2](../100-bare/107-ffi.md)), `fs`와 `net`의 쓰기 함수([2.23.3](223-io.md)), `Slice<u8>::find`([2.9.7](209-collections.md))가 그렇습니다. 이런 매개변수는 `<B: AsBytes>`로 쓰고 바이트 인자마다 타입 매개변수를 따로 두므로, 키와 메시지의 타입이 같지 않아도 됩니다.
 
 ```rok
 trait AsBytes {
@@ -438,4 +438,4 @@ let tag = crypto::Hmac::mac(crypto::HashAlgorithm::Sha256, key, frame);
 let text = encoding::hex::encode(frame);
 ```
 
-`AsBytes`의 경로는 이것 하나입니다. `rok::std::io`는 다시 내보내지 않습니다.
+`AsBytes`의 경로는 이것 하나입니다. `rok::core::io`는 다시 내보내지 않습니다.

@@ -85,6 +85,10 @@ Rok tier의 모듈을 영역별로 나누면 다음과 같습니다.
 
 - [2.22. `encoding::` - hex와 base64](222-encoding.md)
 
+### 입출력
+
+- [2.23. io (`Read`, `BufRead`, `Write`, `Seek`, `AsyncRead`, `AsyncWrite`, `BufReader`, `Cursor`, 표준 입출력)](223-io.md)
+
 > [!NOTE]
 > 텐서, 자동 미분, SIMD, GPU 같은 과학 컴퓨팅 영역은 Rok tier에 두지 않고 **외부 라이브러리**로 분리합니다. 외부 라이브러리는 Rok 0.2.2에 도입할 예정인 백엔드 인터페이스로 컴파일러 백엔드에 닿습니다.
 

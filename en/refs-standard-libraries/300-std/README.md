@@ -28,7 +28,7 @@ This tier consists of the following eleven modules.
 - [3.2. `net::` - TCP / UDP / Unix + TLS 1.3](302-net.md)
 - [3.3. `time::` - `Instant` / `SystemTime` / `Duration` / `BootTime`](303-time.md)
 - [3.4. `thread::` - OS threads (1:1, separate from `task::`)](304-thread.md)
-- [3.5. `io::` - `Reader` / `Writer` / stdin/out/err / `BufReader`](305-io.md)
+- [3.5. `io::` - moved to `rok::core::io` (2.23)](305-io.md)
 - [3.6. `env::` - environment variables / args / current_dir / home_dir](306-env.md)
 - [3.7. `process::` - `Command` / `Child` / pidfd / kill_on_drop](307-process.md)
 - [3.8. `path::` - UTF-8 `Path` (Python-style) + `RawPath` escape hatch](308-path.md)
@@ -41,13 +41,13 @@ This tier consists of the following eleven modules.
 Two shorthands hold in every signature of this tier.
 
 - A path parameter written `Path` stands for a type parameter `P: AsPath`, so it accepts both `str` and `Path` ([3.8.3a](308-path.md#383a-aspath---path-arguments)). Two path parameters are independent (`P: AsPath, Q: AsPath`).
-- The data of an inherent write function (`write`, `write_all`, `send`, `send_to`, `send_with_fd` and their `_async` forms, the `fs` write functions) is `B: AsBytes`, so `str`, `List<u8>`, `Slice<u8>` and `[u8; N]` can be passed ([3.5.1](305-io.md#351-asbytes)). The `Writer` trait methods and `write_zerocopy` take a `List<u8>`.
+- The data of a write (`Write::write` / `write_all`, `send`, `send_to`, `send_with_fd`, their `_async` forms, the `fs` write functions) is `B: AsBytes`, so `str`, `List<u8>`, `Slice<u8>` and `[u8; N]` can be passed ([2.23.3](../200-core/223-io.md#2233-write-and-close)). `write_zerocopy` takes a `List<u8>`.
 
-A read buffer is a `List<u8>` whose length is set up in advance: `read(buf)` fills `buf[0..n]` and returns `n`, `0` at the end of the stream.
+A read buffer is a `SliceMut<u8>`: `read(buf)` fills `buf[0..n]` and returns `n`, `0` at the end of the stream. A `List<u8>` passes as a view of the whole list, `buf[a:b]` as a part of it.
 
 ## Core design principles
 
-### 1. Blocking API + `*_async` - no async traits
+### 1. Blocking API + `*_async` - two sets of traits
 
 std I/O functions are sync and block the calling OS thread. To give up the worker while waiting inside a task, `await` the `*_async` method of the same operation ([3.2.0](302-net.md#320-common-rules)). With stackless coroutines an ordinary function cannot suspend a task, so a sync call never becomes async on its own.
 
@@ -67,7 +67,7 @@ async fn fetch_async(addr: str) throws (IoError) -> List<u8> {
 }
 ```
 
-There are **no** `AsyncRead` / `AsyncWrite` traits. The async versions are inherent methods and functions of the types. Sockets wait for I/O driver readiness ([3.2.0](302-net.md#320-common-rules)); regular files run the blocking call on another OS thread ([3.1.4a](301-fs.md#314a-asynchronous-file-io-_async)).
+Stream I/O goes through the traits of `rok::core::io` ([2.23](../200-core/223-io.md)): `Read` / `Write` block, `AsyncRead` / `AsyncWrite` suspend the task, and the method names keep the `_async` suffix, so both are in scope at once. Operations that are not stream I/O (`connect_async`, `accept_async`, `open_async`, ..) are inherent methods and functions of the types. Sockets wait for I/O driver readiness ([3.2.0](302-net.md#320-common-rules)); regular files run the blocking call on another OS thread ([3.1.4a](301-fs.md#314a-asynchronous-file-io-_async)).
 
 ### 2. I/O backend - runtime detail
 
@@ -158,7 +158,6 @@ Module availability per platform:
 | `rok::std::net`     | ✓ (+ TLS 1.3)       | ✓ (`wasi:sockets`) | listeners passed in by the host | ✗ (use `fetch`) |
 | `rok::std::time`    | ✓                   | ✓             | ✓                   | ✓ (Date.now)     |
 | `rok::std::thread`  | ✓                   | one thread (`Builder::spawn` `Unsupported`) | ✓ (wasi-threads) | one thread (`Builder::spawn` `Unsupported`) |
-| `rok::std::io`      | ✓                   | ✓             | ✓                   | console / stdin at EOF |
 | `rok::std::env`     | ✓                   | ✓             | ✓                   | ✗                |
 | `rok::std::process` | ✓                   | ✗             | ✗                   | ✗                |
 | `rok::std::path`    | ✓                   | ✓             | ✓                   | ✓                |

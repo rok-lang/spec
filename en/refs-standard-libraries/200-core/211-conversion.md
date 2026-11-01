@@ -409,7 +409,7 @@ The numeric cast of `as T` uses the same intrinsic; the compiler chooses between
 
 ## 2.11.13. `AsBytes` trait - bytes as a view
 
-`rok::core::convert::AsBytes` is what every byte argument of the standard library takes: `str::from_utf8` ([2.15.6](215-string.md#2156-utf-8-invariant---every-in-process-string)), `hex` and `base64` ([2.22](222-encoding.md)), `crypto` ([2.21](221-crypto.md)), `CString::new` ([1.7.2](../100-bare/107-ffi.md)), the `fs` and `net` write functions ([3.5.1](../300-std/305-io.md#351-asbytes)) and `Slice<u8>::find` ([2.9.7](209-collections.md)). Such a parameter is written `<B: AsBytes>`, with one type parameter per byte argument, so a key and a message need not have the same type.
+`rok::core::convert::AsBytes` is what every byte argument of the standard library takes: `str::from_utf8` ([2.15.6](215-string.md#2156-utf-8-invariant---every-in-process-string)), `hex` and `base64` ([2.22](222-encoding.md)), `crypto` ([2.21](221-crypto.md)), `CString::new` ([1.7.2](../100-bare/107-ffi.md)), the `fs` and `net` write functions ([2.23.3](223-io.md)) and `Slice<u8>::find` ([2.9.7](209-collections.md)). Such a parameter is written `<B: AsBytes>`, with one type parameter per byte argument, so a key and a message need not have the same type.
 
 ```rok
 trait AsBytes {
@@ -434,4 +434,4 @@ let tag = crypto::Hmac::mac(crypto::HashAlgorithm::Sha256, key, frame);
 let text = encoding::hex::encode(frame);
 ```
 
-`AsBytes` has this one path; `rok::std::io` does not re-export it.
+`AsBytes` has this one path; `rok::core::io` does not re-export it.

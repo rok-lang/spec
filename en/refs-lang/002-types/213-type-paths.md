@@ -78,7 +78,7 @@ An absolute path starting from the root is written with `pkg::` ([Paths](../005-
 A path itself is the simple-name or path form of a [type expression](201-type-expressions.md), and mixes freely with other combinators such as sum types (`|`) and generic application (`<...>`).
 
 ```rok
-rok::std::io::Result<T>
+rok::core::io::Lines<T>
 pkg::Foo | rok::std::Bar
 List<rok::core::Range<i32>>
 ```

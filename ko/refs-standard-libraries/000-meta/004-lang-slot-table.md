@@ -63,7 +63,7 @@
 | `display_trait`       | `f"{x}"` 기본 포맷         | `rok::core::fmt::Display`       | 2.10 |
 | `debug_trait`         | `f"{x:?}"` 디버그 포맷     | `rok::core::fmt::Debug`         | 2.10 |
 | `future_trait`        | `await expr`의 단계 진행   | `rok::core::future::Future`     | 2.20 |
-| `close_trait`         | 실패할 수 있는 닫기: 주인이 닫음 | `rok::std::io::Close`      | 3.5  |
+| `close_trait`         | 실패할 수 있는 닫기: 주인이 닫음 | `rok::core::io::Close`     | 2.23 |
 
 다음은 연산자 트레잇 슬롯입니다. 연산자 토큰을 어느 메서드로 디스패치할지는 각 트레잇 메서드에 붙은 `#[infix]` / `#[prefix]`([refs-lang 6.7](../../refs-lang/006-meta-system/607-operator-magic.md))가 정합니다. 우선순위는 [refs-lang 3.2](../../refs-lang/003-expressions/302-precedence-and-associativity.md) 표가 고정합니다. 아래 슬롯은 고정된 자리입니다. 컴파일러는 원시 타입 연산을 낮추거나 진단을 낼 때 이 자리로 "덧셈 트레잇", "비교 트레잇" 등을 이름으로 찾습니다. 복합 대입(`AddAssign` 등, 2.4), broadcast(`DotAdd` 등, 2.6), floored modulo(`Modulo`, `%%`) 트레잇은 `#[infix]` 등록만으로 충분하므로 슬롯이 없습니다.
 

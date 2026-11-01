@@ -89,6 +89,7 @@ rok::std   (target-dep; uses rok::core + rok::bare)
 - 2.20. [`Future` / `await` 통합](200-core/220-future.md)
 - 2.21. [`crypto::` - 해시, MAC, AEAD, 키 교환, 서명](200-core/221-crypto.md)
 - 2.22. [`encoding::` - hex와 base64](200-core/222-encoding.md)
+- 2.23. [`io::` - 바이트 스트림과 표준 입출력 (`Read`, `BufRead`, `Write`, `Seek`, async 짝)](200-core/223-io.md)
 
 > [!NOTE]
 > 텐서 / 자동 미분 / SIMD / GPU 같은 과학 컴퓨팅 / AI 영역은 표준 라이브러리에 넣지 않고 외부 라이브러리로 나눕니다. 외부 라이브러리는 Rok 0.2.2에 도입할 예정인 백엔드 인터페이스로 컴파일러 백엔드에 닿습니다.
@@ -101,7 +102,7 @@ rok::std   (target-dep; uses rok::core + rok::bare)
 - 3.2. [`net::` - TCP/UDP/Unix + TLS 1.3 (HTTP 외부)](300-std/302-net.md)
 - 3.3. [`time::` - `Instant` / `SystemTime` / `Duration` / `BootTime`](300-std/303-time.md)
 - 3.4. [`thread::` - OS 스레드 (1:1, task와 별개)](300-std/304-thread.md)
-- 3.5. [`io::` - `Reader` / `Writer` / stdin/out/err (동기만, async 트레잇 없음)](300-std/305-io.md)
+- 3.5. [`io::` - `rok::core::io`로 옮김 (2.23)](300-std/305-io.md)
 - 3.6. [`env::` - 환경 변수 / args / 디렉터리](300-std/306-env.md)
 - 3.7. [`process::` - `Command` / pidfd / kill_on_drop](300-std/307-process.md)
 - 3.8. [`path::` - UTF-8 `Path` + `/` 연산자 (Python pathlib 식)](300-std/308-path.md)

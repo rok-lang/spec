@@ -41,9 +41,9 @@ use foo::**;             // recursive glob (foo + 하위 모듈 모두)
 
 아래 이름이 `rok::core::prelude`의 이름 전부입니다. Rok 어디서나 그렇듯 모듈, 타입, 트레잇이 이름공간 하나를 함께 쓰고 함수는 따로 씁니다. 그래서 `channel`, `panic`, `print`는 각각 모듈이면서 함수입니다.
 
-**모듈 (27).** `rok::core`의 최상위 모듈입니다.
+**모듈 (28).** `rok::core`의 최상위 모듈입니다.
 
-`array` `bench` `channel` `cmp` `collections` `convert` `crypto` `encoding` `error` `fmt` `future` `hint` `index` `iter` `marker` `num` `ops` `panic` `par` `print` `range` `reflect` `str` `stream` `sync` `task` `tuple`
+`array` `bench` `channel` `cmp` `collections` `convert` `crypto` `encoding` `error` `fmt` `future` `hint` `index` `io` `iter` `marker` `num` `ops` `panic` `par` `print` `range` `reflect` `str` `stream` `sync` `task` `tuple`
 
 **타입 (32).**
 
@@ -56,7 +56,7 @@ use foo::**;             // recursive glob (foo + 하위 모듈 모두)
 | 포매팅 | `Formatter` `FmtError` |
 | core 에러 | `ParseError` `ValueError` `OverflowError` `ConversionError` `TypeError` `StackOverflowError` `OutOfMemoryError` `InternalError` |
 
-**트레잇 (26).**
+**트레잇 (30).**
 
 | 분류 | 이름 |
 |---|---|
@@ -64,6 +64,7 @@ use foo::**;             // recursive glob (foo + 하위 모듈 모두)
 | 비교 | `PartialEq` `Eq` `PartialOrd` `Ord` `Hash` |
 | 포매팅과 에러 | `Debug` `Display` `Error` |
 | 반복과 비동기 | `Iterator` `IntoIterator` `FromIterator` `TryIterator` `Future` `IntoFuture` |
+| 입출력 | `Read` `Write` `AsyncRead` `AsyncWrite` |
 | 변환 | `From` `Into` `TryFrom` `TryInto` `FromStr` |
 | 리플렉션 | `Inspect` (derive 포함, [refs-lang 6.8.11](../../refs-lang/006-meta-system/608-meta-blocks.md)) |
 

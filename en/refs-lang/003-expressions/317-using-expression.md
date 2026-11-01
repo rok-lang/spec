@@ -34,9 +34,9 @@ The return type of `fs::open(path)` is `File`, and `File: Drop`, so it can be th
 When acquiring the resource can itself fail, mark the acquisition expression with `try`.
 
 ```rok
-fn read_first_line(path: str) throws (IoError) -> str {
+fn read_text(path: str) throws (IoError) -> str {
     using f = try fs::open(path) {     // on failure, IoError propagates
-        try f.read_line()              // try can propagate inside the body too
+        try f.read_to_str()            // try can propagate inside the body too
     }                                  // if f was bound, it is dropped on both success and error
 }
 ```
@@ -46,7 +46,7 @@ This form is semantically equivalent to the following expanded code.
 ```rok
 let f = try fs::open(path);
 try {
-    f.read_line()
+    f.read_to_str()
 } finally {
     f.drop();          // a call inserted by the compiler; writing it directly is an error
 }

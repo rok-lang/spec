@@ -39,7 +39,7 @@ let p: CPtr<u8> = unsafe { alloc(layout) };    // null on failure (see 1.4 alloc
 ### `rok::core` (foundation)
 
 The middle, foundation tier, `rok::core`, holds modules such as `rok::core::collections`, `rok::core::iter` and `rok::core::ops`, and depends on `rok::bare` only internally. Nearly every abstraction needed for everyday use of the language (numeric types, arithmetic traits,
-iter, collections, fmt, conversion, sync, task, future, etc.) is gathered in this tier. In user code,
+iter, collections, fmt, conversion, sync, task, future, byte-stream I/O, etc.) is gathered in this tier. In user code,
 **its prelude, `use rok::core::prelude::*;`, is applied implicitly and automatically** (see [0.2 Import policy](002-import.md)
 for the detailed policy), so it can be used directly without any import.
 
@@ -56,7 +56,7 @@ through a prelude module (`task::sleep`, `ops::Add`) or imported.
 ### `rok::std`
 
 The top tier, `rok::std`, uses both the foundation and `rok::bare` as needed. This tier holds
-platform-dependent items such as `fs`, `net`, `time`, `thread` (OS threads), `io`, `env`, `process`
+platform-dependent items such as `fs`, `net`, `time`, `thread` (OS threads), `env`, `process`
 and `path`. Because availability varies by target, users must always import them explicitly, making
 clear which platform features they are stepping into.
 

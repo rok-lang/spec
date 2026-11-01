@@ -29,7 +29,7 @@ let p: CPtr<u8> = unsafe { alloc(layout) };    // 실패 시 null (1.4 alloc 참
 
 ### `rok::core`(foundation)
 
-가운데 foundation 계층인 `rok::core`에는 `rok::core::collections`, `rok::core::iter`, `rok::core::ops` 같은 모듈이 있습니다. 이 계층은 내부에서만 `rok::bare`에 의존합니다. 숫자 타입, 산술 트레잇, iter, 컬렉션, fmt, 변환, sync, task, future 등 언어를 일상적으로 쓰는 데 필요한 추상은 거의 모두 이 층에 있습니다. 사용자 코드에는 **prelude `use rok::core::prelude::*;`가 묵시적으로 자동 적용**되므로 따로 가져오지 않고 바로 쓸 수 있습니다. 자세한 정책은 [0.2 import 정책](002-import.md)에 있습니다.
+가운데 foundation 계층인 `rok::core`에는 `rok::core::collections`, `rok::core::iter`, `rok::core::ops` 같은 모듈이 있습니다. 이 계층은 내부에서만 `rok::bare`에 의존합니다. 숫자 타입, 산술 트레잇, iter, 컬렉션, fmt, 변환, sync, task, future, 바이트 스트림 I/O 등 언어를 일상적으로 쓰는 데 필요한 추상은 거의 모두 이 층에 있습니다. 사용자 코드에는 **prelude `use rok::core::prelude::*;`가 묵시적으로 자동 적용**되므로 따로 가져오지 않고 바로 쓸 수 있습니다. 자세한 정책은 [0.2 import 정책](002-import.md)에 있습니다.
 
 ```rok
 let xs: List<i32> = [1, 2, 3];        // List 직접 사용, prelude 가 가져옴
@@ -42,7 +42,7 @@ prelude는 정해 둔 이름 목록입니다([0.2.3](002-import.md)). `rok::core
 
 ### `rok::std`
 
-맨 위 계층인 `rok::std`는 필요에 따라 foundation과 `rok::bare`를 모두 씁니다. 이 층에는 `fs`, `net`, `time`, `thread`(OS 스레드), `io`, `env`, `process`, `path`처럼 플랫폼에 의존하는 항목이 있습니다. 타깃마다 쓸 수 있는 항목이 다르므로 사용하는 쪽은 항상 명시적으로 가져와야 합니다. 그래야 어떤 플랫폼 기능을 쓰는지 코드에 드러납니다.
+맨 위 계층인 `rok::std`는 필요에 따라 foundation과 `rok::bare`를 모두 씁니다. 이 층에는 `fs`, `net`, `time`, `thread`(OS 스레드), `env`, `process`, `path`처럼 플랫폼에 의존하는 항목이 있습니다. 타깃마다 쓸 수 있는 항목이 다르므로 사용하는 쪽은 항상 명시적으로 가져와야 합니다. 그래야 어떤 플랫폼 기능을 쓰는지 코드에 드러납니다.
 
 ```rok
 use rok::std::fs;

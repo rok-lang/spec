@@ -85,6 +85,10 @@ The modules provided by the Rok tier, grouped by area:
 
 - [2.22. `encoding::` - hex and base64](222-encoding.md)
 
+### I/O
+
+- [2.23. io (`Read`, `BufRead`, `Write`, `Seek`, `AsyncRead`, `AsyncWrite`, `BufReader`, `Cursor`, stdio)](223-io.md)
+
 > [!NOTE]
 > Scientific computing areas such as tensors, automatic differentiation, SIMD and GPU are not part of the Rok tier; they are split out into **external libraries**. External libraries reach the compiler's backend through the backend interface, planned for Rok 0.2.2.
 

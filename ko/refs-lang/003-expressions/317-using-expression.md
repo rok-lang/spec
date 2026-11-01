@@ -34,9 +34,9 @@ using f = fs::open(path) {
 자원 획득 자체가 실패할 수 있으면 획득 식을 `try`로 표시합니다.
 
 ```rok
-fn read_first_line(path: str) throws (IoError) -> str {
+fn read_text(path: str) throws (IoError) -> str {
     using f = try fs::open(path) {     // 실패하면 IoError 가 전파됨
-        try f.read_line()              // 본체 안에서도 try 로 전파 가능
+        try f.read_to_str()            // 본체 안에서도 try 로 전파 가능
     }                                  // f 가 묶였다면 정상/에러 모두 drop
 }
 ```
@@ -46,7 +46,7 @@ fn read_first_line(path: str) throws (IoError) -> str {
 ```rok
 let f = try fs::open(path);
 try {
-    f.read_line()
+    f.read_to_str()
 } finally {
     f.drop();          // 컴파일러가 넣는 호출. 사용자가 직접 쓰면 에러
 }
