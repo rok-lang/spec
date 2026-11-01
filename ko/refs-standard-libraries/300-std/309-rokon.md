@@ -24,6 +24,7 @@ ROKON은 Rok 식 문법의 부분집합입니다. 라이브러리는 이 부분�
 - `{}`는 빈 struct이자 빈 dict입니다(대상 타입이 정함). `{ .. }` 하나에는 필드(식별자 키)나 키(값 키) 중 한쪽만 올 수 있습니다. 섞으면 에러입니다.
 - 다음은 쓸 수 없습니다. 맨 식별자, 연산자(수 앞의 단항 `-`만 허용), 메서드 호출, `..`, 블록, f-string, Set 리터럴(`{1, 2}`, Set은 리스트로 적음), `c'..'` 리터럴, 제네릭 경로(`List<i32>::..`), 값 뒤에 남은 토큰입니다. 모두 `line:col`을 보여 주는 에러입니다.
 - NaN과 무한대는 ROKON 표기가 없습니다. 입력의 `nan` / `inf`는 맨 식별자로 거부됩니다.
+- ROKON 실수는 `f64`입니다. `f64` 범위 밖의 실수 리터럴(`1e999`)은 범위를 알려 주는 에러입니다: ``float `1e999` is out of range (ROKON floats are f64, up to about 1.8e308)``. `rokon::parse`와 toolchain의 읽기(`rok.rokon`, `rok.lock`, `.rokon` 파일에 대한 `rokc fmt`)가 같은 규칙을 따릅니다.
 
 > [!NOTE]
 > 알려진 한계: 첫 키가 `none`인 dict(`{ none: 1 }`)는 지원하지 않습니다. 읽는 쪽이 `none:`을 필드 이름으로 받아 중괄호를 struct로 읽기 때문입니다.
@@ -72,25 +73,26 @@ Config {
 | `Name(a, b)`                 | 경로가 한 마디인 `Variant` (튜플 struct)                        |
 | 정수                         | `Int` (정확한 `int`)                                           |
 
-타입이 있는 읽기(`from_str`, `decode`)에서는 대상 타입이 해석을 정합니다.
+타입이 있는 읽기(`from_str`, `from_value`)에서는 대상 타입이 해석을 정합니다.
 
 - struct 대상은 `Struct`, `{}`, `A::B { .. }`를 받습니다. 그래서 모듈 경로를 붙인 struct 이름(`geom::Point { .. }`)도 받습니다.
 - 적은 이름은 대상과 같아야 합니다. struct는 경로의 마지막 마디, enum 변형은 마지막 두 마디를 비교합니다.
-- 모르는 필드는 그 필드 이름 위치의 에러입니다. 타입에 `#[rokon(deny_unknown_fields)]`를 붙이면 이를 명시합니다. 0.2.0부터 읽기가 모르는 필드를 기본으로 건너뛰어도 그 타입은 계속 에러로 다룹니다.
+- 타입에 없는 필드는 건너뜁니다. 그래서 형식에 필드를 더해도 예전 읽기가 깨지지 않습니다. 타입에 `#[rokon(deny_unknown_fields)]`를 붙이면 그 필드 이름 위치의 에러입니다. struct와 이름 있는 변형에 똑같이 적용됩니다.
 - 빠진 필드는 그 필드에 `= 기본값`이 있으면 기본값을 받습니다. 타입이 `T | none`이면 `none`을 받습니다. 그 밖에는 에러입니다(`FromRokon::from_missing`).
 - 정수 값이 대상 정수 타입의 범위를 넘으면 에러입니다.
 - 이름 있는 변형은 `E::V(a, k: b)`로도 읽습니다. 위치 인자가 필드를 순서대로 채우고, 이어서 이름 있는 인자가 채웁니다.
 
 ## 3.9.4. 정규 형식
 
-`rokon::to_string`과 `rok`(매니페스트를 고치거나 `rok.lock`을 쓸 때)이 내는 정규 형식은 다음과 같습니다. 정규 형식이 곧 읽기 좋은 형식이므로 보기 좋게 출력하는 함수는 따로 없습니다.
+`rokon::to_str`과 `rok`(매니페스트를 고치거나 `rok.lock`을 쓸 때)이 내는 정규 형식은 다음과 같습니다. 정규 형식이 곧 읽기 좋은 형식이므로 보기 좋게 출력하는 함수는 따로 없습니다.
 
 - 들여쓰기는 공백 4칸입니다.
 - 100칸 안에 들어가면 한 줄로, 아니면 여러 줄로 쓰고 각 원소 뒤에 쉼표를 붙입니다.
-- 실수는 다시 읽었을 때 같은 값이 되는 가장 짧은 표기로 씁니다(`1.0`, `1.0e300`). NaN / 무한대를 쓰려 하면 panic이 일어납니다("NaN/infinity has no ROKON form").
+- 실수는 다시 읽었을 때 같은 값이 되는 가장 짧은 표기로 씁니다(`1.0`, `1.0e300`). ROKON 표기가 없는 실수는 경로와 함께 `RokonError`로 throw합니다. NaN / 무한대("NaN/infinity has no ROKON form")와 `f64` 범위 밖의 `float`("float 1.2e600 is out of range (ROKON floats are f64, up to about 1.8e308)")가 그렇습니다.
 - 이름 있는 값만 있는 변형의 정규 형식은 `E::V { .. }` 하나입니다(`Value::Variant`에는 형태 표시가 없음).
 - 문자열과 문자의 양방향(bidi) 제어 문자(U+202A-U+202E, U+2066-U+2069)는 이스케이프해서 씁니다(`\u{202e}`).
-- 정규 형식을 다시 읽으면 같은 값이 됩니다(왕복 변환). toolchain이 ROKON을 읽을 때(`rok.rokon`, `rok.lock`, `.rokon` 파일에 대한 `rokc fmt`)는 `f64` 범위 밖의 실수 리터럴(`1e999`)을 거부하고 범위를 알려 줍니다. 메시지는 ``float `1e999` is out of range (ROKON floats are f64, up to about 1.8e308)``입니다. `rokon::parse`는 그런 리터럴을 `Value::Float`로 읽습니다. 그 `float`에는 이런 한계가 없습니다.
+- `rokon::to_str_flat`은 같은 텍스트를 폭과 상관없이 한 줄로 씁니다.
+- 정규 형식을 다시 읽으면 같은 값이 됩니다(왕복 변환).
 
 `rokc fmt`는 `.rokon` 파일이 ROKON인지 검사하고 들여쓰기만 다시 맞춥니다. 정규 형식으로 다시 쓰지는 않으므로 주석과 배치가 그대로 남습니다.
 
@@ -99,6 +101,7 @@ Config {
 ```rok
 use rok::std::rokon;
 
+#[non_exhaustive]
 pub enum Value {
     None,
     Bool(bool),
@@ -107,14 +110,14 @@ pub enum Value {
     Char(char),
     Str(str),
     List(List<Value>),
-    Dict(OrderedDict<Value, Value>),
+    Dict(Dict<Value, Value>),
     Tuple(List<Value>),
-    Struct { name: str | none; fields: OrderedDict<str, Value>; },
-    Variant { path: str; args: List<Value>; named: OrderedDict<str, Value>; },
+    Struct { name: str | none; fields: Dict<str, Value>; },
+    Variant { path: str; args: List<Value>; named: Dict<str, Value>; },
 }
 impl Value {
-    fn to_string(self) -> str;       // 정규 형식
-    fn kind(self) -> str;            // 에러 메시지용 종류 이름 (아래)
+    fn to_str(self) throws (RokonError) -> str;   // 정규 형식
+    fn kind_name(self) -> str;       // 에러 메시지용 종류 이름 (아래)
 }                                    // + Display, Debug, PartialEq, Eq, Hash
 
 pub struct RokonError { .. }         // 비공개 필드 (0.5.10); + Display, Debug, Error, PartialEq, Eq, Clone
@@ -134,20 +137,21 @@ pub trait FromRokon {
 }
 
 pub fn parse(s: str) throws (RokonError) -> Value;
-pub fn to_string<T: ToRokon>(v: T) -> str;                        // NaN / 무한대 float 에서 panic
-pub fn try_to_string<T: ToRokon>(v: T) throws (RokonError) -> str;  // 그 자리에서 대신 경로와 함께 throw
+pub fn to_str<T: ToRokon>(v: T) throws (RokonError) -> str;       // 정규 형식
+pub fn to_str_flat<T: ToRokon>(v: T) throws (RokonError) -> str;  // 한 줄 정규 형식
 pub fn from_str<T: FromRokon>(s: str) throws (RokonError) -> T;
-pub fn encode<T: ToRokon>(x: T) -> Value;
-pub fn decode<T: FromRokon>(v: Value, seg: str) throws (RokonError) -> T;
+pub fn to_value<T: ToRokon>(x: T) -> Value;
+pub fn from_value<T: FromRokon>(v: Value) throws (RokonError) -> T;
 ```
 
-- `RokonError`의 `Display`는 위치가 있으면 `line:col: msg`, 없으면 `at <path>: msg`입니다. 타입이 있는 읽기의 에러는 `.servers[1].port`, `.limits["cpu"]` 같은 경로를 담습니다. `from_str`은 그 경로를 입력의 `line:col`로 바꿔 줍니다. `decode`의 `seg`는 경로의 시작 마디입니다.
-- `Value::kind`는 에러 메시지에 쓰는 종류 이름입니다. 차례로 `"none"`, `"bool"`, `"integer"`, `"float"`, `"char"`, `"string"`, `"list"`, `"dict"`, `"tuple"`, `"struct"`이고 `Variant`는 ``"variant `<path>`"``입니다.
+- `RokonError`의 `Display`는 위치가 있으면 `line:col: msg`, 없으면 `at <path>: msg`입니다. 타입이 있는 읽기의 에러는 `.servers[1].port`, `.limits["cpu"]` 같은 경로를 담습니다. `from_str`은 그 경로를 입력의 `line:col`로 바꿔 줍니다.
+- `Value`는 `#[non_exhaustive]`입니다. 표준 라이브러리 밖의 `match`에는 `_` 갈래가 필요합니다.
+- `Value::kind_name`은 에러 메시지에 쓰는 종류 이름입니다. 차례로 `"none"`, `"bool"`, `"integer"`, `"float"`, `"char"`, `"string"`, `"list"`, `"dict"`, `"tuple"`, `"struct"`이고 `Variant`는 ``"variant `<path>`"``입니다.
 - `Value`의 `==`와 `hash`는 구조적입니다. dict의 항목과 struct의 필드는 순서와 무관하게 비교합니다. 부동소수는 비트 정체성으로 비교합니다(NaN == NaN, -0.0 != 0.0). 이름 없는 빈 struct와 빈 dict는 같습니다.
-- `Value`의 `Debug`, `==`, `hash`에서는 panic이 일어나지 않습니다.
+- `Value`의 `Display`, `Debug`, `==`, `hash`에서는 panic이 일어나지 않습니다. `Display`는 정규 형식을 검사 없이 쓰고(NaN은 `nan`), `Debug`는 한 줄로 씁니다.
 - 표준 구현은 다음과 같습니다. 모든 정수 타입, `f32` / `f64`, `int` / `float`, `bool` / `char` / `str`, `Value`, `T | none`, `List`, `Set`, `Dict`, `OrderedDict`, `OrderedSet`, 원소 1~6개의 튜플, `[T; N]`.
 
-모듈은 `Fields`, `struct_args`, `variant_of`, `variant_args`, `unknown_variant`, `RokonError::new` / `within`, 그리고 하위 모듈 `read` / `write`도 내보냅니다. 이들은 `#[derive(Rokon)]`에 대해 `@derive`가 생성하는 코드에 쓰입니다. 안정 API가 아닙니다. `RokonError::new` / `within`을 뺀 나머지는 `#[doc(hidden)]`이고, 0.2.0부터는 표준 라이브러리 밖에서 보이지 않습니다.
+모듈은 `Fields`, `struct_args`, `variant_of`, `variant_args`, `unknown_variant`, `from_value_at`도 내보냅니다. 이들은 `#[derive(Rokon)]`에 대해 `@derive`가 생성하는 코드에 쓰이며 API가 아닙니다. `#[doc(hidden)]`이고, derive 전개가 정의 위치에서 이름을 찾게 되면 `pub(pkg)`가 됩니다. 읽기와 쓰기 구현은 표준 라이브러리 밖에서 보이지 않습니다.
 
 ### `#[derive(Rokon)]`
 
@@ -162,7 +166,7 @@ struct와 enum(제네릭 포함)에 `ToRokon`과 `FromRokon`을 함께 구현합
 | 튜플 변형            | `E::V(a)`              |
 | 이름 있는 변형       | `E::V { f: v }`        |
 
-필드의 `= 기본값`은 빠진 필드에 쓰입니다(3.9.3). derive는 메타 토큰 `@Self.name`, `@Self.is_unit` / `is_tuple` / `is_named`, `@field.has_default` / `@field.default`로 구현합니다([refs-lang 6.9](../../refs-lang/006-meta-system/609-template-tokens.md)).
+필드의 `= 기본값`은 빠진 필드에 쓰입니다(3.9.3). 타입에 `#[rokon(deny_unknown_fields)]`를 붙이면 타입에 없는 필드가 에러입니다(3.9.3). `#[rokon(..)]`은 다른 키를 받지 않으며, 철자가 틀린 키는 유효한 키를 알려 주는 에러입니다. derive는 메타 토큰 `@Self.name`, `@Self.is_unit` / `is_tuple` / `is_named`, `@field.has_default` / `@field.default`, `@Self.has_derive_key`로 구현합니다([refs-lang 6.9](../../refs-lang/006-meta-system/609-template-tokens.md)).
 
 ```rok
 #[derive(Rokon)]
@@ -172,7 +176,7 @@ struct Server { host: str; port: u16 = 80; tls: bool | none; }
 struct Config { name: str; servers: List<Server>; limits: OrderedDict<str, i32>; }
 
 let cfg: Config = try rokon::from_str(text);   // 에러는 "line:col: msg"
-print(rokon::to_string(cfg));
+print(try rokon::to_str(cfg));
 ```
 
 ### 한계

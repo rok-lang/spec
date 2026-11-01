@@ -42,6 +42,7 @@ template_token  ::= "@" identifier
 | `@accept(kind, ..)`                                      | 대상 종류 제한 (속성 정의 전용)             | 6.9.5 |
 | `@where_all(Trait)`                                      | 타입 매개변수마다 `T: Trait`                | 6.9.5 |
 | `@has_derive_attr(a)`, `@derive_attr(a)`                 | 필드의 derive 속성 (부울 / 인자)            | 6.9.6 |
+| `@Self.has_derive_key(k)`                                | 타입의 `#[attr(..)]`에 키 `k`가 있는지 (부울) | 6.9.6 |
 | `@item`, `@item.name` / `.params` / `.return_type` / `.body` | 부착 대상 항목과 그 부분 (속성 정의 전용) | 6.9.7 |
 | `@attribute`                                             | 사용처의 속성 인자 (속성 정의 전용)         | 6.9.7 |
 | `<이름 토큰>.as_str()`                                   | 이름의 문자열 리터럴                        | 6.9.3 |
@@ -291,6 +292,10 @@ match self {
 ### `@derive_attr(name)` 그 attr의 인자
 
 `@derive_attr(name)`은 필드에 붙은 그 속성의 인자입니다.
+
+### `@Self.has_derive_key(k)`
+
+타입 자신의 `#[attr(..)]`에 키 `k`가 있는지 나타냅니다. `k`는 `#[impl_derive_attribute(Trait, attr(k, ..))]`로 선언해야 하며([6.8.4](608-meta-blocks.md#684-impl_derive_attributetrait-attr-필드별-derive-속성)), 선언하지 않은 키는 에러입니다. `#[derive(Rokon)]`은 이 토큰으로 `#[rokon(deny_unknown_fields)]`를 읽습니다.
 
 ```rok
 #[impl_derive_attribute(Serialize, rename)] pub @derive {

@@ -165,6 +165,8 @@ struct User {
 
 이 형태는 인자 두 개를 받습니다. 하나는 derive로 구현할 트레잇이고, 다른 하나는 필드별 정보를 표시하는 속성입니다. derive 본체 안에서 필드의 속성 정보를 읽어 분기합니다.
 
+속성은 `attr(k, ..)` 형태로 받는 키를 선언할 수 있습니다: `#[impl_derive_attribute(Rokon, rokon(deny_unknown_fields))]`. 이때 타입, 그 variant, 그 필드에 붙은 `#[attr(..)]`에는 선언된 키만 쓸 수 있고, 그 밖의 것은 유효한 키를 알려 주는 에러입니다. `@Self.has_derive_key(k)`는 타입에 그 키가 있는지 읽습니다([6.9.6](609-template-tokens.md#696-derive_attribute-토큰)).
+
 ## 6.8.5. 본체(템플릿 블록)
 
 모든 형태에서 본체는 템플릿 블록입니다. 본체에는 일반 Rok 코드와 템플릿 토큰이 함께 들어갑니다. 속성으로 트리거되는 형태는 `@Self`, `@field`, `@for_fields`를 쓰고, macro는 `@x`, `@rep`, `@for`, `@concat`을 씁니다([6.8.12](#6812-macro-형태)).

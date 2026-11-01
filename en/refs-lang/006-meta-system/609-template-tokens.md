@@ -42,6 +42,7 @@ Every template token starts with the `@` token ([punctuation and operator tokens
 | `@accept(kind, ..)`                                      | Restricts the target kind (attribute only)             | 6.9.5 |
 | `@where_all(Trait)`                                      | `T: Trait` for each type parameter                     | 6.9.5 |
 | `@has_derive_attr(a)`, `@derive_attr(a)`                 | The field's derive attribute (boolean / argument)      | 6.9.6 |
+| `@Self.has_derive_key(k)`                                | The type's `#[attr(..)]` lists key `k` (boolean)       | 6.9.6 |
 | `@item`, `@item.name` / `.params` / `.return_type` / `.body` | The item attached to and its parts (attribute only) | 6.9.7 |
 | `@attribute`                                             | The attribute arguments at the use site (attribute only) | 6.9.7 |
 | `<name token>.as_str()`                                  | String literal of the name                             | 6.9.3 |
@@ -291,6 +292,10 @@ Indicates whether the `derive_attribute`'s target attr is attached to the field.
 ### `@derive_attr(name)` the attr's argument
 
 `@derive_attr(name)` denotes the argument of the attached attr.
+
+### `@Self.has_derive_key(k)`
+
+Whether the type's own `#[attr(..)]` lists key `k`. `k` must be declared with `#[impl_derive_attribute(Trait, attr(k, ..))]` ([6.8.4](608-meta-blocks.md#684-impl_derive_attributetrait-attr-per-field-derive-attribute)); an undeclared key is an error. `#[derive(Rokon)]` reads `#[rokon(deny_unknown_fields)]` this way.
 
 ```rok
 #[impl_derive_attribute(Serialize, rename)] pub @derive {

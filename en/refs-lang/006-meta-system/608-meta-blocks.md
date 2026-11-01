@@ -165,6 +165,8 @@ struct User {
 
 This form takes two arguments: the Trait being derived and the attribute that marks per-field information. It branches inside the derive body by reading the fields' attribute information.
 
+The attribute may declare the keys it takes, as `attr(k, ..)`: `#[impl_derive_attribute(Rokon, rokon(deny_unknown_fields))]`. Every `#[attr(..)]` on the type, its variants and its fields must then list only declared keys; anything else is an error that names the valid keys. `@Self.has_derive_key(k)` reads a key off the type ([6.9.6](609-template-tokens.md#696-derive_attribute-tokens)).
+
 ## 6.8.5. Body (template block)
 
 In every form the body is a template block containing both ordinary Rok code and template tokens (`@Self`, `@field`, `@for_fields` for the attribute-triggered forms; `@x`, `@rep`, `@for`, `@concat` for a macro, [6.8.12](#6812-the-macro-form)).

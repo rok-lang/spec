@@ -24,6 +24,7 @@ ROKON is a subset of Rok expression syntax. The library reads it with its own le
 - `{}` is both an empty struct and an empty dict (the target type decides). A single `{ .. }` may contain either fields (identifier keys) or keys (value keys), not both; mixing them is an error.
 - Not allowed: bare identifiers, operators (only unary `-` before a number is allowed), method calls, `..`, blocks, f-strings, Set literals (`{1, 2}`; write a Set as a list), `c'..'` literals, generic paths (`List<i32>::..`), and tokens left after the value. All are errors showing `line:col`.
 - NaN and infinity have no ROKON notation. `nan` / `inf` in the input are rejected as bare identifiers.
+- ROKON floats are `f64`. A float literal past the `f64` range (`1e999`) is an error naming the range: ``float `1e999` is out of range (ROKON floats are f64, up to about 1.8e308)``. `rokon::parse` and the toolchain's reader (`rok.rokon`, `rok.lock`, `rokc fmt` on a `.rokon` file) follow the same rule.
 
 > [!NOTE]
 > Known limitation: a dict whose first key is `none` (`{ none: 1 }`) is not supported, because the reader takes `none:` as a field name and reads the braces as a struct.
@@ -72,25 +73,26 @@ Config {
 | `Name(a, b)`                 | `Variant` with a single-segment path (tuple struct)            |
 | Integer                      | `Int` (exact `int`)                                            |
 
-In typed reads (`from_str`, `decode`), the target type determines the interpretation.
+In typed reads (`from_str`, `from_value`), the target type determines the interpretation.
 
 - A struct target accepts `Struct`, `{}` and `A::B { .. }`, so struct names with a module path (`geom::Point { .. }`) are accepted too.
 - A written name must match the target. For structs, the last path segment is compared; for enum variants, the last two segments.
-- An unknown field is an error at the position of that field name. `#[rokon(deny_unknown_fields)]` on the type says so explicitly and keeps it when 0.2.0 makes reads skip unknown fields by default.
+- A field the type does not have is skipped, so a format can add fields without breaking older readers. With `#[rokon(deny_unknown_fields)]` on the type it is an error at the position of that field name. This applies to structs and to named variants.
 - A missing field takes the field's `= default` if it has one, `none` if its type is `T | none`, and is an error otherwise (`FromRokon::from_missing`).
 - An integer value outside the range of the target integer type is an error.
 - Named variants can also be read as `E::V(a, k: b)`. Positional arguments fill the fields in order, followed by named arguments.
 
 ## 3.9.4. Canonical form
 
-The canonical form emitted by `rokon::to_string` and by `rok` (when editing the manifest or writing `rok.lock`) is as follows. The canonical form is also the readable form, so there is no separate pretty function.
+The canonical form emitted by `rokon::to_str` and by `rok` (when editing the manifest or writing `rok.lock`) is as follows. The canonical form is also the readable form, so there is no separate pretty function.
 
 - Indentation is 4 spaces.
 - A value is written on one line if it fits within 100 columns; otherwise on multiple lines with a comma after each element.
-- Floats use the shortest notation that reads back to the same value (`1.0`, `1.0e300`). Attempting to write NaN / infinity panics ("NaN/infinity has no ROKON form").
+- Floats use the shortest notation that reads back to the same value (`1.0`, `1.0e300`). A float with no ROKON form is thrown as a `RokonError` with its path: NaN / infinity ("NaN/infinity has no ROKON form") and a `float` past the `f64` range ("float 1.2e600 is out of range (ROKON floats are f64, up to about 1.8e308)").
 - A variant with only named values has one canonical form, `E::V { .. }` (`Value::Variant` keeps no form flag).
 - Bidi controls (U+202A-U+202E, U+2066-U+2069) in strings and chars are written escaped (`\u{202e}`).
-- Reading the canonical form back yields the same value (round-trip). The toolchain's reader (`rok.rokon`, `rok.lock`, `rokc fmt` on a `.rokon` file) rejects float literals out of the `f64` range (`1e999`), naming the range: ``float `1e999` is out of range (ROKON floats are f64, up to about 1.8e308)``. `rokon::parse` reads such a literal into `Value::Float`, whose `float` has no such limit.
+- `rokon::to_str_flat` writes the same text on one line, whatever its width.
+- Reading the canonical form back yields the same value (round-trip).
 
 `rokc fmt` checks that a `.rokon` file is ROKON and only re-indents it. It does not rewrite it into canonical form, so comments and layout are preserved.
 
@@ -99,6 +101,7 @@ The canonical form emitted by `rokon::to_string` and by `rok` (when editing the 
 ```rok
 use rok::std::rokon;
 
+#[non_exhaustive]
 pub enum Value {
     None,
     Bool(bool),
@@ -107,14 +110,14 @@ pub enum Value {
     Char(char),
     Str(str),
     List(List<Value>),
-    Dict(OrderedDict<Value, Value>),
+    Dict(Dict<Value, Value>),
     Tuple(List<Value>),
-    Struct { name: str | none; fields: OrderedDict<str, Value>; },
-    Variant { path: str; args: List<Value>; named: OrderedDict<str, Value>; },
+    Struct { name: str | none; fields: Dict<str, Value>; },
+    Variant { path: str; args: List<Value>; named: Dict<str, Value>; },
 }
 impl Value {
-    fn to_string(self) -> str;       // canonical form
-    fn kind(self) -> str;            // kind name for error messages (below)
+    fn to_str(self) throws (RokonError) -> str;   // canonical form
+    fn kind_name(self) -> str;       // kind name for error messages (below)
 }                                    // + Display, Debug, PartialEq, Eq, Hash
 
 pub struct RokonError { .. }         // private fields (0.5.10); + Display, Debug, Error, PartialEq, Eq, Clone
@@ -134,20 +137,21 @@ pub trait FromRokon {
 }
 
 pub fn parse(s: str) throws (RokonError) -> Value;
-pub fn to_string<T: ToRokon>(v: T) -> str;                        // panics on a NaN / infinite float
-pub fn try_to_string<T: ToRokon>(v: T) throws (RokonError) -> str;  // throws there instead, with the path
+pub fn to_str<T: ToRokon>(v: T) throws (RokonError) -> str;       // canonical form
+pub fn to_str_flat<T: ToRokon>(v: T) throws (RokonError) -> str;  // canonical form on one line
 pub fn from_str<T: FromRokon>(s: str) throws (RokonError) -> T;
-pub fn encode<T: ToRokon>(x: T) -> Value;
-pub fn decode<T: FromRokon>(v: Value, seg: str) throws (RokonError) -> T;
+pub fn to_value<T: ToRokon>(x: T) -> Value;
+pub fn from_value<T: FromRokon>(v: Value) throws (RokonError) -> T;
 ```
 
-- `Display` of `RokonError` is `line:col: msg` if there is a position, otherwise `at <path>: msg`. Errors from typed reads carry paths such as `.servers[1].port` or `.limits["cpu"]`, and `from_str` converts that path to the `line:col` of the input. The `seg` of `decode` is the first segment of the path.
-- `Value::kind` is the kind name used in error messages: in order, `"none"`, `"bool"`, `"integer"`, `"float"`, `"char"`, `"string"`, `"list"`, `"dict"`, `"tuple"`, `"struct"`, and for `Variant` ``"variant `<path>`"``.
+- `Display` of `RokonError` is `line:col: msg` if there is a position, otherwise `at <path>: msg`. Errors from typed reads carry paths such as `.servers[1].port` or `.limits["cpu"]`, and `from_str` converts that path to the `line:col` of the input.
+- `Value` is `#[non_exhaustive]`: a `match` outside the standard library needs a `_` arm.
+- `Value::kind_name` is the kind name used in error messages: in order, `"none"`, `"bool"`, `"integer"`, `"float"`, `"char"`, `"string"`, `"list"`, `"dict"`, `"tuple"`, `"struct"`, and for `Variant` ``"variant `<path>`"``.
 - `==` and `hash` on `Value` are structural. Dict entries and struct fields are compared regardless of order, and floating-point values are compared by identity (NaN == NaN, -0.0 != 0.0). An unnamed empty struct and an empty dict are equal.
-- `Debug`, `==` and `hash` on `Value` never panic.
+- `Display`, `Debug`, `==` and `hash` on `Value` never panic. `Display` writes the canonical form unchecked (a NaN shows as `nan`); `Debug` writes it on one line.
 - Standard implementations: every integer type, `f32` / `f64`, `int` / `float`, `bool` / `char` / `str`, `Value`, `T | none`, `List`, `Set`, `Dict`, `OrderedDict`, `OrderedSet`, tuples of 1 ~ 6 elements, `[T; N]`.
 
-The module also exports `Fields`, `struct_args`, `variant_of`, `variant_args`, `unknown_variant`, `RokonError::new` / `within` and the submodules `read` / `write`. They support the code `@derive` generates for `#[derive(Rokon)]` and are not a stable API: all but `RokonError::new` / `within` are `#[doc(hidden)]`, and 0.2.0 makes them private to the standard library.
+The module also exports `Fields`, `struct_args`, `variant_of`, `variant_args`, `unknown_variant` and `from_value_at`. They support the code `@derive` generates for `#[derive(Rokon)]` and are not API: they are `#[doc(hidden)]`, and become `pub(pkg)` once a derive's expansion resolves names at its definition site. The reader and writer are private to the standard library.
 
 ### `#[derive(Rokon)]`
 
@@ -162,7 +166,7 @@ Implements both `ToRokon` and `FromRokon` for structs and enums (including gener
 | Tuple variant        | `E::V(a)`              |
 | Named variant        | `E::V { f: v }`        |
 
-A field's `= default` is used for missing fields (3.9.3). The derive is built with the meta tokens `@Self.name`, `@Self.is_unit` / `is_tuple` / `is_named`, `@field.has_default` / `@field.default` ([refs-lang 6.9](../../refs-lang/006-meta-system/609-template-tokens.md)).
+A field's `= default` is used for missing fields (3.9.3). `#[rokon(deny_unknown_fields)]` on the type makes a field it does not have an error (3.9.3); `#[rokon(..)]` takes no other key, and a misspelled one is an error naming the valid keys. The derive is built with the meta tokens `@Self.name`, `@Self.is_unit` / `is_tuple` / `is_named`, `@field.has_default` / `@field.default`, `@Self.has_derive_key` ([refs-lang 6.9](../../refs-lang/006-meta-system/609-template-tokens.md)).
 
 ```rok
 #[derive(Rokon)]
@@ -172,7 +176,7 @@ struct Server { host: str; port: u16 = 80; tls: bool | none; }
 struct Config { name: str; servers: List<Server>; limits: OrderedDict<str, i32>; }
 
 let cfg: Config = try rokon::from_str(text);   // errors are "line:col: msg"
-print(rokon::to_string(cfg));
+print(try rokon::to_str(cfg));
 ```
 
 ### Limitations
