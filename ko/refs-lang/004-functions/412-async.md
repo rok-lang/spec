@@ -203,6 +203,32 @@ impl Database {
 let r = await db.query("SELECT ...");
 ```
 
+`async` 메서드는 `ref self`를 받을 수 있습니다([4.7.5](407-ref-keyword.md#475-메서드-수신자의-예외)). Future는 리시버의 값으로 일하고, 끝날 때 그 값을 리시버 자리에 되씁니다. 값으로 끝나든, 에러로 끝나든, 취소되든 마찬가지입니다. 그래서 값 타입 리시버도 동기 `ref self` 메서드처럼 메서드가 바꾼 내용을 봅니다.
+
+```rok
+struct Reader { pos: usize; data: List<u8>; }
+
+impl Reader {
+    async fn read_one(ref self) -> u8 | none {
+        if self.pos >= self.data.len() { return none; }
+        self.pos += 1;
+        self.data[self.pos - 1]
+    }
+}
+
+let r = Reader { pos: 0, data: [1u8, 2, 3] };
+while await r.read_one() is u8 {}
+r.pos;                              //→ 3
+```
+
+Future는 끝날 때까지 리시버를 쥐고 있으므로 호출은 만든 자리에서 바로 `await`합니다. `await r.read_one()`, 던지는 메서드라면 `try await r.read(buf)`입니다. Future를 남겨 두었다가 나중에 `await`하면 컴파일 에러(`E202`)입니다. 리시버를 되써 줄 곳이 없고, 그동안 리시버가 바뀔 수 있기 때문입니다.
+
+```rok
+let f = r.read_one();               // ERROR: Future가 끝날 때까지 `r`을 쥐고 있음
+```
+
+임시값 리시버나 `any`로 닿은 리시버(값이 복사본)는 동기 `ref self` 호출처럼 되쓰기를 버립니다. 다른 `ref` 매개변수는 여전히 모든 코루틴 함수에서 에러입니다([4.7.7](407-ref-keyword.md#477-참조-자체를-일급-값으로-취급할-수-없습니다)).
+
 ## 4.12.14. 에러 처리
 
 비동기 함수에서도 [에러 제어 흐름](../003-expressions/314-error-control-flow.md)의 `try`, `catch`, `throw`, `finally`를 그대로 쓸 수 있습니다. 에러를 던지는 `async` 함수의 에러는 `await` 지점에서 전달됩니다. 그래서 `await` 식을 `try`로 감쌉니다(`try await fetch()`). `throws` 시그니처와 함께 쓰는 규칙은 [`throws` 시그니처](414-throws.md)에서 다룹니다.

@@ -234,7 +234,16 @@ On an `any Tr` value, only methods of `Tr` and its supertraits can be called, an
 - a trait type parameter not fixed by an argument of the bound
 - an associated type not fixed by an `X = ..` binding of the bound
 
-A bound may omit arguments and bindings; omitted ones are treated as unconstrained. A call on `any Tr<A, X = B>` is checked against the trait declaration's signature with `A` and `B` substituted. So it can be called even when `Tr` is implemented only by generic impls. For example, `next` cannot be called on `any Iterator` (`Item` not fixed), but can on `any Iterator<Item = i32>`. The cost model is the same as `any` in 2.2.3. To use other methods or fields, narrow to the concrete type with an `is` check or a type pattern as in 2.2.5-2.2.6.
+A bound may omit arguments and bindings; omitted ones are treated as unconstrained. A call on `any Tr<A, X = B>` is checked against the trait declaration's signature with `A` and `B` substituted. So it can be called even when `Tr` is implemented only by generic impls. For example, `next` cannot be called on `any Iterator` (`Item` not fixed), but can on `any Iterator<Item = i32>`. The cost model is the same as `any` in 2.2.3.
+
+A method with type parameters of its own (`fn write<B: AsBytes>(ref self, buf: B) -> usize`) can be called too. Each call fixes them as a generic call does: from `::<..>`, else from the argument types, else from the expected type of the result; a parameter none of them fixes is an error that asks for `::<..>`. Their bounds are checked at the call. Each instantiation used gets its own dispatch over the implementors, each calling the implementor's method monomorphized for those types.
+
+```rok
+fn log(w: any Write) throws (IoError) {
+    try w.write("line\n");                 // B = str
+    try w.write([0u8, 1]);                  // B = [u8; 2]
+}
+``` To use other methods or fields, narrow to the concrete type with an `is` check or a type pattern as in 2.2.5-2.2.6.
 
 ```rok
 fn describe(e: any Error) -> str {

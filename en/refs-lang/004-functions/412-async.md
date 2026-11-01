@@ -203,6 +203,32 @@ impl Database {
 let r = await db.query("SELECT ...");
 ```
 
+An `async` method may take `ref self` ([4.7.5](407-ref-keyword.md#475-exception-for-method-receivers)). Its future works on the receiver's value and writes it back to the receiver's place when it completes: with a value, with an error, or cancelled. A value-type receiver therefore sees the method's changes, as with a synchronous `ref self` method.
+
+```rok
+struct Reader { pos: usize; data: List<u8>; }
+
+impl Reader {
+    async fn read_one(ref self) -> u8 | none {
+        if self.pos >= self.data.len() { return none; }
+        self.pos += 1;
+        self.data[self.pos - 1]
+    }
+}
+
+let r = Reader { pos: 0, data: [1u8, 2, 3] };
+while await r.read_one() is u8 {}
+r.pos;                              //→ 3
+```
+
+The future holds the receiver until it completes, so the call is awaited where it is made: `await r.read_one()`, or `try await r.read(buf)` for a throwing method. Keeping the future to await later is a compile error (`E202`), since nothing would write the receiver back and the receiver could change meanwhile:
+
+```rok
+let f = r.read_one();               // ERROR: its future holds `r` until it completes
+```
+
+A temporary receiver, or one reached through `any` (whose value is a copy), drops the write-back, as for a synchronous `ref self` call. Other `ref` parameters stay an error on every coroutine function ([4.7.7](407-ref-keyword.md#477-references-cannot-be-first-class-values)).
+
 ## 4.12.14. Error handling
 
 `try`, `catch`, `throw` and `finally` from [error control flow](../003-expressions/314-error-control-flow.md) work as usual in async functions. Errors of a throwing `async` function are delivered at the `await` point, so the `await` expression is covered with `try` (`try await fetch()`). Interaction with `throws` signatures is covered in [`throws` signatures](414-throws.md).

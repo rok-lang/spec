@@ -159,6 +159,8 @@ let r: SomePointerType = ref x;   // ERROR
 
 코루틴 함수(`yield fn`, `async fn`, `async yield fn`)는 `ref` 매개변수를 둘 수 없습니다. 두면 컴파일 에러입니다. 호출이 반환된 뒤에도 본체가 계속 실행되므로 되쓸 시점이 없기 때문입니다.
 
+단 하나의 예외는 `async` 메서드의 `ref self`입니다([4.12.13](412-async.md#41213-async-메서드)). Future가 리시버를 쥐고 있다가 Future가 끝날 때 되씁니다. 이런 호출은 만든 자리에서 바로 `await`합니다(`await r.read_one()`).
+
 같은 이유로 `ref` 매개변수가 있는 함수는 함수 값으로 쓸 수 없습니다(`let f = increment;`는 에러). 클로저에도 `ref` 매개변수를 둘 수 없습니다. 함수 타입 `fn(..)`에는 `ref`를 표현할 자리가 없기 때문입니다.
 
 일급 참조가 필요하면(예: [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface)) [타입 표현식](../002-types/201-type-expressions.md)의 원시 포인터 타입(`Ptr<T>`와 `ConstPtr<T>`)을 씁니다. 원시 포인터는 [표준 라이브러리 계층](../000-meta/005-standard-libraries-tiers.md)의 `unsafe` 영역입니다.

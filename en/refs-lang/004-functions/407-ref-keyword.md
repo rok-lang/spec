@@ -159,6 +159,8 @@ let r: SomePointerType = ref x;   // ERROR
 
 Coroutine functions (`yield fn`, `async fn`, `async yield fn`) cannot have `ref` parameters; doing so is a compile error. The body keeps running after the call returns, so there is no point at which to write back.
 
+The one exception is `ref self` on an `async` method ([4.12.13](412-async.md#41213-async-on-methods)): the future holds the receiver, and the write-back happens when the future completes. Such a call is awaited where it is made (`await r.read_one()`).
+
 For the same reason, a function with `ref` parameters cannot be used as a function value (`let f = increment;` is an error), and closures cannot have `ref` parameters. The function type `fn(..)` has no place to express `ref`.
 
 If a first-class reference is needed (e.g., [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface)), use the raw pointer types of [type expressions](../002-types/201-type-expressions.md) (`Ptr<T>` and `ConstPtr<T>`), which belong to the `unsafe` area of the [standard library tiers](../000-meta/005-standard-libraries-tiers.md).
