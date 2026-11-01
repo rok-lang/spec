@@ -123,6 +123,18 @@
 | `cleanup_running_fn` | 취소로 떠난 프레임이 정리 코드에 들어감         | `rok::core::task::cleanup_running`        | 2.18 |
 | `cleanup_done_fn`    | 그 프레임이 정리 코드를 마침                    | `rok::core::task::cleanup_done`           | 2.18 |
 
+### 계층끼리 공유하는 항목: `#[internal]`
+
+컴파일러가 아니라 toolchain의 다른 계층이 부르는 `pub` 항목이 몇 있습니다. `rok::std`가 `rok::core`의 항목을 씁니다. 이 항목에는 `#[internal]`([refs-lang 6.2.16](../../refs-lang/006-meta-system/602-built-in-attributes.md#6216-internal-toolchain-패키지끼리-공유))이 붙습니다. `rok::bare`, `rok::core`, `rok::std`는 쓸 수 있고, 다른 패키지가 쓰면 "internal to the Rok toolchain" 에러입니다. 문서와 언어 서버에서도 빠집니다.
+
+| 항목                                   | 쓰는 곳                                                   | 참조 |
+|----------------------------------------|-----------------------------------------------------------|------|
+| `rok::core::marker::hand_over`         | `rok::std::thread` (스레드 결과를 넘김)                    | 2.13 |
+| `rok::core::task::wake_io`             | `rok::std::net` (close나 shutdown 뒤에 대기자를 깨움)      | 2.18 |
+| `rok::core::task::host_enter`          | `rok::std::wit` (컴포넌트 export가 호스트 루프에 들어감)   | 2.18 |
+| `rok::core::task::host_run`            | `rok::std::wit` (호스트 루프 한 바퀴)                      | 2.18 |
+| `rok::core::task::host_leave`          | `rok::std::wit` (`host_enter`를 끝냄)                      | 2.18 |
+
 ## 0.4.5. 메서드 슬롯(1)
 
 메서드 슬롯은 사용자가 호출을 적지 않아도 컴파일러가 자동으로 부르는 메서드를 가리킵니다. 여기에는 `using` 바인딩을 해제할 때 부르는 폐기 메서드 하나뿐입니다. `?` 연산자는 컴파일러가 `T | none`에 맞게 직접 풀어 쓰므로 메서드 슬롯이 없습니다([refs-lang 3.14.10](../../refs-lang/003-expressions/314-error-control-flow.md#31410--연산자-none-조기-반환)). 값을 복제하는 `Clone::clone`은 자동으로 호출되지 않습니다([2.13.2](../200-core/213-marker.md#2132-clone-깊은-복제)). 그래서 메서드 슬롯이 아니라 트레잇 슬롯 `clone_trait`로 등록합니다.

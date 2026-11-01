@@ -28,6 +28,7 @@ struct Atomic<T> {
     // 내부: T 별 LLVM atomic 연산으로 다루는 원소 하나짜리 cell
 }
 
+#[sealed]
 trait AtomicPrimitive { /* marker: i8/i16/i32/i64/isize, u8/u16/u32/u64/usize, bool, Ptr<T> */ }
 
 impl<T: AtomicPrimitive + PartialEq> Atomic<T> {
@@ -111,7 +112,7 @@ fn store_max(cell: Atomic<i64>, x: i64) {
 }
 ```
 
-원소 타입은 `AtomicPrimitive`여야 합니다. `List<T>` 같은 컬렉션은 `Atomic`에 담을 수 없습니다. 공유 컬렉션은 `Mutex<T>`(2.16.3)에 둡니다.
+원소 타입은 `AtomicPrimitive`여야 합니다. `List<T>` 같은 컬렉션은 `Atomic`에 담을 수 없습니다. 이 트레잇은 sealed입니다([refs-lang 6.2.15](../../refs-lang/006-meta-system/602-built-in-attributes.md#6215-sealed-정의한-패키지에서만-구현)). 위의 타입이 impl의 전부이고, 다른 패키지에서 `impl AtomicPrimitive`를 쓰면 에러입니다. 공유 컬렉션은 `Mutex<T>`(2.16.3)에 둡니다.
 
 ## 2.16.3. `Mutex<T>`: 배타적 잠금
 

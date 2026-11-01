@@ -18,7 +18,7 @@ reach           ::= "pkg" | "sub"
 | `pub(pkg)` | 같은 패키지 안에서만.             |
 | `pub`      | 외부 패키지에서도.                |
 
-가장 좁은 범위는 기본값인 private이고, 가장 넓은 범위는 `pub`입니다.
+가장 좁은 범위는 기본값인 private이고, 가장 넓은 범위는 `pub`입니다. toolchain 패키지끼리는 `#[internal]`을 붙인 `pub` 항목도 공유하며, 다른 패키지는 그 항목을 쓸 수 없습니다([6.2.16](../006-meta-system/602-built-in-attributes.md#6216-internal-toolchain-패키지끼리-공유)). 이 표시는 가시성 단계가 아닙니다.
 
 `pkg`와 `sub`은 `pub(...)` 괄호 안에서만 한정자로 동작하는 문맥 키워드입니다. 다른 위치에서는 일반 식별자입니다([1.5.4 가시성 한정자](../001-lexical/105-keywords.md#가시성-한정자-pkg--sub)).
 
@@ -123,6 +123,22 @@ let c = Counter::new();             // OK: 팩토리 메서드 (있다면)
 ```
 
 이 방식은 타입은 외부에 노출하고 직접 인스턴스화는 막는 표준 패턴입니다(newtype, opaque type).
+
+struct 리터럴은 자기가 적은 필드의 가시성을 검사합니다. 사용하는 자리에서 보이지 않는 필드는 기본값([2.3.3](../002-types/203-struct.md#233-필드-기본값))이 있을 때만 생략할 수 있습니다. 기본값이 없는 비공개 필드가 있으면 그 범위 밖의 리터럴은 모두 에러이고, 값은 그 모듈의 함수로 만듭니다.
+
+```rok
+pub struct Opts {
+    pub depth: i32 = 4;
+        seed: i64 = 7;              // 비공개, 기본값 있음
+}
+pub struct Keyed {
+    pub label: str = "k";
+        key: i64;                   // 비공개, 기본값 없음
+}
+
+let o = Opts { depth: 1 };          // OK: `seed`는 기본값을 씀
+let k = Keyed { label: "x" };       // 모듈 밖에서는 ERROR: `key`에 기본값이 없음
+```
 
 ### tuple struct의 필드
 

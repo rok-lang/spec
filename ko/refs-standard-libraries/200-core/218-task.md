@@ -29,7 +29,6 @@ async fn yield_now();                                   // await: 다른 ready t
 fn registrations() -> usize;                            // 진단용: 실행 중 pool 의 park 한 waker + 대기 timer 수 (구현이 정함)
 fn readable(fd: i32) -> IoReady;                       // await: fd 가 읽기 가능해질 때까지 (refs-lang 7.7.2)
 fn writable(fd: i32) -> IoReady;
-fn wake_io(fd: i32);                                   // fd 의 readable / writable 대기자를 깨움 (close / shutdown 뒤에 씀; 저수준)
 fn park(key: usize, waker: Waker);                     // 저수준: 다음 unpark(key) 때 waker 를 깨움
 fn unpark(key: usize);                                 // key 에 park 된 task 를 모두 깨움
 ```
@@ -215,7 +214,7 @@ Worker 0 ─┐      Worker 1 ─┐    ...    Worker N-1 ─┐
 
 표준 라이브러리의 권위는 API 시그니처까지입니다. 알고리듬 본문은 사양 밖의 런타임과 표준 라이브러리 본문에 속합니다.
 
-`rok::core::task`는 런타임 훅도 내보냅니다. `TaskRef`, `Pool`, `Worker`, `wake_task`, `cancel_requested`, `unwinding`, 그리고 `host_enter` / `host_leave` / `host_run`(WebAssembly 컴포넌트의 이벤트 루프 진입점)입니다. 이 훅은 컴파일러와 런타임을 위해 공개되어 있을 뿐 런타임 내부용입니다. 안정된 API가 아닙니다. 0.1.6부터 이 훅을 쓰면 deprecated 경고가 나고([refs-lang 6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md)), 이후 릴리스에서 비공개가 됩니다. `host_enter` 밖에서 부른 `host_leave`는 그렇다고 알리며 panic합니다. `await`가 부르는 훅(`cancel_point`, `cancel_left`, `cleanup_running`, `cleanup_done`)은 lang 슬롯으로 찾으며([0.4.4](../000-meta/004-lang-slot-table.md)) 같은 방식으로 deprecated입니다.
+`rok::core::task`는 런타임 훅도 내보냅니다. `TaskRef`, `Pool`, `Worker`, `wake_task`, `cancel_requested`, `unwinding`입니다. 이 훅은 컴파일러와 런타임을 위해 공개되어 있을 뿐 런타임 내부용입니다. 안정된 API가 아닙니다. 0.1.6부터 이 훅을 쓰면 deprecated 경고가 나고([refs-lang 6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md)), 이후 릴리스에서 비공개가 됩니다. `wake_io`(close나 shutdown 뒤에 디스크립터의 readable / writable 대기자를 깨움)와 `host_enter` / `host_leave` / `host_run`(WebAssembly 컴포넌트 export의 이벤트 루프 진입점)은 `#[internal]`입니다. `rok::std`가 부르며, 다른 패키지에서 쓰면 에러입니다([0.4.4](../000-meta/004-lang-slot-table.md#044-함수-슬롯18)). `await`가 부르는 훅(`cancel_point`, `cancel_left`, `cleanup_running`, `cleanup_done`)은 lang 슬롯으로 찾으며([0.4.4](../000-meta/004-lang-slot-table.md)) 같은 방식으로 deprecated입니다.
 
 ## 2.18.4. 협력적 취소: `Task::cancel`
 

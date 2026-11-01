@@ -29,7 +29,6 @@ async fn yield_now();                                   // await: yields once to
 fn registrations() -> usize;                            // diagnostic: parked wakers + pending timers of the running pool (implementation-defined)
 fn readable(fd: i32) -> IoReady;                       // await: until fd becomes readable (refs-lang 7.7.2)
 fn writable(fd: i32) -> IoReady;
-fn wake_io(fd: i32);                                   // wakes the readable / writable waiters of fd (used after close / shutdown; low-level)
 fn park(key: usize, waker: Waker);                     // low-level: wakes waker at the next unpark(key)
 fn unpark(key: usize);                                 // wakes every task parked on key
 ```
@@ -213,7 +212,7 @@ Key properties of this structure: the local queue is a lock-free Chase-Lev deque
 
 Note that the standard library's authority is limited to the API signatures; the algorithm bodies belong to the runtime and standard library body, outside the spec.
 
-`rok::core::task` also exports runtime hooks: `TaskRef`, `Pool`, `Worker`, `wake_task`, `cancel_requested`, `unwinding`, and `host_enter` / `host_leave` / `host_run` (the event-loop entry for WebAssembly components). They are public for the compiler and the runtime, are internal to the runtime, and are not a stable API: since 0.1.6 a use of one is deprecated ([refs-lang 6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md)), and a later release makes them private. `host_leave` outside `host_enter` panics and says so. The hooks an `await` calls (`cancel_point`, `cancel_left`, `cleanup_running`, `cleanup_done`) are found through their lang slots ([0.4.4](../000-meta/004-lang-slot-table.md)) and are deprecated the same way.
+`rok::core::task` also exports runtime hooks: `TaskRef`, `Pool`, `Worker`, `wake_task`, `cancel_requested` and `unwinding`. They are public for the compiler and the runtime, are internal to the runtime, and are not a stable API: since 0.1.6 a use of one is deprecated ([refs-lang 6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md)), and a later release makes them private. `wake_io` (waking the readable and writable waiters of a descriptor after a close or shutdown) and `host_enter` / `host_leave` / `host_run` (the event-loop entry for WebAssembly component exports) are `#[internal]`: `rok::std` calls them, and a use from any other package is an error ([0.4.4](../000-meta/004-lang-slot-table.md#044-function-slots-18)). The hooks an `await` calls (`cancel_point`, `cancel_left`, `cleanup_running`, `cleanup_done`) are found through their lang slots ([0.4.4](../000-meta/004-lang-slot-table.md)) and are deprecated the same way.
 
 ## 2.18.4. Cooperative cancellation - `Task::cancel`
 

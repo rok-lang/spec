@@ -28,6 +28,7 @@ struct Atomic<T> {
     // internal: a one-element cell driven by per-T LLVM atomic ops
 }
 
+#[sealed]
 trait AtomicPrimitive { /* marker: i8/i16/i32/i64/isize, u8/u16/u32/u64/usize, bool, Ptr<T> */ }
 
 impl<T: AtomicPrimitive + PartialEq> Atomic<T> {
@@ -111,7 +112,7 @@ fn store_max(cell: Atomic<i64>, x: i64) {
 }
 ```
 
-The element type must be an `AtomicPrimitive`: a collection such as `List<T>` cannot be held in an `Atomic`. Shared collections go in a `Mutex<T>` (2.16.3).
+The element type must be an `AtomicPrimitive`: a collection such as `List<T>` cannot be held in an `Atomic`. The trait is sealed ([refs-lang 6.2.15](../../refs-lang/006-meta-system/602-built-in-attributes.md#6215-sealed-impls-only-in-the-defining-package)): the types above are all of its impls, and an `impl AtomicPrimitive` in another package is an error. Shared collections go in a `Mutex<T>` (2.16.3).
 
 ## 2.16.3. `Mutex<T>` - exclusive lock
 

@@ -18,7 +18,7 @@ Visibility has four levels:
 | `pub(pkg)` | Within the same package only.                             |
 | `pub`      | Also from external packages.                              |
 
-The narrowest scope is the default, private; the widest is `pub`.
+The narrowest scope is the default, private; the widest is `pub`. The toolchain's own packages also share some `pub` items marked `#[internal]`, which other packages cannot use ([6.2.16](../006-meta-system/602-built-in-attributes.md#6216-internal-shared-by-the-toolchains-packages)); that mark is not a visibility level.
 
 `pkg` and `sub` are contextual keywords that act as qualifiers only inside the `pub(...)` parentheses; elsewhere they are ordinary identifiers (see [1.5.4 Visibility qualifiers](../001-lexical/105-keywords.md#visibility-qualifiers-pkg--sub)).
 
@@ -123,6 +123,22 @@ let c = Counter::new();             // OK: factory method (if any)
 ```
 
 This is the standard pattern for exposing a type while preventing direct instantiation (newtype, opaque type).
+
+A struct literal checks the visibility of the fields it writes. It may leave out a field the use site cannot see only when that field has a default ([2.3.3](../002-types/203-struct.md#233-field-default-values)); a private field with no default makes every literal outside its scope an error, and the value is built with a function of its module instead.
+
+```rok
+pub struct Opts {
+    pub depth: i32 = 4;
+        seed: i64 = 7;              // private, with a default
+}
+pub struct Keyed {
+    pub label: str = "k";
+        key: i64;                   // private, no default
+}
+
+let o = Opts { depth: 1 };          // OK: `seed` takes its default
+let k = Keyed { label: "x" };       // ERROR outside the module: `key` has no default
+```
 
 ### Fields of tuple structs
 

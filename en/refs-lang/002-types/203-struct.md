@@ -85,6 +85,8 @@ Default values are constrained as follows. Only `const` expressions are allowed:
 
 These constraints ensure determinism, predictable cost, and SemVer safety. If runtime initialization is needed, use a separate factory function, i.e. the `fn new() -> T` pattern. Names in a field default are resolved in the scope of the module that declares the struct, not where the value is built.
 
+A literal outside the struct's module may leave out a private field only when it has a default ([5.6.8](../005-modules/506-visibility.md#568-visibility-of-struct-fields)). A `#[non_exhaustive]` struct gives every field added after its first release a default, so literals in other packages keep compiling ([6.2.10](../006-meta-system/602-built-in-attributes.md#6210-non_exhaustive-opting-out-of-external-exhaustiveness)).
+
 ## 2.3.4. Field spread
 
 Sometimes a new instance should copy the fields of an existing instance, changing only some of them.

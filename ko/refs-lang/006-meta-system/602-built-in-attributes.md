@@ -13,6 +13,8 @@ deprecated_attr ::= "#" "[" "deprecated" ("(" deprecated_args ")" | "=" string_l
 deprecated_args ::= string_lit | deprecated_kv ("," deprecated_kv)*
 deprecated_kv   ::= ("since" | "note") "=" string_lit
 deprecated_safe ::= "#" "[" "deprecated_safe" ("(" string_lit ")" | "=" string_lit)? "]"
+sealed_attr     ::= "#" "[" "sealed" "]"
+internal_attr   ::= "#" "[" "internal" "]"
 ```
 
 ## 6.2.1. `#[derive(...)]` 자동 트레잇 구현
@@ -205,7 +207,7 @@ fn f() { ... }
 pub const fn spread_misfit<V>(d: Dict<str, V>, key: str, why: str) { .. }
 ```
 
-`#[doc(hidden)]`은 공개 항목을 API 문서(`rokc doc`)와 언어 서버의 자동 완성에서 뺍니다. 컴파일러가 생성한 코드에서 부를 수 있도록 `pub`으로 둔 항목에 씁니다. 항목은 여전히 공개입니다. 컴파일과 이름 해석도 달라지지 않습니다. 모듈에 붙이면 그 안의 모든 것을 숨깁니다. 항목의 문서 주석과 함께 둘 수 있고, 문서 주석은 호버 정보에 계속 나옵니다. 그 밖의 `#[doc(..)]` 형태는 에러입니다. `#[doc = ".."]`나 `#[doc(hidden)]`으로 쓰세요.
+`#[doc(hidden)]`은 공개 항목을 API 문서(`rokc doc`)와 언어 서버의 자동 완성에서 뺍니다. 컴파일러가 생성한 코드에서 부를 수 있도록 `pub`으로 둔 항목에 씁니다. 항목은 여전히 공개입니다. 컴파일과 이름 해석도 달라지지 않습니다. 모듈에 붙이면 그 안의 모든 것을 숨깁니다. 항목의 문서 주석과 함께 둘 수 있고, 문서 주석은 호버 정보에 계속 나옵니다. 그 밖의 `#[doc(..)]` 형태는 에러입니다. `#[doc = ".."]`나 `#[doc(hidden)]`으로 쓰세요. toolchain 패키지끼리 공유하지만 사용자가 부르면 안 되는 항목에는 `#[doc(hidden)]`이 아니라 `#[internal]`([6.2.16](#6216-internal-toolchain-패키지끼리-공유))을 붙입니다.
 
 ## 6.2.9. `#[allow(...)]` / `#[deny(...)]` / `#[warn(...)]` 린트 제어
 
@@ -299,7 +301,25 @@ pub enum ApiError {
 }
 ```
 
-`#[non_exhaustive]`는 `enum`이나 `struct`에 붙일 수 있습니다. 이 속성이 있으면 외부 패키지에서 그 타입을 `match`할 때 모든 변형을 처리하더라도 나머지 가지(`_ => ...`)를 더 써야 합니다. 덕분에 라이브러리 작성자는 SemVer 호환성을 깨지 않고 나중에 새 변형을 추가할 수 있습니다.
+`#[non_exhaustive]`는 `enum`이나 `struct`에 붙일 수 있습니다. `enum`에 붙이면 외부 패키지에서 그 타입을 `match`할 때 모든 변형을 처리하더라도 나머지 가지(`_ => ...`)를 더 써야 합니다. 덕분에 라이브러리 작성자는 SemVer 호환성을 깨지 않고 나중에 새 변형을 추가할 수 있습니다.
+
+```rok
+#[non_exhaustive]
+pub struct ClientOptions {
+    pub retries: i32 = 3;
+    pub verbose: bool = false;
+}
+
+let o = ClientOptions { retries: 5 };           // 다른 패키지에서도 OK
+let p = ClientOptions { verbose: true, ..o };   // OK
+let ClientOptions { retries, .. } = p;          // 다른 패키지에서는 `..` 필요
+```
+
+`struct`에 붙이면 그 패키지가 나중에 필드를 더할 수 있는 레코드라는 뜻입니다.
+
+- 외부 패키지에서 쓰는 struct 패턴(`let`, `match`, `if let`)은 `..`로 끝나야 합니다. `..`가 없으면 에러이고, 에러 메시지는 `..`를 붙인 패턴을 보여 줍니다. 정의한 패키지 안에서는 모든 필드를 나열해도 됩니다.
+- struct를 처음 릴리스한 뒤에 더하는 필드는 모두 기본값([2.3.3](../002-types/203-struct.md#233-필드-기본값))을 가집니다. 그래서 그 필드를 생략한 리터럴은 계속 컴파일됩니다. 컴파일러는 struct의 이력을 볼 수 없으므로 이 규칙은 작성자가 지킵니다. 나중에 semver 검사가 이를 확인합니다.
+- Rust와 달리 다른 패키지에서도 struct 리터럴과 `..base` spread([2.3.4](../002-types/203-struct.md#234-필드-spread))를 쓸 수 있습니다. 리터럴은 기본값이 있는 필드를 생략하고 나머지를 적습니다. 마땅한 기본값이 없는 필드는 모든 리터럴에 적어야 합니다.
 
 ## 6.2.11. `#[must_use]` 결과 무시 경고
 
@@ -351,6 +371,8 @@ fn expect_positive(n: i32) -> i32 {
 | `#[niche(..)]`                 | newtype struct                | 타입에 없는 값을 선언함. 그 값이 `T \| none`의 niche가 됨 ([2.7.4](../002-types/207-niche-optimization.md#274-opt-in-niche-niche)) |
 | `#[intrinsic("rok.OP.TYPE")]`  | 표준 라이브러리 전용          | 함수나 메서드를 컴파일러 연산에 묶음. 사용자 코드에서는 에러 ([stdlib 0.3](../../refs-standard-libraries/000-meta/003-intrinsics.md)) |
 | `#[no_safepoint]`              | `extern "rok"` 블록           | toolchain 내부용. 블록의 함수는 할당도 블로킹도 하지 않으므로 그 호출은 safepoint가 아님. 다른 블록에서는 에러 ([5.9.2](../005-modules/509-extern-block.md#592-abi-명시)) |
+| `#[sealed]`                    | `trait`                       | 정의한 패키지만 그 트레잇을 구현함 ([6.2.15](#6215-sealed-정의한-패키지에서만-구현)) |
+| `#[internal]`                  | 함수, 메서드, `const`, `static`, 필드 | `rok::bare`, `rok::core`, `rok::std`끼리만 공유함 ([6.2.16](#6216-internal-toolchain-패키지끼리-공유)) |
 
 ## 6.2.14. `#[deprecated_safe]` 지금은 안전, 나중에 `unsafe`
 
@@ -362,3 +384,34 @@ pub fn from_ptr(ptr: Ptr<u8>) -> CStr { ... }
 `#[deprecated_safe("note")]`는 나중 릴리스에서 `unsafe`가 될 라이브러리의 함수, 메서드, extern 함수, static을 표시합니다. `unsafe` 블록이나 `unsafe fn` 밖에서 그 함수를 호출하거나 그 static을 쓰면 린트 `deprecated_safe` 경고가 메시지와 함께 납니다. 호출을 `unsafe { .. }`로 감싸면 됩니다. 이 코드는 지금도 컴파일되고, 항목이 `unsafe`가 된 뒤에도 그대로 맞습니다. `unsafe` 안에서는 경고가 나지 않습니다.
 
 이 속성은 표준 라이브러리와 라이브러리 패키지용입니다. 빌드하는 프로그램의 함수에 붙이면 에러입니다. 그 함수는 `unsafe fn`으로 만듭니다. 함수, 메서드, extern 함수, static이 아닌 항목에 붙여도 에러입니다.
+
+## 6.2.15. `#[sealed]` 정의한 패키지에서만 구현
+
+```rok
+/// `Atomic<T>`가 지원하는 원소 타입.
+#[sealed]
+pub trait AtomicPrimitive {}
+```
+
+트레잇에 `#[sealed]`를 붙이면 그 트레잇을 정의한 패키지만 구현할 수 있습니다. 다른 패키지에서 그 트레잇을 `impl`하면 에러입니다. 에러는 트레잇이 sealed라는 것과 그 트레잇을 가진 패키지를 알려 줍니다. 그 밖에는 다른 트레잇과 똑같이 동작합니다. 다른 패키지도 바운드(`T: AtomicPrimitive`)에 쓰고, 메서드를 부르고, `use`로 가져올 수 있습니다.
+
+라이브러리가 그 트레잇을 구현한 타입을 모두 알아야 할 때 트레잇을 sealed로 만듭니다. 건전성 때문일 수도 있고(원자 연산은 그 타입에만 있습니다), 다른 impl은 무시되기 때문일 수도 있습니다. 표준 라이브러리는 `AtomicPrimitive`를 sealed로 둡니다([stdlib 2.16](../../refs-standard-libraries/200-core/216-sync.md)).
+
+toolchain의 각 계층은 저마다 별개의 패키지입니다([5.6.4](../005-modules/506-visibility.md#564-pubpkg-패키지-내부)). `rok::core`가 sealed로 둔 트레잇의 impl은 `rok::core`에 있습니다. `#[sealed]`는 인자를 받지 않으며, 트레잇이 아닌 곳에 붙이면 에러입니다.
+
+## 6.2.16. `#[internal]` toolchain 패키지끼리 공유
+
+```rok
+/// `fd`의 준비를 기다리는 task를 모두 깨움.
+#[internal]
+pub fn wake_io(fd: i32) { .. }
+```
+
+`#[internal]`은 toolchain의 패키지인 `rok::bare`, `rok::core`, `rok::std`가 서로 공유하지만 API는 아닌 `pub` 항목을 표시합니다. 함수, 메서드, `const`, `static`, 필드에 붙일 수 있습니다.
+
+- 다른 패키지에서 쓰면(호출, 함수 값, 읽기) "internal to the Rok toolchain" 에러입니다. 항목은 그대로 해소되므로 에러가 항목 이름을 알려 줍니다.
+- `#[doc(hidden)]` 항목처럼 API 문서(`rokc doc`), 언어 서버의 자동 완성과 호버 목록, "did you mean" 제안에서 빠집니다.
+- 새 가시성 단계가 아닙니다([5.6.1](../005-modules/506-visibility.md#561-네-단계)). 항목은 `pub`이고, 이 검사는 가시성과 따로 이루어집니다.
+- toolchain의 패키지만 이 속성을 쓸 수 있습니다. 다른 패키지의 항목에 붙이면 에러입니다. 항목을 패키지 안에만 두려면 `pub(pkg)`로 만드세요.
+
+이 속성이 붙은 항목은 [stdlib 0.4.4](../../refs-standard-libraries/000-meta/004-lang-slot-table.md#044-함수-슬롯18)에 있습니다. 한 계층 안에서만 쓰는 항목은 `pub(pkg)`이고, 컴파일러가 lowering한 코드에서 부르는 함수는 lang 슬롯으로 찾으므로 둘 다 `#[internal]`이 필요 없습니다.

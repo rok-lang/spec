@@ -200,6 +200,8 @@ So when polymorphism is needed, use generics ([Generics](210-generics.md)) or su
 
 The visibility of a trait itself and of its methods can be controlled separately. The exact rules are defined in [Visibility](../005-modules/506-visibility.md).
 
+A `#[sealed]` trait is implemented only in its defining package; other packages still use it in bounds and calls ([6.2.15](../006-meta-system/602-built-in-attributes.md#6215-sealed-impls-only-in-the-defining-package)).
+
 ## 2.8.9. No duplicate definitions in the same module
 
 Declaring two traits with the same name in the same module is a compile error. Declaring two methods with the same name in one trait is a compile error (there is no overloading).

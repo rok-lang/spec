@@ -123,6 +123,18 @@ The other fifteen are **hooks**: functions that code the compiler writes calls, 
 | `cleanup_running_fn` | A frame left by a cancel enters its cleanups           | `rok::core::task::cleanup_running`        | 2.18 |
 | `cleanup_done_fn`    | That frame finished its cleanups                       | `rok::core::task::cleanup_done`           | 2.18 |
 
+### Items the tiers share: `#[internal]`
+
+A few `pub` items are called by another tier of the toolchain, not by the compiler: `rok::std` uses them from `rok::core`. They are marked `#[internal]` ([refs-lang 6.2.16](../../refs-lang/006-meta-system/602-built-in-attributes.md#6216-internal-shared-by-the-toolchains-packages)): `rok::bare`, `rok::core` and `rok::std` may use them, any other package gets the error "internal to the Rok toolchain", and the docs and the language server leave them out.
+
+| Item                                   | Used by                                                   | Ref  |
+|----------------------------------------|-----------------------------------------------------------|------|
+| `rok::core::marker::hand_over`         | `rok::std::thread` (a thread's result is handed over)      | 2.13 |
+| `rok::core::task::wake_io`             | `rok::std::net` (waking waiters after a close or shutdown) | 2.18 |
+| `rok::core::task::host_enter`          | `rok::std::wit` (a component export enters the host loop)  | 2.18 |
+| `rok::core::task::host_run`            | `rok::std::wit` (one turn of the host loop)                | 2.18 |
+| `rok::core::task::host_leave`          | `rok::std::wit` (ends `host_enter`)                        | 2.18 |
+
 ## 0.4.5. Method slots (1)
 
 Method slots are for methods the compiler calls automatically without the user writing the call. There is only one: disposal when a `using` binding is released. The `?` operator is expanded directly by the compiler for `T | none` ([refs-lang 3.14.10](../../refs-lang/003-expressions/314-error-control-flow.md#31410-the--operator---early-return-of-none)), so it has no method slot. Cloning a value (`Clone::clone`) is never called automatically ([2.13.2](../200-core/213-marker.md#2132-clone---deep-copy)), so it is registered as the trait slot `clone_trait`, not a method slot.

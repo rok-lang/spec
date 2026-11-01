@@ -13,6 +13,8 @@ deprecated_attr ::= "#" "[" "deprecated" ("(" deprecated_args ")" | "=" string_l
 deprecated_args ::= string_lit | deprecated_kv ("," deprecated_kv)*
 deprecated_kv   ::= ("since" | "note") "=" string_lit
 deprecated_safe ::= "#" "[" "deprecated_safe" ("(" string_lit ")" | "=" string_lit)? "]"
+sealed_attr     ::= "#" "[" "sealed" "]"
+internal_attr   ::= "#" "[" "internal" "]"
 ```
 
 ## 6.2.1. `#[derive(...)]` automatic trait implementation
@@ -205,7 +207,7 @@ The inner form `#![doc]` likewise has the same effect as `//!`.
 pub const fn spread_misfit<V>(d: Dict<str, V>, key: str, why: str) { .. }
 ```
 
-`#[doc(hidden)]` keeps a public item out of the API docs (`rokc doc`) and out of the language server's completion. It is for items that are `pub` only so code the compiler generates can call them; the item is still public and compiles and resolves as before. On a module it hides everything inside. It may stand beside the item's doc comment, which still serves hover. Any other `#[doc(..)]` form is an error: write `#[doc = ".."]` or `#[doc(hidden)]`.
+`#[doc(hidden)]` keeps a public item out of the API docs (`rokc doc`) and out of the language server's completion. It is for items that are `pub` only so code the compiler generates can call them; the item is still public and compiles and resolves as before. On a module it hides everything inside. It may stand beside the item's doc comment, which still serves hover. Any other `#[doc(..)]` form is an error: write `#[doc = ".."]` or `#[doc(hidden)]`. An item the toolchain's packages share but users may not call is `#[internal]` ([6.2.16](#6216-internal-shared-by-the-toolchains-packages)), not `#[doc(hidden)]`.
 
 ## 6.2.9. `#[allow(...)]` / `#[deny(...)]` / `#[warn(...)]` lint control
 
@@ -299,7 +301,25 @@ pub enum ApiError {
 }
 ```
 
-`#[non_exhaustive]` may be attached to an `enum` or `struct`. When present, a `match` on the type from an external package requires an additional catch-all (`_ => ...`) even if it handles every variant. This lets library authors add new variants later without breaking SemVer compatibility.
+`#[non_exhaustive]` may be attached to an `enum` or `struct`. On an `enum`, a `match` on the type from an external package requires an additional catch-all (`_ => ...`) even if it handles every variant. This lets library authors add new variants later without breaking SemVer compatibility.
+
+```rok
+#[non_exhaustive]
+pub struct ClientOptions {
+    pub retries: i32 = 3;
+    pub verbose: bool = false;
+}
+
+let o = ClientOptions { retries: 5 };           // OK in another package
+let p = ClientOptions { verbose: true, ..o };   // OK
+let ClientOptions { retries, .. } = p;          // `..` required in another package
+```
+
+On a `struct` it marks a record whose package may add fields:
+
+- A struct pattern on it from an external package ends in `..` (`let`, `match`, `if let`); without `..` it is an error that shows the pattern with `..` added. The defining package may list every field.
+- Every field added after the first release of the struct has a default ([2.3.3](../002-types/203-struct.md#233-field-default-values)), so literals that omit it keep compiling. The compiler cannot see a struct's history; this rule is the author's, and a later semver check enforces it.
+- Unlike Rust, struct literals and `..base` spreads ([2.3.4](../002-types/203-struct.md#234-field-spread)) stay allowed from other packages: a literal leaves out the defaulted fields and names the rest. Fields with no sensible default are required in every literal.
 
 ## 6.2.11. `#[must_use]` warning on ignored results
 
@@ -351,6 +371,8 @@ The compiler also recognizes the following attributes. Each is specified where i
 | `#[niche(..)]`                 | newtype struct                | Declares values the type never holds, used as the niche of `T \| none` ([2.7.4](../002-types/207-niche-optimization.md#274-opt-in-niches-niche)) |
 | `#[intrinsic("rok.OP.TYPE")]`  | standard library only         | Binds a function or method to a compiler operation; an error in user code ([stdlib 0.3](../../refs-standard-libraries/000-meta/003-intrinsics.md)) |
 | `#[no_safepoint]`              | `extern "rok"` block          | Toolchain-internal: the block's functions neither allocate nor block, so calls to them are not safepoints; an error on other blocks ([5.9.2](../005-modules/509-extern-block.md#592-abi-specifiers)) |
+| `#[sealed]`                    | `trait`                       | Only the defining package implements the trait ([6.2.15](#6215-sealed-impls-only-in-the-defining-package)) |
+| `#[internal]`                  | function, method, `const`, `static`, field | Shared by `rok::bare`, `rok::core` and `rok::std` only ([6.2.16](#6216-internal-shared-by-the-toolchains-packages)) |
 
 ## 6.2.14. `#[deprecated_safe]` safe today, `unsafe` later
 
@@ -362,3 +384,34 @@ pub fn from_ptr(ptr: Ptr<u8>) -> CStr { ... }
 `#[deprecated_safe("note")]` marks a library function, method, extern function or static that a later release makes `unsafe`. A call of it, or a use of the static, outside an `unsafe` block or `unsafe fn` warns with lint `deprecated_safe` and the note: wrap the call in `unsafe { .. }`, which compiles now and stays correct when the item becomes `unsafe`. Inside `unsafe` there is no warning.
 
 It is for the standard library and library packages. On a function of the program being built it is an error: make that function `unsafe fn` instead. On an item other than a function, method, extern function or static it is an error.
+
+## 6.2.15. `#[sealed]` impls only in the defining package
+
+```rok
+/// The element types `Atomic<T>` supports.
+#[sealed]
+pub trait AtomicPrimitive {}
+```
+
+`#[sealed]` on a trait means that only the package defining the trait implements it. An `impl` of the trait in any other package is an error that names the trait as sealed and the package that owns it. Everything else works as for any trait: other packages use it in bounds (`T: AtomicPrimitive`), call its methods, and name it in `use`.
+
+Seal a trait when the library depends on knowing every type that implements it: for soundness (the atomic operations exist only for those types) or because other impls would be ignored. The standard library seals `AtomicPrimitive` ([stdlib 2.16](../../refs-standard-libraries/200-core/216-sync.md)).
+
+Each tier of the toolchain is its own package ([5.6.4](../005-modules/506-visibility.md#564-pubpkg-within-the-package)): a trait `rok::core` seals has its impls in `rok::core`. `#[sealed]` takes no arguments; on anything other than a trait it is an error.
+
+## 6.2.16. `#[internal]` shared by the toolchain's packages
+
+```rok
+/// Wake every task waiting on `fd`'s readiness.
+#[internal]
+pub fn wake_io(fd: i32) { .. }
+```
+
+`#[internal]` marks a `pub` item that the toolchain's own packages, `rok::bare`, `rok::core` and `rok::std`, share with one another but that is not part of their API. It may be attached to a function, method, `const`, `static` or field.
+
+- A use from any other package (a call, a function value, a read) is an error: "internal to the Rok toolchain". The item still resolves, so the error names it.
+- It is left out of the API docs (`rokc doc`), the language server's completion and hover lists, and "did you mean" suggestions, as `#[doc(hidden)]` items are.
+- It is no new visibility level ([5.6.1](../005-modules/506-visibility.md#561-four-levels)): the item is `pub`, and the check is separate from visibility.
+- Only the toolchain's packages may write it. On an item of any other package it is an error; to keep an item inside a package, make it `pub(pkg)`.
+
+The items that carry it are listed in [stdlib 0.4.4](../../refs-standard-libraries/000-meta/004-lang-slot-table.md#044-function-slots-18). An item used inside one tier only is `pub(pkg)`, and a function the compiler calls from lowered code is reached through a lang slot, so neither needs `#[internal]`.
