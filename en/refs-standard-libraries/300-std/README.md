@@ -22,7 +22,7 @@ use rok::std::thread::Builder;
 
 ## Module index
 
-This tier consists of the following eleven modules.
+This tier consists of the following twelve modules.
 
 - [3.1. `fs::` - file system (atomic ops, Dir capability, reflink copy)](301-fs.md)
 - [3.2. `net::` - TCP / UDP / Unix + TLS 1.3](302-net.md)
@@ -34,6 +34,7 @@ This tier consists of the following eleven modules.
 - [3.8. `path::` - UTF-8 `Path` (Python-style) + `RawPath` escape hatch](308-path.md)
 - [3.9. `rokon::` - the ROKON data format (`.rokon`)](309-rokon.md)
 - [3.10. `crypto::` - the OS random source](310-crypto.md)
+- [3.11. `os::` - what only some OSes have: `unix` / `linux` / `windows`](311-os.md)
 - `wit::` - the component model's async ABI that generated WIT bindings call ([1.8](../100-bare/108-wit.md)). Bindings-internal: public so the generated code can reach it, not meant to be called directly, and not specified here.
 
 ## Argument conventions
@@ -161,5 +162,6 @@ Module availability per platform:
 | `rok::std::env`     | ✓                   | ✓             | ✓                   | ✗                |
 | `rok::std::process` | ✓                   | ✗             | ✗                   | ✗                |
 | `rok::std::path`    | ✓                   | ✓             | ✓                   | ✓                |
+| `rok::std::os`      | its OS only (3.11)  | absent        | absent              | absent           |
 
-✗ means the module builds but its operations fail at run time with `IoErrorKind::Unsupported`; it is not a compile-time absence. In the browser, stdout / stderr go to the host console and stdin is at EOF. The availability section of each module spec gives per-platform behavior in more detail.
+✗ means the module builds but its operations fail at run time with `IoErrorKind::Unsupported`; it is not a compile-time absence. `os::unix`, `os::linux` and `os::windows` are the exception: they exist only on their targets. In the browser, stdout / stderr go to the host console and stdin is at EOF. The availability section of each module spec gives per-platform behavior in more detail.

@@ -70,6 +70,8 @@ The names below are exactly the names of `rok::core::prelude`. Modules, types an
 
 The operator traits are not in the prelude: write `ops::Add`, or `use rok::core::ops::Add;`. Operators themselves need no name and work everywhere ([refs-lang 6.7.8](../../refs-lang/006-meta-system/607-operator-magic.md#678-visibility-of-mappings)), and so do the methods of every `rok::core` trait ([refs-lang 3.5](../../refs-lang/003-expressions/305-member-access-and-method-call.md)).
 
+**OS extension traits.** On the targets that have them, the prelude also names `PermissionsExt`, `CommandExt` and `ExitStatusExt` (unix) and `ChildExt` and `TcpStreamExt` (linux), so their methods need no `use` there ([3.11.1](../300-std/311-os.md#3111-ext-traits-in-the-prelude)). They are not counted above.
+
 **Functions (11).**
 
 `print` `println` `eprint` `eprintln` `panic` `assert` `assert_eq` `assert_ne` `unreachable` `channel` `channel_bounded`

@@ -9,6 +9,7 @@
 경로 매개변수는 tier 공통 [인자 규약](README.md#인자-규약)을 따릅니다(`Path`는 `P: AsPath`).
 
 ```rok
+#[must_use]
 struct Command { /* opaque: 프로그램, 인자, 환경, stream, cwd, 옵션 */ }
 
 impl Command {
@@ -26,7 +27,7 @@ impl Command {
     fn stderr(self, cfg: Stdio) -> Command;
 
     fn kill_on_drop(self, on: bool) -> Command;         // using 으로 묶은 Child 가 해제될 때 kill
-    fn process_group(self, pgid: i32) -> Command;       // unix
+    // unix: process_group, CommandExt (3.11.5)
 
     // 실행
     fn spawn(self) throws (IoError) -> Child;
@@ -48,6 +49,8 @@ struct Output {
 }
 ```
 
+빌더 메서드는 바뀐 명령을 돌려주고, 호출한 쪽 명령은 그대로 둡니다. 그래서 `Command`의 복사본들은 서로 독립입니다. `let a = base.arg("x")` 뒤에도 `base`에는 `x`가 없습니다. 결과를 버린 빌더 호출(`base.arg("x");`)은 아무것도 바꾸지 않고 경고를 냅니다(`#[must_use]`).
+
 `Stdio`는 네 가지입니다. 부모의 fd를 그대로 물려주는 `Inherit`, 출력을 모두 버리는 `Null`, 양방향 통신용 `Piped`, 임의의 fd를 명시적으로 연결하는 `File`입니다.
 
 ## 3.7.2. `Child`
@@ -67,9 +70,7 @@ impl Child {
     fn wait(self) throws (IoError) -> ExitStatus;
     fn try_wait(self) throws (IoError) -> ExitStatus | none;
 
-    // pidfd (Linux only): race-free signal
-    #[cfg(target_os = "linux")]
-    fn pidfd(self) throws (IoError) -> i32;
+    // Linux: pidfd, ChildExt (3.11.5)
 
     fn send_signal(self, sig: Signal) throws (IoError);  // Windows: Kill 만
     #[deprecated(since = "0.1.6", note = "use `Child::send_signal(Signal::..)`")]
@@ -77,30 +78,28 @@ impl Child {
 }
 
 impl ChildStdin {                        // 자식 stdin pipe 의 쓰기 끝, impl io::Write + io::Close
-    fn fd(self) -> i32;
     fn close(self) throws (IoError);     // 자식은 입력 끝을 읽음
 }
 impl ChildStdout {                       // 자식 stdout pipe 의 읽기 끝, impl io::Read + io::Close
-    fn fd(self) -> i32;
     fn close(self) throws (IoError);
 }
 impl ChildStderr {                       // 자식 stderr pipe 의 읽기 끝, impl io::Read + io::Close
-    fn fd(self) -> i32;
     fn close(self) throws (IoError);
 }
+// + 세 pipe 모두 AsRawFd (unix), AsRawHandle (Windows): 3.11
 
 struct ExitStatus { /* opaque */ }
 
 impl ExitStatus {
     fn success(self) -> bool;
     fn code(self) -> i32 | none;        // none = signal terminated (unix)
-    fn signal(self) -> i32 | none;       // unix
+    // unix: signal, ExitStatusExt (3.11.5)
 }
 impl Display for ExitStatus { ... }      // "exit status: 1" / "signal: 9"
 impl Debug for ExitStatus { ... }        // "ExitStatus { code: 1 }" / "ExitStatus { signal: 9 }"
 ```
 
-종료 결과는 불투명 타입 `ExitStatus`에 담깁니다. `code()`가 `none`이면 Unix에서 신호로 종료되었다는 뜻입니다. 신호 번호는 `signal()`로 따로 꺼낼 수 있습니다.
+종료 결과는 불투명 타입 `ExitStatus`에 담깁니다. `code()`가 `none`이면 Unix에서 신호로 종료되었다는 뜻입니다. 그 신호는 `signal()`(`ExitStatusExt`, Unix에서 prelude에 있음)이 `Signal`로 알려 줍니다.
 
 ## 3.7.3. 사용 예
 
@@ -163,17 +162,22 @@ using child = try Command::new("long_running")
 
 ```rok
 #[non_exhaustive]
-enum Signal { Hangup, Interrupt, Quit, Kill, Pipe, Alarm, Terminate, User1, User2, Child, Continue, Stop }
+enum Signal {
+    Hangup, Interrupt, Quit, IllegalInstruction, Trap, Abort, Bus, FloatingPoint, Kill,
+    Segmentation, Pipe, Alarm, Terminate, User1, User2, Child, Continue, Stop,
+    TerminalStop, TerminalInput, TerminalOutput, Urgent, CpuLimit, FileSizeLimit,
+    VirtualAlarm, Profile, WindowChange, Io, BadSyscall,
+}                                        // SIGHUP .. SIGSYS
 
 impl Signal {
-    fn number(self) -> i32;              // OS 의 번호 (SIGHUP = 1, ..)
+    fn number(self) -> i32;              // OS 의 번호 (SIGHUP = 1, ..; Linux 의 것, 아니면 BSD 의 것)
 }                                        // + PartialEq, Debug
 
 fn on_signal(sig: Signal, handler: fn() + Send) throws (SignalError);
 fn send_signal(pid: u32, sig: Signal) throws (IoError);
 #[deprecated(since = "0.1.6", note = "use `process::send_signal(pid, Signal::..)`")]
 fn kill(pid: u32, sig: i32) throws (IoError);
-fn raise(sig: i32) throws (IoError);
+fn raise(sig: Signal) throws (IoError);  // Windows: Interrupt, Hangup 만
 fn id() -> u32;                          // 이 프로세스의 id
 fn exit(code: i32) -> !;                 // 런타임 rok_exit 로 즉시 종료; finally 와 Drop 은 돌지 않음 (refs-lang 4.16)
 fn abort() -> !;                         // 비정상 종료 (SIGABRT); 아무것도 정리하지 않음
@@ -187,9 +191,9 @@ impl SignalError {
 // + Display, Debug, Error, PartialEq, Eq, Clone
 ```
 
-`on_signal`의 핸들러는 신호 문맥(signal handler) 안에서 돌지 않습니다. 런타임이 신호를 받아 전용 디스패처 스레드 `rok-signal`로 넘깁니다. 핸들러는 그 스레드에서 일반 함수처럼 실행됩니다. 그래서 핸들러는 `Send`여야 하고, 할당하거나 락을 잡아도 됩니다. 같은 신호에 `on_signal`을 다시 호출하면 핸들러가 바뀝니다. `Signal`은 어느 OS에서나 신호를 이름으로 가리킵니다. `i32`를 받는 `kill`, `Child::signal`은 지금도 동작하지만 경고(`deprecated`)를 내고, 0.2.0에서 사라집니다. `i32`를 받는 `signal`은 이미 없습니다. `Command::process_group(pgid)`는 자식을 그 프로세스 그룹에 넣습니다(`0`이면 자식의 pid로 새 그룹을 만듭니다).
+`on_signal`의 핸들러는 신호 문맥(signal handler) 안에서 돌지 않습니다. 런타임이 신호를 받아 전용 디스패처 스레드 `rok-signal`로 넘깁니다. 핸들러는 그 스레드에서 일반 함수처럼 실행됩니다. 그래서 핸들러는 `Send`여야 하고, 할당하거나 락을 잡아도 됩니다. 같은 신호에 `on_signal`을 다시 호출하면 핸들러가 바뀝니다. `Signal`은 어느 OS에서나 신호를 이름으로 가리킵니다. `i32`를 받는 `kill`, `Child::signal`은 지금도 동작하지만 경고(`deprecated`)를 내고, 0.2.0에서 사라집니다. `i32`를 받는 `signal`은 이미 없습니다. `process_group(pgid)`(`CommandExt`, unix)는 자식을 그 프로세스 그룹에 넣습니다(`0`이면 자식의 pid로 새 그룹을 만듭니다).
 
-Windows에서는 콘솔 이벤트를 신호에 대응합니다. Ctrl-C → `Interrupt`(2), 콘솔 닫기 / 로그오프 / 종료 → `Hangup`(1)입니다. `send_signal`은 `Signal::Kill`만 `TerminateProcess`로 보냅니다. 다른 `Signal`은 `IoError`(`Unsupported`)이고, `Interrupt`나 `Hangup`이 아닌 신호에 대한 `on_signal`은 `SignalError`입니다.
+Windows에서는 콘솔 이벤트를 신호에 대응합니다. Ctrl-C → `Interrupt`(2), 콘솔 닫기 / 로그오프 / 종료 → `Hangup`(1)입니다. Ctrl-Break에는 `Signal`이 없고, `os::windows::process::on_ctrl_break`가 받습니다([3.11.7](311-os.md#3117-oswindowsprocess-ctrl-break)). `send_signal`은 `Signal::Kill`만 `TerminateProcess`로 보내고, `raise`는 `Interrupt`와 `Hangup`만 올립니다. 다른 `Signal`은 `IoError`(`Unsupported`)이고, `Interrupt`나 `Hangup`이 아닌 신호에 대한 `on_signal`은 `SignalError`입니다.
 
 대부분의 사용자는 이 부분을 직접 다룰 일이 없습니다. 데몬, 서버, 대화형 CLI처럼 신호를 직접 처리해야 하는 곳에서만 필요합니다.
 
@@ -201,7 +205,7 @@ Windows에서는 콘솔 이벤트를 신호에 대응합니다. Ctrl-C → `Inte
 |------------------|------------|-------|-----------------|------|
 | `Command::spawn` | ✓          | ✓     | ✓               | ✗    |
 | `posix_spawn`    | ✓          | ✓     | (CreateProcess) | ✗    |
-| `pidfd`          | linux 5.3+ | ✗     | ✗               | ✗    |
+| `pidfd`          | linux 5.3+ (`os::linux`) | ✗ | ✗         | ✗    |
 | `kill_on_drop`   | ✓          | ✓     | ✓               | ✗    |
 | 신호 핸들러      | ✓          | ✓     | (제한적)        | ✗    |
 | `process::id()`  | ✓          | ✓     | ✓               | `0` (wasm32) |

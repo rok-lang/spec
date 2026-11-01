@@ -9,6 +9,7 @@ The first thing you meet is the `Command` struct, the blueprint of a child proce
 Path parameters follow the tier-wide [argument conventions](README.md#argument-conventions) (`Path` is `P: AsPath`).
 
 ```rok
+#[must_use]
 struct Command { /* opaque: program, args, environment, streams, cwd, options */ }
 
 impl Command {
@@ -26,7 +27,7 @@ impl Command {
     fn stderr(self, cfg: Stdio) -> Command;
 
     fn kill_on_drop(self, on: bool) -> Command;         // kill when a Child bound with using is released
-    fn process_group(self, pgid: i32) -> Command;       // unix
+    // unix: process_group, CommandExt (3.11.5)
 
     // execution
     fn spawn(self) throws (IoError) -> Child;
@@ -48,6 +49,8 @@ struct Output {
 }
 ```
 
+A builder method returns the changed command and leaves the one it was called on as it was, so copies of a `Command` are independent: after `let a = base.arg("x")`, `base` has no `x`. A builder call whose result is dropped (`base.arg("x");`) changes nothing and warns (`#[must_use]`).
+
 Note that `Stdio` has four branches: `Inherit`, which passes on the parent's fd; `Null`, which discards output entirely; `Piped`, for two-way communication; and `File`, which plugs in an arbitrary fd explicitly.
 
 ## 3.7.2. `Child`
@@ -67,9 +70,7 @@ impl Child {
     fn wait(self) throws (IoError) -> ExitStatus;
     fn try_wait(self) throws (IoError) -> ExitStatus | none;
 
-    // pidfd (Linux only): race-free signal
-    #[cfg(target_os = "linux")]
-    fn pidfd(self) throws (IoError) -> i32;
+    // Linux: pidfd, ChildExt (3.11.5)
 
     fn send_signal(self, sig: Signal) throws (IoError);  // Windows: Kill only
     #[deprecated(since = "0.1.6", note = "use `Child::send_signal(Signal::..)`")]
@@ -77,30 +78,28 @@ impl Child {
 }
 
 impl ChildStdin {                        // write end of the child's stdin pipe; impl io::Write + io::Close
-    fn fd(self) -> i32;
     fn close(self) throws (IoError);     // the child reads end of input
 }
 impl ChildStdout {                       // read end of the child's stdout pipe; impl io::Read + io::Close
-    fn fd(self) -> i32;
     fn close(self) throws (IoError);
 }
 impl ChildStderr {                       // read end of the child's stderr pipe; impl io::Read + io::Close
-    fn fd(self) -> i32;
     fn close(self) throws (IoError);
 }
+// + AsRawFd (unix), AsRawHandle (Windows) for the three pipes: 3.11
 
 struct ExitStatus { /* opaque */ }
 
 impl ExitStatus {
     fn success(self) -> bool;
     fn code(self) -> i32 | none;        // none = signal terminated (unix)
-    fn signal(self) -> i32 | none;       // unix
+    // unix: signal, ExitStatusExt (3.11.5)
 }
 impl Display for ExitStatus { ... }      // "exit status: 1" / "signal: 9"
 impl Debug for ExitStatus { ... }        // "ExitStatus { code: 1 }" / "ExitStatus { signal: 9 }"
 ```
 
-The exit result is held in the opaque type `ExitStatus`. If `code()` is `none`, the process was terminated by a signal on unix, and the signal number can be retrieved separately with `signal()`.
+The exit result is held in the opaque type `ExitStatus`. If `code()` is `none`, the process was terminated by a signal on unix, and `signal()` (`ExitStatusExt`, in the prelude on unix) names it as a `Signal`.
 
 ## 3.7.3. Examples
 
@@ -163,17 +162,22 @@ Going a level deeper, there are the signal handling functions.
 
 ```rok
 #[non_exhaustive]
-enum Signal { Hangup, Interrupt, Quit, Kill, Pipe, Alarm, Terminate, User1, User2, Child, Continue, Stop }
+enum Signal {
+    Hangup, Interrupt, Quit, IllegalInstruction, Trap, Abort, Bus, FloatingPoint, Kill,
+    Segmentation, Pipe, Alarm, Terminate, User1, User2, Child, Continue, Stop,
+    TerminalStop, TerminalInput, TerminalOutput, Urgent, CpuLimit, FileSizeLimit,
+    VirtualAlarm, Profile, WindowChange, Io, BadSyscall,
+}                                        // SIGHUP .. SIGSYS
 
 impl Signal {
-    fn number(self) -> i32;              // the OS's number (SIGHUP = 1, ..)
+    fn number(self) -> i32;              // the OS's number (SIGHUP = 1, ..; Linux's, else the BSD one)
 }                                        // + PartialEq, Debug
 
 fn on_signal(sig: Signal, handler: fn() + Send) throws (SignalError);
 fn send_signal(pid: u32, sig: Signal) throws (IoError);
 #[deprecated(since = "0.1.6", note = "use `process::send_signal(pid, Signal::..)`")]
 fn kill(pid: u32, sig: i32) throws (IoError);
-fn raise(sig: i32) throws (IoError);
+fn raise(sig: Signal) throws (IoError);  // Windows: Interrupt and Hangup only
 fn id() -> u32;                          // this process's id
 fn exit(code: i32) -> !;                 // exit now via the runtime's rok_exit; finally and Drop do not run (refs-lang 4.16)
 fn abort() -> !;                         // abnormal termination (SIGABRT); nothing is cleaned up
@@ -187,9 +191,9 @@ impl SignalError {
 // + Display, Debug, Error, PartialEq, Eq, Clone
 ```
 
-An `on_signal` handler does not run in signal context (inside a signal handler). The runtime receives the signal and hands it to a dedicated dispatcher thread `rok-signal`, where the handler runs like an ordinary function. The handler must therefore be `Send`, and it may allocate or take locks. Calling `on_signal` again for the same signal replaces the handler. `Signal` names the signal on every OS; the `i32` forms `kill` and `Child::signal` still work and warn (`deprecated`), and 0.2.0 removes them; the `i32` `signal` is removed. `Command::process_group(pgid)` puts the child in that process group (`0` means a new group with the child's pid).
+An `on_signal` handler does not run in signal context (inside a signal handler). The runtime receives the signal and hands it to a dedicated dispatcher thread `rok-signal`, where the handler runs like an ordinary function. The handler must therefore be `Send`, and it may allocate or take locks. Calling `on_signal` again for the same signal replaces the handler. `Signal` names the signal on every OS; the `i32` forms `kill` and `Child::signal` still work and warn (`deprecated`), and 0.2.0 removes them; the `i32` `signal` is removed. `process_group(pgid)` (`CommandExt`, unix) puts the child in that process group (`0` means a new group with the child's pid).
 
-On Windows, console events map to signals: Ctrl-C → `Interrupt` (2), console close / logoff / shutdown → `Hangup` (1). `send_signal` sends only `Signal::Kill`, as `TerminateProcess`; any other `Signal` is an `IoError` (`Unsupported`), and `on_signal` of a signal other than `Interrupt` or `Hangup` is a `SignalError`.
+On Windows, console events map to signals: Ctrl-C → `Interrupt` (2), console close / logoff / shutdown → `Hangup` (1). Ctrl-Break has no `Signal`; `os::windows::process::on_ctrl_break` routes it ([3.11.7](311-os.md#3117-oswindowsprocess---ctrl-break)). `send_signal` sends only `Signal::Kill`, as `TerminateProcess`, and `raise` raises only `Interrupt` and `Hangup`; any other `Signal` is an `IoError` (`Unsupported`), and `on_signal` of a signal other than `Interrupt` or `Hangup` is a `SignalError`.
 
 Most users never need to touch this. These tools become necessary only where signals must be faced head-on, such as daemons, servers and interactive CLIs.
 
@@ -201,7 +205,7 @@ Per-platform support:
 |------------------|------------|-------|-----------------|------|
 | `Command::spawn` | ✓          | ✓     | ✓               | ✗    |
 | `posix_spawn`    | ✓          | ✓     | (CreateProcess) | ✗    |
-| `pidfd`          | linux 5.3+ | ✗     | ✗               | ✗    |
+| `pidfd`          | linux 5.3+ (`os::linux`) | ✗ | ✗         | ✗    |
 | `kill_on_drop`   | ✓          | ✓     | ✓               | ✗    |
 | signal handler   | ✓          | ✓     | (limited)       | ✗    |
 | `process::id()`  | ✓          | ✓     | ✓               | `0` (wasm32) |

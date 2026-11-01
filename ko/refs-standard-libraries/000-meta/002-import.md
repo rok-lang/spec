@@ -70,6 +70,8 @@ use foo::**;             // recursive glob (foo + 하위 모듈 모두)
 
 연산자 트레잇은 prelude에 없습니다. `ops::Add`로 쓰거나 `use rok::core::ops::Add;`로 가져옵니다. 연산자 자체는 이름이 필요 없으므로 어디서나 동작합니다([refs-lang 6.7.8](../../refs-lang/006-meta-system/607-operator-magic.md#678-매핑의-가시성)). 모든 `rok::core` 트레잇의 메서드도 마찬가지입니다([refs-lang 3.5](../../refs-lang/003-expressions/305-member-access-and-method-call.md)).
 
+**OS 확장 트레잇.** 그 트레잇이 있는 타깃에서는 prelude가 `PermissionsExt`, `CommandExt`, `ExitStatusExt`(unix)와 `ChildExt`, `TcpStreamExt`(linux)도 들여오므로, 거기서는 그 메서드에 `use`가 필요 없습니다([3.11.1](../300-std/311-os.md#3111-prelude의-ext-트레잇)). 위 개수에는 들지 않습니다.
+
 **함수 (11).**
 
 `print` `println` `eprint` `eprintln` `panic` `assert` `assert_eq` `assert_ne` `unreachable` `channel` `channel_bounded`

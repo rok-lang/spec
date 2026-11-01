@@ -101,6 +101,9 @@ only. `rok::std::fs` is likewise unavailable on wasm32-unknown-unknown and is pr
 the WASI targets (`wasm32-wasip2`, `wasm32-wasip1-threads`). Such availability is stated in the availability section of each `rok::std::*` module spec.
 The API still builds on every target: an operation a target lacks fails at run time with
 `IoErrorKind::Unsupported`. In the browser, stdout / stderr go to the host console and stdin is at EOF.
+The exception is what belongs to one OS family: it lives in `rok::std::os::<family>` (`unix`, `linux`,
+`windows`), which exists only on that family's targets, so using it elsewhere is a compile-time error
+that names the `#[cfg]` it needs ([3.11](../300-std/311-os.md)).
 
 ## 0.1.5. Evolution policy
 
