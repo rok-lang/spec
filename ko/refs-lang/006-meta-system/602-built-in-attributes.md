@@ -272,6 +272,8 @@ fn strict_zone() { ... }
 | `extern_static_unsafe`   | 0.1.6   | extern `static`을 `unsafe` 밖에서 읽거나 씀 ([5.9.6](../005-modules/509-extern-block.md#596-호출--사용)) (warn) |
 | `improper_ctypes`        | 0.1.6   | `extern "C"` / `"system"` 블록이나 `extern "C" fn` 정의의 매개변수, 결과, `static`에 GC 타입(`List`, `Dict`, 클로저, 합 타입, `any`, 이런 것을 담은 struct)이 있음 ([5.9.4](../005-modules/509-extern-block.md#594-ffi-호환-타입)) (warn) |
 | `unqualified_meta`       | 0.1.6   | 다른 패키지의 macro, derive, 속성을 이름만 써서 0.2.0이 없애는 빌드 전역 범위로만 찾음. `dep::name!`, `#[derive(dep::Name)]`, `#[dep::name]`, `use dep::name!;`으로 씀 ([6.8.11](608-meta-blocks.md#6811-등록가시성과-결합)) |
+| `assoc_type_shadowing`   | 0.2.0   | 연관 타입이 바깥 타입과 이름이 같아 트레이트나 `impl` 안에서 그 타입을 가림 |
+| `builtin_attribute_name` | 0.2.0   | 메타 블록이 내장 속성의 이름을 가져감 |
 
 `unclosed_sender`, `using_twice`, `guard_escape`, `thread_local_across_await`, `extern_static_unsafe`, `improper_ctypes`는 0.1.6에서 추가되었습니다. `guard_escape`, `extern_static_unsafe`, `improper_ctypes`가 보고하는 코드는 0.2.0에서 에러가 됩니다.
 
@@ -288,7 +290,7 @@ fn strict_zone() { ... }
 
 어떤 경고는 린트 단계가 아니라 컴파일러가 직접 내지만, 그래도 린트에 속합니다. 닮은 식별자는 `confusable_idents`이고, 잘못 놓인 문서 주석은 `unused_doc_comments`입니다. 이 경고의 수준도 다른 린트처럼 린트 이름으로 정합니다.
 
-린트 진단은 수준이 어디서 왔는지 알려 줍니다. `` `#[warn(unused_variables)]` on by default ``, `` `-D unused` on the command line ``, 매니페스트에서 온 수준이면 `` `"unused_variables": "deny"` in `lints` of rok.rokon ``, 속성이 정했으면 그 속성에 붙은 레이블입니다. 모르는 린트나 그룹 이름은 경고이며, 가장 가까운 이름을 알려 주고 `rokc lint --list`를 가리킵니다.
+린트 진단은 수준이 어디서 왔는지 알려 줍니다. `` `#[warn(unused_variables)]` on by default ``, `` `-D unused` on the command line ``, 매니페스트에서 온 수준이면 `` `"unused_variables": "deny"` in `lints` of rok.rokon ``, 속성이 정했으면 그 속성에 붙은 레이블입니다. 모르는 린트나 그룹 이름은 경고이며, 가장 가까운 이름을 알려 주고 `rokc lint --list`를 가리킵니다. 제거된 린트(대부분 오류가 됨)의 이름은 속성, `-A` / `-W` / `-D`, `lints` 어디에 써도 받아들여지고 아무 일도 하지 않습니다. `-D warnings`에서도 보고하지 않습니다.
 
 `rokc lint --list`는 린트를 기본 수준, 추가된 릴리스와 함께 출력하고, 이어서 그룹을 출력합니다.
 

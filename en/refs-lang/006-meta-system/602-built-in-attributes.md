@@ -272,6 +272,8 @@ The default level of every lint is `warn`. The Since column is the release that 
 | `extern_static_unsafe`   | 0.1.6   | An extern `static` read or written outside `unsafe` ([5.9.6](../005-modules/509-extern-block.md#596-calls--use)) (warn) |
 | `improper_ctypes`        | 0.1.6   | A GC type (`List`, `Dict`, a closure, a sum, `any`, a struct holding one) as a parameter, result or `static` of an `extern "C"` / `"system"` block, or of an `extern "C" fn` definition ([5.9.4](../005-modules/509-extern-block.md#594-ffi-compatible-types)) (warn) |
 | `unqualified_meta`       | 0.1.6   | Another package's macro, derive or attribute used by its bare name, found only through the build-wide scope that 0.2.0 removes; write `dep::name!`, `#[derive(dep::Name)]`, `#[dep::name]` or `use dep::name!;` ([6.8.11](608-meta-blocks.md#6811-combination-with-registrationvisibility)) |
+| `assoc_type_shadowing`   | 0.2.0   | An associated type named like an outer type, which it hides inside its trait or `impl` (2.8.3) |
+| `builtin_attribute_name` | 0.2.0   | A meta block that takes the name of a built-in attribute |
 
 `unclosed_sender`, `using_twice`, `guard_escape`, `thread_local_across_await`, `extern_static_unsafe` and `improper_ctypes` were added in 0.1.6. 0.2.0 makes what `guard_escape`, `extern_static_unsafe` and `improper_ctypes` report errors.
 
@@ -288,7 +290,7 @@ The help of `write_to_copy` suggests `ref self` / `ref p`, an index loop (`for i
 
 Some warnings come from the compiler itself rather than from a lint pass, and still belong to a lint: a confusable identifier is `confusable_idents` and a misplaced doc comment is `unused_doc_comments`. Their level is set by the lint's name, as for any other lint.
 
-Each lint diagnostic says where its level came from: `` `#[warn(unused_variables)]` on by default ``, `` `-D unused` on the command line ``, `` `"unused_variables": "deny"` in `lints` of rok.rokon `` for a level from the manifest, or a label on the attribute that set it. An unknown lint or group name is a warning that names the closest known one and points to `rokc lint --list`.
+Each lint diagnostic says where its level came from: `` `#[warn(unused_variables)]` on by default ``, `` `-D unused` on the command line ``, `` `"unused_variables": "deny"` in `lints` of rok.rokon `` for a level from the manifest, or a label on the attribute that set it. An unknown lint or group name is a warning that names the closest known one and points to `rokc lint --list`. A removed lint (most became errors) named in an attribute, `-A` / `-W` / `-D` or `lints` is accepted and does nothing; it is not reported, even under `-D warnings`.
 
 `rokc lint --list` prints the lints with their default levels and the release that added each, then the groups.
 
