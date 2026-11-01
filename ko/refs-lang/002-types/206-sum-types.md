@@ -150,7 +150,18 @@ match r {
 - 나머지 항은 구조적 키로 정렬합니다. 원시 타입은 이름, struct나 enum은 전체 경로, 제네릭 인스턴스는 `path<arg keys>`가 키입니다. 중첩 합은 펼치므로(위 정규화) 합이 합의 항이 되는 일은 없습니다. 제네릭 인자 안의 합은 정규 순서로 놓은 항으로 키를 만듭니다(`List<A | B>`의 키는 `List<key(A)|key(B)>`). "제네릭 합의 층"으로 남은 안쪽 층은 항 하나입니다. 그 키는 `(` + 정규 순서의 항 키를 `|`로 이은 것 + `)`입니다. 순서는 적은 순서와 상관없습니다.
 - 순서와 그에 따른 태그는 빌드 내부의 타입 번호에 의존하지 않습니다. 그래서 미리 빌드한 라이브러리와 그 라이브러리를 쓰는 코드의 순서가 같습니다([9.4.8](../009-tools/904-rokhir-bytecode.md#948-분리-컴파일을-위한-규칙)).
 
-합 타입 값의 `PartialOrd` / `Ord`와 `min` / `max` / `clamp`는 이 순서를 따릅니다([stdlib 2.5.7](../../refs-standard-libraries/200-core/205-cmp.md#257-구현-매트릭스)). 서로 다른 항의 값은 정규 순서로, 같은 항의 값은 그 항 타입의 `Ord`로 비교합니다. 그래서 `T | none`에서 `none`은 어떤 `T` 값보다 큽니다.
+정규 순서는 표현(태그)을 정할 뿐, 값의 순서를 정하지 않습니다. 값에 순서가 있는 합은 `none` 말고 항이 하나 이하인 합뿐입니다([stdlib 2.5.7](../../refs-standard-libraries/200-core/205-cmp.md#257-구현-매트릭스)).
+
+- `T | none`(그리고 안쪽 층이 항 하나인 중첩 `(T | none)?`)은 `T`가 `PartialOrd` / `Ord`이면 같은 트레잇을 구현합니다. Rust나 Haskell처럼 `none`은 어떤 `T` 값보다 작고, 두 `T` 값은 `T`의 순서로 비교합니다. `min` / `max` / `clamp`와 정렬도 이 순서를 따릅니다.
+- `none` 말고 항이 둘 이상인 합(`i32 | str`, `i32 | str | none`)에는 `PartialOrd` / `Ord`가 없습니다. 이런 값에 `<`, `>`, `<=`, `>=`, `cmp`, `min` / `max` / `clamp`를 쓰거나, 이런 값의 컬렉션에 `sort`나 `max`를 쓰면 컴파일 에러입니다. `sort_by_key` / `sort_by` / `min_by_key`로 키를 정해 정렬하거나 항별로 `match`합니다.
+
+```rok
+let xs: List<i32 | none> = [3, none, 1];
+xs.sort();                       // [none, 1, 3]
+let ys: List<i32 | str> = [1, "a"];
+ys.sort();                       // 에러: `i32 | str`에는 순서가 없음
+ys.sort_by_key(|v| match v { n: i32 => (0, n, ""), s: str => (1, 0, s) });
+```
 
 ### 부분 집합
 

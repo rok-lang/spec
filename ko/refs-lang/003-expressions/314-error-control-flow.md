@@ -76,12 +76,25 @@ let data = try await fetch(url);
 | 형태     | `e: T` 일 때의 결과 타입 | 에러가 나면                   |
 |----------|--------------------------|-------------------------------|
 | `try e`  | `T`                      | 가장 가까운 `catch` 또는 전파 |
-| `try? e` | `T \| none`              | 에러를 버리고 `none`          |
+| `try? e` | `T?`                     | 에러를 버리고 `none`          |
 | `try! e` | `T`                      | panic (3.14.8)                |
 
 ```rok
 let port = (try? env::var("PORT")) ?? "8080";
 let cfg = try! load_builtin_config();      // 실패하면 프로그램 버그
+```
+
+`try? e`의 타입은 `T`를 제네릭 항으로 둔 `T?`입니다([2.6.4 제네릭 합의 층](../002-types/206-sum-types.md#제네릭-합의-층)). `T`에 `none`이 없으면 평평한 `T | none`입니다. `T`에 이미 `none`이 있으면 결과는 중첩 `(T | none)?`이므로, 던진 에러(바깥 `none`)와 반환한 `none`(안쪽)이 섞이지 않습니다. `??`, `?`, `is none`과 패턴은 바깥 층에만 작용합니다.
+
+```rok
+fn lookup(k: str) throws (IoError) -> i32 | none { .. }
+
+let r = try? lookup("a");             // (i32 | none)?
+match r {
+    none => print("조회 실패"),        // 바깥: 에러가 났음
+    v => print(f"{v:?}"),             // 안쪽: lookup이 준 i32 | none
+}
+let v = (try? lookup("a")) ?? none;   // i32 | none: 에러와 없음을 합침
 ```
 
 `try?` / `try!`의 `?` / `!`는 `try` 바로 뒤에 붙여야 합니다. `try !x`는 `try (!x)`입니다. `try?`와 `try!`는 에러를 전파하지 않으므로 둘러싼 함수가 `throws`가 아니어도 됩니다. 덮는 범위는 `try`와 같습니다. `try?`의 결과에 `??`를 이어 쓰려면 위 예처럼 괄호로 범위를 닫습니다. 괄호 없는 `try? f() ?? d`는 컴파일 에러입니다. 덮는 범위 규칙대로라면 `try? (f() ?? d)`가 되어 에러가 나면 `d`가 아니라 `none`이 되기 때문입니다. `(try? f()) ?? d`나 `try? (f() ?? d)`로 적습니다. help가 둘 다 제안합니다.

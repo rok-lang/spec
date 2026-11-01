@@ -150,7 +150,18 @@ Terms of the normal form have a defined order.
 - The remaining terms are ordered by a structural key: a primitive by its name, a struct or enum by its full path, a generic instance by `path<arg keys>`. Nested sums are flattened (Normalization above), so a sum is never a term of a sum; a sum inside a generic argument is keyed by its terms in canonical order (`List<A | B>` has the key `List<key(A)|key(B)>`). A layer kept by "Layers of generic sums" is a single term whose key is `(` + its terms' keys in canonical order joined by `|` + `)`. The order is independent of the written order.
 - The order, and so the tags, never depend on a build's internal type numbering, so a prebuilt library and its users agree ([9.4.8](../009-tools/904-rokhir-bytecode.md#948-rules-for-separate-compilation)).
 
-`PartialOrd` / `Ord` and `min` / `max` / `clamp` on sum type values follow this order ([stdlib 2.5.7](../../refs-standard-libraries/200-core/205-cmp.md#257-implementation-matrix)). Values of different terms are compared by canonical order; values of the same term by that term type's `Ord`. So in `T | none`, `none` is greater than any `T` value.
+The canonical order fixes the representation (the tags); it does not order values. Values are ordered only in a sum with at most one term besides `none` ([stdlib 2.5.7](../../refs-standard-libraries/200-core/205-cmp.md#257-implementation-matrix)):
+
+- `T | none` (and a nested `(T | none)?`, whose inner layer is one term) has `PartialOrd` / `Ord` when `T` does. `none` is less than any `T` value, as in Rust and Haskell; two `T` values compare by `T`'s order. `min` / `max` / `clamp` and sorting follow this order.
+- A sum with two or more terms besides `none` (`i32 | str`, `i32 | str | none`) has no `PartialOrd` / `Ord`. `<`, `>`, `<=`, `>=`, `cmp`, `min` / `max` / `clamp` on such a value, and `sort` or `max` over a collection of them, are compile errors. Order such values by a key with `sort_by_key` / `sort_by` / `min_by_key`, or `match` on the terms.
+
+```rok
+let xs: List<i32 | none> = [3, none, 1];
+xs.sort();                       // [none, 1, 3]
+let ys: List<i32 | str> = [1, "a"];
+ys.sort();                       // ERROR: `i32 | str` has no order
+ys.sort_by_key(|v| match v { n: i32 => (0, n, ""), s: str => (1, 0, s) });
+```
 
 ### Subsets
 
