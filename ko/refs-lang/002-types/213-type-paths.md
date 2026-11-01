@@ -45,8 +45,8 @@ T::Output                 // 트레잇 매개변수의 연관 타입
 같은 메서드 이름이 여러 트레잇과 고유 `impl`에 있어 모호하면 완전 자격 형태를 씁니다. 연관 타입을 어느 트레잇을 거쳐 참조하는지 밝혀야 할 때도 씁니다.
 
 ```rok
-<i32 as Display>::display(42i32)
-<T as Add<U>>::Output
+<i32 as Clone>::clone(42i32)
+<T as ops::Add<U>>::Output
 <Self as Iterator>::next(ref self)
 ```
 
@@ -80,7 +80,7 @@ collect::<List<f64>>(iter)
 ```rok
 rok::core::io::Lines<T>
 pkg::Foo | rok::std::Bar
-List<rok::core::Range<i32>>
+List<rok::core::range::Range<i32>>
 ```
 
 우선순위는 [타입 표현식](201-type-expressions.md)에서 정의한 대로입니다. 경로(`::`)와 제네릭 적용(`<...>`)이 합 타입(`|`)보다 강하게 묶입니다.

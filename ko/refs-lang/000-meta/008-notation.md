@@ -74,7 +74,7 @@ default_value ::= "=" expr
 ```rok
 // 짧은 한 줄 주석
 fn example() -> i32 {
-    let x = 42;        // x 는 implicit generic (단순화한 예제)
+    let x = 42;        // x 는 i32 (1.6.3)
     return x;
 }
 ```

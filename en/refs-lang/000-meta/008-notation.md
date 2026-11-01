@@ -74,7 +74,7 @@ Code examples follow fixed conventions as well. Below is the most basic form.
 ```rok
 // short one-line comment
 fn example() -> i32 {
-    let x = 42;        // x is an implicit generic (simplified example)
+    let x = 42;        // x is i32 (1.6.3)
     return x;
 }
 ```

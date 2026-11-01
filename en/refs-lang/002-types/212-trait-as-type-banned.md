@@ -76,7 +76,7 @@ To be clear: what is forbidden is only a trait name appearing in type position. 
 
 ```rok
 trait Ord: Eq { ... }                            // supertrait declaration
-fn f<T: Add + Display>(x: T) { ... }              // trait bound
+fn f<T: ops::Add + Display>(x: T) { ... }              // trait bound
 fn g<T>(x: T) where T: Ord, T: Clone { ... }      // where clause
 impl Display for Point { ... }                    // trait position of an impl
 ```
@@ -85,14 +85,11 @@ In these positions a trait name expresses a constraint, not a type.
 
 ## 2.12.6. Form of the compile error
 
-When a trait name appears in type position, the compiler emits a diagnostic similar to:
+When a trait name appears in type position, the compiler reports E0071 at the type:
 
-```
-ERROR: 'Display' is a trait, not a type.
-       To allow multiple types, use generics, a sum type, or `any Display`:
-         fn f<T: Display>(x: T) { ... }
-         fn f(x: SomeType | OtherType) { ... }
-         fn f(x: any Display) { ... }
+```text
+error[E0071]: trait `rok::core::fmt::Display` cannot be used as a type directly
+  = help: use `any Display` for a value of any type implementing it, or a generic parameter `<T: Display>`
 ```
 
-This diagnostic guides the user to one of the three alternatives above.
+The help names two of the alternatives above; a sum type of the concrete types (`SomeType | OtherType`) is the third.

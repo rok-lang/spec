@@ -10,7 +10,7 @@ As established in [the boundary between the language and the standard libraries]
 a + b         →   <typeof(a) as Add<typeof(b)>>::add(a, b)
 a - b         →   <typeof(a) as Sub<typeof(b)>>::sub(a, b)
 a * b         →   <typeof(a) as Mul<typeof(b)>>::mul(a, b)
-a < b         →   <typeof(a) as Cmp<typeof(b)>>::lt(a, b)
+a < b         →   <typeof(a) as PartialOrd<typeof(b)>>::lt(a, b)
 -a            →   <typeof(a) as Neg>::neg(a)
 !a            →   <typeof(a) as Not>::not(a)
 ```
@@ -89,7 +89,7 @@ Operators are classified by position into one of three kinds.
 | prefix unary          | `OP a`   | `#[prefix("OP")]`  |
 | postfix unary         | `a OP`   | `#[postfix("OP")]` |
 
-The same token may appear in several positions. For example, `-` is used both as binary (`a - b`) and as prefix unary (`-a`). Position is determined by the context in which the token appears: with an operand only before it, it is postfix; with operands on both sides, it is binary.
+The same token may appear in several positions. For example, `-` is used both as binary (`a - b`) and as prefix unary (`-a`). Position is determined by the context in which the token appears: with an operand only after it, it is prefix; with an operand only before it, it is postfix; with operands on both sides, it is binary.
 
 ## 3.1.6. Precedence and associativity
 
@@ -112,14 +112,14 @@ To register a character sequence not in the fixed token table of [punctuation an
 
 ## 3.1.8. Unicode operators
 
-For operators outside the ASCII range, such as `≤`, `≥`, `≠`, `⊕`, `∈`, the standard library may register them as multiple aliases of the same trait.
+`÷ ≡ ≠ ≤ ≥` are spellings of `/ == != <= >=`: the lexer reads them as those tokens ([1.10.3](../001-lexical/110-punctuation-and-operator-tokens.md#1103-fixed-token-table)), so they dispatch to the same trait methods. The other operators outside the ASCII range (`×`, `⋅`, `∘`, `√`, `∈`, `∉`, `⊂`, `⊆`, `∪`, `∩`) are tokens of their own, bound to a trait method by `#[infix]` / `#[prefix]` like any operator; `×` is `ops::Cross`:
 
 ```
-trait Cmp<Rhs = Self> {
-    #[infix("<=")]
-    #[infix("≤")]
-    fn le(self, rhs: Rhs) -> bool;
+trait Cross<Rhs = Self> {
+    type Output;
+    #[infix("×")]
+    fn cross(self, rhs: Rhs) -> Output;
 }
 ```
 
-Multiple tokens map to the same trait method and behave identically, so either spelling gives the same result.
+A method may also carry several `#[infix]` registrations; each token then maps to the same method and behaves identically.

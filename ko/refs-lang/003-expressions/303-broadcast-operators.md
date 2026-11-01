@@ -22,12 +22,12 @@ a .== b     →   <typeof(a) as DotEq<typeof(b)>>::dot_eq(a, b)
 | `./`         | `/` ↔ `Div`       | `DotDiv`        |
 | `.%`         | `%` ↔ `Rem`       | `DotRem`        |
 | `.%%`        | `%%` ↔ `Modulo`   | `DotModulo`     |
-| `.==`        | `==` ↔ `Eq`       | `DotEq`         |
-| `.!=`        | `!=` ↔ `Ne`       | `DotNe`         |
-| `.<`         | `<` ↔ (`Cmp::lt`) | `DotLt`         |
-| `.>`         | `>`               | `DotGt`         |
-| `.<=`        | `<=`              | `DotLe`         |
-| `.>=`        | `>=`              | `DotGe`         |
+| `.==`        | `==` ↔ `PartialEq::eq` | `DotEq`    |
+| `.!=`        | `!=` ↔ `PartialEq::ne` | `DotNe`    |
+| `.<`         | `<` ↔ `PartialOrd::lt` | `DotLt`    |
+| `.>`         | `>` ↔ `PartialOrd::gt` | `DotGt`    |
+| `.<=`        | `<=` ↔ `PartialOrd::le` | `DotLe`   |
+| `.>=`        | `>=` ↔ `PartialOrd::ge` | `DotGe`   |
 | `.&&`        | `&&` (단축 평가)  | `DotLogicalAnd` |
 | `.\|\|`        | `\|\|` (단축 평가)  | `DotLogicalOr`  |
 | `.&`         | `&`               | `DotBitAnd`     |
@@ -63,8 +63,8 @@ g.(a, b)           // 여러 인자
 이 형태는 일반 함수나 메서드 호출의 결과를 모든 원소에 매핑한 새 컬렉션을 반환합니다. 표준 라이브러리의 `Iterator::map` 호출(또는 동등한 트레잇)로 풀립니다.
 
 ```
-f.(x)        →   x.map(f)
-g.(a, b)     →   a.zip(b).map(|(x, y)| g(x, y))
+f.(x)        →   x.iter().map(f)
+g.(a, b)     →   a.iter().zip(b.iter()).map(|(x, y)| g(x, y))
 ```
 
 함수와 메서드 브로드캐스트에는 전용 트레잇이 없습니다. 반복자 변환을 줄여 쓴 형태입니다. 이 점이 이항 점-접두 연산자와 다릅니다.

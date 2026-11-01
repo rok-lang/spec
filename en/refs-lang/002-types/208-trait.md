@@ -9,14 +9,14 @@ This document defines only the declaration form of traits. The `impl` block that
 The grammar of a trait declaration is:
 
 ```
-trait_decl  ::= visibility? "trait" identifier generics? supertraits? where_clause? "{" trait_item* "}"
+trait_decl  ::= visibility? "unsafe"? "trait" identifier generics? supertraits? where_clause? "{" trait_item* "}"
 supertraits ::= ":" type_expr ("+" type_expr)*
-trait_item  ::= visibility? method_sig
-              | visibility? assoc_type_decl
-              | visibility? method_default
-              | visibility? assoc_const_decl
-method_sig  ::= "fn" identifier "(" param_list? ")" throws_clause? return_type? ";"
-method_default ::= "fn" identifier "(" param_list? ")" throws_clause? return_type? block
+trait_item  ::= method_sig
+              | assoc_type_decl
+              | method_default
+              | assoc_const_decl
+method_sig  ::= fn_modifiers "fn" identifier "(" param_list? ")" throws_clause? return_type? ";"
+method_default ::= fn_modifiers "fn" identifier "(" param_list? ")" throws_clause? return_type? block
 assoc_type_decl ::= "type" identifier (":" type_expr ("+" type_expr)*)? where_clause? ("=" type_expr)? ";"
 assoc_const_decl ::= "const" identifier ":" type_expr ("=" const_expr)? ";"
 ```
@@ -198,7 +198,7 @@ So when polymorphism is needed, use generics ([Generics](210-generics.md)) or su
 
 ## 2.8.8. Visibility
 
-The visibility of a trait itself and of its methods can be controlled separately. The exact rules are defined in [Visibility](../005-modules/506-visibility.md).
+A trait's items have no visibility of their own: its methods, associated types and constants follow the trait's visibility, as the variants of an `enum` follow the `enum`. `pub` on a trait item is an error (E0016), and so is `pub` on a method of a trait `impl` ([2.9.6](209-impl.md#296-method-visibility)). `fn_modifiers` is that of a function declaration ([4.1](../004-functions/401-function-declaration.md)); an `unsafe trait` is covered in [4.15.4](../004-functions/415-unsafe.md#4154-in-traits). The exact rules of visibility are defined in [Visibility](../005-modules/506-visibility.md).
 
 A `#[sealed]` trait is implemented only in its defining package; other packages still use it in bounds and calls ([6.2.15](../006-meta-system/602-built-in-attributes.md#6215-sealed-impls-only-in-the-defining-package)).
 

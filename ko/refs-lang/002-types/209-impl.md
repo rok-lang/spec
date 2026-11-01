@@ -59,7 +59,7 @@ impl ops::Add for Point {
 
 이 형태는 `impl 트레잇 for 타입 { ... }` 모양입니다. 본체에는 [`trait`](208-trait.md)가 요구한 메서드의 본체와 연관 타입의 구체 정의가 옵니다. 트레잇에 기본 메서드가 있는 항목은 본체에서 생략할 수 있습니다. 생략하면 기본 본체를 씁니다.
 
-impl 메서드는 트레잇 선언과 매개변수 개수가 같아야 합니다. 수신자를 뺀 각 매개변수에는 선언과 같은 `ref`가 붙어야 합니다. 값을 돌려주는지도 선언과 같아야 하고, 돌려주는 타입은 선언의 타입에서 `Self`, 트레잇의 매개변수, 연관 타입을 impl의 것으로 바꾼 타입과 같아야 합니다(더 좁은 반환 타입이나 공변 반환은 없습니다). 이를 어기면 impl 위치에서 에러이고, 에러 메시지는 선언을 함께 보여 줍니다. impl 메서드의 `throws`는 트레잇 메서드의 `throws`와 같아야 합니다. impl이 `throws`를 새로 붙이거나 에러 타입을 넓힐 수 없습니다([4.14.11](../004-functions/414-throws.md#41411-메서드의-throws)).
+impl 메서드는 트레잇 선언과 매개변수 개수가 같아야 합니다. 수신자를 뺀 각 매개변수에는 선언과 같은 `ref`가 붙어야 하고, `unsafe`도 선언과 같아야 합니다([4.15.4](../004-functions/415-unsafe.md#4154-트레잇-안에서)). 타입을 적은 매개변수는 선언의 타입(아래 반환 타입과 같은 치환을 거친 타입)이어야 하고, 타입을 적지 않은 매개변수는 그 타입을 받습니다([4.1](../004-functions/401-function-declaration.md)). 값을 돌려주는지도 선언과 같아야 하고, 돌려주는 타입은 선언의 타입에서 `Self`, 트레잇의 매개변수, 연관 타입을 impl의 것으로 바꾼 타입과 같아야 합니다(더 좁은 반환 타입이나 공변 반환은 없습니다). 이를 어기면 impl 위치에서 에러이고, 에러 메시지는 선언을 함께 보여 줍니다. impl 메서드의 `throws`는 트레잇 메서드의 `throws`와 같아야 합니다. impl이 `throws`를 새로 붙이거나 에러 타입을 넓힐 수 없습니다([4.14.11](../004-functions/414-throws.md#41411-메서드의-throws)).
 
 `Send` / `Sync`는 자동 마커 트레잇입니다. 직접 선언하는 방법은 두 가지입니다([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync-스레드-경계-마커)).
 
@@ -112,11 +112,11 @@ impl Point {
 
 블록을 나누는 것은 보기 좋게 정리하는 일일 뿐입니다. 결과는 한 본체에 모은 것과 같습니다.
 
-다만 같은 타입에 같은 트레잇의 `impl`은 한 번만 둘 수 있습니다.
+다만 같은 타입에 같은 트레잇의 `impl`은 한 번만 둘 수 있습니다. 두 번째 impl은 비어 있든 아니든 에러(E0075)이며, 에러는 첫 impl을 보여 줍니다.
 
 ```rok
 impl Display for Point { ... }
-impl Display for Point { ... }   // ERROR: 중복 구현
+impl Display for Point { ... }   // ERROR: 중복 구현 (E0075)
 ```
 
 ## 2.9.4. 제네릭 `impl`
@@ -128,7 +128,7 @@ impl<T> List<T> {
     fn len(self) -> usize { ... }
 }
 
-impl<T> Add for Pair<T> where T: Add<T> {
+impl<T> ops::Add for Pair<T> where T: ops::Add<T> {
     type Output = Pair<T::Output>;
     fn add(self, rhs: Pair<T>) -> Pair<T::Output> { ... }
 }
@@ -144,7 +144,7 @@ impl<T> Add for Pair<T> where T: Add<T> {
 
 ```rok
 // 트레잇 Display, 타입 i32 가 모두 표준 라이브러리(다른 패키지) 정의
-impl Display for i32 { ... }     // ERROR: 둘 다 외부 패키지
+impl Display for i32 { ... }     // ERROR: 둘 다 외부 패키지 (E0076)
 ```
 
 따라서 트레잇과 대상 타입 중 적어도 하나는 현재 패키지에 정의되어 있어야 합니다. 내장 타입(원시 타입, 튜플, 배열, 함수 타입)은 `rok::core`에서 정의한 것으로 봅니다.

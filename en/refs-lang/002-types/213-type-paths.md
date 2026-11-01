@@ -45,8 +45,8 @@ A path through a type alias names the aliased type's item. With `type B = S<i32>
 When the same method name exists in several traits and an inherent `impl` and is ambiguous, or when it must be stated which trait an associated type is referenced through, use the fully qualified form.
 
 ```rok
-<i32 as Display>::display(42i32)
-<T as Add<U>>::Output
+<i32 as Clone>::clone(42i32)
+<T as ops::Add<U>>::Output
 <Self as Iterator>::next(ref self)
 ```
 
@@ -71,7 +71,7 @@ The difference exists because in value position `<` would be ambiguous with the 
 
 ## 2.13.6. Absolute type paths
 
-An absolute path starting from the root is written with `pkg::` ([Paths](../005-modules/507-paths.md)). The leading-`::` form does not exist in rok.
+An absolute path starting from the root is written with `pkg::` ([Paths](../005-modules/507-paths.md)). The leading-`::` form does not exist in Rok.
 
 ## 2.13.7. Combining paths with sum types
 
@@ -80,7 +80,7 @@ A path itself is the simple-name or path form of a [type expression](201-type-ex
 ```rok
 rok::core::io::Lines<T>
 pkg::Foo | rok::std::Bar
-List<rok::core::Range<i32>>
+List<rok::core::range::Range<i32>>
 ```
 
 Precedence applies as defined in [Type expressions](201-type-expressions.md): paths (`::`) and generic application (`<...>`) bind tighter than sum types (`|`).

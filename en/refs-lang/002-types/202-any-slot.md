@@ -243,7 +243,9 @@ fn log(w: any Write) throws (IoError) {
     try w.write("line\n");                 // B = str
     try w.write([0u8, 1]);                  // B = [u8; 2]
 }
-``` To use other methods or fields, narrow to the concrete type with an `is` check or a type pattern as in 2.2.5-2.2.6.
+```
+
+To use other methods or fields, narrow to the concrete type with an `is` check or a type pattern as in 2.2.5-2.2.6.
 
 ```rok
 fn describe(e: any Error) -> str {

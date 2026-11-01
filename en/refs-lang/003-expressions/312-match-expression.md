@@ -89,7 +89,7 @@ match x {
 }
 ```
 
-The rules are as follows. Covering every member of a closed sum type (`A | B`) is exhaustive. For an `enum`, covering every variant is exhaustive. `bool` is exhaustive when both `true` and `false` are covered. Literal and range patterns of integers, `char`, strings, and floating-point numbers are treated as open sets. Even if ranges cover every value of the type (`0..=255` for all of `u8`), this is not considered exhaustive, so a catch-all arm such as a wildcard (`_`) or identifier pattern (`x`) is required. The non-exhaustiveness error gives one missing value as an example (e.g. `false`).
+The rules are as follows. Covering every member of a closed sum type (`A | B`) is exhaustive. For an `enum`, covering every variant is exhaustive. `bool` is exhaustive when both `true` and `false` are covered. Literal and range patterns of integers, `char`, strings, and floating-point numbers are treated as open sets. Even if ranges cover every value of the type (`0..=255` for all of `u8`), this is not considered exhaustive, so a catch-all arm such as a wildcard (`_`) or identifier pattern (`x`) is required. The non-exhaustiveness error lists the missing values (`` `false` not covered ``) and offers to add arms for them.
 
 A match on the dynamic slot of an [`any` slot](../002-types/202-any-slot.md) always requires a catch-all arm, because the compiler cannot know which type will arrive.
 

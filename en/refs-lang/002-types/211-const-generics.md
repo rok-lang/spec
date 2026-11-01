@@ -35,7 +35,7 @@ struct Tagged<T, const TAG: u32> { value: T; }
 
 The type of a `const` parameter is one of the integer types (`i8` to `i64`, `u8` to `u64`, `usize`, `isize`), `bool`, `char`, or `c_char`.
 
-Floating-point types, sum types and user-defined structs cannot be `const` parameters. Floating-point types are excluded because of nondeterminism in their bit representation, and user-defined types because of consistency problems with equality comparison.
+Floating-point types, `str`, sum types and user-defined structs cannot be `const` parameters; such a parameter is an error at its declaration. Floating-point types are excluded because of nondeterminism in their bit representation, and user-defined types because of consistency problems with equality comparison.
 
 ## 2.11.4. Arguments at instantiation
 
@@ -47,7 +47,7 @@ let v: [i32; 16] = ...;
 let arr = replicate::<f64, 8>(0.0f64);
 ```
 
-The argument must be evaluable at compile time. Allowed are literals, `const` variables, `const` function calls, other `const` parameters, and simple arithmetic combinations of these. A runtime variable cannot be used as a `const` argument; doing so is a compile error.
+The argument must be evaluable at compile time. Allowed are literals, `const` variables, `const` function calls, other `const` parameters, and simple arithmetic combinations of these. A runtime variable cannot be used as a `const` argument; doing so is a compile error. The argument's type must be the parameter's type: for `const X: usize`, `S<true>` and `S<-1>` are errors.
 
 In a generic argument list, a bare argument is a literal, a negated literal (`-1`) or a name (`N`, a `const` variable). Anything else, arithmetic included, is wrapped in braces:
 

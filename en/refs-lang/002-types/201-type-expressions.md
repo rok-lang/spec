@@ -43,7 +43,7 @@ tuple_type  ::= "(" ")"
 array_type  ::= "[" type_expr ";" const_expr "]"
 ```
 
-`extern "C" fn(A, B) -> R` is a C function pointer type ([5.9.4](../005-modules/509-extern-block.md#c-function-pointer-types)). The ABI string may only be `"C"`; anything else is an error.
+`extern "C" fn(A, B) -> R` is a C function pointer type ([5.9.4](../005-modules/509-extern-block.md#c-function-pointer-types)). The ABI string may only be `"C"` or `"system"` ([5.9](../005-modules/509-extern-block.md)); anything else is an error.
 
 The forms are summarized below.
 
@@ -108,12 +108,12 @@ List<i32>
 Dict<str, f64>
 Pair<A, B>
 Result<T, E>
-Array<f64, 3>          // const generic (value argument)
+Matrix<f64, 3, 4>      // const generic (value arguments, 2.11.1)
 ```
 
 The rules are: arguments are separated by commas. An argument may be another type expression, and for `const` generics a `const` expression is also allowed. An empty `<>` is not allowed; with no arguments, `<>` is not written at all. A trailing comma (`<A, B,>`) is allowed.
 
-The exact meaning of value arguments (e.g. `Array<f64, 3>`) is defined in [`const` generics](211-const-generics.md).
+The exact meaning of value arguments (e.g. `Matrix<f64, 3, 4>`) is defined in [`const` generics](211-const-generics.md).
 
 ### Turbofish in expression position
 
@@ -148,8 +148,8 @@ i32 | none          // written sum: always flat i32 | none
 - Postfix `?` binds tighter than `|` and tighter than `->` of a function type (2.1.10). `i32 | str?` is `i32 | (str?)`.
 - `fn() -> i32?` is a function returning an optional; `(fn() -> i32)?` is an optional function.
 - In type position the `??` token is two `?` (`i32??`).
-- In the expressions `x as T?` / `x is T?`, the trailing `?` belongs to the type. To apply the `?` operator ([3.14](../003-expressions/314-error-control-flow.md)) to a conversion result, parenthesize: `(x as T)?`. When the conversion in `x as T?` fails, the diagnostic hints "to propagate, write `(x as T)?`".
-- However, `??` after the target of `as` / `is` is the null-coalescing operator (`x as i32 ?? 0` is `(x as i32) ?? 0`). To convert to a two-layer optional, write `x as (i32??)`.
+- In the expressions `x as T?` / `x is T?`, the trailing `?` belongs to the type. To apply the `?` operator ([3.14](../003-expressions/314-error-control-flow.md)) to the result, parenthesize: `(x as T)?`.
+- However, `??` after the target of `as` / `is` is never part of the type: the type ends before it, and `??` is the null-coalescing operator. To name a two-layer optional there, parenthesize: `x is (i32??)`.
 
 ## 2.1.6. Function types
 

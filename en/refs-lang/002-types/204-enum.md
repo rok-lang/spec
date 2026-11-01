@@ -9,10 +9,10 @@ The grammar of `enum` is:
 ```
 enum_decl   ::= visibility? "enum" identifier generics? where_clause? "{" variant_list? "}"
 variant_list ::= variant ("," variant)* ","?
-variant     ::= visibility? identifier                                  // unit
-              | visibility? identifier "(" type_expr ("," type_expr)* ","? ")"  // tuple
-              | visibility? identifier "{" named_field_list? "}"        // struct
-              | visibility? identifier "=" const_expr                   // discriminant
+variant     ::= identifier                                  // unit
+              | identifier "(" type_expr ("," type_expr)* ","? ")"  // tuple
+              | identifier "{" named_field_list? "}"        // struct
+              | identifier "=" const_expr                   // discriminant
 ```
 
 The simplest form looks like this:
@@ -162,7 +162,7 @@ fn main() {
     let s: Shape = Tri(3);
     let o: Ordering = Less;
     let n = Atomic::new(0);
-    n.store(1, SeqCst);                     // AtomicOrdering::SeqCst
+    n.store(1, SeqCst);                     // StoreOrdering::SeqCst
     let lt = 1.cmp(2) == Less;
     println(f"{area()} {area(Circle)} {lt}");
 }

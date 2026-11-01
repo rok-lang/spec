@@ -4,6 +4,7 @@
 
 ```
 optional_chain  ::= primary "?." identifier                       // optional field
+                  | primary "?." int_literal                      // optional tuple field
                   | primary "?." identifier "(" arg_list? ")"     // optional method
 coalesce_expr   ::= expr "??" expr
 ```
@@ -127,7 +128,7 @@ x?.foo().bar()
 
 따라서 부작용이 있는 메서드를 체인에 두면, 수신자가 `none`일 때 그 메서드는 호출되지 않습니다.
 
-체인은 `?.` 뒤에 이어지는 후위 연산(필드 접근, 메서드 호출, `?.[i]`를 포함한 인덱싱)입니다. 괄호는 체인을 끝냅니다. `(x?.a).b`에서 `.b`는 `none`일 수 있는 `x?.a`의 결과에 적용됩니다.
+체인은 `?.` 뒤에 이어지는 후위 연산(필드 접근, 메서드 호출, 인덱싱, `x?.a[i]`)입니다. `?.` 뒤에는 `[`가 올 수 없습니다. `x?.[i]`는 없으므로 `x?.get(i)`로 씁니다. 괄호는 체인을 끝냅니다. `(x?.a).b`에서 `.b`는 `none`일 수 있는 `x?.a`의 결과에 적용됩니다.
 
 ## 3.8.9. 깊은 점 접근의 대안
 

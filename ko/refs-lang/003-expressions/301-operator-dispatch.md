@@ -10,7 +10,7 @@
 a + b         →   <typeof(a) as Add<typeof(b)>>::add(a, b)
 a - b         →   <typeof(a) as Sub<typeof(b)>>::sub(a, b)
 a * b         →   <typeof(a) as Mul<typeof(b)>>::mul(a, b)
-a < b         →   <typeof(a) as Cmp<typeof(b)>>::lt(a, b)
+a < b         →   <typeof(a) as PartialOrd<typeof(b)>>::lt(a, b)
 -a            →   <typeof(a) as Neg>::neg(a)
 !a            →   <typeof(a) as Not>::not(a)
 ```
@@ -89,7 +89,7 @@ error: operator `+` cannot be applied to `i32` and `str`
 | 전위 단항 (prefix)  | `OP a`   | `#[prefix("OP")]`  |
 | 후위 단항 (postfix) | `a OP`   | `#[postfix("OP")]` |
 
-같은 토큰이 여러 위치에 나올 수 있습니다. 예를 들어 `-`는 이항(`a - b`)과 전위 단항(`-a`) 양쪽에 쓰입니다. 위치는 토큰이 나온 문맥으로 정합니다. 피연산자가 앞에만 있으면 후위이고, 양쪽에 있으면 이항입니다.
+같은 토큰이 여러 위치에 나올 수 있습니다. 예를 들어 `-`는 이항(`a - b`)과 전위 단항(`-a`) 양쪽에 쓰입니다. 위치는 토큰이 나온 문맥으로 정합니다. 피연산자가 뒤에만 있으면 전위이고, 앞에만 있으면 후위이며, 양쪽에 있으면 이항입니다.
 
 ## 3.1.6. 우선순위와 결합
 
@@ -112,14 +112,14 @@ fn combine(self, rhs: Rhs) -> Output;
 
 ## 3.1.8. Unicode 연산자
 
-`≤`, `≥`, `≠`, `⊕`, `∈`처럼 ASCII 범위 밖의 연산자는 표준 라이브러리가 같은 트레잇의 여러 별칭으로 등록할 수 있습니다.
+`÷ ≡ ≠ ≤ ≥`는 `/ == != <= >=`의 다른 표기입니다. 어휘 분석기가 이들을 그 토큰으로 읽으므로([1.10.3](../001-lexical/110-punctuation-and-operator-tokens.md#1103-고정-토큰표)) 같은 트레잇 메서드로 디스패치됩니다. ASCII 범위 밖의 다른 연산자(`×`, `⋅`, `∘`, `√`, `∈`, `∉`, `⊂`, `⊆`, `∪`, `∩`)는 따로 된 토큰이며, 다른 연산자처럼 `#[infix]` / `#[prefix]`로 트레잇 메서드에 묶입니다. `×`는 `ops::Cross`입니다.
 
 ```
-trait Cmp<Rhs = Self> {
-    #[infix("<=")]
-    #[infix("≤")]
-    fn le(self, rhs: Rhs) -> bool;
+trait Cross<Rhs = Self> {
+    type Output;
+    #[infix("×")]
+    fn cross(self, rhs: Rhs) -> Output;
 }
 ```
 
-여러 토큰이 같은 트레잇 메서드에 매핑되어 똑같이 동작하므로, 어느 표기를 써도 결과는 같습니다.
+한 메서드에 `#[infix]` 등록을 여럿 붙일 수도 있습니다. 그러면 각 토큰이 같은 메서드에 매핑되어 똑같이 동작합니다.

@@ -33,7 +33,7 @@ The exact boundary between the language and the libraries is declared in [0.4. B
 > [!IMPORTANT]
 > **"The clearer the rules, the freer you are within them."**
 
-Rok does not shy away from constraints. Static types, closed sum types, the trait-as-type ban, the ban on implicit promotion, and AOT-only compilation are such decisions. They narrow the user's options. Within those narrower options, however, the user writes code that is predictable and deeply controllable.
+Rok does not shy away from constraints. Static types, closed sum types, the trait-as-type ban, and the ban on implicit promotion are such decisions. They narrow the user's options. Within those narrower options, however, the user writes code that is predictable and deeply controllable.
 
 This philosophy comes from two directions. On one side are the areas the language controls: types, dispatch, the memory model and evaluation order. The language decides these once, rather than the user deciding each time. On the other side are the areas where the user is free: library design, domain modeling, algorithm choice and code structure. The language imposes nothing there, and the libraries and the meta-system permit deep expressiveness.
 

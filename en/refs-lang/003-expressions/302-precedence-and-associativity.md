@@ -51,7 +51,7 @@ Level Operators                                                 Assoc
  2   ||                                                         left
  1   ?? (null coalescing)                                       right
  0   .. ..= (range)                                             none
--1   = += -= *= /= %= %%= &= |= ^= <<= >>= (assignment)         right
+-1   = += -= *= /= %= %%= &= |= ^= <<= >>= (assignment)         right  (statement only, 3.4.3)
 ```
 
 The Unicode operators in the table (`× ⋅ ÷ ∩ ∪ ∘ √ ≡ ≠ ≤ ≥ ∈ ∉ ⊂ ⊆`) are fixed tokens of [1.10.3](../001-lexical/110-punctuation-and-operator-tokens.md#1103-fixed-token-table). Extension tokens not in the 3.2 table ([1.10.4](../001-lexical/110-punctuation-and-operator-tokens.md#1104-extension-tokens)) do not create new levels; they take the level and associativity of the existing token named at registration, as in `like = "+"` ([6.7.2](../006-meta-system/607-operator-magic.md#672-arguments)).
@@ -89,7 +89,7 @@ Because the table fixes precedence, registrations cannot conflict on precedence.
 ## 3.2.5. No comparison chaining
 
 > [!WARNING]
-> Chaining by mathematical intuition (`a < b < c` meaning `a < b and b < c`) is not allowed in rok.
+> Chaining by mathematical intuition (`a < b < c` meaning `a < b && b < c`) is not allowed in Rok.
 
 The comparison operators (`<`, `>`, `<=`, `>=`, `==`, `!=`) are all non-associative in the 3.2.3 table.
 

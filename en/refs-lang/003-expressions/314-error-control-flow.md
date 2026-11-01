@@ -170,7 +170,7 @@ It can also be combined with `catch`:
 ```rok
 try {
     body
-} catch e: IOError {
+} catch e: IoError {
     handler
 } finally {
     cleanup
@@ -211,7 +211,7 @@ Function signatures and the meaning of `throws` are defined in detail in [`throw
 
 Unlike `throws` errors, the following are not delivered as values and cannot be caught with `catch`.
 
-- Panic. This includes calls to the standard library `panic_fn`, failure of `try!`, division by zero, integer overflow, bounds-check failure, and so on.
+- Panic. This includes calls to the standard library `panic`, failure of `try!`, division by zero, integer overflow, bounds-check failure, and so on.
 - Fatal. States from which execution cannot continue, such as `StackOverflowError`, `OutOfMemoryError`, and `InternalError`.
 
 In both cases the runtime prints a message to standard error (stderr) and terminates the process with exit code `101`. The exact list of situations that are panics or fatal errors is defined by the standard library.
@@ -271,7 +271,7 @@ match expr {
 `?` applies only to `T | none`. It is not a means of propagating errors and cannot be used on standard library `Result` values or throwing calls. Error propagation is marked with `throws` signatures and `try`.
 
 ```rok
-fn load() -> Result<Config, IOError> {
+fn load() -> Result<Config, IoError> {
     let raw = read_result(path)?;     // ERROR: `?` is only for `T | none`.
                                       //   Use `throws` and `try` for error propagation.
     ...
@@ -281,7 +281,7 @@ fn load() -> Result<Config, IOError> {
 A `?` inside a closure body operates on the closure's return type and is unrelated to the outer function's return type.
 
 ```rok
-let lens = users.map(|u| -> usize | none { let nick = u.nickname?; nick.len() });
+let lens = users.iter().map(|u| -> usize | none { let nick = u.nickname?; nick.len() });
 ```
 
 To fill `none` with a substitute value or pass member access through, use `?.` and `??` of [optional chaining and coalescing](308-optional-chaining-and-coalescing.md).

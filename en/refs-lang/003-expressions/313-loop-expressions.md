@@ -63,7 +63,7 @@ The result value of `while` is always unit.
 let x = while cond { ... };     // x: unit
 ```
 
-The rationale is that when `while` ends normally (`cond` is `false`), there is no natural choice of value to return. It is not a form for explicit `break value` like `loop { break v; }`.
+The rationale is that when `while` ends normally (`cond` is `false`), there is no natural choice of value to return. It is not a form for explicit `break value` like `loop { break v; }`: a `break` with a value whose target is a `while` (or a `for`) is a compile error.
 
 To return a value, use `loop { ... break v; ... }`.
 
@@ -135,7 +135,7 @@ The `try` of `try for` covers the iteration only: the iterable expression and ev
 
 ### Result value
 
-The result value of `for` is always unit (for the same reason as `while`).
+The result value of `for` is always unit (for the same reason as `while`), and a `break` with a value whose target is a `for` is a compile error.
 
 ### Pattern position
 

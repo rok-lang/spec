@@ -34,7 +34,7 @@ Acceleration domains such as tensors / automatic differentiation / SIMD / GPU ar
 
 The common items of `rok::core` are made visible by the compiler implicitly applying `use rok::core::prelude::*;` at the start of every Rok source. That is, `rok::core::collections::List` can be written simply as `List`, and `rok::core::task::sleep` as `task::sleep`. The prelude's list is fixed in [stdlib 0.2.3](../../refs-standard-libraries/000-meta/002-import.md).
 
-Items of `rok::core` are `pub` by default. The surface exposed to external packages is exactly the automatically visible surface, so no separate step is needed.
+Only the prelude's items are visible without a `use`. Every other `pub` item of `rok::core` is reached through its module (`ops::Add`, `num::Zero`) or a `use`; items of `rok::core` without `pub` are private to it, as in any package (5.6).
 
 ### `rok::std`
 
@@ -48,7 +48,7 @@ The visibility rules are as follows.
 
 | Area            | Implicit import | Explicit import required | Notes                                         |
 |-----------------|-----------------|--------------------------|-----------------------------------------------|
-| `rok::core`     | ✓ automatic     | ✗ not required           | `use rok::core::prelude::*;` applied automatically    |
+| `rok::core`     | ✓ prelude items only | ✓ for other items   | `use rok::core::prelude::*;` applied automatically    |
 | `rok::bare::**` | ✗               | ✓ required               | Makes the danger signal visible in code       |
 | `rok::std::**` | ✗               | ✓ required               | Makes target dependency visible in code       |
 | User packages   | ✗               | ✓ required               | Items of other packages                       |
@@ -57,17 +57,17 @@ The concrete syntax for "bringing in" (`use`, `import`, etc.) is defined in the 
 
 ## 0.5.4. Distribution form and linking mechanism
 
-The three tiers are provided as prebuilt static archives distributed with the compiler.
+The three tiers ship with the compiler as library packages in source form:
 
 ```
-librok_bare.a       (-NL bare)
-librok_core.a       (-NL core)
-librok_std.a       (-NL std)
+lib/rok/bare/src/lib.rok
+lib/rok/core/src/lib.rok
+lib/rok/std/src/lib.rok
 ```
 
-Each archive has its own package ABI, and the compiler links it automatically at build time through the `-NL <name>` mechanism. This path is separate from the ordinary dependencies of user packages, so a user package that happens to have the same name (e.g. `mod bare`, `mod std`) does not collide.
+The compiler builds them on first use into its cache and links them automatically ([9.2.19](../009-tools/902-aot-pipeline.md#9219-installation-layout)). This path is separate from the ordinary dependencies of user packages, so a user package that happens to have the same name (e.g. `mod bare`, `mod std`) does not collide.
 
-Like the compiler itself, the three archives follow the zero-dependency principle. Building a user package links only the tiers it needs, and the resulting artifact requires no additional external libraries.
+Like the compiler itself, the three tiers follow the zero-dependency principle. Building a user package links only the tiers it needs, and the resulting artifact requires no additional external libraries.
 
 ## 0.5.5. Why three tiers
 

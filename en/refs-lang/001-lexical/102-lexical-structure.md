@@ -60,7 +60,7 @@ The following code points are recognized as whitespace.
 | `U+000D`   | Carriage return (CR) |
 | `U+0020`   | Space                |
 
-Unicode space-like characters not in the table above (`U+00A0` NO-BREAK SPACE, `U+200B` ZERO WIDTH SPACE, etc.) are not whitespace. They appear only as ordinary code points inside identifiers or strings.
+Unicode space-like characters not in the table above (`U+00A0` NO-BREAK SPACE, `U+200B` ZERO WIDTH SPACE, etc.) are not whitespace. They appear only as ordinary code points inside strings and comments; anywhere else they are a lexical error.
 
 Indentation is not significant. Python-style significant indentation is not adopted.
 
@@ -70,7 +70,7 @@ Rok supports three kinds of comments: line, block and doc comments. A shebang li
 
 ### Shebang line
 
-If a file's first line (after a BOM) starts with `#!`, that line is a shebang line and is ignored like a comment, so a script with `#!/usr/bin/env rok` runs as `./script.rok` ([9.10.1](../009-tools/910-rok-frontend.md#9101-subcommands-and-global-options)). The exception is when the first token after `#!`, past whitespace and comments other than doc comments, is `[`: then `#!` begins an inner attribute (`#![allow(unused)]`). `#!` on any later line is not a shebang line.
+If a file's first line (after a BOM) starts with `#!`, that line is a shebang line and is ignored like a comment, so a script with `#!/usr/bin/env rok` runs as `./script.rok` ([9.10.1](../009-tools/910-rok-frontend.md#9101-subcommands-and-global-options)). The exception is when the first token after `#!`, past whitespace and comments other than doc comments, is `[`: then the line is not a shebang line, and `#!` begins an inner attribute (`#![allow(unused)]`). The attribute's `#![` is one token with no whitespace inside ([1.10.3](110-punctuation-and-operator-tokens.md)), so `#! [allow(unused)]` is an error. `#!` on any later line is not a shebang line.
 
 ### Line comments
 

@@ -83,8 +83,8 @@ let ys = empty();                   // ERROR: type annotations needed (구체 �
 인자가 없는 정적 트레잇 메서드도 같은 방식으로 `Self`를 정합니다. 타입 매개변수에 대한 호출 `T::zero()`와 트레잇 경로 호출 `Tr::m()`은 기대 타입에서 `Self`를 가져옵니다.
 
 ```rok
-let z: i32 = Zero::zero();          // Self = i32 (rok::core::num::Zero)
-fn sum<T: Zero + Add<Output = T>>(xs: List<T>) -> T {
+let z: i32 = num::Zero::zero();     // Self = i32 (rok::core::num::Zero)
+fn sum<T: num::Zero + ops::Add<Output = T>>(xs: List<T>) -> T {
     let acc: T = T::zero();          // Self = T
     ...
 }
@@ -102,7 +102,7 @@ let p = Pair::Two(1, "a");          // Pair<i32, str>, 인자에서
 바운드는 매개변수가 충족해야 할 트레잇을 적는 방식입니다.
 
 ```rok
-fn add_all<T: Add<T>>(items: List<T>) -> T { ... }
+fn add_all<T: ops::Add<T>>(items: List<T>) -> T { ... }
 fn print_all<T: Display>(items: List<T>) { ... }
 fn sort_all<T: Ord + Clone>(ref items: List<T>) { ... }
 ```
@@ -118,7 +118,7 @@ fn sort_all<T: Ord + Clone>(ref items: List<T>) { ... }
 ```rok
 fn complex<T, U, V>(a: T, b: U) -> V
 where
-    T: Add<U, Output = V>,
+    T: ops::Add<U, Output = V>,
     V: Display + Clone,
 {
     ...
@@ -221,7 +221,7 @@ fn double<T>(x: T) -> T {
     x + x       // ERROR: T 에 Add 바운드가 없다
 }
 
-fn double<T: Add<T, Output = T>>(x: T) -> T {
+fn double<T: ops::Add<T, Output = T>>(x: T) -> T {
     x + x       // OK
 }
 ```

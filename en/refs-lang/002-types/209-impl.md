@@ -59,7 +59,7 @@ impl ops::Add for Point {
 
 This form is `impl Trait for Type { ... }`. The body contains the bodies of the methods required by the [`trait`](208-trait.md) and the concrete definitions of associated types. Items for which the trait provides a default method may be omitted from the body, in which case the default body is used.
 
-An impl method must have the trait declaration's parameter count, the same `ref` on each parameter other than the receiver, and return a value exactly when the declaration does, of the declaration's type with `Self`, the trait's parameters and its associated types replaced by the impl's (there are no narrower or covariant returns); otherwise it is an error at the impl, and the error shows the declaration. The `throws` of an impl method must be the same as the `throws` of the trait method. An impl cannot add `throws` or widen the error type ([4.14.11](../004-functions/414-throws.md#41411-throws-on-methods)).
+An impl method must have the trait declaration's parameter count, the same `ref` on each parameter other than the receiver, the same `unsafe` ([4.15.4](../004-functions/415-unsafe.md#4154-in-traits)), the declaration's type, with the replacements below, on each parameter it writes a type for (an untyped parameter takes that type, [4.1](../004-functions/401-function-declaration.md)), and return a value exactly when the declaration does, of the declaration's type with `Self`, the trait's parameters and its associated types replaced by the impl's (there are no narrower or covariant returns); otherwise it is an error at the impl, and the error shows the declaration. The `throws` of an impl method must be the same as the `throws` of the trait method. An impl cannot add `throws` or widen the error type ([4.14.11](../004-functions/414-throws.md#41411-throws-on-methods)).
 
 `Send` / `Sync` are automatic marker traits with two manual declarations ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers)).
 
@@ -112,11 +112,11 @@ impl Point {
 
 This is only a visual and organizational grouping; the result is the same as one combined body.
 
-However, a given trait can be `impl`emented only once for the same type.
+However, a given trait can be `impl`emented only once for the same type; a second impl, empty or not, is an error (E0075) that shows the first.
 
 ```rok
 impl Display for Point { ... }
-impl Display for Point { ... }   // ERROR: duplicate implementation
+impl Display for Point { ... }   // ERROR: duplicate implementation (E0075)
 ```
 
 ## 2.9.4. Generic `impl`
@@ -128,7 +128,7 @@ impl<T> List<T> {
     fn len(self) -> usize { ... }
 }
 
-impl<T> Add for Pair<T> where T: Add<T> {
+impl<T> ops::Add for Pair<T> where T: ops::Add<T> {
     type Output = Pair<T::Output>;
     fn add(self, rhs: Pair<T>) -> Pair<T::Output> { ... }
 }
@@ -144,7 +144,7 @@ Implementing a trait defined in one package for a type defined in another packag
 
 ```rok
 // trait Display and type i32 are both defined in the standard library (another package)
-impl Display for i32 { ... }     // ERROR: both from external packages
+impl Display for i32 { ... }     // ERROR: both from external packages (E0076)
 ```
 
 So at least one must hold: the trait is defined in the current package, or the target type is defined in the current package. Built-in types (primitives, tuples, arrays, function types) count as defined in `rok::core`.

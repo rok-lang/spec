@@ -126,7 +126,7 @@ sign  := '+' | '-' | ' '
 type  := 'd' | 'g' | 's' | 'f' | 'b' | 'o' | 'x' | 'X' | 'e' | 'E' | '?'
 ```
 
-If `width` is present and `align` is not, numbers (integers and floating-point) are right-aligned and other types are left-aligned. When `<` `>` `^` is given (with a fill character), any type follows that alignment. An f-string is turned into formatting code at the stage where the types of the holes are known, so the alignment default and spec checking are determined by type. Holes are written in sequence into the buffer of a single `Formatter`, without creating an intermediate string per hole ([stdlib 2.10](../../refs-standard-libraries/200-core/210-fmt.md#2101-dispatch)).
+If `width` is present and `align` is not, numbers (integers and floating-point) are right-aligned and other types are left-aligned. When `<` `>` `^` is given (with a fill character), any type follows that alignment. An f-string is turned into formatting code at the stage where the types of the holes are known, so the alignment default and spec checking are determined by type. Holes are written in sequence into the buffer of a single `Formatter`, without creating an intermediate string per hole ([stdlib 2.10.1](../../refs-standard-libraries/200-core/210-fmt.md#2101-dispatch)).
 
 | Part         | Meaning                                                                                      |
 |--------------|----------------------------------------------------------------------------------------------|

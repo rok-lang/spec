@@ -58,7 +58,7 @@ A name that resolves to a `const` or `static`, whatever its case (`LIMIT`, `limi
 ```rok
 const LIMIT: i32 = 5;
 match n {
-    LIMIT => ..,              // warning: `LIMIT` here is a new variable that matches every value
+    LIMIT => ..,              // ERROR (E0103): `LIMIT` here would be a binding that matches every value
     x if x == LIMIT => ..,    // compares with the const
     _ => ..,
 }

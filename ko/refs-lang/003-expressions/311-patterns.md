@@ -58,7 +58,7 @@ name
 ```rok
 const LIMIT: i32 = 5;
 match n {
-    LIMIT => ..,              // 경고: 여기서 `LIMIT`은 모든 값에 매칭되는 새 변수
+    LIMIT => ..,              // ERROR (E0103): 여기서 `LIMIT`은 모든 값에 매칭되는 바인딩이 됨
     x if x == LIMIT => ..,    // 상수와 비교
     _ => ..,
 }

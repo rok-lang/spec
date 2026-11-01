@@ -243,7 +243,9 @@ fn log(w: any Write) throws (IoError) {
     try w.write("line\n");                 // B = str
     try w.write([0u8, 1]);                  // B = [u8; 2]
 }
-``` 다른 메서드나 필드를 쓰려면 2.2.5-2.2.6처럼 `is` 검사나 타입 패턴으로 구체 타입까지 좁힙니다.
+```
+
+다른 메서드나 필드를 쓰려면 2.2.5-2.2.6처럼 `is` 검사나 타입 패턴으로 구체 타입까지 좁힙니다.
 
 ```rok
 fn describe(e: any Error) -> str {

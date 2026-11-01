@@ -4,6 +4,7 @@ To express chaining and default handling concisely for `T | none` values of [sum
 
 ```
 optional_chain  ::= primary "?." identifier                       // optional field
+                  | primary "?." int_literal                      // optional tuple field
                   | primary "?." identifier "(" arg_list? ")"     // optional method
 coalesce_expr   ::= expr "??" expr
 ```
@@ -127,7 +128,7 @@ This is because the desugared `match` returns `none` immediately in the `none` b
 
 Consequently, when a method with side effects is placed in a chain, it is not called when the receiver is `none`.
 
-The chain is the run of postfix operations after `?.`: field access, method calls and indexing, including `?.[i]`. Parentheses end it: in `(x?.a).b`, `.b` applies to the result of `x?.a`, which may be `none`.
+The chain is the run of postfix operations after `?.`: field access, method calls and indexing (`x?.a[i]`). `?.` is not followed by `[`: there is no `x?.[i]`; write `x?.get(i)`. Parentheses end it: in `(x?.a).b`, `.b` applies to the result of `x?.a`, which may be `none`.
 
 ## 3.8.9. Alternatives to deep dot access
 

@@ -76,7 +76,7 @@ struct ConfigError { msg: str; cause: any Error | none; }
 
 ```rok
 trait Ord: Eq { ... }                            // 슈퍼트레잇 선언
-fn f<T: Add + Display>(x: T) { ... }              // 트레잇 바운드
+fn f<T: ops::Add + Display>(x: T) { ... }              // 트레잇 바운드
 fn g<T>(x: T) where T: Ord, T: Clone { ... }      // where 절
 impl Display for Point { ... }                    // impl 의 트레잇 자리
 ```
@@ -85,14 +85,11 @@ impl Display for Point { ... }                    // impl 의 트레잇 자리
 
 ## 2.12.6. 컴파일 에러의 형태
 
-트레잇 이름이 타입 위치에 나오면 컴파일러는 다음과 비슷한 진단을 출력합니다.
+트레잇 이름이 타입 위치에 나오면 컴파일러는 그 타입 위치에 E0071을 냅니다.
 
-```
-ERROR: 'Display' is a trait, not a type.
-       To allow multiple types, use generics, a sum type, or `any Display`:
-         fn f<T: Display>(x: T) { ... }
-         fn f(x: SomeType | OtherType) { ... }
-         fn f(x: any Display) { ... }
+```text
+error[E0071]: trait `rok::core::fmt::Display` cannot be used as a type directly
+  = help: use `any Display` for a value of any type implementing it, or a generic parameter `<T: Display>`
 ```
 
-이 진단은 앞에서 소개한 세 대안 중 하나를 쓰라고 안내합니다.
+help는 앞에서 소개한 대안 중 둘을 알려 줍니다. 셋째 대안은 구체 타입들의 합 타입(`SomeType | OtherType`)입니다.

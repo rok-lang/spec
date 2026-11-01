@@ -36,7 +36,7 @@ A statement is an expression with a terminator attached. Almost every code const
 
 ## Control structures are expressions
 
-Every control structure (`if`, `match`, `loop`, `while`, `for`, `try`) is also an expression. The following example shows control structures producing values directly.
+Every control structure (`if`, `match`, `loop`, `while`, `for`, `try`) is also an expression; the value of a `try` expression is given in [3.14.6](314-error-control-flow.md#3146-value-and-type-of-the-expression). The following example shows control structures producing values directly.
 
 ```rok
 let a = if cond { x } else { y };

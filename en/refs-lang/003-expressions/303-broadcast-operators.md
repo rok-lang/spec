@@ -22,12 +22,12 @@ This is the same form as the ordinary mapping in [operator dispatch](301-operato
 | `./`         | `/` ↔ `Div`       | `DotDiv`        |
 | `.%`         | `%` ↔ `Rem`       | `DotRem`        |
 | `.%%`        | `%%` ↔ `Modulo`   | `DotModulo`     |
-| `.==`        | `==` ↔ `Eq`       | `DotEq`         |
-| `.!=`        | `!=` ↔ `Ne`       | `DotNe`         |
-| `.<`         | `<` ↔ (`Cmp::lt`) | `DotLt`         |
-| `.>`         | `>`               | `DotGt`         |
-| `.<=`        | `<=`              | `DotLe`         |
-| `.>=`        | `>=`              | `DotGe`         |
+| `.==`        | `==` ↔ `PartialEq::eq` | `DotEq`    |
+| `.!=`        | `!=` ↔ `PartialEq::ne` | `DotNe`    |
+| `.<`         | `<` ↔ `PartialOrd::lt` | `DotLt`    |
+| `.>`         | `>` ↔ `PartialOrd::gt` | `DotGt`    |
+| `.<=`        | `<=` ↔ `PartialOrd::le` | `DotLe`   |
+| `.>=`        | `>=` ↔ `PartialOrd::ge` | `DotGe`   |
 | `.&&`        | `&&` (short-circ) | `DotLogicalAnd` |
 | `.\|\|`        | `\|\|` (short-circ) | `DotLogicalOr`  |
 | `.&`         | `&`               | `DotBitAnd`     |
@@ -63,8 +63,8 @@ g.(a, b)           // multiple arguments
 This form returns a new collection mapping the result of the ordinary function or method call over every element. It desugars to a call to the standard library's `Iterator::map` (or an equivalent trait).
 
 ```
-f.(x)        →   x.map(f)
-g.(a, b)     →   a.zip(b).map(|(x, y)| g(x, y))
+f.(x)        →   x.iter().map(f)
+g.(a, b)     →   a.iter().zip(b.iter()).map(|(x, y)| g(x, y))
 ```
 
 Function and method broadcast has no trait of its own; it is sugar over iterator transformation. This is where it differs from the binary dot-prefixed operators.

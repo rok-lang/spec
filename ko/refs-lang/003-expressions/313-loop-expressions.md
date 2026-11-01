@@ -63,7 +63,7 @@ while cond {
 let x = while cond { ... };     // x: unit
 ```
 
-`while`이 정상적으로 끝났을 때(`cond`가 `false`) 반환할 값으로 자연스러운 선택지가 없기 때문입니다. 이 형태는 `loop { break v; }`처럼 명시적 `break value`로 값을 내는 형태가 아닙니다.
+`while`이 정상적으로 끝났을 때(`cond`가 `false`) 반환할 값으로 자연스러운 선택지가 없기 때문입니다. 이 형태는 `loop { break v; }`처럼 명시적 `break value`로 값을 내는 형태가 아닙니다. 대상이 `while`(또는 `for`)인 `break`에 값을 붙이면 컴파일 에러입니다.
 
 값을 반환하려면 `loop { ... break v; ... }`를 쓰세요.
 
@@ -135,7 +135,7 @@ loop {
 
 ### 결과 값
 
-`for`의 결과 값은 항상 unit입니다(`while`과 같은 이유).
+`for`의 결과 값은 항상 unit입니다(`while`과 같은 이유). 대상이 `for`인 `break`에 값을 붙이면 컴파일 에러입니다.
 
 ### 패턴 자리
 

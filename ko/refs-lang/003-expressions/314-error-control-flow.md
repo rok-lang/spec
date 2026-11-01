@@ -170,7 +170,7 @@ try {
 ```rok
 try {
     body
-} catch e: IOError {
+} catch e: IoError {
     handler
 } finally {
     cleanup
@@ -211,7 +211,7 @@ fn parse(s: str) throws (A | B | C) -> i32 { ... }  // 합 타입
 
 `throws`의 에러와 달리, 다음은 값으로 전달되지 않으며 `catch`로 잡을 수 없습니다.
 
-- panic. 표준 라이브러리의 `panic_fn` 호출, `try!`의 실패, 0으로 나누기, 정수 오버플로, 경계 검사 실패 등이 여기에 속합니다.
+- panic. 표준 라이브러리의 `panic` 호출, `try!`의 실패, 0으로 나누기, 정수 오버플로, 경계 검사 실패 등이 여기에 속합니다.
 - Fatal. `StackOverflowError`, `OutOfMemoryError`, `InternalError`처럼 실행을 계속할 수 없는 상태입니다.
 
 두 경우 모두 런타임은 메시지를 표준 에러(stderr)에 출력하고 종료 코드 `101`로 프로세스를 종료합니다. 어떤 상황이 panic이나 fatal에 해당하는지 정확한 목록은 표준 라이브러리에서 정의합니다.
@@ -271,7 +271,7 @@ match expr {
 `?`는 `T | none` 전용입니다. 에러를 전파하는 수단이 아니며, 표준 라이브러리의 `Result` 값이나 에러를 던지는 호출에는 쓸 수 없습니다. 에러 전파는 `throws` 시그니처와 `try`로 표시합니다.
 
 ```rok
-fn load() -> Result<Config, IOError> {
+fn load() -> Result<Config, IoError> {
     let raw = read_result(path)?;     // ERROR: `?` 는 `T | none` 전용입니다.
                                       //   에러 전파는 `throws` 와 `try` 를 쓰세요.
     ...
@@ -281,7 +281,7 @@ fn load() -> Result<Config, IOError> {
 클로저 본체 안의 `?`는 클로저의 반환 타입을 기준으로 동작합니다. 바깥 함수의 반환 타입과는 관계가 없습니다.
 
 ```rok
-let lens = users.map(|u| -> usize | none { let nick = u.nickname?; nick.len() });
+let lens = users.iter().map(|u| -> usize | none { let nick = u.nickname?; nick.len() });
 ```
 
 `none`을 대체값으로 채우거나 멤버 접근을 그대로 통과시키려면 [옵셔널 체이닝과 합체](308-optional-chaining-and-coalescing.md)의 `?.`와 `??`를 씁니다.
