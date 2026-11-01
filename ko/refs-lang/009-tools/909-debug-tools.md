@@ -157,7 +157,7 @@ IDE와 CI 시스템은 이 형식으로 진단을 기계적으로 읽을 수 있
 | `E102` | `module`      | 모듈 / 파일                  |
 | `E200` | `type`        | 타입                         |
 | `E201` | `pattern`     | 패턴 / 완전성                |
-| `E202` | `handoff`     | 넘긴 뒤의 사용([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync-스레드-경계-마커)) |
+| `E202` | `handoff`     | 넘긴 뒤의 사용([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync-스레드-경계-마커)), 리스트 크기를 바꾼 뒤의 `SliceMut` 사용([stdlib 2.9.7a](../../refs-standard-libraries/200-core/209-collections.md#297a-slicemutt-쓰기-가능한-뷰)) |
 | `E300` | `meta`        | 메타 블록 / 속성 / 키워드 매직 |
 | `E400` | `lowering`    | HIR / MIR lowering           |
 | `E401` | `codegen`     | 코드 생성                    |

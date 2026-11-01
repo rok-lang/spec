@@ -127,6 +127,7 @@ arr[a : b]            →   arr.slice(slice_bound(a, n)..slice_bound(b, n))   //
 arr[a : b : k]        →   arr.slice(slice_range(a, b, k, n)).step(k)
 arr[: b] / arr[a :]   →   생략한 경계는 위의 기본값 (step 이 있으면 slice_range 의 none)
 arr[a..b] / arr[..]   →   arr.slice(a..b) / arr.slice(0..n)
+arr[a : b]            →   slice_mut(arr, a..b)                  // SliceMut 을 기대하는 자리의 List
 ```
 
 `n`은 `arr.len()`이고 `arr`은 한 번만 평가합니다. 모든 `Sliceable<Range<usize>>` 구현은 범위를 `clamp_range`로 잘라 맞추므로, `arr.slice(9..2)`를 직접 호출해도 panic이 일어나지 않습니다. 여기에 쓰는 도우미 함수는 `rok::core::index`에 있습니다.
@@ -137,6 +138,7 @@ arr[a..b] / arr[..]   →   arr.slice(a..b) / arr.slice(0..n)
 | `slice_bound(i: isize, len: usize) -> usize`                   | 음수면 `len + i`, 0 아래는 0                                       |
 | `slice_range(start: isize \| none, stop: isize \| none, step: isize, len: usize) -> Range<usize>` | Python `slice.indices`와 같은 정방향 범위. `.step(step)`을 붙이면 `arr[start:stop:step]`   |
 | `index_from_end(i: isize, len: usize) -> usize`                | 단일 인덱스용. 음수면 `len + i`, 넘치면 panic                      |
+| `slice_mut(xs: List<T>, r: Range<usize> \| none) -> SliceMut<T>` | `xs[r]`의 쓰기 가능한 뷰(`none`이면 `xs` 전체), `r`은 잘라 맞춤. 낮춘 코드 전용 |
 
 ### 슬라이스 결과의 종류
 
@@ -147,11 +149,13 @@ arr[a..b] / arr[..]   →   arr.slice(a..b) / arr.slice(0..n)
 | `List<T>`            | `Slice<T>`: 리스트 버퍼의 뷰 (원소 쓰기가 보임)                      |
 | `Slice<T>`           | `Slice<T>`: 뷰의 뷰                                                  |
 | `[T; N]`             | `Slice<T>`: 배열 사본의 뷰 (배열은 값)                               |
+| `SliceMut<T>`을 기대하는 자리의 `List<T>` | `SliceMut<T>`: 리스트에 쓰는 뷰([stdlib 2.9.7a](../../refs-standard-libraries/200-core/209-collections.md#297a-slicemutt-쓰기-가능한-뷰)), step 없음 |
+| `SliceMut<T>`        | `SliceMut<T>`: 뷰의 쓰기 가능한 뷰                                   |
 | `str`, `StrBuf`      | 새 `str`: 바이트 사본 (`str`은 C 문자열로 남아야 하므로), UTF-8 경계 검사  |
 
 ### 슬라이스 대입
 
-슬라이스 대입(`arr[1:3] = other;`)은 지원하지 않습니다. 원소를 하나씩 대입하거나 컬렉션 메서드를 쓰세요.
+슬라이스 대입(`arr[1:3] = other;`)은 지원하지 않습니다. 원소를 하나씩 대입하거나, `SliceMut`을 거쳐 쓰세요(`let s: SliceMut<i32> = arr[1:3]; s.copy_from_slice(other[:]);`).
 
 ## 3.6.3. 인덱싱과 슬라이싱의 토큰 분리
 

@@ -157,7 +157,7 @@ There is one code per error kind. Diagnostics of the same kind have the same cod
 | `E102` | `module`      | Module / file                |
 | `E200` | `type`        | Type                         |
 | `E201` | `pattern`     | Pattern / exhaustiveness     |
-| `E202` | `handoff`     | Use after hand-off ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers)) |
+| `E202` | `handoff`     | Use after hand-off ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers)); a `SliceMut` used after its list was resized ([stdlib 2.9.7a](../../refs-standard-libraries/200-core/209-collections.md#297a-slicemutt---writable-view)) |
 | `E300` | `meta`        | Meta block / attribute / keyword magic |
 | `E400` | `lowering`    | HIR / MIR lowering           |
 | `E401` | `codegen`     | Code generation              |

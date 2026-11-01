@@ -127,6 +127,7 @@ arr[a : b]            →   arr.slice(slice_bound(a, n)..slice_bound(b, n))   //
 arr[a : b : k]        →   arr.slice(slice_range(a, b, k, n)).step(k)
 arr[: b] / arr[a :]   →   omitted bounds use the defaults above (none for slice_range when a step is present)
 arr[a..b] / arr[..]   →   arr.slice(a..b) / arr.slice(0..n)
+arr[a : b]            →   slice_mut(arr, a..b)                  // a List where a SliceMut is expected
 ```
 
 `n` is `arr.len()`, and `arr` is evaluated only once. Every `Sliceable<Range<usize>>` implementation clamps the range with `clamp_range`, so calling `arr.slice(9..2)` directly does not panic either. The helpers used live in `rok::core::index`.
@@ -137,6 +138,7 @@ arr[a..b] / arr[..]   →   arr.slice(a..b) / arr.slice(0..n)
 | `slice_bound(i: isize, len: usize) -> usize`                   | `len + i` if negative; below 0 becomes 0                           |
 | `slice_range(start: isize \| none, stop: isize \| none, step: isize, len: usize) -> Range<usize>` | forward range equivalent to Python's `slice.indices`. With `.step(step)` appended, it gives `arr[start:stop:step]` |
 | `index_from_end(i: isize, len: usize) -> usize`                | for a single index. `len + i` if negative; panics on overflow      |
+| `slice_mut(xs: List<T>, r: Range<usize> \| none) -> SliceMut<T>` | the writable view of `xs[r]` (`none`: all of `xs`), `r` clamped; lowered code only |
 
 ### Kinds of `Slice` results
 
@@ -147,11 +149,13 @@ The result type is determined by an associated type of `Sliceable`. In the stand
 | `List<T>`            | `Slice<T>`: a view of the list buffer (element writes are visible)   |
 | `Slice<T>`           | `Slice<T>`: a view of a view                                         |
 | `[T; N]`             | `Slice<T>`: a view of a copy of the array (arrays are values)        |
+| `List<T>` where a `SliceMut<T>` is expected | `SliceMut<T>`: a writable view of the list ([stdlib 2.9.7a](../../refs-standard-libraries/200-core/209-collections.md#297a-slicemutt---writable-view)); no step |
+| `SliceMut<T>`        | `SliceMut<T>`: a writable view of the view                           |
 | `str`, `StrBuf`      | new `str`: a byte copy (because `str` must remain a C string), with UTF-8 boundary checks |
 
 ### Slice assignment
 
-Slice assignment (`arr[1:3] = other;`) is not supported. Assign elements one at a time or use collection methods.
+Slice assignment (`arr[1:3] = other;`) is not supported. Assign elements one at a time, or write through a `SliceMut` (`let s: SliceMut<i32> = arr[1:3]; s.copy_from_slice(other[:]);`).
 
 ## 3.6.3. Token separation of indexing and slicing
 

@@ -6,15 +6,15 @@ The slot table is the authoritative location in the spec; the compiler, the stan
 
 ## 0.4.1. Slot classification
 
-The 63 slots fall into four groups according to their responsibility. The table below shows the role and slot count of each group at a glance, indicating which category the detailed tables in the following sections belong to.
+The 64 slots fall into four groups according to their responsibility. The table below shows the role and slot count of each group at a glance, indicating which category the detailed tables in the following sections belong to.
 
 | Group   | Responsibility                                                              | Slots   |
 |---------|-----------------------------------------------------------------------------|---------|
 | Type    | Standard library types Rok recognizes as **concrete types**                 | 14      |
 | Trait   | Traits Rok uses for **operator / control-flow desugaring**, derive, and thread-boundary checks | 30 |
 | Method  | Methods Rok **calls automatically** (drop)                                  | 1       |
-| Function | Standard library functions Rok calls as **intrinsic calls**, and the hooks lowered code calls | 18 |
-| Total   |                                                                             | **63**  |
+| Function | Standard library functions Rok calls as **intrinsic calls**, and the hooks lowered code calls | 19 |
+| Total   |                                                                             | **64**  |
 
 ## 0.4.2. Type slots (14)
 
@@ -93,7 +93,7 @@ Next come the operator trait slots. The dispatch target of an operator token is 
 > [!NOTE]
 > Comparison slot names and trait names do not correspond one-to-one. `eq_trait` is attached to `PartialEq`, which defines the equality operators, and `cmp_trait` to `PartialOrd`, which defines the ordering operators. The marker traits `Eq`, `Copy` and `Default` have no slots: sum types get them structurally (`T | none` is `Eq` when `T` is; its `Default` is `none`), so the compiler finds them by their fixed paths in `rok::core`.
 
-## 0.4.4. Function slots (18)
+## 0.4.4. Function slots (19)
 
 Function slots are for standard library functions that the compiler calls directly, like intrinsics. They mainly cover abnormal termination paths (`throw`, OOM, unreachable) and are used where a uniform entry point is needed outside normal flow.
 
@@ -103,7 +103,7 @@ Function slots are for standard library functions that the compiler calls direct
 | `oom_fn`         | OOM abort (runtime allocation failure calls `rok_oom` directly) | `rok::core::panic::oom` | 2.14 |
 | `unreachable_fn` | Called by the compiler at unreachable points | `rok::core::panic::unreachable` | 2.14 |
 
-The other fifteen are **hooks**: functions that code the compiler writes calls, for a negative index, a slice bound, a spread, an f-string hole and a cancellation point. Lowering finds each through its slot, not by its path, so a hook need not be visible to the code it is lowered into. A hook is not API: a call written by hand is deprecated ([refs-lang 6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md)), and a later release makes the hooks private.
+The other sixteen are **hooks**: functions that code the compiler writes calls, for a negative index, a slice bound, a writable view, a spread, an f-string hole and a cancellation point. Lowering finds each through its slot, not by its path, so a hook need not be visible to the code it is lowered into. A hook is not API: a call written by hand is deprecated ([refs-lang 6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md)), and a later release makes the hooks private.
 
 | Slot name            | Called for                                             | Standard library function                 | Ref  |
 |----------------------|--------------------------------------------------------|-------------------------------------------|------|
@@ -113,6 +113,7 @@ The other fifteen are **hooks**: functions that code the compiler writes calls, 
 | `index_from_end_fn`  | A signed index `xs[i]`, negative from the end          | `rok::core::index::index_from_end`        | 2.3  |
 | `slice_bound_fn`     | A signed slice bound `xs[i:]`                          | `rok::core::index::slice_bound`           | 2.3  |
 | `slice_range_fn`     | A stepped slice `xs[a:b:k]`                            | `rok::core::index::slice_range`           | 2.3  |
+| `slice_mut_fn`       | `xs` or `xs[a:b]` of a list where a `SliceMut` is expected | `rok::core::index::slice_mut` (`pub(pkg)`) | 2.9  |
 | `fstr_display_fn`    | An f-string hole `{v}`                                 | `rok::core::fmt::fstr_display`            | 2.10 |
 | `fstr_debug_fn`      | An f-string hole `{v:?}`                               | `rok::core::fmt::fstr_debug`              | 2.10 |
 | `fstr_num_fn`        | An `int` or `float` hole with a spec                   | `rok::core::fmt::fstr_num`                | 2.10 |
@@ -168,6 +169,7 @@ Where the previous sections listed "which slots exist", this section summarizes 
 | On OOM                                             | `oom_fn`                                 |
 | Unreachable after `match` exhaustiveness check of all arms | `unreachable_fn`                 |
 | A negative index or slice bound, a stepped slice   | `index_from_end_fn`, `slice_bound_fn`, `slice_range_fn` |
+| A list or its range where a `SliceMut` is expected | `slice_mut_fn`                          |
 | A spread `f(..xs)` / `f(..d)`                      | `spread_len_fn`, `spread_names_fn`, `spread_misfit_fn` |
 | An f-string hole                                   | `fstr_display_fn` ... `fstr_text_any_fn` |
 | An `await`, and the cleanups a cancel runs         | `cancel_point_fn`, `cancel_left_fn`, `cleanup_running_fn`, `cleanup_done_fn` |

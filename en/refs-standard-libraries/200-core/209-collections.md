@@ -13,6 +13,7 @@ This chapter defines the authoritative signatures of the following 6 collections
 | `OrderedSet<T>`     | `OrderedSet::from([...])`  | Insertion-order-preserving set  |
 | `Tuple<...>`        | `(1, "a", true)`           | Fixed-size heterogeneous        |
 | `Slice<T>`          | `xs[1:3]`                  | Zero-copy view of a container   |
+| `SliceMut<T>`       | `xs[1:3]` where a `SliceMut` is expected | Writable view of a list |
 
 ## 2.9.1. Literal syntax - `#[literal(query)]` binding
 
@@ -540,7 +541,7 @@ trait AsBytes {
 
 It is implemented for `str` (its UTF-8 bytes), `List<u8>`, `Slice<u8>` and `[u8; N]`, so a byte string passes as the needle (its `Slice<u8>` rule, [refs-lang 1.7.5](../../refs-lang/001-lexical/107-string-literals.md#175-byte-strings)). `std::io` re-exports `AsBytes`.
 
-`Slice` is read-only (no `IndexSet`). Negative indices count from the end ([refs-lang 3.6.1](../../refs-lang/003-expressions/306-indexing-and-slicing.md#361-indexing-arri)).
+`Slice` is read-only (no `IndexSet`); the view that writes a list is `SliceMut<T>` ([2.9.7a](#297a-slicemutt---writable-view)). Negative indices count from the end ([refs-lang 3.6.1](../../refs-lang/003-expressions/306-indexing-and-slicing.md#361-indexing-arri)).
 
 ### Examples
 
@@ -575,6 +576,99 @@ sum(1, 2, 3);                //→ 6
 sum(..[4, 5]);               //→ 9 (list spread)
 ```
 
+## 2.9.7a. `SliceMut<T>` - writable view
+
+```rok
+struct SliceMut<T> {
+    // the list's buffer + start + length, and the list with its version when the view was made
+}
+```
+
+`SliceMut<T>` is a contiguous view that writes the list it views, like Rust's `&mut [T]`. A function that fills or reorders part of a list takes one (`fn zero(buf: SliceMut<u8>)`). It is made where a `SliceMut<T>` is expected: an argument, an annotated `let`, a return value.
+
+| Written there                   | The view                                                                 |
+|---------------------------------|--------------------------------------------------------------------------|
+| `xs` (a `List<T>`)              | The whole list ([refs-lang 2.14.6](../../refs-lang/002-types/214-cast-and-conversion.md#2146-context-based-automatic-conversion)) |
+| `xs[a:b]`, `xs[a..b]`, `xs[..]` | That range of the list, the bounds clamped as for `Slice` ([refs-lang 3.6.2](../../refs-lang/003-expressions/306-indexing-and-slicing.md#362-slicing-arrstartend)) |
+| `s[a:b]` (a `SliceMut<T>`)      | A writable view of the view                                              |
+
+Anywhere else `xs[a:b]` is still a read-only `Slice<T>`. A stepped range (`xs[a:b:k]`) is never a `SliceMut`: it is not contiguous.
+
+### Core methods
+
+```rok
+impl<T> SliceMut<T> {
+    fn len(self) -> usize;
+    fn is_empty(self) -> bool;
+    fn get(self, i: usize) -> T | none;
+    fn first(self) -> T | none;
+    fn last(self) -> T | none;
+    fn fill(self, x: T);
+    fn swap(self, i: usize, j: usize);                 // out of range panics
+    fn reverse(self);
+    fn copy_from_slice(self, src: Slice<T>);           // src.len() != len panics; src may overlap the view
+    fn split_at(self, mid: usize) -> (SliceMut<T>, SliceMut<T>);   // [0, mid) and [mid, len), both writable; mid > len panics
+    fn sort_by(self, cmp: fn(T, T) -> Ordering);       // stable
+    fn sort_by_key<K: Ord>(self, key: fn(T) -> K);     // stable
+    fn as_slice(self) -> Slice<T>;                     // the same elements, read-only
+    fn iter(self) -> SliceMutIter<T>;
+    fn to_list(self) -> List<T>;                       // allocates a new List
+    unsafe fn raw_parts(self) -> (GcBuf<T>, usize, usize);   // (buffer, start, len), for runtime calls that fill a region
+}
+
+impl<T: Ord> SliceMut<T> {
+    fn sort(self);                                     // ascending, stable
+}
+
+impl<T: PartialEq> SliceMut<T> {
+    fn contains(self, x: T) -> bool;
+}
+
+impl<T> Index<usize> for SliceMut<T> { ... }              // s[i]: panics when out of range
+impl<T> IndexSet<usize> for SliceMut<T> { ... }           // s[i] = x writes element i of the list
+impl<T> Sliceable<Range<usize>> for SliceMut<T> { ... }   // s[a:b]: a writable view of the view; the range is clamped
+impl<T> IntoIterator for SliceMut<T> { ... }
+impl<T: PartialEq> PartialEq for SliceMut<T> { ... }
+impl<T: Debug> Debug for SliceMut<T> { ... }
+```
+
+`SliceMutIter<T>` is a `DoubleEndedIterator` and `ExactSizeIterator` with `Item = T`. Like `List`, a `SliceMut` is not `Sync` ([2.13.9](213-marker.md#2139-send--sync---thread-boundary-markers)); a hand-off copies its list and keeps the view on the copy. Negative indices count from the end, as on a list.
+
+### Resizing the list while a view lives
+
+A resize may move the list's elements to a new buffer, so a view is not used after its list is resized. A resize is any `List` method that changes the length or the buffer: `push`, `pop`, `insert`, `remove`, `clear`, `truncate`, `drain`, `set_len`, `reserve`, `shrink_to_fit`, `extend`, `retain`, `dedup` and `+=`. Element writes (`xs[i] = x`, `fill`, `swap`, `sort`, `reverse`) are not resizes.
+
+- Where one function shows both, using a view after a resize of its list is a compile error, `E202` ([refs-lang 9.9.4](../../refs-lang/009-tools/909-debug-tools.md#994-diagnostics--error-messages)). The view is followed through copies of the list (`let ys = xs`), views of the view (`s[1:]`, `split_at`), a `for` loop over it, branches and the next pass of a loop. Assigning the view again (`s = xs[..]`) makes it usable again, and a resize on a path that leaves (`return`, `break`) does not reach the code after it.
+- Every other case is checked at run time: a resize inside a called function, a view kept in a struct, an `async fn` that waits while its caller resizes. A list carries a version that each resize bumps, and a view made before the bump panics on its next use (`SliceMut used after its list was resized (push, insert, clear, ...): make the view again after the resize`).
+
+```rok
+let xs: List<i32> = [1, 2, 3];
+let s: SliceMut<i32> = xs[1:];
+xs.push(4);
+s[0] = 9;          // error[E202]: `s` views `xs`, which `xs.push(..)` resized at line 3
+```
+
+The run-time check is what lets a `SliceMut` be an `async fn`'s argument and live across an `await`.
+
+### Examples
+
+```rok
+fn zero(buf: SliceMut<u8>) {
+    buf.fill(0);
+}
+
+let xs: List<i32> = [5, 4, 3, 2, 1];
+let mid: SliceMut<i32> = xs[1:4];
+mid.sort();                             // xs is [5, 2, 3, 4, 1]
+mid[0] = 20;                            // xs is [5, 20, 3, 4, 1]
+let (a, b) = mid.split_at(1);
+b.fill(0);                              // xs is [5, 20, 0, 0, 1]
+
+let bytes: List<u8> = [1, 2, 3];
+zero(bytes[1:]);                        // [1, 0, 0]
+zero(bytes);                            // the whole list: [0, 0, 0]
+```
+
 ## 2.9.8. `Index` / `IndexSet` / `Sliceable` trait mapping
 
 The traits of [2.3 ops](203-ops.md) define the meaning of `[]`, `[i] = v` and `[a:b]` on containers.
@@ -587,6 +681,7 @@ The traits of [2.3 ops](203-ops.md) define the meaning of `[]`, `[i] = v` and `[
 | `Tuple<...>` | **compiler-direct** (`.0`/.1)  | **compiler-direct**       | **none**                                |
 | `[T; N]`     | `Index<usize>` → T             | `IndexSet<usize>` (Value = T) | `Sliceable<Range<usize>>` → `Slice<T>` (copy) |
 | `Slice<T>`   | `Index<usize>` → T             | **none** (read-only view) | `Sliceable<Range<usize>>` → `Slice<T>`  |
+| `SliceMut<T>` | `Index<usize>` → T            | `IndexSet<usize>` (Value = T) | `Sliceable<Range<usize>>` → `SliceMut<T>` |
 | `str`        | **none** (direct byte access rejected) | **none**          | `Sliceable<Range<usize>>` → `str` (copy, UTF-8 boundary check) |
 
 `s[10]` on a `str` is deliberately not provided, for the safety of UTF-8 multibyte characters. Use `s.chars()` for character-wise access and `s[10..15]` for extraction (as a slice, multibyte boundaries are validated).
@@ -606,6 +701,7 @@ Every container implements `IntoIterator`.
 | `BinaryHeap<T>`     | `T`                 | **unordered** (not pop order)     |
 | `Tuple<T...>`       | **not implemented** | (heterogeneous, no Iterator meaning)  |
 | `Slice<T>`          | `T`                 | view order (stride applied)       |
+| `SliceMut<T>`       | `T`                 | view order                        |
 
 `FromIterator<T>` determines which container `collect::<C>()` builds.
 
@@ -628,6 +724,7 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 | `BinaryHeap<T>` | `rok::core::collections::heap`          | implicit binary tree on a `List`    |
 | `Tuple`       | **compiler built-in** + standard library hook | `#[literal(...)]` + compiler lookup |
 | `Slice<T>`    | `rok::core::collections::slice`           | struct ptr + len + stride           |
+| `SliceMut<T>` | `rok::core::collections::slice`           | buffer + start + len, list + version |
 
 ## 2.9.11. Comparison with other languages
 
@@ -638,6 +735,7 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 | Hash set        | `HashSet<T>`         | `set`                      | `Set<T>` (insertion-ordered)           |
 | Fixed hetero    | `(T1, T2)` tuple     | `tuple`                    | `Tuple<T1, T2>`                        |
 | View            | `&[T]` / `&str`      | **slice object**           | `Slice<T>`                             |
+| Writable view   | `&mut [T]`           | **none** (slice assignment) | `SliceMut<T>`                         |
 | Literals        | `vec![...]` (macro)  | `[...]` `{...}` `(...)`    | `[...]` `{...}` `(...)` (`#[literal]`) |
 | Ordered map     | `BTreeMap` (sorted map) | **default dict**        | **default `Dict`**                     |
 

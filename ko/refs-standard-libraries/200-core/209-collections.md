@@ -13,6 +13,7 @@
 | `OrderedSet<T>`     | `OrderedSet::from([...])`  | 삽입 순서를 지키는 set        |
 | `Tuple<...>`        | `(1, "a", true)`           | 고정 크기, 원소 타입이 제각각 |
 | `Slice<T>`          | `xs[1:3]`                  | 복사 없는 컨테이너 뷰         |
+| `SliceMut<T>`       | `SliceMut`을 기대하는 자리의 `xs[1:3]` | 리스트에 쓰는 뷰 |
 
 ## 2.9.1. 리터럴 문법: `#[literal(query)]` 바인딩
 
@@ -540,7 +541,7 @@ trait AsBytes {
 
 `str`(UTF-8 바이트), `List<u8>`, `Slice<u8>`, `[u8; N]`이 이 트레잇을 구현합니다. 그래서 바이트 문자열도 needle로 넘길 수 있습니다(바이트 문자열의 `Slice<u8>` 규칙은 [refs-lang 1.7.5](../../refs-lang/001-lexical/107-string-literals.md#175-바이트-문자열)). `std::io`는 `AsBytes`를 다시 내보냅니다.
 
-`Slice`는 읽기 전용입니다(`IndexSet` 없음). 음수 인덱스는 끝에서부터 셉니다([refs-lang 3.6.1](../../refs-lang/003-expressions/306-indexing-and-slicing.md#361-인덱싱-arri)).
+`Slice`는 읽기 전용입니다(`IndexSet` 없음). 리스트에 쓰는 뷰는 `SliceMut<T>`입니다([2.9.7a](#297a-slicemutt-쓰기-가능한-뷰)). 음수 인덱스는 끝에서부터 셉니다([refs-lang 3.6.1](../../refs-lang/003-expressions/306-indexing-and-slicing.md#361-인덱싱-arri)).
 
 ### 사용 예
 
@@ -575,6 +576,99 @@ sum(1, 2, 3);                //→ 6
 sum(..[4, 5]);               //→ 9 (리스트 spread)
 ```
 
+## 2.9.7a. `SliceMut<T>`: 쓰기 가능한 뷰
+
+```rok
+struct SliceMut<T> {
+    // 리스트의 버퍼 + 시작 위치 + 길이, 그리고 뷰를 만들 때의 리스트와 그 버전
+}
+```
+
+`SliceMut<T>`는 보고 있는 리스트에 쓰는 연속 뷰입니다. Rust의 `&mut [T]`에 해당합니다. 리스트의 일부를 채우거나 순서를 바꾸는 함수가 이 타입을 받습니다(`fn zero(buf: SliceMut<u8>)`). `SliceMut<T>`를 기대하는 자리에서 만들어집니다. 인자, 타입을 적은 `let`, 반환값이 그런 자리입니다.
+
+| 그 자리에 적은 것               | 뷰                                                                       |
+|---------------------------------|--------------------------------------------------------------------------|
+| `xs`(`List<T>`)                 | 리스트 전체([refs-lang 2.14.6](../../refs-lang/002-types/214-cast-and-conversion.md#2146-문맥-기반-자동-변환)) |
+| `xs[a:b]`, `xs[a..b]`, `xs[..]` | 리스트의 그 범위. 경계는 `Slice`처럼 잘라 맞춤([refs-lang 3.6.2](../../refs-lang/003-expressions/306-indexing-and-slicing.md#362-슬라이싱-arrstartend)) |
+| `s[a:b]`(`SliceMut<T>`)         | 뷰의 쓰기 가능한 뷰                                                      |
+
+다른 자리에서 `xs[a:b]`는 그대로 읽기 전용 `Slice<T>`입니다. 간격 있는 범위(`xs[a:b:k]`)는 연속이 아니므로 `SliceMut`이 되지 않습니다.
+
+### 핵심 메서드
+
+```rok
+impl<T> SliceMut<T> {
+    fn len(self) -> usize;
+    fn is_empty(self) -> bool;
+    fn get(self, i: usize) -> T | none;
+    fn first(self) -> T | none;
+    fn last(self) -> T | none;
+    fn fill(self, x: T);
+    fn swap(self, i: usize, j: usize);                 // 범위 밖이면 panic
+    fn reverse(self);
+    fn copy_from_slice(self, src: Slice<T>);           // src.len() != len 이면 panic; src 가 뷰와 겹쳐도 됨
+    fn split_at(self, mid: usize) -> (SliceMut<T>, SliceMut<T>);   // [0, mid) 와 [mid, len), 둘 다 쓰기 가능; mid > len 이면 panic
+    fn sort_by(self, cmp: fn(T, T) -> Ordering);       // 안정 정렬
+    fn sort_by_key<K: Ord>(self, key: fn(T) -> K);     // 안정 정렬
+    fn as_slice(self) -> Slice<T>;                     // 같은 원소의 읽기 전용 뷰
+    fn iter(self) -> SliceMutIter<T>;
+    fn to_list(self) -> List<T>;                       // 새 List 할당
+    unsafe fn raw_parts(self) -> (GcBuf<T>, usize, usize);   // (버퍼, 시작, 길이), 영역을 채우는 런타임 호출용
+}
+
+impl<T: Ord> SliceMut<T> {
+    fn sort(self);                                     // 오름차순, 안정 정렬
+}
+
+impl<T: PartialEq> SliceMut<T> {
+    fn contains(self, x: T) -> bool;
+}
+
+impl<T> Index<usize> for SliceMut<T> { ... }              // s[i]: 범위 밖이면 panic
+impl<T> IndexSet<usize> for SliceMut<T> { ... }           // s[i] = x 는 리스트의 i 번째 원소에 씀
+impl<T> Sliceable<Range<usize>> for SliceMut<T> { ... }   // s[a:b]: 뷰의 쓰기 가능한 뷰, 범위는 잘라 맞춤
+impl<T> IntoIterator for SliceMut<T> { ... }
+impl<T: PartialEq> PartialEq for SliceMut<T> { ... }
+impl<T: Debug> Debug for SliceMut<T> { ... }
+```
+
+`SliceMutIter<T>`는 `Item = T`인 `DoubleEndedIterator`이자 `ExactSizeIterator`입니다. `SliceMut`은 `List`처럼 `Sync`가 아닙니다([2.13.9](213-marker.md#2139-send--sync-스레드-경계-마커)). 넘기기(hand-off)는 리스트를 복사하고, 뷰는 그 사본을 봅니다. 음수 인덱스는 리스트와 같이 끝에서부터 셉니다.
+
+### 뷰가 살아 있는 동안 리스트 크기 바꾸기
+
+크기를 바꾸면 리스트의 원소가 새 버퍼로 옮겨질 수 있습니다. 그래서 리스트의 크기를 바꾼 뒤에는 그 전에 만든 뷰를 쓰지 않습니다. 길이나 버퍼를 바꾸는 `List` 메서드는 모두 크기 바꾸기입니다. `push`, `pop`, `insert`, `remove`, `clear`, `truncate`, `drain`, `set_len`, `reserve`, `shrink_to_fit`, `extend`, `retain`, `dedup`, `+=`가 그렇습니다. 원소 쓰기(`xs[i] = x`, `fill`, `swap`, `sort`, `reverse`)는 크기 바꾸기가 아닙니다.
+
+- 한 함수 안에서 둘 다 보이면, 리스트의 크기를 바꾼 뒤 뷰를 쓰는 것은 컴파일 에러 `E202`입니다([refs-lang 9.9.4](../../refs-lang/009-tools/909-debug-tools.md#994-진단--에러-메시지)). 컴파일러는 리스트의 복사(`let ys = xs`), 뷰의 뷰(`s[1:]`, `split_at`), 뷰를 도는 `for` 루프, 분기, 루프의 다음 회차까지 뷰를 따라갑니다. 뷰를 다시 대입하면(`s = xs[..]`) 다시 쓸 수 있고, 빠져나가는 경로(`return`, `break`)의 크기 바꾸기는 그 뒤의 코드에 닿지 않습니다.
+- 나머지는 실행 시간에 검사합니다. 호출한 함수 안의 크기 바꾸기, 구조체에 넣어 둔 뷰, 호출자가 크기를 바꾸는 동안 기다리는 `async fn`이 그런 경우입니다. 리스트는 크기를 바꿀 때마다 올라가는 버전을 들고 있고, 그 전에 만든 뷰는 다음에 쓸 때 panic합니다(`SliceMut used after its list was resized (push, insert, clear, ...): make the view again after the resize`).
+
+```rok
+let xs: List<i32> = [1, 2, 3];
+let s: SliceMut<i32> = xs[1:];
+xs.push(4);
+s[0] = 9;          // error[E202]: `s` views `xs`, which `xs.push(..)` resized at line 3
+```
+
+실행 시간 검사가 있으므로 `SliceMut`은 `async fn`의 인자가 될 수 있고 `await`을 넘어 살아 있을 수 있습니다.
+
+### 사용 예
+
+```rok
+fn zero(buf: SliceMut<u8>) {
+    buf.fill(0);
+}
+
+let xs: List<i32> = [5, 4, 3, 2, 1];
+let mid: SliceMut<i32> = xs[1:4];
+mid.sort();                             // xs 는 [5, 2, 3, 4, 1]
+mid[0] = 20;                            // xs 는 [5, 20, 3, 4, 1]
+let (a, b) = mid.split_at(1);
+b.fill(0);                              // xs 는 [5, 20, 0, 0, 1]
+
+let bytes: List<u8> = [1, 2, 3];
+zero(bytes[1:]);                        // [1, 0, 0]
+zero(bytes);                            // 리스트 전체: [0, 0, 0]
+```
+
 ## 2.9.8. `Index` / `IndexSet` / `Sliceable` 트레잇 매핑
 
 [2.3 ops](203-ops.md)의 트레잇이 컨테이너의 `[]`, `[i] = v`, `[a:b]`의 의미를 정의합니다.
@@ -587,6 +681,7 @@ sum(..[4, 5]);               //→ 9 (리스트 spread)
 | `Tuple<...>` | **컴파일러 직접** (`.0`/.1)    | **컴파일러 직접**         | **없음**                                |
 | `[T; N]`     | `Index<usize>` → T             | `IndexSet<usize>` (Value = T) | `Sliceable<Range<usize>>` → `Slice<T>` (사본) |
 | `Slice<T>`   | `Index<usize>` → T             | **없음**(읽기 전용 뷰)    | `Sliceable<Range<usize>>` → `Slice<T>`  |
+| `SliceMut<T>` | `Index<usize>` → T            | `IndexSet<usize>`(Value = T) | `Sliceable<Range<usize>>` → `SliceMut<T>` |
 | `str`        | **없음**(바이트 직접 접근 거부) | **없음**                 | `Sliceable<Range<usize>>` → `str` (사본, UTF-8 경계 검사) |
 
 `str`의 `s[10]`은 UTF-8 멀티바이트 문자를 지키려고 일부러 두지 않았습니다. 문자 단위로 접근하려면 `s.chars()`를 쓰세요. 일부를 잘라 내려면 `s[10..15]`를 쓰세요. 슬라이스이므로 멀티바이트 경계를 검사합니다.
@@ -606,6 +701,7 @@ sum(..[4, 5]);               //→ 9 (리스트 spread)
 | `BinaryHeap<T>`     | `T`               | **순서 없음**(pop 순서 아님)      |
 | `Tuple<T...>`       | **구현하지 않음** | (원소 타입이 제각각이라 반복자로 볼 수 없음) |
 | `Slice<T>`          | `T`               | 뷰 순서(stride 적용)              |
+| `SliceMut<T>`       | `T`               | 뷰 순서                           |
 
 `collect::<C>()`가 어떤 컨테이너를 만들지는 `FromIterator<T>`가 정합니다.
 
@@ -628,6 +724,7 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 | `BinaryHeap<T>` | `rok::core::collections::heap`          | `List` 위의 암묵적 이진 트리        |
 | `Tuple`       | **컴파일러 내장** + 표준 라이브러리 훅  | `#[literal(...)]` + 컴파일러 조회   |
 | `Slice<T>`    | `rok::core::collections::slice`           | struct ptr + len + stride           |
+| `SliceMut<T>` | `rok::core::collections::slice`           | 버퍼 + 시작 + 길이, 리스트 + 버전   |
 
 ## 2.9.11. 다른 언어와 비교
 
@@ -638,6 +735,7 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 | 해시 집합   | `HashSet<T>`         | `set`                      | `Set<T>`(삽입 순서 유지)               |
 | 고정 이종   | `(T1, T2)` 튜플      | `tuple`                    | `Tuple<T1, T2>`                        |
 | 뷰          | `&[T]` / `&str`      | **slice 객체**             | `Slice<T>`                             |
+| 쓰기 뷰     | `&mut [T]`           | **없음**(슬라이스 대입)    | `SliceMut<T>`                          |
 | 리터럴      | `vec![...]` (매크로) | `[...]` `{...}` `(...)`    | `[...]` `{...}` `(...)` (`#[literal]`) |
 | 순서 있는 맵 | `BTreeMap`(정렬 맵) | **기본 dict**              | **기본 `Dict`**                        |
 
