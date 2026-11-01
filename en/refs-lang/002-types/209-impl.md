@@ -59,7 +59,7 @@ impl ops::Add for Point {
 
 This form is `impl Trait for Type { ... }`. The body contains the bodies of the methods required by the [`trait`](208-trait.md) and the concrete definitions of associated types. Items for which the trait provides a default method may be omitted from the body, in which case the default body is used.
 
-An impl method must have the trait declaration's parameter count, the same `ref` on each parameter other than the receiver, and return a value exactly when the declaration does; otherwise it is an error at the impl, and the error shows the declaration. The `throws` of an impl method must be the same as the `throws` of the trait method. An impl cannot add `throws` or widen the error type ([4.14.11](../004-functions/414-throws.md#41411-throws-on-methods)).
+An impl method must have the trait declaration's parameter count, the same `ref` on each parameter other than the receiver, and return a value exactly when the declaration does, of the declaration's type with `Self`, the trait's parameters and its associated types replaced by the impl's (there are no narrower or covariant returns); otherwise it is an error at the impl, and the error shows the declaration. The `throws` of an impl method must be the same as the `throws` of the trait method. An impl cannot add `throws` or widen the error type ([4.14.11](../004-functions/414-throws.md#41411-throws-on-methods)).
 
 `Send` / `Sync` are automatic marker traits with two manual declarations ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers)).
 

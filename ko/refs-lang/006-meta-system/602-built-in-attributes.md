@@ -404,6 +404,7 @@ pub fn wake_io(fd: i32) { .. }
 `#[internal]`은 toolchain의 패키지인 `rok::bare`, `rok::core`, `rok::std`가 서로 공유하지만 API는 아닌 `pub` 항목을 표시합니다. 함수, 메서드, `const`, `static`, 필드에 붙일 수 있습니다.
 
 - 다른 패키지에서 쓰면(호출, 함수 값, 읽기) "internal to the Rok toolchain" 에러입니다. 항목은 그대로 해소되므로 에러가 항목 이름을 알려 줍니다.
+- `#[internal("..")]`은 대신 쓸 것을 적고, 에러가 그것을 보여 줍니다(`Int::from_literal`은 `s.parse::<Int>()`를 알려 줍니다). 설명이 없으면 에러는 그 항목이 컴파일러 전용이라고 알려 줍니다.
 - `#[doc(hidden)]` 항목처럼 API 문서(`rokc doc`), 언어 서버의 자동 완성과 호버 목록, "did you mean" 제안에서 빠집니다.
 - 새 가시성 단계가 아닙니다([5.6.1](../005-modules/506-visibility.md#561-네-단계)). 항목은 `pub`이고, 이 검사는 가시성과 따로 이루어집니다.
 - toolchain의 패키지만 이 속성을 쓸 수 있습니다. 다른 패키지의 항목에 붙이면 에러입니다. 항목을 패키지 안에만 두려면 `pub(pkg)`로 만드세요.

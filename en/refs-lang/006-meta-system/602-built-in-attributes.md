@@ -404,6 +404,7 @@ pub fn wake_io(fd: i32) { .. }
 `#[internal]` marks a `pub` item that the toolchain's own packages, `rok::bare`, `rok::core` and `rok::std`, share with one another but that is not part of their API. It may be attached to a function, method, `const`, `static` or field.
 
 - A use from any other package (a call, a function value, a read) is an error: "internal to the Rok toolchain". The item still resolves, so the error names it.
+- `#[internal("..")]` names what to write instead, and the error shows it (`Int::from_literal` names `s.parse::<Int>()`). With no note, the error says the item is compiler-only.
 - It is left out of the API docs (`rokc doc`), the language server's completion and hover lists, and "did you mean" suggestions, as `#[doc(hidden)]` items are.
 - It is no new visibility level ([5.6.1](../005-modules/506-visibility.md#561-four-levels)): the item is `pub`, and the check is separate from visibility.
 - Only the toolchain's packages may write it. On an item of any other package it is an error; to keep an item inside a package, make it `pub(pkg)`.
