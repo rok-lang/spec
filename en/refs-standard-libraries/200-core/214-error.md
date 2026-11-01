@@ -167,11 +167,6 @@ impl ValueError {
     fn message(self) -> str;
 }
 
-struct IndexError {
-    index: i64;
-    len: usize;
-}
-
 struct OverflowError { .. }
 impl OverflowError {
     fn new(operation: str, type_name: str) -> OverflowError;
@@ -197,15 +192,12 @@ impl ConversionError {
 struct ZeroError;                     // rok::core::num::niche; message()
 ```
 
-`IndexError` keeps its public fields; 0.2.0 removes it.
-
 Each type implements `Error`, `Display`, `Debug`, `PartialEq`, `Eq` and `Clone`. Its `Display` is `message()`; `ParseError`'s puts the input first (`cannot parse "x7": invalid digit`). Where each error is thrown:
 
 | Type              | Thrown by                                                                  |
 |-------------------|----------------------------------------------------------------------------|
 | `TypeError`       | runtime cast failure, type check failure                                   |
 | `ValueError`      | general invalid value (parsers / APIs, etc.)                               |
-| `IndexError`      | out-of-range argument to a throwing API that takes an index (the bounds check of `xs[10]` panics) |
 | `OverflowError`   | range exceeded in a checked conversion such as `try_into` (arithmetic overflow panics) |
 | `ParseError`      | parse failure such as `str → number` (ROKON uses `RokonError`)             |
 | `ConversionError` | default for `TryFrom::Error`; failure of a non-numeric conversion ([2.11.4](211-conversion.md#2114-tryfromu-trait---fallible-conversion)); `try_from` of `NonNan` / `Finite` |
@@ -415,7 +407,6 @@ The traits each error type implements:
 |----------------------|---------|---------------|-------|--------------------------------|
 | `TypeError`          | ✓       | ✓             | ✓     |                                |
 | `ValueError`         | ✓       | ✓             | ✓     |                                |
-| `IndexError`         | ✓       | ✓             | ✓     |                                |
 | `OverflowError`      | ✓       | ✓             | ✓     | range exceeded in a checked conversion |
 | `ParseError`         | ✓       | ✓             | ✓     |                                |
 | `ConversionError`    | ✓       | ✓             | ✓     | default `TryFrom::Error`       |
@@ -429,7 +420,7 @@ The traits each error type implements:
 | `Result<T, E>`       | ✗       | ✓ (T,E:Debug) | ✗     | enum for holding               |
 | `any Error`          | ✓       | ✓             | ✓     | constrained any, can chain     |
 
-`Display` provides a user-friendly message; for example, `IndexError { index: 10, len: 3 }` reads `"index 10 out of bounds (len 3)"`. `Debug` shows the structure as is. Every error type in the table also implements `PartialEq`, `Eq` and `Clone` (0.5.10). An `any Error` value calls the `Display` / `Debug` / `source` of its actual type through the runtime tag.
+`Display` provides a user-friendly message; for example, `TypeError::new("i32", "str")` reads ``"expected `i32`, found `str`"``. `Debug` shows the structure as is. Every error type in the table also implements `PartialEq`, `Eq` and `Clone` (0.5.10). An `any Error` value calls the `Display` / `Debug` / `source` of its actual type through the runtime tag.
 
 ## 2.14.9. Comparison with other languages
 

@@ -423,16 +423,14 @@ How each collection implements `IntoIterator`:
 |---------------------|-------------|-------------------------------------------|
 | `List<T>`           | `T`         | In order from the first element to the last |
 | `Dict<K, V>`        | `(K, V)`    | Insertion order                           |
-| `OrderedDict<K, V>` | `(K, V)`    | Insertion order                           |
 | `Set<T>`            | `T`         | Insertion order                           |
-| `OrderedSet<T>`     | `T`         | Insertion order                           |
 | `Tuple<A, B, C>`    | (special)   | **Creates no iterator**; use pattern matching  |
 | `Range<T>`          | `T`         | From start to end-1                       |
 | `Slice<T>`          | `T`         | From the start of the view to its end     |
 
 ### Iteration order of Dict / Set
 
-`Dict<K, V>` and `Set<T>` iterate in insertion order, the same on every run: a key inserted again while present keeps its place, and one removed and inserted again goes last. The hash seed changes where a key sits in the table, not the order ([2.9](209-collections.md)). `OrderedDict<K, V>` and `OrderedSet<T>` iterate the same way.
+`Dict<K, V>` and `Set<T>` iterate in insertion order, the same on every run: a key inserted again while present keeps its place, and one removed and inserted again goes last. The hash seed changes where a key sits in the table, not the order ([2.9](209-collections.md)).
 
 ## 2.7.7. Infinite iterators and `take`
 

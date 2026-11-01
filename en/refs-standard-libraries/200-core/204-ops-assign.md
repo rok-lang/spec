@@ -183,8 +183,7 @@ Every `*Assign` impl for primitive types carries `#[intrinsic("rok.OP_assign.TYP
 | `List<T>`    | `AddAssign<T>`, `AddAssign<List<T>>`        | `xs += x` pushes `x`; `xs += ys` pushes every element of `ys`, in place |
 | `str`        | `AddAssign<str>`, `AddAssign<char>`         | `s = s + t`: replaced by a new str (str is immutable)  |
 | `Dict<K,V>`  | `AddAssign<Dict<K,V>>` (`K: Hash`)          | merge in place; the right side's values win on shared keys  |
-| `OrderedDict<K,V>` | `AddAssign<OrderedDict<K,V>>` (`K: Hash`) | as `Dict`; new keys go last                |
-| `Set<T>`, `OrderedSet<T>` | `AddAssign<T>` (`T: Hash`)   | `s += x` inserts `x`                            |
+| `Set<T>`     | `AddAssign<T>` (`T: Hash`)                  | `s += x` inserts `x`                            |
 | `Deque<T>`   | `AddAssign<T>`                              | `q += x` pushes `x` at the back                 |
 
 ```rok

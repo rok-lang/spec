@@ -52,8 +52,8 @@ Config {
 | Float          | `f32`, `f64`, `float`                                                         |
 | char           | `char`                                                                        |
 | String         | `str`                                                                         |
-| List           | `List<T>`, `[T; N]`, `Set<T>`, `OrderedSet<T>`                                |
-| dict           | `Dict<K, V>`, `OrderedDict<K, V>`                                             |
+| List           | `List<T>`, `[T; N]`, `Set<T>`                                                 |
+| dict           | `Dict<K, V>`                                                                  |
 | Tuple          | Tuples of 1 ~ 6 elements                                                      |
 | struct         | `struct` (`#[derive(Rokon)]`)                                                 |
 | enum variant   | `enum` (`#[derive(Rokon)]`)                                                   |
@@ -149,7 +149,7 @@ pub fn from_value<T: FromRokon>(v: Value) throws (RokonError) -> T;
 - `Value::kind_name` is the kind name used in error messages: in order, `"none"`, `"bool"`, `"integer"`, `"float"`, `"char"`, `"string"`, `"list"`, `"dict"`, `"tuple"`, `"struct"`, and for `Variant` ``"variant `<path>`"``.
 - `==` and `hash` on `Value` are structural. Dict entries and struct fields are compared regardless of order, and floating-point values are compared by identity (NaN == NaN, -0.0 != 0.0). An unnamed empty struct and an empty dict are equal.
 - `Display`, `Debug`, `==` and `hash` on `Value` never panic. `Display` writes the canonical form unchecked (a NaN shows as `nan`); `Debug` writes it on one line.
-- Standard implementations: every integer type, `f32` / `f64`, `int` / `float`, `bool` / `char` / `str`, `Value`, `T | none`, `List`, `Set`, `Dict`, `OrderedDict`, `OrderedSet`, tuples of 1 ~ 6 elements, `[T; N]`.
+- Standard implementations: every integer type, `f32` / `f64`, `int` / `float`, `bool` / `char` / `str`, `Value`, `T | none`, `List`, `Set`, `Dict`, tuples of 1 ~ 6 elements, `[T; N]`.
 
 The module also exports `Fields`, `struct_args`, `variant_of`, `variant_args`, `unknown_variant` and `from_value_at`. They support the code `@derive` generates for `#[derive(Rokon)]` and are not API: they are `#[doc(hidden)]`, and become `pub(pkg)` once a derive's expansion resolves names at its definition site. The reader and writer are private to the standard library.
 
@@ -173,7 +173,7 @@ A field's `= default` is used for missing fields (3.9.3). `#[rokon(deny_unknown_
 struct Server { host: str; port: u16 = 80; tls: bool | none; }
 
 #[derive(Rokon)]
-struct Config { name: str; servers: List<Server>; limits: OrderedDict<str, i32>; }
+struct Config { name: str; servers: List<Server>; limits: Dict<str, i32>; }
 
 let cfg: Config = try rokon::from_str(text);   // errors are "line:col: msg"
 print(try rokon::to_str(cfg));

@@ -167,11 +167,6 @@ impl ValueError {
     fn message(self) -> str;
 }
 
-struct IndexError {
-    index: i64;
-    len: usize;
-}
-
 struct OverflowError { .. }
 impl OverflowError {
     fn new(operation: str, type_name: str) -> OverflowError;
@@ -197,15 +192,12 @@ impl ConversionError {
 struct ZeroError;                     // rok::core::num::niche; message()
 ```
 
-`IndexError`는 공개 필드를 그대로 둡니다. 0.2.0에서 사라집니다.
-
 각 타입은 `Error`, `Display`, `Debug`, `PartialEq`, `Eq`, `Clone`을 구현합니다. `Display`는 `message()`이며, `ParseError`만 input을 앞에 붙입니다(`cannot parse "x7": invalid digit`). 각 에러를 던지는 자리는 다음과 같습니다.
 
 | 타입            | 던지는 자리                                                                |
 |-----------------|----------------------------------------------------------------------------|
 | `TypeError`     | 런타임 캐스트 실패, 타입 검사 실패                                         |
 | `ValueError`    | 일반적인 잘못된 값 (파서 / API 등)                                         |
-| `IndexError`    | 인덱스를 받는, 에러를 던지는 API의 범위 밖 인자 (`xs[10]`의 경계 검사는 panic) |
 | `OverflowError` | `try_into` 등 검사하는 변환의 범위 초과 (산술 오버플로는 panic)            |
 | `ParseError`    | `str → number` 등 파싱 실패 (ROKON은 `RokonError`)                                         |
 | `ConversionError` | `TryFrom::Error`의 기본값. 숫자가 아닌 변환의 실패 ([2.11.4](211-conversion.md#2114-tryfromu-트레잇-실패할-수-있는-변환)), `NonNan` / `Finite`의 `try_from` |
@@ -415,7 +407,6 @@ if let n: i32 = r.ok() { use(n); }     // T | none 으로 추출
 |----------------------|---------|---------------|-------|----------------------------|
 | `TypeError`          | ✓       | ✓             | ✓     |                            |
 | `ValueError`         | ✓       | ✓             | ✓     |                            |
-| `IndexError`         | ✓       | ✓             | ✓     |                            |
 | `OverflowError`      | ✓       | ✓             | ✓     | 검사하는 변환의 범위 초과  |
 | `ParseError`         | ✓       | ✓             | ✓     |                            |
 | `ConversionError`    | ✓       | ✓             | ✓     | 기본 `TryFrom::Error`      |
@@ -429,7 +420,7 @@ if let n: i32 = r.ok() { use(n); }     // T | none 으로 추출
 | `Result<T, E>`       | ✗       | ✓ (T,E:Debug) | ✗     | 보관용 enum                |
 | `any Error`          | ✓       | ✓             | ✓     | 제약 붙은 any, 사슬 가능   |
 
-`Display`는 사용자가 읽기 좋은 메시지를 냅니다. 예를 들어 `IndexError { index: 10, len: 3 }`은 `"index 10 out of bounds (len 3)"`입니다. `Debug`는 구조를 그대로 보여 줍니다. 표의 에러 타입은 모두 `PartialEq`, `Eq`, `Clone`도 구현합니다(0.5.10). `any Error` 값은 런타임 태그로 실제 타입의 `Display` / `Debug` / `source`를 호출합니다.
+`Display`는 사용자가 읽기 좋은 메시지를 냅니다. 예를 들어 `TypeError::new("i32", "str")`는 ``"expected `i32`, found `str`"``입니다. `Debug`는 구조를 그대로 보여 줍니다. 표의 에러 타입은 모두 `PartialEq`, `Eq`, `Clone`도 구현합니다(0.5.10). `any Error` 값은 런타임 태그로 실제 타입의 `Display` / `Debug` / `source`를 호출합니다.
 
 ## 2.14.9. 다른 언어와 비교
 

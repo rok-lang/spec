@@ -25,7 +25,7 @@ struct Path { /* UTF-8 str newtype, GC heap */ }
 impl Path {
     fn new(s: str) -> Path;
     fn empty() -> Path;
-    fn from_components<I: Iterator<Item = str>>(components: I) -> Path;
+    fn from_components<I: IntoIterator<Item = str>>(components: I) -> Path;
 
     // 분해
     fn parent(self) -> Path | none;

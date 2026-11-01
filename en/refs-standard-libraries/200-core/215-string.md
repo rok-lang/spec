@@ -317,7 +317,7 @@ A `str` is always guaranteed to be valid UTF-8, for these reasons. Constructors 
 
 ### Why validation bypass is restricted
 
-Consider what goes wrong if the UTF-8 invariant **breaks**: `chars()` may throw `IndexError` or loop forever, a truncated multibyte sequence may display incorrectly, and security issues such as overlong encodings may arise.
+Consider what goes wrong if the UTF-8 invariant **breaks**: `chars()` may panic or loop forever, a truncated multibyte sequence may display incorrectly, and security issues such as overlong encodings may arise.
 
 Because the standard library guarantees validation at construction time, `str.chars()` and the like always behave safely in user code. The invariant cannot be broken without entering unsafe code.
 

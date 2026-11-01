@@ -2,15 +2,13 @@
 
 The `rok::core::collections` module provides general-purpose containers. Every collection is allocated on the GC heap and can be created directly through literal syntax bound with `#[literal(...)]`.
 
-This chapter defines the authoritative signatures of the following 6 collections.
+This chapter defines the authoritative signatures of the following collections, with `Deque<T>` and `BinaryHeap<T>`.
 
 | Collection          | Literal syntax             | Meaning                         |
 |---------------------|----------------------------|---------------------------------|
 | `List<T>`           | `[1, 2, 3]`                | Dynamic array (insertion order) |
 | `Dict<K, V>`        | `{"a": 1, "b": 2}`         | Hash map (insertion order) |
 | `Set<T>`            | `{1, 2, 3}`                | Hash set (insertion order)      |
-| `OrderedDict<K, V>` | `OrderedDict::from([...])` | Insertion-order-preserving dict |
-| `OrderedSet<T>`     | `OrderedSet::from([...])`  | Insertion-order-preserving set  |
 | `Tuple<...>`        | `(1, "a", true)`           | Fixed-size heterogeneous        |
 | `Slice<T>`          | `xs[1:3]`                  | Zero-copy view of a container   |
 | `SliceMut<T>`       | `xs[1:3]` where a `SliceMut` is expected | Writable view of a list |
@@ -78,7 +76,7 @@ a < [1, 2, 4];           //→ true (lexicographic)
 
 ### Reference handles
 
-`List`, `Dict` and `Set` values are reference handles to GC heap objects. `let ys = xs;` and argument passing copy the handle, so the same collection is shared. Methods that modify a collection therefore take `self`, not `ref self`. Call `clone()` for an independent copy. A struct element is a value: `xs[i]` and `d[k]` return a copy, and a change is stored with `xs[i] = v` ([refs-lang 2.3.8](../../refs-lang/002-types/203-struct.md#238-value-semantics)). `keys` / `values` / `entries` return lazy iterators that do not copy the collection.
+`List`, `Dict` and `Set` values are reference handles to GC heap objects. `let ys = xs;` and argument passing copy the handle, so the same collection is shared. Methods that modify a collection therefore take `self`, not `ref self`. Call `clone()` for an independent copy. A struct element is a value: `xs[i]` and `d[k]` return a copy, and a change is stored with `xs[i] = v` ([refs-lang 2.3.8](../../refs-lang/002-types/203-struct.md#238-value-semantics)). `iter` / `keys` / `values` return lazy iterators that do not copy the collection.
 
 ## 2.9.2. `List<T>` - dynamic array
 
@@ -110,7 +108,6 @@ impl<T> List<T> {
     fn drain(self, r: Range<usize>) -> List<T>; // removes and returns r's elements in order; panics if r is reversed or ends past len()
 
     fn get(self, idx: usize) -> T | none;       // safe: out-of-bounds → none
-    fn set(self, idx: usize, x: T) throws (IndexError);   // xs[idx] = x panics instead
     fn first(self) -> T | none;
     fn last(self) -> T | none;
     fn swap(self, i: usize, j: usize);          // panics when either is out of bounds
@@ -128,6 +125,7 @@ impl<T> List<T> {
     fn split_at(self, mid: usize) -> (Slice<T>, Slice<T>);   // views of [0, mid) and [mid, len); mid > len panics
     fn windows(self, size: usize) -> SliceWindows<T>;   // self[:].windows(size)
     fn chunks(self, size: usize) -> SliceChunks<T>;     // self[:].chunks(size)
+    fn partition_point(self, pred: fn(T) -> bool) -> usize;   // self[:].partition_point(pred)
 
     fn iter(self) -> ListIter<T>;
     fn into_iter(self) -> ListIntoIter<T>;
@@ -139,9 +137,13 @@ impl<T: PartialEq> List<T> {
 }
 
 impl<T: Ord> List<T> {
-    fn binary_search(self, x: T) -> usize | none;   // ascending list: an index of x, O(log n)
+    fn binary_search(self, x: T) -> usize | none;   // ascending list: the first index of x, O(log n)
 }
 ```
+
+A positional read has a `T | none` form (`get`, `first`, `last`, `pop`); every other positional operation panics out of range (`xs[i]`, `xs[i] = v`, `insert`, `remove`, `swap`, `drain`, `split_at`). There is no `set`: the write is `xs[i] = v`, and a write that skips an out-of-range index checks first (`if i < xs.len() { xs[i] = v }`).
+
+`partition_point(pred)` is the first index whose element fails `pred`, which must hold for a prefix of the list and fail for the rest; O(log n). The insertion point of `x` in an ascending list is `xs.partition_point(|e| e < x)`, and by a key `xs.partition_point(|e| key(e) < k)`. `binary_search(x)` returns the first index of an element equal to `x` (the lower bound), or `none`.
 
 ```rok
 impl List<str> {
@@ -176,6 +178,7 @@ let zs: List<i32> = [3, 1, 1, 2, 2, 4];
 zs.dedup();                                  //→ [3, 1, 2, 4]
 zs.retain(|x| x != 3);                       //→ [1, 2, 4]
 zs.binary_search(4);                         //→ 2
+zs.partition_point(|x| x < 3);               //→ 2 (where 3 would go)
 let (a, b) = zs.split_at(1);                 //→ views of [1] and [2, 4]
 ```
 
@@ -205,7 +208,7 @@ let (a, b) = zs.split_at(1);                 //→ views of [1] and [2, 4]
 
 ### Capacity and removal - common rules
 
-- An index out of range panics naming the index and the length: `index 100 out of bounds for length 3`. `insert` / `remove` / `swap` name the method too (`List::remove index 5 out of bounds for length 3`).
+- An index out of range panics naming the index and the length: `index 100 out of bounds for length 3`. A method names itself first (`List::remove: index 5 out of bounds for length 3`, `List::drain: range 2..4 out of bounds for length 3`), and the panic points at the caller.
 - A size that overflows in `reserve`, `with_capacity`, `repeat` or growth panics with "capacity overflow", at every optimization level.
 - Removing an element (`pop`, `remove`, `clear`, `truncate`, `drain`, ..) releases the reference: the GC no longer sees it through the collection.
 
@@ -237,9 +240,9 @@ impl<K: Hash + Eq, V> Dict<K, V> {
     fn retain(self, keep: fn(K, V) -> bool);      // in place
     fn extend<I: IntoIterator<Item = (K, V)>>(self, pairs: I);   // a later pair's value wins
 
+    fn iter(self) -> DictIter<K, V>;              // (K, V) pairs
     fn keys(self) -> KeysIter<K, V>;
     fn values(self) -> ValuesIter<K, V>;
-    fn entries(self) -> EntriesIter<K, V>;            // (K, V) pairs
 
     fn entry(self, k: K) -> Entry<K, V>;          // the slot for that key (present or not)
 }
@@ -276,7 +279,7 @@ d.get("c");               //→ none
 d.insert("c", 3);
 d.contains_key("c");      //→ true
 
-for (k, v) in d.entries() {
+for (k, v) in d.iter() {
     log("{k} = {v}");
 }
 ```
@@ -300,7 +303,7 @@ The `d[k]` notation assumes the key is present; use `.get(k)` when safe access i
 
 ### Lazy views
 
-`keys` / `values` / `entries` are lazy views onto the current table, not copies. Modifying the dict during iteration gives unspecified results (elements may be missed or seen twice), but memory safety is preserved.
+`iter` / `keys` / `values` are lazy views onto the current table, not copies. Modifying the dict during iteration gives unspecified results (elements may be missed or seen twice), but memory safety is preserved.
 
 ## 2.9.4. `Set<T>` - hash set
 
@@ -334,7 +337,7 @@ impl<T: Hash + Eq> Set<T> {
     fn is_superset(self, other: Set<T>) -> bool;
     fn is_disjoint(self, other: Set<T>) -> bool;
 
-    fn iter(self) -> KeysIter<T, bool>;
+    fn iter(self) -> SetIter<T>;
     fn to_list(self) -> List<T>;
 }
 ```
@@ -352,31 +355,16 @@ let i = a.intersection(b);//→ {2, 3}
 
 `Set::from(xs)` (`From<List<T>>`) builds a set from a list, dropping duplicates. `s += x` (`AddAssign<T>`) inserts `x`.
 
-## 2.9.5. `OrderedDict<K, V>` / `OrderedSet<T>` - insertion order
+## 2.9.5. Insertion order
 
-These provide the same API as `Dict` / `Set` and iterate in the same insertion order, like Python 3.7+ `dict` or Java's LinkedHashMap.
+`Dict` and `Set` iterate in insertion order, like Python 3.7+ `dict` or Java's `LinkedHashMap`, so there is no separate ordered type. `iter`, `keys`, `values`, `to_list`, `Debug` and `for` all follow it:
 
-```rok
-struct OrderedDict<K: Hash + Eq, V> { /* ... */ }
-struct OrderedSet<T: Hash + Eq> { /* ... */ }
-```
+- a key inserted again while present keeps its place (only the value changes);
+- a key removed and inserted again goes last;
+- `retain` keeps the survivors' order, and `extend` and `d += e` insert in order (new keys go last);
+- the result of a set operation follows the order of the left operand first.
 
-> [!NOTE]
-> `Dict` and `Set` keep insertion order too ([2.9.3](#293-dictk-v---hash-map)), so these types behave as they do. A later release may make them aliases of `Dict` / `Set`.
-
-- `OrderedDict` has `new` / `with_capacity` / `from` / `len` / `is_empty` / `insert` / `get` / `contains_key` / `remove` / `clear` / `retain` / `extend` / `keys` / `values` / `entries`, plus `d[k]` and `d[k] = v`. `keys` / `values` / `entries` iterate in insertion order. `insert` on an existing key changes only the value; the order is unchanged. `retain` keeps the survivors' order; `extend` inserts its pairs in order.
-- `OrderedSet` has `new` / `from` / `len` / `is_empty` / `insert` / `remove` / `contains` / `clear` / `retain` / `extend` / `iter` / `to_list` and the set operations `union` / `intersection` / `difference` / `symmetric_difference` / `is_subset` / `is_superset` / `is_disjoint`. The result of a set operation follows the order of the left operand first.
-- Both implement `Default`, `Clone`, `IntoIterator`, `FromIterator`, `PartialEq` / `Eq` and `Hash` (order-independent, as for `Dict` / `Set`) and `Debug`, so either can be a `Set` element or a `Dict` key.
-- `d += e` on an `OrderedDict` merges `e` in place (its values win; new keys go last); `s += x` on an `OrderedSet` inserts `x`.
-
-### Construction
-
-There is no literal syntax; they are created only through constructor calls.
-
-```rok
-let d = OrderedDict::from([("a", 1), ("b", 2)]);
-let s = OrderedSet::from([1, 2, 3]);
-```
+Equality and hashing ignore the order ([2.9.2](#292-listt---dynamic-array)), so `{"a": 1, "b": 2} == {"b": 2, "a": 1}`.
 
 ## 2.9.5a. `Deque<T>` - double-ended queue
 
@@ -394,7 +382,6 @@ impl<T> Deque<T> {
     fn pop_front(self) -> T | none;
     fn pop_back(self) -> T | none;
     fn get(self, i: usize) -> T | none;
-    fn set(self, i: usize, x: T) throws (IndexError);
     fn front(self) -> T | none;
     fn back(self) -> T | none;
     fn clear(self);
@@ -402,7 +389,7 @@ impl<T> Deque<T> {
 }
 ```
 
-`set` throws `IndexError` when `i` is out of range. `capacity` is the number of elements the ring buffer holds before it grows. It implements `d[i]` / `d[i] = v` (panics when out of range, as `List` does: `index 5 out of bounds for length 3`), `IntoIterator`, `FromIterator` (front to back), `Default`, `Clone` (`T: Clone`), `PartialEq` / `Eq` (element-wise, front to back) and `Debug`. `d += x` (`AddAssign<T>`) pushes `x` at the back.
+There is no `set`: the write is `d[i] = v`. `capacity` is the number of elements the ring buffer holds before it grows. It implements `d[i]` / `d[i] = v` (panics when out of range, as `List` does: `index 5 out of bounds for length 3`), `IntoIterator`, `FromIterator` (front to back), `Default`, `Clone` (`T: Clone`), `PartialEq` / `Eq` (element-wise, front to back) and `Debug`. `d += x` (`AddAssign<T>`) pushes `x` at the back.
 
 ## 2.9.5b. `BinaryHeap<T>` - priority queue
 
@@ -411,9 +398,7 @@ impl<T: Ord> BinaryHeap<T> {
     fn new() -> BinaryHeap<T>;                 // max-heap: largest first
 }
 impl<T> BinaryHeap<T> {
-    fn by_ordering(cmp: fn(T, T) -> Ordering) -> BinaryHeap<T>; // the greatest by cmp first, as new() by Ord::cmp
-    #[deprecated(since = "0.1.6", note = "use `BinaryHeap::by_ordering`")]
-    fn by(before: fn(T, T) -> bool) -> BinaryHeap<T>;   // a comes first if before(a, b)
+    fn by_ordering(cmp: fn(T, T) -> Ordering + Send) -> BinaryHeap<T>; // the greatest by cmp first, as new() by Ord::cmp
     fn len(self) -> usize;
     fn is_empty(self) -> bool;
     fn peek(self) -> T | none;
@@ -421,15 +406,15 @@ impl<T> BinaryHeap<T> {
     fn pop(self) -> T | none;
     fn clear(self);
     fn retain(self, keep: fn(T) -> bool);
-    fn iter(self) -> ListIter<T>;              // unordered
+    fn iter(self) -> HeapIter<T>;              // unordered
 }
 ```
 
 `retain` filters in place and restores the heap order, O(n). It implements `IntoIterator` (unordered, as `iter`), `Debug` (storage order, the top first) and `Clone` (`T: Clone`; the copy keeps the heap's order); with `T: Ord`, `Default` and `FromIterator` build a max-heap, as `new`.
 
-A comparator returns `Ordering`, as `List::sort_by`'s does: `by_ordering(|a, b| b.cmp(a))` pops the least first. The deprecated `by` takes a `bool` comparator instead (`by(|a, b| a < b)` is that min-heap).
+A comparator returns `Ordering`, as `List::sort_by`'s does: `by_ordering(|a, b| b.cmp(a))` pops the least first.
 
-A heap is not `Send`: its order is a `fn` without `+ Send`. To hand the items to another thread, send them as a `List` and `collect()` a `BinaryHeap` on the receiving side.
+The comparator is a `fn .. + Send`, so a heap is `Send` when `T` is and can be sent through a channel or put in a `Mutex`. A comparator that captures a value that is not `Send + Sync` (a collection, for one) is a compile error whose help says to drop the capture: compute the value inside the closure, or capture an array.
 
 ## 2.9.6. `Tuple<...>` - fixed heterogeneous
 
@@ -514,8 +499,16 @@ impl<T> Slice<T> {
     fn to_list(self) -> List<T>;             // allocates a new List
 }
 
+impl<T> Slice<T> {
+    fn partition_point(self, pred: fn(T) -> bool) -> usize;   // the first index whose element fails pred, O(log n)
+}
+
 impl<T: PartialEq> Slice<T> {
     fn contains(self, x: T) -> bool;
+}
+
+impl<T: Ord> Slice<T> {
+    fn binary_search(self, x: T) -> usize | none;   // ascending view: the first index of x, O(log n)
 }
 
 impl Slice<u8> {
@@ -695,8 +688,6 @@ Every container implements `IntoIterator`.
 | `List<T>`           | `T`                 | first → last                      |
 | `Dict<K, V>`        | `(K, V)`            | insertion order                   |
 | `Set<T>`            | `T`                 | insertion order                   |
-| `OrderedDict<K, V>` | `(K, V)`            | insertion order                   |
-| `OrderedSet<T>`     | `T`                 | insertion order                   |
 | `Deque<T>`          | `T`                 | front → back                      |
 | `BinaryHeap<T>`     | `T`                 | **unordered** (not pop order)     |
 | `Tuple<T...>`       | **not implemented** | (heterogeneous, no Iterator meaning)  |
@@ -718,8 +709,6 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 | `List<T>`     | `rok::core::collections::list`            | inspired by Rust `Vec`              |
 | `Dict<K, V>`  | `rok::core::collections::dict`            | open addressing                     |
 | `Set<T>`      | `rok::core::collections::set`             | on top of `Dict<T, bool>`           |
-| `OrderedDict` | `rok::core::collections::ordered_dict`    | on top of `Dict`                    |
-| `OrderedSet`  | `rok::core::collections::ordered_set`     | on top of `OrderedDict`             |
 | `Deque<T>`    | `rok::core::collections::deque`           | ring buffer                         |
 | `BinaryHeap<T>` | `rok::core::collections::heap`          | implicit binary tree on a `List`    |
 | `Tuple`       | **compiler built-in** + standard library hook | `#[literal(...)]` + compiler lookup |
@@ -739,7 +728,7 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 | Literals        | `vec![...]` (macro)  | `[...]` `{...}` `(...)`    | `[...]` `{...}` `(...)` (`#[literal]`) |
 | Ordered map     | `BTreeMap` (sorted map) | **default dict**        | **default `Dict`**                     |
 
-Rok differs most in these ways. First, all 6 collections have first-class literal syntax, so no macro such as `vec![]` is used. Second, `Dict` / `Set` iterate in insertion order, as Python 3.7+ `dict` does, so no separate ordered type is needed. Third, `Slice<T>` is a view with a stride, so even an expression like `xs[::2]` is zero-copy.
+Rok differs most in these ways. First, `List`, `Dict`, `Set`, `Tuple` and `Slice` have first-class literal syntax, so no macro such as `vec![]` is used. Second, `Dict` / `Set` iterate in insertion order, as Python 3.7+ `dict` does, so no separate ordered type is needed. Third, `Slice<T>` is a view with a stride, so even an expression like `xs[::2]` is zero-copy.
 
 ## 2.9.12. `GcBuf<T>` - raw GC buffer
 

@@ -183,8 +183,7 @@ fn add_assign(ref self, rhs: Rhs);
 | `List<T>`    | `AddAssign<T>`, `AddAssign<List<T>>`        | `xs += x`는 `x`를 넣음, `xs += ys`는 `ys`의 모든 원소를 제자리에서 넣음 |
 | `str`        | `AddAssign<str>`, `AddAssign<char>`         | `s = s + t`: 새 str로 교체(str은 불변)        |
 | `Dict<K,V>`  | `AddAssign<Dict<K,V>>` (`K: Hash`)          | 제자리 병합, 겹치는 키는 오른쪽 값이 이김       |
-| `OrderedDict<K,V>` | `AddAssign<OrderedDict<K,V>>` (`K: Hash`) | `Dict`와 같음, 새 키는 맨 뒤로            |
-| `Set<T>`, `OrderedSet<T>` | `AddAssign<T>` (`T: Hash`)   | `s += x`는 `x`를 삽입                         |
+| `Set<T>`     | `AddAssign<T>` (`T: Hash`)                  | `s += x`는 `x`를 삽입                         |
 | `Deque<T>`   | `AddAssign<T>`                              | `q += x`는 `x`를 뒤에 넣음                    |
 
 ```rok

@@ -2,15 +2,13 @@
 
 `rok::core::collections` 모듈은 범용 컨테이너를 정의합니다. 모든 컬렉션은 GC 힙에 할당됩니다. `#[literal(...)]`로 묶은 리터럴 문법으로 바로 만들 수 있습니다.
 
-이 장은 다음 컬렉션 6가지의 시그니처를 정의합니다.
+이 장은 다음 컬렉션과 `Deque<T>`, `BinaryHeap<T>`의 시그니처를 정의합니다.
 
 | 컬렉션              | 리터럴 문법                | 의미                          |
 |---------------------|----------------------------|-------------------------------|
 | `List<T>`           | `[1, 2, 3]`                | 동적 배열(삽입 순서)          |
 | `Dict<K, V>`        | `{"a": 1, "b": 2}`         | 해시 맵(삽입 순서)            |
 | `Set<T>`            | `{1, 2, 3}`                | 해시 집합(삽입 순서)          |
-| `OrderedDict<K, V>` | `OrderedDict::from([...])` | 삽입 순서를 지키는 dict       |
-| `OrderedSet<T>`     | `OrderedSet::from([...])`  | 삽입 순서를 지키는 set        |
 | `Tuple<...>`        | `(1, "a", true)`           | 고정 크기, 원소 타입이 제각각 |
 | `Slice<T>`          | `xs[1:3]`                  | 복사 없는 컨테이너 뷰         |
 | `SliceMut<T>`       | `SliceMut`을 기대하는 자리의 `xs[1:3]` | 리스트에 쓰는 뷰 |
@@ -78,7 +76,7 @@ a < [1, 2, 4];           //→ true (사전식)
 
 ### 참조 핸들
 
-`List`, `Dict`, `Set` 값은 GC 힙 객체를 가리키는 참조 핸들입니다. `let ys = xs;`나 인자 전달은 핸들을 복사하므로 같은 컬렉션을 공유합니다. 그래서 컬렉션을 바꾸는 메서드도 `ref self`가 아니라 `self`를 받습니다. 독립된 사본이 필요하면 `clone()`을 부릅니다. struct 원소는 값입니다. `xs[i]`와 `d[k]`는 사본을 돌려주므로 바꾼 값은 `xs[i] = v`로 저장합니다([refs-lang 2.3.8](../../refs-lang/002-types/203-struct.md#238-값-의미)). `keys` / `values` / `entries`는 컬렉션을 복사하지 않는 지연 반복자를 돌려줍니다.
+`List`, `Dict`, `Set` 값은 GC 힙 객체를 가리키는 참조 핸들입니다. `let ys = xs;`나 인자 전달은 핸들을 복사하므로 같은 컬렉션을 공유합니다. 그래서 컬렉션을 바꾸는 메서드도 `ref self`가 아니라 `self`를 받습니다. 독립된 사본이 필요하면 `clone()`을 부릅니다. struct 원소는 값입니다. `xs[i]`와 `d[k]`는 사본을 돌려주므로 바꾼 값은 `xs[i] = v`로 저장합니다([refs-lang 2.3.8](../../refs-lang/002-types/203-struct.md#238-값-의미)). `iter` / `keys` / `values`는 컬렉션을 복사하지 않는 지연 반복자를 돌려줍니다.
 
 ## 2.9.2. `List<T>`: 동적 배열
 
@@ -110,7 +108,6 @@ impl<T> List<T> {
     fn drain(self, r: Range<usize>) -> List<T>; // r 의 원소를 순서대로 빼서 돌려줌; r 이 거꾸로이거나 len() 을 넘어 끝나면 panic
 
     fn get(self, idx: usize) -> T | none;       // safe: out-of-bounds → none
-    fn set(self, idx: usize, x: T) throws (IndexError);   // xs[idx] = x panics instead
     fn first(self) -> T | none;
     fn last(self) -> T | none;
     fn swap(self, i: usize, j: usize);          // 둘 중 하나라도 범위 밖이면 panic
@@ -128,6 +125,7 @@ impl<T> List<T> {
     fn split_at(self, mid: usize) -> (Slice<T>, Slice<T>);   // [0, mid) 와 [mid, len) 의 view; mid > len 이면 panic
     fn windows(self, size: usize) -> SliceWindows<T>;   // self[:].windows(size)
     fn chunks(self, size: usize) -> SliceChunks<T>;     // self[:].chunks(size)
+    fn partition_point(self, pred: fn(T) -> bool) -> usize;   // self[:].partition_point(pred)
 
     fn iter(self) -> ListIter<T>;
     fn into_iter(self) -> ListIntoIter<T>;
@@ -139,9 +137,13 @@ impl<T: PartialEq> List<T> {
 }
 
 impl<T: Ord> List<T> {
-    fn binary_search(self, x: T) -> usize | none;   // 오름차순 리스트에서 x 의 인덱스, O(log n)
+    fn binary_search(self, x: T) -> usize | none;   // 오름차순 리스트에서 x 의 첫 인덱스, O(log n)
 }
 ```
+
+위치로 읽는 연산에는 `T | none` 형태가 있습니다(`get`, `first`, `last`, `pop`). 그 밖의 위치 연산은 범위를 벗어나면 panic이 일어납니다(`xs[i]`, `xs[i] = v`, `insert`, `remove`, `swap`, `drain`, `split_at`). `set`은 없습니다. 쓰기는 `xs[i] = v`이고, 범위 밖 인덱스를 건너뛰려면 먼저 검사합니다(`if i < xs.len() { xs[i] = v }`).
+
+`partition_point(pred)`는 원소가 `pred`를 처음으로 만족하지 않는 인덱스입니다. `pred`는 리스트의 앞부분에서 참이고 나머지에서 거짓이어야 하며, O(log n)입니다. 오름차순 리스트에서 `x`가 들어갈 자리는 `xs.partition_point(|e| e < x)`이고, 키 기준이면 `xs.partition_point(|e| key(e) < k)`입니다. `binary_search(x)`는 `x`와 같은 원소 가운데 첫 인덱스(하한)를 돌려주고, 없으면 `none`입니다.
 
 ```rok
 impl List<str> {
@@ -176,6 +178,7 @@ let zs: List<i32> = [3, 1, 1, 2, 2, 4];
 zs.dedup();                                  //→ [3, 1, 2, 4]
 zs.retain(|x| x != 3);                       //→ [1, 2, 4]
 zs.binary_search(4);                         //→ 2
+zs.partition_point(|x| x < 3);               //→ 2 (3이 들어갈 자리)
 let (a, b) = zs.split_at(1);                 //→ [1] 과 [2, 4] 의 view
 ```
 
@@ -205,7 +208,7 @@ let (a, b) = zs.split_at(1);                 //→ [1] 과 [2, 4] 의 view
 
 ### 용량과 제거: 공통 규칙
 
-- 범위 밖 인덱스는 panic을 일으킵니다. 메시지에는 인덱스와 길이가 들어갑니다(`index 100 out of bounds for length 3`). `insert` / `remove` / `swap`은 메서드 이름도 붙입니다(`List::remove index 5 out of bounds for length 3`).
+- 범위 밖 인덱스는 panic을 일으킵니다. 메시지에는 인덱스와 길이가 들어갑니다(`index 100 out of bounds for length 3`). 메서드는 메시지 앞에 자기 이름을 붙이고(`List::remove: index 5 out of bounds for length 3`, `List::drain: range 2..4 out of bounds for length 3`), panic 위치는 호출한 곳을 가리킵니다.
 - `reserve`, `with_capacity`, `repeat`, 확장에서 크기가 넘치면 "capacity overflow" panic이 일어납니다. 최적화 수준과 관계없이 같습니다.
 - 원소를 빼면(`pop`, `remove`, `clear`, `truncate`, `drain` 등) 그 참조도 놓습니다. 그 뒤로 GC는 그 컬렉션을 거쳐 그 원소에 닿지 않습니다.
 
@@ -237,9 +240,9 @@ impl<K: Hash + Eq, V> Dict<K, V> {
     fn retain(self, keep: fn(K, V) -> bool);      // 제자리
     fn extend<I: IntoIterator<Item = (K, V)>>(self, pairs: I);   // 뒤의 쌍의 값이 이김
 
+    fn iter(self) -> DictIter<K, V>;              // (K, V) 쌍
     fn keys(self) -> KeysIter<K, V>;
     fn values(self) -> ValuesIter<K, V>;
-    fn entries(self) -> EntriesIter<K, V>;            // (K, V) 쌍
 
     fn entry(self, k: K) -> Entry<K, V>;          // 그 키의 자리 (있든 없든)
 }
@@ -276,7 +279,7 @@ d.get("c");               //→ none
 d.insert("c", 3);
 d.contains_key("c");      //→ true
 
-for (k, v) in d.entries() {
+for (k, v) in d.iter() {
     log("{k} = {v}");
 }
 ```
@@ -300,7 +303,7 @@ impl<K: Hash + Eq, V> Index<K> for Dict<K, V> {
 
 ### lazy view
 
-`keys` / `values` / `entries`는 사본이 아닙니다. 현재 테이블을 그대로 보는 지연 뷰입니다. 순회 도중 dict를 바꾸면 결과는 사양이 정하지 않습니다. 원소를 빠뜨리거나 두 번 볼 수 있습니다. 그래도 메모리 안전성은 지켜집니다.
+`iter` / `keys` / `values`는 사본이 아닙니다. 현재 테이블을 그대로 보는 지연 뷰입니다. 순회 도중 dict를 바꾸면 결과는 사양이 정하지 않습니다. 원소를 빠뜨리거나 두 번 볼 수 있습니다. 그래도 메모리 안전성은 지켜집니다.
 
 ## 2.9.4. `Set<T>`: 해시 집합
 
@@ -334,7 +337,7 @@ impl<T: Hash + Eq> Set<T> {
     fn is_superset(self, other: Set<T>) -> bool;
     fn is_disjoint(self, other: Set<T>) -> bool;
 
-    fn iter(self) -> KeysIter<T, bool>;
+    fn iter(self) -> SetIter<T>;
     fn to_list(self) -> List<T>;
 }
 ```
@@ -352,31 +355,16 @@ let i = a.intersection(b);//→ {2, 3}
 
 `Set::from(xs)`(`From<List<T>>`)는 리스트로 set을 만들고 중복은 버립니다. `s += x`(`AddAssign<T>`)는 `x`를 삽입합니다.
 
-## 2.9.5. `OrderedDict<K, V>` / `OrderedSet<T>`: 삽입 순서
+## 2.9.5. 삽입 순서
 
-두 타입은 `Dict` / `Set`과 API가 같고, 같은 삽입 순서로 순회합니다. Python 3.7 이상의 `dict`나 Java의 LinkedHashMap과 같습니다.
+`Dict`와 `Set`은 Python 3.7 이상의 `dict`나 Java의 `LinkedHashMap`처럼 삽입 순서로 순회합니다. 그래서 순서를 지키는 타입을 따로 두지 않습니다. `iter`, `keys`, `values`, `to_list`, `Debug`, `for`가 모두 이 순서를 따릅니다.
 
-```rok
-struct OrderedDict<K: Hash + Eq, V> { /* ... */ }
-struct OrderedSet<T: Hash + Eq> { /* ... */ }
-```
+- 이미 있는 키를 다시 넣으면 자리는 그대로이고 값만 바뀝니다.
+- 지웠다가 다시 넣은 키는 맨 뒤로 갑니다.
+- `retain`은 남는 항목의 순서를 지키고, `extend`와 `d += e`는 순서대로 삽입합니다(새 키는 맨 뒤로).
+- 집합 연산의 결과는 왼쪽 피연산자의 순서를 먼저 따릅니다.
 
-> [!NOTE]
-> `Dict`와 `Set`도 삽입 순서를 지키므로([2.9.3](#293-dictk-v-해시-맵)) 두 타입은 그것과 같이 동작합니다. 이후 릴리스에서 `Dict` / `Set`의 별칭이 될 수 있습니다.
-
-- `OrderedDict`는 `new` / `with_capacity` / `from` / `len` / `is_empty` / `insert` / `get` / `contains_key` / `remove` / `clear` / `retain` / `extend` / `keys` / `values` / `entries`와 `d[k]`, `d[k] = v`가 있습니다. `keys` / `values` / `entries`는 삽입 순서로 돕니다. 이미 있는 키에 `insert`하면 값만 바뀌고 순서는 그대로입니다. `retain`은 남는 항목의 순서를 지키고, `extend`는 쌍을 순서대로 삽입합니다.
-- `OrderedSet`은 `new` / `from` / `len` / `is_empty` / `insert` / `remove` / `contains` / `clear` / `retain` / `extend` / `iter` / `to_list`와 집합 연산 `union` / `intersection` / `difference` / `symmetric_difference` / `is_subset` / `is_superset` / `is_disjoint`가 있습니다. 집합 연산의 결과는 왼쪽 피연산자의 순서를 먼저 따릅니다.
-- 둘 다 `Default`, `Clone`, `IntoIterator`, `FromIterator`, `PartialEq` / `Eq`와 `Hash`(`Dict` / `Set`처럼 순서 무관), `Debug`를 구현합니다. 그래서 `Set` 원소나 `Dict` 키가 될 수 있습니다.
-- `OrderedDict`의 `d += e`는 `e`를 제자리에서 합칩니다. `e`의 값이 남고 새 키는 맨 뒤에 붙습니다. `OrderedSet`의 `s += x`는 `x`를 삽입합니다.
-
-### 생성
-
-리터럴 문법은 따로 없습니다. 생성자를 호출해서만 만듭니다.
-
-```rok
-let d = OrderedDict::from([("a", 1), ("b", 2)]);
-let s = OrderedSet::from([1, 2, 3]);
-```
+같음 비교와 해시는 순서를 보지 않습니다([2.9.2](#292-listt-동적-배열)). 그래서 `{"a": 1, "b": 2} == {"b": 2, "a": 1}`입니다.
 
 ## 2.9.5a. `Deque<T>`: 양끝 큐
 
@@ -394,7 +382,6 @@ impl<T> Deque<T> {
     fn pop_front(self) -> T | none;
     fn pop_back(self) -> T | none;
     fn get(self, i: usize) -> T | none;
-    fn set(self, i: usize, x: T) throws (IndexError);
     fn front(self) -> T | none;
     fn back(self) -> T | none;
     fn clear(self);
@@ -402,7 +389,7 @@ impl<T> Deque<T> {
 }
 ```
 
-`set`은 `i`가 범위 밖이면 `IndexError`를 던집니다. `capacity`는 링 버퍼가 커지기 전까지 담을 수 있는 원소 수입니다. 이 타입은 `d[i]` / `d[i] = v`를 구현합니다. 범위 밖이면 `List`처럼 panic이 일어납니다(`index 5 out of bounds for length 3`). 그 밖에 `IntoIterator`, `FromIterator`(앞에서 뒤로), `Default`, `Clone`(`T: Clone`), `PartialEq` / `Eq`(앞에서 뒤로 원소별), `Debug`를 구현합니다. `d += x`(`AddAssign<T>`)는 `x`를 뒤에 넣습니다.
+`set`은 없습니다. 쓰기는 `d[i] = v`입니다. `capacity`는 링 버퍼가 커지기 전까지 담을 수 있는 원소 수입니다. 이 타입은 `d[i]` / `d[i] = v`를 구현합니다. 범위 밖이면 `List`처럼 panic이 일어납니다(`index 5 out of bounds for length 3`). 그 밖에 `IntoIterator`, `FromIterator`(앞에서 뒤로), `Default`, `Clone`(`T: Clone`), `PartialEq` / `Eq`(앞에서 뒤로 원소별), `Debug`를 구현합니다. `d += x`(`AddAssign<T>`)는 `x`를 뒤에 넣습니다.
 
 ## 2.9.5b. `BinaryHeap<T>`: 우선순위 큐
 
@@ -411,9 +398,7 @@ impl<T: Ord> BinaryHeap<T> {
     fn new() -> BinaryHeap<T>;                 // max-heap: 가장 큰 것이 먼저
 }
 impl<T> BinaryHeap<T> {
-    fn by_ordering(cmp: fn(T, T) -> Ordering) -> BinaryHeap<T>; // cmp 기준 가장 큰 것이 먼저, new()가 Ord::cmp 기준인 것처럼
-    #[deprecated(since = "0.1.6", note = "use `BinaryHeap::by_ordering`")]
-    fn by(before: fn(T, T) -> bool) -> BinaryHeap<T>;   // before(a, b) 이면 a 가 먼저
+    fn by_ordering(cmp: fn(T, T) -> Ordering + Send) -> BinaryHeap<T>; // cmp 기준 가장 큰 것이 먼저, new()가 Ord::cmp 기준인 것처럼
     fn len(self) -> usize;
     fn is_empty(self) -> bool;
     fn peek(self) -> T | none;
@@ -421,15 +406,15 @@ impl<T> BinaryHeap<T> {
     fn pop(self) -> T | none;
     fn clear(self);
     fn retain(self, keep: fn(T) -> bool);
-    fn iter(self) -> ListIter<T>;              // 순서 없음
+    fn iter(self) -> HeapIter<T>;              // 순서 없음
 }
 ```
 
 `retain`은 제자리에서 걸러 낸 뒤 힙 순서를 되살리며 O(n)입니다. `IntoIterator`(`iter`처럼 순서 없음), `Debug`(저장 순서, 꼭대기가 먼저), `Clone`(`T: Clone`, 사본도 힙의 순서를 유지)을 구현합니다. `T: Ord`이면 `Default`와 `FromIterator`가 `new`처럼 최대 힙을 만듭니다.
 
-비교 함수는 `List::sort_by`의 것처럼 `Ordering`을 반환합니다. `by_ordering(|a, b| b.cmp(a))`는 가장 작은 것을 먼저 꺼냅니다. deprecated인 `by`는 대신 `bool` 비교 함수를 받습니다(`by(|a, b| a < b)`가 같은 최소 힙입니다).
+비교 함수는 `List::sort_by`의 것처럼 `Ordering`을 반환합니다. `by_ordering(|a, b| b.cmp(a))`는 가장 작은 것을 먼저 꺼냅니다.
 
-힙은 `Send`가 아닙니다. 순서가 `+ Send` 없는 `fn`이기 때문입니다. 원소를 다른 스레드로 넘기려면 `List`로 보내고, 받는 쪽에서 `collect()`로 `BinaryHeap`을 만듭니다.
+비교 함수는 `fn .. + Send`이므로, `T`가 `Send`이면 힙도 `Send`입니다. 채널로 보내거나 `Mutex`에 넣을 수 있습니다. 비교 함수가 `Send + Sync`가 아닌 값(컬렉션 등)을 캡처하면 컴파일 에러이고, help는 캡처를 없애라고 안내합니다. 값을 클로저 안에서 계산하거나 배열을 캡처합니다.
 
 ## 2.9.6. `Tuple<...>`: 고정 길이 이종 묶음
 
@@ -514,8 +499,16 @@ impl<T> Slice<T> {
     fn to_list(self) -> List<T>;             // 새 List 할당
 }
 
+impl<T> Slice<T> {
+    fn partition_point(self, pred: fn(T) -> bool) -> usize;   // 원소가 pred 를 처음 만족하지 않는 인덱스, O(log n)
+}
+
 impl<T: PartialEq> Slice<T> {
     fn contains(self, x: T) -> bool;
+}
+
+impl<T: Ord> Slice<T> {
+    fn binary_search(self, x: T) -> usize | none;   // 오름차순 뷰에서 x 의 첫 인덱스, O(log n)
 }
 
 impl Slice<u8> {
@@ -695,8 +688,6 @@ zero(bytes);                            // 리스트 전체: [0, 0, 0]
 | `List<T>`           | `T`               | 첫 → 마지막                       |
 | `Dict<K, V>`        | `(K, V)`          | 삽입 순서                         |
 | `Set<T>`            | `T`               | 삽입 순서                         |
-| `OrderedDict<K, V>` | `(K, V)`          | 삽입 순서                         |
-| `OrderedSet<T>`     | `T`               | 삽입 순서                         |
 | `Deque<T>`          | `T`               | 앞 → 뒤                           |
 | `BinaryHeap<T>`     | `T`               | **순서 없음**(pop 순서 아님)      |
 | `Tuple<T...>`       | **구현하지 않음** | (원소 타입이 제각각이라 반복자로 볼 수 없음) |
@@ -718,8 +709,6 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 | `List<T>`     | `rok::core::collections::list`            | Rust `Vec`을 본뜸                   |
 | `Dict<K, V>`  | `rok::core::collections::dict`            | 개방 주소법                         |
 | `Set<T>`      | `rok::core::collections::set`             | `Dict<T, bool>` 위                  |
-| `OrderedDict` | `rok::core::collections::ordered_dict`    | `Dict` 위에 구현                    |
-| `OrderedSet`  | `rok::core::collections::ordered_set`     | `OrderedDict` 위에 구현             |
 | `Deque<T>`    | `rok::core::collections::deque`           | 링 버퍼                             |
 | `BinaryHeap<T>` | `rok::core::collections::heap`          | `List` 위의 암묵적 이진 트리        |
 | `Tuple`       | **컴파일러 내장** + 표준 라이브러리 훅  | `#[literal(...)]` + 컴파일러 조회   |
@@ -739,7 +728,7 @@ let d: Dict<str, i32> = [("a", 1), ("b", 2)].into_iter().collect();
 | 리터럴      | `vec![...]` (매크로) | `[...]` `{...}` `(...)`    | `[...]` `{...}` `(...)` (`#[literal]`) |
 | 순서 있는 맵 | `BTreeMap`(정렬 맵) | **기본 dict**              | **기본 `Dict`**                        |
 
-Rok이 가장 크게 다른 점은 다음과 같습니다. 첫째, 컬렉션 6가지 모두에 1급 리터럴 문법이 있으므로 `vec![]` 같은 매크로를 쓰지 않습니다. 둘째, `Dict` / `Set`은 Python 3.7 이상의 `dict`처럼 삽입 순서로 순회합니다. 그래서 순서를 지키는 타입을 따로 둘 필요가 없습니다. 셋째, `Slice<T>`는 stride가 있는 뷰이므로 `xs[::2]` 같은 식도 복사 없이 동작합니다.
+Rok이 가장 크게 다른 점은 다음과 같습니다. 첫째, `List`, `Dict`, `Set`, `Tuple`, `Slice`에 1급 리터럴 문법이 있으므로 `vec![]` 같은 매크로를 쓰지 않습니다. 둘째, `Dict` / `Set`은 Python 3.7 이상의 `dict`처럼 삽입 순서로 순회합니다. 그래서 순서를 지키는 타입을 따로 둘 필요가 없습니다. 셋째, `Slice<T>`는 stride가 있는 뷰이므로 `xs[::2]` 같은 식도 복사 없이 동작합니다.
 
 ## 2.9.12. `GcBuf<T>`: 원시 GC 버퍼
 

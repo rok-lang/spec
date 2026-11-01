@@ -52,7 +52,7 @@ Rok tier의 모듈을 영역별로 나누면 다음과 같습니다.
 
 ### 컬렉션
 
-- [2.9. 컬렉션 (`List`, `Dict`, `Set`, `Tuple`, `Slice`, `OrderedDict`, `OrderedSet`)](209-collections.md)
+- [2.9. 컬렉션 (`List`, `Dict`, `Set`, `Tuple`, `Slice`, `Deque`, `BinaryHeap`)](209-collections.md)
 
 ### 포맷 / 변환
 
@@ -66,7 +66,7 @@ Rok tier의 모듈을 영역별로 나누면 다음과 같습니다.
 
 ### 에러 / 문자열
 
-- [2.14. 에러 (`Error`, `Result` (보관용), `Option` (제거), `TypeError`, `ValueError`, `IndexError`, `OverflowError`)](214-error.md)
+- [2.14. 에러 (`Error`, `Result` (보관용), `Option` (제거), `TypeError`, `ValueError`, `OverflowError`)](214-error.md)
 - [2.15. 문자열 (`str` 가변 단일, `char`, `c_char`)](215-string.md)
 
 ### 동시성 / 비동기

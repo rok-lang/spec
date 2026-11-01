@@ -52,7 +52,7 @@ The modules provided by the Rok tier, grouped by area:
 
 ### Collections
 
-- [2.9. Collections (`List`, `Dict`, `Set`, `Tuple`, `Slice`, `OrderedDict`, `OrderedSet`)](209-collections.md)
+- [2.9. Collections (`List`, `Dict`, `Set`, `Tuple`, `Slice`, `Deque`, `BinaryHeap`)](209-collections.md)
 
 ### Formatting / conversion
 
@@ -66,7 +66,7 @@ The modules provided by the Rok tier, grouped by area:
 
 ### Errors / strings
 
-- [2.14. Errors (`Error`, `Result` (retained), `Option` (removed), `TypeError`, `ValueError`, `IndexError`, `OverflowError`)](214-error.md)
+- [2.14. Errors (`Error`, `Result` (retained), `Option` (removed), `TypeError`, `ValueError`, `OverflowError`)](214-error.md)
 - [2.15. Strings (single mutable `str`, `char`, `c_char`)](215-string.md)
 
 ### Concurrency / async

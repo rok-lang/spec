@@ -52,8 +52,8 @@ Config {
 | 실수           | `f32`, `f64`, `float`                                                         |
 | char           | `char`                                                                        |
 | 문자열         | `str`                                                                         |
-| 리스트         | `List<T>`, `[T; N]`, `Set<T>`, `OrderedSet<T>`                                |
-| dict           | `Dict<K, V>`, `OrderedDict<K, V>`                                             |
+| 리스트         | `List<T>`, `[T; N]`, `Set<T>`                                                 |
+| dict           | `Dict<K, V>`                                                                  |
 | 튜플           | 원소 1~6개의 튜플                                                             |
 | struct         | `struct` (`#[derive(Rokon)]`)                                                 |
 | enum 변형      | `enum` (`#[derive(Rokon)]`)                                                   |
@@ -149,7 +149,7 @@ pub fn from_value<T: FromRokon>(v: Value) throws (RokonError) -> T;
 - `Value::kind_name`은 에러 메시지에 쓰는 종류 이름입니다. 차례로 `"none"`, `"bool"`, `"integer"`, `"float"`, `"char"`, `"string"`, `"list"`, `"dict"`, `"tuple"`, `"struct"`이고 `Variant`는 ``"variant `<path>`"``입니다.
 - `Value`의 `==`와 `hash`는 구조적입니다. dict의 항목과 struct의 필드는 순서와 무관하게 비교합니다. 부동소수는 비트 정체성으로 비교합니다(NaN == NaN, -0.0 != 0.0). 이름 없는 빈 struct와 빈 dict는 같습니다.
 - `Value`의 `Display`, `Debug`, `==`, `hash`에서는 panic이 일어나지 않습니다. `Display`는 정규 형식을 검사 없이 쓰고(NaN은 `nan`), `Debug`는 한 줄로 씁니다.
-- 표준 구현은 다음과 같습니다. 모든 정수 타입, `f32` / `f64`, `int` / `float`, `bool` / `char` / `str`, `Value`, `T | none`, `List`, `Set`, `Dict`, `OrderedDict`, `OrderedSet`, 원소 1~6개의 튜플, `[T; N]`.
+- 표준 구현은 다음과 같습니다. 모든 정수 타입, `f32` / `f64`, `int` / `float`, `bool` / `char` / `str`, `Value`, `T | none`, `List`, `Set`, `Dict`, 원소 1~6개의 튜플, `[T; N]`.
 
 모듈은 `Fields`, `struct_args`, `variant_of`, `variant_args`, `unknown_variant`, `from_value_at`도 내보냅니다. 이들은 `#[derive(Rokon)]`에 대해 `@derive`가 생성하는 코드에 쓰이며 API가 아닙니다. `#[doc(hidden)]`이고, derive 전개가 정의 위치에서 이름을 찾게 되면 `pub(pkg)`가 됩니다. 읽기와 쓰기 구현은 표준 라이브러리 밖에서 보이지 않습니다.
 
@@ -173,7 +173,7 @@ struct와 enum(제네릭 포함)에 `ToRokon`과 `FromRokon`을 함께 구현합
 struct Server { host: str; port: u16 = 80; tls: bool | none; }
 
 #[derive(Rokon)]
-struct Config { name: str; servers: List<Server>; limits: OrderedDict<str, i32>; }
+struct Config { name: str; servers: List<Server>; limits: Dict<str, i32>; }
 
 let cfg: Config = try rokon::from_str(text);   // 에러는 "line:col: msg"
 print(try rokon::to_str(cfg));
