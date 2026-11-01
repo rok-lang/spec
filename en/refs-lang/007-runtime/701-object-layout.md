@@ -37,7 +37,6 @@ Bits representing GC state.
 | `pinned`    | Marked as not movable, e.g. for [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) |
 | `forwarded` | Already evacuated to a new location (gc_word is the forwarding pointer)                 |
 | `large`     | [LOS](../000-meta/007-glossary.md#los-large-object-space) (Large Object Space) object   |
-| `immortal`  | Permanently alive (never collected)                                                     |
 | ...         | Additional bits are decided by the GC implementation                                    |
 
 The exact bit placement is decided by the GC implementation; the table only lists the kinds of bits semantically required.
@@ -54,27 +53,19 @@ If an attribute such as `#[repr(C)]` is attached, the corresponding representati
 
 ## 7.1.2. Memory spaces
 
-The GC places each object in one of the following four spaces.
+The GC places each object in one of the following three spaces. Literals and `const` / `static` data are not heap objects: they live in the program's data sections, outside these spaces, and the GC neither marks nor moves them (a `static` that holds a GC reference is a root, [7.4.1](704-barriers-and-roots.md)).
 
-### 1. Immortal
-
-`const`s, literal instances, static objects created at boot, and the like go in this space.
-
-Allocation is bump-pointer, the fastest, and there is no collection, so objects live for the lifetime of the process. When the `immortal` bit of `gc_flags` is set, the GC simply skips the object.
-
-Results of `const` expressions of [`const`](../005-modules/502-const.md) and initial values of [`static`](../005-modules/503-static.md) reside here.
-
-### 2. Immix
+### 1. Immix
 
 The space where most ordinary objects live, using the Immix mark-region algorithm.
 
 It is divided into 32 KiB [blocks](../000-meta/007-glossary.md#block) and 128 B lines. Mark-sweep is the default, and a full collection may move objects out of fragmented blocks (opportunistic evacuation). Generations are separated by the sticky mark-bit ([7.3](703-gc-algorithm.md)).
 
-### 3. Large Object Space (LOS)
+### 2. Large Object Space (LOS)
 
 Objects of 8 KiB or more, or requiring alignment greater than 8 bytes, and secret buffers (`rok_gc_secret_new`, [8.5.1](../008-abi/805-extern-symbols.md#rok_gc_secret_new--rok_gc_secret_wipe)), are allocated individually in the LOS, with the `LARGE` bit of `gc_flags` set. The LOS is collected by mark-sweep and does not move objects. Old LOS objects have a card table ([7.4.2](704-barriers-and-roots.md#742-write-barrier-incremental-update)). A secret buffer has the `WIPE` bit ([8.1.3](../008-abi/801-object-header-abi.md#813-gc_flags-offset-4-u32)): the sweep that frees it overwrites its payload with zeros first.
 
-### 4. Pinned objects (FFI pinned)
+### 3. Pinned objects (FFI pinned)
 
 A GC pointer passed to an FFI function of an [`extern` block](../005-modules/509-extern-block.md) is not moved until the call ends, because the argument is in the roots ([7.4.1](704-barriers-and-roots.md#objects-pointed-to-by-roots-are-not-moved)). If foreign code needs to keep the address after the call, pin it with `rok_gc_pin`. A pinned object has the `PINNED` bit of `gc_flags` set and stays in place. `rok_gc_unpin` releases the pin.
 
@@ -86,7 +77,6 @@ Pinned objects are still collected by mark-sweep, but never evacuated.
 TLAB (allocation) → Immix
 Immix → Immix         (evacuation in full collection)
 Immix / LOS ↔ pinned  (pin / unpin, in place)
-Immortal              (no movement)
 ```
 
 Objects do not move between spaces. Only evacuation changes an address.
@@ -119,6 +109,4 @@ The compiler performs this registration at process start through `extern "C"` ca
 size = 16  (header) + payload_size  (aligned size of the fields)
 ```
 
-The compiler knows `payload_size` through the `type_id → size` table. So for an ordinary Immix object the size is determined by a single `type_id` lookup.
-
-For LOS objects the size is read directly from the header's `gc_word`.
+The allocator stores this total size in the header's `gc_word` for every object, Immix and LOS alike ([8.1.4](../008-abi/801-object-header-abi.md#814-gc_word-offset-8-u64-or-ptr)), so the collector reads it there.

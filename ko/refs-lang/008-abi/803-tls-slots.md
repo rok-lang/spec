@@ -101,7 +101,7 @@ write_barrier(p, q):
 
 대부분의 동작은 atomic이 아니고 스레드 안에서만 일어납니다.
 
-두 슬롯은 스레드마다 있는 4 KiB log chunk를 가리킵니다. 가득 찬 chunk는 lock-free 스택에 올리고, 수집기가 이 스택을 비웁니다([7.4.2](../007-runtime/704-barriers-and-roots.md#742-write-barrier-incremental-update)).
+두 슬롯은 스레드마다 있는 512워드(64비트 타깃에서 4 KiB, 32비트에서 2 KiB) log chunk를 가리킵니다. 가득 찬 chunk는 lock-free 스택에 올리고, 수집기가 이 스택을 비웁니다([7.4.2](../007-runtime/704-barriers-and-roots.md#742-write-barrier-incremental-update)).
 
 ### `rok_tls_mutator_state`(u8)
 

@@ -119,7 +119,7 @@ Stores that need no barrier:
 
 ### Remembered set
 
-Each thread has a 4 KiB log chunk (TLS slots `rok_tls_wb_log_cursor` / `rok_tls_wb_log_limit`). Full chunks, and all chunks at collection or thread exit, are pushed onto a lock-free stack. The collector drains that stack and uses the recorded objects as roots.
+Each thread has a log chunk of 512 words (4 KiB on 64-bit targets, 2 KiB on 32-bit) (TLS slots `rok_tls_wb_log_cursor` / `rok_tls_wb_log_limit`). Full chunks, and all chunks at collection or thread exit, are pushed onto a lock-free stack. The collector drains that stack and uses the recorded objects as roots.
 
 ### Inline cost
 
@@ -169,7 +169,7 @@ After that, the mark algorithm ([GC algorithm](703-gc-algorithm.md)) starts from
 
 ## 7.4.5. Key TLS slots
 
-Each thread has the following TLS slots. Each slot is one `thread_local` global exported by the runtime.
+Each thread has the following TLS slots. The slots are fields at fixed offsets of one per-thread block, `rok_tls`, exported by the runtime ([8.3.1](../008-abi/803-tls-slots.md#831-tls-slot-structure)).
 
 | Slot                        | Meaning                                                                                   |
 |-----------------------------|-------------------------------------------------------------------------------------------|

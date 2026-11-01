@@ -16,6 +16,7 @@
 | Windows x86_64           | MS x64             |
 | Windows aarch64          | AAPCS64 (MS 변형)  |
 | Windows i686             | MS x86 (cdecl)     |
+| FreeBSD x86_64           | System V AMD64     |
 | Linux riscv64            | RISC-V LP64D       |
 | WASM                     | clang의 WebAssembly C ABI  |
 
@@ -51,8 +52,8 @@ C 경계(`extern "C"` 선언과 정의)에서 집계를 값으로 넘길 때 rok
 | RISC-V LP64D (riscv64)                    | 부동소수 하나, 부동소수 둘, 또는 부동소수와 8바이트 이하 정수로 된 struct (union 없음)는 레지스터가 남는 동안 필드별로 부동소수 / 정수 레지스터에. 그 밖에 8바이트 이하 집계는 `i64`, 16바이트 이하는 `[2 x i64]` (16바이트 정렬이면 `i128`), 더 큰 인자는 호출자 사본의 포인터. 반환은 종류마다 레지스터 두 개로 같은 규칙을 따르며, 더 크면 `sret`  |
 | 그 밖의 타깃                              | C 경계를 넘는 집계 값 전달은 컴파일 에러                                                  |
 
-- 좁은 정수 매개변수와 반환값(`i8` / `i16` / `u8` / `u16` / `bool` / `c_char`)의 `signext` / `zeroext`는 플랫폼 C ABI를 따릅니다. x86_64 SysV와 Apple arm64는 `i8` / `i16` / `bool`을 확장합니다. Linux AAPCS64는 아무것도 확장하지 않습니다. Windows x64는 `bool`만 확장합니다.
-- 모든 함수에는 인라인 stack probe가 있습니다. 그래서 큰 프레임도 guard page를 건너뛰지 않고 건드립니다.
+- 좁은 정수 매개변수와 반환값(`i8` / `i16` / `u8` / `u16` / `bool` / `c_char`)의 `signext` / `zeroext`는 플랫폼 C ABI를 따릅니다. x86_64 SysV, Apple arm64, i686, armv7, wasm32, riscv64는 `i8` / `i16` / `bool`을 확장합니다. RISC-V는 32비트 값(`i32` / `u32` / `char`)도 부호 확장합니다. armv7과 riscv64는 `c_char`를 0 확장합니다. Linux AAPCS64와 Windows arm64는 아무것도 확장하지 않습니다. Windows x64는 `bool`만 확장합니다.
+- 함수에는 stack probe가 있어 큰 프레임도 guard page를 건너뛰지 않고 건드립니다. 인라인 probe이거나, Windows에서는 `__chkstk` 호출입니다. armv7, wasm32, powerpc64le, s390x, riscv32 타깃에는 probe가 없습니다.
 - `extern "C" fn` **정의**에도 같은 분류를 적용합니다. 정의에는 C가 호출하는 C-ABI 진입점이 따로 있습니다. Rok 쪽에서 오는 호출은 그대로 Rok 규약을 씁니다.
 - System V i386에서 집계 안의 `i64` / `u64` / `f64` 정렬은 4바이트입니다(C와 같음).
 - Rok 함수끼리 호출할 때는 이 분류를 적용하지 않습니다(8.6.6). 분류는 Rok이 C와 맞물리는 곳에서만 필요합니다. `str`(16바이트 struct, Windows x64에서는 참조)을 받거나 돌려주는 런타임 함수도 여기에 속합니다([8.5](805-extern-symbols.md)).

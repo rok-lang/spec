@@ -94,7 +94,7 @@ write_barrier(p, q):
 
 Most operations are non-atomic and thread-local.
 
-The two slots point to a per-thread 4 KiB log chunk. A full chunk is pushed onto a lock-free stack that the collector drains ([7.4.2](../007-runtime/704-barriers-and-roots.md#742-write-barrier-incremental-update)).
+The two slots point to a per-thread log chunk of 512 words (4 KiB on 64-bit targets, 2 KiB on 32-bit). A full chunk is pushed onto a lock-free stack that the collector drains ([7.4.2](../007-runtime/704-barriers-and-roots.md#742-write-barrier-incremental-update)).
 
 ### `rok_tls_mutator_state` (u8)
 

@@ -166,7 +166,7 @@ extern "C" {
 fn long_loop() {
     for i in 0..1_000_000 {
         ...
-        if i % 1000 == 0 { rok_runtime_yield(); }
+        if i % 1000 == 0 { unsafe { rok_runtime_yield(); } }
     }
 }
 ```

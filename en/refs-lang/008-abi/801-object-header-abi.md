@@ -40,10 +40,10 @@ The reserved id ranges are as follows.
 | `1`            | runtime (GC string, not traced) |
 | `2`            | runtime (word-traced buffer) |
 | `3`            | runtime (weak cell, `Weak<T>`) |
-| `4` ~ `0xFFFF` | standard library / runtime (reserved) |
-| `0x10000` ~    | user / other package types  |
+| `4` ~ `0xFFFF` | reserved for the runtime    |
+| `0x10000` ~    | every compiled type (standard library and user packages) |
 
-The exact id mapping of standard library types is defined in the standard library specification. Ids the compiler assigns to user types start at `0x10000`.
+The compiler gives every type it emits, the standard library's included, an id from `0x10000` up. The runtime ignores a type registration below `0x10000`.
 
 ## 8.1.3. `gc_flags` (offset 4, u32)
 
@@ -161,6 +161,6 @@ The `LARGE` bit is set, so this is a LOS object. `gc_word` is the total size (8.
 This header layout is the most central part of the ABI. Changes follow these rules.
 
 - It must not change in a minor / patch version (that would break compatibility).
-- It may change in a major version, in which case the ABI version hash changes with it.
+- It may change in a major version.
 
 Because of this stability, user packages, the standard library and the runtime that share the same major version are all compatible.

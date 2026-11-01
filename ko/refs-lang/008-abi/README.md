@@ -1,6 +1,6 @@
 # 8. 런타임 ABI / MLIR lowering 개요
 
-이 블록은 컴파일러(`rokc`)와 런타임(`librokr.a`)이 함께 따르는 계약(contract)을 정의합니다. 두 쪽을 잇는 것은 이 사양 텍스트입니다. 둘이 공유하는 코드는 GC ABI 상수의 정의 하나(`gc_abi`, [8.1](801-object-header-abi.md))뿐입니다.
+이 블록은 컴파일러(`rokc`)와 런타임(`librokr.a`, Windows MSVC 타깃에서는 `rokr.lib`)이 함께 따르는 계약(contract)을 정의합니다. 두 쪽을 잇는 것은 이 사양 텍스트입니다. 둘이 공유하는 코드는 컴파일러가 포함해 쓰는 런타임 소스 파일 몇 개입니다. 두 쪽이 정의 하나를 쓰도록 GC ABI 상수(`gc_abi`, [8.1](801-object-header-abi.md)), TLS 슬롯 배치(`tls_abi`, [8.3](803-tls-slots.md)), 그리고 상수 평가가 런타임과 맞아야 하는 포맷 지정, 문자열, Unicode 루틴을 공유합니다.
 
 ## 목차
 
@@ -27,7 +27,7 @@
 
 ## 이 사양 텍스트가 권위를 갖는 이유
 
-컴파일러와 런타임은 `gc_abi` 말고는 코드나 헤더 파일을 공유하지 않습니다. 두 쪽이 같은 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface)를 따른다는 보장은 이 사양 텍스트와 통합 테스트의 종단 간(end-to-end) 검증에서 나옵니다.
+포함해 쓰는 그 소스 파일 말고는 컴파일러와 런타임이 코드나 헤더 파일을 공유하지 않습니다. 두 쪽이 같은 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface)를 따른다는 보장은 이 사양 텍스트와 통합 테스트의 종단 간(end-to-end) 검증에서 나옵니다.
 
 이 모델은 Swift ABI Stability와 같은 접근입니다. 사양이 권위이고, 구현은 사양을 따릅니다.
 

@@ -37,7 +37,6 @@ GC 상태를 나타내는 비트입니다.
 | `pinned`    | [FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface) 등으로 이동 금지 표시 |
 | `forwarded` | 이미 evacuation으로 새 위치로 옮겨짐 (gc_word가 forwarding 포인터)                     |
 | `large`     | [LOS](../000-meta/007-glossary.md#los-large-object-space) (Large Object Space) 객체     |
-| `immortal`  | 영구 살아있음 (수집하지 않습니다)                                                       |
 | ...         | 추가 비트는 GC 구현이 결정                                                              |
 
 정확한 비트 배치는 GC 구현이 정합니다. 위 표에는 의미상 필요한 비트의 종류만 적었습니다.
@@ -54,27 +53,19 @@ GC 상태를 나타내는 비트입니다.
 
 ## 7.1.2. 메모리 공간
 
-GC는 객체를 다음 네 공간 중 하나에 배치합니다.
+GC는 객체를 다음 세 공간 중 하나에 배치합니다. 리터럴과 `const` / `static` 데이터는 힙 객체가 아닙니다. 이들은 이 공간들 밖, 프로그램의 데이터 섹션에 있고 GC는 이들을 표시하지도 옮기지도 않습니다(GC 참조를 담은 `static`은 루트입니다, [7.4.1](704-barriers-and-roots.md)).
 
-### 1. Immortal
-
-`const`, 리터럴 인스턴스, 부팅 때 만드는 정적 객체 등이 이 공간에 들어갑니다.
-
-할당은 bump pointer 방식이라 가장 빠릅니다. GC가 이 공간을 수집하지 않으므로 객체는 프로세스가 끝날 때까지 살아 있습니다. `gc_flags`의 `immortal` 비트가 켜져 있으면 GC는 그 객체를 건너뜁니다.
-
-[`const`](../005-modules/502-const.md)의 `const` 표현식 결과나 [`static`](../005-modules/503-static.md)의 초깃값 등이 여기에 놓입니다.
-
-### 2. Immix
+### 1. Immix
 
 대부분의 일반 객체가 사는 공간입니다. Immix mark-region 알고리듬을 씁니다.
 
 공간은 32 KiB [block](../000-meta/007-glossary.md#block-블록)과 128 B line으로 나뉩니다. 기본은 mark-sweep입니다. full 수집은 단편화된 block의 객체를 옮길 수 있습니다(opportunistic evacuation). 세대는 sticky mark-bit로 나눕니다([7.3](703-gc-algorithm.md)).
 
-### 3. Large Object Space (LOS)
+### 2. Large Object Space (LOS)
 
 8 KiB 이상이거나 8바이트보다 큰 정렬을 요구하는 객체, 그리고 비밀 버퍼(`rok_gc_secret_new`, [8.5.1](../008-abi/805-extern-symbols.md#rok_gc_secret_new--rok_gc_secret_wipe))는 LOS에 하나씩 따로 할당하고 `gc_flags`의 `LARGE` 비트를 켭니다. GC는 LOS를 mark-sweep으로 수집하고 객체를 옮기지 않습니다. old LOS 객체에는 card table이 있습니다([7.4.2](704-barriers-and-roots.md#742-write-barrier-incremental-update)). 비밀 버퍼에는 `WIPE` 비트([8.1.3](../008-abi/801-object-header-abi.md#813-gc_flags오프셋-4-u32))가 있습니다. 이 버퍼를 해제하는 sweep은 먼저 페이로드를 0으로 덮어씁니다.
 
-### 4. 고정된 객체(FFI pinned)
+### 3. 고정된 객체(FFI pinned)
 
 [`extern` 블록](../005-modules/509-extern-block.md)의 FFI 함수에 넘긴 GC 포인터는 호출이 끝날 때까지 옮겨지지 않습니다. 인자가 루트에 있기 때문입니다([7.4.1](704-barriers-and-roots.md#루트가-가리키는-객체는-옮기지-않음)). 외부 코드가 호출 뒤에도 주소를 들고 있어야 한다면 `rok_gc_pin`으로 고정합니다. 고정된 객체는 `gc_flags`의 `PINNED` 비트가 켜지고 제자리에 남습니다. 고정은 `rok_gc_unpin`으로 풉니다.
 
@@ -86,7 +77,6 @@ GC는 객체를 다음 네 공간 중 하나에 배치합니다.
 TLAB (할당) → Immix
 Immix → Immix         (full 수집의 evacuation)
 Immix / LOS ↔ 고정    (pin / unpin, 제자리)
-Immortal              (이동 없음)
 ```
 
 객체는 공간 사이를 옮겨 다니지 않습니다. 주소를 바꾸는 것은 evacuation뿐입니다.
@@ -119,6 +109,4 @@ GC는 객체를 마크할 때 `type_id`로 `scan_table`을 찾고, 그 표를 �
 size = 16  (헤더) + payload_size  (필드들의 정렬된 크기)
 ```
 
-컴파일러는 `type_id → size` 표로 `payload_size` 값을 압니다. 그래서 일반 Immix 객체의 크기는 `type_id`로 표를 한 번 찾으면 정해집니다.
-
-LOS 객체는 헤더의 `gc_word`에서 크기를 바로 읽습니다.
+할당기는 Immix 객체든 LOS 객체든 모든 객체의 헤더 `gc_word`에 이 총 크기를 적습니다([8.1.4](../008-abi/801-object-header-abi.md#814-gc_word오프셋-8-u64-또는-ptr)). 수집기는 크기를 거기서 읽습니다.

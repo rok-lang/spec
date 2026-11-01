@@ -2,7 +2,7 @@
 
 `librokr.a`가 노출하는 [심볼](../000-meta/007-glossary.md#extern-c-심볼)의 시그니처를 정의합니다. 컴파일러가 생성한 코드와 표준 라이브러리가 이 심볼을 호출합니다.
 
-Rok 쪽 선언은 런타임 ABI `extern "rok"`([5.9.2](../005-modules/509-extern-block.md#592-abi-명시))입니다. toolchain이 이 선언을 `rok::core::rt`에 `pub(pkg)`로 둡니다. 아래 블록에서 `fn` 값은 `RokFn`(8.5.0a)이고, 그 밖의 값은 C ABI와 같습니다. `str` 타입은 `struct { const uint8_t *ptr; size_t len; }`입니다. `str` 값을 받거나 돌려주는 런타임 함수는 `RokFn`처럼 16바이트 struct의 플랫폼 C ABI 규칙을 따릅니다([8.6.3](806-calling-convention.md#863-struct-인자--반환-작은-struct-규칙)). ABI가 허용하면 레지스터로 값 전달하고, 레지스터와 스택에 나뉘지 않으며, Windows x64에서는 참조로 넘깁니다. 프로그램은 런타임 심볼을 직접 선언할 수 있습니다(`extern "rok"` / `extern "C"`). 그 선언은 여기서 정한 시그니처와 같아야 합니다. 다르면 에러입니다.
+Rok 쪽 선언은 런타임 ABI `extern "rok"`([5.9.2](../005-modules/509-extern-block.md#592-abi-명시))입니다. toolchain 패키지가 이 선언을 비공개 항목으로 둡니다(대부분 `rok::core::rt`). 아래 블록에서 `fn` 값은 `RokFn`(8.5.0a)이고, 그 밖의 값은 C ABI와 같습니다. `str` 타입은 `struct { const uint8_t *ptr; size_t len; }`입니다. `str` 값을 받거나 돌려주는 런타임 함수는 `RokFn`처럼 16바이트 struct의 플랫폼 C ABI 규칙을 따릅니다([8.6.3](806-calling-convention.md#863-struct-인자--반환-작은-struct-규칙)). ABI가 허용하면 레지스터로 값 전달하고, 레지스터와 스택에 나뉘지 않으며, Windows x64와 wasm32에서는 참조로 넘깁니다. 프로그램은 런타임 심볼을 직접 선언할 수 있습니다(`extern "rok"` / `extern "C"`). 그 선언은 toolchain이 그 심볼을 선언한 것과 같아야 합니다. 다르면 에러입니다. 아래 목록은 C ABI 모양을 보여 줍니다. 목록이 `Ptr<u8>` / `usize`로 보여 주는 매개변수를 toolchain이 GC 타입(`GcBuf<T>`)으로 선언했다면(`rok_gc_pin`, `rok_gc_secret_new`, waker 인자 등) 그 GC 타입을 씁니다.
 
 > [!IMPORTANT]
 > 모든 심볼은 `rok_` 접두사로 시작합니다. 외부 라이브러리나 사용자 코드와 심볼이 충돌하지 않게 하려는 것입니다.
@@ -143,7 +143,7 @@ extern "rok" {
 }
 ```
 
-프로세스가 시작한 직후, `main()` 전에 호출합니다. 이 함수는 워커 풀을 만들고, GC 공간을 mmap으로 잡고, I/O 드라이버를 초기화합니다. 컴파일러가 생성한 C-ABI `main`은 이 호출 직후 `rok.register_types`를 호출합니다([8.2.13](802-scan-table.md#8213-등록-시점)).
+프로세스가 시작한 직후, `main()` 전에 호출합니다. 이 함수는 호출한 스레드를 주 mutator로 준비합니다(TLS 블록, 스택 가드, GC 상태). executor의 워커 풀은 `rok::core::task`가 처음 쓸 때 시작하는 Rok 코드이고, I/O poller는 처음 등록할 때 만듭니다. 컴파일러가 생성한 C-ABI `main`은 이 호출 직후 `rok.register_types`를 호출합니다([8.2.13](802-scan-table.md#8213-등록-시점)).
 
 런타임은 이 밖에 스레드 로컬 블록 `rok_tls`를 내보냅니다([8.3.8](803-tls-slots.md#838-컴파일러-출력-형식)).
 
@@ -157,7 +157,7 @@ extern "rok" {
 }
 ```
 
-`main()`이 끝난 직후 호출합니다. 다른 모든 Rok 스레드는 지금 실행 중인 런타임 / C 코드를 마친 뒤 다음 safepoint에서 영구히 멈춥니다. 그다음 런타임은 워커 풀을 종료하고 남은 자원을 정리합니다.
+`main()`이 끝난 직후 호출합니다. 다른 모든 Rok 스레드는 지금 실행 중인 런타임 / C 코드를 마친 뒤 다음 safepoint에서 영구히 멈춥니다. 그다음 런타임은 남은 자원을 정리합니다.
 
 ### `rok_exit`
 
@@ -260,7 +260,7 @@ Rok 쪽에서는 `#[no_safepoint]`가 붙은 `extern "rok"` 블록에 선언합�
 
 ### `rok_coro_frame_alloc`
 
-[코루틴](../007-runtime/708-coroutine.md)의 프레임을 할당합니다. **Thread-safety: `thread-safe`**.
+[코루틴](../007-runtime/708-coroutine.md) 프레임 크기의 GC 객체를 할당합니다. **Thread-safety: `thread-safe`**. 컴파일러는 이 심볼을 내보내지 않습니다. 코루틴 프레임은 일반 힙 할당입니다([8.10](810-lowering-coroutine-generic.md)). 런타임은 C와 저수준 코드를 위해 이 심볼을 제공합니다.
 
 ```
 extern "rok" {
@@ -285,11 +285,11 @@ extern "rok" {
 
 `rok_coro_park`는 코루틴을 일시 중단하고 waker를 등록합니다. `rok_coro_unpark`는 코루틴을 task 큐에 넣어 재개합니다.
 
-여기서 `waker`는 깨우는 함수와 컨텍스트의 묶음, 곧 런타임의 `Waker` 객체([2.20.2](../../refs-standard-libraries/200-core/220-future.md))를 가리키는 **불투명 포인터**(`Ptr<u8>`)입니다. C ABI 경계에서는 `Waker`의 내부 표현을 노출하지 않습니다. 그래서 [7.8.8](../007-runtime/708-coroutine.md)을 비롯한 모든 곳에서 `waker` 인자의 타입은 `Ptr<u8>`입니다(`rok_io_register`, `rok_timer_register`도 같음). 포인터가 가리키는 객체의 정확한 레이아웃은 코루틴 구현이 정합니다.
+여기서 `waker`는 Rok 쪽에서 런타임의 `Waker`([2.20.2](../../refs-standard-libraries/200-core/220-future.md))를 담은 원소 하나짜리 `GcBuf<Waker>`이며, 8.5.5와 같습니다. C ABI에서는 그 버퍼를 가리키는 포인터이고, 목록에는 [7.8.8](../007-runtime/708-coroutine.md)을 비롯해 `Ptr<u8>`로 적습니다(`rok_io_register`, `rok_timer_register`도 같음). `Waker`의 레이아웃은 코루틴 구현이 정합니다.
 
 ## 8.5.4. 스케줄러 영역
 
-task 런타임(spawn, join, cancel, executor)은 `rok::core::task`의 Rok 코드입니다([stdlib 2.18](../../refs-standard-libraries/200-core/218-task.md)). 런타임에는 아래의 executor 슬롯, 스레드, parking 심볼만 있습니다.
+task 런타임(spawn, join, cancel, executor)은 `rok::core::task`의 Rok 코드입니다([stdlib 2.18](../../refs-standard-libraries/200-core/218-task.md)). 이를 위해 런타임은 아래의 executor 슬롯, 스레드, parking 심볼을 제공합니다. 그 밖의 스케줄러 보조 심볼(`rok_sched_*`, `rok_lane_*`, `rok_sync_*`, `rok_deque_*`)은 구현이 정합니다(8.5.12).
 
 ### `rok_task_worker_*` / `rok_time_now_ns`
 
@@ -514,7 +514,7 @@ rok_net_splice        rok_net_getopt
 
 ```
 extern "rok" {
-    fn rok_panic(msg: ConstPtr<u8>, msg_len: usize);   // 반환 안 함
+    fn rok_panic(msg: ConstPtr<u8>, msg_len: usize) -> !;
 }
 ```
 
@@ -576,6 +576,7 @@ extern "rok" {
 
 ```
 thread '<name>' has overflowed its stack
+fatal runtime error: stack overflow, aborting
 ```
 
 `<name>`은 `thread::Builder::name`으로 준 스레드 이름입니다(OS 스레드 이름으로도 설정함, [7. 런타임](../007-runtime/README.md#런타임-에러-스택-오버플로)). 대상은 main 스레드(`rok_runtime_init`), `rok_thread_spawn` 스레드(executor 워커 포함, 깊은 `await` 사슬도), `rok_thread_init`을 호출한 C 스레드입니다. 런타임은 각 스레드의 스택 아래 guard 범위를 TLS 슬롯 `rok_tls_stack_guard`([8.3.1](803-tls-slots.md#831-tls-슬롯-구조))에 기록하고, 대체 신호 스택(`sigaltstack`)을 둡니다. 그 범위 안의 SIGSEGV / SIGBUS만 스택 오버플로로 보고합니다. 그 밖의 fault는 기본 동작을 따릅니다. wasm에서는 모듈이 trap을 잡을 수 없으므로 호스트가 보고합니다. 함께 배포하는 JS 호스트는 위 메시지를 출력합니다.
@@ -617,23 +618,23 @@ thread '<name>' has overflowed its stack
 ; LLVM IR (fast path 실패 시)
 %t = call ptr @llvm.threadlocal.address(ptr @rok_tls)
 %cursor_p = getelementptr i8, ptr %t, i64 8          ; tlab_cursor at p
-%cursor = load i8*, i8** %cursor_p
-%new_cursor = getelementptr i8, i8* %cursor, i64 24
+%cursor = load ptr, ptr %cursor_p
+%new_cursor = getelementptr i8, ptr %cursor, i64 24
 %limit_p = getelementptr i8, ptr %t, i64 16          ; tlab_limit at 2p
-%limit = load i8*, i8** %limit_p
-%check = icmp ugt i8* %new_cursor, %limit
+%limit = load ptr, ptr %limit_p
+%check = icmp ugt ptr %new_cursor, %limit
 br i1 %check, label %slow, label %fast
 
 slow:
-  %obj = call i8* @rok_gc_alloc_slow(i64 24, i64 8, i32 12345)
+  %obj_slow = call ptr @rok_gc_alloc_slow(i64 24, i64 8, i32 12345)
   br label %cont
 
 fast:
-  store i8* %new_cursor, i8** %cursor_p
+  store ptr %new_cursor, ptr %cursor_p
   br label %cont
 
 cont:
-  %obj_phi = phi i8* [%obj_slow, %slow], [%cursor, %fast]
+  %obj = phi ptr [%obj_slow, %slow], [%cursor, %fast]
   ; ... 계속
 ```
 

@@ -84,7 +84,7 @@ Entry array (8 bytes each):
 | 2   | `INTERIOR_REF`: 객체 내부를 가리킴 (forwarding 시 보정)          |
 | 3   | `ANY_SLOT`: `tag + payload` 형태의 동적 슬롯. tag 검사 후 mark   |
 | 4   | `SUM_PAYLOAD`: 합 타입의 tag와 변형별 참조 (8.2.6). bit 8..31은 descriptor 위치   |
-| 5   | `AMBIGUOUS_WORD`: 참조일 수도 아닐 수도 있는 word. 가리키는 객체를 살리되 옮기지 않음 (type id `2` buffer, untagged `union`) |
+| 5   | `AMBIGUOUS`: 참조일 수도 아닐 수도 있는 word. 가리키는 객체를 살리되 옮기지 않음 (type id `2` buffer, untagged `union`) |
 | 6 ~ | 예약 / 추가 종류                                                 |
 
 각 종류를 실제로 어떻게 표시(mark)하는지는 GC 구현이 정합니다. 이 사양은 어떤 종류가 있는지와 그 인코딩만 정의합니다.
@@ -130,7 +130,7 @@ enum Result {
 }
 ```
 
-이 타입의 객체는 tag(4바이트), 패딩(4바이트), 가장 큰 변형의 페이로드(8바이트, str 포인터)로 이루어집니다. 총 32바이트입니다.
+이 타입을 담은 객체는 16바이트 헤더, tag(4바이트), 패딩(4바이트), 가장 큰 변형의 페이로드(16바이트, `str` 포인터와 길이)로 이루어집니다. 총 40바이트입니다.
 
 변형마다 참조의 위치가 다르므로 `SUM_PAYLOAD` entry 하나와 그 descriptor를 씁니다.
 
@@ -146,11 +146,11 @@ ScanTable {
   entry[0]: field_offset = 16, field_kind = 4 | (desc << 8)    // tag 는 offset 16
   desc:     n = 1
             { tag = 1 (Err), num_entries = 1, entries_index = e }
-  e:        { offset = 8, field_kind = STRONG_REF }             // Err 의 str ptr
+  e:        { offset = 8, field_kind = INTERIOR_REF }           // Err 의 str ptr (페이로드 안을 가리킴)
 }
 ```
 
-enum / 합 타입 페이로드의 참조는 정밀합니다. 그래서 페이로드를 거쳐 닿은 객체도 evacuation으로 옮겨질 수 있습니다. `AMBIGUOUS_WORD`는 type id `2` 버퍼와, tag가 없어 해석할 수 없는 사용자 `union`의 저장소에만 씁니다.
+enum / 합 타입 페이로드의 참조는 정밀합니다. 그래서 페이로드를 거쳐 닿은 객체도 evacuation으로 옮겨질 수 있습니다. `AMBIGUOUS`는 type id `2` 버퍼와, tag가 없어 해석할 수 없는 사용자 `union`의 저장소에만 씁니다.
 
 ## 8.2.7. ANY 슬롯
 
@@ -196,9 +196,7 @@ INTERIOR_REF는 객체 안에서 시작이 아닌 위치를 가리킵니다.
 
 ## 8.2.10. 직렬화의 엔디언
 
-모든 필드는 little-endian입니다. Rok은 little-endian 타깃을 우선하고, 직렬화 포맷도 이에 맞춥니다. [플랫폼 타깃](../000-meta/006-platform-targets.md)의 Tier 1 타깃은 모두 little-endian입니다.
-
-big-endian 타깃 지원을 추가할 때 직렬화 endianness를 little로 고정할지, 호스트 endianness를 따를지 정합니다.
+표는 타깃의 바이트 순서로 적은 `u32` 워드 배열이고, 런타임은 이를 네이티브 워드로 읽습니다. [플랫폼 타깃](../000-meta/006-platform-targets.md)의 Tier 1 타깃에서는 모두 little-endian이고, big-endian 타깃(`s390x-unknown-linux-gnu`)에서는 워드가 big-endian입니다.
 
 ## 8.2.11. 변경 호환
 
@@ -214,7 +212,7 @@ ScanTable 포맷의 호환성은 version 필드로 다룹니다.
 | type id | 의미              | scan                                                    |
 |---------|-------------------|---------------------------------------------------------|
 | `1`     | GC 문자열         | payload는 바이트이며 훑지 않음                     |
-| `2`     | word-traced buffer | payload의 모든 word를 모호한 word(`AMBIGUOUS_WORD`)로 훑음    |
+| `2`     | word-traced buffer | payload의 모든 word를 모호한 word(`AMBIGUOUS`)로 훑음    |
 | `3`     | weak cell (`Weak<T>`) | `WEAK_REF` word 하나 (8.2.8), `rok_gc_weak_new`로 만듦  |
 
 id `1`과 `2`는 type id `1` 또는 `2`를 넘겨 `rok_gc_alloc_slow`를 호출해 할당합니다([8.5.1](805-extern-symbols.md#851-gc-영역)). 표준 라이브러리의 [`GcBuf<T>`](../../refs-standard-libraries/200-core/209-collections.md#2912-gcbuft-원시-gc-버퍼)가 이 위에 놓입니다.

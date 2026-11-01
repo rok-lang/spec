@@ -1,6 +1,6 @@
 # 8. Runtime ABI / MLIR lowering overview
 
-This block defines the shared contract between the compiler (`rokc`) and the runtime (`librokr.a`). The compiler and the runtime are connected through the text of this specification. The only code they share is a single definition of the GC ABI constants (`gc_abi`, [8.1](801-object-header-abi.md)).
+This block defines the shared contract between the compiler (`rokc`) and the runtime (`librokr.a`; `rokr.lib` on Windows MSVC targets). The compiler and the runtime are connected through the text of this specification. The code they share is a few runtime source files the compiler includes so both sides use one definition: the GC ABI constants (`gc_abi`, [8.1](801-object-header-abi.md)), the TLS slot layout (`tls_abi`, [8.3](803-tls-slots.md)), and the format-spec, string and Unicode routines that constant evaluation must agree on with the runtime.
 
 ## Contents
 
@@ -27,7 +27,7 @@ The rules, applied in the rok-mir → standard MLIR stage of the [compilation pi
 
 ## Why this specification text is authoritative
 
-The compiler and the runtime share no code or header files other than `gc_abi`. The guarantee that both follow the same [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) comes from this specification text and from end-to-end verification in integration tests.
+Apart from those included source files, the compiler and the runtime share no code or header files. The guarantee that both follow the same [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) comes from this specification text and from end-to-end verification in integration tests.
 
 This model follows the same approach as Swift ABI Stability: the specification is authoritative and the implementation follows it.
 

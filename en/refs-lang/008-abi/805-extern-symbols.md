@@ -2,7 +2,7 @@
 
 Defines the signatures of the [symbols](../000-meta/007-glossary.md#extern-c-symbol) exposed by `librokr.a`. Compiler-generated code and the standard library call these symbols.
 
-On the Rok side they are declared with the runtime ABI `extern "rok"` ([5.9.2](../005-modules/509-extern-block.md#592-abi-specifiers)), which the toolchain places in `rok::core::rt` as `pub(pkg)`. In the blocks below a `fn` value is `RokFn` (8.5.0a) and all other values are as in the C ABI. `str` is `struct { const uint8_t *ptr; size_t len; }`; runtime functions taking or returning `str` follow the platform C ABI for a 16-byte struct ([8.6.3](806-calling-convention.md#863-struct-arguments--return-small-struct-rule)), like `RokFn`: by value in registers where the ABI allows, never split between registers and the stack, and by reference on Windows x64. A program may declare a runtime symbol itself (`extern "rok"` / `extern "C"`); its declaration must have the signature given here, and a different one is an error.
+On the Rok side they are declared with the runtime ABI `extern "rok"` ([5.9.2](../005-modules/509-extern-block.md#592-abi-specifiers)), which the toolchain's packages declare as private items (most in `rok::core::rt`). In the blocks below a `fn` value is `RokFn` (8.5.0a) and all other values are as in the C ABI. `str` is `struct { const uint8_t *ptr; size_t len; }`; runtime functions taking or returning `str` follow the platform C ABI for a 16-byte struct ([8.6.3](806-calling-convention.md#863-struct-arguments--return-small-struct-rule)), like `RokFn`: by value in registers where the ABI allows, never split between registers and the stack, and by reference on Windows x64 and wasm32. A program may declare a runtime symbol itself (`extern "rok"` / `extern "C"`); its declaration must be the same as the toolchain's own declaration of that symbol, and a different one is an error. The listings below give the C ABI shape; where the toolchain declares a parameter with a GC type (`GcBuf<T>`, as for `rok_gc_pin`, `rok_gc_secret_new` and the waker arguments) that the listing shows as `Ptr<u8>` / `usize`, the GC type is the one to write.
 
 > [!IMPORTANT]
 > Every symbol starts with the `rok_` prefix, to avoid symbol collisions with external libraries and user code.
@@ -143,7 +143,7 @@ extern "rok" {
 }
 ```
 
-Called right after process start, before `main()`. Effects: creates the worker pool, mmaps the GC spaces and initializes the I/O driver. The compiler-generated C-ABI `main` calls `rok.register_types` right after this call ([8.2.13](802-scan-table.md#8213-registration-time)).
+Called right after process start, before `main()`. Effects: sets up the calling thread as the main mutator (its TLS block, stack guard and GC state). The executor's worker pool is Rok code started by `rok::core::task` on first use, and the I/O poller is created lazily on first registration. The compiler-generated C-ABI `main` calls `rok.register_types` right after this call ([8.2.13](802-scan-table.md#8213-registration-time)).
 
 The runtime additionally exports the thread-local block `rok_tls` ([8.3.8](803-tls-slots.md#838-form-of-compiler-emission)).
 
@@ -157,7 +157,7 @@ extern "rok" {
 }
 ```
 
-Called right after `main()` ends. Every other Rok thread stops for good at its next safepoint, after finishing any runtime or C code it is in. Then the worker pool shuts down and outstanding resources are released.
+Called right after `main()` ends. Every other Rok thread stops for good at its next safepoint, after finishing any runtime or C code it is in. Then outstanding resources are released.
 
 ### `rok_exit`
 
@@ -260,7 +260,7 @@ The following runtime functions are guaranteed never to allocate and never to bl
 
 ### `rok_coro_frame_alloc`
 
-Allocates a [coroutine](../007-runtime/708-coroutine.md) frame. **Thread-safety: `thread-safe`**.
+Allocates a [coroutine](../007-runtime/708-coroutine.md) frame-sized GC object. **Thread-safety: `thread-safe`**. The compiler does not emit it: coroutine frames are ordinary heap allocations ([8.10](810-lowering-coroutine-generic.md)). The runtime provides it for C and low-level code.
 
 ```
 extern "rok" {
@@ -285,11 +285,11 @@ extern "rok" {
 
 `rok_coro_park` suspends the coroutine and registers the waker. `rok_coro_unpark` resumes the coroutine by pushing it onto the task queue.
 
-Here `waker` is an **opaque pointer (`Ptr<u8>`)** to a bundle of wake function and context, i.e. the runtime's `Waker` object ([2.20.2](../../refs-standard-libraries/200-core/220-future.md)). The internal representation of `Waker` is not exposed across the C ABI boundary, so the `waker` argument has type `Ptr<u8>` everywhere, including [7.8.8](../007-runtime/708-coroutine.md) (likewise for `rok_io_register` and `rok_timer_register`). The exact layout of the pointed-to object is determined by the coroutine implementation.
+Here `waker` is, on the Rok side, a single-element `GcBuf<Waker>` holding the runtime's `Waker` ([2.20.2](../../refs-standard-libraries/200-core/220-future.md)), as in 8.5.5. Across the C ABI it is a pointer to that buffer, shown as `Ptr<u8>` in the listings, including [7.8.8](../007-runtime/708-coroutine.md) (likewise for `rok_io_register` and `rok_timer_register`). The layout of `Waker` is the coroutine implementation's.
 
 ## 8.5.4. Scheduler area
 
-The task runtime (spawn, join, cancel, executor) is Rok code in `rok::core::task` ([stdlib 2.18](../../refs-standard-libraries/200-core/218-task.md)). The runtime provides only the executor slot, thread and parking symbols below.
+The task runtime (spawn, join, cancel, executor) is Rok code in `rok::core::task` ([stdlib 2.18](../../refs-standard-libraries/200-core/218-task.md)). For it the runtime provides the executor slot, thread and parking symbols below; further scheduler helpers (`rok_sched_*`, `rok_lane_*`, `rok_sync_*`, `rok_deque_*`) are implementation-defined (8.5.12).
 
 ### `rok_task_worker_*` / `rok_time_now_ns`
 
@@ -514,7 +514,7 @@ Exit codes below (`101` etc.) reach the host as plain failure on `wasm32-wasip2`
 
 ```
 extern "rok" {
-    fn rok_panic(msg: ConstPtr<u8>, msg_len: usize);   // does not return
+    fn rok_panic(msg: ConstPtr<u8>, msg_len: usize) -> !;
 }
 ```
 
@@ -576,6 +576,7 @@ When a thread's stack overflows, the runtime flushes stdout (if possible), print
 
 ```
 thread '<name>' has overflowed its stack
+fatal runtime error: stack overflow, aborting
 ```
 
 `<name>` is the thread name given with `thread::Builder::name` (also set as the OS thread name, [7. Runtime](../007-runtime/README.md#runtime-error-stack-overflow)). This covers the main thread (`rok_runtime_init`), `rok_thread_spawn` threads (including executor workers, and deep `await` chains), and C threads that called `rok_thread_init`. The runtime records the guard range below each thread's stack in the TLS slot `rok_tls_stack_guard` ([8.3.1](803-tls-slots.md#831-tls-slot-structure)) and installs an alternate signal stack (`sigaltstack`). Only SIGSEGV / SIGBUS within that range is reported as a stack overflow; other faults follow the default behavior. On wasm a module cannot catch the trap; the host reports it (the shipped JS host prints the message above).
@@ -617,23 +618,23 @@ All functions above use the target platform's C ABI calling convention, e.g. Sys
 ; LLVM IR (when the fast path fails)
 %t = call ptr @llvm.threadlocal.address(ptr @rok_tls)
 %cursor_p = getelementptr i8, ptr %t, i64 8          ; tlab_cursor at p
-%cursor = load i8*, i8** %cursor_p
-%new_cursor = getelementptr i8, i8* %cursor, i64 24
+%cursor = load ptr, ptr %cursor_p
+%new_cursor = getelementptr i8, ptr %cursor, i64 24
 %limit_p = getelementptr i8, ptr %t, i64 16          ; tlab_limit at 2p
-%limit = load i8*, i8** %limit_p
-%check = icmp ugt i8* %new_cursor, %limit
+%limit = load ptr, ptr %limit_p
+%check = icmp ugt ptr %new_cursor, %limit
 br i1 %check, label %slow, label %fast
 
 slow:
-  %obj = call i8* @rok_gc_alloc_slow(i64 24, i64 8, i32 12345)
+  %obj_slow = call ptr @rok_gc_alloc_slow(i64 24, i64 8, i32 12345)
   br label %cont
 
 fast:
-  store i8* %new_cursor, i8** %cursor_p
+  store ptr %new_cursor, ptr %cursor_p
   br label %cont
 
 cont:
-  %obj_phi = phi i8* [%obj_slow, %slow], [%cursor, %fast]
+  %obj = phi ptr [%obj_slow, %slow], [%cursor, %fast]
   ; ... continue
 ```
 

@@ -84,7 +84,7 @@ The values `field_kind` may take and their meanings are as follows.
 | 2   | `INTERIOR_REF`: points inside an object (adjusted on forwarding) |
 | 3   | `ANY_SLOT`: dynamic slot of the form `tag + payload`. Marked after checking the tag |
 | 4   | `SUM_PAYLOAD`: tag of a sum type and per-variant references (8.2.6). bits 8..31 hold the descriptor location |
-| 5   | `AMBIGUOUS_WORD`: a word that may or may not be a reference. The pointed-to object is kept alive but not moved (type id `2` buffer, untagged `union`) |
+| 5   | `AMBIGUOUS`: a word that may or may not be a reference. The pointed-to object is kept alive but not moved (type id `2` buffer, untagged `union`) |
 | 6 ~ | reserved / additional kinds                                      |
 
 How each kind is actually marked is up to the GC implementation; this specification defines only which kinds exist and their encoding.
@@ -130,7 +130,7 @@ enum Result {
 }
 ```
 
-An object of this type consists of the tag (4 bytes), padding (4 bytes) and the payload of the largest variant (8 bytes, a str pointer), 32 bytes in total.
+An object holding this type consists of the 16-byte header, the tag (4 bytes), padding (4 bytes) and the payload of the largest variant (16 bytes, a `str` pointer and length), 40 bytes in total.
 
 References sit at different places in each variant, so a single `SUM_PAYLOAD` entry and its descriptor are used.
 
@@ -146,11 +146,11 @@ ScanTable {
   entry[0]: field_offset = 16, field_kind = 4 | (desc << 8)    // tag at offset 16
   desc:     n = 1
             { tag = 1 (Err), num_entries = 1, entries_index = e }
-  e:        { offset = 8, field_kind = STRONG_REF }             // str ptr of Err
+  e:        { offset = 8, field_kind = INTERIOR_REF }           // str ptr of Err (into a payload)
 }
 ```
 
-References in enum / sum type payloads are precise, so objects reached through a payload may also be moved by evacuation. `AMBIGUOUS_WORD` is used only for type id `2` buffers and for the storage of user `union`s, which have no tag and cannot be interpreted.
+References in enum / sum type payloads are precise, so objects reached through a payload may also be moved by evacuation. `AMBIGUOUS` is used only for type id `2` buffers and for the storage of user `union`s, which have no tag and cannot be interpreted.
 
 ## 8.2.7. ANY slots
 
@@ -196,9 +196,7 @@ The exact handling is determined by the GC implementation.
 
 ## 8.2.10. Endianness of the serialization
 
-All fields are little-endian. Rok targets little-endian platforms first (all Tier 1 targets in [Platform targets](../000-meta/006-platform-targets.md) are little-endian), and the serialization format follows suit.
-
-When big-endian target support is added, it will be decided at that time whether serialization endianness stays fixed to little or follows the host endianness.
+The table is an array of `u32` words in the target's byte order, which the runtime reads as native words. On every Tier 1 target in [Platform targets](../000-meta/006-platform-targets.md) that is little-endian; on a big-endian target (`s390x-unknown-linux-gnu`) the words are big-endian.
 
 ## 8.2.11. Compatibility of changes
 
@@ -214,7 +212,7 @@ The following three type ids are defined directly by the runtime; the compiler d
 | type id | Meaning           | scan                                                    |
 |---------|-------------------|---------------------------------------------------------|
 | `1`     | GC string         | payload is bytes and is not scanned                     |
-| `2`     | word-traced buffer | every word of the payload is scanned as an ambiguous word (`AMBIGUOUS_WORD`) |
+| `2`     | word-traced buffer | every word of the payload is scanned as an ambiguous word (`AMBIGUOUS`) |
 | `3`     | weak cell (`Weak<T>`) | one `WEAK_REF` word (8.2.8); made by `rok_gc_weak_new` |
 
 Ids `1` and `2` are allocated with `rok_gc_alloc_slow` with type id `1` or `2` ([8.5.1](805-extern-symbols.md#851-gc-area)). The standard library's [`GcBuf<T>`](../../refs-standard-libraries/200-core/209-collections.md#2912-gcbuft---raw-gc-buffer) sits on top of this.

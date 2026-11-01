@@ -16,6 +16,7 @@ Every function declared as an [Extern "C" symbol](805-extern-symbols.md) uses th
 | Windows x86_64           | MS x64             |
 | Windows aarch64          | AAPCS64 (MS variant) |
 | Windows i686             | MS x86 (cdecl)     |
+| FreeBSD x86_64           | System V AMD64     |
 | Linux riscv64            | RISC-V LP64D       |
 | WASM                     | clang's WebAssembly C ABI |
 
@@ -51,8 +52,8 @@ When an aggregate is passed by value across the C boundary (`extern "C"` declara
 | RISC-V LP64D (riscv64)                    | A struct (no union) of one float, two floats, or a float and an integer of 8 bytes or less goes in floating-point / integer registers as its fields while enough are free. Otherwise an aggregate of 8 bytes or less becomes `i64`, of 16 bytes or less `[2 x i64]` (`i128` if 16-byte aligned), and a larger argument is passed as a pointer to a caller copy. Results follow the same rule with two registers of each kind; larger ones use `sret` |
 | Other targets                             | Passing an aggregate value across the C boundary is a compile error                       |
 
-- `signext` / `zeroext` on narrow integer parameters and returns (`i8` / `i16` / `u8` / `u16` / `bool` / `c_char`) follow the platform C ABI: x86_64 SysV and Apple arm64 extend `i8` / `i16` / `bool`; Linux AAPCS64 extends none; Windows x64 extends only `bool`.
-- Every function carries an inline stack probe, so a large frame touches the guard page instead of skipping it.
+- `signext` / `zeroext` on narrow integer parameters and returns (`i8` / `i16` / `u8` / `u16` / `bool` / `c_char`) follow the platform C ABI: x86_64 SysV, Apple arm64, i686, armv7, wasm32 and riscv64 extend `i8` / `i16` / `bool`; RISC-V also sign-extends 32-bit values (`i32` / `u32` / `char`); armv7 and riscv64 zero-extend `c_char`; Linux AAPCS64 and Windows arm64 extend none; Windows x64 extends only `bool`.
+- Functions carry a stack probe, so a large frame touches the guard page instead of skipping it: an inline probe, or a `__chkstk` call on Windows. armv7, wasm32, powerpc64le, s390x and riscv32 targets have no probe.
 - The same classification applies to `extern "C" fn` **definitions**. A definition has a separate C-ABI entry point called from C; calls from Rok keep using the Rok convention.
 - On System V i386, the in-aggregate alignment of `i64` / `u64` / `f64` is 4 bytes (same as C).
 - This classification does not apply to calls between Rok functions (8.6.6). It is needed only where Rok meets C, including runtime functions taking or returning `str` (a 16-byte struct; by reference on Windows x64, [8.5](805-extern-symbols.md)).

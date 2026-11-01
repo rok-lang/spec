@@ -31,7 +31,7 @@ full 수집은 단편화된 block의 산 객체를 다른 block으로 옮길 수
 
 - 후보는 직전 sweep이 남긴 line 상태를 보고 고릅니다. 절반 이하로 찬 block이 후보입니다. 단편화가 임계값을 넘었을 때만 옮깁니다.
 - 옮긴 객체의 옛 자리에는 forwarding pointer를 남깁니다. 같은 수집 안에서 모든 정밀 참조를 새 위치로 고칩니다.
-- 다음 객체는 옮기지 않습니다. 루트가 직접 가리키는 객체([7.4.1](704-barriers-and-roots.md#루트가-가리키는-객체는-옮기지-않음)), 모호한 word(`AMBIGUOUS_WORD`: type id `2` buffer, untagged `union`)가 가리키는 객체, `PINNED` / `NOMOVE` 객체, LOS 객체.
+- 다음 객체는 옮기지 않습니다. 루트가 직접 가리키는 객체([7.4.1](704-barriers-and-roots.md#루트가-가리키는-객체는-옮기지-않음)), 모호한 word(`AMBIGUOUS`: type id `2` buffer, untagged `union`)가 가리키는 객체, `PINNED` / `NOMOVE` 객체, LOS 객체.
 - 다음 사이클의 할당 예산을 넘는 빈 block은 OS에 돌려줍니다.
 - 테스트용 설정 `ROKR_GC_EVAC=always`를 쓰면 full 수집마다 evacuation을 합니다([9.9.8](../009-tools/909-debug-tools.md#998-메모리--gc-도구)).
 
