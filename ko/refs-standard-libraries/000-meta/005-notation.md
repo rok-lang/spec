@@ -214,3 +214,32 @@ let z = x + y;        //→ 4.0 (f64)
 | `BufReader`, `BufWriter`, `LineWriter`, `Cursor` | 안쪽 스트림을 따름([2.23.6](../200-core/223-io.md#2236-버퍼와-cursor)) | |
 
 `Sender`의 `close`는 I/O가 아니므로 짝이 없습니다.
+
+## 0.5.15. 문서와 속성
+
+표준 라이브러리의 모든 공개 항목에는 `///` 문서 주석이 있습니다. 함수, 타입, 트레잇, 트레잇 메서드, 고유 메서드가 모두 해당하고, `const fn`과 `async fn`, `cfg` 뒤에 있는 항목도 마찬가지입니다. 문서는 항목이 하는 일과 돌려주는 값을 말합니다. 던지거나 `none`을 돌려주거나 panic하는 함수는 언제 그러는지 말하고, `unsafe` 함수는 호출하는 쪽이 지켜야 할 조건을 말합니다. 라이브러리 자체 검사(`rokc check --check-library`)는 `missing_docs`를 `deny`로 봅니다([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md)).
+
+결과에 순서가 있는 함수는 그 순서를 밝힙니다.
+
+| 항목 | 순서 |
+|---|---|
+| `Dict`, `Set`과 그 반복자 | 삽입 순서 |
+| `Set::union`, `Set::symmetric_difference` | `self`에서 온 멤버를 그 순서대로, 이어서 `other`에만 있는 멤버를 그 순서대로 |
+| `Set::intersection`, `Set::difference` | `self`의 순서 |
+| `fs::walk` | 깊이 우선 전위 순서(디렉터리가 그 항목보다 먼저), 각 디렉터리의 항목은 이름순 |
+| `net::resolve` | 시스템 리졸버의 순서, 선호하는 주소가 먼저 |
+| `env::vars`, `env::vars_os` | OS가 환경을 담아 둔 순서, 정렬하지 않음 |
+| `task::race` | 먼저 끝난 task가 이기고, 같은 깨어남에서 끝난 것으로 보이면 인덱스가 가장 작은 것이 이김. 나머지는 취소됨 |
+| `task::select` | 목록 순서로 poll, 동시면 인덱스가 작은 쪽 |
+
+`#[must_use]`([refs-lang 6.2.11](../../refs-lang/006-meta-system/602-built-in-attributes.md#6211-쓰지-않은-결과-unused_result-discardable-must_use))는 다음에 붙습니다. 타입에는 값을 어떻게 쓰는지 알려 주는 메시지가 붙습니다.
+
+| 종류 | 항목 |
+|---|---|
+| 반복자 | `str`(`Chars`, `CharIndices`, `Split`, `Lines` 등), `List`(`ListIter`), `Slice`(`SliceIter`, `Windows`, `Chunks`), `SliceMut`(`SliceMutIter`), `Dict`(`Keys`, `Values`, `DictIter`), `Set`(`SetIter`), `Deque`(`DequeIter`), `BinaryHeap`(`HeapIter`), `Receiver`(`ReceiverIter`)의 반복자, `iter` 어댑터와 `TryIterator` 어댑터(`TryMap`, `MapErr`, `Results` 등), `GenIter`, `TryGenIter`, `env::Vars`, `env::VarsOs`, `fs::ReadDir`, `fs::Walk`, `io::Lines`, `io::Split`, `io::Bytes`, `net::Incoming`, `path::Components`, `path::Ancestors` |
+| 스트림 | `AsyncStream`, `TryAsyncStream`, `stream` 어댑터와 조합자, `TryStream` 어댑터, `io::BytesStream`, `io::LinesStream`, `fs::ReadDirStream` |
+| future | `async fn` 호출이나 `async` 블록의 값, `LockFuture`, `ReadFuture`, `WriteFuture`, `CondvarWait`, `RecvFuture`, `SendFuture`, `task::Join`, `SelectFuture` |
+| 빌더와 결과 | `process::Command`, `thread::Builder`, `thread::JoinHandle`, `Result` |
+| 함수 | `str`와 `Path`의 값 메서드, 모든 `Duration` 함수와 `Instant`의 산술, `Set::union`, `intersection`, `difference`, `symmetric_difference`, 정수와 부동소수점 기본 타입, `Int`, `Float`의 모든 메서드 |
+
+`spawn`과 `spawn_blocking`이 돌려주는 `Task`는 `#[must_use]`가 아닙니다. 기다리든 말든 작업은 실행됩니다. 가드에는 표시가 필요 없습니다. 문장에서 `MutexGuard`를 버리면 오류입니다. `#[discardable]` 함수는 refs-lang 6.2.11에 나온 것들입니다.

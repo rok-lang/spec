@@ -285,7 +285,7 @@ A file with lexical errors is left untouched and the error is reported, with exi
 rokc check [path] [--check-library]
 ```
 
-Runs the front end through type checking and MIR building, plus lints, and reports diagnostics. No code generation (no MLIR) is performed. Options are the same as `rokc build`. `--check-library` lowers and checks every body of a library regardless of reachability, and checks every generic body against its bounds ([2.10.9](../002-types/210-generics.md#2109-body-checking)); its lints then cover the standard library's own code too, with `missing_docs` at `warn` ([6.2.9](../006-meta-system/602-built-in-attributes.md)). A package with both root files checks its library, then, if the library has no error, its executable with the library compiled in; each warning is reported once.
+Runs the front end through type checking and MIR building, plus lints, and reports diagnostics. No code generation (no MLIR) is performed. Options are the same as `rokc build`. `--check-library` lowers and checks every body of a library regardless of reachability, and checks every generic body against its bounds ([2.10.9](../002-types/210-generics.md#2109-body-checking)); its lints then cover the standard library's own code too, with `missing_docs` at `deny` ([6.2.9](../006-meta-system/602-built-in-attributes.md)). A package with both root files checks its library, then, if the library has no error, its executable with the library compiled in; each warning is reported once.
 
 ### `rokc lint`: linter
 

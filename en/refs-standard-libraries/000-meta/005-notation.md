@@ -213,3 +213,32 @@ Stream operations get their twins from traits, not from methods of each type: a 
 | `BufReader`, `BufWriter`, `LineWriter`, `Cursor` | as their inner stream ([2.23.6](../200-core/223-io.md#2236-buffers-and-cursor)) | |
 
 A `Sender`'s `close` is not I/O and has no twin.
+
+## 0.5.15. Docs and attributes
+
+Every public item of the standard libraries has a `///` doc comment: each function, type, trait, trait method and inherent method, `const fn` and `async fn` ones and those behind a `cfg` included. A doc says what the item does and what it returns; a function that throws, returns `none` or panics says when, and an `unsafe` function says what its caller must uphold. The library's own check (`rokc check --check-library`) denies `missing_docs` ([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md)).
+
+A function whose result has an order states it:
+
+| Item | Order |
+|---|---|
+| `Dict`, `Set` and their iterators | insertion order |
+| `Set::union`, `Set::symmetric_difference` | the members from `self` in its order, then those only in `other` in its order |
+| `Set::intersection`, `Set::difference` | `self`'s order |
+| `fs::walk` | depth first in pre-order (a directory before its entries), each directory's entries sorted by name |
+| `net::resolve` | the system resolver's order, its preferred address first |
+| `env::vars`, `env::vars_os` | the order the OS keeps the environment in; not sorted |
+| `task::race` | the first task to finish wins; tasks found finished at the same wake-up go to the lowest index; the others are cancelled |
+| `task::select` | polled in list order; a tie goes to the lower index |
+
+`#[must_use]` ([refs-lang 6.2.11](../../refs-lang/006-meta-system/602-built-in-attributes.md#6211-unused-results-unused_result-discardable-must_use)) marks these, each type with a message that says how to use the value:
+
+| Kind | Items |
+|---|---|
+| Iterators | those of `str` (`Chars`, `CharIndices`, `Split`, `Lines`, ...), `List` (`ListIter`), `Slice` (`SliceIter`, `Windows`, `Chunks`), `SliceMut` (`SliceMutIter`), `Dict` (`Keys`, `Values`, `DictIter`), `Set` (`SetIter`), `Deque` (`DequeIter`), `BinaryHeap` (`HeapIter`) and `Receiver` (`ReceiverIter`); the `iter` adapters and the `TryIterator` adapters (`TryMap`, `MapErr`, `Results`, ...); `GenIter`, `TryGenIter`; `env::Vars`, `env::VarsOs`; `fs::ReadDir`, `fs::Walk`; `io::Lines`, `io::Split`, `io::Bytes`; `net::Incoming`; `path::Components`, `path::Ancestors` |
+| Streams | `AsyncStream`, `TryAsyncStream`; the `stream` adapters and combinators and the `TryStream` adapters; `io::BytesStream`, `io::LinesStream`; `fs::ReadDirStream` |
+| Futures | the value of an `async fn` call or `async` block; `LockFuture`, `ReadFuture`, `WriteFuture`, `CondvarWait`, `RecvFuture`, `SendFuture`, `task::Join`, `SelectFuture` |
+| Builders and results | `process::Command`, `thread::Builder`, `thread::JoinHandle`, `Result` |
+| Functions | the value methods of `str` and `Path`; every `Duration` function and `Instant`'s arithmetic; `Set::union`, `intersection`, `difference`, `symmetric_difference`; every method of the integer and float primitives, `Int` and `Float` |
+
+A `Task`, what `spawn` and `spawn_blocking` return, is not `#[must_use]`: the work runs whether or not it is awaited. A guard needs no mark: dropping a `MutexGuard` in a statement is an error. The `#[discardable]` functions are those refs-lang 6.2.11 lists.
