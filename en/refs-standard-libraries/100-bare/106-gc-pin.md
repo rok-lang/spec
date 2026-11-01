@@ -63,7 +63,7 @@ impl<T> Drop for Pinned<T> {
 }
 ```
 
-It is a guard bound with `using`. While the `Pinned<T>` returned by `pin()` is inside a `using` block, the GC does not move the object; on leaving the block `Pinned::drop` is called and the object is unpinned. A `Pinned<T>` obtained without `using` is not released automatically. Pins count: an object moves again only after as many unpins. `pin` pins the object `gc_object` names, and pins nothing when it returns `none`. `GcBuf<u8>` is the type-erased GC buffer of [1.3.9](103-mem.md#139-gcbuft-and-the-buf_-primitives). `Pinnable` is sealed and `gc_object` is internal to the toolchain ([6.2.16](../../refs-lang/006-meta-system/602-built-in-attributes.md#6216-internal-shared-by-the-toolchains-packages)): a program pins with `pin(x)` and does not call `gc_object`.
+It is a guard. While the `Pinned<T>` returned by `pin()` lives, the GC does not move the object. `Pinned<T>` is a `Drop` value, released once ([2.13.4](../200-core/213-marker.md#2134-drop---cleanup-on-using-release)): `Pinned::drop` runs and unpins the object where the guard's owner leaves scope, or at the end of the `using` block that binds it. Pins count: an object moves again only after as many unpins. `pin` pins the object `gc_object` names, and pins nothing when it returns `none`. `GcBuf<u8>` is the type-erased GC buffer of [1.3.9](103-mem.md#139-gcbuft-and-the-buf_-primitives). `Pinnable` is sealed and `gc_object` is internal to the toolchain ([6.2.16](../../refs-lang/006-meta-system/602-built-in-attributes.md#6216-internal-shared-by-the-toolchains-packages)): a program pins with `pin(x)` and does not call `gc_object`.
 
 ### Example - FFI call
 

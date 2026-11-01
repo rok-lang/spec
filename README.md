@@ -13,7 +13,7 @@ Both editions have the same files and the same section numbers. If they disagree
 
 ## Status
 
-Active draft. The implementation lives in a separate repository.
+Active draft, describing Rok 0.2. The implementation lives in a separate repository.
 
 ## License
 

@@ -2,7 +2,7 @@
 
 **English** · [한국어](../ko/README.md)
 
-> **Status**: active draft. The specification is published in two editions: English (`en/`, the default) and Korean ([`ko/`](../ko/README.md)). Both cover the same content with the same section numbers.
+> **Status**: active draft, describing Rok 0.2. The specification is published in two editions: English (`en/`, the default) and Korean ([`ko/`](../ko/README.md)). Both cover the same content with the same section numbers.
 
 Rok is a programming language, and this repository is its formal specification. Starting from lexical structure and the type system, it defines every layer of the language in one place: expressions, the runtime model, the ABI, and the tools that accompany the specification. The compiler and the standard library implementation live in a separate repository; this one holds only the normative answer to the question "what is Rok".
 
@@ -19,11 +19,11 @@ Designed and maintained by [Han Damin](https://github.com/miniex) (`@miniex`).
 
 ## Why Rok exists
 
-Rok started from one kind of code its author wants to write. It does not target a particular audience and does not argue an academic position. At the center of every design decision is one simple motive: "a single language that can do everything the author wants to do". That sentence is, more or less, all of rok.
+Rok started from one kind of code its author wants to write. It does not target a particular audience and does not argue an academic position. At the center of every design decision is one simple motive: "a single language that can do everything the author wants to do". That sentence is, more or less, all of Rok.
 
 ## Philosophy
 
-A language born of a personal motive needs principles it can fall back on at every decision to stay coherent. Two slogans guide the design of rok.
+A language born of a personal motive needs principles it can fall back on at every decision to stay coherent. Two slogans guide the design of Rok.
 
 > [!IMPORTANT]
 > **"A small language, rich libraries."**
@@ -33,7 +33,7 @@ The first principle is a promise about the size of the specification. The Rok sp
 > [!IMPORTANT]
 > **"The clearer the rules, the freer you are within them."**
 
-The second principle concerns the relation between freedom and constraint. Rok does not avoid constraints. Static types, closed sum types, the trait-as-type ban, no implicit promotion, AOT-only compilation: each of these decisions deliberately narrows the paths a user can take. Within that narrower space, code becomes predictable and can be controlled in depth.
+The second principle concerns the relation between freedom and constraint. Rok does not avoid constraints. Static types, closed sum types, the trait-as-type ban, no implicit promotion: each of these decisions deliberately narrows the paths a user can take. Within that narrower space, code becomes predictable and can be controlled in depth.
 
 The line between control and freedom is clear. What can be decided once and need not be decided again on every line (types, dispatch, the memory model, evaluation order) the language decides, all at once. What necessarily differs from person to person (library design, domain modeling, algorithms, code structure) is left to the user, and the meta-system lets the language extend itself so that libraries can decide meaning.
 
@@ -59,7 +59,7 @@ Both editions use the same file layout and section numbering (`3.11.4`), so a se
 
 ## Reading order
 
-The specification is written to be read from chapter 0 to chapter 9. A new concept is always explained only in terms of concepts introduced up to that point, and this invariant holds in every chapter. Cross-references follow the same rule and point **backward only**. Whichever chapter you open, you never need to climb back above it to find a concept; a first-time reader should start at [`refs-lang/README.md`](refs-lang/README.md).
+The specification is written to be read from chapter 0 to chapter 9. A new concept is always explained only in terms of concepts introduced up to that point, and this invariant holds in every chapter. Whichever chapter you open, the concepts it needs come from it or the chapters before it. Some cross-references point forward, to where a topic is covered in full; they are informative, and a chapter does not depend on them; a first-time reader should start at [`refs-lang/README.md`](refs-lang/README.md).
 
 ## Conventions
 

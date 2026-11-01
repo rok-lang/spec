@@ -50,12 +50,12 @@ trait Add<Rhs = Self> {
 
 산술 덧셈. 두 값을 더한 결과를 반환합니다.
 
-- `i32 + i32`: 2's complement wrap (debug=panic, release=wrap)
+- `i32 + i32`: 오버플로하면 panic (모든 프로필에서 검사, `-C overflow-checks=no`에서는 wrap)
 - `f64 + f64`: IEEE 754 덧셈
-- `int + Int`: 무한정 정밀도. 결과가 i64 범위 넘어가면 BigInt 로 promote
+- `Int + Int`: 임의 정밀도. 오버플로하지 않음
 
-오버플로 핸들링은 [2.1 숫자 타입](../200-core/201-numbers.md) 의 fixed-width 산술
-규칙을 따릅니다. saturate / checked / wrapping 변형은 별도 메서드 (`saturating_add` 등)
+오버플로 처리는 [2.1 숫자 타입](../200-core/201-numbers.md)의 고정 폭 산술
+규칙을 따릅니다. saturating / checked / wrapping 변형은 별도 메서드(`saturating_add` 등)
 로 노출됩니다.
 ```
 
@@ -105,8 +105,6 @@ let z = x + y;        //→ 4.0 (f64)
 3. **닫기는 던집니다.** OS 자원(파일, 소켓, TLS 연결)의 `close()`는 OS가 알린 오류를 던집니다. `Drop`은 던지지 않으며, `Drop`이 놓아 주는 값의 오류는 버려집니다.
 4. 연산자와 그 이름 붙은 메서드는 다를 수 있습니다. `xs[i]`는 panic하지만 `xs.get(i)`는 `none`을 돌려줍니다.
 
-0.2.0에서 이 규칙에 따라 없앤 형태는 다음과 같습니다. `FormatSpec::try_parse`(`FormatSpec::parse`가 던집니다), `Float::parse_or_none`과 `Float::try_parse`(`try? s.parse()`), `task::try_id`(`task::current_id`), `task::block_on_try`(`task::try_block_on`으로 이름이 바뀌었습니다), `ClientConfig::try_new`(`ClientConfig::new`가 던집니다), 소켓의 `try_close`(`close`가 던집니다), `Path::strip_prefix_or_none`과 `StripPrefixError`(`Path::strip_prefix`가 `Path | none`을 돌려줍니다).
-
 ## 0.5.10. 에러 타입
 
 표준 라이브러리의 에러 타입은 모두 다음 규칙을 따릅니다.
@@ -117,8 +115,6 @@ let z = x + y;        //→ 4.0 (f64)
 4. **unit 구조체.** 필드가 없는 에러는 unit 구조체(`struct TimeoutError;`)이며, `TimeoutError {}`가 아니라 `TimeoutError`로 씁니다.
 5. **실패 영역마다 에러 하나.** core는 함께 쓰는 에러(`ValueError`, `ParseError`, `OverflowError`, `ConversionError`, `TypeError`, `Utf8Error`)를 둡니다. 자기 실패 영역이 있는 std 모듈은 에러 타입을 하나 둡니다(`IoError`, `TlsError`, `RokonError`). UTF-8 검사가 실패하면 모두 `Utf8Error`를 던집니다.
 6. **메시지.** 메시지는 소문자로 시작하고(고유명사와 타입 이름은 예외), 끝에 마침표나 `error:` 접두사를 붙이지 않습니다. 연산자의 panic은 Rust의 문구(`index 5 out of bounds for length 3`)를 씁니다. 메서드의 panic은 `Type::method: `(자유 함수는 `module::fn: `)로 시작하고, 문제를 말한 뒤, 대신 쓸 것이 있으면 `; <대신 쓸 것>`을 붙입니다. 예: `i32::isqrt: the number is negative; use `checked_isqrt` to get `none` instead`. 잘못된 인자에 panic하는 공개 함수는 `#[track_caller]`입니다.
-
-0.2.0에서 이 규칙에 따라 없앤 형태는 다음과 같습니다. 모든 에러 타입의 공개 필드(그리고 `Ipv4Addr` / `Ipv6Addr`의 공개 필드), `IoError::new(message)`, `IoError::with_kind`, `IoError::from_os`, `IoError::code`(`IoError::new(kind, message)`, `IoError::from_os_code`, `IoError::os_code`), `JOIN_LOST` / `JOIN_TAKEN`(`JoinError::kind`), `NonUtf8Error`(`Utf8Error`), `process::signal(i32, handler)`(`process::on_signal(Signal, handler)`).
 
 ## 0.5.11. 이름 짓기
 
@@ -143,7 +139,7 @@ let z = x + y;        //→ 4.0 (f64)
 
 순회 타입. `str`: `chars()` -> `Chars`, `bytes()` -> `Bytes`, `char_indices()` -> `CharIndices`, `lines()` -> `Lines`, `split()` -> `Split`, `splitn()` -> `SplitN`, `rsplit()` -> `RSplit`, `rsplitn()` -> `RSplitN`, `split_whitespace()` -> `SplitWhitespace`, `match_indices()` -> `MatchIndices`. `Dict`: `keys()` -> `Keys`, `values()` -> `Values`. `List` / `Slice`: `windows()` -> `slice::Windows`, `chunks()` -> `slice::Chunks`(어댑터 `iter::Windows` / `iter::Chunks`와 나란히). `Receiver::iter()` -> `ReceiverIter`. 두 모듈이 같은 끝 이름을 쓰면 모듈과 함께 적습니다(`slice::Windows`, `str::Bytes`).
 
-## 0.5.13. 트레잇 범위, `#[non_exhaustive]`, `#[sealed]`
+## 0.5.12. 트레잇 범위, `#[non_exhaustive]`, `#[sealed]`
 
 표준 라이브러리의 모든 공개 타입은 자기 부류의 트레잇을 구현합니다.
 
@@ -173,7 +169,7 @@ let z = x + y;        //→ 4.0 (f64)
 | `TlsErrorKind`, `CipherSuite`, `AeadAlgorithm`, `EcCurve`, `HashAlgorithm` | `Hash` |
 | `Signal`, `FileType`, `JoinErrorKind` | `Clone`, `Copy`, `Eq`, `Hash` |
 | `Component`, `RawStr`, `RawPath` | `Clone`, `Eq`, `Hash` |
-| `SeekFrom`, `Shutdown`, `Alignment`, `Sign`, `AtomicOrdering` | `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`, `Debug` |
+| `SeekFrom`, `Shutdown`, `Alignment`, `Sign`, `LoadOrdering`, `StoreOrdering`, `UpdateOrdering` | `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`, `Debug` |
 | `ThreadId` | `Clone`, `Copy`, `Eq`, `Hash`, `Debug` |
 | `Permissions`, `Layout`, `ExitStatus` | `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash` |
 | `CStr`, `CString`, `Certificate`(DER 바이트 기준), `FormatSpec` | `Clone`, `PartialEq`, `Eq`, `Hash` |
@@ -186,11 +182,11 @@ let z = x + y;        //→ 4.0 (f64)
 - enum: `IoErrorKind`, `TlsErrorKind`, `CipherSuite`, `AeadAlgorithm`, `EcCurve`, `HashAlgorithm`, `rokon::Value`, `Stdio`, `FileType`, `Signal`, `JoinErrorKind`
 - 레코드: `tls::ClientConfig`, `tls::ServerConfig`, `FieldInfo`, `MethodInfo`
 
-닫힌 enum은 그대로 exhaustive입니다: `Ordering`, `Poll`, `Result`, `SeekFrom`, `Shutdown`, `Alignment`, `Sign`, `SocketAddr`, `Component`, `AtomicOrdering`, `SendError`, `TrySendError`.
+닫힌 enum은 그대로 exhaustive입니다: `Ordering`, `Poll`, `Result`, `SeekFrom`, `Shutdown`, `Alignment`, `Sign`, `SocketAddr`, `Component`, `LoadOrdering`, `StoreOrdering`, `UpdateOrdering`, `SendError`, `TrySendError`.
 
 `#[sealed]`([refs-lang 6.2](../../refs-lang/006-meta-system/602-built-in-attributes.md))는 라이브러리가 건전성이나 의미를 기대는 구현을 가진 트레잇에 붙습니다. 정의한 패키지만 구현할 수 있고, 바운드와 호출은 그대로입니다: `AtomicPrimitive`(2.16), `NicheInt`, `NicheFloat`(2.2), `Pinnable`(1.6). `Step`(2.7)은 사용자 범위 타입을 위해 열어 둡니다. `Pod`(1.3)는 sealed가 아니며(`#[derive(Pod)]`가 사용자 struct를 검사합니다), `bool`과 `char`는 `Pod`가 아닙니다.
 
-## 0.5.14. async 짝
+## 0.5.13. async 짝
 
 `x_async`는 블로킹하는 `x`의 async 짝입니다. 인자와 에러는 같고, `try await s.x_async(..)`처럼 await하며 task만 중단합니다. `x`가 리시버를 제자리에서 다루면 짝은 `ref self`를 받고, `x`가 리시버를 소비하면 `self`를 받습니다(`close_async`).
 
@@ -215,7 +211,7 @@ let z = x + y;        //→ 4.0 (f64)
 
 `Sender`의 `close`는 I/O가 아니므로 짝이 없습니다.
 
-## 0.5.15. 문서와 속성
+## 0.5.14. 문서와 속성
 
 표준 라이브러리의 모든 공개 항목에는 `///` 문서 주석이 있습니다. 함수, 타입, 트레잇, 트레잇 메서드, 고유 메서드가 모두 해당하고, `const fn`과 `async fn`, `cfg` 뒤에 있는 항목도 마찬가지입니다. 문서는 항목이 하는 일과 돌려주는 값을 말합니다. 던지거나 `none`을 돌려주거나 panic하는 함수는 언제 그러는지 말하고, `unsafe` 함수는 호출하는 쪽이 지켜야 할 조건을 말합니다. 라이브러리 자체 검사(`rokc check --check-library`)는 `missing_docs`를 `deny`로 봅니다([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md)).
 

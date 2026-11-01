@@ -50,9 +50,9 @@ The meaning of each method is written out in prose, covering not only form and e
 
 Arithmetic addition. Returns the sum of the two values.
 
-- `i32 + i32`: 2's complement wrap (debug=panic, release=wrap)
+- `i32 + i32`: panics on overflow (checks on in every profile; wraps under `-C overflow-checks=no`)
 - `f64 + f64`: IEEE 754 addition
-- `int + Int`: unbounded precision; promotes to BigInt when the result exceeds the i64 range
+- `Int + Int`: arbitrary precision; never overflows
 
 Overflow handling follows the fixed-width arithmetic rules of [2.1 Numeric types](../200-core/201-numbers.md).
 Saturating / checked / wrapping variants are exposed as separate methods (`saturating_add`, etc.).
@@ -104,8 +104,6 @@ Each function reports failure through exactly one channel, chosen by what the fa
 3. **Closing throws.** `close()` of an OS resource (a file, a socket, a TLS connection) throws what the OS reports. `Drop` never throws: a value released by `Drop` drops the error.
 4. An operator and its named method may differ: `xs[i]` panics where `xs.get(i)` returns `none`.
 
-The forms 0.2.0 removed under these rules: `FormatSpec::try_parse` (`FormatSpec::parse` throws), `Float::parse_or_none` and `Float::try_parse` (`try? s.parse()`), `task::try_id` (`task::current_id`), `task::block_on_try` (renamed `task::try_block_on`), `ClientConfig::try_new` (`ClientConfig::new` throws), the sockets' `try_close` (`close` throws), and `Path::strip_prefix_or_none` with `StripPrefixError` (`Path::strip_prefix` returns `Path | none`).
-
 ## 0.5.10. Error types
 
 Every error type in the standard libraries follows these rules:
@@ -116,8 +114,6 @@ Every error type in the standard libraries follows these rules:
 4. **Unit structs.** An error with no fields is a unit struct (`struct TimeoutError;`), written `TimeoutError`, not `TimeoutError {}`.
 5. **One error per failure space.** core keeps the shared errors (`ValueError`, `ParseError`, `OverflowError`, `ConversionError`, `TypeError`, `Utf8Error`); a std module with its own failure space has one error type (`IoError`, `TlsError`, `RokonError`). Every failed UTF-8 check throws `Utf8Error`.
 6. **Messages.** A message starts in lower case (proper nouns and type names excepted), with no trailing period and no `error:` prefix. An operator's panic uses Rust's text (`index 5 out of bounds for length 3`). A method's panic starts `Type::method: ` (a free function's `module::fn: `), then the problem, then `; <what to write instead>` when there is one: `i32::isqrt: the number is negative; use `checked_isqrt` to get `none` instead`. A public function that panics on a bad argument is `#[track_caller]`.
-
-The forms 0.2.0 removed under these rules: the public fields of every error type (and of `Ipv4Addr` / `Ipv6Addr`), `IoError::new(message)`, `IoError::with_kind`, `IoError::from_os` and `IoError::code` (`IoError::new(kind, message)`, `IoError::from_os_code`, `IoError::os_code`), `JOIN_LOST` / `JOIN_TAKEN` (`JoinError::kind`), `NonUtf8Error` (`Utf8Error`), and `process::signal(i32, handler)` (`process::on_signal(Signal, handler)`).
 
 ## 0.5.11. Naming
 
@@ -142,7 +138,7 @@ Every name in the standard library follows this table. A name that breaks it is 
 
 Iterator types. `str`: `chars()` -> `Chars`, `bytes()` -> `Bytes`, `char_indices()` -> `CharIndices`, `lines()` -> `Lines`, `split()` -> `Split`, `splitn()` -> `SplitN`, `rsplit()` -> `RSplit`, `rsplitn()` -> `RSplitN`, `split_whitespace()` -> `SplitWhitespace`, `match_indices()` -> `MatchIndices`. `Dict`: `keys()` -> `Keys`, `values()` -> `Values`. `List` / `Slice`: `windows()` -> `slice::Windows`, `chunks()` -> `slice::Chunks` (beside the adapters `iter::Windows` / `iter::Chunks`). `Receiver::iter()` -> `ReceiverIter`. A leaf name that two modules share is written with its module (`slice::Windows`, `str::Bytes`).
 
-## 0.5.13. Trait coverage, `#[non_exhaustive]` and `#[sealed]`
+## 0.5.12. Trait coverage, `#[non_exhaustive]` and `#[sealed]`
 
 Every public type of the standard library implements the traits of its class:
 
@@ -172,7 +168,7 @@ Value traits added in 0.2.0 (used as `Dict` keys and `Set` elements, compared an
 | `TlsErrorKind`, `CipherSuite`, `AeadAlgorithm`, `EcCurve`, `HashAlgorithm` | `Hash` |
 | `Signal`, `FileType`, `JoinErrorKind` | `Clone`, `Copy`, `Eq`, `Hash` |
 | `Component`, `RawStr`, `RawPath` | `Clone`, `Eq`, `Hash` |
-| `SeekFrom`, `Shutdown`, `Alignment`, `Sign`, `AtomicOrdering` | `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`, `Debug` |
+| `SeekFrom`, `Shutdown`, `Alignment`, `Sign`, `LoadOrdering`, `StoreOrdering`, `UpdateOrdering` | `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`, `Debug` |
 | `ThreadId` | `Clone`, `Copy`, `Eq`, `Hash`, `Debug` |
 | `Permissions`, `Layout`, `ExitStatus` | `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash` |
 | `CStr`, `CString`, `Certificate` (by its DER bytes), `FormatSpec` | `Clone`, `PartialEq`, `Eq`, `Hash` |
@@ -185,11 +181,11 @@ Value traits added in 0.2.0 (used as `Dict` keys and `Set` elements, compared an
 - enums: `IoErrorKind`, `TlsErrorKind`, `CipherSuite`, `AeadAlgorithm`, `EcCurve`, `HashAlgorithm`, `rokon::Value`, `Stdio`, `FileType`, `Signal`, `JoinErrorKind`;
 - records: `tls::ClientConfig`, `tls::ServerConfig`, `FieldInfo`, `MethodInfo`.
 
-Closed enums stay exhaustive: `Ordering`, `Poll`, `Result`, `SeekFrom`, `Shutdown`, `Alignment`, `Sign`, `SocketAddr`, `Component`, `AtomicOrdering`, `SendError`, `TrySendError`.
+Closed enums stay exhaustive: `Ordering`, `Poll`, `Result`, `SeekFrom`, `Shutdown`, `Alignment`, `Sign`, `SocketAddr`, `Component`, `LoadOrdering`, `StoreOrdering`, `UpdateOrdering`, `SendError`, `TrySendError`.
 
 `#[sealed]` ([refs-lang 6.2](../../refs-lang/006-meta-system/602-built-in-attributes.md)) marks the traits whose implementations the library relies on for soundness or meaning; only the defining package implements them, and bounds and calls are unaffected: `AtomicPrimitive` (2.16), `NicheInt`, `NicheFloat` (2.2), `Pinnable` (1.6). `Step` (2.7) stays open for user range types. `Pod` (1.3) is not sealed (`#[derive(Pod)]` checks a user struct), and `bool` and `char` are not `Pod`.
 
-## 0.5.14. Async twins
+## 0.5.13. Async twins
 
 `x_async` is the async twin of the blocking `x`: the same arguments and the same errors, awaited (`try await s.x_async(..)`) and suspending only the task. A twin takes `ref self` where `x` works on its receiver in place, and `self` where `x` consumes it (`close_async`).
 
@@ -214,7 +210,7 @@ Stream operations get their twins from traits, not from methods of each type: a 
 
 A `Sender`'s `close` is not I/O and has no twin.
 
-## 0.5.15. Docs and attributes
+## 0.5.14. Docs and attributes
 
 Every public item of the standard libraries has a `///` doc comment: each function, type, trait, trait method and inherent method, `const fn` and `async fn` ones and those behind a `cfg` included. A doc says what the item does and what it returns; a function that throws, returns `none` or panics says when, and an `unsafe` function says what its caller must uphold. The library's own check (`rokc check --check-library`) denies `missing_docs` ([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md)).
 

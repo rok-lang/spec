@@ -127,5 +127,5 @@ re-export) exists only in two shapes: a parent module that flattens its child mo
 (`rok::core::collections::List` for `rok::core::collections::list::List`, `rok::core::crypto::Secret`,
 the `rok::bare` root casts), and the implicit import (0.2). No module re-exports its parent's
 items, a sibling's or another tier's: `Duration` is `rok::core::time::Duration` and nothing else,
-`SeekFrom` is `rok::std::io::SeekFrom`, `size_of` is `rok::bare::mem::size_of`. Documentation and
+`SeekFrom` is `rok::core::io::SeekFrom`, `size_of` is `rok::bare::mem::size_of`. Documentation and
 diagnostics name the defining module. The standard library's own tests reject any other `pub use`.

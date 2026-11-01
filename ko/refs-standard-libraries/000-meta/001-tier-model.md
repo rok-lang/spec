@@ -80,4 +80,4 @@ use rok::std::time::SystemTime;
 
 ## 0.1.6. 항목마다 경로 하나
 
-모든 항목의 경로는 그 항목을 정의한 모듈 하나입니다. 같은 항목에 둘째 경로를 주는 `pub use` 재내보내기는 두 가지 꼴만 있습니다. 부모 모듈이 자식 모듈을 펼치는 꼴(`rok::core::collections::list::List`에 대한 `rok::core::collections::List`, `rok::core::crypto::Secret`, `rok::bare` 루트의 캐스트)과 암시적 가져오기(0.2)입니다. 어떤 모듈도 부모나 형제, 다른 계층의 항목을 다시 내보내지 않습니다. `Duration`은 `rok::core::time::Duration`일 뿐이고, `SeekFrom`은 `rok::std::io::SeekFrom`, `size_of`는 `rok::bare::mem::size_of`입니다. 문서와 진단은 정의한 모듈을 씁니다. 표준 라이브러리 자체의 테스트가 이 밖의 `pub use`를 거부합니다.
+모든 항목의 경로는 그 항목을 정의한 모듈 하나입니다. 같은 항목에 둘째 경로를 주는 `pub use` 재내보내기는 두 가지 꼴만 있습니다. 부모 모듈이 자식 모듈을 펼치는 꼴(`rok::core::collections::list::List`에 대한 `rok::core::collections::List`, `rok::core::crypto::Secret`, `rok::bare` 루트의 캐스트)과 암시적 가져오기(0.2)입니다. 어떤 모듈도 부모나 형제, 다른 계층의 항목을 다시 내보내지 않습니다. `Duration`은 `rok::core::time::Duration`일 뿐이고, `SeekFrom`은 `rok::core::io::SeekFrom`, `size_of`는 `rok::bare::mem::size_of`입니다. 문서와 진단은 정의한 모듈을 씁니다. 표준 라이브러리 자체의 테스트가 이 밖의 `pub use`를 거부합니다.

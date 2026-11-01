@@ -22,7 +22,7 @@ prelude에는 enum 변형이 없습니다. 맨 변형 이름은 그 자리가 �
 
 ### 목록을 고르는 이유
 
-`rok::core` 전체에 거는 묵시 glob(Rok 0.1)은 core의 모든 공개 항목을 모든 파일의 맨 이름으로 만들었습니다. 타입 160여 개, 트레잇 100개, 함수 90개에 enum 변형까지 전부입니다. 그중 여럿이 서로 겹쳤고(`iter`와 `stream`의 `Map`, `Filter`, `Zip`, `task`와 `par`의 `join`, `Ordering`과 `fmt::Alignment`의 변형 `Equal`), core에 항목이 하나 늘 때마다 사용자 코드의 이름 해석이 바뀌었습니다.
+`rok::core` 전체에 묵시 glob을 걸면 core의 모든 공개 항목이 모든 파일의 맨 이름이 됩니다. 타입 160여 개, 트레잇 100개, 함수 90개에 enum 변형까지 전부입니다. 그중 여럿이 서로 겹치고(`iter`와 `stream`의 `Map`, `Filter`, `Zip`, `task`와 `par`의 `join`, `Ordering`과 `fmt::Alignment`의 변형 `Equal`), core에 항목이 하나 늘 때마다 사용자 코드의 이름 해석이 바뀝니다.
 
 prelude에는 거의 모든 파일에서 쓰는 것만 둡니다. 컬렉션과 핵심 타입, `impl` 머리와 bound에 적는 트레잇, 출력과 패닉 함수, 그리고 core의 최상위 모듈입니다. 그래서 `task::sleep`과 `par::map`은 계속 짧게 씁니다. prelude의 이름은 이름공간마다 하나뿐이고(라이브러리 테스트가 모든 target에서 확인), 따라서 맨 prelude 이름은 모호해지지 않습니다. 묵시 import는 우선순위가 가장 낮으므로(0.2.4) prelude에 이름을 더해도 같은 이름을 정의하거나 가져오는 프로그램은 깨지지 않습니다.
 
@@ -99,7 +99,7 @@ fn main() {
 ```rok
 let p: future::Poll<i32> = future::Poll::Pending;
 impl ops::Add for V { ... }
-use rok::core::sync::AtomicOrdering;
+use rok::core::sync::LoadOrdering;
 let h = encoding::hex_encode("rok");
 ```
 
