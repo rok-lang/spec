@@ -328,16 +328,18 @@ let s: str = try str::from_utf8(bytes);
 
 let invalid: List<u8> = [0xFF, 0xFE];
 let t: str = try str::from_utf8(invalid);
-                                          //→ throw Utf8Error { valid_up_to: 0 }
+                                          //→ throws a Utf8Error, valid_up_to() == 0
 ```
 
 ```rok
-struct Utf8Error {
-    pub valid_up_to: usize;   // length of the valid UTF-8 prefix, in bytes
+struct Utf8Error { .. }       // private fields (0.5.10)
+impl Utf8Error {
+    fn valid_up_to(self) -> usize;   // length of the valid UTF-8 prefix, in bytes
+    fn message(self) -> str;         // "invalid UTF-8 at byte {valid_up_to}"
 }
 ```
 
-`Utf8Error` implements `Error`; its `Display` is `invalid UTF-8 at byte {valid_up_to}`.
+`Utf8Error` implements `Display` (its `message()`), `Debug`, `Error`, `PartialEq`, `Eq` and `Clone`. It is the one UTF-8 error: every failed UTF-8 check in the standard libraries throws it (`str::from_utf8`, `CStr::to_str`, `RawStr::to_str`, `RawPath::try_to_path`).
 
 `str::from_utf8_lossy(bytes)` never throws: each maximal subpart of an ill-formed sequence (Unicode §3.9, U+FFFD Substitution of Maximal Subparts; the WHATWG UTF-8 decoder's behavior) becomes one U+FFFD.
 
@@ -350,7 +352,7 @@ trait FromStr {
 }
 ```
 
-`str.parse::<T>()` is `throws (T::Err)` and dispatches through this trait. For numeric types and `bool`, `Err` is core's `ParseError { input, pos, reason }` ([2.14.4](214-error.md#2144-built-in-error-types)). Numeric parsing is implemented on top of the runtime helpers `rok_str_parse_int` / `rok_str_parse_float` ([refs-lang 8.5](../../refs-lang/008-abi/805-extern-symbols.md#string-helpers)). Float `FromStr` fails with `number out of range` when finite digits exceed the type's range; `inf` / `NaN` text parses.
+`str.parse::<T>()` is `throws (T::Err)` and dispatches through this trait. For numeric types and `bool`, `Err` is core's `ParseError` (`input()`, `position()`, `message()`) ([2.14.4](214-error.md#2144-built-in-error-types)). Numeric parsing is implemented on top of the runtime helpers `rok_str_parse_int` / `rok_str_parse_float` ([refs-lang 8.5](../../refs-lang/008-abi/805-extern-symbols.md#string-helpers)). Float `FromStr` fails with `number out of range` when finite digits exceed the type's range; `inf` / `NaN` text parses.
 
 ```rok
 let n: i32 = try "42".parse();         // FromStr for i32

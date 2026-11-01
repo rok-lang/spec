@@ -189,7 +189,7 @@ let x: any = 5i32;      // ERROR: 같은 스코프에 x 가 이미 있음
 `any` 뒤에 트레잇을 적으면 그 트레잇을 구현하는 타입의 값만 담는 동적 슬롯이 됩니다.
 
 ```rok
-let e: any Error = ParseError { input: s, pos: 0, reason: "empty" };
+let e: any Error = ParseError::new(s, 0, "empty");
 let shapes: List<any Shape> = [Circle { r: 1.0 }, Square { side: 2.0 }];
 let item: any (Display + Hash) = 42i32;
 ```

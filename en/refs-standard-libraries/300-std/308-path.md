@@ -122,11 +122,11 @@ When a strict conversion is needed, write:
 
 ```rok
 let raw: RawPath = ...;
-let p: Path = try Path::try_from(raw);    // throws NonUtf8Error if not UTF-8
+let p: Path = try Path::try_from(raw);    // throws Utf8Error if not UTF-8
 let q: Path = try raw.try_into();          // same
 ```
 
-This conversion is `impl TryFrom<RawPath> for Path { type Error = NonUtf8Error; ... }` ([2.11.4](../200-core/211-conversion.md#2114-tryfromu-trait---fallible-conversion)).
+This conversion is `impl TryFrom<RawPath> for Path { type Error = Utf8Error; ... }` ([2.11.4](../200-core/211-conversion.md#2114-tryfromu-trait---fallible-conversion)).
 
 ## 3.8.5. `RawPath` - bytes / WTF-16
 
@@ -142,12 +142,12 @@ impl RawPath {
     fn as_bytes(self) -> Slice<u8>;                    // unix only
     fn as_wide(self) -> Slice<u16>;                    // windows only
 
-    fn try_to_path(self) throws (NonUtf8Error) -> Path;
+    fn try_to_path(self) throws (Utf8Error) -> Path;
     fn to_path_lossy(self) -> Path;
 }
 ```
 
-On Windows, `NonUtf8Error.valid_up_to` counts UTF-16 units. `to_path_lossy` replaces each maximal ill-formed subsequence (Unix) / each lone surrogate (Windows) with one U+FFFD.
+On Windows, `Utf8Error::valid_up_to()` counts UTF-16 units. `to_path_lossy` replaces each maximal ill-formed subsequence (Unix) / each lone surrogate (Windows) with one U+FFFD.
 
 Most code never encounters this type. It appears only where code exchanges syscalls directly with the OS.
 

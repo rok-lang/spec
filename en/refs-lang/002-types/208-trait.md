@@ -84,7 +84,7 @@ trait TryFrom<U> {
     type Error = ConversionError;
     fn try_from(value: U) throws (Self::Error) -> Self;
 }
-impl TryFrom<RawPath> for Path { type Error = NonUtf8Error; ... }   // overridden
+impl TryFrom<RawPath> for Path { type Error = Utf8Error; ... }   // overridden
 impl TryFrom<Celsius> for Kelvin { ... }                           // Error = ConversionError
 ```
 

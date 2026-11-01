@@ -9,7 +9,7 @@ This chapter defines three of the 48 lang slots: `panic_fn` / `oom_fn` / `unreac
 ```rok
 // (a) throwing: throws and try
 fn parse_int(s: str) throws (ParseError) -> i32 {
-    if !s.is_digit() { throw ParseError { input: s, pos: 0, reason: "not a digit" }; }
+    if !s.is_digit() { throw ParseError::new(s, 0, "not a digit"); }
     s.to_i32()
 }
 
@@ -150,16 +150,21 @@ let cfg = try parse_config(text) catch e: ParseError {
 
 ## 2.14.4. Built-in error types
 
-The error types the standard library provides by default are defined as follows. Their fields are `pub`.
+The error types the standard library provides by default are defined as follows. Their fields are private ([0.5.10](../000-meta/005-notation.md)): each is built with `new` and read through its getters and `message()`.
 
 ```rok
-struct TypeError {
-    expected: str;
-    actual: str;
+struct TypeError { .. }
+impl TypeError {
+    fn new(expected: str, actual: str) -> TypeError;
+    fn expected(self) -> str;
+    fn actual(self) -> str;
+    fn message(self) -> str;          // "expected `i32`, found `str`"
 }
 
-struct ValueError {
-    msg: str;
+struct ValueError { .. }
+impl ValueError {
+    fn new(message: str) -> ValueError;
+    fn message(self) -> str;
 }
 
 struct IndexError {
@@ -167,25 +172,34 @@ struct IndexError {
     len: usize;
 }
 
-struct OverflowError {
-    op: str;          // "add" / "mul" / ...
-    ty: str;          // "i32" / "i64" / ...
+struct OverflowError { .. }
+impl OverflowError {
+    fn new(operation: str, type_name: str) -> OverflowError;
+    fn operation(self) -> str;        // "try_from" / ...
+    fn type_name(self) -> str;        // "i32" / "i64" / ...
+    fn message(self) -> str;          // "try_from: value out of range for `i32`"
 }
 
-struct ParseError {
-    input: str;
-    pos: usize;
-    reason: str;
+struct ParseError { .. }
+impl ParseError {
+    fn new(input: str, position: usize, message: str) -> ParseError;
+    fn input(self) -> str;
+    fn position(self) -> usize;       // byte offset in input where parsing failed
+    fn message(self) -> str;          // why, without the input Display adds
 }
 
-struct ConversionError {
-    msg: str;
+struct ConversionError { .. }
+impl ConversionError {
+    fn new(message: str) -> ConversionError;
+    fn message(self) -> str;
 }
 
-struct ZeroError;      // rok::core::num::niche
+struct ZeroError;                     // rok::core::num::niche; message()
 ```
 
-Each type implements `Error + Display + Debug`, and its `Display` body provides a human-friendly message. Where each error is thrown:
+`IndexError` keeps its public fields; 0.2.0 removes it.
+
+Each type implements `Error`, `Display`, `Debug`, `PartialEq`, `Eq` and `Clone`. Its `Display` is `message()`; `ParseError`'s puts the input first (`cannot parse "x7": invalid digit`). Where each error is thrown:
 
 | Type              | Thrown by                                                                  |
 |-------------------|----------------------------------------------------------------------------|
@@ -207,7 +221,7 @@ struct OutOfMemoryError;       // Fatal: cannot be caught
 struct InternalError;          // Fatal: compiler-internal bug
 ```
 
-A Fatal error is not a `throws` error and cannot be caught with `catch`. Like a panic, it prints a message to stderr and ends the process with exit code `101` ([refs-lang 3.14.8](../../refs-lang/003-expressions/314-error-control-flow.md#3148-panics-and-fatal-errors)).
+Each also has `message()` (`"stack overflow"`, ...). A Fatal error is not a `throws` error and cannot be caught with `catch`. Like a panic, it prints a message to stderr and ends the process with exit code `101` ([refs-lang 3.14.8](../../refs-lang/003-expressions/314-error-control-flow.md#3148-panics-and-fatal-errors)).
 
 ## 2.14.5. `panic_fn` / `oom_fn` / `unreachable_fn` - compiler hooks
 
@@ -406,6 +420,8 @@ The traits each error type implements:
 | `ParseError`         | ✓       | ✓             | ✓     |                                |
 | `ConversionError`    | ✓       | ✓             | ✓     | default `TryFrom::Error`       |
 | `ZeroError`          | ✓       | ✓             | ✓     | in `rok::core::num::niche`     |
+| `FmtError`           | ✓       | ✓             | ✓     | a failed write ([2.10](210-fmt.md)) |
+| `Utf8Error`          | ✓       | ✓             | ✓     | the one UTF-8 error ([2.15](215-string.md)) |
 | `IoError`            | ✓       | ✓             | ✓     | std tier (target-dependent)    |
 | `StackOverflowError` | ✓       | ✓             | ✓     | Fatal: cannot be caught        |
 | `OutOfMemoryError`   | ✓       | ✓             | ✓     | Fatal: cannot be caught        |
@@ -413,7 +429,7 @@ The traits each error type implements:
 | `Result<T, E>`       | ✗       | ✓ (T,E:Debug) | ✗     | enum for holding               |
 | `any Error`          | ✓       | ✓             | ✓     | constrained any, can chain     |
 
-`Display` provides a user-friendly message; for example, `IndexError { index: 10, len: 3 }` reads `"index 10 out of bounds (len 3)"`. `Debug` shows the structure as is. An `any Error` value calls the `Display` / `Debug` / `source` of its actual type through the runtime tag.
+`Display` provides a user-friendly message; for example, `IndexError { index: 10, len: 3 }` reads `"index 10 out of bounds (len 3)"`. `Debug` shows the structure as is. Every error type in the table also implements `PartialEq`, `Eq` and `Clone` (0.5.10). An `any Error` value calls the `Display` / `Debug` / `source` of its actual type through the runtime tag.
 
 ## 2.14.9. Comparison with other languages
 

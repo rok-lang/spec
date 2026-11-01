@@ -134,7 +134,7 @@ trait TryInto {
 impl<S> TryInto for S { ... }            // = try T::try_from(self)
 ```
 
-숫자 변환의 `try_from`은 `OverflowError { op, ty }`([2.14](214-error.md))를 던집니다. 이때 `op`은 `"try_from"`이고, `ty`는 대상 타입 이름(`"i32"` 등)입니다.
+숫자 변환의 `try_from`은 `OverflowError`([2.14](214-error.md))를 던집니다. 이때 `operation()`은 `"try_from"`이고, `type_name()`은 대상 타입 이름(`"i32"` 등)입니다.
 
 ```rok
 let small: i32 = try big.try_into();     // = try i32::try_from(big)
@@ -344,7 +344,7 @@ impl TryFrom<str> for i32 {
 let n: i32 = try "42".try_into();
 ```
 
-모든 고정 폭 정수 타입은 자기 `FromStr` 위에 이런 식으로 `TryFrom<str>`을 구현합니다. 빈 텍스트, 잘못된 숫자, 범위 밖의 값은 `OverflowError { op: "try_from", ty }`를 던집니다. 부동소수 타입, `bool`, `char`에는 `FromStr`만 있습니다.
+모든 고정 폭 정수 타입은 자기 `FromStr` 위에 이런 식으로 `TryFrom<str>`을 구현합니다. 빈 텍스트, 잘못된 숫자, 범위 밖의 값은 `OverflowError::new("try_from", ty)`를 던집니다. 부동소수 타입, `bool`, `char`에는 `FromStr`만 있습니다.
 
 ## 2.11.10. 산술 결과의 자동 변환: 없음
 

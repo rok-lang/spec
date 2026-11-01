@@ -42,7 +42,7 @@ In a function without `throws`, no error can leave the function. If an error fro
 
 ```rok
 fn bad() -> i32 {
-    throw ValueError { msg: "nope" };   // ERROR: error leaves a non-throwing function
+    throw ValueError::new("nope"); // ERROR: error leaves a non-throwing function
 }
 ```
 

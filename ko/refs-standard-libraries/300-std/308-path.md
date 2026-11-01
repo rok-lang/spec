@@ -122,11 +122,11 @@ impl AsPath for Path { ... }
 
 ```rok
 let raw: RawPath = ...;
-let p: Path = try Path::try_from(raw);    // UTF-8 이 아니면 NonUtf8Error 를 throw
+let p: Path = try Path::try_from(raw);    // UTF-8 이 아니면 Utf8Error 를 throw
 let q: Path = try raw.try_into();          // 같음
 ```
 
-이 변환은 `impl TryFrom<RawPath> for Path { type Error = NonUtf8Error; ... }`입니다([2.11.4](../200-core/211-conversion.md#2114-tryfromu-트레잇-실패할-수-있는-변환)).
+이 변환은 `impl TryFrom<RawPath> for Path { type Error = Utf8Error; ... }`입니다([2.11.4](../200-core/211-conversion.md#2114-tryfromu-트레잇-실패할-수-있는-변환)).
 
 ## 3.8.5. `RawPath`: bytes / WTF-16
 
@@ -142,12 +142,12 @@ impl RawPath {
     fn as_bytes(self) -> Slice<u8>;                    // unix 만
     fn as_wide(self) -> Slice<u16>;                    // windows 만
 
-    fn try_to_path(self) throws (NonUtf8Error) -> Path;
+    fn try_to_path(self) throws (Utf8Error) -> Path;
     fn to_path_lossy(self) -> Path;
 }
 ```
 
-Windows에서 `NonUtf8Error.valid_up_to`는 UTF-16 단위를 셉니다. `to_path_lossy`는 잘못된 최대 부분열(Unix) / 짝 없는 서로게이트(Windows) 하나하나를 U+FFFD 하나로 바꿉니다.
+Windows에서 `Utf8Error::valid_up_to()`는 UTF-16 단위를 셉니다. `to_path_lossy`는 잘못된 최대 부분열(Unix) / 짝 없는 서로게이트(Windows) 하나하나를 U+FFFD 하나로 바꿉니다.
 
 대부분의 코드는 이 타입을 볼 일이 없습니다. OS와 직접 시스템 콜을 주고받는 곳에서만 나옵니다.
 

@@ -9,7 +9,7 @@
 ```rok
 // (a) 던지기: throws 와 try
 fn parse_int(s: str) throws (ParseError) -> i32 {
-    if !s.is_digit() { throw ParseError { input: s, pos: 0, reason: "not a digit" }; }
+    if !s.is_digit() { throw ParseError::new(s, 0, "not a digit"); }
     s.to_i32()
 }
 
@@ -150,16 +150,21 @@ let cfg = try parse_config(text) catch e: ParseError {
 
 ## 2.14.4. 내장 에러 타입
 
-표준 라이브러리의 기본 에러 타입은 다음과 같습니다. 필드는 모두 `pub`입니다.
+표준 라이브러리의 기본 에러 타입은 다음과 같습니다. 필드는 비공개입니다([0.5.10](../000-meta/005-notation.md)). 각 타입은 `new`로 만들고, getter와 `message()`로 읽습니다.
 
 ```rok
-struct TypeError {
-    expected: str;
-    actual: str;
+struct TypeError { .. }
+impl TypeError {
+    fn new(expected: str, actual: str) -> TypeError;
+    fn expected(self) -> str;
+    fn actual(self) -> str;
+    fn message(self) -> str;          // "expected `i32`, found `str`"
 }
 
-struct ValueError {
-    msg: str;
+struct ValueError { .. }
+impl ValueError {
+    fn new(message: str) -> ValueError;
+    fn message(self) -> str;
 }
 
 struct IndexError {
@@ -167,25 +172,34 @@ struct IndexError {
     len: usize;
 }
 
-struct OverflowError {
-    op: str;          // "add" / "mul" / ...
-    ty: str;          // "i32" / "i64" / ...
+struct OverflowError { .. }
+impl OverflowError {
+    fn new(operation: str, type_name: str) -> OverflowError;
+    fn operation(self) -> str;        // "try_from" / ...
+    fn type_name(self) -> str;        // "i32" / "i64" / ...
+    fn message(self) -> str;          // "try_from: value out of range for `i32`"
 }
 
-struct ParseError {
-    input: str;
-    pos: usize;
-    reason: str;
+struct ParseError { .. }
+impl ParseError {
+    fn new(input: str, position: usize, message: str) -> ParseError;
+    fn input(self) -> str;
+    fn position(self) -> usize;       // input 에서 파싱이 실패한 byte 위치
+    fn message(self) -> str;          // 실패한 이유, Display 가 붙이는 input 없이
 }
 
-struct ConversionError {
-    msg: str;
+struct ConversionError { .. }
+impl ConversionError {
+    fn new(message: str) -> ConversionError;
+    fn message(self) -> str;
 }
 
-struct ZeroError;      // rok::core::num::niche
+struct ZeroError;                     // rok::core::num::niche; message()
 ```
 
-각 타입은 `Error + Display + Debug`를 구현합니다. `Display` 본문은 사람이 읽기 좋은 메시지를 만듭니다. 각 에러를 던지는 자리는 다음과 같습니다.
+`IndexError`는 공개 필드를 그대로 둡니다. 0.2.0에서 사라집니다.
+
+각 타입은 `Error`, `Display`, `Debug`, `PartialEq`, `Eq`, `Clone`을 구현합니다. `Display`는 `message()`이며, `ParseError`만 input을 앞에 붙입니다(`cannot parse "x7": invalid digit`). 각 에러를 던지는 자리는 다음과 같습니다.
 
 | 타입            | 던지는 자리                                                                |
 |-----------------|----------------------------------------------------------------------------|
@@ -207,7 +221,7 @@ struct OutOfMemoryError;       // Fatal: catch 불가
 struct InternalError;          // Fatal: 컴파일러 내부 버그
 ```
 
-Fatal은 `throws`의 에러가 아니므로 `catch`로 잡을 수 없습니다. panic과 마찬가지로 메시지를 stderr에 출력하고 프로세스를 종료 코드 `101`로 끝냅니다([refs-lang 3.14.8](../../refs-lang/003-expressions/314-error-control-flow.md#3148-panic과-fatal-에러)).
+각 타입에는 `message()`(`"stack overflow"` 등)도 있습니다. Fatal은 `throws`의 에러가 아니므로 `catch`로 잡을 수 없습니다. panic과 마찬가지로 메시지를 stderr에 출력하고 프로세스를 종료 코드 `101`로 끝냅니다([refs-lang 3.14.8](../../refs-lang/003-expressions/314-error-control-flow.md#3148-panic과-fatal-에러)).
 
 ## 2.14.5. `panic_fn` / `oom_fn` / `unreachable_fn`: 컴파일러 훅
 
@@ -406,6 +420,8 @@ if let n: i32 = r.ok() { use(n); }     // T | none 으로 추출
 | `ParseError`         | ✓       | ✓             | ✓     |                            |
 | `ConversionError`    | ✓       | ✓             | ✓     | 기본 `TryFrom::Error`      |
 | `ZeroError`          | ✓       | ✓             | ✓     | `rok::core::num::niche`에 있음 |
+| `FmtError`           | ✓       | ✓             | ✓     | 실패한 쓰기 ([2.10](210-fmt.md)) |
+| `Utf8Error`          | ✓       | ✓             | ✓     | 하나뿐인 UTF-8 에러 ([2.15](215-string.md)) |
 | `IoError`            | ✓       | ✓             | ✓     | std 계층 (타깃 의존)       |
 | `StackOverflowError` | ✓       | ✓             | ✓     | Fatal: 잡을 수 없음        |
 | `OutOfMemoryError`   | ✓       | ✓             | ✓     | Fatal: 잡을 수 없음        |
@@ -413,7 +429,7 @@ if let n: i32 = r.ok() { use(n); }     // T | none 으로 추출
 | `Result<T, E>`       | ✗       | ✓ (T,E:Debug) | ✗     | 보관용 enum                |
 | `any Error`          | ✓       | ✓             | ✓     | 제약 붙은 any, 사슬 가능   |
 
-`Display`는 사용자가 읽기 좋은 메시지를 냅니다. 예를 들어 `IndexError { index: 10, len: 3 }`은 `"index 10 out of bounds (len 3)"`입니다. `Debug`는 구조를 그대로 보여 줍니다. `any Error` 값은 런타임 태그로 실제 타입의 `Display` / `Debug` / `source`를 호출합니다.
+`Display`는 사용자가 읽기 좋은 메시지를 냅니다. 예를 들어 `IndexError { index: 10, len: 3 }`은 `"index 10 out of bounds (len 3)"`입니다. `Debug`는 구조를 그대로 보여 줍니다. 표의 에러 타입은 모두 `PartialEq`, `Eq`, `Clone`도 구현합니다(0.5.10). `any Error` 값은 런타임 태그로 실제 타입의 `Display` / `Debug` / `source`를 호출합니다.
 
 ## 2.14.9. 다른 언어와 비교
 

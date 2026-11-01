@@ -48,7 +48,7 @@ impl<T> Join<T> {
     fn poll(ref self, ref ctx: Context) throws (CancellationError) -> Poll<T>;
 }
 
-struct TimeoutError {}                              // task::timeout ran out; Display "timed out", Debug, Error
+struct TimeoutError;                                // task::timeout ran out; message() and Display "timed out"
 ```
 
 ### Example
@@ -176,7 +176,7 @@ impl TaskId {
 }
 // TaskId: PartialEq / Eq / Hash / Display / Debug
 
-struct CancellationError {}
+struct CancellationError;           // message() and Display "task cancelled"
 
 impl<T> Future for Task<T> {              // `await t`: suspend until completion
     type Output = T;

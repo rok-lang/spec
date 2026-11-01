@@ -25,7 +25,7 @@ throw err;
 `throw` 문 뒤로는 흐름이 이어지지 않으므로 `throw` 문으로 끝나는 블록은 divergent입니다.
 
 ```rok
-let x = if cond { 42i32 } else { throw ValueError { msg: "not allowed" }; };
+let x = if cond { 42i32 } else { throw ValueError::new("not allowed"); };
 // x: i32 (else 분기 divergent)
 ```
 

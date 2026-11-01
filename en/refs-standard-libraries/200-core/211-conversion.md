@@ -134,7 +134,7 @@ trait TryInto {
 impl<S> TryInto for S { ... }            // = try T::try_from(self)
 ```
 
-In the `OverflowError { op, ty }` ([2.14](214-error.md)) thrown by a numeric `try_from`, `op` is `"try_from"` and `ty` is the target type's name (`"i32"`, etc.).
+In the `OverflowError` ([2.14](214-error.md)) thrown by a numeric `try_from`, `operation()` is `"try_from"` and `type_name()` is the target type's name (`"i32"`, etc.).
 
 ```rok
 let small: i32 = try big.try_into();     // = try i32::try_from(big)
@@ -344,7 +344,7 @@ impl TryFrom<str> for i32 {
 let n: i32 = try "42".try_into();
 ```
 
-Every fixed-width integer type implements `TryFrom<str>` this way, on top of its `FromStr`: empty text, an invalid digit or an out-of-range value throws `OverflowError { op: "try_from", ty }`. Floating-point types, `bool` and `char` provide only `FromStr`.
+Every fixed-width integer type implements `TryFrom<str>` this way, on top of its `FromStr`: empty text, an invalid digit or an out-of-range value throws `OverflowError::new("try_from", ty)`. Floating-point types, `bool` and `char` provide only `FromStr`.
 
 ## 2.11.10. Automatic conversion of arithmetic results - none
 

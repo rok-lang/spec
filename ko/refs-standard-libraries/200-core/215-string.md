@@ -328,16 +328,18 @@ let s: str = try str::from_utf8(bytes);
 
 let invalid: List<u8> = [0xFF, 0xFE];
 let t: str = try str::from_utf8(invalid);
-                                          //→ throw Utf8Error { valid_up_to: 0 }
+                                          //→ Utf8Error 를 throw, valid_up_to() == 0
 ```
 
 ```rok
-struct Utf8Error {
-    pub valid_up_to: usize;   // 유효한 UTF-8 접두부의 byte 길이
+struct Utf8Error { .. }       // 비공개 필드 (0.5.10)
+impl Utf8Error {
+    fn valid_up_to(self) -> usize;   // 유효한 UTF-8 접두부의 byte 길이
+    fn message(self) -> str;         // "invalid UTF-8 at byte {valid_up_to}"
 }
 ```
 
-`Utf8Error`는 `Error`를 구현하며, `Display`는 `invalid UTF-8 at byte {valid_up_to}`입니다.
+`Utf8Error`는 `Display`(`message()`), `Debug`, `Error`, `PartialEq`, `Eq`, `Clone`을 구현합니다. UTF-8 에러는 이것 하나입니다. 표준 라이브러리에서 UTF-8 검사가 실패하면 모두 이 에러를 던집니다(`str::from_utf8`, `CStr::to_str`, `RawStr::to_str`, `RawPath::try_to_path`).
 
 `str::from_utf8_lossy(bytes)`는 에러를 던지지 않습니다. 잘못된 시퀀스의 maximal subpart 하나하나가 U+FFFD 하나가 됩니다(Unicode §3.9, U+FFFD Substitution of Maximal Subparts, WHATWG UTF-8 decoder의 동작).
 
@@ -350,7 +352,7 @@ trait FromStr {
 }
 ```
 
-`str.parse::<T>()`는 `throws (T::Err)`이며 이 트레잇으로 디스패치됩니다. 숫자 타입과 `bool`의 `Err`는 core의 `ParseError { input, pos, reason }`([2.14.4](214-error.md#2144-내장-에러-타입))입니다. 숫자 파싱은 런타임 helper `rok_str_parse_int` / `rok_str_parse_float` 위에 구현됩니다([refs-lang 8.5](../../refs-lang/008-abi/805-extern-symbols.md#문자열-헬퍼)). 실수의 `FromStr`은 유한한 숫자가 타입의 범위를 넘으면 `number out of range`로 실패합니다. `inf` / `NaN` 텍스트는 파싱됩니다.
+`str.parse::<T>()`는 `throws (T::Err)`이며 이 트레잇으로 디스패치됩니다. 숫자 타입과 `bool`의 `Err`는 core의 `ParseError`(`input()`, `position()`, `message()`)([2.14.4](214-error.md#2144-내장-에러-타입))입니다. 숫자 파싱은 런타임 helper `rok_str_parse_int` / `rok_str_parse_float` 위에 구현됩니다([refs-lang 8.5](../../refs-lang/008-abi/805-extern-symbols.md#문자열-헬퍼)). 실수의 `FromStr`은 유한한 숫자가 타입의 범위를 넘으면 `number out of range`로 실패합니다. `inf` / `NaN` 텍스트는 파싱됩니다.
 
 ```rok
 let n: i32 = try "42".parse();         // FromStr for i32

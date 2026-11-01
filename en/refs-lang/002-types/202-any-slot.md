@@ -189,7 +189,7 @@ Code with `any` slots has weaker type checking. The compiler cannot know the slo
 Writing a trait after `any` makes a dynamic slot that holds only values of types implementing that trait.
 
 ```rok
-let e: any Error = ParseError { input: s, pos: 0, reason: "empty" };
+let e: any Error = ParseError::new(s, 0, "empty");
 let shapes: List<any Shape> = [Circle { r: 1.0 }, Square { side: 2.0 }];
 let item: any (Display + Hash) = 42i32;
 ```

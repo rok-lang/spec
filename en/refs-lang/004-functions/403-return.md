@@ -102,7 +102,7 @@ Some functions never complete normally: control always leaves through `return`, 
 
 ```rok
 fn fail_always() throws {
-    throw ValueError { msg: "fatal" };
+    throw ValueError::new("fatal");
 }
 
 fn loop_forever() {

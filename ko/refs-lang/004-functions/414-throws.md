@@ -42,7 +42,7 @@ fn add(x: i32, y: i32) -> i32 { x + y }
 
 ```rok
 fn bad() -> i32 {
-    throw ValueError { msg: "nope" };   // ERROR: non-throwing 함수 밖으로 에러가 나감
+    throw ValueError::new("nope"); // ERROR: non-throwing 함수 밖으로 에러가 나감
 }
 ```
 

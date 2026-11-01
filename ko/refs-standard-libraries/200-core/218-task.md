@@ -48,7 +48,7 @@ impl<T> Join<T> {
     fn poll(ref self, ref ctx: Context) throws (CancellationError) -> Poll<T>;
 }
 
-struct TimeoutError {}                              // task::timeout 시간 초과; Display "timed out", Debug, Error
+struct TimeoutError;                                // task::timeout 시간 초과; message() 와 Display 는 "timed out"
 ```
 
 ### 사용 예
@@ -178,7 +178,7 @@ impl TaskId {
 }
 // TaskId: PartialEq / Eq / Hash / Display / Debug
 
-struct CancellationError {}
+struct CancellationError;           // message() 와 Display 는 "task cancelled"
 
 impl<T> Future for Task<T> {              // `await t`: 완료까지 suspend
     type Output = T;

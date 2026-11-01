@@ -171,8 +171,6 @@ impl Signal {
 
 fn on_signal(sig: Signal, handler: fn() + Send) throws (SignalError);
 fn send_signal(pid: u32, sig: Signal) throws (IoError);
-#[deprecated(since = "0.1.6", note = "use `process::on_signal(Signal::.., handler)`")]
-fn signal(sig: i32, handler: fn() + Send) throws (SignalError);
 #[deprecated(since = "0.1.6", note = "use `process::send_signal(pid, Signal::..)`")]
 fn kill(pid: u32, sig: i32) throws (IoError);
 fn raise(sig: i32) throws (IoError);
@@ -180,15 +178,18 @@ fn id() -> u32;                          // this process's id
 fn exit(code: i32) -> !;                 // exit now via the runtime's rok_exit; finally and Drop do not run (refs-lang 4.16)
 fn abort() -> !;                         // abnormal termination (SIGABRT); nothing is cleaned up
 
-struct SignalError {
-    sig: i32;          // the signal being installed
-    code: i32;         // errno
+struct SignalError { .. }                // private fields (0.5.10)
+impl SignalError {
+    fn signal(self) -> Signal;           // the signal being installed
+    fn os_code(self) -> i32 | none;      // errno (Windows: the error code); none if the dispatcher thread could not start
+    fn message(self) -> str;
 }
+// + Display, Debug, Error, PartialEq, Eq, Clone
 ```
 
-An `on_signal` handler does not run in signal context (inside a signal handler). The runtime receives the signal and hands it to a dedicated dispatcher thread `rok-signal`, where the handler runs like an ordinary function. The handler must therefore be `Send`, and it may allocate or take locks. Calling `on_signal` again for the same signal replaces the handler. `Signal` names the signal on every OS; the `i32` forms `signal`, `kill` and `Child::signal` still work and warn (`deprecated`), and 0.2.0 removes them. `Command::process_group(pgid)` puts the child in that process group (`0` means a new group with the child's pid).
+An `on_signal` handler does not run in signal context (inside a signal handler). The runtime receives the signal and hands it to a dedicated dispatcher thread `rok-signal`, where the handler runs like an ordinary function. The handler must therefore be `Send`, and it may allocate or take locks. Calling `on_signal` again for the same signal replaces the handler. `Signal` names the signal on every OS; the `i32` forms `kill` and `Child::signal` still work and warn (`deprecated`), and 0.2.0 removes them; the `i32` `signal` is removed. `Command::process_group(pgid)` puts the child in that process group (`0` means a new group with the child's pid).
 
-On Windows, console events map to signals: Ctrl-C → `Interrupt` (2), console close / logoff / shutdown → `Hangup` (1); the deprecated `signal` also takes Ctrl-Break (21). `send_signal` sends only `Signal::Kill`, as `TerminateProcess`; any other `Signal` is an `IoError` (`Unsupported`), and `on_signal` of a signal other than `Interrupt` or `Hangup` is a `SignalError`.
+On Windows, console events map to signals: Ctrl-C → `Interrupt` (2), console close / logoff / shutdown → `Hangup` (1). `send_signal` sends only `Signal::Kill`, as `TerminateProcess`; any other `Signal` is an `IoError` (`Unsupported`), and `on_signal` of a signal other than `Interrupt` or `Hangup` is a `SignalError`.
 
 Most users never need to touch this. These tools become necessary only where signals must be faced head-on, such as daemons, servers and interactive CLIs.
 

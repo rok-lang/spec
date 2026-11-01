@@ -117,17 +117,10 @@ impl Value {
     fn kind(self) -> str;            // 에러 메시지용 종류 이름 (아래)
 }                                    // + Display, Debug, PartialEq, Eq, Hash
 
-pub struct RokonError {
-    #[deprecated(since = "0.1.6", note = "use `RokonError::message()`")]
-    pub msg: str;
-    #[deprecated(since = "0.1.6", note = "use `RokonError::line()`")]
-    pub line: u32;
-    #[deprecated(since = "0.1.6", note = "use `RokonError::column()`")]
-    pub col: u32;
-    #[deprecated(since = "0.1.6", note = "use `RokonError::path()`")]
-    pub path: str;
-}
+pub struct RokonError { .. }         // 비공개 필드 (0.5.10); + Display, Debug, Error, PartialEq, Eq, Clone
 impl RokonError {
+    pub fn new(message: str) -> RokonError;      // 위치가 없는 디코드 에러
+    pub fn within(self, seg: str) -> RokonError; // self 를 한 단계 아래로: seg (".name", "[3]") 가 경로 앞에 붙음
     pub fn message(self) -> str;     // Display 가 붙이는 위치 없이
     pub fn line(self) -> u32;        // 1 부터; 텍스트에서 온 값이 아니면 0
     pub fn column(self) -> u32;      // 1 부터, code point 단위; line 처럼 0

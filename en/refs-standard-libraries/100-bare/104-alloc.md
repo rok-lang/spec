@@ -5,9 +5,11 @@ The `rok::bare::alloc` module provides an API for allocating and freeing memory 
 ## 1.4.1. API
 
 ```rok
-struct LayoutError {
-    pub reason: str;
+struct LayoutError { .. }                      // private fields (0.5.10)
+impl LayoutError {
+    fn message(self) -> str;
 }
+// + Display, Debug, Error, PartialEq, Eq, Clone
 
 struct Layout {
     size: usize;
@@ -35,7 +37,7 @@ unsafe fn dealloc_one<T>(ptr: Ptr<T>);
 unsafe fn dealloc_array<T>(ptr: Ptr<T>, n: usize);
 ```
 
-If `alloc` fails it returns `CPtr::null()`; it does not abort, so the caller must check and handle the result. `Layout`'s fields are private: read them with `size()` / `align()`. `array` throws `LayoutError` when `n` elements overflow `usize`, `from_size_align` when `align` is not a power of two; `reason` says which.
+If `alloc` fails it returns `CPtr::null()`; it does not abort, so the caller must check and handle the result. `Layout`'s fields are private: read them with `size()` / `align()`. `array` throws `LayoutError` when `n` elements overflow `usize`, `from_size_align` when `align` is not a power of two; `message()` says which.
 
 ## 1.4.2. Example
 
@@ -79,7 +81,7 @@ impl<T> Allocation<T> {
 impl<T> Drop for Allocation<T> { /* frees the block */ }
 ```
 
-`new` throws `LayoutError` when the size overflows `usize` or the system has no memory (`reason` is `"out of memory"`). Copies of an `Allocation` share one block, so use it only inside the `using` block that frees it.
+`new` throws `LayoutError` when the size overflows `usize` or the system has no memory (`message()` is `"out of memory"`). Copies of an `Allocation` share one block, so use it only inside the `using` block that frees it.
 
 ## 1.4.3. Relationship with the GC
 

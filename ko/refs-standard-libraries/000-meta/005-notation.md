@@ -106,3 +106,16 @@ let z = x + y;        //→ 4.0 (f64)
 4. 연산자와 그 이름 붙은 메서드는 다를 수 있습니다. `xs[i]`는 panic하지만 `xs.get(i)`는 `none`을 돌려줍니다.
 
 0.2.0에서 이 규칙에 따라 없앤 형태는 다음과 같습니다. `FormatSpec::try_parse`(`FormatSpec::parse`가 던집니다), `Float::parse_or_none`과 `Float::try_parse`(`try? s.parse()`), `task::try_id`(`task::current_id`), `task::block_on_try`(`task::try_block_on`으로 이름이 바뀌었습니다), `ClientConfig::try_new`(`ClientConfig::new`가 던집니다), 소켓의 `try_close`(`close`가 던집니다), `Path::strip_prefix_or_none`과 `StripPrefixError`(`Path::strip_prefix`가 `Path | none`을 돌려줍니다).
+
+## 0.5.10. 에러 타입
+
+표준 라이브러리의 에러 타입은 모두 다음 규칙을 따릅니다.
+
+1. **필드는 비공개입니다.** 에러는 구조체 리터럴이 아니라 생성자(`new(..)`, 또는 `IoError::from_os_code` 같은 이름 붙은 생성자)로 만들고, 사실을 이름으로 삼은 getter(`kind()`, `position()`, `path()`, `os_code()`)로 읽습니다. 모든 에러 타입에는 `message() -> str`이 있습니다. 무엇이 잘못됐는지를 `Display`가 덧붙일 수 있는 문맥 없이 돌려줍니다.
+2. **트레잇 묶음.** 모든 에러 타입은 `Display`, `Debug`, `Error`, `PartialEq`, `Eq`, `Clone`을 구현합니다. 타입 매개변수의 값을 담는 에러(`SendError<T>`, `TrySendError<T>`)는 앞의 셋을 구현합니다.
+3. **종류.** 종류 getter는 `str`이나 정수가 아니라 enum(`IoErrorKind`, `TlsErrorKind`, `JoinErrorKind`)을 돌려주며, 그 enum은 `#[non_exhaustive]`입니다. OS 에러 코드는 `os_code() -> i32 | none`이고, OS에서 온 에러가 아니면 `none`입니다.
+4. **unit 구조체.** 필드가 없는 에러는 unit 구조체(`struct TimeoutError;`)이며, `TimeoutError {}`가 아니라 `TimeoutError`로 씁니다.
+5. **실패 영역마다 에러 하나.** core는 함께 쓰는 에러(`ValueError`, `ParseError`, `OverflowError`, `ConversionError`, `TypeError`, `IndexError`, `Utf8Error`)를 둡니다. 자기 실패 영역이 있는 std 모듈은 에러 타입을 하나 둡니다(`IoError`, `TlsError`, `RokonError`). UTF-8 검사가 실패하면 모두 `Utf8Error`를 던집니다.
+6. **메시지.** 메시지는 소문자로 시작하고(고유명사와 타입 이름은 예외), 끝에 마침표나 `error:` 접두사를 붙이지 않습니다. 연산자의 panic은 Rust의 문구(`index 5 out of bounds for length 3`)를 씁니다. 메서드의 panic은 `Type::method: `(자유 함수는 `module::fn: `)로 시작하고, 문제를 말한 뒤, 대신 쓸 것이 있으면 `; <대신 쓸 것>`을 붙입니다. 예: `i32::isqrt: the number is negative; use `checked_isqrt` to get `none` instead`. 잘못된 인자에 panic하는 공개 함수는 `#[track_caller]`입니다.
+
+0.2.0에서 이 규칙에 따라 없앤 형태는 다음과 같습니다. 모든 에러 타입의 공개 필드(그리고 `Ipv4Addr` / `Ipv6Addr`의 공개 필드), `IoError::new(message)`, `IoError::with_kind`, `IoError::from_os`, `IoError::code`(`IoError::new(kind, message)`, `IoError::from_os_code`, `IoError::os_code`), `JOIN_LOST` / `JOIN_TAKEN`(`JoinError::kind`), `NonUtf8Error`(`Utf8Error`), `process::signal(i32, handler)`(`process::on_signal(Signal, handler)`).

@@ -25,7 +25,7 @@ A statement of the `throw` keyword followed by any expression; the expression's 
 Flow does not continue after a `throw` statement, so a block ending in a `throw` statement is divergent.
 
 ```rok
-let x = if cond { 42i32 } else { throw ValueError { msg: "not allowed" }; };
+let x = if cond { 42i32 } else { throw ValueError::new("not allowed"); };
 // x: i32 (else branch is divergent)
 ```
 

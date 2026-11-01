@@ -105,3 +105,16 @@ Each function reports failure through exactly one channel, chosen by what the fa
 4. An operator and its named method may differ: `xs[i]` panics where `xs.get(i)` returns `none`.
 
 The forms 0.2.0 removed under these rules: `FormatSpec::try_parse` (`FormatSpec::parse` throws), `Float::parse_or_none` and `Float::try_parse` (`try? s.parse()`), `task::try_id` (`task::current_id`), `task::block_on_try` (renamed `task::try_block_on`), `ClientConfig::try_new` (`ClientConfig::new` throws), the sockets' `try_close` (`close` throws), and `Path::strip_prefix_or_none` with `StripPrefixError` (`Path::strip_prefix` returns `Path | none`).
+
+## 0.5.10. Error types
+
+Every error type in the standard libraries follows these rules:
+
+1. **Private fields.** An error is built by a constructor (`new(..)`, or a named one such as `IoError::from_os_code`), never by a struct literal, and read through getters named after the fact (`kind()`, `position()`, `path()`, `os_code()`). Every error type has `message() -> str`: what went wrong, without the context its `Display` may add.
+2. **Trait set.** Every error type implements `Display`, `Debug`, `Error`, `PartialEq`, `Eq` and `Clone`. An error that carries a value of a type parameter (`SendError<T>`, `TrySendError<T>`) implements the first three.
+3. **Kinds.** A kind getter returns an enum (`IoErrorKind`, `TlsErrorKind`, `JoinErrorKind`), never a `str` or an integer, and the enum is `#[non_exhaustive]`. An OS error code is `os_code() -> i32 | none`, `none` when the error did not come from the OS.
+4. **Unit structs.** An error with no fields is a unit struct (`struct TimeoutError;`), written `TimeoutError`, not `TimeoutError {}`.
+5. **One error per failure space.** core keeps the shared errors (`ValueError`, `ParseError`, `OverflowError`, `ConversionError`, `TypeError`, `IndexError`, `Utf8Error`); a std module with its own failure space has one error type (`IoError`, `TlsError`, `RokonError`). Every failed UTF-8 check throws `Utf8Error`.
+6. **Messages.** A message starts in lower case (proper nouns and type names excepted), with no trailing period and no `error:` prefix. An operator's panic uses Rust's text (`index 5 out of bounds for length 3`). A method's panic starts `Type::method: ` (a free function's `module::fn: `), then the problem, then `; <what to write instead>` when there is one: `i32::isqrt: the number is negative; use `checked_isqrt` to get `none` instead`. A public function that panics on a bad argument is `#[track_caller]`.
+
+The forms 0.2.0 removed under these rules: the public fields of every error type (and of `Ipv4Addr` / `Ipv6Addr`), `IoError::new(message)`, `IoError::with_kind`, `IoError::from_os` and `IoError::code` (`IoError::new(kind, message)`, `IoError::from_os_code`, `IoError::os_code`), `JOIN_LOST` / `JOIN_TAKEN` (`JoinError::kind`), `NonUtf8Error` (`Utf8Error`), and `process::signal(i32, handler)` (`process::on_signal(Signal, handler)`).

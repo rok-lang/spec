@@ -25,15 +25,12 @@ struct Thread { /* OS handle, not generic */ }
 struct JoinHandle<T> { /* join result T */ }
 struct ThreadId { /* opaque */ }       // implements PartialEq
 
-struct JoinError {
-    #[deprecated(since = "0.1.6", note = "use `JoinError::kind()`")]
-    code: i32;                           // OS join error number (errno), JOIN_LOST or JOIN_TAKEN
-}
+struct JoinError { .. }                 // private fields (0.5.10)
 impl JoinError {
     fn kind(self) -> JoinErrorKind;
     fn message(self) -> str;             // as Display shows it
 }
-// implements Display, Debug and Error
+// implements Display, Debug, Error, PartialEq, Eq and Clone
 
 #[non_exhaustive]
 enum JoinErrorKind {
@@ -41,11 +38,6 @@ enum JoinErrorKind {
     Lost,                                // the thread ended with a failed REPL cell
     Taken,                               // already joined or detached
 }                                        // + PartialEq, Debug
-
-#[deprecated(since = "0.1.6", note = "use `JoinErrorKind::Lost`")]
-const JOIN_LOST: i32 = -1;
-#[deprecated(since = "0.1.6", note = "use `JoinErrorKind::Taken`")]
-const JOIN_TAKEN: i32 = -2;
 
 fn spawn<T: Send>(f: fn() -> T + Send) -> JoinHandle<T>;   // = try! Builder::new().spawn(f)
 
@@ -102,9 +94,9 @@ impl<T> ThreadLocal<T> {
 
 ### Panics and `JoinError`
 
-A panic in any thread terminates the whole process with exit code 101. `join` therefore never receives another thread's panic, and `thread::panicking()` is true only for code that runs on the panicking thread while the process ends (an embedder's exit hook). `JoinError` represents OS-level join failures (`JoinErrorKind::Os`), or `JoinErrorKind::Lost` (`JOIN_LOST`) for a thread that ended with a failed REPL cell ([refs-lang 9.7.0](../../refs-lang/009-tools/907-jit-cells.md#970-rules-of-the-cell-session)), displayed as "thread join failed: the thread ended with a failed REPL cell".
+A panic in any thread terminates the whole process with exit code 101. `join` therefore never receives another thread's panic, and `thread::panicking()` is true only for code that runs on the panicking thread while the process ends (an embedder's exit hook). `JoinError` represents OS-level join failures (`JoinErrorKind::Os`), or `JoinErrorKind::Lost` for a thread that ended with a failed REPL cell ([refs-lang 9.7.0](../../refs-lang/009-tools/907-jit-cells.md#970-rules-of-the-cell-session)), displayed as "thread join failed: the thread ended with a failed REPL cell".
 
-`JoinErrorKind::Taken` (`JOIN_TAKEN`, -2): the handle, or a copy of it, was already joined or detached. A second `join` throws it; a second `detach` does nothing. The `code` field and the `JOIN_*` constants warn (`deprecated`); 0.2.0 removes them.
+`JoinErrorKind::Taken`: the handle, or a copy of it, was already joined or detached. A second `join` throws it; a second `detach` does nothing.
 
 ## 3.4.3. Examples
 

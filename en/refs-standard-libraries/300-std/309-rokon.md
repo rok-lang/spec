@@ -117,17 +117,10 @@ impl Value {
     fn kind(self) -> str;            // kind name for error messages (below)
 }                                    // + Display, Debug, PartialEq, Eq, Hash
 
-pub struct RokonError {
-    #[deprecated(since = "0.1.6", note = "use `RokonError::message()`")]
-    pub msg: str;
-    #[deprecated(since = "0.1.6", note = "use `RokonError::line()`")]
-    pub line: u32;
-    #[deprecated(since = "0.1.6", note = "use `RokonError::column()`")]
-    pub col: u32;
-    #[deprecated(since = "0.1.6", note = "use `RokonError::path()`")]
-    pub path: str;
-}
+pub struct RokonError { .. }         // private fields (0.5.10); + Display, Debug, Error, PartialEq, Eq, Clone
 impl RokonError {
+    pub fn new(message: str) -> RokonError;      // a decode error with no position
+    pub fn within(self, seg: str) -> RokonError; // self one level down: seg (".name", "[3]") goes in front of the path
     pub fn message(self) -> str;     // without the position Display adds
     pub fn line(self) -> u32;        // 1-based; 0 when the value did not come from text
     pub fn column(self) -> u32;      // 1-based, in code points; 0 as for line
