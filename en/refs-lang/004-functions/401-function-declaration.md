@@ -215,7 +215,7 @@ Calling a function (or block, or closure) marked `async` / `yield` yields a stan
 | `async fn`       | `AsyncFuture<T>`  | `Future<Output = T>`   | `TryAsyncFuture<T, E>`    |
 | `async yield fn` | `AsyncStream<T>`  | `Stream<Item = T>`     | `TryAsyncStream<T, E>`    |
 
-The `Try*` variants throw the error at the next progress point. For example, `next` of `TryGenIter<T, E>` is `next(ref self) throws (E) -> T | none`, and `TryAsyncFuture` throws at `try await`. These variants do not implement the plain `Iterator` / `Future` / `Stream` traits ([4.14.10](414-throws.md#41410-effect-of-throws-on-sum-type-signatures)).
+The `Try*` variants throw the error at the next progress point. For example, `next` of `TryGenIter<T, E>` is `next(ref self) throws (E) -> T | none`, and `TryAsyncFuture` throws at `try await`. These variants do not implement the plain `Iterator` / `Future` / `Stream` traits ([4.14.10](414-throws.md#41410-effect-of-throws-on-sum-type-signatures)); `TryGenIter` implements `TryIterator` and `TryAsyncStream` implements `TryStream` ([stdlib 2.7.13](../../refs-standard-libraries/200-core/207-iter.md#2713-tryiterator---fallible-iteration), [2.8.11](../../refs-standard-libraries/200-core/208-stream.md#2811-trystream---fallible-streams)).
 
 ```rok
 async fn fetch_user(id: i64) -> User { ... }

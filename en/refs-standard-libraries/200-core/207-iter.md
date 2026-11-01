@@ -509,12 +509,14 @@ impl<T> Iterator for GenIter<T> {
 }
 
 struct TryGenIter<T, E> { /* private */ }    // yield fn .. throws (E)
-impl<T, E> TryGenIter<T, E> {
-    fn next(ref self) throws (E) -> T | none;
+impl<T, E> TryIterator for TryGenIter<T, E> {
+    type Item = T;
+    type Error = E;
+    fn next(ref self) throws (E) -> T | none;   // throws what the body throws
 }
 ```
 
-`TryGenIter` does not implement `Iterator`, because its `next` throws. It is advanced with `try for` or `try g.next()`. The private fields are not specified. Copies share the same coroutine frame and therefore share the progress position.
+`TryGenIter` is a `TryIterator` ([2.7.13](#2713-tryiterator---fallible-iteration)), not an `Iterator`, because its `next` throws. It is stepped with `try for`, `try g.next()` or its adapters. After a throw the generator has ended: the next `next` gives `none`. The private fields are not specified. Copies share the same coroutine frame and therefore share the progress position.
 
 ## 2.7.11. Module mapping
 
@@ -528,6 +530,7 @@ The mapping of each trait to its lang slot and standard library location:
 | `FromIterator` trait  | (none)                | Standard library          |
 | `DoubleEndedIterator` | (none)                | Standard library          |
 | `ExactSizeIterator`   | (none)                | Standard library          |
+| `TryIterator` trait   | `try_iterator_trait`  | Standard library          |
 | `Range<T>` and the other 5 types | `range_type` | `rok/range/`            |
 
 Primitives themselves have no `Iterator` impl (i32 is not a `for` target). Only collections and Ranges are.
@@ -535,3 +538,98 @@ Primitives themselves have no `Iterator` impl (i32 is not a `for` target). Only 
 ## 2.7.12. async - the `Stream` trait
 
 Asynchronous iterators are covered in [2.8 stream](208-stream.md). The `for await x in stream` syntax ([refs-lang 3.13](../../refs-lang/003-expressions/313-loop-expressions.md)) dispatches to `Stream::poll_next`.
+
+## 2.7.13. `TryIterator` - fallible iteration
+
+An iterator whose `next` can fail is a `TryIterator`. Its error is a typed channel of `next`, not part of the item: `next` gives an item, gives `none` at the end, or throws `Error`.
+
+```rok
+#[lang("try_iterator_trait")]
+trait TryIterator {
+    type Item;
+    type Error;
+    fn next(ref self) throws (Error) -> Item | none;
+
+    // lazy adapters; each function may throw `Error`
+    fn map<U>(self, f: fn(Item) throws (Error) -> U) -> TryMap<Self, U>;
+    fn filter(self, pred: fn(Item) throws (Error) -> bool) -> TryFilter<Self>;
+    fn map_err<E2>(self, f: fn(Error) -> E2) -> MapErr<Self, E2>;
+    fn enumerate(self) -> TryEnumerate<Self>;
+    fn zip<J: IntoIterator>(self, other: J) -> TryZip<Self, J::IntoIter>;
+    fn chain<J: TryIterator<Item = Item, Error = Error>>(self, other: J) -> TryChain<Self, J>;
+    fn take(self, n: usize) -> TryTake<Self>;
+    fn skip(self, n: usize) -> TrySkip<Self>;
+    fn step_by(self, step: usize) -> TryStepBy<Self>;
+    fn take_while(self, pred: fn(Item) throws (Error) -> bool) -> TryTakeWhile<Self>;
+    fn skip_while(self, pred: fn(Item) throws (Error) -> bool) -> TrySkipWhile<Self>;
+    fn flat_map<U: IntoIterator>(self, f: fn(Item) throws (Error) -> U) -> TryFlatMap<Self, U>;
+    fn scan<S>(self, init: S, f: fn(S, Item) throws (Error) -> S) -> TryScan<Self, S>;
+    fn inspect(self, f: fn(Item) throws (Error)) -> TryInspect<Self>;
+    fn peekable(self) -> TryPeekable<Self>;      // peek(ref self) throws (Error) -> Item | none
+    fn chunks(self, size: usize) -> TryChunks<Self>;
+
+    // to a plain iterator of results
+    fn results(self) -> Results<Self>;           // Iterator<Item = Result<Item, Error>>
+
+    // eager: the first error stops the loop and is thrown
+    fn collect<C: FromIterator<Item>>(self) throws (Error) -> C;
+    fn count(self) throws (Error) -> usize;
+    fn last(self) throws (Error) -> Item | none;
+    fn nth(ref self, n: usize) throws (Error) -> Item | none;
+    fn fold<B>(self, init: B, f: fn(B, Item) throws (Error) -> B) throws (Error) -> B;
+    fn for_each(self, f: fn(Item) throws (Error)) throws (Error);
+    fn reduce(self, f: fn(Item, Item) throws (Error) -> Item) throws (Error) -> Item | none;
+    fn any(self, pred: fn(Item) throws (Error) -> bool) throws (Error) -> bool;
+    fn all(self, pred: fn(Item) throws (Error) -> bool) throws (Error) -> bool;
+    fn find(self, pred: fn(Item) throws (Error) -> bool) throws (Error) -> Item | none;
+    fn position(self, pred: fn(Item) throws (Error) -> bool) throws (Error) -> usize | none;
+    fn partition(self, pred: fn(Item) throws (Error) -> bool) throws (Error) -> (List<Item>, List<Item>);
+    fn sum(self) throws (Error) -> Item where Item: Add<Output = Item> + Zero;
+    fn product(self) throws (Error) -> Item where Item: Mul<Output = Item> + One;
+    fn min(self) throws (Error) -> Item | none where Item: Ord;
+    fn max(self) throws (Error) -> Item | none where Item: Ord;
+    fn min_by_key<K: Ord>(self, key: fn(Item) throws (Error) -> K) throws (Error) -> Item | none;
+    fn max_by_key<K: Ord>(self, key: fn(Item) throws (Error) -> K) throws (Error) -> Item | none;
+}
+```
+
+`TryIterator` is in the prelude ([0.2](../000-meta/002-import.md)). It is a separate trait, not an error parameter on `Iterator`: a value is one or the other.
+
+- **After a throw.** What a `next` after a throw does is each type's documented choice. A type may go on with the next item (`io::Bytes`) or end, giving `none` from then on (`TryGenIter`).
+- **Adapter functions throw `Error`.** The function given to `map`, `filter`, `fold`, ... may throw the iterator's own `Error`; a non-throwing function fits too ([refs-lang 4.14.8](../../refs-lang/004-functions/414-throws.md#4148-throws-in-function-types)). A function that throws another type is a type error at the call: convert first with `.map_err(..)`, or handle the error inside the function with `catch`. `map_err` is the only way to change `Error`: `.map_err(|e| -> IoError | ParseError { e })` widens it, `.map_err(|e| -> any Error { e })` erases it.
+- **No `try_fold` / `try_for_each`.** `fold` and `for_each` already take a throwing function. `Iterator::try_fold` / `try_for_each` (2.7.1) remain: they add a throw to a non-throwing iterator.
+- **`collect`** builds any `FromIterator` collection (2.7.5); there is no separate trait. It stops at the first error and throws it.
+- **Names.** Adapter types take the `Try` prefix and live in `rok::core::iter` beside `Map`, `Filter`, ...; `MapErr` and `Results` exist only here.
+- **`for`.** A `TryIterator` is stepped with `try for x in it { .. }` ([refs-lang 3.13.3](../../refs-lang/003-expressions/313-loop-expressions.md#3133-for-iterator-based-repetition)). The `try` covers the iterable and each `next`, not the body. A plain `for` over a `TryIterator` is a compile error that asks for `try for` or `.results()`.
+
+### Conversions
+
+| From | To | Form |
+|---|---|---|
+| `TryIterator` | `Iterator<Item = Result<T, E>>` | `it.results()` |
+| `IntoIterator<Item = Result<T, E>>` | `TryIterator<Item = T, Error = E>` | `iter::from_results(xs)` (`FromResults<I, T, E>`) |
+| plain `IntoIterator` | `TryIterator<Error = E>` that never throws | `iter::infallible::<E, J>(xs)` (`Infallible<J::IntoIter, E>`) |
+| a function | `TryIterator` | `iter::try_from_fn(f)`, `f: fn() throws (E) -> (T \| none)` (`TryFromFn<T, E>`) |
+| a generator | `TryIterator` | `yield fn .. throws (E) -> T` gives `TryGenIter<T, E>` (2.7.10a) |
+
+`results()` keeps calling `next` after an error, so every error of a source that goes on becomes an `Err` item, and a source that ends after an error gives that `Err` last. `iter::from_results` throws each `Err` item and goes on.
+
+### Forms
+
+| Layer | Form |
+|---|---|
+| manual step | `while let x: T = try it.next() { .. }` |
+| skip and go on | `for r in it.results() { match r { Result::Ok(x) => .., Result::Err(e) => .. } }` |
+| loop | `try for x in it { .. }` |
+| pipeline | `let ns: List<i64> = try lines.filter(\|l\| !l.is_empty()).map(\|l\| try i64::from_str(l) catch _ { 0 }).collect();` |
+| implementing one | `yield fn .. throws (E) -> T { .. }`, or `impl TryIterator for ..` |
+
+```rok
+fn total(path: str) throws (IoError | ParseError) -> i64 {
+    let n: i64 = 0;
+    try for line in read_lines(path) {      // IoError from each next
+        n += try i64::from_str(line);       // the body marks its own call
+    }
+    n
+}
+```

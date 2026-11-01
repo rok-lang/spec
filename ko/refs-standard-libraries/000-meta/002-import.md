@@ -56,14 +56,14 @@ use foo::**;             // recursive glob (foo + 하위 모듈 모두)
 | 포매팅 | `Formatter` `FmtError` |
 | core 에러 | `ParseError` `ValueError` `OverflowError` `ConversionError` `TypeError` `StackOverflowError` `OutOfMemoryError` `InternalError` |
 
-**트레잇 (25).**
+**트레잇 (26).**
 
 | 분류 | 이름 |
 |---|---|
 | 마커 | `Clone` `Copy` `Drop` `Default` `Send` `Sync` |
 | 비교 | `PartialEq` `Eq` `PartialOrd` `Ord` `Hash` |
 | 포매팅과 에러 | `Debug` `Display` `Error` |
-| 반복과 비동기 | `Iterator` `IntoIterator` `FromIterator` `Future` `IntoFuture` |
+| 반복과 비동기 | `Iterator` `IntoIterator` `FromIterator` `TryIterator` `Future` `IntoFuture` |
 | 변환 | `From` `Into` `TryFrom` `TryInto` `FromStr` |
 | 리플렉션 | `Inspect` (derive 포함, [refs-lang 6.8.11](../../refs-lang/006-meta-system/608-meta-blocks.md)) |
 

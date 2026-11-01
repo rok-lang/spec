@@ -190,12 +190,14 @@ impl<T> Stream for AsyncStream<T> {
 }
 
 struct TryAsyncStream<T, E> { /* private */ }    // async yield fn .. throws (E)
-impl<T, E> TryAsyncStream<T, E> {
+impl<T, E> TryStream for TryAsyncStream<T, E> {
+    type Item = T;
+    type Error = E;
     fn poll_next(ref self, ref ctx: Context) throws (E) -> Poll<T | none>;
 }
 ```
 
-The adapters of `AsyncStream<T>` (`map`, `filter`, `collect`, etc.) are the default methods of `Stream` (2.8.5). `TryAsyncStream` does not implement `Stream`, because its `poll_next` throws; it is consumed with `try for await`. The private fields are not specified. Copies share the same coroutine frame and therefore share the progress position.
+The adapters of `AsyncStream<T>` (`map`, `filter`, `collect`, etc.) are the default methods of `Stream` (2.8.5). `TryAsyncStream` is a `TryStream` ([2.8.11](#2811-trystream---fallible-streams)), not a `Stream`, because its `poll_next` throws; it is consumed with `try for await` or the `TryStream` adapters. The private fields are not specified. Copies share the same coroutine frame and therefore share the progress position.
 
 ## 2.8.9. Module mapping
 
@@ -208,9 +210,45 @@ Every item is defined in `rok::core::stream` (or `rok::core::channel` for `Recei
 | `Receiver<T>`                 | `rok::core::channel::receiver`   | implements `Stream<Item = T>` |
 | `Map`/`Filter`/`Take`/`Skip`/`Throttle`/`Buffered`/`BufferUnordered` | `rok::core::stream::adapter` | adapter structs (implementing `Stream`) |
 | `merge`/`zip`/`select`        | `rok::core::stream::combinator`  | `Merge`/`Zip`/`Select` structs |
+| `TryStream`, `from_results`, `TryMap`/`TryFilter`/`MapErr`/`TryTake`/`TrySkip`/`Results`/`FromResults` | `rok::core::stream` | fallible streams (2.8.11) |
 
 ## 2.8.10. Whether `Stream` has a lang slot
 
 This chapter attaches no `#[lang(...)]` to `Stream::poll_next`; `Stream` is an ordinary trait.
 
 The reasons: the `for await` desugaring is hard-coded in the compiler to call `Stream::poll_next` **directly**, so it is recognized without a lang slot. Moreover, lang slots are a mechanism for multiple dispatch entry points, and Stream has a single entry point, so none is needed.
+
+## 2.8.11. `TryStream` - fallible streams
+
+The async counterpart of `TryIterator` ([2.7.13](207-iter.md#2713-tryiterator---fallible-iteration)): `poll_next` gives an item, gives `none` at the end, or throws `Error`.
+
+```rok
+trait TryStream {
+    type Item;
+    type Error;
+    fn poll_next(ref self, ref ctx: Context) throws (Error) -> Poll<Item | none>;
+
+    fn map<U>(self, f: fn(Item) throws (Error) -> U) -> TryMap<Self, U>;
+    fn filter(self, pred: fn(Item) throws (Error) -> bool) -> TryFilter<Self>;
+    fn map_err<E2>(self, f: fn(Error) -> E2) -> MapErr<Self, E2>;
+    fn take(self, n: usize) -> TryTake<Self>;
+    fn skip(self, n: usize) -> TrySkip<Self>;
+    fn results(self) -> Results<Self>;              // Stream<Item = Result<Item, Error>>
+
+    async fn collect<C: FromStream<Item> = List<Item>>(self) throws (Error) -> C;
+    async fn for_each(self, f: fn(Item) throws (Error)) throws (Error);
+    async fn fold<B>(self, init: B, f: fn(B, Item) throws (Error) -> B) throws (Error) -> B;
+}
+
+fn from_results<S: Stream<Item = Result<T, E>>, T, E>(s: S) -> FromResults<S, T, E>;   // TryStream
+```
+
+The rules of 2.7.13 apply: the adapters' functions may throw `Error`, `map_err` alone changes it, `collect` stops at the first error and throws it, and `results()` keeps polling after an error. The async methods take `self`, like `Stream::collect`. `TryStream` is not in the prelude (neither is `Stream`); write `stream::TryStream`.
+
+`try for await x in s { .. }` steps a `TryStream`; the `try` covers the stream expression and each `poll_next`, not the body ([refs-lang 3.13.3](../../refs-lang/003-expressions/313-loop-expressions.md#3133-for-iterator-based-repetition)).
+
+```rok
+async fn sizes(urls: List<str>) throws (HttpError) -> List<usize> {
+    try await fetch_all(urls).map(|body| body.len()).collect()
+}
+```

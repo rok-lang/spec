@@ -509,12 +509,14 @@ impl<T> Iterator for GenIter<T> {
 }
 
 struct TryGenIter<T, E> { /* 비공개 */ }    // yield fn .. throws (E)
-impl<T, E> TryGenIter<T, E> {
-    fn next(ref self) throws (E) -> T | none;
+impl<T, E> TryIterator for TryGenIter<T, E> {
+    type Item = T;
+    type Error = E;
+    fn next(ref self) throws (E) -> T | none;   // 본체가 던지는 것을 던짐
 }
 ```
 
-`TryGenIter`는 `next`가 던지므로 `Iterator`를 구현하지 않습니다. `try for`나 `try g.next()`로 진행합니다. 비공개 필드는 사양이 정하지 않습니다. 복사본은 같은 코루틴 프레임을 공유하므로 진행 위치도 공유합니다.
+`TryGenIter`는 `next`가 던지므로 `Iterator`가 아니라 `TryIterator`([2.7.13](#2713-tryiterator-실패할-수-있는-반복))입니다. `try for`, `try g.next()`, 또는 그 어댑터로 진행합니다. 한 번 던진 뒤에는 제너레이터가 끝나서 다음 `next`는 `none`을 줍니다. 비공개 필드는 사양이 정하지 않습니다. 복사본은 같은 코루틴 프레임을 공유하므로 진행 위치도 공유합니다.
 
 ## 2.7.11. 모듈 매핑
 
@@ -528,6 +530,7 @@ impl<T, E> TryGenIter<T, E> {
 | `FromIterator` 트레잇 | (없음)                | 표준 라이브러리      |
 | `DoubleEndedIterator` | (없음)                | 표준 라이브러리      |
 | `ExactSizeIterator`   | (없음)                | 표준 라이브러리      |
+| `TryIterator` 트레잇  | `try_iterator_trait`  | 표준 라이브러리      |
 | `Range<T>` 등 5종     | `range_type`          | `rok/range/`         |
 
 원시 타입 자체에는 `Iterator` 구현이 없습니다. i32는 `for`의 대상이 아닙니다. 컬렉션과 Range만 대상입니다.
@@ -535,3 +538,98 @@ impl<T, E> TryGenIter<T, E> {
 ## 2.7.12. async: `Stream` 트레잇
 
 비동기 반복자는 [2.8 stream](208-stream.md)에서 다룹니다. `for await x in stream` 문법([refs-lang 3.13](../../refs-lang/003-expressions/313-loop-expressions.md))은 `Stream::poll_next`로 디스패치됩니다.
+
+## 2.7.13. `TryIterator`: 실패할 수 있는 반복
+
+`next`가 실패할 수 있는 반복자는 `TryIterator`입니다. 에러는 항목의 일부가 아니라 `next`의 타입 있는 채널입니다. `next`는 항목을 주거나, 끝에서 `none`을 주거나, `Error`를 던집니다.
+
+```rok
+#[lang("try_iterator_trait")]
+trait TryIterator {
+    type Item;
+    type Error;
+    fn next(ref self) throws (Error) -> Item | none;
+
+    // 지연 어댑터. 각 함수는 `Error`를 던져도 됨
+    fn map<U>(self, f: fn(Item) throws (Error) -> U) -> TryMap<Self, U>;
+    fn filter(self, pred: fn(Item) throws (Error) -> bool) -> TryFilter<Self>;
+    fn map_err<E2>(self, f: fn(Error) -> E2) -> MapErr<Self, E2>;
+    fn enumerate(self) -> TryEnumerate<Self>;
+    fn zip<J: IntoIterator>(self, other: J) -> TryZip<Self, J::IntoIter>;
+    fn chain<J: TryIterator<Item = Item, Error = Error>>(self, other: J) -> TryChain<Self, J>;
+    fn take(self, n: usize) -> TryTake<Self>;
+    fn skip(self, n: usize) -> TrySkip<Self>;
+    fn step_by(self, step: usize) -> TryStepBy<Self>;
+    fn take_while(self, pred: fn(Item) throws (Error) -> bool) -> TryTakeWhile<Self>;
+    fn skip_while(self, pred: fn(Item) throws (Error) -> bool) -> TrySkipWhile<Self>;
+    fn flat_map<U: IntoIterator>(self, f: fn(Item) throws (Error) -> U) -> TryFlatMap<Self, U>;
+    fn scan<S>(self, init: S, f: fn(S, Item) throws (Error) -> S) -> TryScan<Self, S>;
+    fn inspect(self, f: fn(Item) throws (Error)) -> TryInspect<Self>;
+    fn peekable(self) -> TryPeekable<Self>;      // peek(ref self) throws (Error) -> Item | none
+    fn chunks(self, size: usize) -> TryChunks<Self>;
+
+    // Result를 주는 일반 반복자로
+    fn results(self) -> Results<Self>;           // Iterator<Item = Result<Item, Error>>
+
+    // 즉시 실행. 첫 에러에서 멈추고 그 에러를 던짐
+    fn collect<C: FromIterator<Item>>(self) throws (Error) -> C;
+    fn count(self) throws (Error) -> usize;
+    fn last(self) throws (Error) -> Item | none;
+    fn nth(ref self, n: usize) throws (Error) -> Item | none;
+    fn fold<B>(self, init: B, f: fn(B, Item) throws (Error) -> B) throws (Error) -> B;
+    fn for_each(self, f: fn(Item) throws (Error)) throws (Error);
+    fn reduce(self, f: fn(Item, Item) throws (Error) -> Item) throws (Error) -> Item | none;
+    fn any(self, pred: fn(Item) throws (Error) -> bool) throws (Error) -> bool;
+    fn all(self, pred: fn(Item) throws (Error) -> bool) throws (Error) -> bool;
+    fn find(self, pred: fn(Item) throws (Error) -> bool) throws (Error) -> Item | none;
+    fn position(self, pred: fn(Item) throws (Error) -> bool) throws (Error) -> usize | none;
+    fn partition(self, pred: fn(Item) throws (Error) -> bool) throws (Error) -> (List<Item>, List<Item>);
+    fn sum(self) throws (Error) -> Item where Item: Add<Output = Item> + Zero;
+    fn product(self) throws (Error) -> Item where Item: Mul<Output = Item> + One;
+    fn min(self) throws (Error) -> Item | none where Item: Ord;
+    fn max(self) throws (Error) -> Item | none where Item: Ord;
+    fn min_by_key<K: Ord>(self, key: fn(Item) throws (Error) -> K) throws (Error) -> Item | none;
+    fn max_by_key<K: Ord>(self, key: fn(Item) throws (Error) -> K) throws (Error) -> Item | none;
+}
+```
+
+`TryIterator`는 prelude에 있습니다([0.2](../000-meta/002-import.md)). `Iterator`에 에러 매개변수를 붙인 것이 아니라 별도 트레잇이며, 한 값은 둘 중 하나입니다.
+
+- **던진 뒤.** 던진 뒤의 `next`가 무엇을 하는지는 타입마다 문서로 정합니다. 다음 항목으로 이어 가거나(`io::Bytes`) 끝나서 계속 `none`을 줍니다(`TryGenIter`).
+- **어댑터 함수는 `Error`를 던짐.** `map`, `filter`, `fold` 등에 넘기는 함수는 반복자 자신의 `Error`를 던질 수 있습니다. 던지지 않는 함수도 맞습니다([refs-lang 4.14.8](../../refs-lang/004-functions/414-throws.md#4148-함수-타입의-throws)). 다른 타입을 던지는 함수는 호출 자리에서 타입 에러입니다. 먼저 `.map_err(..)`로 바꾸거나 함수 안에서 `catch`로 처리하십시오. `Error`를 바꾸는 방법은 `map_err` 하나뿐입니다. `.map_err(|e| -> IoError | ParseError { e })`는 넓히고, `.map_err(|e| -> any Error { e })`는 지웁니다.
+- **`try_fold` / `try_for_each` 없음.** `fold`와 `for_each`가 이미 던지는 함수를 받습니다. `Iterator::try_fold` / `try_for_each`(2.7.1)는 그대로 있습니다. 던지지 않는 반복자에 throw를 더하는 다른 연산이기 때문입니다.
+- **`collect`**는 어떤 `FromIterator` 컬렉션(2.7.5)이든 만듭니다. 별도 트레잇은 없습니다. 첫 에러에서 멈추고 그 에러를 던집니다.
+- **이름.** 어댑터 타입은 `Try` 접두어를 붙이고 `Map`, `Filter` 등과 함께 `rok::core::iter`에 있습니다. `MapErr`와 `Results`는 여기에만 있습니다.
+- **`for`.** `TryIterator`는 `try for x in it { .. }`로 진행합니다([refs-lang 3.13.3](../../refs-lang/003-expressions/313-loop-expressions.md#3133-for-반복자-기반-반복)). `try`는 반복 대상과 각 `next`를 덮고 본체는 덮지 않습니다. `TryIterator`를 일반 `for`로 돌면 컴파일 에러이며 `try for`나 `.results()`를 쓰라고 알려 줍니다.
+
+### 변환
+
+| 원래 | 결과 | 형태 |
+|---|---|---|
+| `TryIterator` | `Iterator<Item = Result<T, E>>` | `it.results()` |
+| `IntoIterator<Item = Result<T, E>>` | `TryIterator<Item = T, Error = E>` | `iter::from_results(xs)` (`FromResults<I, T, E>`) |
+| 일반 `IntoIterator` | 던지지 않는 `TryIterator<Error = E>` | `iter::infallible::<E, J>(xs)` (`Infallible<J::IntoIter, E>`) |
+| 함수 | `TryIterator` | `iter::try_from_fn(f)`, `f: fn() throws (E) -> (T \| none)` (`TryFromFn<T, E>`) |
+| 제너레이터 | `TryIterator` | `yield fn .. throws (E) -> T`는 `TryGenIter<T, E>`(2.7.10a) |
+
+`results()`는 에러 뒤에도 `next`를 계속 부릅니다. 그래서 이어 가는 원천의 에러는 모두 `Err` 항목이 되고, 에러 뒤에 끝나는 원천은 그 `Err`를 마지막으로 줍니다. `iter::from_results`는 `Err` 항목마다 던지고 계속 진행합니다.
+
+### 형태
+
+| 층 | 형태 |
+|---|---|
+| 직접 진행 | `while let x: T = try it.next() { .. }` |
+| 건너뛰고 계속 | `for r in it.results() { match r { Result::Ok(x) => .., Result::Err(e) => .. } }` |
+| 루프 | `try for x in it { .. }` |
+| 파이프라인 | `let ns: List<i64> = try lines.filter(\|l\| !l.is_empty()).map(\|l\| try i64::from_str(l) catch _ { 0 }).collect();` |
+| 직접 구현 | `yield fn .. throws (E) -> T { .. }` 또는 `impl TryIterator for ..` |
+
+```rok
+fn total(path: str) throws (IoError | ParseError) -> i64 {
+    let n: i64 = 0;
+    try for line in read_lines(path) {      // 각 next 의 IoError
+        n += try i64::from_str(line);       // 본체는 자기 호출을 직접 표시
+    }
+    n
+}
+```

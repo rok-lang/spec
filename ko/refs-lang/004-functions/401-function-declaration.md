@@ -215,7 +215,7 @@ unsafe unsafe fn bad3() { ... }          // ERROR: unsafe 중복
 | `async fn`       | `AsyncFuture<T>`  | `Future<Output = T>`   | `TryAsyncFuture<T, E>`    |
 | `async yield fn` | `AsyncStream<T>`  | `Stream<Item = T>`     | `TryAsyncStream<T, E>`    |
 
-`Try*` 변형은 에러를 다음 진행 지점에서 던집니다. 예를 들어 `TryGenIter<T, E>`의 `next`는 `next(ref self) throws (E) -> T | none`이고, `TryAsyncFuture`는 `try await`에서 던집니다. 이 변형은 일반 `Iterator` / `Future` / `Stream` 트레잇을 구현하지 않습니다([4.14.10](414-throws.md#41410-throws가-합-타입-시그니처에-미치는-영향)).
+`Try*` 변형은 에러를 다음 진행 지점에서 던집니다. 예를 들어 `TryGenIter<T, E>`의 `next`는 `next(ref self) throws (E) -> T | none`이고, `TryAsyncFuture`는 `try await`에서 던집니다. 이 변형은 일반 `Iterator` / `Future` / `Stream` 트레잇을 구현하지 않습니다([4.14.10](414-throws.md#41410-throws가-합-타입-시그니처에-미치는-영향)). 대신 `TryGenIter`는 `TryIterator`를, `TryAsyncStream`은 `TryStream`을 구현합니다([stdlib 2.7.13](../../refs-standard-libraries/200-core/207-iter.md#2713-tryiterator-실패할-수-있는-반복), [2.8.11](../../refs-standard-libraries/200-core/208-stream.md#2811-trystream-실패할-수-있는-스트림)).
 
 ```rok
 async fn fetch_user(id: i64) -> User { ... }

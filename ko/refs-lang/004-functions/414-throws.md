@@ -206,15 +206,28 @@ let d = try await f catch e: NetworkError {
 
 ### `try for`
 
-`next`가 에러를 던지는 반복자(`TryGenIter` 등)를 도는 `for`는 throwing 식이므로 `try`로 덮어야 합니다. `for await`도 마찬가지입니다.
+`TryIterator`(throwing 제너레이터의 `TryGenIter`, `io::Bytes` 등)를 도는 `for`는 `next`마다 던질 수 있으므로 `try for`로 씁니다. 이 `try`는 반복만 덮습니다. 반복 대상 식과 각 `next`입니다. 본체는 덮지 않으므로 본체 안의 throwing 호출에는 자기 `try`를 붙입니다([3.13.3](../003-expressions/313-loop-expressions.md#3133-for-반복자-기반-반복)). `TryStream`을 도는 `for await`도 같습니다.
 
 ```rok
-try for line in lines("a.txt") {         // 각 next 의 IoError 가 전파됨
-    process(line);
+fn total(path: str) throws (IoError | ParseError) -> i64 {
+    let n: i64 = 0;
+    try for line in lines(path) {           // 각 next 의 IoError 가 전파됨
+        n += try i64::from_str(line);       // 본체는 자기 호출을 직접 표시
+    }
+    n
 }
-try for await ev in events() { handle(ev); }
-for line in lines("a.txt") { ... }       // ERROR: try 없음
+try for await ev in events() { try handle(ev); }
+for line in lines("a.txt") { ... }          // ERROR: `next`가 던질 수 있음, `try for`로 쓸 것
 ```
+
+| 형태 | 단계에서 에러가 나면 |
+|---|---|
+| `try for` | 가장 가까운 `catch`로, 없으면 함수 밖으로 전파 |
+| `try! for` | 패닉([3.14.3](../003-expressions/314-error-control-flow.md#3143-try와-try)) |
+| `try? for` | 루프를 끝냄. `for` 식의 값은 `none`(아니면 `()`) |
+| `try for .. catch e: E { .. }` | `catch`는 `try for` 식 전체에 붙음 |
+
+본체 안의 `try`는 다른 중첩 `try`처럼 에러를 보냅니다. 루프 뒤의 `catch`나 루프의 `try?` / `try!`로 가고, 없으면 함수 밖으로 나갑니다. 에러가 나도 계속 돌려면 `.results()`를 도십시오. 각 단계를 `Result`로 줍니다([stdlib 2.7.13](../../refs-standard-libraries/200-core/207-iter.md#2713-tryiterator-실패할-수-있는-반복)).
 
 ## 4.14.11. 메서드의 `throws`
 

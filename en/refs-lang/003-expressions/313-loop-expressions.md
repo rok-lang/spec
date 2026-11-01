@@ -113,7 +113,25 @@ loop {
 
 (The exact trait and method names are defined by the standard library.)
 
-A `for` over an iterator whose `next` throws (`TryGenIter<T, E>`, etc.) is a throwing expression, so it must be covered by `try`, as in `try for pat in it { ... }`. The same applies to `for await` ([4.14.10](../004-functions/414-throws.md#try-for)).
+When the value implements `IntoIterator`, the loop steps its `Iterator`. Otherwise, when it implements `TryIterator` ([stdlib 2.7.13](../../refs-standard-libraries/200-core/207-iter.md#2713-tryiterator---fallible-iteration)), the loop steps it directly; its `next` throws, so the loop must be written `try for` (or `try! for` / `try? for`). Any other value is a compile error.
+
+```
+try for pat in xs { body }
+```
+
+is semantically equivalent to:
+
+```
+let it = try xs;                                     // the iterable is covered
+loop {
+    match try <typeof(it) as TryIterator>::next(ref it) {   // each step is covered
+        pat: T => body,                              // the body is not covered
+        none   => break,
+    }
+}
+```
+
+The `try` of `try for` covers the iteration only: the iterable expression and every `next`. It does not cover the body; a throwing call in the body is marked with its own `try`, as everywhere else ([3.14.2](314-error-control-flow.md#coverage)). An error from a step goes where the loop's `try` sends it: out of the function for `try for`, to a panic for `try! for`, and to the end of the loop for `try? for`, whose value is then `none`. A `catch` after the loop attaches to the whole `try for` expression ([4.14.10](../004-functions/414-throws.md#try-for)). The same rules apply to `try for await` over a `TryStream` ([stdlib 2.8.11](../../refs-standard-libraries/200-core/208-stream.md#2811-trystream---fallible-streams)).
 
 ### Result value
 

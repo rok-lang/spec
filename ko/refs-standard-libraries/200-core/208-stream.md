@@ -190,12 +190,14 @@ impl<T> Stream for AsyncStream<T> {
 }
 
 struct TryAsyncStream<T, E> { /* 비공개 */ }    // async yield fn .. throws (E)
-impl<T, E> TryAsyncStream<T, E> {
+impl<T, E> TryStream for TryAsyncStream<T, E> {
+    type Item = T;
+    type Error = E;
     fn poll_next(ref self, ref ctx: Context) throws (E) -> Poll<T | none>;
 }
 ```
 
-`AsyncStream<T>`의 어댑터(`map`, `filter`, `collect` 등)는 `Stream`의 기본 메서드입니다(2.8.5). `TryAsyncStream`은 `poll_next`가 에러를 던지므로 `Stream`을 구현하지 않습니다. 이 값은 `try for await`로 소비합니다. 비공개 필드는 사양이 정하지 않습니다. 복사본은 같은 코루틴 프레임을 공유하므로 진행 위치도 공유합니다.
+`AsyncStream<T>`의 어댑터(`map`, `filter`, `collect` 등)는 `Stream`의 기본 메서드입니다(2.8.5). `TryAsyncStream`은 `poll_next`가 에러를 던지므로 `Stream`이 아니라 `TryStream`([2.8.11](#2811-trystream-실패할-수-있는-스트림))입니다. 이 값은 `try for await`나 `TryStream` 어댑터로 소비합니다. 비공개 필드는 사양이 정하지 않습니다. 복사본은 같은 코루틴 프레임을 공유하므로 진행 위치도 공유합니다.
 
 ## 2.8.9. 모듈 매핑
 
@@ -208,9 +210,45 @@ impl<T, E> TryAsyncStream<T, E> {
 | `Receiver<T>`                 | `rok::core::channel::receiver`   | `Stream<Item = T>` 구현      |
 | `Map`/`Filter`/`Take`/`Skip`/`Throttle`/`Buffered`/`BufferUnordered` | `rok::core::stream::adapter` | 어댑터 struct(`Stream` 구현) |
 | `merge`/`zip`/`select`        | `rok::core::stream::combinator`  | `Merge`/`Zip`/`Select` struct |
+| `TryStream`, `from_results`, `TryMap`/`TryFilter`/`MapErr`/`TryTake`/`TrySkip`/`Results`/`FromResults` | `rok::core::stream` | 실패할 수 있는 스트림(2.8.11) |
 
 ## 2.8.10. `Stream` lang slot 여부
 
 이 장은 `Stream::poll_next`에 `#[lang(...)]`을 붙이지 않습니다. `Stream`은 일반 트레잇입니다.
 
 이유는 두 가지입니다. 첫째, 컴파일러는 `for await`를 풀 때 `Stream::poll_next`를 **직접** 호출하도록 고정되어 있습니다. 그래서 lang slot이 없어도 인식합니다. 둘째, lang slot은 디스패치 진입점이 여럿일 때 쓰는 장치입니다. Stream의 진입점은 하나뿐이므로 필요하지 않습니다.
+
+## 2.8.11. `TryStream`: 실패할 수 있는 스트림
+
+`TryIterator`([2.7.13](207-iter.md#2713-tryiterator-실패할-수-있는-반복))의 비동기판입니다. `poll_next`는 항목을 주거나, 끝에서 `none`을 주거나, `Error`를 던집니다.
+
+```rok
+trait TryStream {
+    type Item;
+    type Error;
+    fn poll_next(ref self, ref ctx: Context) throws (Error) -> Poll<Item | none>;
+
+    fn map<U>(self, f: fn(Item) throws (Error) -> U) -> TryMap<Self, U>;
+    fn filter(self, pred: fn(Item) throws (Error) -> bool) -> TryFilter<Self>;
+    fn map_err<E2>(self, f: fn(Error) -> E2) -> MapErr<Self, E2>;
+    fn take(self, n: usize) -> TryTake<Self>;
+    fn skip(self, n: usize) -> TrySkip<Self>;
+    fn results(self) -> Results<Self>;              // Stream<Item = Result<Item, Error>>
+
+    async fn collect<C: FromStream<Item> = List<Item>>(self) throws (Error) -> C;
+    async fn for_each(self, f: fn(Item) throws (Error)) throws (Error);
+    async fn fold<B>(self, init: B, f: fn(B, Item) throws (Error) -> B) throws (Error) -> B;
+}
+
+fn from_results<S: Stream<Item = Result<T, E>>, T, E>(s: S) -> FromResults<S, T, E>;   // TryStream
+```
+
+2.7.13의 규칙이 그대로 적용됩니다. 어댑터 함수는 `Error`를 던질 수 있고, `Error`는 `map_err`로만 바뀌며, `collect`는 첫 에러에서 멈추고 그 에러를 던지고, `results()`는 에러 뒤에도 계속 poll합니다. 비동기 메서드는 `Stream::collect`처럼 `self`를 받습니다. `TryStream`은 prelude에 없습니다(`Stream`도 없습니다). `stream::TryStream`으로 씁니다.
+
+`try for await x in s { .. }`는 `TryStream`을 진행합니다. `try`는 스트림 식과 각 `poll_next`를 덮고 본체는 덮지 않습니다([refs-lang 3.13.3](../../refs-lang/003-expressions/313-loop-expressions.md#3133-for-반복자-기반-반복)).
+
+```rok
+async fn sizes(urls: List<str>) throws (HttpError) -> List<usize> {
+    try await fetch_all(urls).map(|body| body.len()).collect()
+}
+```

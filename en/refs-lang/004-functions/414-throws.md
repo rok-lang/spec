@@ -206,15 +206,28 @@ This decision keeps the result from turning into an `enum` with two variants, re
 
 ### `try for`
 
-A `for` over an iterator whose `next` throws (`TryGenIter`, etc.) is a throwing expression and must be covered with `try`. The same applies to `for await`.
+A `for` over a `TryIterator` (a throwing generator's `TryGenIter`, `io::Bytes`, ...) throws at each `next`, so it is written `try for`. The `try` covers the iteration only: the iterable expression and each `next`. The body is not covered; a throwing call there is marked with its own `try` ([3.13.3](../003-expressions/313-loop-expressions.md#3133-for-iterator-based-repetition)). `for await` over a `TryStream` works the same way.
 
 ```rok
-try for line in lines("a.txt") {         // IoError from each next propagates
-    process(line);
+fn total(path: str) throws (IoError | ParseError) -> i64 {
+    let n: i64 = 0;
+    try for line in lines(path) {           // IoError from each next propagates
+        n += try i64::from_str(line);       // the body marks its own call
+    }
+    n
 }
-try for await ev in events() { handle(ev); }
-for line in lines("a.txt") { ... }       // ERROR: no try
+try for await ev in events() { try handle(ev); }
+for line in lines("a.txt") { ... }          // ERROR: `next` can throw; write `try for`
 ```
+
+| Form | On an error from a step |
+|---|---|
+| `try for` | propagates to the nearest `catch`, else out of the function |
+| `try! for` | panics ([3.14.3](../003-expressions/314-error-control-flow.md#3143-try-and-try)) |
+| `try? for` | ends the loop; the `for` expression is `none` (otherwise `()`) |
+| `try for .. catch e: E { .. }` | the `catch` attaches to the whole `try for` expression |
+
+A `try` in the body routes its error like any nested `try`: to a `catch` after the loop, or to the loop's `try?` / `try!`, else out of the function. To keep going after an error, loop over `.results()`, which gives each step as a `Result` ([stdlib 2.7.13](../../refs-standard-libraries/200-core/207-iter.md#2713-tryiterator---fallible-iteration)).
 
 ## 4.14.11. `throws` on methods
 

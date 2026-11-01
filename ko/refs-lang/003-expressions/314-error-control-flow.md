@@ -56,6 +56,8 @@ try {                       // 블록도 식이므로 블록 안의 호출을 �
 
 `try`가 이항 연산자의 오른쪽 피연산자나 함수 인자 자리에 오면 그 피연산자만 덮습니다.
 
+예외는 `for` 피연산자 하나입니다. `try for pat in xs { body }`는 반복 대상 `xs`와 루프의 각 단계를 덮고 `body`는 덮지 않습니다([3.13.3](313-loop-expressions.md#3133-for-반복자-기반-반복)). 본체 안의 throwing 호출에는 따로 `try`가 필요합니다.
+
 ```rok
 let total = base + try fetch_extra();
 log(try describe(item));

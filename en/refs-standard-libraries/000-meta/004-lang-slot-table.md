@@ -6,15 +6,15 @@ The slot table is the authoritative location in the spec; the compiler, the stan
 
 ## 0.4.1. Slot classification
 
-The 64 slots fall into four groups according to their responsibility. The table below shows the role and slot count of each group at a glance, indicating which category the detailed tables in the following sections belong to.
+The 66 slots fall into four groups according to their responsibility. The table below shows the role and slot count of each group at a glance, indicating which category the detailed tables in the following sections belong to.
 
 | Group   | Responsibility                                                              | Slots   |
 |---------|-----------------------------------------------------------------------------|---------|
 | Type    | Standard library types Rok recognizes as **concrete types**                 | 14      |
-| Trait   | Traits Rok uses for **operator / control-flow desugaring**, derive, and thread-boundary checks | 30 |
+| Trait   | Traits Rok uses for **operator / control-flow desugaring**, derive, and thread-boundary checks | 32 |
 | Method  | Methods Rok **calls automatically** (drop)                                  | 1       |
 | Function | Standard library functions Rok calls as **intrinsic calls**, and the hooks lowered code calls | 19 |
-| Total   |                                                                             | **64**  |
+| Total   |                                                                             | **66**  |
 
 ## 0.4.2. Type slots (14)
 
@@ -48,7 +48,7 @@ Syntax-tied slots:
 
 A compiler that provides the primitive types built in may leave `i32_type` ... `str_type`, `none_type` and `char_type` unattached. The reference compiler does: these slot names are accepted, but the library attaches no item to them (`str` and `c_char` are not library structs, and `NoneSentinel` is an alias, not a `#[lang]` item). Where 0.4.6 looks up one of them, the compiler uses its built-in type.
 
-## 0.4.3. Trait slots (30)
+## 0.4.3. Trait slots (32)
 
 Trait slots indicate which trait the compiler goes to when user-written syntax is desugared into a standard library trait call. Core syntax such as `for` loops, indexing, slicing, formatting and `await` all resolves through the traits registered here, so this table is the thickest bridge between the language syntax and the library.
 
@@ -56,6 +56,7 @@ Trait slots indicate which trait the compiler goes to when user-written syntax i
 |-----------------------|---------------------------------|---------------------------------|------|
 | `iterator_trait`      | Stepping in `for x in xs`       | `rok::core::iter::Iterator`     | 2.7  |
 | `into_iterator_trait` | Start of `for x in xs`          | `rok::core::iter::IntoIterator` | 2.7  |
+| `try_iterator_trait`  | Stepping in `try for x in xs`   | `rok::core::iter::TryIterator`  | 2.7.13 |
 | `index_trait`         | `arr[i]` read                   | `rok::core::index::Index` | 2.3  |
 | `index_set_trait`     | `arr[i] = v` write              | `rok::core::index::IndexSet` | 2.3  |
 | `slice_trait`         | `s[1:3]` slicing                | `rok::core::index::Sliceable` | 2.3  |
@@ -155,7 +156,7 @@ Where the previous sections listed "which slots exist", this section summarizes 
 | Literal type of `42` (no expected type)            | `i32_type`                               |
 | Literal type of `3.14` (no expected type)          | `f64_type`                               |
 | Literal type of `"hello"`                          | `str_type`                               |
-| Desugaring `for x in xs`                           | `into_iterator_trait`, `iterator_trait`  |
+| Desugaring `for x in xs`                           | `into_iterator_trait`, `iterator_trait`, `try_iterator_trait` |
 | Desugaring `arr[i]`                                | `index_trait`                            |
 | Desugaring `arr[i] = v`                            | `index_set_trait`                        |
 | Desugaring `s[1:3]`                                | `slice_trait`                            |

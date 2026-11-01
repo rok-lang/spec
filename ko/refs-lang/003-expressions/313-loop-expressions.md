@@ -113,7 +113,25 @@ loop {
 
 (정확한 트레잇과 메서드 이름은 표준 라이브러리에서 정의합니다.)
 
-`next`가 에러를 던지는 반복자(`TryGenIter<T, E>` 등)를 도는 `for`는 에러를 던지는 식입니다. 그래서 `try for pat in it { ... }`처럼 `try`로 덮어야 합니다. `for await`도 마찬가지입니다([4.14.10](../004-functions/414-throws.md#try-for)).
+값이 `IntoIterator`를 구현하면 루프는 그 `Iterator`를 진행합니다. 그렇지 않고 `TryIterator`([stdlib 2.7.13](../../refs-standard-libraries/200-core/207-iter.md#2713-tryiterator-실패할-수-있는-반복))를 구현하면 그 값을 바로 진행합니다. 이때 `next`가 던지므로 루프는 `try for`(또는 `try! for` / `try? for`)로 써야 합니다. 그 밖의 값은 컴파일 에러입니다.
+
+```
+try for pat in xs { body }
+```
+
+는 의미상 다음과 같습니다.
+
+```
+let it = try xs;                                     // 반복 대상을 덮음
+loop {
+    match try <typeof(it) as TryIterator>::next(ref it) {   // 단계마다 덮음
+        pat: T => body,                              // 본체는 덮지 않음
+        none   => break,
+    }
+}
+```
+
+`try for`의 `try`는 반복만 덮습니다. 반복 대상 식과 각 `next`입니다. 본체는 덮지 않습니다. 본체 안에서 에러를 던지는 호출은 다른 곳과 똑같이 자기 `try`를 붙입니다([3.14.2](314-error-control-flow.md#덮는-범위)). 단계에서 난 에러는 루프의 `try`가 보내는 곳으로 갑니다. `try for`면 함수 밖으로, `try! for`면 패닉으로, `try? for`면 루프 끝으로 가며 이때 식의 값은 `none`입니다. 루프 뒤의 `catch`는 `try for` 식 전체에 붙습니다([4.14.10](../004-functions/414-throws.md#try-for)). `TryStream`을 도는 `try for await`도 같은 규칙을 따릅니다([stdlib 2.8.11](../../refs-standard-libraries/200-core/208-stream.md#2811-trystream-실패할-수-있는-스트림)).
 
 ### 결과 값
 

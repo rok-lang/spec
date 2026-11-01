@@ -56,14 +56,14 @@ The names below are exactly the names of `rok::core::prelude`. Modules, types an
 | Formatting | `Formatter` `FmtError` |
 | Core errors | `ParseError` `ValueError` `OverflowError` `ConversionError` `TypeError` `StackOverflowError` `OutOfMemoryError` `InternalError` |
 
-**Traits (25).**
+**Traits (26).**
 
 | Group | Names |
 |---|---|
 | Markers | `Clone` `Copy` `Drop` `Default` `Send` `Sync` |
 | Comparison | `PartialEq` `Eq` `PartialOrd` `Ord` `Hash` |
 | Formatting and errors | `Debug` `Display` `Error` |
-| Iteration and async | `Iterator` `IntoIterator` `FromIterator` `Future` `IntoFuture` |
+| Iteration and async | `Iterator` `IntoIterator` `FromIterator` `TryIterator` `Future` `IntoFuture` |
 | Conversion | `From` `Into` `TryFrom` `TryInto` `FromStr` |
 | Reflection | `Inspect` (also its derive, [refs-lang 6.8.11](../../refs-lang/006-meta-system/608-meta-blocks.md)) |
 

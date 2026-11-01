@@ -56,6 +56,8 @@ The operand of `try` extends rightward to where the expression ends, stopping be
 
 When `try` appears as the right operand of a binary operator or in function argument position, it covers only that operand.
 
+The one exception is a `for` operand: `try for pat in xs { body }` covers the iterable `xs` and each step of the loop, not `body` ([3.13.3](313-loop-expressions.md#3133-for-iterator-based-repetition)). A throwing call in the body needs its own `try`.
+
 ```rok
 let total = base + try fetch_extra();
 log(try describe(item));
