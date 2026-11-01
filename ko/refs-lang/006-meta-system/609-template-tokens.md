@@ -234,7 +234,7 @@ match self {
 
 ### `@accept(...)`
 
-`@accept`는 derive나 속성을 붙일 수 있는 대상 종류를 제한합니다. 쉼표나 `|`로 구분한 항목 종류 목록을 받습니다.
+`@accept`는 속성을 붙일 수 있는 대상 종류를 제한합니다. derive에 쓰면 에러입니다. 쉼표나 `|`로 구분한 항목 종류 목록을 받습니다.
 
 ```rok
 #[impl_attribute(my_wrap)] pub @attribute {
@@ -266,12 +266,12 @@ match self {
 `@where_all`은 모든 필드 타입이 `Trait`를 만족해야 한다는 조건을 where 절로 자동으로 넣습니다.
 
 ```rok
-#[impl_derive(Eq)] pub @derive {
-    @where_all(Eq)                           // 모든 필드의 타입이 Eq 면 OK
-    impl Eq for @Self {
-        fn eq(self, other: Self) -> bool {
+#[impl_derive(Same)] pub @derive {
+    @where_all(Same)                         // 모든 필드의 타입이 Same 이면 OK
+    impl Same for @Self {
+        fn same(self, other: Self) -> bool {
             @for_fields {
-                if !self.@field.eq(other.@field) { return false; }
+                if !self.@field.same(other.@field) { return false; }
             }
             true
         }
@@ -279,7 +279,7 @@ match self {
 }
 ```
 
-이렇게 하면 생성된 `impl`에 대상 타입의 타입 매개변수마다 `T: Eq`가 추가됩니다. 구체적인 필드 타입의 절은 넣지 않습니다. 그 필드가 `Eq`를 구현하는지는 생성된 본문을 타입 검사할 때 확인합니다. 템플릿의 `impl` 뒤에는 대상 타입의 제네릭 매개변수가 들어갑니다. 바운드는 `@where_all`이 붙인 것뿐입니다.
+여기서 `Same`은 사용자 트레잇입니다(`Eq` 같은 내장 derive는 다시 정의할 수 없습니다, [6.8.11](608-meta-blocks.md#6811-등록가시성과-결합)). 이렇게 하면 생성된 `impl`에 대상 타입의 타입 매개변수마다 `T: Same`이 추가됩니다. 구체적인 필드 타입의 절은 넣지 않습니다. 그 필드가 `Same`을 구현하는지는 생성된 본문을 타입 검사할 때 확인합니다. 템플릿의 `impl` 뒤에는 대상 타입의 제네릭 매개변수가 들어갑니다. 바운드는 `@where_all`이 붙인 것뿐입니다.
 
 ## 6.9.6. derive_attribute 토큰
 
@@ -347,7 +347,7 @@ match self {
 `@attribute`는 사용처에서 속성에 쓴 인자입니다. `#[impl_attribute(name)]`로 정의한 속성을 사용처가 `#[name(args)]` 형태로 썼다면 `@attribute`는 그 args입니다.
 
 ```rok
-#[impl_attribute(prefix)] pub @attribute {
+#[impl_attribute(log_prefix)] pub @attribute {
     fn @item.name() {
         let p = @attribute;                  // 사용처의 인자
         log(f"{p}: {@item.name}");
@@ -356,7 +356,7 @@ match self {
 }
 
 // 사용처
-#[prefix("INFO")]
+#[log_prefix("INFO")]
 fn run() { ... }
 // → 생성.
 //   fn run() {
@@ -368,7 +368,7 @@ fn run() { ... }
 
 ## 6.9.8. 호출부(macro) 토큰
 
-위의 토큰은 정의가 붙은 타입이나 항목을 바인딩합니다. macro([6.8.12](608-meta-blocks.md#6812-macro-형태))는 그 대신 매처로 호출하는 쪽의 토큰을 바인딩하고, 아래 토큰을 씁니다. `@for`와 `@concat`은 위의 형태와 함께 씁니다. shape 조건(`@apply_if`와 그것이 검사하는 `@Self`/`@field`/`@variant`)은 함께 쓰지 않습니다. macro에는 검사할 타입 shape가 없기 때문입니다.
+위의 토큰은 정의가 붙은 타입이나 항목을 바인딩합니다. macro([6.8.12](608-meta-blocks.md#6812-macro-형태))는 그 대신 매처로 호출하는 쪽의 토큰을 바인딩하고, 아래 토큰을 씁니다. `@for`와 `@concat`도 macro 전용이며, `@attribute`나 `@derive` 블록에 쓰면 에러입니다. shape 조건(`@apply_if`와 그것이 검사하는 `@Self`/`@field`/`@variant`)은 함께 쓰지 않습니다. macro에는 검사할 타입 shape가 없기 때문입니다.
 
 | 토큰                                   | 매처 / 템플릿에서                                               | 절    |
 |----------------------------------------|----------------------------------------------------------------|-------|
@@ -388,7 +388,7 @@ fn run() { ... }
 
 ### `@concat(..)` 이름 합성
 
-`@concat(..)`은 이름 토큰(`@name`, `@Self.name`, 맨 식별자)과 문자열 리터럴을 이어 식별자 하나를 만듭니다. 정의 위치나 경로 위치에서만 쓸 수 있습니다. 만든 식별자는 기록되므로 심볼 검색과 정의로 이동이 생성된 항목에 닿습니다([6.8.12](608-meta-blocks.md#도구-지원과-위생)). 이름이 아닌 조각을 쓰거나 이름 위치 밖에서 쓰면 에러입니다.
+`@concat(..)`은 이름 토큰(`@name`, 맨 식별자)과 문자열 리터럴을 이어 식별자 하나를 만듭니다. 정의 위치나 경로 위치에서만 쓸 수 있습니다. 만든 식별자는 기록되므로 심볼 검색과 정의로 이동이 생성된 항목에 닿습니다([6.8.12](608-meta-blocks.md#도구-지원과-위생)). 이름이 아닌 조각을 쓰거나 이름 위치 밖에서 쓰면 에러입니다.
 
 ## 6.9.9. 확장 메커니즘
 

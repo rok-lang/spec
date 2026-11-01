@@ -275,7 +275,7 @@ A bare name resolves to this package's block, else the one a `use` imports, else
 The following are errors:
 
 - Two meta blocks of one package registering the same derive, attribute or macro name (one macro is one `@macro` block holding all its rules). Two packages may each register a name.
-- A qualified macro or attribute (`dep::x!`, `#[dep::x]`) that the named package does not register. For a derive (`#[derive(dep::X)]`) this is a warning in 0.1: before 0.1.6 such a derive did nothing.
+- A qualified macro, attribute or derive (`dep::x!`, `#[dep::x]`, `#[derive(dep::X)]`) that the named package does not register.
 - A meta block redefining the name of a built-in derive ([6.2.1](602-built-in-attributes.md): `Clone`, `Copy`, `Default`, `Debug`, `PartialEq`, `Eq`, `PartialOrd`, `Ord`, `Hash`) or a built-in attribute (`cfg`, `derive`, `test`, `inline`, `repr`, `keyword`, `bench`, `path`, and the other attributes of 6.2 to 6.7). The help suggests a new name (`#[impl_attribute(my_bench)]`).
 
 ## 6.8.12. The macro form

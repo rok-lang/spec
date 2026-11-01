@@ -275,7 +275,7 @@ fn main() {
 다음은 에러입니다.
 
 - 한 패키지의 두 메타 블록이 같은 derive, 속성, macro 이름을 등록하는 것. macro 하나는 모든 규칙을 담은 `@macro` 블록 하나입니다. 서로 다른 두 패키지는 같은 이름을 각각 등록할 수 있습니다.
-- 지정한 패키지가 등록하지 않은 한정 macro나 속성(`dep::x!`, `#[dep::x]`). derive(`#[derive(dep::X)]`)라면 0.1에서는 경고입니다. 0.1.6 전에는 이런 derive가 아무 일도 하지 않았기 때문입니다.
+- 지정한 패키지가 등록하지 않은 한정 macro, 속성, derive(`dep::x!`, `#[dep::x]`, `#[derive(dep::X)]`).
 - 메타 블록이 내장 derive([6.2.1](602-built-in-attributes.md): `Clone`, `Copy`, `Default`, `Debug`, `PartialEq`, `Eq`, `PartialOrd`, `Ord`, `Hash`)나 내장 속성(`cfg`, `derive`, `test`, `inline`, `repr`, `keyword`, `bench`, `path` 등 6.2~6.7의 속성)의 이름을 다시 정의하는 것. help는 새 이름을 제안합니다(`#[impl_attribute(my_bench)]`).
 
 ## 6.8.12. macro 형태

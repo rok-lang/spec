@@ -162,7 +162,7 @@ fn old_api() { ... }
 fn old_api2() { ... }
 
 impl Config {
-    #[deprecated(since = "0.1.6", note = "use `Config::try_new`")]
+    #[deprecated(since = "1.2.0", note = "use `Config::load`")]
     pub fn new() -> Config { ... }
 }
 ```
@@ -251,10 +251,9 @@ fn strict_zone() { ... }
 | `non_camel_case_types`   | 0.1.0   | 타입, 트레잇, 변형 이름이 UpperCamelCase가 아님. 첫 글자가 소문자가 아니고, `__`가 없으며, `_`는 대소문자가 없는 문자 사이에만 (`V1_0`) |
 | `non_upper_case_globals` | 0.1.0   | `const` / `static` 이름이 UPPER_SNAKE_CASE가 아님                  |
 | `confusable_idents`      | 0.1.0   | 서로 닮은 식별자 ([1.4](../001-lexical/104-identifiers.md))        |
-| `missing_f_prefix`       | 0.1.0   | 범위 안의 지역 변수 `name`을 가리키는 `{name}`을 담은 보통 문자열 리터럴: `f` 접두어가 빠짐 (warn) |
-| `literal_spread_mismatch` | 0.1.6   | 고정 매개변수에 펼친 `List`나 Dict 리터럴이 자리를 채울 수 없음: 길이가 다르거나 남은 매개변수 어느 것의 이름도 아닌 키가 있음([4.2](../004-functions/402-parameters.md)). 그 호출은 런타임에 panic이 일어남 (warn) |
+| `missing_f_prefix`       | 0.1.0   | 범위 안의 지역 변수 `name`을 가리키는 `{name}`을 담은 보통 문자열 리터럴: `f` 접두어가 빠짐 |
+| `literal_spread_mismatch` | 0.1.6   | 고정 매개변수에 펼친 `List`나 Dict 리터럴이 자리를 채울 수 없음: 길이가 다르거나 남은 매개변수 어느 것의 이름도 아닌 키가 있음([4.2](../004-functions/402-parameters.md)). 그 호출은 런타임에 panic이 일어남 |
 | `assoc_type_shadowing`   | 0.2.0   | 연관 타입이 바깥 타입과 이름이 같아 트레이트나 `impl` 안에서 그 타입을 가림 |
-| `builtin_attribute_name` | 0.2.0   | 메타 블록이 내장 속성의 이름을 가져감 |
 | `missing_docs`           | 0.2.0   | `///` 문서 주석이 없는 `pub` 항목, 고유 impl의 `pub` 메서드, `pub` 트레잇의 메서드, 인라인 `pub mod`. `#[doc(hidden)]`은 문서가 있는 것으로 보고, 트레잇 impl의 메서드는 검사하지 않음 (allow) |
 
 0.2.0에는 0.1.6이 0.2.0에 앞서 더한 경고가 하나도 남아 있지 않습니다. 모두 에러가 되었거나 더는 해당하지 않습니다. 에러가 된 것: `keyword_idents`([1.5.6](../001-lexical/105-keywords.md)), `zero_prefixed_literal`([1.6.1](../001-lexical/106-numeric-literals.md)), `try_coalesce_precedence`([3.14.3](../003-expressions/314-error-control-flow.md)), `trailing_closure_return`([4.3.11](../004-functions/403-return.md)), `capture_field_write`([4.6.7](../004-functions/406-capture-semantics.md)), `const_item_mutation`([5.2](../005-modules/502-const.md)), `pattern_binds_const`([3.11](../003-expressions/311-patterns.md)), `ambiguous_int_literal`([1.6.3](../001-lexical/106-numeric-literals.md#163-접미사-없는-리터럴)), `finally_jump`([3.14.5](../003-expressions/314-error-control-flow.md)), `float_to_bool`([2.14](../002-types/214-cast-and-conversion.md)), `unclosed_sender`와 `using_twice`([stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md)), `guard_escape`와 `thread_local_across_await`([stdlib 2.16](../../refs-standard-libraries/200-core/216-sync.md)), `extern_static_unsafe`([5.9.6](../005-modules/509-extern-block.md#596-호출--사용)), `improper_ctypes`([5.9.4](../005-modules/509-extern-block.md#594-ffi-호환-타입)), `trait_not_in_scope`([3.5](../003-expressions/305-member-access-and-method-call.md)), `unqualified_meta`([6.8.11](608-meta-blocks.md#6811-등록가시성과-결합)). 더는 해당하지 않는 것: `trailing_closure_operator`(`}` 뒤의 연산자는 새 문장을 시작함, [1.3.4](../001-lexical/103-statement-terminator.md)), `implicit_core_fn`(prelude, [stdlib 0.2](../../refs-standard-libraries/000-meta/002-import.md)), `discarded_ref_write`(원소에 되씀, [4.7](../004-functions/407-ref-keyword.md)), `fstring_g_precision`(`g`는 일반 형식, [1.7.3](../001-lexical/107-string-literals.md#173-형식-문자열)). 이 이름들과 `unclosed_resource`는 제거된 린트 이름이라 `#[allow]`, `-A` / `-W` / `-D`, `lints`에 써도 받아들이고 무시합니다. `deprecated_safe`와 `literal_spread_mismatch`(0.1.6)는 린트로 남습니다.
@@ -276,7 +275,7 @@ fn strict_zone() { ... }
 
 `rokc lint --list`는 린트를 기본 수준, 추가된 릴리스와 함께 출력하고, 이어서 그룹을 출력합니다.
 
-`rokc check --check-library`와 `rokc lint --check-library`([9.1.2](../009-tools/901-rokc-cli.md))는 표준 라이브러리 자체의 코드도 그 수준으로 검사합니다. 모든 린트는 기본 수준이고, `missing_docs`만 `deny`입니다. 표준 라이브러리의 모든 공개 항목에는 문서 주석이 있습니다([stdlib 0.5.15](../../refs-standard-libraries/000-meta/005-notation.md#0515-문서와-속성)).
+`rokc check --check-library`와 `rokc lint --check-library`([9.1.2](../009-tools/901-rokc-cli.md))는 표준 라이브러리 자체의 코드도 그 수준으로 검사합니다. 모든 린트는 기본 수준이고, `missing_docs`만 `deny`입니다. 표준 라이브러리의 모든 공개 항목에는 문서 주석이 있습니다([stdlib 0.5.14](../../refs-standard-libraries/000-meta/005-notation.md#0514-문서와-속성)).
 
 ## 6.2.10. `#[non_exhaustive]` 외부 완전성 검사 회피
 
@@ -324,7 +323,9 @@ pub struct JoinHandle<T> { ... }
 
 함수나 메서드에 붙인 `#[discardable]`은 그 결과를 버려도 된다는 뜻입니다. 이 함수를 부르는 문장은 경고하지 않습니다. 인자는 받지 않습니다. 트레잇 메서드에 붙이면 모든 impl에 적용됩니다. 표준 라이브러리는 밀어낸 값이나 부수 정보를 돌려주는 메서드에 이 속성을 붙입니다. `Dict::insert` / `remove`, `Set::insert` / `remove`, `List::pop` / `remove` / `drain`, `Deque::pop_front` / `pop_back`, `BinaryHeap::pop`, `Atomic::swap` / `fetch_*`, `Cell::replace` / `take`, `mem::replace`, `Dir::copy`, `fs::copy`, `io::copy`가 해당합니다. 짧은 쓰기(`Write::write -> usize`), `checked_*`, `str::trim` 같은 순수 메서드는 버릴 수 있는 결과가 아닙니다.
 
-`#[must_use]`는 함수나 메서드, `struct`, `enum`에 붙일 수 있고, 메시지를 붙일 수 있습니다(`#[must_use("..")]`). 함수에 붙이면 메시지를 더합니다. 그 결과를 버리면 `unused_result` 대신 `unused_must_use` 경고가 납니다. 타입에 붙이면 더 강합니다. 그 타입의 값을 내는 식 문장과, 그 타입이면서 한 번도 읽지 않는 지역 변수에 `unused_must_use` 경고가 납니다. `#[discardable]` 함수가 돌려준 값이어도 마찬가지입니다. 경고에는 속성의 메시지가 함께 나옵니다. `async fn` 호출이나 `async` 블록의 값과 `thread::JoinHandle`([stdlib 3.4.2](../../refs-standard-libraries/300-std/304-thread.md#342-api))은 `#[must_use]`입니다. 기다리지 않은 future는 실행되지 않습니다. 합류하지 않은 스레드는 프로그램이 끝나기 전에 끝나지 않을 수 있습니다. `detach`는 스레드를 따로 실행한다는 뜻을 밝힙니다. 나머지는 [stdlib 0.5.15](../../refs-standard-libraries/000-meta/005-notation.md#0515-문서와-속성)에 있습니다. `#[must_use]` 타입은 속성이 붙은 바로 그 타입입니다. 이름이 같은 다른 패키지의 타입은 해당하지 않습니다.
+`#[must_use]`는 함수나 메서드, `struct`, `enum`에 붙일 수 있고, 메시지를 붙일 수 있습니다(`#[must_use("..")]`). 함수에 붙이면 메시지를 더합니다. 그 결과를 버리면 `unused_result` 대신 `unused_must_use` 경고가 납니다. 타입에 붙이면 더 강합니다. 그 타입의 값을 내는 식 문장과, 그 타입이면서 한 번도 읽지 않는 지역 변수에 `unused_must_use` 경고가 납니다. `#[discardable]` 함수가 돌려준 값이어도 마찬가지입니다. 경고에는 속성의 메시지가 함께 나옵니다. `async fn` 호출이나 `async` 블록의 값과 `thread::JoinHandle`([stdlib 3.4.2](../../refs-standard-libraries/300-std/304-thread.md#342-api))은 `#[must_use]`입니다. 기다리지 않은 future는 실행되지 않습니다. 합류하지 않은 스레드는 프로그램이 끝나기 전에 끝나지 않을 수 있습니다. `detach`는 스레드를 따로 실행한다는 뜻을 밝힙니다. 나머지는 [stdlib 0.5.14](../../refs-standard-libraries/000-meta/005-notation.md#0514-문서와-속성)에 있습니다. `#[must_use]` 타입은 속성이 붙은 바로 그 타입입니다. 이름이 같은 다른 패키지의 타입은 해당하지 않습니다.
+
+타입의 메시지는 "this" 뒤에 이어지도록 씁니다. 경고는 `this <메시지>`로 나옵니다. 처음 나오는 `": "` 뒤의 글은 `help:` 줄이 되고, 그 안의 `{}`는 버려진 식의 소스(지역 변수면 그 이름)로 바뀝니다. `#[must_use("future is never awaited, so its body never runs: write `await {}`")]`는 ``this future is never awaited, so its body never runs`` 경고와 ``help: write `await fetch()` ``를 냅니다. 메시지가 없으면 경고가 타입을 밝힙니다. ``this value of type `T` is never used``.
 
 ## 6.2.12. `#[track_caller]` 호출 위치 전달
 

@@ -53,7 +53,7 @@ Attributes are attached to items in the form `#[...]` or `#![...]`. Built-in att
 Magic refers to special attributes that connect the language and the library.
 
 ```rok
-#[lang(slot_name)]              // connects a standard library item ↔ a compiler slot
+#[lang("slot_name")]            // connects a standard library item ↔ a compiler slot
 #[literal("...")]                // registers literal syntax
 #[keyword("name")]               // registers a new keyword
 ```
@@ -102,7 +102,7 @@ These magics are the mechanism by which the standard library binds to the langua
 
 ### 3. Macro hygiene
 
-Code generation in meta blocks is hygienic. Identifiers in the generated code see only the name space of the generation context and do not pollute the name space of the use site.
+Code generation in meta blocks is hygienic. Names the template writes resolve at the definition, in the module of the meta block; names the use passes in resolve at the use site; template locals are renamed so they never capture or shadow the user's. The items an expansion generates are placed in the use site's module, where their names are visible ([6.9.9](609-template-tokens.md#names-in-an-expansion)).
 
 This prevents unpredictable collisions between user code and meta blocks.
 

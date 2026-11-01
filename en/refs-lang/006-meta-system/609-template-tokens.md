@@ -234,7 +234,7 @@ An `else` branch is expressed without a separate keyword, by an `@apply_if` with
 
 ### `@accept(...)`
 
-`@accept` restricts the kinds of target for a derive or attribute. It takes a list of item kinds separated by commas or `|`.
+`@accept` restricts the kinds of target for an attribute; it is an error in a derive. It takes a list of item kinds separated by commas or `|`.
 
 ```rok
 #[impl_attribute(my_wrap)] pub @attribute {
@@ -266,12 +266,12 @@ With several kinds separated by commas or `|`, matching any one is allowed. If t
 `@where_all` adds, as an automatic where clause, the condition that every field type must satisfy `Trait`.
 
 ```rok
-#[impl_derive(Eq)] pub @derive {
-    @where_all(Eq)                           // OK if every field's type is Eq
-    impl Eq for @Self {
-        fn eq(self, other: Self) -> bool {
+#[impl_derive(Same)] pub @derive {
+    @where_all(Same)                         // OK if every field's type is Same
+    impl Same for @Self {
+        fn same(self, other: Self) -> bool {
             @for_fields {
-                if !self.@field.eq(other.@field) { return false; }
+                if !self.@field.same(other.@field) { return false; }
             }
             true
         }
@@ -279,7 +279,7 @@ With several kinds separated by commas or `|`, matching any one is allowed. If t
 }
 ```
 
-The generated `impl` then gets `T: Eq` for each type parameter of the target type. No clauses are added for concrete field types; whether those fields implement `Eq` is checked by type checking of the generated body. The target type's generic parameters are placed after the template's `impl`, and the only bounds are those added by `@where_all`.
+Here `Same` is a user trait (a built-in derive such as `Eq` cannot be redefined, [6.8.11](608-meta-blocks.md#6811-combination-with-registrationvisibility)). The generated `impl` then gets `T: Same` for each type parameter of the target type. No clauses are added for concrete field types; whether those fields implement `Same` is checked by type checking of the generated body. The target type's generic parameters are placed after the template's `impl`, and the only bounds are those added by `@where_all`.
 
 ## 6.9.6. derive_attribute tokens
 
@@ -347,7 +347,7 @@ These tokens denote the parts of a function signature.
 `@attribute` means the arguments written at the attachment. If the use site applies an attribute defined by `#[impl_attribute(name)]` as `#[name(args)]`, `@attribute` is those args.
 
 ```rok
-#[impl_attribute(prefix)] pub @attribute {
+#[impl_attribute(log_prefix)] pub @attribute {
     fn @item.name() {
         let p = @attribute;                  // the use site's argument
         log(f"{p}: {@item.name}");
@@ -356,7 +356,7 @@ These tokens denote the parts of a function signature.
 }
 
 // use site
-#[prefix("INFO")]
+#[log_prefix("INFO")]
 fn run() { ... }
 // → generated.
 //   fn run() {
@@ -368,7 +368,7 @@ fn run() { ... }
 
 ## 6.9.8. Call-site (macro) tokens
 
-The tokens above bind a type or item the definition is attached to. A macro ([6.8.12](608-meta-blocks.md#6812-the-macro-form)) binds the caller's tokens instead, through a matcher, and uses these tokens; `@for` and `@concat` are shared with the forms above. The shape conditionals (`@apply_if` and the `@Self` / `@field` / `@variant` tokens they test) are not: a macro has no type shape to test.
+The tokens above bind a type or item the definition is attached to. A macro ([6.8.12](608-meta-blocks.md#6812-the-macro-form)) binds the caller's tokens instead, through a matcher, and uses these tokens; `@for` and `@concat` are macro-only too: in an `@attribute` or `@derive` block they are errors. The shape conditionals (`@apply_if` and the `@Self` / `@field` / `@variant` tokens they test) are not: a macro has no type shape to test.
 
 | Token                                  | In a matcher / template                                        | Section |
 |----------------------------------------|----------------------------------------------------------------|---------|
@@ -388,7 +388,7 @@ In a matcher, `@name: <fragment>` captures part of the call as raw tokens; nothi
 
 ### `@concat(..)` name synthesis
 
-`@concat(..)` joins name tokens (`@name`, `@Self.name`, a bare identifier) and string literals into a single identifier, at a definition or path position only. The identifier it forms is recorded, so symbol search and go-to-definition reach the generated item ([6.8.12](608-meta-blocks.md#tooling-and-hygiene)); a non-name piece, or use outside a name position, is an error.
+`@concat(..)` joins name tokens (`@name`, a bare identifier) and string literals into a single identifier, at a definition or path position only. The identifier it forms is recorded, so symbol search and go-to-definition reach the generated item ([6.8.12](608-meta-blocks.md#tooling-and-hygiene)); a non-name piece, or use outside a name position, is an error.
 
 ## 6.9.9. Expansion mechanism
 

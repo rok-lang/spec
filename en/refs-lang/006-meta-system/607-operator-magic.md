@@ -64,7 +64,7 @@ The arguments each attribute takes:
 
 How the compiler behaves when `#[infix("+")]` is attached to the trait method `add`:
 
-First, the `+` token is bound to that trait as its connection point. The compiler then desugars the expression `a + b` into `<typeof(a) as the_trait<typeof(b)>>::add(a, b)`. Precedence and associativity are the values fixed for `+` in the table of [precedence and associativity](../003-expressions/302-precedence-and-associativity.md) (7, left-associative).
+First, the `+` token is bound to that trait as its connection point. The compiler then desugars the expression `a + b` into `<typeof(a) as the_trait<typeof(b)>>::add(a, b)`. Precedence and associativity are the values fixed for `+` in the table of [precedence and associativity](../003-expressions/302-precedence-and-associativity.md) (9, left-associative).
 
 All three attributes follow the same pattern; what is bound is only the token, the position, and the trait method.
 
@@ -73,22 +73,15 @@ All three attributes follow the same pattern; what is bound is only the token, t
 Attaching several `#[infix]` to the same method maps several tokens to that method.
 
 ```rok
-trait Cmp<Rhs = Self> {
-    #[infix("<=")]
-    #[infix("≤")]
-    fn le(self, rhs: Rhs) -> bool;
-
-    #[infix(">=")]
-    #[infix("≥")]
-    fn ge(self, rhs: Rhs) -> bool;
-
-    #[infix("==")]
-    #[infix("≡")]
-    fn eq(self, rhs: Rhs) -> bool;
+trait Join<Rhs = Self> {
+    type Output;
+    #[infix("⊕", like = "+")]
+    #[infix("⊞", like = "+")]
+    fn join(self, rhs: Rhs) -> Output;
 }
 ```
 
-This ties ASCII and Unicode tokens together with the same meaning. The 3.2 table places `≤`, `≥`, `≠`, `≡` at the same level as their corresponding ASCII tokens.
+Both tokens call `join`. `÷ ≡ ≠ ≤ ≥` need no alias: the lexer reads them as `/ == != <= >=` ([1.10.3](../001-lexical/110-punctuation-and-operator-tokens.md#1103-fixed-token-table)), so they reach the same methods as the ASCII tokens.
 
 ## 6.7.5. Conflict checking
 
@@ -188,7 +181,7 @@ The order of registration and use within the same compilation unit therefore doe
 All aliases attached to the same trait method must be tokens of the same level.
 
 ```rok
-trait Cmp {
+trait Before {
     #[infix("<")]
     #[infix("⊲", like = "+")]    // ERROR: < is level 4, + is level 9
     fn lt(self, rhs: Self) -> bool;

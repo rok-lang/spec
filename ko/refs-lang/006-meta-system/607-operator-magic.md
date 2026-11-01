@@ -64,7 +64,7 @@ trait Degrees {
 
 `#[infix("+")]`를 트레잇 메서드 `add`에 붙이면 컴파일러는 다음과 같이 동작합니다.
 
-먼저 `+` 토큰을 그 트레잇에 연결합니다. 그다음 식 `a + b`를 `<typeof(a) as 그_트레잇<typeof(b)>>::add(a, b)` 형태로 풉니다. 우선순위와 결합성은 [우선순위와 결합성](../003-expressions/302-precedence-and-associativity.md)의 표에서 `+`에 고정된 값(7, 좌결합)을 그대로 씁니다.
+먼저 `+` 토큰을 그 트레잇에 연결합니다. 그다음 식 `a + b`를 `<typeof(a) as 그_트레잇<typeof(b)>>::add(a, b)` 형태로 풉니다. 우선순위와 결합성은 [우선순위와 결합성](../003-expressions/302-precedence-and-associativity.md)의 표에서 `+`에 고정된 값(9, 좌결합)을 그대로 씁니다.
 
 세 속성은 모두 같은 패턴을 따릅니다. 연결되는 것은 토큰, 위치, 트레잇 메서드뿐입니다.
 
@@ -73,22 +73,15 @@ trait Degrees {
 한 메서드에 `#[infix]`를 여러 개 붙이면 여러 토큰을 같은 메서드에 매핑할 수 있습니다.
 
 ```rok
-trait Cmp<Rhs = Self> {
-    #[infix("<=")]
-    #[infix("≤")]
-    fn le(self, rhs: Rhs) -> bool;
-
-    #[infix(">=")]
-    #[infix("≥")]
-    fn ge(self, rhs: Rhs) -> bool;
-
-    #[infix("==")]
-    #[infix("≡")]
-    fn eq(self, rhs: Rhs) -> bool;
+trait Join<Rhs = Self> {
+    type Output;
+    #[infix("⊕", like = "+")]
+    #[infix("⊞", like = "+")]
+    fn join(self, rhs: Rhs) -> Output;
 }
 ```
 
-ASCII 토큰과 Unicode 토큰을 같은 의미로 묶는 방법입니다. 3.2 표는 `≤`, `≥`, `≠`, `≡`의 단계를 대응하는 ASCII 토큰과 같은 단계로 정합니다.
+두 토큰 모두 `join`을 부릅니다. `÷ ≡ ≠ ≤ ≥`에는 별칭이 필요 없습니다. 어휘 분석기가 이들을 `/ == != <= >=`로 읽으므로([1.10.3](../001-lexical/110-punctuation-and-operator-tokens.md#1103-고정-토큰표)) ASCII 토큰과 같은 메서드에 닿습니다.
 
 ## 6.7.5. 충돌 검사
 
@@ -188,7 +181,7 @@ let r = a ⊕ b;            // 사용자 토큰
 한 트레잇 메서드에 붙는 별칭(alias)은 모두 같은 단계의 토큰이어야 합니다.
 
 ```rok
-trait Cmp {
+trait Before {
     #[infix("<")]
     #[infix("⊲", like = "+")]    // ERROR: < 는 4 단계, + 는 9 단계
     fn lt(self, rhs: Self) -> bool;

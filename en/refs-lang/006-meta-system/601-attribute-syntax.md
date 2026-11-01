@@ -12,6 +12,8 @@ attr_args       ::= "(" attr_arg ("," attr_arg)* ","? ")"
 attr_arg        ::= literal | identifier | attr_body | identifier "=" literal
 ```
 
+Some built-in attributes take arguments of their own grammar, given in their sections: `#[niche]` takes negative values, ranges and constants such as `i32::MIN` ([2.7](../002-types/207-niche-optimization.md)), and `#[literal]` takes token patterns ([6.5](605-literal-magic.md)).
+
 ## 6.1.1. Introducers
 
 Attributes are introduced by two tokens defined in [punctuation and operator tokens](../001-lexical/110-punctuation-and-operator-tokens.md).
@@ -56,7 +58,7 @@ The simplest form uses only a name:
 ```rok
 #[test]
 #[inline]
-#[derive_attr(default)]
+#[cold]
 ```
 
 The bare-name form is used as a boolean flag or marker.
@@ -74,7 +76,7 @@ The form with arguments is also common:
 #[infix("+")]
 ```
 
-This is the ` name(args)` form, with arguments separated by commas. Each argument may be an identifier, a literal, a key-value (`like = "+"`), or a nested attribute form (`Display` inside `derive(...)`).
+This is the `name(args)` form, with arguments separated by commas. Each argument may be an identifier, a literal, a key-value (`like = "+"`), or a nested attribute form (`Debug` inside `derive(...)`).
 
 ### Key-value
 
@@ -85,7 +87,7 @@ Finally there is the key-value form:
 #[link_name = "external_symbol"]
 ```
 
-This is the ` name = value` form, where the value is a literal. It looks the same as the key-value notation within the argument form, except that the whole body is a single key-value.
+This is the `name = value` form, where the value is a literal. It looks the same as the key-value notation within the argument form, except that the whole body is a single key-value.
 
 ## 6.1.3. Items that may carry attributes
 
