@@ -17,7 +17,7 @@ struct Secret {                                     // crypto::secret
 impl Index<usize> for Secret; impl IndexSet<usize> for Secret;   // s[i], s[i] = b (범위 검사)
 impl Sliceable<Range<usize>> for Secret;           // s[a:b]: 제자리의 view
 impl Drop for Secret;                               // using 해제가 지움
-impl Debug for Secret;                              // "Secret(n bytes)", 바이트는 결코 보이지 않음
+impl Debug for Secret;                              // "Secret { len: n, .. }", 바이트는 결코 보이지 않음
 impl AsBytes for Secret;                            // byte_slice: as_bytes (2.11.13)
 fn constant_time_eq<A: AsBytes, B: AsBytes>(a: A, b: B) -> bool;   // 시간은 길이에만 의존
 ```
@@ -28,13 +28,13 @@ fn constant_time_eq<A: AsBytes, B: AsBytes>(a: A, b: B) -> bool;   // 시간은 
 
 ```rok
 #[non_exhaustive]
-enum HashAlgorithm { Sha256, Sha384, Sha512, Sha3_256, Sha3_512 }   // crypto (FIPS 180-4, FIPS 202)
+enum HashAlgorithm { Sha256, Sha384, Sha512, Sha3_256, Sha3_512 }   // crypto (FIPS 180-4, FIPS 202); Copy, Eq, Hash, Debug
 impl HashAlgorithm {
     fn output_len(self) -> usize;                   // 32, 48, 64, 32, 64
     fn block_len(self) -> usize;                    // 64, 128, 128; SHA-3: rate, 136 / 72
     fn digest<B: AsBytes>(self, data: B) -> List<u8>;
 }
-struct Digest {                                     // 진행 중인 해시; 복사하면 분기
+struct Digest {                                     // crypto::sha2; 진행 중인 해시, 복사하면 분기
     fn new(alg: HashAlgorithm) -> Digest;
     fn algorithm(self) -> HashAlgorithm;
     fn update<B: AsBytes>(ref self, data: B);
@@ -62,14 +62,15 @@ mod hkdf {                                          // crypto::hkdf (RFC 5869)
 }
 ```
 
-`HashAlgorithm`은 키를 받는 API와 서명 API에 쓰는 해시 함수를 모두 가리킵니다. `Digest`, `Hmac`, `hkdf`, ECDSA, RSA(PKCS #1 v1.5와 PSS, MGF1 포함)는 모든 variant를 받습니다. `HashAlgorithm`은 `#[non_exhaustive]`([refs-lang 6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md))입니다. `rok::core` 밖에서 이 값을 `match`하려면 `_` 갈래가 있어야 하고, 이후 릴리스가 함수를 더할 수 있습니다. SHA-3 함수에서 HMAC의 블록 길이는 sponge의 rate입니다. `Sha3_256`, `Sha3_512`, `Shake128`, `Shake256`은 저수준 형태로, 각각 컴파일 시간에 정해진 함수 하나입니다(SHAKE는 출력 길이를 호출자가 정하므로 `HashAlgorithm` variant가 없습니다). `Sha3_256::digest(x)`와 `HashAlgorithm::Sha3_256.digest(x)`는 같은 함수를 계산합니다.
+`HashAlgorithm`은 키를 받는 API와 서명 API에 쓰는 해시 함수를 모두 가리킵니다. `Digest`, `Hmac`, `hkdf`, ECDSA, RSA(PKCS #1 v1.5와 PSS, MGF1 포함)는 모든 variant를 받습니다. `HashAlgorithm`은 `#[non_exhaustive]`([refs-lang 6.2.10](../../refs-lang/006-meta-system/602-built-in-attributes.md#6210-non_exhaustive-외부-완전성-검사-회피))입니다. `rok::core` 밖에서 이 값을 `match`하려면 `_` 갈래가 있어야 하고, 이후 릴리스가 함수를 더할 수 있습니다. SHA-3 함수에서 HMAC의 블록 길이는 sponge의 rate입니다. `Sha3_256`, `Sha3_512`, `Shake128`, `Shake256`은 저수준 형태로, 각각 컴파일 시간에 정해진 함수 하나입니다(SHAKE는 출력 길이를 호출자가 정하므로 `HashAlgorithm` variant가 없습니다). `Sha3_256::digest(x)`와 `HashAlgorithm::Sha3_256.digest(x)`는 같은 함수를 계산합니다.
 
 `Digest`, `Hmac`, SHA-3 / SHAKE 상태는 값입니다. 복사본은 각자 독립적으로 이어 갑니다(중간에 읽는 transcript 해시). 연속된 `squeeze` 호출은 하나의 출력 스트림을 이어 갑니다. 첫 `squeeze` 뒤에 `update`를 부르면 panic이 일어납니다. `Hmac::verify`는 전체 길이의 tag를 상수 시간에 비교합니다. `hkdf::extract`는 salt가 비어 있으면 0인 바이트 `output_len`개를 씁니다. `hkdf::expand`는 `len > 255 * output_len`이면 `ValueError`를 던집니다.
 
 ## 2.21.2. AEAD
 
 ```rok
-enum AeadAlgorithm { Aes128Gcm, Aes256Gcm, ChaCha20Poly1305 }   // crypto::aead
+#[non_exhaustive]
+enum AeadAlgorithm { Aes128Gcm, Aes256Gcm, ChaCha20Poly1305 }   // crypto::aead; Copy, Eq, Hash, Debug
 impl AeadAlgorithm { fn key_len(self) -> usize; fn nonce_len(self) -> usize; fn tag_len(self) -> usize; }
 struct Aead {
     fn new<B: AsBytes>(alg: AeadAlgorithm, key: B) throws (ValueError) -> Aead;
@@ -96,7 +97,7 @@ mod x25519 {                                        // crypto::x25519 (RFC 7748)
         fn diffie_hellman(self, peer: PublicKey) -> Secret | none;   // none: 결과가 전부 0
         fn wipe(self);
     }
-    impl Drop for PrivateKey; impl Debug for PrivateKey;   // using 해제가 지움; Debug 는 키 바이트를 보이지 않음
+    impl Drop for PrivateKey; impl Debug for PrivateKey;   // 해제가 지움; Debug: PrivateKey { .. }
     struct PublicKey {                              // Copy, Eq, Hash, Debug
         fn from_bytes<B: AsBytes>(bytes: B) throws (ValueError) -> PublicKey;
         fn to_bytes(self) -> [u8; 32];
@@ -112,8 +113,8 @@ mod mlkem {                                         // crypto::mlkem (FIPS 203)
         fn decapsulate<C: AsBytes>(self, c: C) throws (ValueError) -> Secret;   // implicit rejection
         fn wipe(self);
     }
-    impl Drop for DecapsulationKey768; impl Debug for DecapsulationKey768;
-    struct EncapsulationKey768 {                    // Clone, Eq
+    impl Drop for DecapsulationKey768; impl Debug for DecapsulationKey768;   // DecapsulationKey768 { .. }
+    struct EncapsulationKey768 {                    // Clone, Eq, Hash, Debug
         const LEN: usize = 1184;
         const CIPHERTEXT_LEN: usize = 1088;
         fn from_bytes<B: AsBytes>(bytes: B) throws (ValueError) -> EncapsulationKey768;
@@ -136,14 +137,15 @@ mod ed25519 {                                       // crypto::ed25519 (RFC 8032
         fn sign<B: AsBytes>(self, msg: B) -> List<u8>;   // 64 바이트, 결정적
         fn wipe(self);
     }
-    impl Drop for SigningKey; impl Debug for SigningKey;
+    impl Drop for SigningKey; impl Debug for SigningKey;   // SigningKey { verifying_key: .., .. }
     struct VerifyingKey {                           // Copy, Eq, Hash, Debug
         fn from_bytes<B: AsBytes>(bytes: B) throws (ValueError) -> VerifyingKey;   // 32 바이트, 정규형 점
         fn to_bytes(self) -> [u8; 32];
         fn verify<M: AsBytes, S: AsBytes>(self, msg: M, sig: S) -> bool;
     }
 }
-enum EcCurve { P256, P384 }                         // crypto::ecdsa (FIPS 186-5)
+#[non_exhaustive]
+enum EcCurve { P256, P384 }                         // crypto::ecdsa (FIPS 186-5); Copy, Eq, Hash, Debug
 mod ecdsa {
     struct SigningKey {                             // 스칼라를 비밀 저장소에 둠
         fn from_bytes<B: AsBytes>(curve: EcCurve, bytes: B) throws (ValueError) -> SigningKey;   // 빅 엔디언 스칼라
@@ -152,7 +154,7 @@ mod ecdsa {
         fn sign<M: AsBytes>(self, hash: HashAlgorithm, msg: M) -> List<u8>;   // DER, RFC 6979 nonce
         fn wipe(self);
     }
-    impl Drop for SigningKey; impl Debug for SigningKey;
+    impl Drop for SigningKey; impl Debug for SigningKey;   // SigningKey { curve: P256, .. }
     struct VerifyingKey {                           // Copy, Eq, Hash, Debug
         fn from_sec1<B: AsBytes>(curve: EcCurve, bytes: B) throws (ValueError) -> VerifyingKey;   // SEC1 비압축
         fn curve(self) -> EcCurve;
@@ -161,7 +163,7 @@ mod ecdsa {
     }
 }
 mod rsa {                                           // crypto::rsa (RFC 8017), 2048..4096 bits
-    struct PublicKey {
+    struct PublicKey {                              // Clone, Eq, Hash, Debug
         fn new<N: AsBytes, E: AsBytes>(n: N, e: E) throws (ValueError) -> PublicKey;
         fn from_pkcs1_der<B: AsBytes>(der: B) throws (ValueError) -> PublicKey;
         fn bits(self) -> usize;
@@ -178,11 +180,11 @@ mod rsa {                                           // crypto::rsa (RFC 8017), 2
         fn sign_pss<M: AsBytes, S: AsBytes>(self, hash: HashAlgorithm, msg: M, salt: S) throws (ValueError) -> List<u8>;  // salt: 새 난수, 해시 길이
         fn wipe(self);
     }
-    impl Drop for PrivateKey; impl Debug for PrivateKey;
+    impl Drop for PrivateKey; impl Debug for PrivateKey;   // PrivateKey { bits: 2048, .. }
 }
 ```
 
-개인 키와 서명 키는 비밀 자료를 비밀 저장소([2.21.5](#2215-보안-고려-사항))에 둡니다. 복사본은 이 자료를 공유하고, 키는 `Sync`가 아닙니다. `wipe`와 `using` 해제는 자료를 0으로 덮어쓰고, `Debug`는 키 바이트를 보이지 않습니다. 키는 만들 때 한 번 검사하므로 Ed25519와 ECDSA 서명은 실패하지 않습니다. 키는 바이트로 만듭니다. 난수 원천은 호출자의 몫입니다(`SigningKey::from_seed(random::secret(32))`, 3.10).
+개인 키와 서명 키는 비밀 자료를 비밀 저장소([2.21.5](#2215-보안-고려-사항))에 둡니다. 복사본은 이 자료를 공유하고, 키는 `Sync`가 아닙니다. `wipe`와 `using` 해제는 자료를 0으로 덮어쓰고, `Debug`는 키 바이트를 보이지 않습니다. 타입을 레코드 형태 `Type { field: .., .. }`로 찍되 공개된 사실(길이, 곡선, 크기, 공개 키)만 보이고 나머지는 `..`로 둡니다([0.5.12](../000-meta/005-notation.md#0512-트레잇-범위-non_exhaustive-sealed)). 키는 만들 때 한 번 검사하므로 Ed25519와 ECDSA 서명은 실패하지 않습니다. 키는 바이트로 만듭니다. 난수 원천은 호출자의 몫입니다(`SigningKey::from_seed(random::secret(32))`, 3.10).
 
 Ed25519 검증은 cofactorless입니다. `R`의 정규형이 아닌 인코딩과 `S ≥ L`을 거부합니다. `ed25519::VerifyingKey::from_bytes`는 정규형이 아니거나 곡선 밖인 `A`를 거부합니다. `ecdsa::VerifyingKey::from_sec1`은 곡선 위의 비압축 점이 아니거나 좌표가 p 이상인 공개 키를 거부하고, ECDSA 검증은 최소 DER이 아니거나 `r` 또는 `s`가 `[1, n)` 밖인 서명을 거부합니다. RSA 검증은 modulus보다 작고 길이가 정확히 modulus 길이인 서명을 요구합니다. PKCS #1 v1.5는 다시 만든 인코딩 전체를 비교합니다. `rsa::PublicKey::new`는 2048~4096비트의 홀수 modulus와 `3 ≤ e < 2^33`인 홀수 지수를 받습니다(앞의 0 바이트는 무시). 그 밖은 `ValueError`입니다. 검증은 지수 비트마다 모듈러 제곱이 한 번 들므로, 상대가 긴 지수를 고를 수 있으면 안 되기 때문입니다.
 

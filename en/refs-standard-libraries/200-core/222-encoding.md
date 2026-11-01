@@ -34,7 +34,7 @@ encoding::base64::decode("Zm9vYg");            //→ [102, 111, 111, 98]
 
 `hex::encode` writes each byte as two digits, high half first (`[0x00, 0xff]` → `"00ff"`); the digits `a` to `f` are lowercase, or uppercase with `Case::Upper`. `hex::decode` reads two digits per byte and accepts both cases (`"DeadBeef"`). The text must have an even length; nothing else is accepted: no `0x` prefix, no spaces or separators.
 
-`hex::encode_into` needs `2 * data.len()` bytes of `out` and `hex::decode_into` needs `text.len() / 2`; a shorter `out` is a bug in the caller and panics.
+`hex::encode_into` needs `2 * data.len()` bytes of `out` and `hex::decode_into` needs `text.len() / 2`; a shorter `out` is a bug in the caller and panics with the size to give it (`hex::encode_into: `out` holds 3 bytes but the text needs 4; size `out` as `2 * data.len()``, and for `decode_into` `size `out` as `text.len() / 2``).
 
 ## 2.22.2. Base64
 
@@ -106,6 +106,7 @@ impl DecodeError {
 #[non_exhaustive]
 enum DecodeErrorKind { InvalidByte, InvalidLength, InvalidPadding }   // Copy, Eq, Hash, Debug
 impl Display for DecodeError; impl Debug for DecodeError; impl Error for DecodeError;
+impl Clone for DecodeError; impl PartialEq for DecodeError; impl Eq for DecodeError;
 ```
 
 A decoder throws `DecodeError` at the first problem. `kind` says what kind of problem it is and `position` the byte offset in `text` where it is. The message starts with the encoding, names the offset and says what to write instead:
@@ -122,7 +123,7 @@ A decoder throws `DecodeError` at the first problem. `kind` says what kind of pr
 | no padding where the codec requires it    | `InvalidPadding` | `base64: text of 2 characters has no '=' padding, which this codec requires; pad it to a multiple of 4 or decode with base64::STANDARD` |
 | one character left in the last group      | `InvalidLength`  | `base64: text is cut short at byte 4; a last group needs 2 to 4 characters`     |
 
-The position of an odd hex length is its last digit; of missing padding, the end of the text; of padding of the wrong length, its first `=`. A byte outside printable ASCII is shown by its value (`byte 0x0a`). Character errors are reported before length and padding errors, scanning from the start.
+The position of an odd hex length is its last digit; of missing padding, the end of the text; of padding of the wrong length, its first `=`. A space or a byte outside printable ASCII is shown by its value (`byte 0x20`, `byte 0x0a`). In both encodings character errors are reported before length and padding errors, scanning from the start: hex `"0g1"` is `InvalidByte` at byte 1, not an odd length.
 
 ## 2.22.4. Comparison with other languages
 

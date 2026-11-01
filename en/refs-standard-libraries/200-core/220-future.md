@@ -1,6 +1,6 @@
 # 2.20. future - `Future` / `await` integration
 
-The `rok::core::future` module provides the authoritative traits of the async mechanism. The desugaring of `await expr` lowers to dispatch on the `Future` trait defined in this chapter. This chapter also defines `future_trait`, one of the 48 lang slots.
+The `rok::core::future` module provides the authoritative traits of the async mechanism. The desugaring of `await expr` lowers to dispatch on the `Future` trait defined in this chapter. This chapter also defines `future_trait`, one of the lang slots ([0.4](../000-meta/004-lang-slot-table.md)).
 
 ## 2.20.1. `Future` - async result
 
@@ -27,7 +27,7 @@ impl<T> Poll<T> {
 
 `poll(ctx)` has two outcomes. `Ready(v)` means the result is ready and `v` is returned as is; `Pending` means there is no result yet, and the future is polled again when the waker in `ctx` wakes it.
 
-This model is isomorphic to Rust's `Future` and `rok::core::task::Poll`, and compiles to a **stackless coroutine** (a compiler-generated state machine, [refs-lang 7.8](../../refs-lang/007-runtime/708-coroutine.md)).
+This model is isomorphic to Rust's `Future` and `Poll` (Rok's is `rok::core::future::Poll`), and compiles to a **stackless coroutine** (a compiler-generated state machine, [refs-lang 7.8](../../refs-lang/007-runtime/708-coroutine.md)).
 
 ## 2.20.2. `Context` / `Waker`
 
@@ -47,8 +47,9 @@ struct Waker {
 
 impl Waker {
     fn wake(self);              // signal to schedule this task again
-    fn clone(self) -> Waker;
 }
+impl Clone for Waker;           // a copy wakes the same task
+impl Debug for Waker;
 ```
 
 When `poll` returns `Pending`, a Waker is registered internally; when an event (I/O or timer) later occurs, the waker is called and the task is scheduled again. Most users never handle `Waker` directly, because `await` takes care of this automatically.
@@ -102,7 +103,7 @@ The authority for these **three forms** is [refs-lang 4.12 async](../../refs-lan
 
 ## 2.20.5. `IntoFuture` - awaitable values
 
-`IntoFuture` is the unified entry point of await. Not only `Future`s but also handles such as `Thread` that are not themselves `Future` can be `await`ed through this trait.
+`IntoFuture` is the unified entry point of await. Not only `Future`s but also handles such as `JoinHandle<T>` ([3.4](../300-std/304-thread.md)) that are not themselves `Future` can be `await`ed through this trait.
 
 ```rok
 trait IntoFuture {
@@ -188,7 +189,7 @@ async yield fn ticks(interval: Duration) -> Instant {
 }
 
 for await t in ticks(Duration::ms(100)) {
-    log("tick at {t}");
+    log(f"tick at {t}");
 }
 ```
 
@@ -215,7 +216,7 @@ impl<T, E> TryAsyncFuture<T, E> {
 
 ## 2.20.9. Module mapping
 
-The module location and lang slot / role of each item; each has that one path (0.1.6):
+The module location and lang slot / role of each item; each has that one path ([0.1.6](../000-meta/001-tier-model.md#016-one-path-per-item)):
 
 | Item             | Module              | Role                        |
 |------------------|---------------------|-----------------------------|
@@ -224,6 +225,8 @@ The module location and lang slot / role of each item; each has that one path (0
 | `Context`        | `rok::core::future` | waker holder                |
 | `Waker`          | `rok::core::future` | scheduler callback          |
 | `IntoFuture`     | `rok::core::future` | ordinary trait (no lang slot) |
+| `AsyncFuture<T>` | `rok::core::future` | value of an `async fn` / `async { }` |
+| `TryAsyncFuture<T, E>` | `rok::core::future` | value of a throwing `async fn` |
 | `task::block_on` | `rok::core::task`   | sync entry point            |
 
 ## 2.20.10. Comparison with other languages
@@ -243,4 +246,4 @@ The asynchronous models of each language compare as follows.
 Rok differs in two main ways.
 
 1. **Prefix `await`**: the same as C#, Swift and JS; the authority is [refs-lang 4.12](../../refs-lang/004-functions/412-async.md). To chain on the result, wrap it in parentheses (`(await x).method()`).
-2. The ordinary trait `IntoFuture` lets Task and Thread be awaited uniformly. The idea is similar to Swift's `Task` unification, but differs in preserving the distinct types and generalizing through a trait.
+2. The ordinary trait `IntoFuture` lets `Task` and `JoinHandle` be awaited uniformly. The idea is similar to Swift's `Task` unification, but differs in preserving the distinct types and generalizing through a trait.

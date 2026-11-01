@@ -17,7 +17,7 @@ struct Secret {                                     // crypto::secret
 impl Index<usize> for Secret; impl IndexSet<usize> for Secret;   // s[i], s[i] = b (bounds-checked)
 impl Sliceable<Range<usize>> for Secret;           // s[a:b]: a view in place
 impl Drop for Secret;                               // using release wipes
-impl Debug for Secret;                              // "Secret(n bytes)", never the bytes
+impl Debug for Secret;                              // "Secret { len: n, .. }", never the bytes
 impl AsBytes for Secret;                            // byte_slice: as_bytes (2.11.13)
 fn constant_time_eq<A: AsBytes, B: AsBytes>(a: A, b: B) -> bool;   // time depends only on the lengths
 ```
@@ -28,13 +28,13 @@ A `Secret` is a fixed-length byte string in secret storage ([2.21.5](#2215-secur
 
 ```rok
 #[non_exhaustive]
-enum HashAlgorithm { Sha256, Sha384, Sha512, Sha3_256, Sha3_512 }   // crypto (FIPS 180-4, FIPS 202)
+enum HashAlgorithm { Sha256, Sha384, Sha512, Sha3_256, Sha3_512 }   // crypto (FIPS 180-4, FIPS 202); Copy, Eq, Hash, Debug
 impl HashAlgorithm {
     fn output_len(self) -> usize;                   // 32, 48, 64, 32, 64
     fn block_len(self) -> usize;                    // 64, 128, 128; SHA-3: the rate, 136 / 72
     fn digest<B: AsBytes>(self, data: B) -> List<u8>;
 }
-struct Digest {                                     // a running hash; a copy forks it
+struct Digest {                                     // crypto::sha2; a running hash, a copy forks it
     fn new(alg: HashAlgorithm) -> Digest;
     fn algorithm(self) -> HashAlgorithm;
     fn update<B: AsBytes>(ref self, data: B);
@@ -62,14 +62,15 @@ mod hkdf {                                          // crypto::hkdf (RFC 5869)
 }
 ```
 
-`HashAlgorithm` names every hash function that takes part in the keyed and signing APIs: `Digest`, `Hmac`, `hkdf`, ECDSA and RSA (PKCS #1 v1.5 and PSS, MGF1 included) accept each variant. It is `#[non_exhaustive]` ([refs-lang 6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md)): a `match` on it outside `rok::core` needs a `_` arm, and later releases may add functions. For a SHA-3 function HMAC's block is the sponge rate. `Sha3_256`, `Sha3_512`, `Shake128` and `Shake256` are the low-level form: one function fixed at compile time each (SHAKE has no `HashAlgorithm` variant, its output length being the caller's); `Sha3_256::digest(x)` and `HashAlgorithm::Sha3_256.digest(x)` compute the same function.
+`HashAlgorithm` names every hash function that takes part in the keyed and signing APIs: `Digest`, `Hmac`, `hkdf`, ECDSA and RSA (PKCS #1 v1.5 and PSS, MGF1 included) accept each variant. It is `#[non_exhaustive]` ([refs-lang 6.2.10](../../refs-lang/006-meta-system/602-built-in-attributes.md#6210-non_exhaustive-opting-out-of-external-exhaustiveness)): a `match` on it outside `rok::core` needs a `_` arm, and later releases may add functions. For a SHA-3 function HMAC's block is the sponge rate. `Sha3_256`, `Sha3_512`, `Shake128` and `Shake256` are the low-level form: one function fixed at compile time each (SHAKE has no `HashAlgorithm` variant, its output length being the caller's); `Sha3_256::digest(x)` and `HashAlgorithm::Sha3_256.digest(x)` compute the same function.
 
 `Digest`, `Hmac` and the SHA-3 / SHAKE states are values: a copy continues independently (a transcript hash read mid-way). Successive `squeeze` calls continue one output stream; `update` after the first `squeeze` panics. `Hmac::verify` compares the full-length tag in constant time. `hkdf::extract` with an empty salt uses `output_len` zero bytes; `hkdf::expand` throws `ValueError` for `len > 255 * output_len`.
 
 ## 2.21.2. AEAD
 
 ```rok
-enum AeadAlgorithm { Aes128Gcm, Aes256Gcm, ChaCha20Poly1305 }   // crypto::aead
+#[non_exhaustive]
+enum AeadAlgorithm { Aes128Gcm, Aes256Gcm, ChaCha20Poly1305 }   // crypto::aead; Copy, Eq, Hash, Debug
 impl AeadAlgorithm { fn key_len(self) -> usize; fn nonce_len(self) -> usize; fn tag_len(self) -> usize; }
 struct Aead {
     fn new<B: AsBytes>(alg: AeadAlgorithm, key: B) throws (ValueError) -> Aead;
@@ -96,7 +97,7 @@ mod x25519 {                                        // crypto::x25519 (RFC 7748)
         fn diffie_hellman(self, peer: PublicKey) -> Secret | none;   // none: all-zero result
         fn wipe(self);
     }
-    impl Drop for PrivateKey; impl Debug for PrivateKey;   // using release wipes; Debug shows no key bytes
+    impl Drop for PrivateKey; impl Debug for PrivateKey;   // release wipes; Debug: PrivateKey { .. }
     struct PublicKey {                              // Copy, Eq, Hash, Debug
         fn from_bytes<B: AsBytes>(bytes: B) throws (ValueError) -> PublicKey;
         fn to_bytes(self) -> [u8; 32];
@@ -112,8 +113,8 @@ mod mlkem {                                         // crypto::mlkem (FIPS 203)
         fn decapsulate<C: AsBytes>(self, c: C) throws (ValueError) -> Secret;   // implicit rejection
         fn wipe(self);
     }
-    impl Drop for DecapsulationKey768; impl Debug for DecapsulationKey768;
-    struct EncapsulationKey768 {                    // Clone, Eq
+    impl Drop for DecapsulationKey768; impl Debug for DecapsulationKey768;   // DecapsulationKey768 { .. }
+    struct EncapsulationKey768 {                    // Clone, Eq, Hash, Debug
         const LEN: usize = 1184;
         const CIPHERTEXT_LEN: usize = 1088;
         fn from_bytes<B: AsBytes>(bytes: B) throws (ValueError) -> EncapsulationKey768;
@@ -136,14 +137,15 @@ mod ed25519 {                                       // crypto::ed25519 (RFC 8032
         fn sign<B: AsBytes>(self, msg: B) -> List<u8>;   // 64 bytes, deterministic
         fn wipe(self);
     }
-    impl Drop for SigningKey; impl Debug for SigningKey;
+    impl Drop for SigningKey; impl Debug for SigningKey;   // SigningKey { verifying_key: .., .. }
     struct VerifyingKey {                           // Copy, Eq, Hash, Debug
         fn from_bytes<B: AsBytes>(bytes: B) throws (ValueError) -> VerifyingKey;   // 32 bytes, a canonical point
         fn to_bytes(self) -> [u8; 32];
         fn verify<M: AsBytes, S: AsBytes>(self, msg: M, sig: S) -> bool;
     }
 }
-enum EcCurve { P256, P384 }                         // crypto::ecdsa (FIPS 186-5)
+#[non_exhaustive]
+enum EcCurve { P256, P384 }                         // crypto::ecdsa (FIPS 186-5); Copy, Eq, Hash, Debug
 mod ecdsa {
     struct SigningKey {                             // the scalar in secret storage
         fn from_bytes<B: AsBytes>(curve: EcCurve, bytes: B) throws (ValueError) -> SigningKey;   // big-endian scalar
@@ -152,7 +154,7 @@ mod ecdsa {
         fn sign<M: AsBytes>(self, hash: HashAlgorithm, msg: M) -> List<u8>;   // DER, RFC 6979 nonce
         fn wipe(self);
     }
-    impl Drop for SigningKey; impl Debug for SigningKey;
+    impl Drop for SigningKey; impl Debug for SigningKey;   // SigningKey { curve: P256, .. }
     struct VerifyingKey {                           // Copy, Eq, Hash, Debug
         fn from_sec1<B: AsBytes>(curve: EcCurve, bytes: B) throws (ValueError) -> VerifyingKey;   // SEC1 uncompressed
         fn curve(self) -> EcCurve;
@@ -161,7 +163,7 @@ mod ecdsa {
     }
 }
 mod rsa {                                           // crypto::rsa (RFC 8017), 2048..4096 bits
-    struct PublicKey {
+    struct PublicKey {                              // Clone, Eq, Hash, Debug
         fn new<N: AsBytes, E: AsBytes>(n: N, e: E) throws (ValueError) -> PublicKey;
         fn from_pkcs1_der<B: AsBytes>(der: B) throws (ValueError) -> PublicKey;
         fn bits(self) -> usize;
@@ -178,11 +180,11 @@ mod rsa {                                           // crypto::rsa (RFC 8017), 2
         fn sign_pss<M: AsBytes, S: AsBytes>(self, hash: HashAlgorithm, msg: M, salt: S) throws (ValueError) -> List<u8>;  // salt: fresh random, hash length
         fn wipe(self);
     }
-    impl Drop for PrivateKey; impl Debug for PrivateKey;
+    impl Drop for PrivateKey; impl Debug for PrivateKey;   // PrivateKey { bits: 2048, .. }
 }
 ```
 
-The private and signing keys hold their secret material in secret storage ([2.21.5](#2215-security-considerations)): copies share it, they are not `Sync`, `wipe` and a `using` release overwrite it with zeros, and `Debug` shows no key bytes. A key is checked once, when it is made, so Ed25519 and ECDSA signing cannot fail. Keys are made from bytes; a source of randomness is the caller's (`SigningKey::from_seed(random::secret(32))`, 3.10).
+The private and signing keys hold their secret material in secret storage ([2.21.5](#2215-security-considerations)): copies share it, they are not `Sync`, `wipe` and a `using` release overwrite it with zeros, and `Debug` shows no key bytes: it prints the type in the record form `Type { field: .., .. }` with only public facts (length, curve, size, the public key) and `..` for the rest ([0.5.12](../000-meta/005-notation.md#0512-trait-coverage-non_exhaustive-and-sealed)). A key is checked once, when it is made, so Ed25519 and ECDSA signing cannot fail. Keys are made from bytes; a source of randomness is the caller's (`SigningKey::from_seed(random::secret(32))`, 3.10).
 
 Ed25519 verification is cofactorless and rejects a non-canonical encoding of `R` and `S ≥ L`; `ed25519::VerifyingKey::from_bytes` rejects a non-canonical `A` or one off the curve. `ecdsa::VerifyingKey::from_sec1` rejects a public key that is not an uncompressed point on the curve with coordinates below p, and ECDSA verification rejects signatures that are not minimal DER or have `r` or `s` outside `[1, n)`. RSA verification requires a signature of exactly the modulus length below the modulus; PKCS #1 v1.5 compares the whole rebuilt encoding. `rsa::PublicKey::new` takes an odd modulus of 2048 to 4096 bits and an odd exponent with `3 ≤ e < 2^33` (leading zero bytes ignored); anything else is a `ValueError` (verification costs one modular squaring per exponent bit, so a peer must not choose a long one).
 

@@ -34,7 +34,7 @@ encoding::base64::decode("Zm9vYg");            //→ [102, 111, 111, 98]
 
 `hex::encode`는 각 바이트를 상위 4비트부터 두 자리로 씁니다(`[0x00, 0xff]` → `"00ff"`). `a`부터 `f`까지는 소문자로 쓰고, `Case::Upper`이면 대문자로 씁니다. `hex::decode`는 바이트마다 두 자리를 읽고 대소문자를 모두 받습니다(`"DeadBeef"`). 텍스트의 길이는 짝수여야 합니다. 그 밖의 것은 받지 않습니다. `0x` 접두, 공백, 구분자 모두 받지 않습니다.
 
-`hex::encode_into`에는 `out`이 `2 * data.len()`바이트, `hex::decode_into`에는 `text.len() / 2`바이트 필요합니다. `out`이 이보다 짧으면 호출자의 버그이므로 패닉합니다.
+`hex::encode_into`에는 `out`이 `2 * data.len()`바이트, `hex::decode_into`에는 `text.len() / 2`바이트 필요합니다. `out`이 이보다 짧으면 호출자의 버그이므로 줄 크기를 알려 주며 패닉합니다(`hex::encode_into: `out` holds 3 bytes but the text needs 4; size `out` as `2 * data.len()``, `decode_into`는 `size `out` as `text.len() / 2``).
 
 ## 2.22.2. Base64
 
@@ -106,6 +106,7 @@ impl DecodeError {
 #[non_exhaustive]
 enum DecodeErrorKind { InvalidByte, InvalidLength, InvalidPadding }   // Copy, Eq, Hash, Debug
 impl Display for DecodeError; impl Debug for DecodeError; impl Error for DecodeError;
+impl Clone for DecodeError; impl PartialEq for DecodeError; impl Eq for DecodeError;
 ```
 
 디코더는 처음 만난 문제에서 `DecodeError`를 던집니다. `kind`는 문제의 종류를, `position`은 문제가 있는 `text` 안의 바이트 오프셋을 알려 줍니다. 메시지는 인코딩 이름으로 시작하고, 오프셋을 밝히고, 대신 무엇을 쓸지 말합니다.
@@ -122,7 +123,7 @@ impl Display for DecodeError; impl Debug for DecodeError; impl Error for DecodeE
 | 코덱이 요구하는 패딩이 없음              | `InvalidPadding` | `base64: text of 2 characters has no '=' padding, which this codec requires; pad it to a multiple of 4 or decode with base64::STANDARD` |
 | 마지막 묶음에 글자 하나만 남음           | `InvalidLength`  | `base64: text is cut short at byte 4; a last group needs 2 to 4 characters`     |
 
-hex 길이가 홀수이면 위치는 마지막 숫자, 패딩이 없으면 텍스트의 끝, 패딩 길이가 틀리면 첫 `=`입니다. 출력 가능한 ASCII 밖의 바이트는 그 값으로 보입니다(`byte 0x0a`). 디코더는 처음부터 훑으며 글자 에러를 길이나 패딩 에러보다 먼저 보고합니다.
+hex 길이가 홀수이면 위치는 마지막 숫자, 패딩이 없으면 텍스트의 끝, 패딩 길이가 틀리면 첫 `=`입니다. 공백이나 출력 가능한 ASCII 밖의 바이트는 그 값으로 보입니다(`byte 0x20`, `byte 0x0a`). 두 인코딩 모두 디코더는 처음부터 훑으며 글자 에러를 길이나 패딩 에러보다 먼저 보고합니다. hex `"0g1"`은 홀수 길이가 아니라 바이트 1의 `InvalidByte`입니다.
 
 ## 2.22.4. 다른 언어와 비교
 

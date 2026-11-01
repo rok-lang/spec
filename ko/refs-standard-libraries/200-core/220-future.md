@@ -1,6 +1,6 @@
 # 2.20. future: `Future` / `await` 통합
 
-`rok::core::future` 모듈에는 비동기 메커니즘의 권위 트레잇이 있습니다. 컴파일러는 `await expr`를 풀어서 이 장에서 정의하는 `Future` 트레잇의 디스패치로 낮춥니다. lang slot 48개 가운데 `future_trait`도 이 장에서 정의합니다.
+`rok::core::future` 모듈에는 비동기 메커니즘의 권위 트레잇이 있습니다. 컴파일러는 `await expr`를 풀어서 이 장에서 정의하는 `Future` 트레잇의 디스패치로 낮춥니다. lang slot([0.4](../000-meta/004-lang-slot-table.md)) 가운데 `future_trait`도 이 장에서 정의합니다.
 
 ## 2.20.1. `Future`: 비동기 결과
 
@@ -27,7 +27,7 @@ impl<T> Poll<T> {
 
 `poll(ctx)`의 결과는 두 가지입니다. `Ready(v)`는 결과가 준비되었다는 뜻이고 `v`를 그대로 반환합니다. `Pending`은 아직 결과가 없다는 뜻입니다. `ctx`의 waker가 깨우면 future를 다시 폴링합니다.
 
-이 모델은 Rust의 `Future`, `rok::core::task::Poll`과 동형입니다. future는 **스택 없는 코루틴**(stackless coroutine)으로 컴파일됩니다. 컴파일러가 만든 상태 기계입니다([refs-lang 7.8](../../refs-lang/007-runtime/708-coroutine.md)).
+이 모델은 Rust의 `Future`, `Poll`과 동형입니다(Rok의 것은 `rok::core::future::Poll`). future는 **스택 없는 코루틴**(stackless coroutine)으로 컴파일됩니다. 컴파일러가 만든 상태 기계입니다([refs-lang 7.8](../../refs-lang/007-runtime/708-coroutine.md)).
 
 ## 2.20.2. `Context` / `Waker`
 
@@ -47,8 +47,9 @@ struct Waker {
 
 impl Waker {
     fn wake(self);              // 자신을 다시 schedule 하라 신호
-    fn clone(self) -> Waker;
 }
+impl Clone for Waker;           // 복사본도 같은 task 를 깨움
+impl Debug for Waker;
 ```
 
 `poll`이 `Pending`을 반환하면 내부적으로 Waker가 등록됩니다. 나중에 이벤트(I/O나 타이머)가 일어나면 waker가 호출되고, task는 다시 스케줄됩니다. 대부분의 코드는 `Waker`를 직접 다루지 않습니다. `await`가 이 과정을 자동으로 처리하기 때문입니다.
@@ -102,7 +103,7 @@ await g();
 
 ## 2.20.5. `IntoFuture`: await 가능한 값
 
-`IntoFuture`는 await의 통일된 진입점입니다. `Future`뿐 아니라 `Thread`처럼 그 자체는 `Future`가 아닌 핸들도 이 트레잇으로 `await`할 수 있습니다.
+`IntoFuture`는 await의 통일된 진입점입니다. `Future`뿐 아니라 `JoinHandle<T>`([3.4](../300-std/304-thread.md))처럼 그 자체는 `Future`가 아닌 핸들도 이 트레잇으로 `await`할 수 있습니다.
 
 ```rok
 trait IntoFuture {
@@ -188,7 +189,7 @@ async yield fn ticks(interval: Duration) -> Instant {
 }
 
 for await t in ticks(Duration::ms(100)) {
-    log("tick at {t}");
+    log(f"tick at {t}");
 }
 ```
 
@@ -215,7 +216,7 @@ impl<T, E> TryAsyncFuture<T, E> {
 
 ## 2.20.9. 모듈 매핑
 
-각 항목의 모듈 위치와 lang slot / 역할은 다음과 같습니다. 항목마다 경로는 그 하나뿐입니다(0.1.6).
+각 항목의 모듈 위치와 lang slot / 역할은 다음과 같습니다. 항목마다 경로는 그 하나뿐입니다([0.1.6](../000-meta/001-tier-model.md#016-항목마다-경로-하나)).
 
 | 항목             | 모듈                | 역할                      |
 |------------------|---------------------|---------------------------|
@@ -224,6 +225,8 @@ impl<T, E> TryAsyncFuture<T, E> {
 | `Context`        | `rok::core::future` | waker holder              |
 | `Waker`          | `rok::core::future` | scheduler callback        |
 | `IntoFuture`     | `rok::core::future` | 일반 트레잇(lang slot 없음) |
+| `AsyncFuture<T>` | `rok::core::future` | `async fn` / `async { }`의 값 |
+| `TryAsyncFuture<T, E>` | `rok::core::future` | 던지는 `async fn`의 값 |
 | `task::block_on` | `rok::core::task`   | sync entry point          |
 
 ## 2.20.10. 다른 언어와 비교
@@ -243,4 +246,4 @@ impl<T, E> TryAsyncFuture<T, E> {
 Rok이 다른 점은 크게 두 가지입니다.
 
 1. **prefix `await`**: C#, Swift, JS와 같은 방식입니다. 권위는 [refs-lang 4.12](../../refs-lang/004-functions/412-async.md)에 있습니다. 결과에 이어서 메서드를 부르려면 괄호로 묶습니다(`(await x).method()`).
-2. 일반 트레잇 `IntoFuture` 덕분에 Task와 Thread도 똑같이 await로 기다릴 수 있습니다. Swift의 `Task` 통일과 비슷한 발상입니다. 다만 고유 타입을 그대로 두고 트레잇으로 일반화한다는 점이 다릅니다.
+2. 일반 트레잇 `IntoFuture` 덕분에 `Task`와 `JoinHandle`도 똑같이 await로 기다릴 수 있습니다. Swift의 `Task` 통일과 비슷한 발상입니다. 다만 고유 타입을 그대로 두고 트레잇으로 일반화한다는 점이 다릅니다.
