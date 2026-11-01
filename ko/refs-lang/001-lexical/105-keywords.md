@@ -20,6 +20,7 @@ async     await     yield     unsafe    using
 struct    enum      trait     impl      pub       mod       use
 as        is        ref
 true      false     none      self      Self
+macro     defer     dyn       move      gen       do
 ```
 
 > [!NOTE]
@@ -111,15 +112,15 @@ make(type: Kind::Ident);                  // OK: 이름 있는 인자 (문맥 �
 struct S { self: i32; }                   // ERROR: self 는 예외
 ```
 
-## 1.5.6. 0.2.0부터 키워드
+## 1.5.6. 나중을 위해 예약한 키워드
 
-Rok 0.2.0은 `macro`, `defer`, `dyn`, `move`, `gen`, `do` 여섯 단어를 더 예약합니다. 0.1에서는 아직 식별자이지만, 이 단어와 철자가 같은 식별자에는 경고가 나옵니다(린트 `keyword_idents`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). help는 raw 식별자([1.4.4](104-identifiers.md#raw-식별자))를 알려 줍니다. raw 식별자는 0.1과 0.2 모두에서 컴파일됩니다.
+1.5.1의 마지막 줄인 `macro`, `defer`, `dyn`, `move`, `gen`, `do`는 아직 어떤 구문도 쓰지 않는 예약 키워드입니다. 이후 릴리스가 코드를 깨지 않고 이 단어들에 구문을 줄 수 있도록 미리 예약합니다. 다른 예약 키워드와 마찬가지로 1.5.5의 이름 자리 밖에서는 이름이 될 수 없습니다. 이 단어와 철자가 같은 식별자는 컴파일 에러이고, help는 raw 식별자([1.4.4](104-identifiers.md#raw-식별자))를 알려 줍니다.
 
 ```rok
-fn gen(n: i32) -> i32 { n }     // 경고: `gen` is a keyword from Rok 0.2.0 on
-fn r#gen(n: i32) -> i32 { n }   // 0.1과 0.2 모두 OK
+fn gen(n: i32) -> i32 { n }     // 에러: `gen` is a reserved keyword, not a name
+fn r#gen(n: i32) -> i32 { n }   // OK
 let s = Step { move: 1 };       // OK: 필드 이름 (1.5.5)
 let m = s.move;                 // OK: . 뒤
 ```
 
-1.5.5의 이름 자리에서는 경고하지 않습니다. 0.2.0에서도 그 자리의 키워드는 이름이기 때문입니다.
+메타 블록의 `@macro`([6.8](../006-meta-system/608-meta-blocks.md))는 메타 구문이며 키워드를 쓴 것이 아닙니다.

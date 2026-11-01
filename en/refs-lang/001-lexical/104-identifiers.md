@@ -116,13 +116,13 @@ raw_identifier ::= "r#" identifier
 ```rok
 fn r#match(x: i32) -> i32 { x + 1 }   // a function named match
 struct Tok { r#type: i32; }            // the same field as type: i32
-let r#move = r#match(1);               // move, a keyword from 0.2.0 (1.5.6)
+let r#move = r#match(1);               // move, a reserved keyword (1.5.6)
 let k = tok.type + tok.r#type;         // the same field twice
 ```
 
 A raw identifier names the same thing as the plain spelling: `t.r#type` and `t.type` are the same field, and `r#gen` calls a function declared `fn gen`. `r#self`, `r#Self` and `r#_` are compile errors: `self` and `Self` cannot be names ([1.5.5](105-keywords.md#155-keywords-in-name-positions)), and `_` already is one. `r#"` and `r##"` still start a raw string ([1.7](107-string-literals.md)).
 
-Raw identifiers exist mainly for the words that become keywords in 0.2.0 ([1.5.6](105-keywords.md#156-keywords-from-020)): a name written `r#move` compiles in both.
+Raw identifiers let code keep a name that is a keyword, such as one of the words reserved for later use ([1.5.6](105-keywords.md#156-keywords-reserved-for-later-use)): `r#move`.
 
 ## 1.4.5. Length limit
 

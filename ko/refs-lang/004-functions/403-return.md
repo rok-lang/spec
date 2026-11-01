@@ -180,12 +180,12 @@ fn outer() -> i32 {
 }
 ```
 
-문장인 호출의 [트레일링 클로저](408-trailing-closure.md) 안에 값 없이 쓴 `return;`은 함수에서 빠져나가는 것처럼 읽히지만, 실제로는 그 클로저 호출 한 번만 끝냅니다. 린트 `trailing_closure_return`이 이를 경고합니다. 함수에서 빠져나가려면 호출 대신 `for` 루프를 씁니다.
+문장인 호출의 [트레일링 클로저](408-trailing-closure.md) 안에 값 없이 쓴 `return;`은 함수에서 빠져나가는 것처럼 읽히지만, 실제로는 그 클로저 호출 한 번만 끝내므로 컴파일 에러입니다. 클로저 호출 한 번을 끝내려면 레이블 붙은 return인 `return@each`(4.3.12)를 씁니다. 함수에서 빠져나가려면 호출 대신 `for` 루프를 씁니다. help는 `return@each`를 수정 제안과 함께 알려 줍니다.
 
 ```rok
 fn main() {
     each(xs) |x| {
-        if x == 2 { return; }     // 경고: 이 호출만 끝남. 3 은 그대로 출력
+        if x == 2 { return; }     // 에러: 이 호출만 끝내게 됨
         println(f"{x}");
     }
     for x in xs {
@@ -195,4 +195,32 @@ fn main() {
 }
 ```
 
+괄호 안에 넘긴 클로저, 호출이 문장이 아닌 트레일링 클로저(`let n = first(xs) |x| { .. }`), 트레일링 클로저 안에 중첩된 클로저의 `return`은 그대로 허용합니다. 그 클로저 자신의 `return`으로 읽히기 때문입니다.
+
 중첩 함수와 클로저 정의의 자세한 내용은 [클로저](405-closure.md)에서 다룹니다.
+
+## 4.3.12. 레이블 붙은 return
+
+`return@name`은 가장 안쪽 클로저가 `name` 호출의 트레일링 클로저일 때 그 클로저 호출 한 번을 끝냅니다. 레이블은 호출 대상 경로의 마지막 마디나 메서드 이름입니다. `each(xs) |x| { .. }`와 `m::each(xs) |x| { .. }`는 `@each`, `xs.visit() |x| { .. }`는 `@visit`을 씁니다. `@`는 `return`에 띄우지 않고 붙여 씁니다. 값은 `return`처럼 뒤에 씁니다(`return@first true`).
+
+```
+labeled_return ::= "return" "@" identifier expression?
+```
+
+```rok
+fn main() {
+    each(xs) |x| {
+        if x == 2 { return@each; }    // 이 호출만 끝냄. 3 은 그대로 출력
+        println(f"{x}");
+    }
+    let n = first(xs) |x| { if x > 1 { return@first true; } false };
+}
+```
+
+레이블이 가장 안쪽 클로저를 가리키지 않으면 컴파일 에러입니다. 클로저는 자기를 둘러싼 다른 클로저에서 빠져나갈 수 없습니다. 중첩 클로저, `async` / `yield` 블록, 중첩 함수는 각각 `return`의 범위를 새로 시작합니다.
+
+```rok
+each(xs) |x| {
+    let g = || { return@each; };      // 에러: 가장 안쪽 클로저는 g
+}
+```

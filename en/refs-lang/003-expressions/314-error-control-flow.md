@@ -84,7 +84,7 @@ let port = (try? env::var("PORT")) ?? "8080";
 let cfg = try! load_builtin_config();      // failure is a program bug
 ```
 
-The `?` / `!` of `try?` / `try!` must immediately follow `try`. `try !x` is `try (!x)`. Because `try?` and `try!` do not propagate errors, the enclosing function need not be `throws`. Their coverage is the same as `try`. To chain `??` after the result of `try?`, close the range with parentheses as in the example above. Unparenthesized, `try? f() ?? d` is `try? (f() ?? d)`: an error gives `none`, not `d`. The compiler warns about that form (lint `try_coalesce_precedence`); write `(try? f()) ?? d` or `try? (f() ?? d)`.
+The `?` / `!` of `try?` / `try!` must immediately follow `try`. `try !x` is `try (!x)`. Because `try?` and `try!` do not propagate errors, the enclosing function need not be `throws`. Their coverage is the same as `try`. To chain `??` after the result of `try?`, close the range with parentheses as in the example above. Unparenthesized, `try? f() ?? d` is a compile error, because the coverage rule would make it `try? (f() ?? d)`, where an error gives `none`, not `d`. Write `(try? f()) ?? d` or `try? (f() ?? d)`; the help offers both.
 
 ## 3.14.4. `catch`: postfix handling expression
 

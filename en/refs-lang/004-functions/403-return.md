@@ -180,12 +180,12 @@ fn outer() -> i32 {
 }
 ```
 
-A bare `return;` in the [trailing closure](408-trailing-closure.md) of a call that is a statement reads like a return from the function, but it ends only that call of the closure. The lint `trailing_closure_return` warns about it; to leave the function, write a `for` loop instead of the call.
+A bare `return;` in the [trailing closure](408-trailing-closure.md) of a call that is a statement reads like a return from the function, but it would end only that call of the closure, so it is a compile error. To end this call of the closure, write the labeled return `return@each` (4.3.12); to leave the function, write a `for` loop instead of the call. The help offers `return@each` with a fix.
 
 ```rok
 fn main() {
     each(xs) |x| {
-        if x == 2 { return; }     // warning: ends only this call; 3 still prints
+        if x == 2 { return; }     // ERROR: would end only this call
         println(f"{x}");
     }
     for x in xs {
@@ -195,4 +195,32 @@ fn main() {
 }
 ```
 
+A `return` in a closure passed in parentheses, in a trailing closure whose call is not a statement (`let n = first(xs) |x| { .. }`) and in a closure nested inside a trailing closure stays allowed: it reads as the closure's own.
+
 Details on defining nested functions and closures are in [Closures](405-closure.md).
+
+## 4.3.12. Labeled return
+
+`return@name` ends one call of the innermost closure when that closure is the trailing closure of a call to `name`. The label is the callee's last path segment or the method's name: `each(xs) |x| { .. }` and `m::each(xs) |x| { .. }` take `@each`, and `xs.visit() |x| { .. }` takes `@visit`. The `@` follows `return` with no space. A value follows as with `return`: `return@first true`.
+
+```
+labeled_return ::= "return" "@" identifier expression?
+```
+
+```rok
+fn main() {
+    each(xs) |x| {
+        if x == 2 { return@each; }    // ends this call; 3 still prints
+        println(f"{x}");
+    }
+    let n = first(xs) |x| { if x > 1 { return@first true; } false };
+}
+```
+
+A label that does not name the innermost closure is a compile error: a closure cannot leave another one around it, and a nested closure, an `async` / `yield` block and a nested function each start their own scope for `return`.
+
+```rok
+each(xs) |x| {
+    let g = || { return@each; };      // ERROR: the innermost closure is g
+}
+```

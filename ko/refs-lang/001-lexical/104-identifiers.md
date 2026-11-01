@@ -116,13 +116,13 @@ raw_identifier ::= "r#" identifier
 ```rok
 fn r#match(x: i32) -> i32 { x + 1 }   // 이름이 match 인 함수
 struct Tok { r#type: i32; }            // type: i32 와 같은 필드
-let r#move = r#match(1);               // move: 0.2.0부터 키워드 (1.5.6)
+let r#move = r#match(1);               // move: 예약 키워드 (1.5.6)
 let k = tok.type + tok.r#type;         // 같은 필드를 두 번
 ```
 
 raw 식별자는 그냥 쓴 이름과 같은 것을 가리킵니다. `t.r#type`과 `t.type`은 같은 필드이고, `r#gen`은 `fn gen`으로 선언한 함수를 부릅니다. `r#self`, `r#Self`, `r#_`는 컴파일 에러입니다. `self`와 `Self`는 이름이 될 수 없고([1.5.5](105-keywords.md#155-이름-자리의-키워드)), `_`는 이미 식별자이기 때문입니다. `r#"`와 `r##"`는 여전히 raw 문자열을 시작합니다([1.7](107-string-literals.md)).
 
-raw 식별자는 주로 0.2.0에서 키워드가 되는 단어를 위해 있습니다([1.5.6](105-keywords.md#156-020부터-키워드)). `r#move`로 쓴 이름은 두 버전 모두에서 컴파일됩니다.
+raw 식별자를 쓰면 나중을 위해 예약한 단어([1.5.6](105-keywords.md#156-나중을-위해-예약한-키워드)) 같은 키워드도 이름으로 둘 수 있습니다. `r#move`처럼 씁니다.
 
 ## 1.4.5. 길이 제한
 

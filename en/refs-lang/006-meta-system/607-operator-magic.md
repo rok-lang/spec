@@ -190,7 +190,7 @@ All aliases attached to the same trait method must be tokens of the same level.
 ```rok
 trait Cmp {
     #[infix("<")]
-    #[infix("⊲", like = "+")]    // ERROR: < is level 4, + is level 7
+    #[infix("⊲", like = "+")]    // ERROR: < is level 4, + is level 9
     fn lt(self, rhs: Self) -> bool;
 }
 ```

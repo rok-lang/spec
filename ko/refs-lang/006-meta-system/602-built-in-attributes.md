@@ -242,12 +242,7 @@ fn strict_zone() { ... }
 | `while_true`             | 0.1.0   | `loop` 대신 `while true`                                           |
 | `deprecated`             | 0.1.0   | `#[deprecated]` 함수, 메서드, 필드, 타입, 상수, static 사용 ([6.2.7](#627-deprecated-사용-자제-표시)) |
 | `deprecated_safe`        | 0.1.6   | `unsafe` 밖에서 `#[deprecated_safe]` 함수를 호출하거나 그런 static을 씀 ([6.2.14](#6214-deprecated_safe-지금은-안전-나중에-unsafe)) |
-| `keyword_idents`         | 0.1.6   | 0.2.0부터 키워드인 `macro`, `defer`, `dyn`, `move`, `gen`, `do`와 철자가 같은 이름. `r#name`으로 씀 ([1.5.6](../001-lexical/105-keywords.md#156-020부터-키워드)) |
-| `zero_prefixed_literal`  | 0.1.6   | 앞에 0이 붙은 10진 정수 리터럴(`0755`는 755). `0o755`나 `755`로 씀 ([1.6.1](../001-lexical/106-numeric-literals.md#161-기본-형태)) |
-| `try_coalesce_precedence` | 0.1.6   | `try? (f() ?? d)`로 묶이는 `try? f() ?? d`. `(try? f()) ?? d`나 `try? (f() ?? d)`로 씀 ([3.14.3](../003-expressions/314-error-control-flow.md)) |
-| `trailing_closure_operator` | 0.1.6   | 문장의 트레일링 클로저 호출 다음 줄 맨 앞에 와서 그 호출에 이어지는 연산자. `}` 뒤에 `;`를 씀 ([1.3.4](../001-lexical/103-statement-terminator.md#134-블록류-식-문장)) |
 | `fstring_g_precision`    | 0.1.6   | 수에 쓴 `{x:.3g}`. 0.2.0에서 `g`가 일반 형식이 되기 전까지는 `{x:.3}`처럼 출력됨 ([1.7.3](../001-lexical/107-string-literals.md#173-형식-문자열)) |
-| `trailing_closure_return` | 0.1.6   | 문장인 호출의 트레일링 클로저 안에 값 없이 쓴 `return;`. 그 클로저 호출 한 번만 끝냄 ([4.3.11](../004-functions/403-return.md#4311-return과-클로저--중첩-함수)) |
 | `capture_field_write`    | 0.1.6   | 클로저 안에서 값 캡처한 구조체의 필드에 씀: 클로저의 사본이 바뀜. help는 `[ref p]` ([4.6.7](../004-functions/406-capture-semantics.md#467-struct와-참조-핸들의-캡처)) |
 | `const_item_mutation`    | 0.1.6   | `const`에 `ref self` 메서드나 컬렉션의 변경 메서드(`push`, `insert` 등)를 부름: 쓸 때마다 새 값이므로 변경이 버려짐 ([5.2](../005-modules/502-const.md)) |
 | `pattern_binds_const`    | 0.1.6   | `const`나 `static`으로 해소되거나, 대문자로 시작하고 피검사 식 `enum`의 변형과 편집 거리 2 이내인 패턴 이름: 모든 값을 바인딩함 ([3.11](../003-expressions/311-patterns.md)) |

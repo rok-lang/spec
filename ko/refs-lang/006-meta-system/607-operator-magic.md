@@ -190,7 +190,7 @@ let r = a ⊕ b;            // 사용자 토큰
 ```rok
 trait Cmp {
     #[infix("<")]
-    #[infix("⊲", like = "+")]    // ERROR: < 는 4 단계, + 는 7 단계
+    #[infix("⊲", like = "+")]    // ERROR: < 는 4 단계, + 는 9 단계
     fn lt(self, rhs: Self) -> bool;
 }
 ```

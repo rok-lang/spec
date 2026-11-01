@@ -20,6 +20,7 @@ async     await     yield     unsafe    using
 struct    enum      trait     impl      pub       mod       use
 as        is        ref
 true      false     none      self      Self
+macro     defer     dyn       move      gen       do
 ```
 
 > [!NOTE]
@@ -111,15 +112,15 @@ make(type: Kind::Ident);                  // OK: named argument (contextual keyw
 struct S { self: i32; }                   // ERROR: self is the exception
 ```
 
-## 1.5.6. Keywords from 0.2.0
+## 1.5.6. Keywords reserved for later use
 
-Rok 0.2.0 reserves six more words: `macro`, `defer`, `dyn`, `move`, `gen` and `do`. In 0.1 they are still identifiers, but an identifier spelled as one of them gets a warning (lint `keyword_idents`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)). The help names the raw identifier ([1.4.4](104-identifiers.md#raw-identifiers)), which compiles in 0.1 and in 0.2.
+The last row of 1.5.1, `macro`, `defer`, `dyn`, `move`, `gen` and `do`, are reserved keywords that no syntax uses yet. They are reserved so that later releases can give them syntax without breaking code. Like every reserved keyword they cannot be names outside the name positions of 1.5.5; an identifier spelled as one is a compile error whose help names the raw identifier ([1.4.4](104-identifiers.md#raw-identifiers)).
 
 ```rok
-fn gen(n: i32) -> i32 { n }     // warning: `gen` is a keyword from Rok 0.2.0 on
-fn r#gen(n: i32) -> i32 { n }   // OK in 0.1 and 0.2
+fn gen(n: i32) -> i32 { n }     // ERROR: `gen` is a reserved keyword, not a name
+fn r#gen(n: i32) -> i32 { n }   // OK
 let s = Step { move: 1 };       // OK: a field name (1.5.5)
 let m = s.move;                 // OK: after .
 ```
 
-The name positions of 1.5.5 do not warn, because a keyword is a name there in 0.2.0 too.
+The `@macro` of a meta block ([6.8](../006-meta-system/608-meta-blocks.md)) is meta syntax, not a use of the keyword.
