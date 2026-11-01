@@ -98,10 +98,10 @@ impl Iterator {
     fn all(self, pred: fn(Item) -> bool) -> bool;
     fn find(self, pred: fn(Item) -> bool) -> Item | none;
     fn position(self, pred: fn(Item) -> bool) -> usize | none;
-    fn min(self) -> Item | none where Item: Ord;
-    fn max(self) -> Item | none where Item: Ord;
-    fn min_by_key<K: Ord>(self, key: fn(Item) -> K) -> Item | none;
-    fn max_by_key<K: Ord>(self, key: fn(Item) -> K) -> Item | none;
+    fn min(self) -> Item | none where Item: Ord;             // the first of equal minima
+    fn max(self) -> Item | none where Item: Ord;             // the last of equal maxima
+    fn min_by_key<K: Ord>(self, key: fn(Item) -> K) -> Item | none;  // the first of equals
+    fn max_by_key<K: Ord>(self, key: fn(Item) -> K) -> Item | none;  // the last of equals
     fn collect<C: FromIterator<Item>>(self) -> C;
     fn for_each(self, f: fn(Item));               // side effects only
     fn last(self) -> Item | none;

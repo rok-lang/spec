@@ -207,10 +207,10 @@ let c: char = 'A';                   //→ U+0041
 let k: char = '한';                  //→ U+D55C
 let e: char = '😀';                  //→ U+1F600
 
-c.to_lowercase();                    //→ 'a'
+c.to_lowercase();                    //→ "a"
 c.is_alphabetic();                   //→ true
 c.is_ascii();                        //→ true
-try '1'.to_digit(10);                //→ 1 (u32, 실패 시 ValueError)
+'1'.to_digit(10);                    //→ 1 (u32 | none; 숫자가 아니면 none)
 c.len_utf8();                        //→ 1 (UTF-8 인코딩 시 byte 수)
 e.len_utf8();                        //→ 4
 ```
@@ -219,9 +219,9 @@ e.len_utf8();                        //→ 4
 impl char {
     fn from_u32(n: u32) -> char | none;                  // surrogate / 범위 밖이면 none
     unsafe fn from_u32_unchecked(n: u32) -> char;        // 검사 없음, 호출자가 scalar value 를 보장
-    fn from_digit(d: u32, radix: u32) -> char;           // d >= radix 나 radix 가 2..=36 밖이면 panic
-    fn to_digit(self, radix: u32) throws (ValueError) -> u32;
-    fn is_digit(self, radix: u32) -> bool;
+    fn from_digit(d: u32, radix: u32) -> char | none;    // d >= radix 면 none, radix 가 2..=36 밖이면 panic
+    fn to_digit(self, radix: u32) -> u32 | none;         // 숫자가 아니면 none, radix 가 2..=36 밖이면 panic
+    fn is_digit(self, radix: u32) -> bool;               // radix 가 2..=36 밖이면 panic
     fn len_utf8(self) -> usize;
     fn len_utf16(self) -> usize;
 
@@ -233,10 +233,12 @@ impl char {
     fn is_numeric(self) -> bool;
     fn is_alphanumeric(self) -> bool;
     fn is_control(self) -> bool;
-    fn to_lowercase(self) -> char;       // 1:1 매핑만
-    fn to_uppercase(self) -> char;
-    fn to_lowercase_str(self) -> str;    // 1:N 을 포함한 전체 매핑
-    fn to_uppercase_str(self) -> str;
+    fn to_lowercase(self) -> str;           // 1:N 을 포함한 전체 매핑
+    fn to_uppercase(self) -> str;
+    fn to_titlecase(self) -> str;
+    fn to_simple_lowercase(self) -> char;   // UCD 단순 매핑(slc / suc / stc), 1:1
+    fn to_simple_uppercase(self) -> char;
+    fn to_simple_titlecase(self) -> char;
 
     // ASCII
     fn is_ascii(self) -> bool;
@@ -250,7 +252,7 @@ impl char {
 }
 ```
 
-`char`의 `to_lowercase` / `to_uppercase`는 한 문자를 돌려주므로 1:1 매핑만 적용합니다. 한 문자가 여러 문자로 바뀌는 경우는 그대로 둡니다(`'ß'.to_uppercase() == 'ß'`). 전체 매핑은 `to_lowercase_str` / `to_uppercase_str`가 돌려줍니다(`'ß'.to_uppercase_str() == "SS"`). `str`의 `to_lowercase` / `to_uppercase`는 전체 매핑을 적용합니다. 1:N 매핑과 문맥 규칙(그리스어 끝 시그마 `Σ` → `ς`)도 포함합니다(`"ß".to_uppercase() == "SS"`).
+`char`의 `to_lowercase` / `to_uppercase` / `to_titlecase`는 Unicode 전체 매핑을 `str`로 돌려주며, 결과가 여러 문자일 수 있습니다(`'ß'.to_uppercase() == "SS"`, `'ß'.to_titlecase() == "Ss"`, `'ǆ'.to_titlecase() == "ǅ"`, `'ﬁ'.to_titlecase() == "Fi"`, `'\u{130}'.to_lowercase() == "i\u{307}"`). `to_simple_*`는 UCD 단순 매핑으로 `char` 하나를 돌려주고, 매핑이 없으면 그 문자를 그대로 돌려줍니다(`'ß'.to_simple_uppercase() == 'ß'`, `'ǆ'.to_simple_titlecase() == 'ǅ'`). 메모리를 할당하지 않습니다. `str`의 `to_lowercase` / `to_uppercase`는 전체 매핑을 적용합니다. 1:N 매핑과 문맥 규칙(그리스어 끝 시그마 `Σ` → `ς`)도 포함합니다(`"ß".to_uppercase() == "SS"`). 대소문자 매핑은 로케일과 무관합니다. `str`에는 `to_titlecase`가 없습니다. 텍스트를 제목 대소문자로 바꾸려면 단어 경계가 필요하기 때문입니다. 한 단어의 첫 글자만 바꾸려면 `c.to_titlecase() + rest.to_lowercase()`로 씁니다.
 
 Unicode 속성과 대소문자 표는 UCD 18.0.0입니다.
 
@@ -258,7 +260,7 @@ Unicode 속성과 대소문자 표는 UCD 18.0.0입니다.
 
 ```rok
 char::from_u32(0x41);                //→ 'A' (char | none; surrogate 는 none)
-char::from_digit(5, 10);             //→ '5'
+char::from_digit(5, 10);             //→ '5' (char | none; 5가 그 진법의 숫자가 아니면 none)
 
 let n: u32 = c as u32;               //→ 65 (lossless)
 let c2: char = n as char;            //→ ERROR: u8 만 `as char` 가능

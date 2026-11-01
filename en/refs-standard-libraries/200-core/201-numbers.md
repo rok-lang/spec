@@ -78,11 +78,17 @@ impl Int {
     fn ilog2(self) -> u64;                      // floor(log2(self)); panics unless self > 0
     fn checked_ilog2(self) -> u64 | none;
 
-    // bytes: signed is the shortest two's complement, else the magnitude
-    fn to_le_bytes(self, signed: bool = true) -> List<u8>;   // panics if !signed and self < 0
-    fn to_be_bytes(self, signed: bool = true) -> List<u8>;
-    fn from_le_bytes(bytes: List<u8> | Slice<u8>, signed: bool = true) -> int;   // no bytes is 0
-    fn from_be_bytes(bytes: List<u8> | Slice<u8>, signed: bool = true) -> int;
+    // bytes: the shortest two's complement; *_unsigned is the magnitude
+    fn to_le_bytes(self) -> List<u8>;
+    fn to_be_bytes(self) -> List<u8>;
+    fn to_le_bytes_unsigned(self) -> List<u8>;    // panics if self < 0
+    fn to_be_bytes_unsigned(self) -> List<u8>;
+    fn byte_len(self) -> usize;                   // to_le_bytes().len()
+    fn byte_len_unsigned(self) -> usize;          // panics if self < 0
+    fn from_le_bytes(bytes: List<u8> | Slice<u8>) -> int;            // no bytes is 0
+    fn from_be_bytes(bytes: List<u8> | Slice<u8>) -> int;
+    fn from_le_bytes_unsigned(bytes: List<u8> | Slice<u8>) -> int;   // never negative
+    fn from_be_bytes_unsigned(bytes: List<u8> | Slice<u8>) -> int;
 
     fn div_rem(self, rhs: int) -> (int, int);   // (self / rhs, self % rhs), truncating; panics if rhs == 0
     fn pow(self, exp: u32) -> int;              // exp: u32 as for fixed-width integers
@@ -97,7 +103,7 @@ impl Int {
 }
 ```
 
-These follow the fixed-width integers' names and panics. Bit counts and indices are `u64`, like `bit_length`. The width-bound bit methods (`leading_zeros`, `rotate_left`, `swap_bytes`, ...) have no meaning without a width and are left out. `count_ones` counts `|self|` (Python's `bit_count`), since a negative number has infinitely many one bits. The bytes are as short as the value allows: `128` is `[128, 0]` signed and `[128]` unsigned, `-1` is `[255]`, zero is `[0]`. `pow` takes a `u32` exponent: a larger one gives at least 2^32 bits for any base but 0 and ±1. `modpow` takes an `int` exponent, since its result stays below `|m|`; the result has the sign of `m`, like [`%%`](203-ops.md#modulo---floored-modulo-). A negative exponent is an error (no modular inverse).
+These follow the fixed-width integers' names and panics. Bit counts and indices are `u64`, like `bit_length`: a value can have more than 2^32 bits (the fixed-width rule is below). The width-bound bit methods (`leading_zeros`, `rotate_left`, `swap_bytes`, ...) have no meaning without a width and are left out. `count_ones` counts `|self|` (Python's `bit_count`), since a negative number has infinitely many one bits. The representation is in the name: `to_le_bytes` / `from_le_bytes` use two's complement, which agrees with the fixed-width integers' bytes, and the `_unsigned` forms use the magnitude, which panics on a negative value (`Int::to_le_bytes_unsigned: negative value; use to_le_bytes for two's complement or call .abs() first`). The bytes are as short as the value allows: `128` is `[128, 0]` and `[128]` unsigned, `-1` is `[255]`, zero is `[0]`. `pow` takes a `u32` exponent: a larger one gives at least 2^32 bits for any base but 0 and ±1. `modpow` takes an `int` exponent, since its result stays below `|m|`; the result has the sign of `m`, like [`%%`](203-ops.md#modulo---floored-modulo-). A negative exponent is an error (no modular inverse).
 
 `Int` is defined in `rok::core::num::bigint::Int` (`Float` in
 `rok::core::num::bigfloat::Float`). `#[keyword("int")]` registers the identifier `int` as a type keyword,
@@ -371,6 +377,11 @@ impl i32 {
 `saturating_abs`, `wrapping_abs`); `abs_diff` returns the same type, and `checked_neg` is `none`
 for every value but 0. They add powers of two.
 
+A bit count or bit index has the type of `BITS` and of shift amounts: `u32` for every fixed-width
+integer (`count_ones`, `leading_zeros`, `trailing_zeros`, `ilog2`, `rotate_left(n: u32)`,
+`pow(exp: u32)`), whatever the integer's own width; `trailing_zeros(0)` is `BITS`. `int` uses
+`u64` instead, since a value can exceed 2^32 bits, and `trailing_zeros` of 0 is `none`.
+
 ```rok
 impl u32 {
     fn is_power_of_two(self) -> bool;
@@ -430,7 +441,7 @@ impl f64 {
     fn recip(self) -> f64;       // 1.0 / self
     fn min(self, other: f64) -> f64;     // a NaN operand loses to a number
     fn max(self, other: f64) -> f64;
-    fn clamp(self, lo: f64, hi: f64) -> f64;   // NaN stays NaN
+    fn clamp(self, lo: f64, hi: f64) -> f64;   // NaN stays NaN; panics if lo > hi
     fn div_euclid(self, rhs: f64) -> f64;
     fn rem_euclid(self, rhs: f64) -> f64;
     fn mul_add(self, a: f64, b: f64) -> f64;   // self * a + b with one rounding
@@ -584,7 +595,11 @@ Conversion between fixed primitives and `int` is explicit only.
 | `int` → `i32`            | `.try_into::<i32>()`                  | Throws `OverflowError`       |
 | `int` → `i32` (saturate) | `.saturating_into::<i32>()`           | i32::MIN or MAX              |
 | `int` → `i32` (wrap)     | `.wrapping_into::<i32>()`             | Modular arithmetic           |
-| `int` → `f64`            | `.into::<f64>()` or `int::to_f64`     | Rounds to the nearest value (a documented exception to `From`, [2.11.8](211-conversion.md)). `float` → `f64` is the same exception |
+| `int` → `f64`            | `int::to_f64`                         | Rounds to the nearest value; ±inf past `f64::MAX` |
+| `int` → `f64` (checked)  | `.try_into::<f64>()`                  | Rounds; throws `OverflowError` past `f64::MAX` |
+| `int` → `f64` (saturate) | `.saturating_into::<f64>()`           | Rounds; ±`f64::MAX` past the range |
+
+`float` → `f64` has the same three forms. Neither has `From` (a rounding conversion is not lossless, [2.11.8](211-conversion.md)) nor `as` (`as` keeps the low bits, and a float has none).
 
 ## 2.1.8. Niche optimization (brief)
 

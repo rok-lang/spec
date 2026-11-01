@@ -98,10 +98,10 @@ impl Iterator {
     fn all(self, pred: fn(Item) -> bool) -> bool;
     fn find(self, pred: fn(Item) -> bool) -> Item | none;
     fn position(self, pred: fn(Item) -> bool) -> usize | none;
-    fn min(self) -> Item | none where Item: Ord;
-    fn max(self) -> Item | none where Item: Ord;
-    fn min_by_key<K: Ord>(self, key: fn(Item) -> K) -> Item | none;
-    fn max_by_key<K: Ord>(self, key: fn(Item) -> K) -> Item | none;
+    fn min(self) -> Item | none where Item: Ord;             // 같은 최솟값 중 첫 번째
+    fn max(self) -> Item | none where Item: Ord;             // 같은 최댓값 중 마지막
+    fn min_by_key<K: Ord>(self, key: fn(Item) -> K) -> Item | none;  // 같은 값 중 첫 번째
+    fn max_by_key<K: Ord>(self, key: fn(Item) -> K) -> Item | none;  // 같은 값 중 마지막
     fn collect<C: FromIterator<Item>>(self) -> C;
     fn for_each(self, f: fn(Item));               // side effect 한정
     fn last(self) -> Item | none;

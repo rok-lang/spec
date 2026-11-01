@@ -251,7 +251,7 @@ The `From<U> for T` impls provided by the standard library are tabulated below (
 | `i8`      |    | ✓   | ✓   | ✓             | ✓             | ✓   |
 | `i16`     |    |     | ✓   | ✓             | ✓             | ✓   |
 | `i32`     |    |     |     | ✓             | ✓ (target≥32) | ✓   |
-| `i64`     |    |     |     |               | ✓ (target=64) | ✓   |
+| `i64`     |    |     |     |               |               | ✓   |
 | `isize`   |    |     |     | ✓ (target≤64) |               | ✓   |
 
 ### Integer → integer (unsigned)
@@ -261,10 +261,10 @@ The `From<U> for T` impls provided by the standard library are tabulated below (
 | `u8`      |    | ✓   | ✓   | ✓             | ✓             | ✓                     |
 | `u16`     |    |     | ✓   | ✓             | ✓             | ✓                     |
 | `u32`     |    |     |     | ✓             | ✓ (target≥32) | ✓                     |
-| `u64`     |    |     |     |               | ✓ (target=64) | ✓                     |
+| `u64`     |    |     |     |               |               | ✓                     |
 | `usize`   |    |     |     | ✓ (target≤64) |               | ✓                     |
 
-`TryFrom<u64> for usize` and `TryFrom<i64> for isize` exist on every target, beside the `From` that only 64-bit targets have, so `usize::try_from(n)` builds everywhere; on a 64-bit target it never throws.
+`u64` → `usize` and `i64` → `isize` have no `From`: they are narrowing on a 32-bit target, and a conversion that builds on one target must build on every target. Use `TryFrom<u64> for usize` / `TryFrom<i64> for isize` (`usize::try_from(n)`), which exist everywhere and never throw on a 64-bit target.
 
 ### Unsigned → signed (lossless only)
 
@@ -285,8 +285,12 @@ A conversion from unsigned to a signed type of the same or smaller width (e.g. u
 | `i16`     | ✓   | ✓                           |
 | `i32`     |     | ✓                           |
 | `i64`     |     | (no `From`: loses precision) |
+| `u8`      | ✓   | ✓                           |
+| `u16`     | ✓   | ✓                           |
+| `u32`     |     | ✓                           |
+| `u64`     |     | (no `From`: loses precision) |
 
-f32 has a 24-bit mantissa and f64 a 53-bit mantissa, so losslessness holds only within that bit width. The unsigned integers have no `From` impl into a floating-point type; use `as`.
+f32 has a 24-bit mantissa and f64 a 53-bit mantissa, so losslessness holds only within that bit width. A wider integer converts with `as`, which rounds to the nearest value.
 
 ### Between floating-point types
 
@@ -299,12 +303,12 @@ f64 → f32 is a narrowing conversion, so one of `try_into`, `saturating_into` o
 
 ### int / float and fixed primitives
 
-| from \ to | i32                   | i64             | f64                        |
-|-----------|-----------------------|-----------------|----------------------------|
-| `int`     | `try_into` only       | `try_into` only | `into` (rounds, exception) |
-| `float`   | `try_into` (truncates) | `try_into`     | `into` (exception)         |
+| from \ to | i32                   | i64             | f64                                             |
+|-----------|-----------------------|-----------------|-------------------------------------------------|
+| `int`     | `try_into` only       | `try_into` only | `to_f64`, `try_into`, `saturating_into` (round) |
+| `float`   | `try_into` (truncates) | `try_into`     | `to_f64`, `try_into`, `saturating_into` (round) |
 
-`From<int> for f64` and `From<float> for f64` are **documented exceptions** to "From is lossless" in 2.11.2. `int` rounds to the nearest f64, and a `float` promoted to an exponent outside f64 range cannot be represented as f64 and loses information. Where the loss must be visible, `to_f64()` or `as f64` is recommended.
+`From` is lossless with no exceptions, so `int` and `float` have no `From` into `f64`, and no `WrappingFrom` into `f64` / `f32` either (wrapping keeps the low bits, and a float has none): `x as f64` is a compile error that names `to_f64`. All three forms round to the nearest `f64` (ties to even) and differ only past `±f64::MAX`: `to_f64()` gives `±inf`, `try_into` throws `OverflowError` (the rule of `TryFrom<f64> for f32`), and `saturating_into` gives `±f64::MAX`. A `float` too small for `f64` becomes a subnormal or `±0` in all three.
 
 `int → fixed` is not guaranteed lossless (the `int` may be outside the fixed range), so `try_into` or `saturating_into` must be used.
 

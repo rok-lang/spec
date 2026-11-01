@@ -207,10 +207,10 @@ let c: char = 'A';                   //→ U+0041
 let k: char = '한';                  //→ U+D55C
 let e: char = '😀';                  //→ U+1F600
 
-c.to_lowercase();                    //→ 'a'
+c.to_lowercase();                    //→ "a"
 c.is_alphabetic();                   //→ true
 c.is_ascii();                        //→ true
-try '1'.to_digit(10);                //→ 1 (u32, ValueError on failure)
+'1'.to_digit(10);                    //→ 1 (u32 | none; none if not a digit)
 c.len_utf8();                        //→ 1 (number of bytes when UTF-8 encoded)
 e.len_utf8();                        //→ 4
 ```
@@ -219,9 +219,9 @@ e.len_utf8();                        //→ 4
 impl char {
     fn from_u32(n: u32) -> char | none;                  // none for a surrogate / out of range
     unsafe fn from_u32_unchecked(n: u32) -> char;        // no check; the caller guarantees a scalar value
-    fn from_digit(d: u32, radix: u32) -> char;           // panics if d >= radix or radix is outside 2..=36
-    fn to_digit(self, radix: u32) throws (ValueError) -> u32;
-    fn is_digit(self, radix: u32) -> bool;
+    fn from_digit(d: u32, radix: u32) -> char | none;    // none if d >= radix; panics if radix is outside 2..=36
+    fn to_digit(self, radix: u32) -> u32 | none;         // none if not a digit; panics if radix is outside 2..=36
+    fn is_digit(self, radix: u32) -> bool;               // panics if radix is outside 2..=36
     fn len_utf8(self) -> usize;
     fn len_utf16(self) -> usize;
 
@@ -233,10 +233,12 @@ impl char {
     fn is_numeric(self) -> bool;
     fn is_alphanumeric(self) -> bool;
     fn is_control(self) -> bool;
-    fn to_lowercase(self) -> char;       // 1:1 mappings only
-    fn to_uppercase(self) -> char;
-    fn to_lowercase_str(self) -> str;    // the full mapping, 1:N included
-    fn to_uppercase_str(self) -> str;
+    fn to_lowercase(self) -> str;           // the full mapping, 1:N included
+    fn to_uppercase(self) -> str;
+    fn to_titlecase(self) -> str;
+    fn to_simple_lowercase(self) -> char;   // UCD simple mappings (slc / suc / stc), 1:1
+    fn to_simple_uppercase(self) -> char;
+    fn to_simple_titlecase(self) -> char;
 
     // ASCII
     fn is_ascii(self) -> bool;
@@ -250,7 +252,7 @@ impl char {
 }
 ```
 
-`char`'s `to_lowercase` / `to_uppercase` return a single character, so only 1:1 mappings apply. A character that maps to several characters is left unchanged (`'ß'.to_uppercase() == 'ß'`); `to_lowercase_str` / `to_uppercase_str` give its full mapping (`'ß'.to_uppercase_str() == "SS"`). `str`'s `to_lowercase` / `to_uppercase` apply the full mapping, including 1:N mappings and context rules (Greek final sigma `Σ` → `ς`) (`"ß".to_uppercase() == "SS"`).
+`char`'s `to_lowercase` / `to_uppercase` / `to_titlecase` return a `str` with the full Unicode mapping, which may be several characters (`'ß'.to_uppercase() == "SS"`, `'ß'.to_titlecase() == "Ss"`, `'ǆ'.to_titlecase() == "ǅ"`, `'ﬁ'.to_titlecase() == "Fi"`, `'\u{130}'.to_lowercase() == "i\u{307}"`). The `to_simple_*` forms return one `char` with the UCD simple mapping, the character itself when it has none (`'ß'.to_simple_uppercase() == 'ß'`, `'ǆ'.to_simple_titlecase() == 'ǅ'`); they never allocate. `str`'s `to_lowercase` / `to_uppercase` apply the full mapping, including 1:N mappings and context rules (Greek final sigma `Σ` → `ς`) (`"ß".to_uppercase() == "SS"`). Case mapping is locale-independent. `str` has no `to_titlecase`: title-casing text needs word boundaries; capitalize one word with `c.to_titlecase() + rest.to_lowercase()`.
 
 The Unicode property and case tables are UCD 18.0.0.
 
@@ -258,7 +260,7 @@ The Unicode property and case tables are UCD 18.0.0.
 
 ```rok
 char::from_u32(0x41);                //→ 'A' (char | none; none for a surrogate)
-char::from_digit(5, 10);             //→ '5'
+char::from_digit(5, 10);             //→ '5' (char | none; none if 5 is not a digit of the radix)
 
 let n: u32 = c as u32;               //→ 65 (lossless)
 let c2: char = n as char;            //→ ERROR: only u8 can `as char`

@@ -70,11 +70,17 @@ impl Int {
     fn ilog2(self) -> u64;                      // floor(log2(self)); self > 0 이 아니면 panic
     fn checked_ilog2(self) -> u64 | none;
 
-    // 바이트: signed 면 가장 짧은 2 의 보수, 아니면 절댓값
-    fn to_le_bytes(self, signed: bool = true) -> List<u8>;   // !signed 이고 self < 0 이면 panic
-    fn to_be_bytes(self, signed: bool = true) -> List<u8>;
-    fn from_le_bytes(bytes: List<u8> | Slice<u8>, signed: bool = true) -> int;   // 바이트가 없으면 0
-    fn from_be_bytes(bytes: List<u8> | Slice<u8>, signed: bool = true) -> int;
+    // 바이트: 가장 짧은 2 의 보수; *_unsigned 는 절댓값
+    fn to_le_bytes(self) -> List<u8>;
+    fn to_be_bytes(self) -> List<u8>;
+    fn to_le_bytes_unsigned(self) -> List<u8>;    // self < 0 이면 panic
+    fn to_be_bytes_unsigned(self) -> List<u8>;
+    fn byte_len(self) -> usize;                   // to_le_bytes().len()
+    fn byte_len_unsigned(self) -> usize;          // self < 0 이면 panic
+    fn from_le_bytes(bytes: List<u8> | Slice<u8>) -> int;            // 바이트가 없으면 0
+    fn from_be_bytes(bytes: List<u8> | Slice<u8>) -> int;
+    fn from_le_bytes_unsigned(bytes: List<u8> | Slice<u8>) -> int;   // 음수가 되지 않음
+    fn from_be_bytes_unsigned(bytes: List<u8> | Slice<u8>) -> int;
 
     fn div_rem(self, rhs: int) -> (int, int);   // (self / rhs, self % rhs), 버림; rhs == 0 이면 panic
     fn pow(self, exp: u32) -> int;              // exp: 고정 폭 정수처럼 u32
@@ -89,7 +95,7 @@ impl Int {
 }
 ```
 
-이 메서드는 고정 폭 정수의 이름과 panic 규칙을 따릅니다. 비트 수와 비트 위치는 `bit_length`처럼 `u64`입니다. 폭에 묶인 비트 메서드(`leading_zeros`, `rotate_left`, `swap_bytes` 등)는 폭이 없으면 뜻이 없으므로 뺍니다. 음수에는 1인 비트가 끝없이 많으므로 `count_ones`는 `|self|`를 셉니다(Python의 `bit_count`). 바이트는 값이 허락하는 만큼 짧습니다. `128`은 부호 있는 형태로 `[128, 0]`, 부호 없는 형태로 `[128]`이고, `-1`은 `[255]`, 0은 `[0]`입니다. `pow`는 `u32` 지수를 받습니다. 그보다 큰 지수는 0과 ±1을 뺀 모든 밑에서 결과가 적어도 2^32비트가 됩니다. `modpow`는 결과가 `|m|`보다 작게 머무르므로 `int` 지수를 받습니다. 결과의 부호는 [`%%`](203-ops.md#modulo-내림-modulo)처럼 `m`의 부호를 따릅니다. 음수 지수는 에러입니다(모듈러 역원 없음).
+이 메서드는 고정 폭 정수의 이름과 panic 규칙을 따릅니다. 비트 수와 비트 위치는 `bit_length`처럼 `u64`입니다. 값이 2^32비트를 넘을 수 있기 때문입니다(고정 폭 규칙은 아래에 있습니다). 폭에 묶인 비트 메서드(`leading_zeros`, `rotate_left`, `swap_bytes` 등)는 폭이 없으면 뜻이 없으므로 뺍니다. 음수에는 1인 비트가 끝없이 많으므로 `count_ones`는 `|self|`를 셉니다(Python의 `bit_count`). 표현 방식은 이름에 드러납니다. `to_le_bytes` / `from_le_bytes`는 2의 보수를 쓰며 고정 폭 정수의 바이트와 일치합니다. `_unsigned` 형태는 절댓값을 쓰고, 음수에서는 panic합니다(`Int::to_le_bytes_unsigned: negative value; use to_le_bytes for two's complement or call .abs() first`). 바이트는 값이 허락하는 만큼 짧습니다. `128`은 `[128, 0]`, `_unsigned`로는 `[128]`이고, `-1`은 `[255]`, 0은 `[0]`입니다. `pow`는 `u32` 지수를 받습니다. 그보다 큰 지수는 0과 ±1을 뺀 모든 밑에서 결과가 적어도 2^32비트가 됩니다. `modpow`는 결과가 `|m|`보다 작게 머무르므로 `int` 지수를 받습니다. 결과의 부호는 [`%%`](203-ops.md#modulo-내림-modulo)처럼 `m`의 부호를 따릅니다. 음수 지수는 에러입니다(모듈러 역원 없음).
 
 `Int`는 `rok::core::num::bigint::Int`에, `Float`는 `rok::core::num::bigfloat::Float`에 정의합니다. `#[keyword("int")]`가 식별자 `int`를 타입 키워드로 등록하고, 이 등록은 모든 패키지에 적용됩니다. 그래서 사용자 코드에서는 PascalCase `Int`가 아니라 소문자 `int`로 타입을 적습니다. 권위 있는 정의는 [refs-lang 6.6](../../refs-lang/006-meta-system/606-keyword-magic.md)에 있습니다. 컴파일러는 `#[lang("int_type")]`로 `int` 타입을 찾습니다.
 
@@ -328,6 +334,11 @@ impl i32 {
 `is_negative`, `checked_isqrt`, `checked_abs`, `saturating_neg`, `saturating_abs`,
 `wrapping_abs`)를 뺀 나머지가 있습니다. 이때 `abs_diff`는 같은 타입을 반환하고, `checked_neg`는 0이 아닌 모든 값에서 `none`입니다. 대신 2의 거듭제곱 메서드가 더 있습니다.
 
+비트 수와 비트 위치는 `BITS`, 시프트 양과 같은 타입입니다. 고정 폭 정수는 자기 폭과 상관없이 모두
+`u32`입니다(`count_ones`, `leading_zeros`, `trailing_zeros`, `ilog2`, `rotate_left(n: u32)`,
+`pow(exp: u32)`). `trailing_zeros(0)`은 `BITS`입니다. `int`는 값이 2^32비트를 넘을 수 있으므로
+`u64`를 쓰고, 0의 `trailing_zeros`는 `none`입니다.
+
 ```rok
 impl u32 {
     fn is_power_of_two(self) -> bool;
@@ -386,7 +397,7 @@ impl f64 {
     fn recip(self) -> f64;       // 1.0 / self
     fn min(self, other: f64) -> f64;     // NaN 피연산자는 숫자에 짐
     fn max(self, other: f64) -> f64;
-    fn clamp(self, lo: f64, hi: f64) -> f64;   // NaN 은 NaN 그대로
+    fn clamp(self, lo: f64, hi: f64) -> f64;   // NaN 은 NaN 그대로; lo > hi 면 panic
     fn div_euclid(self, rhs: f64) -> f64;
     fn rem_euclid(self, rhs: f64) -> f64;
     fn mul_add(self, a: f64, b: f64) -> f64;   // 반올림 한 번으로 self * a + b
@@ -533,7 +544,11 @@ fixed primitive와 `int` 사이는 명시적으로만 변환할 수 있습니다
 | `int` → `i32`            | `.try_into::<i32>()`                  | `OverflowError`를 던짐      |
 | `int` → `i32` (saturate) | `.saturating_into::<i32>()`           | i32::MIN 또는 MAX            |
 | `int` → `i32` (wrap)     | `.wrapping_into::<i32>()`             | 모듈러 산술                  |
-| `int` → `f64`            | `.into::<f64>()` 또는 `int::to_f64`   | 가장 가까운 값으로 반올림 (`From`의 문서화된 예외, [2.11.8](211-conversion.md)). `float` → `f64`도 같은 예외 |
+| `int` → `f64`            | `int::to_f64`                         | 가장 가까운 값으로 반올림; `f64::MAX`를 넘으면 ±inf |
+| `int` → `f64` (검사)     | `.try_into::<f64>()`                  | 반올림; `f64::MAX`를 넘으면 `OverflowError`를 던짐 |
+| `int` → `f64` (saturate) | `.saturating_into::<f64>()`           | 반올림; 범위를 넘으면 ±`f64::MAX` |
+
+`float` → `f64`도 같은 세 형태가 있습니다. 둘 다 `From`은 없고(반올림하는 변환은 손실이 없지 않습니다, [2.11.8](211-conversion.md)), `as`도 없습니다(`as`는 하위 비트를 남기는데 float에는 하위 비트가 없습니다).
 
 ## 2.1.8. niche 최적화 개요
 
