@@ -141,3 +141,50 @@ Every name in the standard library follows this table. A name that breaks it is 
 | modules | a singular noun or area (`fs`, `net`, `iter`); `collections` and `ops` stay plural |
 
 Iterator types. `str`: `chars()` -> `Chars`, `bytes()` -> `Bytes`, `char_indices()` -> `CharIndices`, `lines()` -> `Lines`, `split()` -> `Split`, `splitn()` -> `SplitN`, `rsplit()` -> `RSplit`, `rsplitn()` -> `RSplitN`, `split_whitespace()` -> `SplitWhitespace`, `match_indices()` -> `MatchIndices`. `Dict`: `keys()` -> `Keys`, `values()` -> `Values`. `List` / `Slice`: `windows()` -> `slice::Windows`, `chunks()` -> `slice::Chunks` (beside the adapters `iter::Windows` / `iter::Chunks`). `Receiver::iter()` -> `ReceiverIter`. A leaf name that two modules share is written with its module (`slice::Windows`, `str::Bytes`).
+
+## 0.5.13. Trait coverage, `#[non_exhaustive]` and `#[sealed]`
+
+Every public type of the standard library implements the traits of its class:
+
+| Type class | Implements |
+|---|---|
+| every public type | `Debug` |
+| value types (addresses, paths, ids, times, kinds, algorithms, ranges, specs) | `Clone`, `PartialEq`; `Eq` when equality is total; `Hash` when `Eq`; `PartialOrd` / `Ord` when the values are ordered; `Copy` when small |
+| types with an obvious empty or zero value | `Default` |
+| text-like types | `Display` |
+
+`Debug` output by kind:
+
+- a value prints its contents: `0..3`, `0..=3`, `Start(3)`, `SocketAddrV4 { ip: 127.0.0.1, port: 80 }`, `Permissions { mode: 0o644, readonly: false }`; a `StrBuf` prints as its text, quoted;
+- a handle prints its type and what names it: `File { path: "a.txt" }`, `Child { pid: 42 }`, `Thread { id: ThreadId(3), name: "worker" }`; a handle with nothing cheap to show prints its type name (`TcpStream`, `Mutex`);
+- an iterator, stream or future prints its type name (`Map`, `Chars`, `AsyncFuture`);
+- a value holding a secret never prints it: `PrivateKey { .. }`, `Hmac { .. }`, `RsaPrivateKey { bits: 2048, .. }`.
+
+Value traits added in 0.2.0 (used as `Dict` keys and `Set` elements, compared and ordered):
+
+| Type | Traits |
+|---|---|
+| `Path` | `Clone`, `Eq`, `Hash`, `PartialOrd`, `Ord` (by the text), `Default` (empty) |
+| `Ipv4Addr`, `Ipv6Addr` | `Clone`, `Copy`, `Eq`, `Hash`, `PartialOrd`, `Ord` |
+| `SocketAddr`, `SocketAddrV4`, `SocketAddrV6` | `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`, `Debug` |
+| `Ordering` | `Clone`, `Copy`, `Hash`, `PartialOrd`, `Ord` (`Less < Equal < Greater`) |
+| `IoErrorKind` | `Clone`, `Copy`, `Eq`, `Hash`, `Display` (`not found`) |
+| `TlsErrorKind`, `CipherSuite`, `AeadAlgorithm`, `EcCurve`, `HashAlgorithm` | `Hash` |
+| `Signal`, `FileType`, `JoinErrorKind` | `Clone`, `Copy`, `Eq`, `Hash` |
+| `Component`, `RawStr`, `RawPath` | `Clone`, `Eq`, `Hash` |
+| `SeekFrom`, `Shutdown`, `Alignment`, `Sign`, `AtomicOrdering` | `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`, `Debug` |
+| `ThreadId` | `Clone`, `Copy`, `Eq`, `Hash`, `Debug` |
+| `Permissions`, `Layout`, `ExitStatus` | `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash` |
+| `CStr`, `CString`, `Certificate` (by its DER bytes), `FormatSpec` | `Clone`, `PartialEq`, `Eq`, `Hash` |
+| `Range` | `Debug`, `Hash` |
+| `RangeInclusive`, `RangeFrom`, `RangeTo`, `RangeToInclusive`, `RangeFull` | `Clone`, `PartialEq`, `Eq`, `Hash`, `Debug` |
+| `Duration` (`ZERO`), `StrBuf` (empty), `FormatSpec` (`FormatSpec::new()`) | `Default` |
+
+`#[non_exhaustive]` ([refs-lang 6.2.10](../../refs-lang/006-meta-system/602-built-in-attributes.md)) marks every public enum that can gain variants and every options record that can gain fields. A `match` on one outside its package needs a `_` arm, and a struct pattern needs `..`:
+
+- enums: `IoErrorKind`, `TlsErrorKind`, `CipherSuite`, `AeadAlgorithm`, `EcCurve`, `HashAlgorithm`, `rokon::Value`, `Stdio`, `FileType`, `Signal`, `JoinErrorKind`;
+- records: `tls::ClientConfig`, `tls::ServerConfig`, `FieldInfo`, `MethodInfo`.
+
+Closed enums stay exhaustive: `Ordering`, `Poll`, `Result`, `SeekFrom`, `Shutdown`, `Alignment`, `Sign`, `SocketAddr`, `Component`, `AtomicOrdering`, `SendError`, `TrySendError`.
+
+`#[sealed]` ([refs-lang 6.2](../../refs-lang/006-meta-system/602-built-in-attributes.md)) marks the traits whose implementations the library relies on for soundness or meaning; only the defining package implements them, and bounds and calls are unaffected: `AtomicPrimitive` (2.16), `NicheInt`, `NicheFloat` (2.2), `Transfer` (2.13), `Pinnable` (1.6). `Step` (2.7) stays open for user range types. `Pod` (1.3) is not sealed (`#[derive(Pod)]` checks a user struct), and `bool` and `char` are not `Pod`.

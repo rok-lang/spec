@@ -142,3 +142,50 @@ let z = x + y;        //→ 4.0 (f64)
 | 모듈 | 단수 명사나 영역 이름(`fs`, `net`, `iter`). `collections`와 `ops`는 복수 그대로 |
 
 순회 타입. `str`: `chars()` -> `Chars`, `bytes()` -> `Bytes`, `char_indices()` -> `CharIndices`, `lines()` -> `Lines`, `split()` -> `Split`, `splitn()` -> `SplitN`, `rsplit()` -> `RSplit`, `rsplitn()` -> `RSplitN`, `split_whitespace()` -> `SplitWhitespace`, `match_indices()` -> `MatchIndices`. `Dict`: `keys()` -> `Keys`, `values()` -> `Values`. `List` / `Slice`: `windows()` -> `slice::Windows`, `chunks()` -> `slice::Chunks`(어댑터 `iter::Windows` / `iter::Chunks`와 나란히). `Receiver::iter()` -> `ReceiverIter`. 두 모듈이 같은 끝 이름을 쓰면 모듈과 함께 적습니다(`slice::Windows`, `str::Bytes`).
+
+## 0.5.13. 트레잇 범위, `#[non_exhaustive]`, `#[sealed]`
+
+표준 라이브러리의 모든 공개 타입은 자기 부류의 트레잇을 구현합니다.
+
+| 타입 부류 | 구현하는 트레잇 |
+|---|---|
+| 모든 공개 타입 | `Debug` |
+| 값 타입(주소, 경로, id, 시간, 종류, 알고리즘, 범위, 스펙) | `Clone`, `PartialEq`; 같음이 전체적이면 `Eq`; `Eq`이면 `Hash`; 값에 순서가 있으면 `PartialOrd` / `Ord`; 작으면 `Copy` |
+| 빈 값이나 0이 분명한 타입 | `Default` |
+| 텍스트 같은 타입 | `Display` |
+
+부류별 `Debug` 출력은 다음과 같습니다.
+
+- 값은 내용을 보여 줍니다: `0..3`, `0..=3`, `Start(3)`, `SocketAddrV4 { ip: 127.0.0.1, port: 80 }`, `Permissions { mode: 0o644, readonly: false }`. `StrBuf`는 담은 텍스트를 따옴표로 감싸 보여 줍니다.
+- 핸들은 타입과 그 핸들이 가리키는 것을 보여 줍니다: `File { path: "a.txt" }`, `Child { pid: 42 }`, `Thread { id: ThreadId(3), name: "worker" }`. 싸게 보여 줄 것이 없는 핸들은 타입 이름만 보여 줍니다(`TcpStream`, `Mutex`).
+- 반복자, 스트림, future는 타입 이름을 보여 줍니다(`Map`, `Chars`, `AsyncFuture`).
+- 비밀을 담은 값은 그 비밀을 보여 주지 않습니다: `PrivateKey { .. }`, `Hmac { .. }`, `RsaPrivateKey { bits: 2048, .. }`.
+
+0.2.0에서 더한 값 트레잇입니다(`Dict` 키와 `Set` 원소로 쓰고, 비교하고, 정렬합니다).
+
+| 타입 | 트레잇 |
+|---|---|
+| `Path` | `Clone`, `Eq`, `Hash`, `PartialOrd`, `Ord`(텍스트 순), `Default`(빈 경로) |
+| `Ipv4Addr`, `Ipv6Addr` | `Clone`, `Copy`, `Eq`, `Hash`, `PartialOrd`, `Ord` |
+| `SocketAddr`, `SocketAddrV4`, `SocketAddrV6` | `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`, `Debug` |
+| `Ordering` | `Clone`, `Copy`, `Hash`, `PartialOrd`, `Ord`(`Less < Equal < Greater`) |
+| `IoErrorKind` | `Clone`, `Copy`, `Eq`, `Hash`, `Display`(`not found`) |
+| `TlsErrorKind`, `CipherSuite`, `AeadAlgorithm`, `EcCurve`, `HashAlgorithm` | `Hash` |
+| `Signal`, `FileType`, `JoinErrorKind` | `Clone`, `Copy`, `Eq`, `Hash` |
+| `Component`, `RawStr`, `RawPath` | `Clone`, `Eq`, `Hash` |
+| `SeekFrom`, `Shutdown`, `Alignment`, `Sign`, `AtomicOrdering` | `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`, `Debug` |
+| `ThreadId` | `Clone`, `Copy`, `Eq`, `Hash`, `Debug` |
+| `Permissions`, `Layout`, `ExitStatus` | `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash` |
+| `CStr`, `CString`, `Certificate`(DER 바이트 기준), `FormatSpec` | `Clone`, `PartialEq`, `Eq`, `Hash` |
+| `Range` | `Debug`, `Hash` |
+| `RangeInclusive`, `RangeFrom`, `RangeTo`, `RangeToInclusive`, `RangeFull` | `Clone`, `PartialEq`, `Eq`, `Hash`, `Debug` |
+| `Duration`(`ZERO`), `StrBuf`(빈 값), `FormatSpec`(`FormatSpec::new()`) | `Default` |
+
+`#[non_exhaustive]`([refs-lang 6.2.10](../../refs-lang/006-meta-system/602-built-in-attributes.md))는 변형이 늘 수 있는 공개 enum과 필드가 늘 수 있는 옵션 레코드에 붙습니다. 정의한 패키지 밖에서 이런 enum을 `match`하려면 `_` 갈래가 있어야 하고, 구조체 패턴에는 `..`가 있어야 합니다.
+
+- enum: `IoErrorKind`, `TlsErrorKind`, `CipherSuite`, `AeadAlgorithm`, `EcCurve`, `HashAlgorithm`, `rokon::Value`, `Stdio`, `FileType`, `Signal`, `JoinErrorKind`
+- 레코드: `tls::ClientConfig`, `tls::ServerConfig`, `FieldInfo`, `MethodInfo`
+
+닫힌 enum은 그대로 exhaustive입니다: `Ordering`, `Poll`, `Result`, `SeekFrom`, `Shutdown`, `Alignment`, `Sign`, `SocketAddr`, `Component`, `AtomicOrdering`, `SendError`, `TrySendError`.
+
+`#[sealed]`([refs-lang 6.2](../../refs-lang/006-meta-system/602-built-in-attributes.md))는 라이브러리가 건전성이나 의미를 기대는 구현을 가진 트레잇에 붙습니다. 정의한 패키지만 구현할 수 있고, 바운드와 호출은 그대로입니다: `AtomicPrimitive`(2.16), `NicheInt`, `NicheFloat`(2.2), `Transfer`(2.13), `Pinnable`(1.6). `Step`(2.7)은 사용자 범위 타입을 위해 열어 둡니다. `Pod`(1.3)는 sealed가 아니며(`#[derive(Pod)]`가 사용자 struct를 검사합니다), `bool`과 `char`는 `Pod`가 아닙니다.

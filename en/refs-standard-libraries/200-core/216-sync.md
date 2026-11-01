@@ -28,7 +28,6 @@ struct Atomic<T> {
     // internal: a one-element cell driven by per-T LLVM atomic ops
 }
 
-#[sealed]
 trait AtomicPrimitive { /* marker: i8/i16/i32/i64/isize, u8/u16/u32/u64/usize, bool, Ptr<T> */ }
 
 impl<T: AtomicPrimitive + PartialEq> Atomic<T> {

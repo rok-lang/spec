@@ -28,7 +28,6 @@ struct Atomic<T> {
     // 내부: T 별 LLVM atomic 연산으로 다루는 원소 하나짜리 cell
 }
 
-#[sealed]
 trait AtomicPrimitive { /* marker: i8/i16/i32/i64/isize, u8/u16/u32/u64/usize, bool, Ptr<T> */ }
 
 impl<T: AtomicPrimitive + PartialEq> Atomic<T> {
