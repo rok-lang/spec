@@ -37,8 +37,8 @@ with_lock(mutex) { critical_section() };
 매개변수가 하나 이상이면 다음과 같이 적습니다.
 
 ```rok
-let doubled = xs.map |x| { x * 2 };
-let pos = xs.filter |x| { x > 0 };
+let doubled = xs.iter().map |x| { x * 2 };
+let pos = xs.iter().filter |x| { x > 0 };
 let opened = with_file(path) |f| {
     let data = f.read();
     process(data)
@@ -52,15 +52,15 @@ pairs.for_each |k, v| { print(f"{k} {v}") };
 
 ### 괄호 없는 형태의 규칙
 
-`xs.map |x| { .. }`처럼 호출 괄호 없이 클로저를 붙이는 형태는 다음 조건에서만 트레일링 클로저입니다.
+`xs.iter().map |x| { .. }`처럼 호출 괄호 없이 클로저를 붙이는 형태는 다음 조건에서만 트레일링 클로저입니다.
 
 - 바로 앞이 경로(`thread::spawn`, `f`)이거나 멤버 이름(`.map`)입니다.
 - 뒤에 `|매개변수|`, 선택적 `-> R`, `{`가 이어집니다. 이 모양이 아니면 `|`는 비트 OR입니다.
 - `||`는 언제나 논리 OR입니다. 매개변수 없는 클로저는 `{ body }` 단축으로 씁니다.
-- `if` / `while` / `match` / `for` / `using`의 머리(조건, scrutinee, 순회할 식, `using` 초기화 식) 안에서는 괄호 없는 트레일링 클로저와 `{ body }` 단축이 꺼집니다. 그 자리의 `{`는 본체 블록을 엽니다. 머리에서 클로저가 필요하면 괄호 안에 씁니다(`if xs.any(|x| { x > 0 }) { .. }`).
+- `if` / `while` / `match` / `for` / `using`의 머리(조건, scrutinee, 순회할 식, `using` 초기화 식) 안에서는 괄호 없는 트레일링 클로저와 `{ body }` 단축이 꺼집니다. 그 자리의 `{`는 본체 블록을 엽니다. 머리에서 클로저가 필요하면 괄호 안에 씁니다(`if xs.iter().any(|x| { x > 0 }) { .. }`).
 
 ```rok
-let ys = xs.map |x| -> i64 { x as i64 * 2 };   // 반환 타입 명시
+let ys = xs.iter().map |x| -> i64 { x as i64 * 2 };   // 반환 타입 명시
 let z = a | b;                                  // 비트 OR: 뒤에 `|params| {` 모양이 아님
 if ok || retry { .. }                           // 논리 OR
 ```
@@ -70,8 +70,8 @@ if ok || retry { .. }                           // 논리 OR
 트레일링 클로저는 쓸 수 있을 뿐 강제가 아닙니다.
 
 ```rok
-xs.map(|x| x * 2);                // OK: 명시 괄호
-xs.map |x| { x * 2 };              // OK: 트레일링
+xs.iter().map(|x| x * 2);                // OK: 명시 괄호
+xs.iter().map |x| { x * 2 };              // OK: 트레일링
 ```
 
 팀이나 개인 스타일에 따라 골라 쓰면 됩니다.
@@ -97,6 +97,8 @@ thread::spawn { heavy() };        // thread::spawn() { heavy() } 와 동일
 ```
 
 `thread::spawn`처럼 매개변수가 클로저 하나뿐이면 위 형태가 가장 자연스럽습니다.
+
+메서드 이름이 아닌 맨 경로 뒤에서는 구조체 리터럴 모양의 `{ .. }`가 구조체 리터럴입니다([3.10](../003-expressions/310-if-expression.md)). `{}`, `{ x }`, `{ x, .. }`, `{ x: .. }`, `{ ..x }`가 그렇습니다. 그래서 `run { }`과 `zero { n }`은 구조체 리터럴이고, `run` / `zero`가 함수이면 에러입니다. 이런 본문에는 괄호를 씁니다. `run(|| { })`, `zero(|| n)`처럼 씁니다.
 
 ## 4.8.5. 중첩
 

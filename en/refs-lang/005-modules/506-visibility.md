@@ -76,7 +76,7 @@ mod parent {
 }
 ```
 
-It is visible only in `parent` and all of `parent`'s descendant modules, not in parent or sibling modules.
+It is visible only in `parent` and all of `parent`'s descendant modules, not in `parent`'s ancestors or its siblings.
 
 This level is for tooling internal to a group of modules, shared only within one branch of the module tree.
 
@@ -225,8 +225,6 @@ For an item with insufficient visibility, the compiler diagnostic reports why it
 
 Code a meta template or the compiler writes is checked from the module of its definition, not where it expands ([6.9.9](../006-meta-system/609-template-tokens.md#names-in-an-expansion)): a template may call its own module's private items and its package's `pub(pkg)` items, while what the use passes in is checked at the use.
 
-```
-ERROR: 'foo::secret' is not visible from this module.
-       It is declared as private; only visible within 'foo'.
-       To use it externally, add 'pub' or other visibility keyword.
+```text
+error[E0034]: function `foo::secret` is private to module `foo` and cannot be used from `<root>` (add `pub` to expose it)
 ```

@@ -4,7 +4,7 @@ This section defines the form of function parameters and the rules for matching 
 
 ```
 param           ::= self_param | regular_param
-self_param      ::= "ref"? "self" (":" type_expr)?
+self_param      ::= "ref"? "self"
 regular_param   ::= "ref"? identifier (":" type_expr)? ("=" const_expr)?
 ```
 
@@ -74,7 +74,7 @@ retry(5i32);                       // n=5, delay=0.1
 retry(5i32, 1.0f64);               // n=5, delay=1.0
 ```
 
-The following rules apply to default values. Only `const` expressions are allowed: literals, `const` variables and `const` function calls. This is the same constraint as for field defaults of [`struct`](../002-types/203-struct.md). Only parameters omitted at the call site are evaluated, and they are evaluated anew on each call. Default values are deterministic: the same `const` expression always produces the same value. Runtime calls such as the current time or random numbers cannot be used; when needed, use a factory function pattern instead. Names in a default are resolved in the scope of the module that declares the function, not the caller's.
+The following rules apply to default values. Only `const` expressions are allowed: literals, `const` variables and `const` function calls. This is the same constraint as for field defaults of [`struct`](../002-types/203-struct.md). Only parameters omitted at the call site are evaluated, and they are evaluated anew on each call. Default values are deterministic: the same `const` expression always produces the same value. Runtime calls such as the current time or random numbers cannot be used; when needed, use a factory function pattern instead. Names in a default are resolved in the scope of the module that declares the function, not the caller's. A default that is not a `const` expression is an error at the declaration. Defaults are trailing: a regular parameter without a default after one with a default is an error at the declaration.
 
 ## 4.2.4. Named argument calls
 
@@ -88,7 +88,7 @@ make_user(name: "Bob", email: "bob@example.com");      // age uses its default
 make_user("Charlie", age: 25i32);                       // only the first argument positional, the rest named
 ```
 
-The following rules apply to named argument calls. Positional arguments must come first and named arguments after them. Giving the same parameter both positionally and by name in one call is an error. After all positional arguments are matched, the remaining parameters must be filled by named arguments or default values.
+The following rules apply to named argument calls. Positional arguments must come first and named arguments after them; a positional argument after a named one is an error (E0049). Giving the same parameter both positionally and by name in one call is an error. After all positional arguments are matched, the remaining parameters must be filled by named arguments or default values.
 
 ## 4.2.5. Variadic: `...T`
 
@@ -143,7 +143,7 @@ The following rules apply to spread:
 - A Dict spread is converted to named arguments. Each key must name a parameter not filled otherwise (checked at run time), and its value must have that parameter's type. A defaulted parameter that the Dict's value type `V` does not fit takes its default; a key naming it panics at run time.
 - In a variadic position, tuple, `List`, `Slice` and array spreads may be mixed with ordinary arguments (`f(a, ..xs, b)`). A variadic parameter may be passed as-is to another variadic (`fn f(xs: ...i32) { g(..xs) }`).
 - When the operand is a `List` literal with no `..` inside, or a Dict literal whose keys are string literals, the compiler checks it at compile time too. A length that differs from the slots it fills, or a key that names no parameter left to fill, gives the warning lint `literal_spread_mismatch` (`spread of 3 elements into 2 parameters; this call panics`). The run-time check stays.
-- Spreading a non-collection value is an error ("needs a tuple, a List, a Slice or an array").
+- Spreading a non-collection value is an error (E0051, ``spread `f(..x)` needs a tuple, a `List`, a `Slice`, an array or a `Dict<str, V>`, found `i32` ``).
 - Calling a variadic whose element type `T` is an open generic with no arguments cannot determine `T`, so a type annotation is required.
 
 - In a `List` literal, `..x` spreads a tuple, array, `List` or `Slice` (`[0, ..xs, 9]`); otherwise it is a range.

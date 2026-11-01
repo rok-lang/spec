@@ -40,7 +40,7 @@ The supported ABIs:
 
 On targets where `"system"` and `"C"` coincide (every Tier 1 target but 32-bit x86 Windows), `"system"` is `"C"`. On 32-bit x86 Windows it is stdcall ([5.9.10](#5910-extern-fn-definitions-exposed-externally)).
 
-`extern "rok"` is the ABI of runtime functions declared by the toolchain; those declarations live in `rok::core::rt` as `pub(pkg)`. `#[no_safepoint]` on an `extern "rok"` block declares that its functions neither allocate nor block; calls to them are not safepoints. It is toolchain-internal and an error on `extern "C"` blocks.
+`extern "rok"` is the ABI of runtime functions declared by the toolchain; those declarations are private items of the toolchain's packages (`rok::core::rt` holds most of them; `rok::bare` declares the ones it uses itself). `#[no_safepoint]` on an `extern "rok"` block declares that its functions neither allocate nor block; calls to them are not safepoints. It is toolchain-internal and an error on `extern "C"` blocks.
 
 | Value                           | Passing under `extern "rok"`             |
 |---------------------------------|------------------------------------------|
@@ -176,7 +176,7 @@ fn use_malloc() {
 }
 ```
 
-User-declared `extern "C"` functions are unsafe and are called inside `unsafe { ... }` ([4.15](../004-functions/415-unsafe.md)). Runtime functions declared by the toolchain (`rok_print_*`, `rok_panic_str`, etc.) can be called safely. Otherwise an `extern` function call differs from an ordinary call only in that it is an external symbol. Rok's ordinary semantics apply to the result type. An `extern static` is read and (if `mut`) written like an ordinary variable. Rok cannot check a C global, so reading or writing one needs `unsafe` (an `unsafe` block or an `unsafe fn` body); outside it is an error whose help quotes the fix: `unsafe { optind = 6; }`. Taking its address with `addr_of` reads nothing and needs no `unsafe`. Its type must still be FFI-compatible (5.9.4): Rok reads the foreign memory as that type, so `static environ: List<str>;` is undefined behavior; declare it as a pointer (`static environ: Ptr<Ptr<c_char>>;`).
+Every `extern` function, `extern "rok"` included, is unsafe and is called inside `unsafe { ... }` ([4.15](../004-functions/415-unsafe.md)); the toolchain's packages wrap the runtime functions they declare in safe functions. Otherwise an `extern` function call differs from an ordinary call only in that it is an external symbol. Rok's ordinary semantics apply to the result type. An `extern static` is read and (if `mut`) written like an ordinary variable. Rok cannot check a C global, so reading or writing one needs `unsafe` (an `unsafe` block or an `unsafe fn` body); outside it is an error whose help quotes the fix: `unsafe { optind = 6; }`. Taking its address with `addr_of` reads nothing and needs no `unsafe`. Its type must still be FFI-compatible (5.9.4): Rok reads the foreign memory as that type, so `static environ: List<str>;` is undefined behavior; declare it as a pointer (`static environ: Ptr<Ptr<c_char>>;`).
 
 ## 5.9.7. Visibility
 

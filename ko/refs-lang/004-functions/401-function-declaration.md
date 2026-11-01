@@ -87,7 +87,7 @@ pub fn double2(x: i32) -> i32 {   // OK
 }
 ```
 
-고유 `impl`의 메서드는 자기 가시성에 따라 같은 규칙을 따릅니다. 트레잇 `impl`의 메서드는 트레잇의 시그니처를 따릅니다([4.9](409-method.md)).
+고유 `impl`의 메서드는 자기 가시성에 따라 같은 규칙을 따릅니다. 트레잇 `impl`의 메서드는 반환 타입이 선언과 같아야 하므로 `->`를 트레잇 선언처럼 적습니다([2.9.1](../002-types/209-impl.md)). 트레잇에서 타입을 받는 것은 타입을 적지 않은 매개변수뿐입니다([4.2.2](402-parameters.md#422-타입-생략)).
 
 반환 타입을 명시했는데 함수 본체가 그 타입과 맞지 않으면 컴파일 에러입니다.
 
@@ -225,7 +225,7 @@ unsafe unsafe fn bad3() { ... }          // ERROR: unsafe 중복
 | `unsafe yield fn`       | `GenIter<R>`                       | unsafe 제너레이터    | (각 수식어의 합)                  |
 | `unsafe async yield fn` | `AsyncStream<R>`                   | unsafe 비동기 스트림 | (각 수식어의 합)                  |
 
-`unsafe`가 붙은 조합의 의미는 단순합니다. 함수 본체 전체가 unsafe 범위가 됩니다(4.15의 정의). 결과 타입과 코루틴 동작은 함께 붙은 다른 수식어(`async` / `yield`)의 정의를 그대로 따릅니다. `unsafe`가 더하는 것은 본체 안에서 원시 포인터를 역참조하고 `unsafe fn`을 호출할 수 있게 하는 것뿐입니다.
+`unsafe`가 붙은 조합의 의미는 단순합니다. 함수 본체 전체가 unsafe 범위가 됩니다(4.15의 정의). 결과 타입과 코루틴 동작은 함께 붙은 다른 수식어(`async` / `yield`)의 정의를 그대로 따릅니다. `unsafe`가 더하는 것은 본체 안에서 `unsafe` 블록이 허용하는 연산뿐입니다([4.15.2](415-unsafe.md#4152-unsafe----블록-표현식)). `unsafe fn` 호출, 원시 포인터 역참조, `union` 필드 읽기, 넘겨준 뒤의 값 사용이 그것입니다.
 
 ### 코루틴 함수의 결과 타입
 
@@ -237,19 +237,19 @@ unsafe unsafe fn bad3() { ... }          // ERROR: unsafe 중복
 | `async fn`       | `AsyncFuture<T>`  | `Future<Output = T>`   | `TryAsyncFuture<T, E>`    |
 | `async yield fn` | `AsyncStream<T>`  | `Stream<Item = T>`     | `TryAsyncStream<T, E>`    |
 
-`Try*` 변형은 에러를 다음 진행 지점에서 던집니다. 예를 들어 `TryGenIter<T, E>`의 `next`는 `next(ref self) throws (E) -> T | none`이고, `TryAsyncFuture`는 `try await`에서 던집니다. 이 변형은 일반 `Iterator` / `Future` / `Stream` 트레잇을 구현하지 않습니다([4.14.10](414-throws.md#41410-throws가-합-타입-시그니처에-미치는-영향)). 대신 `TryGenIter`는 `TryIterator`를, `TryAsyncStream`은 `TryStream`을 구현합니다([stdlib 2.7.13](../../refs-standard-libraries/200-core/207-iter.md#2713-tryiterator-실패할-수-있는-반복), [2.8.11](../../refs-standard-libraries/200-core/208-stream.md#2811-trystream-실패할-수-있는-스트림)).
+이 타입들은 `iter`(`GenIter`, `TryGenIter`), `future`(`AsyncFuture`, `TryAsyncFuture`), `stream`(`AsyncStream`, `TryAsyncStream`)에 있고 prelude에는 없습니다. 모듈을 거쳐(`future::AsyncFuture<T>`) 쓰거나 `use`로 가져옵니다. `Try*` 변형은 에러를 다음 진행 지점에서 던집니다. 예를 들어 `TryGenIter<T, E>`의 `next`는 `next(ref self) throws (E) -> T | none`이고, `TryAsyncFuture`는 `try await`에서 던집니다. 이 변형은 일반 `Iterator` / `Future` / `Stream` 트레잇을 구현하지 않습니다([4.14.10](414-throws.md#41410-throws가-합-타입-시그니처에-미치는-영향)). 대신 `TryGenIter`는 `TryIterator`를, `TryAsyncStream`은 `TryStream`을 구현합니다([stdlib 2.7.13](../../refs-standard-libraries/200-core/207-iter.md#2713-tryiterator-실패할-수-있는-반복), [2.8.11](../../refs-standard-libraries/200-core/208-stream.md#2811-trystream-실패할-수-있는-스트림)).
 
 ```rok
 async fn fetch_user(id: i64) -> User { ... }
-let f: AsyncFuture<User> = fetch_user(42i64);
+let f: future::AsyncFuture<User> = fetch_user(42i64);
 
 yield fn lines(path: str) throws (IoError) -> str { ... }
-let it: TryGenIter<str, IoError> = lines("a.txt");
+let it: iter::TryGenIter<str, IoError> = lines("a.txt");
 ```
 
 ### 클로저와 블록 형태
 
-`async`와 `yield`의 클로저 / 블록 형태에도 같은 순서 규칙을 적용합니다. 예를 들어 Stream을 만드는 클로저는 항상 `async yield ||`로 적습니다. `yield async ||`는 클로저 형태가 아닙니다. 컴파일러는 이를 `async ||` 클로저에 `yield`를 적용한 것으로 읽고 타입 에러로 거부합니다. 클로저와 블록 형태의 자세한 내용은 각 수식어 문서에 있습니다.
+`async`와 `yield`의 클로저 / 블록 형태에도 같은 순서 규칙을 적용합니다. 예를 들어 Stream을 만드는 클로저는 항상 `async yield ||`로 적습니다. `yield async ||`는 클로저 형태가 아닙니다. 컴파일러는 이를 `async ||` 클로저에 `yield`를 적용한 것으로 읽으며, 이는 에러(E0059, 제너레이터 밖의 `yield`)이고 help가 `async yield ||`를 알려 줍니다. 클로저와 블록 형태의 자세한 내용은 각 수식어 문서에 있습니다.
 
 ## 4.1.12. 매개변수 / 반환 / 본체 사이의 평가 순서
 

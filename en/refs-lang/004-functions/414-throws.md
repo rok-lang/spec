@@ -194,7 +194,7 @@ One might ask whether calling this function yields a Future holding `Data | Netw
 The answer is **`TryAsyncFuture<Data, NetworkError>`** ([4.1.11](401-function-declaration.md#result-types-of-coroutine-functions)). The error is not mixed into the result type; it is delivered through the error channel at the `await` point. The side that `await`s therefore marks it with `try`. `TryAsyncFuture` does not implement the plain `Future` trait.
 
 ```rok
-let f = fetch_data();              // f: TryAsyncFuture<Data, NetworkError>
+let f = fetch_data();              // f: future::TryAsyncFuture<Data, NetworkError>
 let d = try await f catch e: NetworkError {
     ...
 };

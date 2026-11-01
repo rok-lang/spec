@@ -42,8 +42,8 @@ counter = counter + 1i32;         // OK: 또 재할당
 
 ```rok
 let counter: i32 = 0i32;
-coutner = counter + 1i32;         // ERROR: 'coutner' not declared.
-                                   //        Did you mean 'counter'?
+coutner = counter + 1i32;         // ERROR (E0057): `coutner` is not declared
+                                   //        help: did you mean `counter`?
 ```
 
 Julia와 Python에서는 오타가 조용히 새 변수를 만드는 일이 흔합니다. 이 규칙은 그 함정을 막습니다.
@@ -163,7 +163,7 @@ let a = 1; let b = 2;              // 두 줄로: OK
 
 `let`은 문장(statement)입니다. 변환 규칙은 [표현식 개요](../003-expressions/README.md)에 있습니다.
 
-모듈 수준에서는 `let`을 쓸 수 없습니다. 모듈 수준의 값 슬롯은 [`const`](502-const.md)나 [`static`](503-static.md)으로 선언해야 합니다. 함수 본체와 블록 안에서는 쓸 수 있습니다. `if` / `match` / `loop` 같은 제어 구조의 본체도 블록이므로 쓸 수 있습니다. 식 자리에는 `let`이 직접 올 수 없습니다. `let`은 식이 아니라 문장이기 때문입니다.
+모듈 수준에서는 `let`을 쓸 수 없습니다. 모듈 수준의 값 슬롯은 [`const`](502-const.md)나 [`static`](503-static.md)으로 선언해야 합니다. 예외는 진입 파일 `main.rok`입니다. 그 최상위 문은 `let`을 포함해 암묵 `main`이 됩니다([4.16.2](../004-functions/416-entry-point.md#4162-최상위-문의-의미-암묵-main)). 다른 모듈에서는 에러(E0036)입니다. 함수 본체와 블록 안에서는 쓸 수 있습니다. `if` / `match` / `loop` 같은 제어 구조의 본체도 블록이므로 쓸 수 있습니다. 식 자리에는 `let`이 직접 올 수 없습니다. `let`은 식이 아니라 문장이기 때문입니다.
 
 ## 5.1.10. `let`으로 선언된 변수의 수명
 

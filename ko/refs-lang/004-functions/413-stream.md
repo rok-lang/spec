@@ -58,7 +58,7 @@ async yield fn read_lines(file: str) -> str {
 
 ```rok
 async fn run() {
-    let s = read_lines("data.txt");   // s: `AsyncStream<str>`
+    let s = read_lines("data.txt");   // s: `stream::AsyncStream<str>`
 
     for await line in s {              // 비동기 for
         process(line);

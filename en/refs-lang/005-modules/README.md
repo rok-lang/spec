@@ -80,6 +80,8 @@ pub(pkg)             within the same package only
 pub                  also from external packages
 ```
 
+`#[internal] pub` items are `pub` items the toolchain's own packages share; other packages cannot use them ([5.6](506-visibility.md), [6.2.16](../006-meta-system/602-built-in-attributes.md#6216-internal-shared-by-the-toolchains-packages)).
+
 ## Name resolution rules
 
 Determining which item a name in the code refers to is called name resolution.

@@ -100,7 +100,7 @@ extern "C" {
 ```rok
 pub static VERSION: str = "1.0.0";
 pub(pkg) static INTERNAL: i32 = 42i32;
-static _local: bool = false;
+static LOCAL_ONLY: bool = false;
 ```
 
 자세한 가시성 규칙은 [가시성](506-visibility.md)에서 정의합니다.

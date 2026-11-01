@@ -46,12 +46,12 @@ fn validate(s: str) -> bool {
 
 The return type defined in [function declarations](401-function-declaration.md) must agree on every return path of the body. A return path is the type of the body's last expression and the type of `expr` in every `return expr;`.
 
-If these differ, they are joined into a sum type by the branch result rules of the [expressions overview](../003-expressions/README.md), and that sum type must be compatible with the declared return type.
+The declared return type is the receiving type of every path, as in the branch result rules of the [expressions overview](../003-expressions/README.md#branch-result-types): each path must be compatible with it, and paths of different types are fine when the declared type is a sum that takes each of them.
 
 ```rok
 fn maybe_int(cond: bool) -> i32 | str {
     if cond { return 42i32; }
-    "no"                          // sum of both paths = i32 | str, matches the declaration
+    "no"                          // each path fits the declared i32 | str
 }
 ```
 
@@ -65,7 +65,7 @@ fn double(x: i32) {
 }
 ```
 
-The inferred type is the type of all value paths (`return expr` and the final expression) when they agree, or their sum when they differ. It is a compile error if a value path is mixed with a path that returns no value, or if the return type depends on itself: a recursive function needs `-> T`. If no path reaches the end of the body or a `return`, the inferred type is the diverging type (4.3.7).
+The inferred type is the type of all value paths (`return expr` and the final expression), which must agree: no sum is invented for paths of different types, so they are a compile error (E0041) whose help asks for the return type (`-> i32 | str`). It is also a compile error if a value path is mixed with a path that returns no value, or if the return type depends on itself: a recursive function needs `-> T`. If no path reaches the end of the body or a `return`, the inferred type is the diverging type (4.3.7).
 
 ## 4.3.5. Multiple returns: tuples
 

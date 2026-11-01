@@ -120,7 +120,6 @@ fn safe_wrapper(p: Ptr<i32>) throws -> i32 {
 | 일반 함수 본체           | ✗ (컴파일 에러)        |
 | `unsafe fn` 본체         | ✓ (자동 unsafe 스코프) |
 | `unsafe { ... }` 블록    | ✓                      |
-| `extern "C"` 블록 선언자 | ✓ (자동 unsafe)        |
 
 규칙을 어기면 다음과 같이 컴파일 에러입니다.
 
@@ -145,7 +144,7 @@ let h: fn(usize) -> CPtr<u8> = f;              // ERROR: unsafe → safe
 
 ## 4.15.4. 트레잇 안에서
 
-`trait`의 메서드도 `unsafe fn`일 수 있습니다. `impl` 쪽은 같은 시그니처로 구현해야 합니다. 호출자는 일반 호출 자리와 같은 규칙을 따릅니다.
+`trait`의 메서드도 `unsafe fn`일 수 있습니다. `impl` 쪽은 `unsafe`까지 같은 시그니처로 구현해야 합니다. `unsafe fn` 메서드를 안전한 메서드로 구현하거나 안전한 메서드를 `unsafe fn`으로 구현하면 에러(E0074)입니다. 호출자는 일반 호출 자리와 같은 규칙을 따릅니다.
 
 ```rok
 trait RawAccess {
@@ -198,7 +197,6 @@ unsafe impl Send for Handle { }
 
 컴파일러는 다음 자리를 `unsafe`를 적지 않아도 자동으로 unsafe 스코프로 봅니다.
 
-- [`extern "C"` 블록](../005-modules/509-extern-block.md)의 함수 선언 본체
 - `unsafe fn`의 본체
 
 이 자동 처리 덕분에 위험 영역이 자주 나오는 곳에서 `unsafe { ... }`를 거듭 적지 않아도 됩니다.

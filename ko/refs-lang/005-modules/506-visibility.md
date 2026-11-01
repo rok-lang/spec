@@ -76,7 +76,7 @@ mod parent {
 }
 ```
 
-`parent`와 `parent`의 모든 자손 모듈에서만 보입니다. 부모 모듈이나 형제 모듈에서는 보이지 않습니다.
+`parent`와 `parent`의 모든 자손 모듈에서만 보입니다. `parent`의 조상 모듈이나 형제 모듈에서는 보이지 않습니다.
 
 이 단계는 모듈 그룹 내부의 도구용입니다. 모듈 트리의 한 줄기 안에서만 공유합니다.
 
@@ -225,8 +225,6 @@ pub trait T { ... }
 
 메타 템플릿이나 컴파일러가 쓴 코드는 확장된 곳이 아니라 정의의 모듈에서 검사합니다([6.9.9](../006-meta-system/609-template-tokens.md#확장-안의-이름)). 템플릿은 자기 모듈의 비공개 항목과 자기 패키지의 `pub(pkg)` 항목을 부를 수 있고, 사용처가 넘긴 것은 사용처에서 검사합니다.
 
-```
-ERROR: 'foo::secret' is not visible from this module.
-       It is declared as private; only visible within 'foo'.
-       To use it externally, add 'pub' or other visibility keyword.
+```text
+error[E0034]: function `foo::secret` is private to module `foo` and cannot be used from `<root>` (add `pub` to expose it)
 ```

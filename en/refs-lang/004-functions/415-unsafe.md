@@ -120,7 +120,6 @@ Calls of `unsafe fn` follow these rules.
 | ordinary function body         | ✗ (compile error)            |
 | `unsafe fn` body               | ✓ (automatic unsafe scope)   |
 | `unsafe { ... }` block         | ✓                            |
-| `extern "C"` block declarator  | ✓ (automatically unsafe)     |
 
 Violating the rules is a compile error:
 
@@ -145,7 +144,7 @@ let h: fn(usize) -> CPtr<u8> = f;              // ERROR: unsafe → safe
 
 ## 4.15.4. In traits
 
-Trait methods may also use `unsafe fn`. The `impl` side must implement them with the same signature, and callers follow the same rules as for ordinary call positions.
+Trait methods may also use `unsafe fn`. The `impl` side must implement them with the same signature, `unsafe` included: a safe impl of an `unsafe fn` method, or an `unsafe fn` impl of a safe one, is an error (E0074). Callers follow the same rules as for ordinary call positions.
 
 ```rok
 trait RawAccess {
@@ -198,7 +197,6 @@ unsafe impl Send for Handle { }
 
 The following positions are treated as unsafe scopes automatically, without an explicit `unsafe`:
 
-- Function declaration bodies in [`extern "C"` blocks](../005-modules/509-extern-block.md)
 - The body of an `unsafe fn`
 
 This automatic treatment reduces noisy repetition of `unsafe { ... }` in commonly occurring dangerous regions.

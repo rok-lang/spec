@@ -80,13 +80,13 @@ rok::std::fs::File
 
 `rok::` designates the compiler-managed set of standard library packages. Under it, three tiers exist as separate packages ([0.5 Standard library tiers](../000-meta/005-standard-libraries-tiers.md)).
 
-| Path           | Meaning                              | Link mechanism |
-|----------------|--------------------------------------|----------------|
-| `rok::bare::*` | raw / unsafe area                    | `-NL bare`     |
-| `rok::core::*` | foundation / commonly used traits    | `-NL core`     |
-| `rok::std::*`  | OS integration / I/O etc.            | `-NL std`      |
+| Path           | Meaning                              |
+|----------------|--------------------------------------|
+| `rok::bare::*` | raw / unsafe area                    |
+| `rok::core::*` | foundation / commonly used traits    |
+| `rok::std::*`  | OS integration / I/O etc.            |
 
-The three packages are separate archives the compiler links automatically at build time, handled by the `-NL` mechanism distinct from user package dependencies. In source, `rok` merely presents them under one path root; the build system separates the package boundaries.
+The three packages ship with the toolchain, and the compiler builds and links them automatically ([0.5.4](../000-meta/005-standard-libraries-tiers.md#054-distribution-form-and-linking-mechanism)); they are not user package dependencies and need no `--extern`. In source, `rok` merely presents them under one path root; the build system separates the package boundaries.
 
 `rok::bare` and `rok::std` are not automatically imported and require an explicit import. The `rok::core` prelude, by contrast, is visible automatically through the implicit `use rok::core::prelude::*;` defined in [5.5 use](505-use.md).
 

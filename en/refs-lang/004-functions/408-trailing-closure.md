@@ -37,8 +37,8 @@ This shorthand has meaning only for a `{ ... }` directly after a function call. 
 With one or more parameters, write:
 
 ```rok
-let doubled = xs.map |x| { x * 2 };
-let pos = xs.filter |x| { x > 0 };
+let doubled = xs.iter().map |x| { x * 2 };
+let pos = xs.iter().filter |x| { x > 0 };
 let opened = with_file(path) |f| {
     let data = f.read();
     process(data)
@@ -52,15 +52,15 @@ Trailing closures use block bodies by default for readability and consistency.
 
 ### Rules for the parenthesis-free form
 
-Attaching a closure without call parentheses, as in `xs.map |x| { .. }`, is a trailing closure only under these conditions:
+Attaching a closure without call parentheses, as in `xs.iter().map |x| { .. }`, is a trailing closure only under these conditions:
 
 - It is immediately preceded by a path (`thread::spawn`, `f`) or a member name (`.map`).
 - It is followed by `|params|`, an optional `-> R`, and `{`. Without this shape, `|` is bitwise OR.
 - `||` is always logical OR. A closure without parameters uses the `{ body }` shorthand.
-- Inside the head of `if` / `while` / `match` / `for` / `using` (condition, scrutinee, iterated expression, `using` initializer), parenthesis-free trailing closures and the `{ body }` shorthand are disabled; a `{` there opens the body block. If a closure is needed in the head, use parentheses (`if xs.any(|x| { x > 0 }) { .. }`).
+- Inside the head of `if` / `while` / `match` / `for` / `using` (condition, scrutinee, iterated expression, `using` initializer), parenthesis-free trailing closures and the `{ body }` shorthand are disabled; a `{` there opens the body block. If a closure is needed in the head, use parentheses (`if xs.iter().any(|x| { x > 0 }) { .. }`).
 
 ```rok
-let ys = xs.map |x| -> i64 { x as i64 * 2 };   // explicit return type
+let ys = xs.iter().map |x| -> i64 { x as i64 * 2 };   // explicit return type
 let z = a | b;                                  // bitwise OR: not followed by the `|params| {` shape
 if ok || retry { .. }                           // logical OR
 ```
@@ -70,8 +70,8 @@ if ok || retry { .. }                           // logical OR
 Trailing closures are permitted, not required.
 
 ```rok
-xs.map(|x| x * 2);                // OK: explicit parentheses
-xs.map |x| { x * 2 };              // OK: trailing
+xs.iter().map(|x| x * 2);                // OK: explicit parentheses
+xs.iter().map |x| { x * 2 };              // OK: trailing
 ```
 
 Teams and users may choose freely according to their style.
@@ -97,6 +97,8 @@ thread::spawn { heavy() };        // same as thread::spawn() { heavy() }
 ```
 
 When the only parameter is a closure, as with `thread::spawn`, this is the most natural call form.
+
+After a bare path (not a method name), a `{ .. }` that has the shape of a struct literal is one ([3.10](../003-expressions/310-if-expression.md)): `{}`, `{ x }`, `{ x, .. }`, `{ x: .. }` and `{ ..x }`. So `run { }` and `zero { n }` are struct literals, an error when `run` / `zero` is a function. Write the parentheses for such a body: `run(|| { })`, `zero(|| n)`.
 
 ## 4.8.5. Nesting
 

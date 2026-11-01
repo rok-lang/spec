@@ -49,7 +49,7 @@ yield fn count_up_to(n: i32) -> i32 {
 `yield fn`은 제너레이터임을 표시한 함수 선언입니다. 본체 안에서 `yield expr;`으로 값을 내보냅니다. `-> R` 자리에는 `yield`로 내보내는 값의 타입을 적고, 호출 결과는 `GenIter<R>`입니다. `-> R`은 적어야 합니다. 컴파일러는 원소 타입을 본체에서 추론하지 않습니다. 호출 방식은 일반 함수와 같고, 결과는 반복자 객체입니다.
 
 ```rok
-let it = count_up_to(5i32);       // it: `GenIter<i32>`
+let it = count_up_to(5i32);       // it: `iter::GenIter<i32>`
 for x in it { print(f"{x} "); }   // 0 1 2 3 4
 ```
 

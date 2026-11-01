@@ -5,7 +5,7 @@
 ## 4.5.1. 형태
 
 ```
-closure_expr   ::= capture_list? closure_params return_type? closure_body
+closure_expr   ::= capture_list? closure_params (return_type block | closure_body)
 closure_params ::= "||"
                  | "|" closure_param_list "|"
 closure_param_list ::= closure_param ("," closure_param)* ","?
@@ -65,7 +65,7 @@ capture_list   ::= "[" capture_item ("," capture_item)* "]"
 
 ```rok
 let f: fn(i32) -> i32 = |x| x * 2;   // 문맥에서 x: i32 추론
-list.map(|x| x * 2);                  // map 의 시그니처에서 추론
+list.iter().map(|x| x * 2);                  // map 의 시그니처에서 추론
 ```
 
 ## 4.5.3. 반환 타입의 추론 / 명시
@@ -108,7 +108,7 @@ f(5);                              // 15
 let f = |x| x * 2;
 
 // 함수 인자
-list.map(|x| x * 2);
+list.iter().map(|x| x * 2);
 
 // 함수 반환
 fn make_adder(n: i32) -> fn(i32) -> i32 {
@@ -141,8 +141,8 @@ let r = (|x: i32| -> i32 { x * 2 })(5);     // 10
 ## 4.5.9. 가독성: 단일 식과 블록
 
 ```rok
-list.map(|x| x * 2)               // 단일 식: 짧고 명확
-list.map(|x| { let y = x * 2; y + 1 })   // 블록: 다단계 처리
+list.iter().map(|x| x * 2)               // 단일 식: 짧고 명확
+list.iter().map(|x| { let y = x * 2; y + 1 })   // 블록: 다단계 처리
 ```
 
 본체 길이에 맞는 형태를 고르면 됩니다. 사양은 두 형태를 모두 정식으로 지원합니다.

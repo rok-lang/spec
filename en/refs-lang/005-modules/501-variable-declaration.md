@@ -42,8 +42,8 @@ Assigning without `let` to a name that has never been declared is a compile erro
 
 ```rok
 let counter: i32 = 0i32;
-coutner = counter + 1i32;         // ERROR: 'coutner' not declared.
-                                   //        Did you mean 'counter'?
+coutner = counter + 1i32;         // ERROR (E0057): `coutner` is not declared
+                                   //        help: did you mean `counter`?
 ```
 
 This blocks the pitfall common in Julia and Python where a typo silently creates a new variable.
@@ -163,7 +163,7 @@ let a = 1; let b = 2;              // two statements: OK
 
 `let` is a statement (see the conversion rules in the [expressions overview](../003-expressions/README.md)).
 
-`let` is not allowed at module level (module-level value slots must be declared with [`const`](502-const.md) or [`static`](503-static.md)). It may be used in function bodies and blocks. The bodies of control structures such as `if` / `match` / `loop` are themselves blocks, so it may be used there too. `let` cannot appear directly in expression position, because `let` is a statement, not an expression.
+`let` is not allowed at module level (module-level value slots must be declared with [`const`](502-const.md) or [`static`](503-static.md)). The exception is the entry file `main.rok`, whose top-level statements, `let` included, form the implicit `main` ([4.16.2](../004-functions/416-entry-point.md#4162-meaning-of-top-level-statements-implicit-main)); in any other module they are an error (E0036). It may be used in function bodies and blocks. The bodies of control structures such as `if` / `match` / `loop` are themselves blocks, so it may be used there too. `let` cannot appear directly in expression position, because `let` is a statement, not an expression.
 
 ## 5.1.10. Lifetime of variables declared with `let`
 

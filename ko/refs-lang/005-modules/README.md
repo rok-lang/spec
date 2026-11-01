@@ -80,6 +80,8 @@ pub(pkg)             같은 패키지 안에서만
 pub                  외부 패키지에서도 가능
 ```
 
+`#[internal] pub` 항목은 툴체인 자신의 패키지끼리 공유하는 `pub` 항목입니다. 다른 패키지는 쓸 수 없습니다([5.6](506-visibility.md), [6.2.16](../006-meta-system/602-built-in-attributes.md#6216-internal-toolchain-패키지끼리-공유)).
+
 ## 이름 해소 규칙
 
 코드 안의 이름이 어떤 항목을 가리키는지 정하는 과정을 이름 해소(name resolution)라고 합니다.

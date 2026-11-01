@@ -49,7 +49,7 @@ yield fn count_up_to(n: i32) -> i32 {
 `yield fn` is a function declaration marked as a generator; the body emits values with `yield expr;`. The `-> R` position gives the type of the yielded values, and the call result is `GenIter<R>`. `-> R` must be written; the element type is not inferred from the body. It is called like an ordinary function, and the result is an iterator object.
 
 ```rok
-let it = count_up_to(5i32);       // it: `GenIter<i32>`
+let it = count_up_to(5i32);       // it: `iter::GenIter<i32>`
 for x in it { print(f"{x} "); }   // 0 1 2 3 4
 ```
 

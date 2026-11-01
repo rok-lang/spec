@@ -40,7 +40,7 @@ extern "C" {
 
 `"system"`과 `"C"`가 일치하는 타깃(32비트 x86 Windows를 뺀 모든 Tier 1 타깃)에서는 `"system"`이 `"C"`입니다. 32비트 x86 Windows에서는 stdcall입니다([5.9.10](#5910-extern-fn-정의외부에-노출)).
 
-`extern "rok"`은 toolchain이 선언하는 런타임 함수의 ABI입니다. 그 선언은 `rok::core::rt`에 `pub(pkg)`로 있습니다. `extern "rok"` 블록의 `#[no_safepoint]`는 그 함수가 할당도 블로킹도 하지 않는다고 선언합니다. 그래서 그 호출은 safepoint가 아닙니다. 이 속성은 toolchain 내부용이며, `extern "C"` 블록에 쓰면 에러입니다.
+`extern "rok"`은 toolchain이 선언하는 런타임 함수의 ABI입니다. 그 선언은 toolchain 패키지의 비공개 항목입니다. 대부분은 `rok::core::rt`에 있고, `rok::bare`는 자기가 쓰는 것을 따로 선언합니다. `extern "rok"` 블록의 `#[no_safepoint]`는 그 함수가 할당도 블로킹도 하지 않는다고 선언합니다. 그래서 그 호출은 safepoint가 아닙니다. 이 속성은 toolchain 내부용이며, `extern "C"` 블록에 쓰면 에러입니다.
 
 | 값                          | `extern "rok"`의 전달                    |
 |-----------------------------|------------------------------------------|
@@ -176,7 +176,7 @@ fn use_malloc() {
 }
 ```
 
-사용자가 선언한 `extern "C"` 함수는 unsafe이므로 `unsafe { ... }` 안에서 호출합니다([4.15](../004-functions/415-unsafe.md)). toolchain이 선언하는 런타임 함수(`rok_print_*`, `rok_panic_str` 등)는 안전하게 호출할 수 있습니다. 그 밖에는 `extern` 함수 호출도 외부 심볼이라는 점만 빼면 일반 호출과 같습니다. 결과 타입에는 Rok의 일반 의미론이 그대로 적용됩니다. `extern static`은 일반 변수처럼 읽고, `mut`이면 씁니다. Rok은 C 전역 변수를 검사할 수 없으므로 읽거나 쓰려면 `unsafe`(`unsafe` 블록이나 `unsafe fn` 본문)가 필요합니다. 밖에서 하면 에러이고, 도움말이 고친 형태를 보여 줍니다. `unsafe { optind = 6; }`처럼 씁니다. `addr_of`로 주소를 얻는 것은 아무것도 읽지 않으므로 `unsafe`가 필요 없습니다. 그래도 타입은 FFI 호환이어야 합니다(5.9.4). Rok은 외부 메모리를 그 타입으로 읽으므로 `static environ: List<str>;`는 정의되지 않은 동작입니다. 포인터로 선언합니다(`static environ: Ptr<Ptr<c_char>>;`).
+`extern "rok"`을 포함한 모든 `extern` 함수는 unsafe이므로 `unsafe { ... }` 안에서 호출합니다([4.15](../004-functions/415-unsafe.md)). toolchain 패키지는 자기가 선언한 런타임 함수를 안전한 함수로 감싸서 내놓습니다. 그 밖에는 `extern` 함수 호출도 외부 심볼이라는 점만 빼면 일반 호출과 같습니다. 결과 타입에는 Rok의 일반 의미론이 그대로 적용됩니다. `extern static`은 일반 변수처럼 읽고, `mut`이면 씁니다. Rok은 C 전역 변수를 검사할 수 없으므로 읽거나 쓰려면 `unsafe`(`unsafe` 블록이나 `unsafe fn` 본문)가 필요합니다. 밖에서 하면 에러이고, 도움말이 고친 형태를 보여 줍니다. `unsafe { optind = 6; }`처럼 씁니다. `addr_of`로 주소를 얻는 것은 아무것도 읽지 않으므로 `unsafe`가 필요 없습니다. 그래도 타입은 FFI 호환이어야 합니다(5.9.4). Rok은 외부 메모리를 그 타입으로 읽으므로 `static environ: List<str>;`는 정의되지 않은 동작입니다. 포인터로 선언합니다(`static environ: Ptr<Ptr<c_char>>;`).
 
 ## 5.9.7. 가시성
 

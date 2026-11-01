@@ -5,7 +5,7 @@ A closure is a function value without a name that appears in expression position
 ## 4.5.1. Form
 
 ```
-closure_expr   ::= capture_list? closure_params return_type? closure_body
+closure_expr   ::= capture_list? closure_params (return_type block | closure_body)
 closure_params ::= "||"
                  | "|" closure_param_list "|"
 closure_param_list ::= closure_param ("," closure_param)* ","?
@@ -65,7 +65,7 @@ Inference is determined by the context in which the closure is used, for example
 
 ```rok
 let f: fn(i32) -> i32 = |x| x * 2;   // x: i32 inferred from context
-list.map(|x| x * 2);                  // inferred from map's signature
+list.iter().map(|x| x * 2);                  // inferred from map's signature
 ```
 
 ## 4.5.3. Inferred or explicit return type
@@ -108,7 +108,7 @@ Both are expressed with the same function type and are interface-compatible, so 
 let f = |x| x * 2;
 
 // function argument
-list.map(|x| x * 2);
+list.iter().map(|x| x * 2);
 
 // function return
 fn make_adder(n: i32) -> fn(i32) -> i32 {
@@ -141,8 +141,8 @@ This is uncommon, but it is one way to express a local scope with immediate eval
 ## 4.5.9. Readability: single expression vs block
 
 ```rok
-list.map(|x| x * 2)               // single expression: short and clear
-list.map(|x| { let y = x * 2; y + 1 })   // block: multi-step processing
+list.iter().map(|x| x * 2)               // single expression: short and clear
+list.iter().map(|x| { let y = x * 2; y + 1 })   // block: multi-step processing
 ```
 
 Choose the form that suits the body's length. The specification fully supports both forms.

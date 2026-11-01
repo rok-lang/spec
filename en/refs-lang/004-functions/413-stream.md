@@ -58,7 +58,7 @@ Calling and consuming a stream looks like this.
 
 ```rok
 async fn run() {
-    let s = read_lines("data.txt");   // s: `AsyncStream<str>`
+    let s = read_lines("data.txt");   // s: `stream::AsyncStream<str>`
 
     for await line in s {              // asynchronous for
         process(line);

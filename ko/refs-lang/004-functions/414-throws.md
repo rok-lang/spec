@@ -194,7 +194,7 @@ async fn fetch_data() throws (NetworkError) -> Data { ... }
 실제 결과는 **`TryAsyncFuture<Data, NetworkError>`**입니다([4.1.11](401-function-declaration.md#코루틴-함수의-결과-타입)). 에러는 결과 타입에 섞이지 않고 `await` 지점에서 에러 채널로 전달됩니다. 그래서 `await`로 기다리는 쪽이 `try`로 표시합니다. `TryAsyncFuture`는 일반 `Future` 트레잇을 구현하지 않습니다.
 
 ```rok
-let f = fetch_data();              // f: TryAsyncFuture<Data, NetworkError>
+let f = fetch_data();              // f: future::TryAsyncFuture<Data, NetworkError>
 let d = try await f catch e: NetworkError {
     ...
 };

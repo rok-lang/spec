@@ -87,7 +87,7 @@ pub fn double2(x: i32) -> i32 {   // OK
 }
 ```
 
-Methods of an inherent `impl` follow the same rule by their own visibility. Methods of a trait `impl` take the trait's signature ([4.9](409-method.md)).
+Methods of an inherent `impl` follow the same rule by their own visibility. A method of a trait `impl` writes its `->` as the trait's declaration does, since the return type must match it ([2.9.1](../002-types/209-impl.md)); only its untyped parameters take their types from the trait ([4.2.2](402-parameters.md#422-omitting-the-type)).
 
 If the return type is written but the function body does not match it, it is a compile error.
 
@@ -225,7 +225,7 @@ All three modifiers are optional, so there are 8 possible combinations, defined 
 | `unsafe yield fn`       | `GenIter<R>`                       | unsafe generator     | (sum of each modifier)             |
 | `unsafe async yield fn` | `AsyncStream<R>`                   | unsafe async stream  | (sum of each modifier)             |
 
-Combinations with `unsafe` are simple: the whole function body becomes an unsafe scope (as defined in 4.15), and the result type and coroutine behavior follow the definitions of the other modifiers (`async` / `yield`). That is, `unsafe` only adds permission to dereference raw pointers and call `unsafe fn` inside the body.
+Combinations with `unsafe` are simple: the whole function body becomes an unsafe scope (as defined in 4.15), and the result type and coroutine behavior follow the definitions of the other modifiers (`async` / `yield`). That is, `unsafe` only adds, inside the body, the operations an `unsafe` block allows ([4.15.2](415-unsafe.md#4152-unsafe------block-expression)): calling `unsafe fn`, dereferencing raw pointers, reading `union` fields and using a value after it was handed over.
 
 ### Result types of coroutine functions
 
@@ -237,19 +237,19 @@ Calling a function (or block, or closure) marked `async` / `yield` yields a stan
 | `async fn`       | `AsyncFuture<T>`  | `Future<Output = T>`   | `TryAsyncFuture<T, E>`    |
 | `async yield fn` | `AsyncStream<T>`  | `Stream<Item = T>`     | `TryAsyncStream<T, E>`    |
 
-The `Try*` variants throw the error at the next progress point. For example, `next` of `TryGenIter<T, E>` is `next(ref self) throws (E) -> T | none`, and `TryAsyncFuture` throws at `try await`. These variants do not implement the plain `Iterator` / `Future` / `Stream` traits ([4.14.10](414-throws.md#41410-effect-of-throws-on-sum-type-signatures)); `TryGenIter` implements `TryIterator` and `TryAsyncStream` implements `TryStream` ([stdlib 2.7.13](../../refs-standard-libraries/200-core/207-iter.md#2713-tryiterator---fallible-iteration), [2.8.11](../../refs-standard-libraries/200-core/208-stream.md#2811-trystream---fallible-streams)).
+These types live in `iter` (`GenIter`, `TryGenIter`), `future` (`AsyncFuture`, `TryAsyncFuture`) and `stream` (`AsyncStream`, `TryAsyncStream`) and are not in the prelude: name them through their module (`future::AsyncFuture<T>`) or a `use`. The `Try*` variants throw the error at the next progress point. For example, `next` of `TryGenIter<T, E>` is `next(ref self) throws (E) -> T | none`, and `TryAsyncFuture` throws at `try await`. These variants do not implement the plain `Iterator` / `Future` / `Stream` traits ([4.14.10](414-throws.md#41410-effect-of-throws-on-sum-type-signatures)); `TryGenIter` implements `TryIterator` and `TryAsyncStream` implements `TryStream` ([stdlib 2.7.13](../../refs-standard-libraries/200-core/207-iter.md#2713-tryiterator---fallible-iteration), [2.8.11](../../refs-standard-libraries/200-core/208-stream.md#2811-trystream---fallible-streams)).
 
 ```rok
 async fn fetch_user(id: i64) -> User { ... }
-let f: AsyncFuture<User> = fetch_user(42i64);
+let f: future::AsyncFuture<User> = fetch_user(42i64);
 
 yield fn lines(path: str) throws (IoError) -> str { ... }
-let it: TryGenIter<str, IoError> = lines("a.txt");
+let it: iter::TryGenIter<str, IoError> = lines("a.txt");
 ```
 
 ### Closure and block forms
 
-The same ordering rule applies to the closure / block forms of `async` and `yield`. For example, a closure that produces a Stream is always written `async yield ||`; `yield async ||` is not a closure form: it reads as `yield` applied to an `async ||` closure and is rejected as a type error. See each modifier's document for the closure / block forms.
+The same ordering rule applies to the closure / block forms of `async` and `yield`. For example, a closure that produces a Stream is always written `async yield ||`; `yield async ||` is not a closure form: it reads as `yield` applied to an `async ||` closure, which is an error (E0059, `yield` outside a generator) whose help gives `async yield ||`. See each modifier's document for the closure / block forms.
 
 ## 4.1.12. Evaluation order of parameters, return and body
 

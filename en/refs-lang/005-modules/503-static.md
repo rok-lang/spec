@@ -100,7 +100,7 @@ Like other items, a `static` may carry a visibility keyword.
 ```rok
 pub static VERSION: str = "1.0.0";
 pub(pkg) static INTERNAL: i32 = 42i32;
-static _local: bool = false;
+static LOCAL_ONLY: bool = false;
 ```
 
 The detailed visibility rules are defined in [visibility](506-visibility.md).
