@@ -654,14 +654,14 @@ impl<T: Debug> Debug for SliceMut<T> { ... }
 
 A resize may move the list's elements to a new buffer, so a view is not used after its list is resized. A resize is any `List` method that changes the length or the buffer: `push`, `pop`, `insert`, `remove`, `clear`, `truncate`, `drain`, `set_len`, `reserve`, `shrink_to_fit`, `extend`, `retain`, `dedup` and `+=`. Element writes (`xs[i] = x`, `fill`, `swap`, `sort`, `reverse`) are not resizes.
 
-- Where one function shows both, using a view after a resize of its list is a compile error, `E202` ([refs-lang 9.9.4](../../refs-lang/009-tools/909-debug-tools.md#994-diagnostics--error-messages)). The view is followed through copies of the list (`let ys = xs`), views of the view (`s[1:]`, `split_at`), a `for` loop over it, branches and the next pass of a loop. Assigning the view again (`s = xs[..]`) makes it usable again, and a resize on a path that leaves (`return`, `break`) does not reach the code after it.
+- Where one function shows both, using a view after a resize of its list is a compile error, `E0138` ([refs-lang 9.9.4](../../refs-lang/009-tools/909-debug-tools.md#994-diagnostics--error-messages)). The view is followed through copies of the list (`let ys = xs`), views of the view (`s[1:]`, `split_at`), a `for` loop over it, branches and the next pass of a loop. Assigning the view again (`s = xs[..]`) makes it usable again, and a resize on a path that leaves (`return`, `break`) does not reach the code after it.
 - Every other case is checked at run time: a resize inside a called function, a view kept in a struct, an `async fn` that waits while its caller resizes. A list carries a version that each resize bumps, and a view made before the bump panics on its next use (`SliceMut used after its list was resized (push, insert, clear, ...): make the view again after the resize`).
 
 ```rok
 let xs: List<i32> = [1, 2, 3];
 let s: SliceMut<i32> = xs[1:];
 xs.push(4);
-s[0] = 9;          // error[E202]: `s` views `xs`, which `xs.push(..)` resized at line 3
+s[0] = 9;          // error[E0138]: `s` views `xs`, which `xs.push(..)` resized at line 3
 ```
 
 The run-time check is what lets a `SliceMut` be an `async fn`'s argument and live across an `await`.

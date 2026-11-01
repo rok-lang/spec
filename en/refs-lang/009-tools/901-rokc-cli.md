@@ -293,7 +293,7 @@ Runs the front end through type checking and MIR building, plus lints, and repor
 rokc lint [path] [--list]
 ```
 
-`rokc check` without code generation. Every compiling command reports the same lints ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)); `lint` runs only them and the front end. The diagnostic format is 9.1.8; lint diagnostics have code `E503`. The list of lints and groups is in [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control). `--list` prints the lints with their default levels and the release that added each, then the groups.
+`rokc check` without code generation. Every compiling command reports the same lints ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)); `lint` runs only them and the front end. The diagnostic format is 9.1.8; lint diagnostics have code `E0132`. The list of lints and groups is in [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control). `--list` prints the lints with their default levels and the release that added each, then the groups.
 
 Lint levels are set by the global options `-A` / `-W` / `-D` (9.1.5) and by attributes in code. If any `deny`-level lint fires, the exit code is `1`.
 
@@ -447,6 +447,7 @@ The global options are listed below. They may appear before or after the subcomm
 | `--cwd=<path>`                   | Change working directory before running                     |
 | `--print cfg\|target-list\|target-spec\|lldbinit` | Print the active cfg, the built-in target names, a target's specification, or the lldb command loading Rok's formatters (9.1.4) |
 | `--message-format=human\|json`   | Diagnostic format. `json` writes one line per diagnostic to stdout (9.1.8) |
+| `--explain <code>`               | Print the page of an error code (`E0040`): what it means and what to write instead, then exit ([9.9.4](909-debug-tools.md#error-codes)) |
 | `-A` / `-W` / `-D <lint \| group>` | Lint level (`--allow` / `--warn` / `--deny`). Applies to every command that compiles the package (`build`, `run`, `test`, `bench`, `emit`, `check`, `lint`, `lsp`). May be repeated; the later one wins |
 
 The lint level is determined in the order: the lint's default level < `-A` / `-W` / `-D` < `#[allow(..)]` / `#[warn(..)]` / `#[deny(..)]` in code (innermost wins). `rok` prepends the manifest's `lints` as these flags ([9.10.1](910-rok-frontend.md#9101-subcommands-and-global-options)).
@@ -512,7 +513,7 @@ An unset or empty variable has its default. A value outside those listed prints 
 Diagnostic messages are printed in the following format.
 
 ```
-error[E100]: cannot find value `count` in this scope
+error[E0027]: cannot find value `count` in this scope
   --> src/main.rok:5:13
    |
  2 |     let counter = 0;

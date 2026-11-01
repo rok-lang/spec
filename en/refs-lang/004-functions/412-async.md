@@ -221,7 +221,7 @@ while await r.read_one() is u8 {}
 r.pos;                              //→ 3
 ```
 
-The future holds the receiver until it completes, so the call is awaited where it is made: `await r.read_one()`, or `try await r.read(buf)` for a throwing method. Keeping the future to await later is a compile error (`E202`), since nothing would write the receiver back and the receiver could change meanwhile:
+The future holds the receiver until it completes, so the call is awaited where it is made: `await r.read_one()`, or `try await r.read(buf)` for a throwing method. Keeping the future to await later is a compile error (`E0090`), since nothing would write the receiver back and the receiver could change meanwhile:
 
 ```rok
 let f = r.read_one();               // ERROR: its future holds `r` until it completes

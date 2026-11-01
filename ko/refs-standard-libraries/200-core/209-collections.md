@@ -654,14 +654,14 @@ impl<T: Debug> Debug for SliceMut<T> { ... }
 
 크기를 바꾸면 리스트의 원소가 새 버퍼로 옮겨질 수 있습니다. 그래서 리스트의 크기를 바꾼 뒤에는 그 전에 만든 뷰를 쓰지 않습니다. 길이나 버퍼를 바꾸는 `List` 메서드는 모두 크기 바꾸기입니다. `push`, `pop`, `insert`, `remove`, `clear`, `truncate`, `drain`, `set_len`, `reserve`, `shrink_to_fit`, `extend`, `retain`, `dedup`, `+=`가 그렇습니다. 원소 쓰기(`xs[i] = x`, `fill`, `swap`, `sort`, `reverse`)는 크기 바꾸기가 아닙니다.
 
-- 한 함수 안에서 둘 다 보이면, 리스트의 크기를 바꾼 뒤 뷰를 쓰는 것은 컴파일 에러 `E202`입니다([refs-lang 9.9.4](../../refs-lang/009-tools/909-debug-tools.md#994-진단--에러-메시지)). 컴파일러는 리스트의 복사(`let ys = xs`), 뷰의 뷰(`s[1:]`, `split_at`), 뷰를 도는 `for` 루프, 분기, 루프의 다음 회차까지 뷰를 따라갑니다. 뷰를 다시 대입하면(`s = xs[..]`) 다시 쓸 수 있고, 빠져나가는 경로(`return`, `break`)의 크기 바꾸기는 그 뒤의 코드에 닿지 않습니다.
+- 한 함수 안에서 둘 다 보이면, 리스트의 크기를 바꾼 뒤 뷰를 쓰는 것은 컴파일 에러 `E0138`입니다([refs-lang 9.9.4](../../refs-lang/009-tools/909-debug-tools.md#994-진단--에러-메시지)). 컴파일러는 리스트의 복사(`let ys = xs`), 뷰의 뷰(`s[1:]`, `split_at`), 뷰를 도는 `for` 루프, 분기, 루프의 다음 회차까지 뷰를 따라갑니다. 뷰를 다시 대입하면(`s = xs[..]`) 다시 쓸 수 있고, 빠져나가는 경로(`return`, `break`)의 크기 바꾸기는 그 뒤의 코드에 닿지 않습니다.
 - 나머지는 실행 시간에 검사합니다. 호출한 함수 안의 크기 바꾸기, 구조체에 넣어 둔 뷰, 호출자가 크기를 바꾸는 동안 기다리는 `async fn`이 그런 경우입니다. 리스트는 크기를 바꿀 때마다 올라가는 버전을 들고 있고, 그 전에 만든 뷰는 다음에 쓸 때 panic합니다(`SliceMut used after its list was resized (push, insert, clear, ...): make the view again after the resize`).
 
 ```rok
 let xs: List<i32> = [1, 2, 3];
 let s: SliceMut<i32> = xs[1:];
 xs.push(4);
-s[0] = 9;          // error[E202]: `s` views `xs`, which `xs.push(..)` resized at line 3
+s[0] = 9;          // error[E0138]: `s` views `xs`, which `xs.push(..)` resized at line 3
 ```
 
 실행 시간 검사가 있으므로 `SliceMut`은 `async fn`의 인자가 될 수 있고 `await`을 넘어 살아 있을 수 있습니다.

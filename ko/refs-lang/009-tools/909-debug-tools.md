@@ -81,7 +81,7 @@ generics: a7c91d8e44b2f190 (type tuple hash)
 진단 메시지는 다음 표준 형식으로 출력합니다.
 
 ```
-error[E100]: cannot find value `count` in this scope
+error[E0027]: cannot find value `count` in this scope
   --> src/main.rok:5:13
    |
  2 |     let counter = 0;
@@ -110,64 +110,202 @@ rokc build --message-format=json
 진단 하나가 stdout의 JSON 객체 한 줄입니다. 사람용 형식은 stderr에 나옵니다.
 
 ```json
-{"type":"error","code":"E200","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"...","line_end":5,"col_end":15}],"notes":["..."],"fixes":[],"spec":["..."],"help":[],"lint":null,"schema":1}
+{"type":"error","code":"E0040","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"...","line_end":5,"col_end":15}],"notes":["..."],"fixes":[],"spec":["..."],"help":["..."],"lint":null,"schema":2}
 ```
 
 | 필드       | 뜻                                                                 |
 |------------|--------------------------------------------------------------------|
 | `type`     | `error` / `fatal` / `warning` / `note`                             |
-| `code`     | 에러 종류의 코드(아래 표)                                          |
-| `kind`     | 에러 종류의 이름                                                   |
+| `code`     | 에러 코드, `E0040`([에러 코드](#에러-코드))                        |
+| `kind`     | 코드가 속한 영역(`type`, `parse`, ..)                              |
 | `message`  | 메시지                                                             |
 | `spans`    | 위치 목록. 첫 원소가 주 위치(`is_primary: true`), 나머지는 보조 위치 |
-| `notes`    | note 문자열 목록. help 항목은 `help: `로 시작                     |
+| `notes`    | note 문자열 목록. help 항목은 빠짐                                 |
 | `fixes`    | 코드를 고치는 편집 목록. 각 편집은 파일 하나의 span에 그 자리를 바꿀 `text`와 `title`을 더한 것(아래). 비어 있을 때가 많음 |
 | `spec`     | 메시지와 note가 인용하는 절(`spec 3.12.5`). 사람용 형식에서는 빠짐 |
-| `help`     | `notes`의 help 항목에서 `help: ` 접두어를 뗀 것                    |
+| `help`     | help 항목(사람용 형식의 `= help:` 줄)에서 `help: ` 접두어를 뗀 것  |
 | `lint`     | 경고나 린트 에러가 속한 린트(`unused_variables`). `#[allow(..)]`와 `-A`가 받는 이름([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). 나머지는 `null` |
-| `schema`   | 이 형식의 버전. 지금은 `1`                                         |
+| `schema`   | 이 형식의 버전. 지금은 `2`                                         |
 
 span에는 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_primary`, `label`, `line_end`, `col_end`가 있습니다. `line_end` / `col_end`는 span이 끝나는 위치(마지막 문자 바로 다음)이고, `line_start` / `col_start`처럼 코드 포인트로 셉니다. 소스 텍스트가 없으면 `null`입니다. 위치 없이 파일만 아는 진단은 `{"file_name": .., "is_primary": true}`만 둡니다. fix에는 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `text`, `title`(``convert with `as i32` ``), `line_end`, `col_end`가 있습니다. LSP 서버는 이것을 빠른 수정으로 내놓습니다([9.9.13](#9913-lsp-서버)).
 
-같은 `schema` 안에서는 필드를 더하기만 하고, 빼거나 이름이나 뜻을 바꾸지 않습니다. 그러니 읽는 쪽은 모르는 필드를 무시해야 합니다. `schema`가 `1`인 동안 help 항목은 `notes`에도 그대로 남습니다. 테스트, 벤치, `rok deps` 레코드([9.9.12](#9912-ci--테스트-통합), [9.10.4](910-rok-frontend.md#9104-의존성-rok-add--remove--update--deps))도 각자의 `schema`로 같은 규칙을 따릅니다.
+같은 `schema` 안에서는 필드를 더하기만 하고, 빼거나 이름이나 뜻을 바꾸지 않습니다. 그러니 읽는 쪽은 모르는 필드를 무시해야 합니다. 스키마 `2`(0.2.0)는 필드 둘을 바꿨습니다. `code`는 영역이 아니라 에러 종류의 코드이고(아래), `notes`는 help 항목을 되풀이하지 않습니다. help 항목은 `help`에만 있습니다. 테스트, 벤치, `rok deps` 레코드([9.9.12](#9912-ci--테스트-통합), [9.10.4](910-rok-frontend.md#9104-의존성-rok-add--remove--update--deps))도 각자의 `schema`로 같은 규칙을 따르며, 그 번호는 여전히 `1`입니다.
 
 IDE와 CI 시스템은 이 형식으로 진단을 기계적으로 읽을 수 있습니다.
 
-### 진단 카테고리
+### 에러 코드
 
-진단 코드는 영역별로 다음과 같이 나뉩니다.
+에러는 종류마다 자기 코드가 있습니다. 코드는 `E`와 네 자리 숫자입니다. 타입이 맞지 않으면 `E0040`, 이름을 찾지 못하면 `E0027`입니다. 번호는 영역이 아니라 추가된 순서대로 붙고, 영역은 `kind` 필드가 알려 줍니다. 코드는 다시 쓰지 않습니다. 어떤 에러 종류가 없어지면 그 코드는 예약된 채로 남고, 새 종류는 다음 빈 번호를 받습니다. 린트([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)) 진단은 컴파일러의 어느 단계가 냈든 린트 코드 `E0132`을 받고, 린트 이름은 note와 `lint`에 적습니다.
 
-| 코드 접두사     | 영역               |
-|-----------------|--------------------|
-| `E001` ~ `E099` | 어휘 / 구문        |
-| `E100` ~ `E199` | 이름 해소 / 가시성 |
-| `E200` ~ `E299` | 타입 시스템        |
-| `E300` ~ `E399` | 메타 / 매직        |
-| `E400` ~ `E499` | 빌드 / 링크        |
-| `E500` ~        | 추가 카테고리      |
+`rokc --explain <code>`(`rok --explain`도 같음)는 코드의 설명을 출력합니다. 제목, 뜻, 대신 쓸 코드를 알려 줍니다([9.1.5](901-rokc-cli.md#915-전역-옵션)). `E0040`, `e0040`, `40`은 같은 코드입니다. 없는 코드는 사용법 에러(종료 코드 2)입니다. 문서의 에러 페이지도 같은 내용이며, 코드마다 한 페이지입니다.
 
-코드는 에러 종류마다 하나입니다. 같은 종류의 진단에는 같은 코드가 붙습니다.
+제목은 `rokc --explain`이 출력하는 그대로 적습니다.
 
-| 코드   | `kind`        | 종류                         |
-|--------|---------------|------------------------------|
-| `E001` | `lexical`     | 어휘                         |
-| `E002` | `parse`       | 구문                         |
-| `E100` | `resolve`     | 이름 해소                    |
-| `E101` | `visibility`  | 가시성                       |
-| `E102` | `module`      | 모듈 / 파일                  |
-| `E200` | `type`        | 타입                         |
-| `E201` | `pattern`     | 패턴 / 완전성                |
-| `E202` | `handoff`     | 넘긴 뒤의 사용([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync-스레드-경계-마커)), 리스트 크기를 바꾼 뒤의 `SliceMut` 사용([stdlib 2.9.7a](../../refs-standard-libraries/200-core/209-collections.md#297a-slicemutt-쓰기-가능한-뷰)) |
-| `E300` | `meta`        | 메타 블록 / 속성 / 키워드 매직 |
-| `E400` | `lowering`    | HIR / MIR lowering           |
-| `E401` | `codegen`     | 코드 생성                    |
-| `E402` | `linkage`     | 외부 도구 / 링크             |
-| `E500` | `unsupported` | 컴파일러가 처리하지 않는 구문 |
-| `E501` | `internal`    | 컴파일러 내부                |
-| `E502` | `other`       | 그 밖                        |
-| `E503` | `lint`        | 린트([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어), `rokc lint`) |
+| 코드    | `kind`        | 제목                         |
+|---------|---------------|------------------------------|
+| `E0001` | `lexical` | unexpected character in source |
+| `E0002` | `lexical` | bidirectional control character in source |
+| `E0003` | `lexical` | malformed numeric literal |
+| `E0004` | `lexical` | literal out of range for its type |
+| `E0005` | `lexical` | unterminated literal or comment |
+| `E0006` | `lexical` | invalid escape in a literal |
+| `E0007` | `lexical` | a character literal holds one character |
+| `E0008` | `lexical` | malformed f-string |
+| `E0009` | `lexical` | name cannot be a raw identifier |
+| `E0010` | `parse` | unexpected token |
+| `E0011` | `parse` | nesting too deep |
+| `E0012` | `parse` | syntax from another language |
+| `E0013` | `parse` | struct literal in a block head |
+| `E0014` | `parse` | modifiers out of order |
+| `E0015` | `parse` | doc comment documents nothing |
+| `E0016` | `parse` | visibility where it has no meaning |
+| `E0017` | `parse` | item in the wrong place |
+| `E0018` | `parse` | `return` in top-level statements |
+| `E0019` | `parse` | operators that need parentheses |
+| `E0020` | `parse` | `return` in a trailing closure |
+| `E0021` | `parse` | reserved word used as a name |
+| `E0022` | `parse` | `let` without a value |
+| `E0023` | `parse` | invalid function signature |
+| `E0024` | `parse` | invalid generic parameters |
+| `E0025` | `parse` | unsupported ABI |
+| `E0026` | `resolve` | name defined more than once |
+| `E0027` | `resolve` | cannot find value or function |
+| `E0028` | `resolve` | cannot find type or trait |
+| `E0029` | `resolve` | cannot find enum variant |
+| `E0030` | `module` | unresolved import |
+| `E0031` | `resolve` | ambiguous name |
+| `E0032` | `module` | conflicting imports |
+| `E0033` | `module` | invalid re-export |
+| `E0034` | `visibility` | item is private |
+| `E0035` | `module` | module file problem |
+| `E0036` | `module` | invalid program entry point |
+| `E0037` | `module` | invalid dependency |
+| `E0038` | `resolve` | local declared twice |
+| `E0039` | `resolve` | nested item uses an outer local |
+| `E0040` | `type` | mismatched types |
+| `E0041` | `type` | branches of different types |
+| `E0042` | `type` | type annotations needed |
+| `E0043` | `type` | no such field |
+| `E0044` | `type` | missing field in a literal |
+| `E0045` | `type` | field given more than once |
+| `E0046` | `type` | no such method or associated item |
+| `E0047` | `type` | item used in the wrong form |
+| `E0048` | `type` | wrong number of arguments |
+| `E0049` | `type` | invalid named argument |
+| `E0050` | `type` | `ref` parameter and argument mismatch |
+| `E0051` | `type` | invalid spread argument |
+| `E0052` | `type` | value is not callable |
+| `E0053` | `type` | invalid cast |
+| `E0054` | `type` | operator cannot be applied |
+| `E0055` | `type` | literal fits several types |
+| `E0056` | `type` | invalid indexing |
+| `E0057` | `type` | invalid assignment |
+| `E0058` | `type` | invalid closure capture |
+| `E0059` | `type` | keyword outside its context |
+| `E0060` | `type` | `let .. else` that does not diverge |
+| `E0061` | `type` | operation needs `unsafe` |
+| `E0062` | `type` | error not handled |
+| `E0063` | `type` | thrown value is not an `Error` |
+| `E0064` | `type` | optional operator on a value that is not optional |
+| `E0065` | `type` | lock guard not released by `using` |
+| `E0066` | `type` | `using` on a value without `Drop` |
+| `E0067` | `type` | block statement leaves a value |
+| `E0068` | `type` | value cannot be iterated |
+| `E0069` | `type` | trait bound not satisfied |
+| `E0070` | `type` | not a trait |
+| `E0071` | `type` | trait used as a type |
+| `E0072` | `type` | impl is missing a trait item |
+| `E0073` | `type` | impl item is not in the trait |
+| `E0074` | `type` | impl item does not match the trait |
+| `E0075` | `type` | conflicting implementations |
+| `E0076` | `type` | impl of a foreign trait for a foreign type |
+| `E0077` | `type` | supertrait not implemented |
+| `E0078` | `type` | impl not allowed |
+| `E0079` | `type` | cannot evaluate at compile time |
+| `E0080` | `type` | definition depends on itself |
+| `E0081` | `type` | invalid const generic argument |
+| `E0082` | `type` | wrong generic arguments |
+| `E0083` | `type` | invalid enum value |
+| `E0084` | `type` | invalid foreign-function use |
+| `E0085` | `type` | value cannot cross threads |
+| `E0086` | `type` | invalid union |
+| `E0087` | `type` | ambiguous associated item |
+| `E0088` | `type` | invalid format |
+| `E0089` | `type` | invalid compiler built-in call |
+| `E0090` | `type` | invalid coroutine use |
+| `E0091` | `type` | invalid broadcast |
+| `E0092` | `type` | `Drop::drop` called directly |
+| `E0093` | `type` | generic instantiation too deep |
+| `E0094` | `type` | invalid representation |
+| `E0095` | `type` | type too large |
+| `E0096` | `type` | `try` or `catch` that does nothing |
+| `E0097` | `type` | ROKON value of the wrong shape |
+| `E0098` | `pattern` | non-exhaustive match |
+| `E0099` | `pattern` | unreachable match arm |
+| `E0100` | `pattern` | pattern does not fit the value's type |
+| `E0101` | `pattern` | wrong number of fields in a pattern |
+| `E0102` | `pattern` | or-pattern alternatives bind differently |
+| `E0103` | `pattern` | binding looks like a variant |
+| `E0104` | `pattern` | invalid rest pattern |
+| `E0105` | `handoff` | value used after it was handed over |
+| `E0106` | `handoff` | value used after its lock was released |
+| `E0107` | `handoff` | shared value handed over |
+| `E0108` | `meta` | cannot derive |
+| `E0109` | `meta` | malformed attribute |
+| `E0110` | `meta` | attribute on the wrong item |
+| `E0111` | `meta` | invalid `#[lang]` item |
+| `E0112` | `meta` | invalid operator declaration |
+| `E0113` | `meta` | invalid `#[keyword]` declaration |
+| `E0114` | `meta` | invalid literal handler |
+| `E0115` | `meta` | invalid `#[intrinsic]` |
+| `E0116` | `meta` | malformed macro definition |
+| `E0117` | `meta` | no macro rule matches |
+| `E0118` | `meta` | invalid meta template |
+| `E0119` | `meta` | invalid meta block |
+| `E0120` | `meta` | recursive expansion |
+| `E0121` | `meta` | invalid `cfg` predicate |
+| `E0122` | `meta` | file include failed |
+| `E0123` | `meta` | registered twice |
+| `E0124` | `meta` | meta name cannot be resolved |
+| `E0125` | `other` | cannot read or write a file |
+| `E0126` | `linkage` | link failed |
+| `E0127` | `codegen` | code generation failed |
+| `E0128` | `linkage` | external tool failed |
+| `E0129` | `module` | invalid WIT |
+| `E0130` | `unsupported` | not supported by this backend |
+| `E0131` | `internal` | internal compiler error |
+| `E0132` | `lint` | lint |
+| `E0133` | `other` | invalid compiler option |
+| `E0134` | `handoff` | resource used after it was moved or closed |
+| `E0135` | `handoff` | resource not closed |
+| `E0136` | `resolve` | trait of the method not in scope |
+| `E0137` | `handoff` | thread-local value kept past `with` |
+| `E0138` | `handoff` | list view used after a resize |
 
-이 사양은 영역별 코드 접두사를 보장합니다. 개별 코드가 생기면 같은 영역 안에서 세분합니다.
+`kind` 값은 `lexical`, `parse`, `resolve`, `visibility`, `module`, `type`, `pattern`, `handoff`(넘긴 뒤의 사용, [stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync-스레드-경계-마커), 또는 리스트 크기를 바꾼 뒤의 `SliceMut` 사용, [stdlib 2.9.7a](../../refs-standard-libraries/200-core/209-collections.md#297a-slicemutt-쓰기-가능한-뷰)), `meta`, `lowering`, `codegen`, `linkage`, `unsupported`, `internal`, `other`, `lint`입니다.
+
+#### 0.2.0 이전의 코드
+
+0.1.x까지는 코드 하나가 영역 전체를 가리켰습니다(모든 타입 에러가 `E200`). 옛 코드는 이제 아래 코드들로 나뉩니다. 옛 코드에 맞추던 도구는 이 코드들에 맞추거나 `kind`로 맞추면 됩니다.
+
+| 옛 코드 | 새 코드 |
+|---------|---------|
+| `E001` | `E0001`, `E0002`, `E0003`, `E0004`, `E0005`, `E0006`, `E0007`, `E0008`, `E0009` |
+| `E002` | `E0008`, `E0010`, `E0011`, `E0012`, `E0013`, `E0014`, `E0015`, `E0016`, `E0017`, `E0018`, `E0019`, `E0020`, `E0021`, `E0022`, `E0023`, `E0024`, `E0025`, `E0026`, `E0100`, `E0104`, `E0109`, `E0110`, `E0114`, `E0119`, `E0120`, `E0121`, `E0122` |
+| `E100` | `E0027`, `E0028`, `E0082` |
+| `E101` | (쓰이지 않음) |
+| `E102` | `E0030`, `E0031`, `E0032`, `E0033`, `E0034`, `E0035`, `E0036`, `E0037`, `E0125`, `E0129` |
+| `E200` | `E0003`, `E0004`, `E0007`, `E0012`, `E0018`, `E0023`, `E0024`, `E0025`, `E0026`, `E0029`, `E0031`, `E0034`, `E0036`, `E0038`, `E0039`, `E0040`, `E0041`, `E0042`, `E0043`, `E0044`, `E0045`, `E0046`, `E0047`, `E0048`, `E0049`, `E0050`, `E0051`, `E0052`, `E0053`, `E0054`, `E0055`, `E0056`, `E0057`, `E0058`, `E0059`, `E0060`, `E0061`, `E0062`, `E0063`, `E0064`, `E0065`, `E0066`, `E0067`, `E0068`, `E0069`, `E0070`, `E0071`, `E0072`, `E0073`, `E0074`, `E0075`, `E0076`, `E0077`, `E0078`, `E0079`, `E0080`, `E0081`, `E0082`, `E0083`, `E0084`, `E0085`, `E0086`, `E0087`, `E0088`, `E0089`, `E0090`, `E0091`, `E0092`, `E0093`, `E0094`, `E0095`, `E0096`, `E0097`, `E0098`, `E0099`, `E0100`, `E0101`, `E0102`, `E0103`, `E0104`, `E0108`, `E0110`, `E0114`, `E0123`, `E0131` |
+| `E201` | (쓰이지 않음) |
+| `E202` | `E0105`, `E0106`, `E0107` |
+| `E300` | `E0033`, `E0034`, `E0108`, `E0109`, `E0110`, `E0111`, `E0112`, `E0113`, `E0114`, `E0115`, `E0116`, `E0117`, `E0118`, `E0119`, `E0120`, `E0121`, `E0123`, `E0124` |
+| `E400` | (쓰이지 않음) |
+| `E401` | (쓰이지 않음) |
+| `E402` | `E0125`, `E0126`, `E0127`, `E0128`, `E0131`, `E0133` |
+| `E500` | `E0130` |
+| `E501` | `E0131` |
+| `E502` | (쓰이지 않음) |
+| `E503` | `E0132` |
 
 ## 9.9.5. 로그 / 진행 표시
 
@@ -390,7 +528,7 @@ rokc build --message-format=json --no-color > build.log
 | `case`    | `name`, `result`(`ok`, `failed`, 또는 아무것도 측정하지 않은 벤치의 `ignored`), `ms`(그 프로세스의 실제 경과 시간). `result`가 `ok`인 벤치에는 `#rokbench` 줄([9.1.2](901-rokc-cli.md#rokc-bench-벤치마크))과 같은 `median_ns`, `mad_ns`, `samples`, `outliers`, `gc`, `bytes`, `items`도 있음 |
 | `summary` | `result`(`ok`나 `failed`), `ms`, 그리고 개수. 테스트는 `passed`, `failed`, `filtered_out`, 벤치는 `run`, `failed`, `ignored`, `filtered_out` |
 
-summary는 하네스마다 그 case들 뒤에 옵니다. 그래서 루트 파일이 둘 다 있는 패키지는 라이브러리 실행이 통과하면 summary가 둘입니다. 레코드는 JSON 진단의 `schema` 규칙([9.9.4](#994-진단--에러-메시지))을 따르므로, 읽는 쪽은 모르는 필드를 무시합니다. `--message-format=json`을 함께 주면 빌드 진단도 같은 stdout에 JSON 줄로 나옵니다. 진단은 `type`(`error`, `warning`, ..)으로 레코드와 구별합니다.
+summary는 하네스마다 그 case들 뒤에 옵니다. 그래서 루트 파일이 둘 다 있는 패키지는 라이브러리 실행이 통과하면 summary가 둘입니다. 레코드는 자기 번호(여전히 `1`)로 JSON 진단의 `schema` 규칙([9.9.4](#994-진단--에러-메시지))을 따르므로, 읽는 쪽은 모르는 필드를 무시합니다. `--message-format=json`을 함께 주면 빌드 진단도 같은 stdout에 JSON 줄로 나옵니다. 진단은 `type`(`error`, `warning`, ..)으로 레코드와 구별합니다.
 
 ### 종료 코드
 

@@ -293,7 +293,7 @@ rokc check [path] [--check-library]
 rokc lint [path] [--list]
 ```
 
-`rokc check`에서 코드 생성을 뺀 것입니다. 컴파일하는 모든 명령이 같은 린트를 보고합니다([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). `lint`는 린트와 프런트엔드만 돌립니다. 진단 형식은 9.1.8을 따르고, 린트 진단의 코드는 `E503`입니다. 린트 목록과 그룹은 [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)에 있습니다. `--list`는 린트를 기본 수준, 추가된 릴리스와 함께 출력하고, 이어서 그룹을 출력합니다.
+`rokc check`에서 코드 생성을 뺀 것입니다. 컴파일하는 모든 명령이 같은 린트를 보고합니다([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). `lint`는 린트와 프런트엔드만 돌립니다. 진단 형식은 9.1.8을 따르고, 린트 진단의 코드는 `E0132`입니다. 린트 목록과 그룹은 [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)에 있습니다. `--list`는 린트를 기본 수준, 추가된 릴리스와 함께 출력하고, 이어서 그룹을 출력합니다.
 
 린트 수준은 전역 옵션 `-A` / `-W` / `-D`(9.1.5)와 코드의 속성이 정합니다. `deny` 수준의 린트가 하나라도 걸리면 종료 코드는 `1`입니다.
 
@@ -447,6 +447,7 @@ rokc <subcommand> --help
 | `--cwd=<path>`                   | 작업 디렉터리를 바꾼 뒤 실행                                |
 | `--print cfg\|target-list\|target-spec\|lldbinit` | 활성 cfg, 내장 타깃 이름, 타깃 사양, 또는 Rok의 formatter를 로드하는 lldb 명령을 출력(9.1.4) |
 | `--message-format=human\|json`   | 진단 형식. `json`은 stdout에 한 줄씩(9.1.8)              |
+| `--explain <code>`               | 에러 코드(`E0040`)의 설명, 곧 뜻과 대신 쓸 코드를 출력하고 끝냄([9.9.4](909-debug-tools.md#에러-코드)) |
 | `-A` / `-W` / `-D <lint \| group>` | 린트 수준(`--allow` / `--warn` / `--deny`). 패키지를 컴파일하는 모든 명령(`build`, `run`, `test`, `bench`, `emit`, `check`, `lint`, `lsp`)에 적용. 여러 번 쓸 수 있고 뒤의 것이 이김 |
 
 린트 수준은 린트의 기본 수준 < `-A` / `-W` / `-D` < 코드의 `#[allow(..)]` / `#[warn(..)]` / `#[deny(..)]`(가장 안쪽이 이김) 순으로 정합니다. `rok`은 매니페스트의 `lints`를 이 플래그로 바꿔 앞에 붙여 넘깁니다([9.10.1](910-rok-frontend.md#9101-서브명령과-전역-옵션)).
@@ -512,7 +513,7 @@ rokc --cwd=examples/hello run
 진단 메시지는 다음 형식으로 출력합니다.
 
 ```
-error[E100]: cannot find value `count` in this scope
+error[E0027]: cannot find value `count` in this scope
   --> src/main.rok:5:13
    |
  2 |     let counter = 0;

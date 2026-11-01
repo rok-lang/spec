@@ -147,7 +147,7 @@ trait Drop {
 
 A value whose type implements `Drop` is affine: it has one owner, and it is released once. A struct, tuple, enum or sum that holds one is affine too.
 
-- `let b = a` moves the value: `b` owns it, and using `a` afterwards is a compile error (E202). Storing it into a struct, a tuple, an enum or a container, capturing it in a closure or an `async` block, and returning it move it the same way.
+- `let b = a` moves the value: `b` owns it, and using `a` afterwards is a compile error (E0134). Storing it into a struct, a tuple, an enum or a container, capturing it in a closure or an `async` block, and returning it move it the same way.
 - A call takes the value only when the callee keeps it: stores it, returns it, closes it, or passes it to a call that keeps it. Any other call borrows it, and the caller still owns it. An `async fn` call that is awaited at once is such a call too: the argument comes back to the caller when the `await` ends, unless the function's body keeps it.
 - An element seen while iterating a container (`for x in list`) or read from one stays the container's.
 - `clone()` (`try_clone()` for a `File`) makes an independent value with its own owner.
@@ -329,7 +329,7 @@ Both traits are **automatic marker traits** with no methods; the compiler implem
 - Primitive numbers, `bool`, `char`, `c_char`, `str` and `none` are `Send + Sync`.
 - A `struct`, `enum`, `union`, tuple, array or sum type is `Send` if all its fields (components) are `Send`, and `Sync` if all are `Sync`. `Send` for a generic container follows `T` by the same rule.
 - Collections (`List`, `Dict`, `Set`, `StrBuf`, `Deque`, `BinaryHeap`, `Slice`) are `Send` and `!Sync`: they share a mutable handle. Across threads they are shared through `Mutex` / `RwLock` / channels.
-- Rok has no move semantics. Handing a value over (`Mutex::new(xs)`, `RwLock::new(xs)`, `tx.send(xs)` / `try_send` / `send_async`, `Handoff::new(xs)`) leaves the sender's handle pointing at the object the new owner now shares with other threads. A handle taken out of a guard (`get`), given to it (`set`) or reached by `update`'s closure still points at the guarded object after the guard's `using` block ends. Using such a value afterwards, on any path, is a compile error (`E202`, [refs-lang 9.9.4](../../refs-lang/009-tools/909-debug-tools.md#994-diagnostics--error-messages)). The value is followed through:
+- Rok has no move semantics. Handing a value over (`Mutex::new(xs)`, `RwLock::new(xs)`, `tx.send(xs)` / `try_send` / `send_async`, `Handoff::new(xs)`) leaves the sender's handle pointing at the object the new owner now shares with other threads. A handle taken out of a guard (`get`), given to it (`set`) or reached by `update`'s closure still points at the guarded object after the guard's `using` block ends. Using such a value afterwards, on any path, is a compile error (`E0106`, [refs-lang 9.9.4](../../refs-lang/009-tools/909-debug-tools.md#994-diagnostics--error-messages)). The value is followed through:
   - copies (`let ys = xs`, a struct field or tuple element, a field assignment);
   - the fields it is passed by (`Mutex::new(s.items)`);
   - the objects that hold it (`all.push(xs)`, a closure that captures it), both ways: handing over `xs` leaves `all` unusable too;

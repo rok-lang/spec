@@ -146,7 +146,7 @@ try thread::spawn(|| {
 }).join();
 ```
 
-The shape follows Rust's `LocalKey`. `with(f)` lends the current thread's value to `f` and returns what `f` returns. The value is a scoped view, tracked like a lock guard's value ([stdlib 2.16.3](../200-core/216-sync.md#2163-mutext---exclusive-lock)): returning it out of `f`, storing it past the call (a capture, a field, a `Cell`), sending it, or passing it to a callee that keeps it is compile error E202, and so is giving `with` an `async` closure, whose future would hold the value across an `await` and could resume on another worker thread. Keep a `clone()`, or what `f` computes, instead.
+The shape follows Rust's `LocalKey`. `with(f)` lends the current thread's value to `f` and returns what `f` returns. The value is a scoped view, tracked like a lock guard's value ([stdlib 2.16.3](../200-core/216-sync.md#2163-mutext---exclusive-lock)): returning it out of `f`, storing it past the call (a capture, a field, a `Cell`), sending it, or passing it to a callee that keeps it is compile error E0137, and so is giving `with` an `async` closure, whose future would hold the value across an `await` and could resume on another worker thread. Keep a `clone()`, or what `f` computes, instead.
 
 ```rok
 static SEEN: ThreadLocal<List<str>> = thread::local(|| -> List<str> { [] });

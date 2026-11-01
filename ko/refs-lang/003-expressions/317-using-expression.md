@@ -97,7 +97,7 @@ let content = using f = try fs::open(path) {
 
 panic과 fatal 에러는 프로세스를 바로 종료하므로 `drop`을 호출하지 않습니다([3.14.8](314-error-control-flow.md#3148-panic과-fatal-에러)). panic의 일반적인 동작이며, `using`에만 해당하지 않습니다.
 
-값은 한 번만 해제합니다([stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop-using-해제-시-정리)). `using x = a { .. }`는 `a`를 `x`로 옮기므로, 두 번째 `using y = a { .. }`나 첫 블록 뒤의 `a` 사용은 컴파일 에러(E202)입니다. `using`마다 그 자리에서 만든 값을 묶거나(`using g = m.lock() { .. }`), 할 일을 모두 한 `using` 블록 안에서 합니다. 블록 안에서 닫은 값(`try x.close()`)은 다시 해제하지 않습니다.
+값은 한 번만 해제합니다([stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop-using-해제-시-정리)). `using x = a { .. }`는 `a`를 `x`로 옮기므로, 두 번째 `using y = a { .. }`나 첫 블록 뒤의 `a` 사용은 컴파일 에러(E0134)입니다. `using`마다 그 자리에서 만든 값을 묶거나(`using g = m.lock() { .. }`), 할 일을 모두 한 `using` 블록 안에서 합니다. 블록 안에서 닫은 값(`try x.close()`)은 다시 해제하지 않습니다.
 
 ## 3.17.7. 묶을 수 있는 타입
 

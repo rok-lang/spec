@@ -120,7 +120,7 @@ tuple struct도 필드마다 가시성이 있고, 기본은 비공개입니다(`
 
 ## 2.3.7. 같은 모듈 내 중복 정의 금지
 
-같은 모듈에서 같은 이름의 struct를 두 번 선언하면 컴파일 에러입니다. 한 struct 안에서 필드 이름이 겹쳐도 에러입니다. 이 규칙은 가시성 단계와 상관없이 적용됩니다. tuple struct와 unit struct의 생성자는 함수, `const`, `static`과 같은 이름공간에 있는 값입니다([4.1.10](../004-functions/401-function-declaration.md#4110-같은-모듈-내-중복-정의-금지)). 같은 모듈에 `struct Point(i32, i32);`와 이름이 `Point`인 `fn`, `const`, `static`이 함께 있으면 중복 정의(E200)입니다.
+같은 모듈에서 같은 이름의 struct를 두 번 선언하면 컴파일 에러입니다. 한 struct 안에서 필드 이름이 겹쳐도 에러입니다. 이 규칙은 가시성 단계와 상관없이 적용됩니다. tuple struct와 unit struct의 생성자는 함수, `const`, `static`과 같은 이름공간에 있는 값입니다([4.1.10](../004-functions/401-function-declaration.md#4110-같은-모듈-내-중복-정의-금지)). 같은 모듈에 `struct Point(i32, i32);`와 이름이 `Point`인 `fn`, `const`, `static`이 함께 있으면 중복 정의(`E0026`)입니다.
 
 ## 2.3.8. 값 의미
 

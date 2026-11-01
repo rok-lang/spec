@@ -81,7 +81,7 @@ generics: a7c91d8e44b2f190 (type tuple hash)
 Diagnostic messages are printed in the following standard format.
 
 ```
-error[E100]: cannot find value `count` in this scope
+error[E0027]: cannot find value `count` in this scope
   --> src/main.rok:5:13
    |
  2 |     let counter = 0;
@@ -110,64 +110,200 @@ rokc build --message-format=json
 Each diagnostic is one line of JSON object on stdout (the human format goes to stderr).
 
 ```json
-{"type":"error","code":"E200","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"...","line_end":5,"col_end":15}],"notes":["..."],"fixes":[],"spec":["..."],"help":[],"lint":null,"schema":1}
+{"type":"error","code":"E0040","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"...","line_end":5,"col_end":15}],"notes":["..."],"fixes":[],"spec":["..."],"help":["..."],"lint":null,"schema":2}
 ```
 
 | Field      | Meaning                                                            |
 |------------|--------------------------------------------------------------------|
 | `type`     | `error` / `fatal` / `warning` / `note`                             |
-| `code`     | Code of the error kind (table below)                               |
-| `kind`     | Name of the error kind                                             |
+| `code`     | The error code, `E0040` ([error codes](#error-codes))             |
+| `kind`     | The area the code belongs to (`type`, `parse`, ..)                 |
 | `message`  | Message                                                            |
 | `spans`    | List of locations. The first element is the primary location (`is_primary: true`); the rest are secondary |
-| `notes`    | List of note strings; a help entry starts with `help: `            |
+| `notes`    | List of note strings, without the help entries                     |
 | `fixes`    | Edits that fix the code, each a span of one file with the `text` that replaces it and a `title` (below); often empty |
 | `spec`     | Sections the message and notes cite (`spec 3.12.5`), which the human format leaves out |
-| `help`     | The help entries of `notes`, without the `help: ` prefix           |
+| `help`     | The help entries (the `= help:` lines of the human format), without the `help: ` prefix |
 | `lint`     | The lint a warning or lint error belongs to (`unused_variables`), the name `#[allow(..)]` and `-A` take ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)); `null` for the others |
-| `schema`   | The version of this format, now `1`                                |
+| `schema`   | The version of this format, now `2`                                |
 
 A span has `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_primary`, `label`, `line_end` and `col_end`. `line_end` / `col_end` are where the span ends (the position just past its last character), counted like `line_start` / `col_start` in code points; they are `null` when the source text is not at hand. A diagnostic that knows only the file and no position has just `{"file_name": .., "is_primary": true}`. A fix has `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `text`, `title` (``convert with `as i32` ``), `line_end` and `col_end`; the language server offers it as a quick fix ([9.9.13](#9913-lsp-server)).
 
-Within one `schema`, fields are only added, never removed, renamed or given another meaning, so a reader should ignore fields it does not know. A help entry stays in `notes` as well while `schema` is `1`. The test, bench and `rok deps` records ([9.9.12](#9912-ci--test-integration), [9.10.4](910-rok-frontend.md#9104-dependencies-rok-add--remove--update--deps)) follow the same rule with their own `schema`.
+Within one `schema`, fields are only added, never removed, renamed or given another meaning, so a reader should ignore fields it does not know. Schema `2` (0.2.0) changed two fields: `code` is the code of the error kind instead of its area (below), and `notes` no longer repeats the help entries, which are only in `help`. The test, bench and `rok deps` records ([9.9.12](#9912-ci--test-integration), [9.10.4](910-rok-frontend.md#9104-dependencies-rok-add--remove--update--deps)) follow the same rule with their own `schema`, still `1`.
 
 This format lets IDEs and CI systems read diagnostics mechanically.
 
-### Diagnostic categories
+### Error codes
 
-Diagnostic codes are classified by area as follows.
+Every kind of error has its own code, `E` and four digits: `E0040` for mismatched types, `E0027` for a name that is not found. Codes are numbered in the order they were added, not by area; the `kind` field gives the area. A code is never reused: when a kind of error goes away its code stays reserved, and a new kind takes the next free number. A diagnostic of a lint ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)) has the lint code `E0132` whatever part of the compiler raised it, and names the lint in its note and in `lint`.
 
-| Code prefix     | Area                   |
-|-----------------|------------------------|
-| `E001` ~ `E099` | Lexical / syntax       |
-| `E100` ~ `E199` | Name resolution / visibility |
-| `E200` ~ `E299` | Type system            |
-| `E300` ~ `E399` | Meta / magic           |
-| `E400` ~ `E499` | Build / link           |
-| `E500` ~        | Additional categories  |
+`rokc --explain <code>` (also `rok --explain`) prints the code's page: its title, what it means and what to write instead ([9.1.5](901-rokc-cli.md#915-global-options)). `E0040`, `e0040` and `40` name the same code; a code that does not exist is a usage error (exit code 2). The error pages of the documentation are the same pages, one per code.
 
-There is one code per error kind. Diagnostics of the same kind have the same code.
+| Code    | `kind`        | Title                        |
+|---------|---------------|------------------------------|
+| `E0001` | `lexical` | unexpected character in source |
+| `E0002` | `lexical` | bidirectional control character in source |
+| `E0003` | `lexical` | malformed numeric literal |
+| `E0004` | `lexical` | literal out of range for its type |
+| `E0005` | `lexical` | unterminated literal or comment |
+| `E0006` | `lexical` | invalid escape in a literal |
+| `E0007` | `lexical` | a character literal holds one character |
+| `E0008` | `lexical` | malformed f-string |
+| `E0009` | `lexical` | name cannot be a raw identifier |
+| `E0010` | `parse` | unexpected token |
+| `E0011` | `parse` | nesting too deep |
+| `E0012` | `parse` | syntax from another language |
+| `E0013` | `parse` | struct literal in a block head |
+| `E0014` | `parse` | modifiers out of order |
+| `E0015` | `parse` | doc comment documents nothing |
+| `E0016` | `parse` | visibility where it has no meaning |
+| `E0017` | `parse` | item in the wrong place |
+| `E0018` | `parse` | `return` in top-level statements |
+| `E0019` | `parse` | operators that need parentheses |
+| `E0020` | `parse` | `return` in a trailing closure |
+| `E0021` | `parse` | reserved word used as a name |
+| `E0022` | `parse` | `let` without a value |
+| `E0023` | `parse` | invalid function signature |
+| `E0024` | `parse` | invalid generic parameters |
+| `E0025` | `parse` | unsupported ABI |
+| `E0026` | `resolve` | name defined more than once |
+| `E0027` | `resolve` | cannot find value or function |
+| `E0028` | `resolve` | cannot find type or trait |
+| `E0029` | `resolve` | cannot find enum variant |
+| `E0030` | `module` | unresolved import |
+| `E0031` | `resolve` | ambiguous name |
+| `E0032` | `module` | conflicting imports |
+| `E0033` | `module` | invalid re-export |
+| `E0034` | `visibility` | item is private |
+| `E0035` | `module` | module file problem |
+| `E0036` | `module` | invalid program entry point |
+| `E0037` | `module` | invalid dependency |
+| `E0038` | `resolve` | local declared twice |
+| `E0039` | `resolve` | nested item uses an outer local |
+| `E0040` | `type` | mismatched types |
+| `E0041` | `type` | branches of different types |
+| `E0042` | `type` | type annotations needed |
+| `E0043` | `type` | no such field |
+| `E0044` | `type` | missing field in a literal |
+| `E0045` | `type` | field given more than once |
+| `E0046` | `type` | no such method or associated item |
+| `E0047` | `type` | item used in the wrong form |
+| `E0048` | `type` | wrong number of arguments |
+| `E0049` | `type` | invalid named argument |
+| `E0050` | `type` | `ref` parameter and argument mismatch |
+| `E0051` | `type` | invalid spread argument |
+| `E0052` | `type` | value is not callable |
+| `E0053` | `type` | invalid cast |
+| `E0054` | `type` | operator cannot be applied |
+| `E0055` | `type` | literal fits several types |
+| `E0056` | `type` | invalid indexing |
+| `E0057` | `type` | invalid assignment |
+| `E0058` | `type` | invalid closure capture |
+| `E0059` | `type` | keyword outside its context |
+| `E0060` | `type` | `let .. else` that does not diverge |
+| `E0061` | `type` | operation needs `unsafe` |
+| `E0062` | `type` | error not handled |
+| `E0063` | `type` | thrown value is not an `Error` |
+| `E0064` | `type` | optional operator on a value that is not optional |
+| `E0065` | `type` | lock guard not released by `using` |
+| `E0066` | `type` | `using` on a value without `Drop` |
+| `E0067` | `type` | block statement leaves a value |
+| `E0068` | `type` | value cannot be iterated |
+| `E0069` | `type` | trait bound not satisfied |
+| `E0070` | `type` | not a trait |
+| `E0071` | `type` | trait used as a type |
+| `E0072` | `type` | impl is missing a trait item |
+| `E0073` | `type` | impl item is not in the trait |
+| `E0074` | `type` | impl item does not match the trait |
+| `E0075` | `type` | conflicting implementations |
+| `E0076` | `type` | impl of a foreign trait for a foreign type |
+| `E0077` | `type` | supertrait not implemented |
+| `E0078` | `type` | impl not allowed |
+| `E0079` | `type` | cannot evaluate at compile time |
+| `E0080` | `type` | definition depends on itself |
+| `E0081` | `type` | invalid const generic argument |
+| `E0082` | `type` | wrong generic arguments |
+| `E0083` | `type` | invalid enum value |
+| `E0084` | `type` | invalid foreign-function use |
+| `E0085` | `type` | value cannot cross threads |
+| `E0086` | `type` | invalid union |
+| `E0087` | `type` | ambiguous associated item |
+| `E0088` | `type` | invalid format |
+| `E0089` | `type` | invalid compiler built-in call |
+| `E0090` | `type` | invalid coroutine use |
+| `E0091` | `type` | invalid broadcast |
+| `E0092` | `type` | `Drop::drop` called directly |
+| `E0093` | `type` | generic instantiation too deep |
+| `E0094` | `type` | invalid representation |
+| `E0095` | `type` | type too large |
+| `E0096` | `type` | `try` or `catch` that does nothing |
+| `E0097` | `type` | ROKON value of the wrong shape |
+| `E0098` | `pattern` | non-exhaustive match |
+| `E0099` | `pattern` | unreachable match arm |
+| `E0100` | `pattern` | pattern does not fit the value's type |
+| `E0101` | `pattern` | wrong number of fields in a pattern |
+| `E0102` | `pattern` | or-pattern alternatives bind differently |
+| `E0103` | `pattern` | binding looks like a variant |
+| `E0104` | `pattern` | invalid rest pattern |
+| `E0105` | `handoff` | value used after it was handed over |
+| `E0106` | `handoff` | value used after its lock was released |
+| `E0107` | `handoff` | shared value handed over |
+| `E0108` | `meta` | cannot derive |
+| `E0109` | `meta` | malformed attribute |
+| `E0110` | `meta` | attribute on the wrong item |
+| `E0111` | `meta` | invalid `#[lang]` item |
+| `E0112` | `meta` | invalid operator declaration |
+| `E0113` | `meta` | invalid `#[keyword]` declaration |
+| `E0114` | `meta` | invalid literal handler |
+| `E0115` | `meta` | invalid `#[intrinsic]` |
+| `E0116` | `meta` | malformed macro definition |
+| `E0117` | `meta` | no macro rule matches |
+| `E0118` | `meta` | invalid meta template |
+| `E0119` | `meta` | invalid meta block |
+| `E0120` | `meta` | recursive expansion |
+| `E0121` | `meta` | invalid `cfg` predicate |
+| `E0122` | `meta` | file include failed |
+| `E0123` | `meta` | registered twice |
+| `E0124` | `meta` | meta name cannot be resolved |
+| `E0125` | `other` | cannot read or write a file |
+| `E0126` | `linkage` | link failed |
+| `E0127` | `codegen` | code generation failed |
+| `E0128` | `linkage` | external tool failed |
+| `E0129` | `module` | invalid WIT |
+| `E0130` | `unsupported` | not supported by this backend |
+| `E0131` | `internal` | internal compiler error |
+| `E0132` | `lint` | lint |
+| `E0133` | `other` | invalid compiler option |
+| `E0134` | `handoff` | resource used after it was moved or closed |
+| `E0135` | `handoff` | resource not closed |
+| `E0136` | `resolve` | trait of the method not in scope |
+| `E0137` | `handoff` | thread-local value kept past `with` |
+| `E0138` | `handoff` | list view used after a resize |
 
-| Code   | `kind`        | Kind                         |
-|--------|---------------|------------------------------|
-| `E001` | `lexical`     | Lexical                      |
-| `E002` | `parse`       | Syntax                       |
-| `E100` | `resolve`     | Name resolution              |
-| `E101` | `visibility`  | Visibility                   |
-| `E102` | `module`      | Module / file                |
-| `E200` | `type`        | Type                         |
-| `E201` | `pattern`     | Pattern / exhaustiveness     |
-| `E202` | `handoff`     | Use after hand-off ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers)); a `SliceMut` used after its list was resized ([stdlib 2.9.7a](../../refs-standard-libraries/200-core/209-collections.md#297a-slicemutt---writable-view)) |
-| `E300` | `meta`        | Meta block / attribute / keyword magic |
-| `E400` | `lowering`    | HIR / MIR lowering           |
-| `E401` | `codegen`     | Code generation              |
-| `E402` | `linkage`     | External tool / link         |
-| `E500` | `unsupported` | Syntax the compiler does not handle |
-| `E501` | `internal`    | Compiler internal            |
-| `E502` | `other`       | Other                        |
-| `E503` | `lint`        | lint ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control), `rokc lint`) |
+The `kind` values are `lexical`, `parse`, `resolve`, `visibility`, `module`, `type`, `pattern`, `handoff` (use after hand-off, [stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers), or of a `SliceMut` after its list was resized, [stdlib 2.9.7a](../../refs-standard-libraries/200-core/209-collections.md#297a-slicemutt---writable-view)), `meta`, `lowering`, `codegen`, `linkage`, `unsupported`, `internal`, `other` and `lint`.
 
-This specification guarantees the per-area code prefixes. When individual codes are introduced, they are subdivided within the same area.
+#### Codes before 0.2.0
+
+Up to 0.1.x a code named a whole area (`E200` for every type error). Each old code now splits into the codes below; a tool that matched an old code matches these, or matches on `kind`.
+
+| Old code | New codes |
+|----------|-----------|
+| `E001` | `E0001`, `E0002`, `E0003`, `E0004`, `E0005`, `E0006`, `E0007`, `E0008`, `E0009` |
+| `E002` | `E0008`, `E0010`, `E0011`, `E0012`, `E0013`, `E0014`, `E0015`, `E0016`, `E0017`, `E0018`, `E0019`, `E0020`, `E0021`, `E0022`, `E0023`, `E0024`, `E0025`, `E0026`, `E0100`, `E0104`, `E0109`, `E0110`, `E0114`, `E0119`, `E0120`, `E0121`, `E0122` |
+| `E100` | `E0027`, `E0028`, `E0082` |
+| `E101` | (none emitted) |
+| `E102` | `E0030`, `E0031`, `E0032`, `E0033`, `E0034`, `E0035`, `E0036`, `E0037`, `E0125`, `E0129` |
+| `E200` | `E0003`, `E0004`, `E0007`, `E0012`, `E0018`, `E0023`, `E0024`, `E0025`, `E0026`, `E0029`, `E0031`, `E0034`, `E0036`, `E0038`, `E0039`, `E0040`, `E0041`, `E0042`, `E0043`, `E0044`, `E0045`, `E0046`, `E0047`, `E0048`, `E0049`, `E0050`, `E0051`, `E0052`, `E0053`, `E0054`, `E0055`, `E0056`, `E0057`, `E0058`, `E0059`, `E0060`, `E0061`, `E0062`, `E0063`, `E0064`, `E0065`, `E0066`, `E0067`, `E0068`, `E0069`, `E0070`, `E0071`, `E0072`, `E0073`, `E0074`, `E0075`, `E0076`, `E0077`, `E0078`, `E0079`, `E0080`, `E0081`, `E0082`, `E0083`, `E0084`, `E0085`, `E0086`, `E0087`, `E0088`, `E0089`, `E0090`, `E0091`, `E0092`, `E0093`, `E0094`, `E0095`, `E0096`, `E0097`, `E0098`, `E0099`, `E0100`, `E0101`, `E0102`, `E0103`, `E0104`, `E0108`, `E0110`, `E0114`, `E0123`, `E0131` |
+| `E201` | (none emitted) |
+| `E202` | `E0105`, `E0106`, `E0107` |
+| `E300` | `E0033`, `E0034`, `E0108`, `E0109`, `E0110`, `E0111`, `E0112`, `E0113`, `E0114`, `E0115`, `E0116`, `E0117`, `E0118`, `E0119`, `E0120`, `E0121`, `E0123`, `E0124` |
+| `E400` | (none emitted) |
+| `E401` | (none emitted) |
+| `E402` | `E0125`, `E0126`, `E0127`, `E0128`, `E0131`, `E0133` |
+| `E500` | `E0130` |
+| `E501` | `E0131` |
+| `E502` | (none emitted) |
+| `E503` | `E0132` |
 
 ## 9.9.5. Logging / progress display
 
@@ -385,7 +521,7 @@ This output is suitable for CI systems to parse.
 | `case`    | `name`; `result`: `ok`, `failed`, or `ignored` (a benchmark that measured nothing); `ms`, the wall time of its process. A benchmark with `result` `ok` also has `median_ns`, `mad_ns`, `samples`, `outliers`, `gc`, `bytes` and `items`, as in the `#rokbench` line ([9.1.2](901-rokc-cli.md#rokc-bench-benchmarks)) |
 | `summary` | `result` (`ok` or `failed`), `ms`, and the counts: for tests `passed`, `failed`, `filtered_out`; for benchmarks `run`, `failed`, `ignored`, `filtered_out` |
 
-A summary follows the cases of each harness, so a package with both root files has two when its library's run passes. Records follow the `schema` rule of the JSON diagnostics ([9.9.4](#994-diagnostics--error-messages)): a reader ignores fields it does not know. With `--message-format=json`, the build's diagnostics are JSON lines on the same stdout; their `type` (`error`, `warning`, ..) tells them apart from records.
+A summary follows the cases of each harness, so a package with both root files has two when its library's run passes. Records follow the `schema` rule of the JSON diagnostics ([9.9.4](#994-diagnostics--error-messages)) with their own number, still `1`: a reader ignores fields it does not know. With `--message-format=json`, the build's diagnostics are JSON lines on the same stdout; their `type` (`error`, `warning`, ..) tells them apart from records.
 
 ### Exit codes
 

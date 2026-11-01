@@ -97,7 +97,7 @@ This is the biggest structural difference from function-scoped `defer` (Go). The
 
 Panics and fatal errors terminate the process immediately, so `drop` is not called ([3.14.8](314-error-control-flow.md#3148-panics-and-fatal-errors)). This is the general result of a panic, not behavior specific to `using`.
 
-A value is released once ([stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop---cleanup-on-using-release)). `using x = a { .. }` moves `a` into `x`, so a second `using y = a { .. }`, or a use of `a` after the first block, is a compile error (E202): give each `using` the value it makes (`using g = m.lock() { .. }`), or do all the work inside one `using` block. A value closed inside the block (`try x.close()`) is not released again.
+A value is released once ([stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop---cleanup-on-using-release)). `using x = a { .. }` moves `a` into `x`, so a second `using y = a { .. }`, or a use of `a` after the first block, is a compile error (E0134): give each `using` the value it makes (`using g = m.lock() { .. }`), or do all the work inside one `using` block. A value closed inside the block (`try x.close()`) is not released again.
 
 ## 3.17.7. Types that can be bound
 

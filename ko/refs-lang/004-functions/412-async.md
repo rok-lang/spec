@@ -221,7 +221,7 @@ while await r.read_one() is u8 {}
 r.pos;                              //→ 3
 ```
 
-Future는 끝날 때까지 리시버를 쥐고 있으므로 호출은 만든 자리에서 바로 `await`합니다. `await r.read_one()`, 던지는 메서드라면 `try await r.read(buf)`입니다. Future를 남겨 두었다가 나중에 `await`하면 컴파일 에러(`E202`)입니다. 리시버를 되써 줄 곳이 없고, 그동안 리시버가 바뀔 수 있기 때문입니다.
+Future는 끝날 때까지 리시버를 쥐고 있으므로 호출은 만든 자리에서 바로 `await`합니다. `await r.read_one()`, 던지는 메서드라면 `try await r.read(buf)`입니다. Future를 남겨 두었다가 나중에 `await`하면 컴파일 에러(`E0090`)입니다. 리시버를 되써 줄 곳이 없고, 그동안 리시버가 바뀔 수 있기 때문입니다.
 
 ```rok
 let f = r.read_one();               // ERROR: Future가 끝날 때까지 `r`을 쥐고 있음
