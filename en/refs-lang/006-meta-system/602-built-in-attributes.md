@@ -245,8 +245,6 @@ The default level of every lint is `warn`, except `nan_comparison` and `self_ass
 | `while_true`             | 0.1.0   | `while true` instead of `loop`                                      |
 | `deprecated`             | 0.1.0   | Use of a `#[deprecated]` function, method, field, type, constant or static ([6.2.7](#627-deprecated-discouraged-use-marker)) |
 | `deprecated_safe`        | 0.1.6   | A call of a `#[deprecated_safe]` function, or a use of such a static, outside `unsafe` ([6.2.14](#6214-deprecated_safe-safe-today-unsafe-later)) |
-| `fstring_g_precision`    | 0.1.6   | `{x:.3g}` on a number, which prints like `{x:.3}` until `g` becomes the general format in 0.2.0 ([1.7.3](../001-lexical/107-string-literals.md#173-format-strings)) |
-| `discarded_ref_write`    | 0.1.6   | A `ref self` method called on an element or a `Dict` entry: there is no place to write back to ([4.7](../004-functions/407-ref-keyword.md)) |
 | `trait_not_in_scope`     | 0.1.6   | A method from a trait outside `rok::` that is neither defined nor `use`d in the module ([3.5](../003-expressions/305-member-access-and-method-call.md)) |
 | `redundant_cast`         | 0.1.0   | `x as T` where `x` is already `T`                                   |
 | `redundant_clone`        | 0.1.0   | `.clone()` on a value of a primitive type                           |

@@ -34,7 +34,7 @@ A `ref` parameter is copy-in / copy-out. At the call, the value at the caller's 
 
 - **Write-back timing**: write-back happens not only on normal return but also when the callee throws. Changes made before a `throw` are therefore visible to the caller.
 - **Exclusivity**: while the call is in progress, the same place must not be accessed through another path, and the compiler checks this. Passing the same place as `ref` twice, or passing it as `ref` in one argument and reading it in another, is a compile error. Distinct fields (`ref p.x`, `ref p.y`) do not overlap and are allowed.
-- **Places**: the argument must name a variable or a field of one. An element (`inc(ref xs[2])`) is a compile error: `` `ref` argument `n` of `inc` must name a variable or a field of one ``. Copy the element into a variable, pass that, and store it back.
+- **Places**: the argument must name a variable or a field of one. An element (`inc(ref xs[2])`) is a compile error: `` `ref` argument `n` of `inc` must name a variable or a field of one ``. Copy the element into a variable, pass that, and store it back. A `ref self` receiver can be an element or a `Dict` entry too ([below](#meaning-of-ref-self---copy-in--copy-out)).
 
 ```rok
 fn bump_then_fail(ref n: i32) throws {
@@ -123,8 +123,8 @@ Counter::increment(ref c);        // calling a ref self method by path also requ
 
 - **Exclusivity**: while the call is in progress, the receiver variable must not be accessed through another path (another argument, a capturing closure, etc.). If the compiler can see this, it is a compile error (like Swift's exclusivity rule).
 - **Temporary receivers**: if the receiver is a temporary (`make().increment()`), the write-back result is discarded.
-- **Elements and entries**: an element (`cs[0].increment()`) or a `Dict` entry (`d["a"].increment()`) has no place to write back to, so the write is discarded too, with a warning (`discarded_ref_write`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)): ``the write to `cs[0]` is discarded``. Copy the element into a variable, call the method on it, and store it back (`let c = cs[0]; c.increment(); cs[0] = c;`).
-- **Statics and consts**: a `ref self` method on a `static` ([5.3](../005-modules/503-static.md)) or a `const` ([5.2](../005-modules/502-const.md)) is a compile error: a static is never written, and each use of a const is a new value. Copy it into a variable and call the method there.
+- **Elements and entries**: an element (`cs[0].increment()`, also under fields: `cs[0].pos.shift(1)`) or a `Dict` entry (`d["a"].increment()`) is written back through the index: the element is copied out, the method runs on the copy, and the copy is stored back (`cs[0] = c`), after a `throw` too. The index is evaluated once. An element whose type has no index store (only `Index`) is a temporary.
+- **Statics and consts**: a `ref self` method on a `static` ([5.3](../005-modules/503-static.md)) or a `const` ([5.2](../005-modules/502-const.md)) is a compile error: ``cannot call `increment` on `S`: it takes `ref self`, and a static is never written``; each use of a const is a new value. Copy it into a variable and call the method there.
 
 ```rok
 c.increment();                     // copies c in, writes back to c at the end

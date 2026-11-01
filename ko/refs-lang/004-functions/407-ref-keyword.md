@@ -34,7 +34,7 @@ fn swap(ref a: i32, ref b: i32) {
 
 - **되쓰기 시점**: 정상 반환할 때뿐 아니라 피호출자가 에러를 던질 때도 되씁니다. 그래서 `throw` 전에 바꾼 내용은 호출자에게 보입니다.
 - **배타성**: 호출이 진행되는 동안 같은 자리에 다른 경로로 접근하면 안 됩니다. 컴파일러가 이를 검사합니다. 같은 자리를 `ref`로 두 번 넘기거나, 한 인자로는 `ref`로 넘기고 다른 인자로 읽으면 컴파일 에러입니다. 서로 다른 필드(`ref p.x`, `ref p.y`)는 겹치지 않으므로 허용합니다.
-- **자리**: 인자는 변수나 변수의 필드여야 합니다. 원소(`inc(ref xs[2])`)는 컴파일 에러입니다(`` `ref` argument `n` of `inc` must name a variable or a field of one ``). 원소를 변수에 복사해 넘기고, 다시 원소에 저장합니다.
+- **자리**: 인자는 변수나 변수의 필드여야 합니다. 원소(`inc(ref xs[2])`)는 컴파일 에러입니다(`` `ref` argument `n` of `inc` must name a variable or a field of one ``). 원소를 변수에 복사해 넘기고, 다시 원소에 저장합니다. `ref self` 수신자는 원소나 `Dict` 항목이어도 됩니다([아래](#ref-self의-의미-copy-in--copy-out)).
 
 ```rok
 fn bump_then_fail(ref n: i32) throws {
@@ -123,8 +123,8 @@ Counter::increment(ref c);        // ref self 메서드를 경로로 부를 때�
 
 - **배타성**: 호출이 진행되는 동안 수신자 변수에 다른 경로(다른 인자, 캡처한 클로저 등)로 접근하면 안 됩니다. 컴파일러가 이를 알아볼 수 있으면 컴파일 에러입니다. Swift의 배타성 규칙과 같습니다.
 - **임시 수신자**: 수신자가 임시 값(`make().increment()`)이면 되쓴 결과는 버려집니다.
-- **원소와 항목**: 원소(`cs[0].increment()`)와 `Dict` 항목(`d["a"].increment()`)에는 되쓸 자리가 없으므로 쓴 결과도 버려지고, 경고가 나옵니다(`discarded_ref_write`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)): ``the write to `cs[0]` is discarded``. 원소를 변수에 복사해 그 변수로 메서드를 부르고 다시 저장합니다(`let c = cs[0]; c.increment(); cs[0] = c;`).
-- **static과 const**: `static`([5.3](../005-modules/503-static.md))이나 `const`([5.2](../005-modules/502-const.md))에 `ref self` 메서드를 부르면 컴파일 에러입니다. static에는 쓰지 않고, const는 쓸 때마다 새 값이기 때문입니다. 변수에 복사해 거기서 메서드를 부릅니다.
+- **원소와 항목**: 원소(`cs[0].increment()`, 필드 아래도 같음: `cs[0].pos.shift(1)`)와 `Dict` 항목(`d["a"].increment()`)은 인덱스를 거쳐 되씁니다. 원소를 복사해 꺼내고, 그 복사본으로 메서드를 실행한 뒤, 복사본을 다시 저장합니다(`cs[0] = c`). `throw`가 나도 저장합니다. 인덱스는 한 번만 평가합니다. 인덱스 저장이 없는 타입(`Index`만 구현)의 원소는 임시 값입니다.
+- **static과 const**: `static`([5.3](../005-modules/503-static.md))이나 `const`([5.2](../005-modules/502-const.md))에 `ref self` 메서드를 부르면 컴파일 에러입니다: ``cannot call `increment` on `S`: it takes `ref self`, and a static is never written``. const는 쓸 때마다 새 값입니다. 변수에 복사해 그 변수로 메서드를 부릅니다.
 
 ```rok
 c.increment();                     // c 를 복사해 들이고, 끝나면 c 에 되씀

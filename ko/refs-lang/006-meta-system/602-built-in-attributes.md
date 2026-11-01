@@ -245,8 +245,6 @@ fn strict_zone() { ... }
 | `while_true`             | 0.1.0   | `loop` 대신 `while true`                                           |
 | `deprecated`             | 0.1.0   | `#[deprecated]` 함수, 메서드, 필드, 타입, 상수, static 사용 ([6.2.7](#627-deprecated-사용-자제-표시)) |
 | `deprecated_safe`        | 0.1.6   | `unsafe` 밖에서 `#[deprecated_safe]` 함수를 호출하거나 그런 static을 씀 ([6.2.14](#6214-deprecated_safe-지금은-안전-나중에-unsafe)) |
-| `fstring_g_precision`    | 0.1.6   | 수에 쓴 `{x:.3g}`. 0.2.0에서 `g`가 일반 형식이 되기 전까지는 `{x:.3}`처럼 출력됨 ([1.7.3](../001-lexical/107-string-literals.md#173-형식-문자열)) |
-| `discarded_ref_write`    | 0.1.6   | 원소나 `Dict` 항목에 `ref self` 메서드를 부름: 되쓸 자리가 없음 ([4.7](../004-functions/407-ref-keyword.md)) |
 | `trait_not_in_scope`     | 0.1.6   | `rok::` 밖의 트레잇 중 그 모듈에서 정의하지도 `use`로 가져오지도 않은 트레잇의 메서드 ([3.5](../003-expressions/305-member-access-and-method-call.md)) |
 | `redundant_cast`         | 0.1.0   | `x`가 이미 `T`인 `x as T`                                         |
 | `redundant_clone`        | 0.1.0   | 원시 타입 값의 `.clone()`                                          |

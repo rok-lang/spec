@@ -133,19 +133,20 @@ If `width` is present and `align` is not, numbers (integers and floating-point) 
 | `fill`       | Fill character (default space). Must be immediately followed by `align`                     |
 | `align`      | `<` left, `>` right, `^` center, `=` pad between sign and digits (numbers only)              |
 | `sign`       | `+` shows `+` for positives too, space shows a space for positives, `-` is the default (`-` for negatives only) |
-| `#`          | `0b` / `0o` / `0x` prefix for `b` / `o` / `x` / `X`                                          |
+| `#`          | `0b` / `0o` / `0x` prefix for `b` / `o` / `x` / `X`; `g` keeps its trailing zeros; `?` pretty-prints (`{x:#?}`) |
 | `0`          | Zero-pad numbers (same as `=` alignment with fill `0`)                                       |
 | `.precision` | Digits after the decimal point for floating-point (without conversion); maximum length (truncation) for strings etc.; ignored for integers |
 
 | `type`          | Applies to              | Meaning                                                           |
 |-----------------|-------------------------|-------------------------------------------------------------------|
-| (none), `d`, `g`, `s` | All types         | `Display`                                                         |
+| (none), `d`, `s` | All types              | `Display`                                                         |
+| `g`             | Numbers                 | General format (`precision` significant digits)                  |
 | `f`             | Numbers                 | Fixed point (`precision` digits)                                  |
 | `b` `o` `x` `X` | Integers                | Base 2 / 8 / 16, at the width of the integer type (`{-1i8:x}` is `ff`) |
 | `e` `E`         | Integers, floating-point | Exponent notation                                                |
 | `?`             | All types               | `Debug`. May be combined with width / align                       |
 
-`g` is `Display` in 0.1, so `{x:.3g}` prints like `{x:.3}` (`1234.568` for `1234.5678`). From 0.2.0 `g` is the general format of C and Python (`1.23e+03`). A `g` with a precision on a number gets a warning (lint `fstring_g_precision`); write `{x:.3}` to keep the output.
+`g` is the general format of C and Python: `precision` significant digits (6 when absent, 1 when 0), in exponent form when the exponent is below -4 or not below the precision, else fixed; trailing zeros and a bare `.` are dropped unless `#`. The exponent has a sign and at least two digits: `{1234.5678:.3g}` is `1.23e+03`, `{1e20:g}` is `1e+20`, `{0.0001:g}` is `0.0001`, `{1234567:g}` is `1.23457e+06`.
 
 A static spec is checked at compile time against the hole's type; a mismatch is an error pointing at that hole (`{s:x}` with `s: str`, etc.). The trait invoked by each type letter is defined by the standard library formatting specification ([stdlib 2.10](../../refs-standard-libraries/200-core/210-fmt.md)).
 
