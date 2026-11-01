@@ -15,6 +15,7 @@ deprecated_kv   ::= ("since" | "note") "=" string_lit
 deprecated_safe ::= "#" "[" "deprecated_safe" ("(" string_lit ")" | "=" string_lit)? "]"
 sealed_attr     ::= "#" "[" "sealed" "]"
 internal_attr   ::= "#" "[" "internal" "]"
+discardable_attr ::= "#" "[" "discardable" "]"
 ```
 
 ## 6.2.1. `#[derive(...)]` automatic trait implementation
@@ -223,7 +224,7 @@ These attributes change the level of lint diagnostics within the scope of the it
 
 The level is determined in the following order, later overriding earlier: each lint's default level < the `lints` field of `rok.rokon` (after its `lints_from` chain) ([9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) < CLI `-A` / `-W` / `-D` < attributes in source (the innermost wins). `lints` is treated as if prepended to the CLI flags, so CLI flags written after it override it. The code of lint diagnostics is `E503`.
 
-The default level of every lint is `warn`. The Since column is the release that added the lint.
+The default level of every lint is `warn`, except `missing_docs`, which is `allow`. The Since column is the release that added the lint.
 
 | lint                     | Since   | Checks                                                              |
 |--------------------------|---------|---------------------------------------------------------------------|
@@ -231,7 +232,8 @@ The default level of every lint is `warn`. The Since column is the release that 
 | `unused_imports`         | 0.1.0   | A `use` whose name the module never uses                            |
 | `dead_code`              | 0.1.0   | Non-`pub` functions nobody calls                                    |
 | `unreachable_code`       | 0.1.0   | Statements after `return` / `break` / `continue` / `throw` / `panic` |
-| `unused_must_use`        | 0.1.0   | Discarding the result of a `#[must_use]` function, or a value of a `#[must_use]` type ([6.2.11](#6211-must_use-warning-on-ignored-results)) |
+| `unused_must_use`        | 0.1.0   | Discarding the result of a `#[must_use]` function, or a value of a `#[must_use]` type ([6.2.11](#6211-unused-results-unused_result-discardable-must_use)) |
+| `unused_result`          | 0.2.0   | An expression statement whose value is not `()`, `none` or `Never`, unless it calls a `#[discardable]` function; write `_ = expr;` to drop the value on purpose ([6.2.11](#6211-unused-results-unused_result-discardable-must_use)) |
 | `unused_doc_comments`    | 0.1.0   | A doc comment on what is not documented (a statement, match arm, struct literal or tuple field, expression); use `//` for a plain comment |
 | `write_to_copy`          | 0.1.0   | A field assigned on a copy that nothing reads afterwards: a by-value parameter or `self`, a `for` binding, or a `let` of an element (`xs[i]`, [2.3.8](../002-types/203-struct.md#238-value-semantics)), when no later read, loop iteration, return or call can see the change. A read that only feeds another write to the same variable does not count; a variable a closure or coroutine block mentions is not checked |
 | `ignored_error`          | 0.1.0   | A `try? f();` statement silently discarding an error; `let _ = try? f();` marks a deliberate best-effort call and is not reported |
@@ -262,6 +264,7 @@ The default level of every lint is `warn`. The Since column is the release that 
 | `unqualified_meta`       | 0.1.6   | Another package's macro, derive or attribute used by its bare name, found only through the build-wide scope that 0.2.0 removes; write `dep::name!`, `#[derive(dep::Name)]`, `#[dep::name]` or `use dep::name!;` ([6.8.11](608-meta-blocks.md#6811-combination-with-registrationvisibility)) |
 | `assoc_type_shadowing`   | 0.2.0   | An associated type named like an outer type, which it hides inside its trait or `impl` (2.8.3) |
 | `builtin_attribute_name` | 0.2.0   | A meta block that takes the name of a built-in attribute |
+| `missing_docs`           | 0.2.0   | A `pub` item, a `pub` method of an inherent impl, a method of a `pub` trait or an inline `pub mod` without a `///` doc comment; `#[doc(hidden)]` counts as documented, a trait impl's methods are not checked (allow) |
 
 `unclosed_sender`, `using_twice`, `guard_escape`, `thread_local_across_await`, `extern_static_unsafe` and `improper_ctypes` were added in 0.1.6. 0.2.0 makes what `guard_escape`, `extern_static_unsafe` and `improper_ctypes` report errors.
 
@@ -269,7 +272,7 @@ The default level of every lint is `warn`. The Since column is the release that 
 
 | Group               | Includes                                                                                     |
 |---------------------|----------------------------------------------------------------------------------------------|
-| `unused`            | `unused_variables`, `unused_imports`, `dead_code`, `unreachable_code`, `unused_must_use`, `unused_doc_comments` |
+| `unused`            | `unused_variables`, `unused_imports`, `dead_code`, `unreachable_code`, `unused_must_use`, `unused_result`, `unused_doc_comments` |
 | `nonstandard_style` | `non_snake_case`, `non_camel_case_types`, `non_upper_case_globals`                           |
 | `warnings`          | Every lint whose level is warn, including those later releases add                           |
 | `all`               | Every lint, including those later releases add                                               |
@@ -283,6 +286,8 @@ Some warnings come from the compiler itself rather than from a lint pass, and st
 Each lint diagnostic says where its level came from: `` `#[warn(unused_variables)]` on by default ``, `` `-D unused` on the command line ``, `` `"unused_variables": "deny"` in `lints` of rok.rokon `` for a level from the manifest, or a label on the attribute that set it. An unknown lint or group name is a warning that names the closest known one and points to `rokc lint --list`. A removed lint (most became errors) named in an attribute, `-A` / `-W` / `-D` or `lints` is accepted and does nothing; it is not reported, even under `-D warnings`.
 
 `rokc lint --list` prints the lints with their default levels and the release that added each, then the groups.
+
+`rokc check --check-library` and `rokc lint --check-library` ([9.1.2](../009-tools/901-rokc-cli.md)) also lint the standard library's own code at its levels: every default, with `missing_docs` at `warn`.
 
 ## 6.2.10. `#[non_exhaustive]` opting out of external exhaustiveness
 
@@ -314,16 +319,23 @@ On a `struct` it marks a record whose package may add fields:
 - Every field added after the first release of the struct has a default ([2.3.3](../002-types/203-struct.md#233-field-default-values)), so literals that omit it keep compiling. The compiler cannot see a struct's history; this rule is the author's, and a later semver check enforces it.
 - Unlike Rust, struct literals and `..base` spreads ([2.3.4](../002-types/203-struct.md#234-field-spread)) stay allowed from other packages: a literal leaves out the defaulted fields and names the rest. Fields with no sensible default are required in every literal.
 
-## 6.2.11. `#[must_use]` warning on ignored results
+## 6.2.11. Unused results: `unused_result`, `#[discardable]`, `#[must_use]`
 
 ```rok
-#[must_use]
 fn calculate() -> i32 { ... }
+
+#[discardable]
+fn insert(self, k: K, v: V) -> V | none { ... }
+
+#[must_use("thread is never joined")]
+pub struct JoinHandle<T> { ... }
 ```
 
-Discarding the return value of a `#[must_use]` function unused produces a warning. To ignore the result intentionally, write `_ = ...` as described in [parameters](../004-functions/402-parameters.md).
+An expression statement whose value is not `()`, `none` or `Never` warns with lint `unused_result`: `calculate();` drops an `i32`. Through `try`, `try!` and `await` the value is the call's. A `try? f();` statement is reported by `ignored_error` instead, and a block-like statement (`if`, `match`, a block, a loop) is not checked: its value is its arms'. To drop a value on purpose, write `_ = expr;` ([4.2](../004-functions/402-parameters.md)) or `let _ = expr;`.
 
-`#[must_use]` may also be attached to a `struct` or `enum`. Then an expression statement whose value has that type, or a local of that type that is never read, produces the `unused_must_use` warning with the attribute's message. The value of an `async fn` call or `async` block (a future never awaited never runs) and `thread::JoinHandle` ([stdlib 3.4.2](../../refs-standard-libraries/300-std/304-thread.md#342-api); a thread never joined may not finish before the program ends; `detach` says it runs on its own) are `#[must_use]`.
+`#[discardable]` on a function or method says its result may be dropped: a statement that calls it does not warn. It takes no argument. On a trait method it covers every impl. The standard library marks the methods that return a value they displace or report on the side: `Dict::insert` / `remove`, `Set::insert` / `remove` (and their ordered forms), `List::pop` / `remove` / `drain`, `Deque::pop_front` / `pop_back`, `BinaryHeap::pop`, `Atomic::swap` / `fetch_*`, `Cell::replace` / `take`, `mem::replace`, `Dir::copy`, `fs::copy` and `io::copy`. A short write (`Writer::write -> usize`), `checked_*` and pure methods such as `str::trim` are not discardable.
+
+`#[must_use]` may be attached to a function or method, a `struct` or an `enum`, with an optional message (`#[must_use("..")]`). On a function it adds the message: dropping its result warns `unused_must_use` instead of `unused_result`. On a type it is stronger: an expression statement whose value has that type, or a local of that type that is never read, produces the `unused_must_use` warning with the attribute's message, even when a `#[discardable]` function returned it. The value of an `async fn` call or `async` block (a future never awaited never runs) and `thread::JoinHandle` ([stdlib 3.4.2](../../refs-standard-libraries/300-std/304-thread.md#342-api); a thread never joined may not finish before the program ends; `detach` says it runs on its own) are `#[must_use]`.
 
 ## 6.2.12. `#[track_caller]` passing the call site
 

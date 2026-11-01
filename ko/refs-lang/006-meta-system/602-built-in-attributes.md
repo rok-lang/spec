@@ -15,6 +15,7 @@ deprecated_kv   ::= ("since" | "note") "=" string_lit
 deprecated_safe ::= "#" "[" "deprecated_safe" ("(" string_lit ")" | "=" string_lit)? "]"
 sealed_attr     ::= "#" "[" "sealed" "]"
 internal_attr   ::= "#" "[" "internal" "]"
+discardable_attr ::= "#" "[" "discardable" "]"
 ```
 
 ## 6.2.1. `#[derive(...)]` 자동 트레잇 구현
@@ -223,7 +224,7 @@ fn strict_zone() { ... }
 
 수준은 다음 순서로 정해지고, 뒤에 오는 것이 앞의 것보다 우선합니다. 각 린트의 기본 수준 < `rok.rokon`의 `lints` 필드(`lints_from` 사슬을 적용한 뒤)([9.10.3](../009-tools/910-rok-frontend.md#9103-rokrokon--roklock)) < CLI의 `-A` / `-W` / `-D` < 소스의 속성(가장 안쪽 것이 우선). `lints`는 CLI 플래그 앞에 붙은 것처럼 처리되므로 뒤에 쓴 CLI 플래그가 이 설정을 덮어씁니다. 린트 진단의 코드는 `E503`입니다.
 
-모든 린트의 기본 수준은 `warn`입니다. 도입 열은 그 린트를 추가한 릴리스입니다.
+`missing_docs`의 기본 수준은 `allow`이고, 나머지 린트의 기본 수준은 모두 `warn`입니다. 도입 열은 그 린트를 추가한 릴리스입니다.
 
 | 린트                     | 도입    | 검사                                                               |
 |--------------------------|---------|--------------------------------------------------------------------|
@@ -231,7 +232,8 @@ fn strict_zone() { ... }
 | `unused_imports`         | 0.1.0   | 모듈이 이름을 쓰지 않는 `use`                                      |
 | `dead_code`              | 0.1.0   | 아무도 부르지 않는 비 `pub` 함수                                   |
 | `unreachable_code`       | 0.1.0   | `return` / `break` / `continue` / `throw` / `panic` 뒤의 문장      |
-| `unused_must_use`        | 0.1.0   | `#[must_use]` 함수의 결과, 또는 `#[must_use]` 타입의 값을 버림 ([6.2.11](#6211-must_use-결과-무시-경고)) |
+| `unused_must_use`        | 0.1.0   | `#[must_use]` 함수의 결과, 또는 `#[must_use]` 타입의 값을 버림 ([6.2.11](#6211-쓰지-않은-결과-unused_result-discardable-must_use)) |
+| `unused_result`          | 0.2.0   | 값이 `()`, `none`, `Never`가 아닌 식 문장. `#[discardable]` 함수를 부르는 문장은 제외. 값을 일부러 버리려면 `_ = expr;`로 씀 ([6.2.11](#6211-쓰지-않은-결과-unused_result-discardable-must_use)) |
 | `unused_doc_comments`    | 0.1.0   | 문서화 대상이 아닌 것(문, match 가지, struct 리터럴이나 튜플 필드, 식)에 붙은 문서 주석. 일반 주석은 `//`를 씀 |
 | `write_to_copy`          | 0.1.0   | 아무도 나중에 읽지 않는 사본에 필드를 대입함. 사본은 값으로 받은 매개변수나 `self`, `for` 바인딩, 원소의 `let`(`xs[i]`, [2.3.8](../002-types/203-struct.md#238-값-의미))이고, 이후의 읽기, 루프 반복, 반환, 호출 어느 것도 그 변경을 볼 수 없을 때. 같은 변수에 다시 쓰는 데에만 쓰이는 읽기는 세지 않음. 클로저나 코루틴 블록이 언급하는 변수는 검사하지 않음 |
 | `ignored_error`          | 0.1.0   | `try? f();` 문장이 에러를 조용히 버림. `let _ = try? f();`는 실패해도 괜찮은 호출이라는 표시이므로 보고하지 않음 |
@@ -262,6 +264,7 @@ fn strict_zone() { ... }
 | `unqualified_meta`       | 0.1.6   | 다른 패키지의 macro, derive, 속성을 이름만 써서 0.2.0이 없애는 빌드 전역 범위로만 찾음. `dep::name!`, `#[derive(dep::Name)]`, `#[dep::name]`, `use dep::name!;`으로 씀 ([6.8.11](608-meta-blocks.md#6811-등록가시성과-결합)) |
 | `assoc_type_shadowing`   | 0.2.0   | 연관 타입이 바깥 타입과 이름이 같아 트레이트나 `impl` 안에서 그 타입을 가림 |
 | `builtin_attribute_name` | 0.2.0   | 메타 블록이 내장 속성의 이름을 가져감 |
+| `missing_docs`           | 0.2.0   | `///` 문서 주석이 없는 `pub` 항목, 고유 impl의 `pub` 메서드, `pub` 트레잇의 메서드, 인라인 `pub mod`. `#[doc(hidden)]`은 문서가 있는 것으로 보고, 트레잇 impl의 메서드는 검사하지 않음 (allow) |
 
 `unclosed_sender`, `using_twice`, `guard_escape`, `thread_local_across_await`, `extern_static_unsafe`, `improper_ctypes`는 0.1.6에서 추가되었습니다. `guard_escape`, `extern_static_unsafe`, `improper_ctypes`가 보고하는 코드는 0.2.0에서 에러가 됩니다.
 
@@ -269,7 +272,7 @@ fn strict_zone() { ... }
 
 | 그룹                | 포함                                                                                         |
 |---------------------|----------------------------------------------------------------------------------------------|
-| `unused`            | `unused_variables`, `unused_imports`, `dead_code`, `unreachable_code`, `unused_must_use`, `unused_doc_comments` |
+| `unused`            | `unused_variables`, `unused_imports`, `dead_code`, `unreachable_code`, `unused_must_use`, `unused_result`, `unused_doc_comments` |
 | `nonstandard_style` | `non_snake_case`, `non_camel_case_types`, `non_upper_case_globals`                           |
 | `warnings`          | 수준이 warn인 모든 린트. 이후 릴리스가 추가하는 린트도 포함                                  |
 | `all`               | 이후 릴리스가 추가하는 린트까지 포함한 모든 린트                                             |
@@ -283,6 +286,8 @@ fn strict_zone() { ... }
 린트 진단은 수준이 어디서 왔는지 알려 줍니다. `` `#[warn(unused_variables)]` on by default ``, `` `-D unused` on the command line ``, 매니페스트에서 온 수준이면 `` `"unused_variables": "deny"` in `lints` of rok.rokon ``, 속성이 정했으면 그 속성에 붙은 레이블입니다. 모르는 린트나 그룹 이름은 경고이며, 가장 가까운 이름을 알려 주고 `rokc lint --list`를 가리킵니다. 제거된 린트(대부분 오류가 됨)의 이름은 속성, `-A` / `-W` / `-D`, `lints` 어디에 써도 받아들여지고 아무 일도 하지 않습니다. `-D warnings`에서도 보고하지 않습니다.
 
 `rokc lint --list`는 린트를 기본 수준, 추가된 릴리스와 함께 출력하고, 이어서 그룹을 출력합니다.
+
+`rokc check --check-library`와 `rokc lint --check-library`([9.1.2](../009-tools/901-rokc-cli.md))는 표준 라이브러리 자체의 코드도 그 수준으로 검사합니다. 모든 린트는 기본 수준이고, `missing_docs`만 `warn`입니다.
 
 ## 6.2.10. `#[non_exhaustive]` 외부 완전성 검사 회피
 
@@ -314,16 +319,23 @@ let ClientOptions { retries, .. } = p;          // 다른 패키지에서는 `..
 - struct를 처음 릴리스한 뒤에 더하는 필드는 모두 기본값([2.3.3](../002-types/203-struct.md#233-필드-기본값))을 가집니다. 그래서 그 필드를 생략한 리터럴은 계속 컴파일됩니다. 컴파일러는 struct의 이력을 볼 수 없으므로 이 규칙은 작성자가 지킵니다. 나중에 semver 검사가 이를 확인합니다.
 - Rust와 달리 다른 패키지에서도 struct 리터럴과 `..base` spread([2.3.4](../002-types/203-struct.md#234-필드-spread))를 쓸 수 있습니다. 리터럴은 기본값이 있는 필드를 생략하고 나머지를 적습니다. 마땅한 기본값이 없는 필드는 모든 리터럴에 적어야 합니다.
 
-## 6.2.11. `#[must_use]` 결과 무시 경고
+## 6.2.11. 쓰지 않은 결과: `unused_result`, `#[discardable]`, `#[must_use]`
 
 ```rok
-#[must_use]
 fn calculate() -> i32 { ... }
+
+#[discardable]
+fn insert(self, k: K, v: V) -> V | none { ... }
+
+#[must_use("thread is never joined")]
+pub struct JoinHandle<T> { ... }
 ```
 
-`#[must_use]`가 붙은 함수의 반환값을 쓰지 않고 버리면 경고가 납니다. 결과를 일부러 무시하려면 [매개변수](../004-functions/402-parameters.md)에서 설명한 `_ = ...`를 쓰세요.
+값이 `()`, `none`, `Never`가 아닌 식 문장은 `unused_result` 린트로 경고합니다. `calculate();`는 `i32`를 버립니다. `try`, `try!`, `await`를 거친 값은 그 호출의 값으로 봅니다. `try? f();` 문장은 대신 `ignored_error`가 보고합니다. 블록 같은 문장(`if`, `match`, 블록, 루프)은 검사하지 않습니다. 그 값은 각 가지의 값이기 때문입니다. 값을 일부러 버리려면 `_ = expr;`([4.2](../004-functions/402-parameters.md))나 `let _ = expr;`로 씁니다.
 
-`#[must_use]`는 `struct`나 `enum`에도 붙일 수 있습니다. 그러면 그 타입의 값을 내는 식 문장과, 그 타입이면서 한 번도 읽지 않는 지역 변수에 `unused_must_use` 경고가 납니다. 경고에는 속성의 메시지가 함께 나옵니다. `async fn` 호출이나 `async` 블록의 값과 `thread::JoinHandle`([stdlib 3.4.2](../../refs-standard-libraries/300-std/304-thread.md#342-api))은 `#[must_use]`입니다. 기다리지 않은 future는 실행되지 않습니다. 합류하지 않은 스레드는 프로그램이 끝나기 전에 끝나지 않을 수 있습니다. `detach`는 스레드를 따로 실행한다는 뜻을 밝힙니다.
+함수나 메서드에 붙인 `#[discardable]`은 그 결과를 버려도 된다는 뜻입니다. 이 함수를 부르는 문장은 경고하지 않습니다. 인자는 받지 않습니다. 트레잇 메서드에 붙이면 모든 impl에 적용됩니다. 표준 라이브러리는 밀어낸 값이나 부수 정보를 돌려주는 메서드에 이 속성을 붙입니다. `Dict::insert` / `remove`, `Set::insert` / `remove`(와 순서 있는 형태), `List::pop` / `remove` / `drain`, `Deque::pop_front` / `pop_back`, `BinaryHeap::pop`, `Atomic::swap` / `fetch_*`, `Cell::replace` / `take`, `mem::replace`, `Dir::copy`, `fs::copy`, `io::copy`가 해당합니다. 짧은 쓰기(`Writer::write -> usize`), `checked_*`, `str::trim` 같은 순수 메서드는 버릴 수 있는 결과가 아닙니다.
+
+`#[must_use]`는 함수나 메서드, `struct`, `enum`에 붙일 수 있고, 메시지를 붙일 수 있습니다(`#[must_use("..")]`). 함수에 붙이면 메시지를 더합니다. 그 결과를 버리면 `unused_result` 대신 `unused_must_use` 경고가 납니다. 타입에 붙이면 더 강합니다. 그 타입의 값을 내는 식 문장과, 그 타입이면서 한 번도 읽지 않는 지역 변수에 `unused_must_use` 경고가 납니다. `#[discardable]` 함수가 돌려준 값이어도 마찬가지입니다. 경고에는 속성의 메시지가 함께 나옵니다. `async fn` 호출이나 `async` 블록의 값과 `thread::JoinHandle`([stdlib 3.4.2](../../refs-standard-libraries/300-std/304-thread.md#342-api))은 `#[must_use]`입니다. 기다리지 않은 future는 실행되지 않습니다. 합류하지 않은 스레드는 프로그램이 끝나기 전에 끝나지 않을 수 있습니다. `detach`는 스레드를 따로 실행한다는 뜻을 밝힙니다.
 
 ## 6.2.12. `#[track_caller]` 호출 위치 전달
 
