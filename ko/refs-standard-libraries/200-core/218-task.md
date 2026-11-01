@@ -26,8 +26,6 @@ async fn sleep(dur: Duration);
 async fn sleep_until(when: Instant);
 async fn yield_now();                                   // await: 다른 ready task 에 한 번 양보
 fn registrations() -> usize;                            // 진단용: 실행 중 pool 의 park 한 waker + 대기 timer 수 (구현이 정함)
-fn readable(fd: i32) -> IoReady;                       // await: fd 가 읽기 가능해질 때까지 (refs-lang 7.7.2)
-fn writable(fd: i32) -> IoReady;
 ```
 
 `sleep`과 `timeout`은 첫 poll부터 시간을 잽니다. 직접 작성한 `Future`는 `Waker`로 기다립니다([2.20](220-future.md)). `ctx.waker()`를 보관하고 `Pending`을 돌려주면, 상태를 바꾸는 쪽이 그 waker의 `wake()`를 부릅니다.
@@ -37,9 +35,6 @@ fn writable(fd: i32) -> IoReady;
 ```rok
 struct SelectFuture<F> { /* ... */ }
 impl<F: Future> Future for SelectFuture<F> { type Output = (usize, F::Output); ... }
-
-struct IoReady { /* ... */ }
-impl Future for IoReady { type Output = (); ... }   // 이유 없이 완료될 수 있음. I/O 를 루프에서 재시도
 
 struct Join<T> { /* ... */ }                        // Task::join, try await 로 기다림
 impl<T> Join<T> {
@@ -214,7 +209,7 @@ Worker 0 ─┐      Worker 1 ─┐    ...    Worker N-1 ─┐
 
 표준 라이브러리의 권위는 API 시그니처까지입니다. 알고리듬 본문은 사양 밖의 런타임과 표준 라이브러리 본문에 속합니다.
 
-실행기 자신의 타입과 함수(`TaskRef`, `Pool`, `Worker`, `wake_task`, `cancel_requested`, `unwinding`, `park`, `unpark`)는 `rok::core` 안에서 `pub(pkg)`입니다. 다른 패키지는 이 이름을 쓸 수 없습니다. `await`가 부르는 훅(`cancel_point`, `cancel_left`, `cleanup_running`, `cleanup_done`)도 `pub(pkg)`이고, 낮춘 코드는 lang 슬롯으로 이 훅에 닿습니다([0.4.4](../000-meta/004-lang-slot-table.md)). `wake_io`(close나 shutdown 뒤에 디스크립터의 readable / writable 대기자를 깨움)와 WebAssembly 컴포넌트의 이벤트 루프 진입점인 `host_enter` / `host_leave` / `host_run`은 `#[internal]`입니다. `rok::std`가 부르며, 다른 패키지에서 쓰면 에러입니다([0.4](../000-meta/004-lang-slot-table.md)). `host_enter` 밖에서 부른 `host_leave`는 그렇다고 알리며 panic합니다.
+실행기 자신의 타입과 함수(`TaskRef`, `Pool`, `Worker`, `wake_task`, `cancel_requested`, `unwinding`, `park`, `unpark`)는 `rok::core` 안에서 `pub(pkg)`입니다. 다른 패키지는 이 이름을 쓸 수 없습니다. `await`가 부르는 훅(`cancel_point`, `cancel_left`, `cleanup_running`, `cleanup_done`)도 `pub(pkg)`이고, 낮춘 코드는 lang 슬롯으로 이 훅에 닿습니다([0.4.4](../000-meta/004-lang-slot-table.md)). `readable` / `writable`(소켓 `*_async` 메서드가 await하는 readiness future, [refs-lang 7.7.2](../../refs-lang/007-runtime/707-io-and-timer.md#772-io-대기-패턴)), `wake_io`(close나 shutdown 뒤에 디스크립터의 readable / writable 대기자를 깨움)와 WebAssembly 컴포넌트의 이벤트 루프 진입점인 `host_enter` / `host_leave` / `host_run`은 `#[internal]`입니다. `rok::std`가 부르며, 다른 패키지에서 쓰면 에러입니다([0.4](../000-meta/004-lang-slot-table.md)). `host_enter` 밖에서 부른 `host_leave`는 그렇다고 알리며 panic합니다.
 
 ## 2.18.4. 협력적 취소: `Task::cancel`
 
@@ -232,7 +227,7 @@ t.cancel();              // 협력적 신호. task 가 cancellation point 에서
 - 그 정리 안의 `await`는 취소 지점이 아닙니다. 끝까지 완료되고, task는 정리가 끝날 때까지 계속 폴링됩니다. 끝나지 않는 정리는 취소된 task를 계속 살려 둡니다. `task::timeout`으로 시간을 제한하세요.
 - 취소는 task 안에서 `catch`할 수 있는 에러가 아닙니다. task 안으로 `CancellationError`를 던지지 않습니다.
 - 블로킹 시스템 호출은 취소 지점이 아닙니다. task는 그 호출이 끝난 뒤 다음 `await`에서 떠납니다.
-- 소켓 I/O(`*_async`), `readable` / `writable`, `sleep` / `timeout`, `lock_async`, `recv_async` / `send_async`에서 기다리던 task는 취소되면 깨어나고 다음 `await`에서 떠납니다.
+- 소켓 I/O(`*_async`), `sleep` / `timeout`, `lock_async`, `recv_async` / `send_async`에서 기다리던 task는 취소되면 깨어나고 다음 `await`에서 떠납니다.
 - task가 끝나면 그 task의 깨우기 등록(I/O readiness, 타이머, park한 대기)은 모두 풀립니다.
 - 첫 poll 전에 취소된 task는 실행되지 않습니다. 본문은 조금도 실행되지 않고, 결과 없이 끝납니다.
 - `spawn_blocking`이나 그 위의 `fs::*_async`를 기다리다 취소되면 이미 시작된 작업은 백그라운드에서 끝까지 실행됩니다. 쓰기 같은 부수 효과는 일어납니다. task가 다시 poll되기 전에 끝난 결과는 아래처럼 그 poll이 지킵니다.

@@ -65,7 +65,7 @@ fn matrix_literal<const C: usize>(rows: ...[f64; C]) -> Matrix { ... }   // [f64
 
 The basic form is `#[literal(pattern)]`, optionally followed by `, priority = N` (may be negative, default 0) (6.5.5). The handler is a function, and a literal matching the pattern becomes a call to that function.
 
-Scope of registration: registrations in the standard library are visible in every package; registrations in a user package are visible only within that package. The compiler collects registrations before parsing, so they apply regardless of where they are registered.
+Scope of registration: registrations in the standard library are visible in every package; registrations in a user package are visible only within that package. The compiler collects registrations before parsing, so they apply regardless of where they are registered. A handler is called as if from its own module ([6.9.9](609-template-tokens.md#names-in-an-expansion)), so it may have any visibility: the standard library's handlers (`list_literal`, `set_literal`, `dict_literal` and the six `range_*_literal`) are `pub(pkg)`, and naming one outside `rok::core` is an error.
 
 ## 6.5.3. Format of syntax patterns
 

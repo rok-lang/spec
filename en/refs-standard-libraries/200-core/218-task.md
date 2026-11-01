@@ -26,8 +26,6 @@ async fn sleep(dur: Duration);
 async fn sleep_until(when: Instant);
 async fn yield_now();                                   // await: yields once to other ready tasks
 fn registrations() -> usize;                            // diagnostic: parked wakers + pending timers of the running pool (implementation-defined)
-fn readable(fd: i32) -> IoReady;                       // await: until fd becomes readable (refs-lang 7.7.2)
-fn writable(fd: i32) -> IoReady;
 ```
 
 `sleep` and `timeout` measure their duration from the first poll. A hand-written `Future` waits through its `Waker` ([2.20](220-future.md)): it keeps `ctx.waker()`, returns `Pending`, and whoever changes the state calls `wake()` on it.
@@ -37,9 +35,6 @@ The futures and the error these functions return:
 ```rok
 struct SelectFuture<F> { /* ... */ }
 impl<F: Future> Future for SelectFuture<F> { type Output = (usize, F::Output); ... }
-
-struct IoReady { /* ... */ }
-impl Future for IoReady { type Output = (); ... }   // may complete spuriously; retry the I/O in a loop
 
 struct Join<T> { /* ... */ }                        // Task::join, awaited with try await
 impl<T> Join<T> {
@@ -212,7 +207,7 @@ Key properties of this structure: the local queue is a lock-free Chase-Lev deque
 
 Note that the standard library's authority is limited to the API signatures; the algorithm bodies belong to the runtime and standard library body, outside the spec.
 
-The executor's own types and functions (`TaskRef`, `Pool`, `Worker`, `wake_task`, `cancel_requested`, `unwinding`, `park`, `unpark`) are `pub(pkg)` in `rok::core`: no other package names them. The hooks an `await` calls (`cancel_point`, `cancel_left`, `cleanup_running`, `cleanup_done`) are `pub(pkg)` too; lowered code reaches them through their lang slots ([0.4.4](../000-meta/004-lang-slot-table.md)). `wake_io` (waking the readable and writable waiters of a descriptor after a close or shutdown) and `host_enter` / `host_leave` / `host_run` (the event-loop entry of WebAssembly components) are `#[internal]`: `rok::std` calls them, and a use from any other package is an error ([0.4](../000-meta/004-lang-slot-table.md)). `host_leave` outside `host_enter` panics and says so.
+The executor's own types and functions (`TaskRef`, `Pool`, `Worker`, `wake_task`, `cancel_requested`, `unwinding`, `park`, `unpark`) are `pub(pkg)` in `rok::core`: no other package names them. The hooks an `await` calls (`cancel_point`, `cancel_left`, `cleanup_running`, `cleanup_done`) are `pub(pkg)` too; lowered code reaches them through their lang slots ([0.4.4](../000-meta/004-lang-slot-table.md)). `readable` / `writable` (the readiness futures the socket `*_async` methods await, [refs-lang 7.7.2](../../refs-lang/007-runtime/707-io-and-timer.md#772-io-wait-pattern)), `wake_io` (waking the readable and writable waiters of a descriptor after a close or shutdown) and `host_enter` / `host_leave` / `host_run` (the event-loop entry of WebAssembly components) are `#[internal]`: `rok::std` calls them, and a use from any other package is an error ([0.4](../000-meta/004-lang-slot-table.md)). `host_leave` outside `host_enter` panics and says so.
 
 ## 2.18.4. Cooperative cancellation - `Task::cancel`
 
@@ -230,7 +225,7 @@ t.cancel();              // cooperative signal; the task ends at a cancellation 
 - An `await` inside those cleanups is not a cancellation point: it completes, and the task is polled until its cleanups end. A cleanup that never ends keeps the cancelled task alive; bound it with `task::timeout`.
 - Cancellation is not an error that can be `catch`ed inside the task. No `CancellationError` is thrown into the task.
 - A blocking syscall is not a cancellation point. The task leaves at the next `await` after the call finishes.
-- A task waiting in socket I/O (`*_async`), `readable` / `writable`, `sleep` / `timeout`, `lock_async`, or `recv_async` / `send_async` wakes when cancelled and leaves at the next `await`.
+- A task waiting in socket I/O (`*_async`), `sleep` / `timeout`, `lock_async`, or `recv_async` / `send_async` wakes when cancelled and leaves at the next `await`.
 - When a task ends, all its wakeup registrations (I/O readiness, timers, parked waits) are released.
 - A task cancelled before its first poll never runs: no part of its body runs, and it ends without a result.
 - If cancelled while waiting on `spawn_blocking` or the `fs::*_async` built on it, work already started runs to completion in the background. Side effects such as writes do happen. A result that finished before the task polls again is kept by that poll, as below.

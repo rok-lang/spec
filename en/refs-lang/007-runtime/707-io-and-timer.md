@@ -26,18 +26,13 @@ An I/O wait proceeds as follows:
 
 ```
 1. The task tries read on a non-blocking socket → WouldBlock.
-2. The task does await task::readable(fd): (re)registers fd with the reactor and parks.
+2. The task awaits fd's readiness: (re)registers fd with the reactor and parks.
 3. The worker runs another task.
 4. When the reactor receives a readiness edge for fd, it unparks the task parked on that fd.
 5. Some worker takes that task and retries the read.
 ```
 
-This flow combines with `await` in `async` `fn` (see [Async](../004-functions/412-async.md)). Registration is edge-triggered, so it is re-armed for every wait. The `task::readable(fd)` / `task::writable(fd)` futures check the fd once more after parking so as not to miss an edge that passed in the meantime. A woken task may find the fd not yet ready, so the caller retries the operation.
-
-```rok
-fn readable(fd: i32) -> IoReady;     // rok::core::task, a Future<Output = ()>
-fn writable(fd: i32) -> IoReady;
-```
+This flow combines with `await` in `async` `fn` (see [Async](../004-functions/412-async.md)). Registration is edge-triggered, so it is re-armed for every wait. The standard library's readiness futures check the fd once more after parking so as not to miss an edge that passed in the meantime. A woken task may find the fd not yet ready, so the caller retries the operation. Those futures (`task::readable` / `task::writable`) are `#[internal]` ([stdlib 2.18](../../refs-standard-libraries/200-core/218-task.md)): a hand-written future waits on an fd through `rok_io_register` ([8.5.5](../008-abi/805-extern-symbols.md#855-io--timer-area)).
 
 Blocking calls (`TcpStream::read` etc.) do not use this path; they block the calling OS thread. I/O that suspends the task is provided by the standard library's `*_async` methods ([stdlib 3.2.0](../../refs-standard-libraries/300-std/302-net.md#320-common-rules)).
 
@@ -124,7 +119,7 @@ When enabled (`ROKR_DYNAMIC_WORKERS=1`), an excessively idle worker parks and pu
 - This is not an error that can be `catch`ed inside the task. A non-throwing async body ends by the same path. The result is discarded.
 - A task cancelled after its last cancellation point finishes normally and has a result (`await` / `join` return that result). `CancellationError` applies only to tasks that ended without a result.
 - Blocking syscalls (`TcpStream::read` etc.) are not cancellation points. The task leaves at the next `await` after the call finishes.
-- A task waiting in socket I/O, `readable` / `writable`, `sleep` / `timeout`, `lock_async`, or `recv_async` / `send_async` is woken when cancelled and leaves at the next `await`.
+- A task waiting in socket I/O, `sleep` / `timeout`, `lock_async`, or `recv_async` / `send_async` is woken when cancelled and leaves at the next `await`.
 - When a task finishes, all its wake registrations (I/O readiness waits, timers, wakers in the parking table) are released. The number of registrations in the running pool can be inspected with the diagnostic `task::registrations()`; the exact meaning of that value is implementation-defined.
 
 After `task::timeout` expires or `task::race` decides a winner, the losing tasks keep running. To stop them, call `cancel`. `task::select` does not spawn, so it cancels the losing futures itself ([stdlib 2.18.1](../../refs-standard-libraries/200-core/218-task.md#select---the-first-future-to-finish)); a loser whose cleanups `await` finishes them as a task of its own.

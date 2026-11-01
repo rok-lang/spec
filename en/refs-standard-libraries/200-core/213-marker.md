@@ -387,19 +387,19 @@ pub fn hand_over<T>(x: T) -> T;
 
 `hand_over(x)` returns what a hand-off gives the new owner: `x` with a copy of every collection it reaches, or `x` itself when it reaches none. It is `#[internal]`: `rok::core` and `rok::std` call it, and a use from any other package is an error ([0.4.4](../000-meta/004-lang-slot-table.md)).
 
-`Transfer` and `Memo` are public only so that the hand-off copy can reach the standard collections in other modules.
+`Transfer` and `Memo` are `pub(pkg)`: the hand-off copy reaches the standard collections in other modules of `rok::core` through them, and no other package sees them.
 
 ```rok
-pub trait Transfer {
+pub(pkg) trait Transfer {
     fn transfer_copy(self, m: Memo) -> Self;
     fn transfer_keep(self, m: Memo) -> Self;
     fn transfer_visit(self, m: Memo) -> Self;
 }
 
-pub struct Memo { /* private fields */ }
+pub(pkg) struct Memo { /* private fields */ }
 ```
 
-The compiler calls `Transfer` only for its fixed list of standard handle types; an impl on any other type is ignored. Besides the collections and futures, the list holds `crypto::Secret` ([2.21](221-crypto.md)) and the secret words the crypto algorithms keep: a hand-off gives the new owner its own copy in secret storage, and `par` runs items that reach one `Secret` one at a time, as for a collection. `Memo` records the copies one hand-off has made, by original object, and the copied buffers still to fix. Its methods and the `transfer*` intrinsics beside it are `pub(pkg)`: they are internal to the library and not a stable API.
+The compiler calls `Transfer` only for its fixed list of standard handle types; an impl on any other type is ignored. Besides the collections and futures, the list holds `crypto::Secret` ([2.21](221-crypto.md)) and the secret words the crypto algorithms keep: a hand-off gives the new owner its own copy in secret storage, and `par` runs items that reach one `Secret` one at a time, as for a collection. `Memo` records the copies one hand-off has made, by original object, and the copied buffers still to fix. Its methods and the `transfer*` intrinsics beside it are `pub(pkg)` as well.
 
 ## 2.13.10. `Default` - default values
 

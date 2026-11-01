@@ -151,7 +151,7 @@ pub fn from_value<T: FromRokon>(v: Value) throws (RokonError) -> T;
 - `Display`, `Debug`, `==` and `hash` on `Value` never panic. `Display` writes the canonical form unchecked (a NaN shows as `nan`); `Debug` writes it on one line.
 - Standard implementations: every integer type, `f32` / `f64`, `int` / `float`, `bool` / `char` / `str`, `Value`, `T | none`, `List`, `Set`, `Dict`, tuples of 1 ~ 6 elements, `[T; N]`.
 
-The module also exports `Fields`, `struct_args`, `variant_of`, `variant_args`, `unknown_variant` and `from_value_at`. They support the code `@derive` generates for `#[derive(Rokon)]` and are not API: they are `#[doc(hidden)]`, and become `pub(pkg)` once a derive's expansion resolves names at its definition site. The reader and writer are private to the standard library.
+The code `@derive` generates for `#[derive(Rokon)]` calls `Fields`, `struct_args`, `variant_of`, `variant_args`, `unknown_variant` and `from_value_at`. They are `pub(pkg)`: names a template writes are checked in the template's module ([refs-lang 6.9.9](../../refs-lang/006-meta-system/609-template-tokens.md#names-in-an-expansion)), so the derive works in any package, and a direct use outside `rok::std` is an error. The reader and writer are private to the standard library.
 
 ### `#[derive(Rokon)]`
 

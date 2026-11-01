@@ -151,7 +151,7 @@ pub fn from_value<T: FromRokon>(v: Value) throws (RokonError) -> T;
 - `Value`의 `Display`, `Debug`, `==`, `hash`에서는 panic이 일어나지 않습니다. `Display`는 정규 형식을 검사 없이 쓰고(NaN은 `nan`), `Debug`는 한 줄로 씁니다.
 - 표준 구현은 다음과 같습니다. 모든 정수 타입, `f32` / `f64`, `int` / `float`, `bool` / `char` / `str`, `Value`, `T | none`, `List`, `Set`, `Dict`, 원소 1~6개의 튜플, `[T; N]`.
 
-모듈은 `Fields`, `struct_args`, `variant_of`, `variant_args`, `unknown_variant`, `from_value_at`도 내보냅니다. 이들은 `#[derive(Rokon)]`에 대해 `@derive`가 생성하는 코드에 쓰이며 API가 아닙니다. `#[doc(hidden)]`이고, derive 전개가 정의 위치에서 이름을 찾게 되면 `pub(pkg)`가 됩니다. 읽기와 쓰기 구현은 표준 라이브러리 밖에서 보이지 않습니다.
+`#[derive(Rokon)]`에 대해 `@derive`가 생성하는 코드는 `Fields`, `struct_args`, `variant_of`, `variant_args`, `unknown_variant`, `from_value_at`을 부릅니다. 이들은 `pub(pkg)`입니다. 템플릿이 쓴 이름은 템플릿의 모듈에서 검사하므로([refs-lang 6.9.9](../../refs-lang/006-meta-system/609-template-tokens.md#확장-안의-이름)) derive는 어느 패키지에서나 동작하고, `rok::std` 밖에서 직접 쓰면 에러입니다. 읽기와 쓰기 구현은 표준 라이브러리 밖에서 보이지 않습니다.
 
 ### `#[derive(Rokon)]`
 

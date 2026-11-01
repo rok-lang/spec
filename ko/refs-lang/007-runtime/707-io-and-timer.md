@@ -26,18 +26,13 @@ I/O 대기는 다음 흐름으로 진행합니다.
 
 ```
 1. task 가 non-blocking 소켓에 read 를 시도 → WouldBlock.
-2. task 가 await task::readable(fd): fd 를 reactor 에 (다시) 등록하고 park.
+2. task 가 fd 의 readiness 를 await: fd 를 reactor 에 (다시) 등록하고 park.
 3. worker 는 다른 task 를 실행.
 4. reactor 가 fd 의 readiness edge 를 받으면 그 fd 에 park 한 task 를 unpark.
 5. 어떤 worker 가 그 task 를 꺼내 read 를 다시 시도.
 ```
 
-이 흐름은 `async` `fn`의 `await`와 맞물려 동작합니다([비동기](../004-functions/412-async.md) 참고). 등록은 edge-triggered 방식이므로 대기할 때마다 다시 겁니다. `task::readable(fd)` / `task::writable(fd)` future는 park한 뒤 fd를 한 번 더 확인합니다. 그래서 그사이 지나간 edge를 놓치지 않습니다. 깨어난 task가 보기에 fd가 아직 준비되지 않았을 수 있으므로 호출자는 연산을 다시 시도합니다.
-
-```rok
-fn readable(fd: i32) -> IoReady;     // rok::core::task, Future<Output = ()>
-fn writable(fd: i32) -> IoReady;
-```
+이 흐름은 `async` `fn`의 `await`와 맞물려 동작합니다([비동기](../004-functions/412-async.md) 참고). 등록은 edge-triggered 방식이므로 대기할 때마다 다시 겁니다. 표준 라이브러리의 readiness future는 park한 뒤 fd를 한 번 더 확인합니다. 그래서 그사이 지나간 edge를 놓치지 않습니다. 깨어난 task가 보기에 fd가 아직 준비되지 않았을 수 있으므로 호출자는 연산을 다시 시도합니다. 이 future(`task::readable` / `task::writable`)는 `#[internal]`입니다([stdlib 2.18](../../refs-standard-libraries/200-core/218-task.md)). 직접 작성한 future는 `rok_io_register`로 fd를 기다립니다([8.5.5](../008-abi/805-extern-symbols.md#855-io--타이머-영역)).
 
 blocking 호출(`TcpStream::read` 등)은 이 경로를 쓰지 않고 호출한 OS 스레드를 막습니다. task를 중단하는 I/O는 표준 라이브러리의 `*_async` 메서드에 있습니다([stdlib 3.2.0](../../refs-standard-libraries/300-std/302-net.md#320-공통-규칙)).
 
@@ -124,7 +119,7 @@ park된 동안 CPU 사용량은 0이므로 idle 워커가 많아도 추가 비�
 - 취소는 task 안에서 `catch`로 잡을 수 있는 에러가 아닙니다. 에러를 던지지 않는 async 본문도 같은 경로로 끝납니다. 결과는 버려집니다.
 - 마지막 cancellation point를 지난 뒤에 취소된 task는 정상적으로 끝나고 결과가 남습니다. `await` / `join`은 그 결과를 돌려줍니다. `CancellationError`는 결과 없이 끝난 task에만 해당합니다.
 - blocking syscall(`TcpStream::read` 등)은 cancellation point가 아닙니다. task는 호출이 끝난 뒤 다음 `await`에서 떠납니다.
-- 소켓 I/O, `readable` / `writable`, `sleep` / `timeout`, `lock_async`, `recv_async` / `send_async`에서 기다리던 task는 취소되면 깨어나 다음 `await`에서 떠납니다.
+- 소켓 I/O, `sleep` / `timeout`, `lock_async`, `recv_async` / `send_async`에서 기다리던 task는 취소되면 깨어나 다음 `await`에서 떠납니다.
 - task가 끝나면 그 task의 깨우기 등록은 모두 해제됩니다. I/O readiness 대기, 타이머, parking 표의 waker가 여기에 들어갑니다. 실행 중인 pool의 등록 수는 진단용 `task::registrations()`로 볼 수 있습니다. 그 값의 정확한 의미는 구현이 정합니다.
 
 `task::timeout`이 시간을 넘기거나 `task::race`가 승자를 정한 뒤에도 진 쪽 task는 계속 실행됩니다. 멈추려면 `cancel`을 호출하세요. `task::select`는 task를 새로 띄우지 않으므로 진 future를 스스로 취소합니다([stdlib 2.18.1](../../refs-standard-libraries/200-core/218-task.md#select-먼저-끝나는-future)). 정리 중에 `await`하는 진 future는 따로 task가 되어 정리를 마칩니다.
