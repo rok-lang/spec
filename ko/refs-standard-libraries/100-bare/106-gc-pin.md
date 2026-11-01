@@ -46,8 +46,10 @@ struct Pinned<T> {
     // 내부: GC 의 pin set 등록
 }
 
+#[sealed]
 trait Pinnable {
     // 값의 data 를 담은 GC 객체; 움직일 것이 없으면 none
+    #[internal]
     fn gc_object(self) -> GcBuf<u8> | none;
 }
 impl<T> Pinnable for List<T> { /* list 의 buffer; 비어 있으면 none */ }
@@ -70,7 +72,7 @@ impl<T> Drop for Pinned<T> {
 
 `using`으로 묶는 guard입니다. `pin()`이 반환한 `Pinned<T>`가 `using` 블록 안에 있는
 동안 GC는 그 객체를 옮기지 않습니다. 블록을 빠져나갈 때 `Pinned::drop`이 호출되어 고정이
-풀립니다. `using` 없이 받은 `Pinned<T>`는 자동으로 풀리지 않습니다. pin은 횟수를 셉니다. 객체는 고정한 횟수만큼 풀어 준 뒤에야 다시 움직입니다. `pin`은 `gc_object`가 가리키는 객체를 고정합니다. `none`이 돌아오면 아무것도 고정하지 않습니다. `GcBuf<u8>`은 [1.3.9](103-mem.md#139-gcbuft와-buf_-기본-요소)에 나오는, 타입이 지워진 GC 버퍼입니다. 사용자 타입은 자기 데이터를 담은 GC 객체를 돌려주는 방식으로 `Pinnable`을 구현할 수 있습니다.
+풀립니다. `using` 없이 받은 `Pinned<T>`는 자동으로 풀리지 않습니다. pin은 횟수를 셉니다. 객체는 고정한 횟수만큼 풀어 준 뒤에야 다시 움직입니다. `pin`은 `gc_object`가 가리키는 객체를 고정합니다. `none`이 돌아오면 아무것도 고정하지 않습니다. `GcBuf<u8>`은 [1.3.9](103-mem.md#139-gcbuft와-buf_-기본-요소)에 나오는, 타입이 지워진 GC 버퍼입니다. `Pinnable`은 sealed이고 `gc_object`는 toolchain 내부 항목입니다([6.2.16](../../refs-lang/006-meta-system/602-built-in-attributes.md#6216-internal-toolchain-패키지끼리-공유)). 프로그램은 `pin(x)`로 고정하고 `gc_object`를 부르지 않습니다.
 
 ### 예: FFI 호출
 

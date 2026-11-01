@@ -63,7 +63,7 @@ impl 메서드는 트레잇 선언과 매개변수 개수가 같아야 합니다
 
 `Send` / `Sync`는 자동 마커 트레잇입니다. 직접 선언하는 방법은 두 가지입니다([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync-스레드-경계-마커)).
 
-- opt-in: `unsafe impl Send for X {}`. `unsafe impl`은 `Send` / `Sync`에만 쓸 수 있고, 이 두 트레잇을 직접 구현할 때는 써야 합니다.
+- opt-in: `unsafe impl Send for X {}`. `unsafe impl`은 `Send` / `Sync`와 `unsafe trait`([4.15.4](../004-functions/415-unsafe.md#4154-트레잇-안에서))에만 쓸 수 있고, 이들을 직접 구현할 때는 써야 합니다.
 - opt-out: `impl !Send for X {}`, `impl<T> !Send for Cell<T> {}`. 자동 구현을 막습니다. 본체는 비어 있어야 합니다. `!`는 `Send` / `Sync`에만 쓸 수 있습니다.
 
 ### `impl` 안의 상수

@@ -77,10 +77,14 @@ impl Int {
     fn to_be_bytes_unsigned(self) -> List<u8>;
     fn byte_len(self) -> usize;                   // to_le_bytes().len()
     fn byte_len_unsigned(self) -> usize;          // self < 0 이면 panic
-    fn from_le_bytes(bytes: List<u8> | Slice<u8>) -> int;            // 바이트가 없으면 0
-    fn from_be_bytes(bytes: List<u8> | Slice<u8>) -> int;
-    fn from_le_bytes_unsigned(bytes: List<u8> | Slice<u8>) -> int;   // 음수가 되지 않음
-    fn from_be_bytes_unsigned(bytes: List<u8> | Slice<u8>) -> int;
+    fn write_le_bytes(self, out: SliceMut<u8>);            // 정확히 out.len() 바이트, 부호 확장
+    fn write_be_bytes(self, out: SliceMut<u8>);
+    fn write_le_bytes_unsigned(self, out: SliceMut<u8>);   // 0으로 확장; self < 0 이면 panic
+    fn write_be_bytes_unsigned(self, out: SliceMut<u8>);
+    fn from_le_bytes<B: AsBytes>(bytes: B) -> int;            // 바이트가 없으면 0
+    fn from_be_bytes<B: AsBytes>(bytes: B) -> int;
+    fn from_le_bytes_unsigned<B: AsBytes>(bytes: B) -> int;   // 음수가 되지 않음
+    fn from_be_bytes_unsigned<B: AsBytes>(bytes: B) -> int;
 
     fn div_rem(self, rhs: int) -> (int, int);   // (self / rhs, self % rhs), 버림; rhs == 0 이면 panic
     fn pow(self, exp: u32) -> int;              // exp: 고정 폭 정수처럼 u32
@@ -95,7 +99,7 @@ impl Int {
 }
 ```
 
-이 메서드는 고정 폭 정수의 이름과 panic 규칙을 따릅니다. 비트 수와 비트 위치는 `bit_length`처럼 `u64`입니다. 값이 2^32비트를 넘을 수 있기 때문입니다(고정 폭 규칙은 아래에 있습니다). 폭에 묶인 비트 메서드(`leading_zeros`, `rotate_left`, `swap_bytes` 등)는 폭이 없으면 뜻이 없으므로 뺍니다. 음수에는 1인 비트가 끝없이 많으므로 `count_ones`는 `|self|`를 셉니다(Python의 `bit_count`). 표현 방식은 이름에 드러납니다. `to_le_bytes` / `from_le_bytes`는 2의 보수를 쓰며 고정 폭 정수의 바이트와 일치합니다. `_unsigned` 형태는 절댓값을 쓰고, 음수에서는 panic합니다(`Int::to_le_bytes_unsigned: negative value; use to_le_bytes for two's complement or call .abs() first`). 바이트는 값이 허락하는 만큼 짧습니다. `128`은 `[128, 0]`, `_unsigned`로는 `[128]`이고, `-1`은 `[255]`, 0은 `[0]`입니다. `pow`는 `u32` 지수를 받습니다. 그보다 큰 지수는 0과 ±1을 뺀 모든 밑에서 결과가 적어도 2^32비트가 됩니다. `modpow`는 결과가 `|m|`보다 작게 머무르므로 `int` 지수를 받습니다. 결과의 부호는 [`%%`](203-ops.md#modulo-내림-modulo)처럼 `m`의 부호를 따릅니다. 음수 지수는 에러입니다(모듈러 역원 없음).
+이 메서드는 고정 폭 정수의 이름과 panic 규칙을 따릅니다. 비트 수와 비트 위치는 `bit_length`처럼 `u64`입니다. 값이 2^32비트를 넘을 수 있기 때문입니다(고정 폭 규칙은 아래에 있습니다). 폭에 묶인 비트 메서드(`leading_zeros`, `rotate_left`, `swap_bytes` 등)는 폭이 없으면 뜻이 없으므로 뺍니다. 음수에는 1인 비트가 끝없이 많으므로 `count_ones`는 `|self|`를 셉니다(Python의 `bit_count`). 표현 방식은 이름에 드러납니다. `to_le_bytes` / `from_le_bytes`는 2의 보수를 쓰며 고정 폭 정수의 바이트와 일치합니다. `_unsigned` 형태는 절댓값을 쓰고, 음수에서는 panic합니다(`Int::to_le_bytes_unsigned: negative value; use to_le_bytes for two's complement or call .abs() first`). 바이트는 값이 허락하는 만큼 짧습니다. `128`은 `[128, 0]`, `_unsigned`로는 `[128]`이고, `-1`은 `[255]`, 0은 `[0]`입니다. `write_*` 형태는 대신 고정 폭을 채웁니다. `out`(`List<u8>`나 그 뷰)의 모든 바이트에 씁니다. `-2`를 네 바이트에 little-endian으로 쓰면 `[254, 255, 255, 255]`이고, `out`보다 많은 바이트가 필요한 값은 panic합니다(`Int::write_le_bytes: the value needs 2 bytes but `out` has 1; pass a view of at least 2 bytes`). `from_*` 형태는 어떤 바이트든 받습니다([`AsBytes`](211-conversion.md)). `List<u8>`, `Slice<u8>`, `[u8; N]`, `str`이 됩니다. `pow`는 `u32` 지수를 받습니다. 그보다 큰 지수는 0과 ±1을 뺀 모든 밑에서 결과가 적어도 2^32비트가 됩니다. `modpow`는 결과가 `|m|`보다 작게 머무르므로 `int` 지수를 받습니다. 결과의 부호는 [`%%`](203-ops.md#modulo-내림-modulo)처럼 `m`의 부호를 따릅니다. 음수 지수는 에러입니다(모듈러 역원 없음).
 
 `Int`는 `rok::core::num::bigint::Int`에, `Float`는 `rok::core::num::bigfloat::Float`에 정의합니다. `#[keyword("int")]`가 식별자 `int`를 타입 키워드로 등록하고, 이 등록은 모든 패키지에 적용됩니다. 그래서 사용자 코드에서는 PascalCase `Int`가 아니라 소문자 `int`로 타입을 적습니다. 권위 있는 정의는 [refs-lang 6.6](../../refs-lang/006-meta-system/606-keyword-magic.md)에 있습니다. 컴파일러는 `#[lang("int_type")]`로 `int` 타입을 찾습니다.
 

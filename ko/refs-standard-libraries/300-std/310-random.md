@@ -6,12 +6,12 @@
 use rok::std::random;
 
 // rok::std::random
-fn fill(buf: List<u8>);          // 모든 바이트를 난수로 덮어씀
+fn fill(buf: SliceMut<u8>);      // 모든 바이트를 난수로 덮어씀
 fn bytes(n: usize) -> List<u8>;  // n 개 난수 바이트
 fn secret(n: usize) -> Secret;   // 비밀 저장소의 n 개 난수 바이트 (키, seed): 다른 사본 없음
 ```
 
-`fill`은 저수준 형태입니다. 호출자가 가진 버퍼에 씁니다. `bytes`와 `secret`은 버퍼를 직접 만들어 주는 편의 형태입니다.
+`fill`은 저수준 형태입니다. 호출자가 가진 버퍼, 곧 그 버퍼의 쓰기 가능한 뷰([2.9.7](../200-core/209-collections.md))에 씁니다. `fill(buf)`는 `List<u8>` 전체를, `fill(buf[4:20])`은 그 바이트만 채웁니다. `bytes`와 `secret`은 버퍼를 직접 만들어 주는 편의 형태입니다.
 
 바이트는 호출할 때마다 OS의 암호학적으로 안전한 생성기에서 읽습니다. 사용자 공간 풀이 없습니다. 그래서 fork로 만든 프로세스나 복원한 스냅숏이 `random`이 버퍼에 담아 둔 출력을 반복하지 않습니다.
 

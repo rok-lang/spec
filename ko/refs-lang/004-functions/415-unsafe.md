@@ -162,9 +162,24 @@ let buf: Buffer = ...;
 let b = unsafe { buf.raw_get(0) };
 ```
 
+### `unsafe trait`
+
+impl이 컴파일러가 확인할 수 없는 것을 약속하는 트레잇은 `unsafe trait`로 선언합니다. 그 트레잇의 impl은 모두 `unsafe impl`입니다. 평범한 `impl`은 컴파일 에러이고, 에러가 `unsafe impl` 형태를 알려 줍니다. 트레잇을 쓰는 쪽(바운드, 호출)에는 `unsafe`가 필요 없습니다. `rok::bare::mem::Pod`(모든 비트 패턴이 값)가 그런 트레잇입니다([stdlib 1.3.3](../../refs-standard-libraries/100-bare/103-mem.md#133-pod-트레잇)).
+
+```rok
+/// 모든 비트가 0인 패턴이 값이다.
+unsafe trait Zeroable {
+    fn zeroed() -> Self;
+}
+
+unsafe impl Zeroable for i32 {
+    fn zeroed() -> i32 { 0 }
+}
+```
+
 ### `unsafe impl`
 
-`unsafe impl`은 자동 마커 트레잇 `Send` / `Sync`를 직접 구현할 때만 씁니다. 그 타입이 스레드 경계를 넘어도 안전하다고 작성자가 보증한다는 표시입니다. 다른 트레잇에 `unsafe impl`을 쓰면 컴파일 에러입니다([2.9.1](../002-types/209-impl.md#291-두-형태)).
+`unsafe impl`은 `unsafe trait`를 구현하거나 자동 마커 트레잇 `Send` / `Sync`를 직접 구현할 때 씁니다. 트레잇이 약속하는 것(`Send` / `Sync`라면 그 타입이 스레드 경계를 넘어도 안전하다는 것)을 작성자가 보증한다는 표시입니다. 다른 트레잇에 `unsafe impl`을 쓰면 컴파일 에러입니다([2.9.1](../002-types/209-impl.md#291-두-형태)).
 
 ```rok
 unsafe impl Send for Handle { }

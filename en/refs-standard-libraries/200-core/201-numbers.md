@@ -85,10 +85,14 @@ impl Int {
     fn to_be_bytes_unsigned(self) -> List<u8>;
     fn byte_len(self) -> usize;                   // to_le_bytes().len()
     fn byte_len_unsigned(self) -> usize;          // panics if self < 0
-    fn from_le_bytes(bytes: List<u8> | Slice<u8>) -> int;            // no bytes is 0
-    fn from_be_bytes(bytes: List<u8> | Slice<u8>) -> int;
-    fn from_le_bytes_unsigned(bytes: List<u8> | Slice<u8>) -> int;   // never negative
-    fn from_be_bytes_unsigned(bytes: List<u8> | Slice<u8>) -> int;
+    fn write_le_bytes(self, out: SliceMut<u8>);            // exactly out.len() bytes, sign-extended
+    fn write_be_bytes(self, out: SliceMut<u8>);
+    fn write_le_bytes_unsigned(self, out: SliceMut<u8>);   // zero-extended; panics if self < 0
+    fn write_be_bytes_unsigned(self, out: SliceMut<u8>);
+    fn from_le_bytes<B: AsBytes>(bytes: B) -> int;            // no bytes is 0
+    fn from_be_bytes<B: AsBytes>(bytes: B) -> int;
+    fn from_le_bytes_unsigned<B: AsBytes>(bytes: B) -> int;   // never negative
+    fn from_be_bytes_unsigned<B: AsBytes>(bytes: B) -> int;
 
     fn div_rem(self, rhs: int) -> (int, int);   // (self / rhs, self % rhs), truncating; panics if rhs == 0
     fn pow(self, exp: u32) -> int;              // exp: u32 as for fixed-width integers
@@ -103,7 +107,7 @@ impl Int {
 }
 ```
 
-These follow the fixed-width integers' names and panics. Bit counts and indices are `u64`, like `bit_length`: a value can have more than 2^32 bits (the fixed-width rule is below). The width-bound bit methods (`leading_zeros`, `rotate_left`, `swap_bytes`, ...) have no meaning without a width and are left out. `count_ones` counts `|self|` (Python's `bit_count`), since a negative number has infinitely many one bits. The representation is in the name: `to_le_bytes` / `from_le_bytes` use two's complement, which agrees with the fixed-width integers' bytes, and the `_unsigned` forms use the magnitude, which panics on a negative value (`Int::to_le_bytes_unsigned: negative value; use to_le_bytes for two's complement or call .abs() first`). The bytes are as short as the value allows: `128` is `[128, 0]` and `[128]` unsigned, `-1` is `[255]`, zero is `[0]`. `pow` takes a `u32` exponent: a larger one gives at least 2^32 bits for any base but 0 and ±1. `modpow` takes an `int` exponent, since its result stays below `|m|`; the result has the sign of `m`, like [`%%`](203-ops.md#modulo---floored-modulo-). A negative exponent is an error (no modular inverse).
+These follow the fixed-width integers' names and panics. Bit counts and indices are `u64`, like `bit_length`: a value can have more than 2^32 bits (the fixed-width rule is below). The width-bound bit methods (`leading_zeros`, `rotate_left`, `swap_bytes`, ...) have no meaning without a width and are left out. `count_ones` counts `|self|` (Python's `bit_count`), since a negative number has infinitely many one bits. The representation is in the name: `to_le_bytes` / `from_le_bytes` use two's complement, which agrees with the fixed-width integers' bytes, and the `_unsigned` forms use the magnitude, which panics on a negative value (`Int::to_le_bytes_unsigned: negative value; use to_le_bytes for two's complement or call .abs() first`). The bytes are as short as the value allows: `128` is `[128, 0]` and `[128]` unsigned, `-1` is `[255]`, zero is `[0]`. The `write_*` forms fill a fixed width instead, every byte of `out` (a `List<u8>` or a view of one): `-2` in four bytes is `[254, 255, 255, 255]` little-endian, and a value that needs more bytes than `out` has panics (`Int::write_le_bytes: the value needs 2 bytes but `out` has 1; pass a view of at least 2 bytes`). The `from_*` forms take any bytes ([`AsBytes`](211-conversion.md)): a `List<u8>`, a `Slice<u8>`, a `[u8; N]` or a `str`. `pow` takes a `u32` exponent: a larger one gives at least 2^32 bits for any base but 0 and ±1. `modpow` takes an `int` exponent, since its result stays below `|m|`; the result has the sign of `m`, like [`%%`](203-ops.md#modulo---floored-modulo-). A negative exponent is an error (no modular inverse).
 
 `Int` is defined in `rok::core::num::bigint::Int` (`Float` in
 `rok::core::num::bigfloat::Float`). `#[keyword("int")]` registers the identifier `int` as a type keyword,

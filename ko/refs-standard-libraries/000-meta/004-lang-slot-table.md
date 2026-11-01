@@ -129,7 +129,7 @@
 
 ### 계층끼리 공유하는 항목: `#[internal]`
 
-컴파일러가 아니라 toolchain의 다른 계층이 부르는 `pub` 항목이 몇 있습니다. `rok::std`가 `rok::core`의 항목을 씁니다. 이 항목에는 `#[internal]`([refs-lang 6.2.16](../../refs-lang/006-meta-system/602-built-in-attributes.md#6216-internal-toolchain-패키지끼리-공유))이 붙습니다. `rok::bare`, `rok::core`, `rok::std`는 쓸 수 있고, 다른 패키지가 쓰면 "internal to the Rok toolchain" 에러입니다. 문서와 언어 서버에서도 빠집니다.
+컴파일러가 아니라 toolchain의 다른 계층이 부르는 `pub` 항목이 몇 있습니다. `rok::std`가 `rok::core`의 항목을, `rok::core`가 `rok::bare`의 항목을 씁니다. 이 항목에는 `#[internal]`([refs-lang 6.2.16](../../refs-lang/006-meta-system/602-built-in-attributes.md#6216-internal-toolchain-패키지끼리-공유))이 붙습니다. `rok::bare`, `rok::core`, `rok::std`는 쓸 수 있고, 다른 패키지가 쓰면 "internal to the Rok toolchain" 에러입니다. 문서와 언어 서버에서도 빠집니다.
 
 | 항목                                   | 쓰는 곳                                                   | 참조 |
 |----------------------------------------|-----------------------------------------------------------|------|
@@ -138,6 +138,7 @@
 | `rok::core::task::host_enter`          | `rok::std::wit` (컴포넌트 export가 호스트 루프에 들어감)   | 2.18 |
 | `rok::core::task::host_run`            | `rok::std::wit` (호스트 루프 한 바퀴)                      | 2.18 |
 | `rok::core::task::host_leave`          | `rok::std::wit` (`host_enter`를 끝냄)                      | 2.18 |
+| `rok::bare::gc::Pinnable::gc_object`   | `rok::core::marker` (`GcPtr`를 복사하는 hand-off)          | 1.6  |
 
 ## 0.4.5. 메서드 슬롯(1)
 

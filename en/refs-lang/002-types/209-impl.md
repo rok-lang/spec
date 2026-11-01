@@ -63,7 +63,7 @@ An impl method must have the trait declaration's parameter count, the same `ref`
 
 `Send` / `Sync` are automatic marker traits with two manual declarations ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers)).
 
-- Opt-in: `unsafe impl Send for X {}`. `unsafe impl` may only be used for `Send` / `Sync`, and is required for manual implementations of these two traits.
+- Opt-in: `unsafe impl Send for X {}`. `unsafe impl` may only be used for `Send` / `Sync` and for an `unsafe trait` ([4.15.4](../004-functions/415-unsafe.md#4154-in-traits)), and is required for manual implementations of these.
 - Opt-out: `impl !Send for X {}`, `impl<T> !Send for Cell<T> {}`. It prevents the automatic implementation, and the body must be empty. `!` may only be used with `Send` / `Sync`.
 
 ### Constants in an `impl`

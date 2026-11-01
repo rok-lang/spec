@@ -162,9 +162,24 @@ let buf: Buffer = ...;
 let b = unsafe { buf.raw_get(0) };
 ```
 
+### `unsafe trait`
+
+A trait whose impls promise something the compiler cannot check is declared `unsafe trait`. Every impl of it is `unsafe impl`; a plain `impl` is a compile error that gives the `unsafe impl` form. Using the trait (bounds, calls) needs no `unsafe`. `rok::bare::mem::Pod` (every bit pattern is a value) is one ([stdlib 1.3.3](../../refs-standard-libraries/100-bare/103-mem.md#133-the-pod-trait)).
+
+```rok
+/// Every all-zero bit pattern is a value.
+unsafe trait Zeroable {
+    fn zeroed() -> Self;
+}
+
+unsafe impl Zeroable for i32 {
+    fn zeroed() -> i32 { 0 }
+}
+```
+
 ### `unsafe impl`
 
-`unsafe impl` is used only to implement the auto marker traits `Send` / `Sync` by hand. It marks that the author guarantees the type is safe to cross thread boundaries. Using `unsafe impl` for any other trait is a compile error ([2.9.1](../002-types/209-impl.md#291-two-forms)).
+`unsafe impl` implements an `unsafe trait`, or the auto marker traits `Send` / `Sync` by hand. It marks that the author guarantees what the trait promises (for `Send` / `Sync`, that the type is safe to cross thread boundaries). Using `unsafe impl` for any other trait is a compile error ([2.9.1](../002-types/209-impl.md#291-two-forms)).
 
 ```rok
 unsafe impl Send for Handle { }

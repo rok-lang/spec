@@ -6,12 +6,12 @@
 use rok::std::random;
 
 // rok::std::random
-fn fill(buf: List<u8>);          // overwrite every byte with random bytes
+fn fill(buf: SliceMut<u8>);      // overwrite every byte with random bytes
 fn bytes(n: usize) -> List<u8>;  // n random bytes
 fn secret(n: usize) -> Secret;   // n random bytes in secret storage (keys, seeds): no other copy
 ```
 
-`fill` is the low-level form: it writes into a buffer the caller owns. `bytes` and `secret` are the convenient forms that allocate the buffer.
+`fill` is the low-level form: it writes into a buffer the caller owns, any writable view of one ([2.9.7](../200-core/209-collections.md)): `fill(buf)` fills a whole `List<u8>`, `fill(buf[4:20])` only those bytes. `bytes` and `secret` are the convenient forms that allocate the buffer.
 
 Bytes come from the operating system's cryptographically secure generator, read on every call (no user-space pool, so a forked process or a restored snapshot does not repeat output that `random` buffered):
 

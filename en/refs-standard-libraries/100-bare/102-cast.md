@@ -103,7 +103,7 @@ It is exactly isomorphic to C's `const_cast<T*>`. Its use is limited to temporar
 ## 1.2.5. `reinterpret<A: Pod, B: Pod>` - bit cast (safe)
 
 ```rok
-trait Pod { /* marker: Plain Old Data */ }
+unsafe trait Pod { /* marker: Plain Old Data */ }
 
 fn reinterpret<A: Pod, B: Pod>(a: A) -> B;
 ```
@@ -125,18 +125,19 @@ let f2: f32 = rok::bare::reinterpret(bits);    // round-trip OK
 The standard library automatically gives `Pod` to these types:
 
 ```rok
-impl Pod for i8, i16, i32, i64, u8, u16, u32, u64, usize, isize { }
-impl Pod for f32, f64 { }
-impl Pod for bool { }
-impl Pod for char, c_char { }
-impl<T: Pod, const N: usize> Pod for [T; N] { }
-impl<A: Pod> Pod for (A,) { }
-impl<A: Pod, B: Pod> Pod for (A, B) { }
-impl<A: Pod, B: Pod, C: Pod> Pod for (A, B, C) { }
-impl<A: Pod, B: Pod, C: Pod, D: Pod> Pod for (A, B, C, D) { }
+unsafe impl Pod for i8, i16, i32, i64, u8, u16, u32, u64, usize, isize { }
+unsafe impl Pod for f32, f64 { }
+unsafe impl Pod for c_char { }
+unsafe impl<T: Pod, const N: usize> Pod for [T; N] { }
+unsafe impl<A: Pod> Pod for (A,) { }
+unsafe impl<A: Pod, B: Pod> Pod for (A, B) { }
+unsafe impl<A: Pod, B: Pod, C: Pod> Pod for (A, B, C) { }
+unsafe impl<A: Pod, B: Pod, C: Pod, D: Pod> Pod for (A, B, C, D) { }
 ```
 
-`bool` and `char` are on this list although not every bit pattern is a valid value (`bool` is 0 or 1, `char` a Unicode scalar). `reinterpret` does not check the bits, so reinterpreting other bits as a `bool` or `char` gives an invalid value, which is UB; the caller checks them first.
+`bool` and `char` are not `Pod`: most of their bit patterns are not values (`bool` is 0 or 1, `char` a Unicode scalar). Reinterpret to `u8` / `u32` and convert with a check (`b != 0u8`, `char::from_u32`).
+
+`Pod` is an `unsafe trait` ([4.15.4](../../refs-lang/004-functions/415-unsafe.md#4154-in-traits)): its impl promises that every bit pattern is a value, which the compiler cannot check, so a hand-written impl is `unsafe impl Pod for T {}`. `#[derive(Pod)]` writes it.
 
 The following are not given it automatically:
 
@@ -167,7 +168,7 @@ Its use is limited to the **lowest layer** inside the standard library, only for
 
 ```rok
 // example inside the standard library
-impl Pod for SomeNewtype {
+unsafe impl Pod for SomeNewtype {
     // empty marker
 }
 

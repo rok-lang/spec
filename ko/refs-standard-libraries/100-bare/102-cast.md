@@ -103,7 +103,7 @@ C의 `const_cast<T*>`와 정확히 같은 모델입니다. 읽기 전용 API를 
 ## 1.2.5. `reinterpret<A: Pod, B: Pod>`: 비트 캐스트(안전)
 
 ```rok
-trait Pod { /* marker: Plain Old Data */ }
+unsafe trait Pod { /* marker: Plain Old Data */ }
 
 fn reinterpret<A: Pod, B: Pod>(a: A) -> B;
 ```
@@ -125,18 +125,19 @@ let f2: f32 = rok::bare::reinterpret(bits);    // round-trip OK
 표준 라이브러리가 `Pod` marker를 자동으로 붙이는 타입은 다음과 같습니다.
 
 ```rok
-impl Pod for i8, i16, i32, i64, u8, u16, u32, u64, usize, isize { }
-impl Pod for f32, f64 { }
-impl Pod for bool { }
-impl Pod for char, c_char { }
-impl<T: Pod, const N: usize> Pod for [T; N] { }
-impl<A: Pod> Pod for (A,) { }
-impl<A: Pod, B: Pod> Pod for (A, B) { }
-impl<A: Pod, B: Pod, C: Pod> Pod for (A, B, C) { }
-impl<A: Pod, B: Pod, C: Pod, D: Pod> Pod for (A, B, C, D) { }
+unsafe impl Pod for i8, i16, i32, i64, u8, u16, u32, u64, usize, isize { }
+unsafe impl Pod for f32, f64 { }
+unsafe impl Pod for c_char { }
+unsafe impl<T: Pod, const N: usize> Pod for [T; N] { }
+unsafe impl<A: Pod> Pod for (A,) { }
+unsafe impl<A: Pod, B: Pod> Pod for (A, B) { }
+unsafe impl<A: Pod, B: Pod, C: Pod> Pod for (A, B, C) { }
+unsafe impl<A: Pod, B: Pod, C: Pod, D: Pod> Pod for (A, B, C, D) { }
 ```
 
-`bool`과 `char`는 모든 비트 패턴이 유효한 값은 아닙니다(`bool`은 0 또는 1, `char`는 Unicode 스칼라). 그런데도 이 목록에 있습니다. `reinterpret`는 비트를 검사하지 않습니다. 그래서 다른 비트를 `bool`이나 `char`로 재해석하면 유효하지 않은 값이 되고, 그 결과는 UB입니다. 호출자가 먼저 검사합니다.
+`bool`과 `char`는 `Pod`가 아닙니다. 대부분의 비트 패턴이 값이 아니기 때문입니다(`bool`은 0 또는 1, `char`는 Unicode 스칼라). `u8` / `u32`로 재해석한 뒤 검사하며 변환하세요(`b != 0u8`, `char::from_u32`).
+
+`Pod`는 `unsafe trait`입니다([4.15.4](../../refs-lang/004-functions/415-unsafe.md#4154-트레잇-안에서)). impl은 모든 비트 패턴이 값이라고 약속하는데, 컴파일러는 이를 확인할 수 없습니다. 그래서 직접 쓰는 impl은 `unsafe impl Pod for T {}`입니다. `#[derive(Pod)]`가 이 impl을 써 줍니다.
 
 반면 다음은 자동으로 붙지 않습니다.
 
@@ -167,7 +168,7 @@ unsafe fn transmute_unchecked<A, B>(a: A) -> B;   // size check 도 안 함
 
 ```rok
 // 표준 라이브러리 내부 예
-impl Pod for SomeNewtype {
+unsafe impl Pod for SomeNewtype {
     // empty marker
 }
 
