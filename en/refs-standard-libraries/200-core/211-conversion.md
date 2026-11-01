@@ -394,6 +394,7 @@ From this comparison, Rok's key design decisions are: reject silent information 
 | `SaturatingInto`    | (blanket impl)         | standard library          |
 | `WrappingFrom<U>`   | (none)                 | standard library          |
 | `WrappingInto`      | (blanket impl)         | standard library          |
+| `AsBytes`           | (none)                 | standard library          |
 
 Every lossless conversion impl between primitives carries `#[intrinsic("rok.cast.FROM.TO")]`.
 
@@ -405,3 +406,32 @@ impl From<i32> for i64 {
 ```
 
 The numeric cast of `as T` uses the same intrinsic; the compiler chooses between the lossless and wrapping branches.
+
+## 2.11.13. `AsBytes` trait - bytes as a view
+
+`rok::core::convert::AsBytes` is what every byte argument of the standard library takes: `str::from_utf8` ([2.15.6](215-string.md#2156-utf-8-invariant---every-in-process-string)), `hex` and `base64` ([2.22](222-encoding.md)), `crypto` ([2.21](221-crypto.md)), `CString::new` ([1.7.2](../100-bare/107-ffi.md)), the `fs` and `net` write functions ([3.5.1](../300-std/305-io.md#351-asbytes)) and `Slice<u8>::find` ([2.9.7](209-collections.md)). Such a parameter is written `<B: AsBytes>`, with one type parameter per byte argument, so a key and a message need not have the same type.
+
+```rok
+trait AsBytes {
+    fn byte_slice(self) -> Slice<u8>;      // the bytes as a view, no copy; need not be UTF-8
+}
+impl AsBytes for str;                      // its UTF-8 bytes
+impl AsBytes for List<u8>;
+impl AsBytes for Slice<u8>;
+impl<const N: usize> AsBytes for [u8; N];  // a view of a copy (b"...", include_bytes!)
+impl AsBytes for crypto::Secret;           // the bytes in place (2.21)
+```
+
+A type of the program's own passes wherever bytes are taken once it implements `AsBytes`:
+
+```rok
+struct Frame { body: List<u8>; }
+impl AsBytes for Frame {
+    fn byte_slice(self) -> Slice<u8> { self.body[:] }
+}
+
+let tag = crypto::Hmac::mac(crypto::HashAlgorithm::Sha256, key, frame);
+let text = encoding::hex::encode(frame);
+```
+
+`AsBytes` has this one path; `rok::std::io` does not re-export it.

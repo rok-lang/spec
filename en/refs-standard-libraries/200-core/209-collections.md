@@ -531,7 +531,7 @@ impl<T: Debug> Debug for Slice<T> { ... }
 
 `SliceWindows<T>` and `SliceChunks<T>` are `ExactSizeIterator`s with `Item = Slice<T>`: each window or chunk is a view of the same buffer, not a copy. `Iterator::windows` / `chunks` ([2.7.1](207-iter.md#271-iterator---stepping)) collect lists instead, for iterators that have no buffer.
 
-The needle of `find` is any `AsBytes` type, defined in `rok::core::collections::slice`:
+The needle of `find` is any `AsBytes` type ([2.11.13](211-conversion.md#21113-asbytes-trait---bytes-as-a-view)):
 
 ```rok
 trait AsBytes {
@@ -539,7 +539,7 @@ trait AsBytes {
 }
 ```
 
-It is implemented for `str` (its UTF-8 bytes), `List<u8>`, `Slice<u8>` and `[u8; N]`, so a byte string passes as the needle (its `Slice<u8>` rule, [refs-lang 1.7.5](../../refs-lang/001-lexical/107-string-literals.md#175-byte-strings)). `std::io` re-exports `AsBytes`.
+It is implemented for `str` (its UTF-8 bytes), `List<u8>`, `Slice<u8>` and `[u8; N]`, so a byte string passes as the needle (its `Slice<u8>` rule, [refs-lang 1.7.5](../../refs-lang/001-lexical/107-string-literals.md#175-byte-strings)).
 
 `Slice` is read-only (no `IndexSet`); the view that writes a list is `SliceMut<T>` ([2.9.7a](#297a-slicemutt---writable-view)). Negative indices count from the end ([refs-lang 3.6.1](../../refs-lang/003-expressions/306-indexing-and-slicing.md#361-indexing-arri)).
 

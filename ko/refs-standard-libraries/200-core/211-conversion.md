@@ -398,6 +398,7 @@ let auto: i64 = (a + b).into();  // From<i32> for i64 (lossless) 명시
 | `SaturatingInto`    | (포괄 구현)          | 표준 라이브러리      |
 | `WrappingFrom<U>`   | (없음)               | 표준 라이브러리      |
 | `WrappingInto`      | (포괄 구현)          | 표준 라이브러리      |
+| `AsBytes`           | (없음)               | 표준 라이브러리      |
 
 원시 타입 사이의 무손실 변환 구현에는 모두 `#[intrinsic("rok.cast.FROM.TO")]`가 붙습니다.
 
@@ -409,3 +410,32 @@ impl From<i32> for i64 {
 ```
 
 `as T`의 수 캐스트도 같은 intrinsic을 씁니다. 무손실 분기와 랩어라운드 분기 중 어느 쪽인지는 컴파일러가 고릅니다.
+
+## 2.11.13. `AsBytes` 트레잇: 바이트 뷰
+
+`rok::core::convert::AsBytes`는 표준 라이브러리의 모든 바이트 인자가 받는 트레잇입니다. `str::from_utf8`([2.15.6](215-string.md)), `hex`와 `base64`([2.22](222-encoding.md)), `crypto`([2.21](221-crypto.md)), `CString::new`([1.7.2](../100-bare/107-ffi.md)), `fs`와 `net`의 쓰기 함수([3.5.1](../300-std/305-io.md#351-asbytes)), `Slice<u8>::find`([2.9.7](209-collections.md))가 그렇습니다. 이런 매개변수는 `<B: AsBytes>`로 쓰고 바이트 인자마다 타입 매개변수를 따로 두므로, 키와 메시지의 타입이 같지 않아도 됩니다.
+
+```rok
+trait AsBytes {
+    fn byte_slice(self) -> Slice<u8>;      // 사본 없는 바이트 뷰; UTF-8 일 필요 없음
+}
+impl AsBytes for str;                      // UTF-8 바이트
+impl AsBytes for List<u8>;
+impl AsBytes for Slice<u8>;
+impl<const N: usize> AsBytes for [u8; N];  // 사본의 view (b"...", include_bytes!)
+impl AsBytes for crypto::Secret;           // 제자리의 바이트 (2.21)
+```
+
+프로그램이 정의한 타입도 `AsBytes`를 구현하면 바이트를 받는 곳 어디에나 넘길 수 있습니다.
+
+```rok
+struct Frame { body: List<u8>; }
+impl AsBytes for Frame {
+    fn byte_slice(self) -> Slice<u8> { self.body[:] }
+}
+
+let tag = crypto::Hmac::mac(crypto::HashAlgorithm::Sha256, key, frame);
+let text = encoding::hex::encode(frame);
+```
+
+`AsBytes`의 경로는 이것 하나입니다. `rok::std::io`는 다시 내보내지 않습니다.

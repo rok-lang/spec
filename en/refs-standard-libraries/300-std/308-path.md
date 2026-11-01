@@ -136,18 +136,18 @@ This conversion is `impl TryFrom<RawPath> for Path { type Error = Utf8Error; ...
 struct RawPath { /* unix: Vec<u8>, windows: Vec<u16> */ }
 
 impl RawPath {
-    fn from_bytes(bytes: List<u8>) -> RawPath;        // unix
-    fn from_wide(wide: List<u16>) -> RawPath;          // windows
+    fn from_bytes<B: AsBytes>(bytes: B) -> RawPath;    // unix
+    fn from_wide(wide: Slice<u16>) -> RawPath;         // windows
 
     fn as_bytes(self) -> Slice<u8>;                    // unix only
     fn as_wide(self) -> Slice<u16>;                    // windows only
 
-    fn try_to_path(self) throws (Utf8Error) -> Path;
+    fn to_path(self) throws (Utf8Error) -> Path;       // as RawStr::to_str
     fn to_path_lossy(self) -> Path;
 }
 ```
 
-On Windows, `Utf8Error::valid_up_to()` counts UTF-16 units. `to_path_lossy` replaces each maximal ill-formed subsequence (Unix) / each lone surrogate (Windows) with one U+FFFD.
+`to_path` throws `Utf8Error` ([2.15.6](../200-core/215-string.md)), the error of `str::from_utf8` and `RawStr::to_str`; on Windows its `valid_up_to()` counts UTF-16 units. `to_path_lossy` replaces each maximal ill-formed subsequence (Unix) / each lone surrogate (Windows) with one U+FFFD.
 
 Most code never encounters this type. It appears only where code exchanges syscalls directly with the OS.
 

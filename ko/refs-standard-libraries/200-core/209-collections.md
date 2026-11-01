@@ -531,7 +531,7 @@ impl<T: Debug> Debug for Slice<T> { ... }
 
 `SliceWindows<T>`와 `SliceChunks<T>`는 `Item = Slice<T>`인 `ExactSizeIterator`입니다. 각 창(window)과 덩어리(chunk)는 복사본이 아니라 같은 버퍼의 뷰입니다. `Iterator::windows` / `chunks`([2.7.1](207-iter.md#271-iterator-단계-진행))는 버퍼가 없는 반복자에서 동작하므로 대신 리스트로 모읍니다.
 
-`find`의 needle은 `rok::core::collections::slice`에 정의된 `AsBytes` 타입이면 무엇이든 됩니다.
+`find`의 needle은 `AsBytes`([2.11.13](211-conversion.md#21113-asbytes-트레잇-바이트-뷰)) 타입이면 무엇이든 됩니다.
 
 ```rok
 trait AsBytes {
@@ -539,7 +539,7 @@ trait AsBytes {
 }
 ```
 
-`str`(UTF-8 바이트), `List<u8>`, `Slice<u8>`, `[u8; N]`이 이 트레잇을 구현합니다. 그래서 바이트 문자열도 needle로 넘길 수 있습니다(바이트 문자열의 `Slice<u8>` 규칙은 [refs-lang 1.7.5](../../refs-lang/001-lexical/107-string-literals.md#175-바이트-문자열)). `std::io`는 `AsBytes`를 다시 내보냅니다.
+`str`(UTF-8 바이트), `List<u8>`, `Slice<u8>`, `[u8; N]`이 이 트레잇을 구현합니다. 그래서 바이트 문자열도 needle로 넘길 수 있습니다(바이트 문자열의 `Slice<u8>` 규칙은 [refs-lang 1.7.5](../../refs-lang/001-lexical/107-string-literals.md#175-바이트-문자열)).
 
 `Slice`는 읽기 전용입니다(`IndexSet` 없음). 리스트에 쓰는 뷰는 `SliceMut<T>`입니다([2.9.7a](#297a-slicemutt-쓰기-가능한-뷰)). 음수 인덱스는 끝에서부터 셉니다([refs-lang 3.6.1](../../refs-lang/003-expressions/306-indexing-and-slicing.md#361-인덱싱-arri)).
 

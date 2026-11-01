@@ -4,14 +4,12 @@
 
 아래 항목은 모두 `rok::core::crypto::`에서 쓸 수 있습니다. 주석은 그 항목을 함께 내보내는 하위 모듈을 가리킵니다.
 
-바이트 인자는 `ByteInput`을 받습니다. 옛 이름 `Bytes`는 0.1.6부터 deprecated입니다([refs-lang 6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md)). glob import에서 `rok::std::io::Bytes`와 부딪혔기 때문입니다.
+바이트 인자는 모두 `AsBytes`([2.11.13](211-conversion.md#21113-asbytes-트레잇-바이트-뷰))에 대해 제네릭입니다. `str`은 UTF-8 바이트를, `List<u8>`·`Slice<u8>`·`[u8; N]`은 그 바이트를, `Secret`은 제자리의 바이트를, 프로그램이 정의한 타입은 `byte_slice`가 돌려주는 바이트를 줍니다. 한 함수의 바이트 인자는 저마다 타입 매개변수를 따로 가지므로 키와 메시지의 타입이 같지 않아도 됩니다.
 
 ```rok
-pub type ByteInput = List<u8> | Slice<u8> | str | Secret;   // str 은 UTF-8 바이트를, Secret 은 제자리의 바이트를 줌
-pub type Bytes = ByteInput;                         // 0.1.6부터 deprecated
 struct Secret {                                     // crypto::secret
     fn zeroed(len: usize) -> Secret;
-    fn new(bytes: ByteInput) -> Secret;                 // 사본
+    fn new<B: AsBytes>(bytes: B) -> Secret;                 // 사본
     fn len(self) -> usize;
     fn as_bytes(self) -> Slice<u8>;                 // 사본이 아니라 제자리의 바이트
     fn wipe(self);                                  // 지금 0 으로 덮어씀
@@ -20,8 +18,8 @@ impl Index<usize> for Secret; impl IndexSet<usize> for Secret;   // s[i], s[i] =
 impl Sliceable<Range<usize>> for Secret;           // s[a:b]: 제자리의 view
 impl Drop for Secret;                               // using 해제가 지움
 impl Debug for Secret;                              // "Secret(n bytes)", 바이트는 결코 보이지 않음
-impl AsBytes for Secret;                            // byte_slice: as_bytes (2.9.7)
-fn constant_time_eq(a: ByteInput, b: ByteInput) -> bool;   // 시간은 길이에만 의존
+impl AsBytes for Secret;                            // byte_slice: as_bytes (2.11.13)
+fn constant_time_eq<A: AsBytes, B: AsBytes>(a: A, b: B) -> bool;   // 시간은 길이에만 의존
 ```
 
 `Secret`은 비밀 저장소([2.21.5](#2215-보안-고려-사항))에 있는 고정 길이 바이트열입니다. 복사본은 `List`처럼 바이트를 공유하고, `Sync`가 아닙니다. 다른 스레드로 넘기면 컬렉션처럼 새 소유자가 비밀 저장소 안의 사본을 따로 받고, `par`는 같은 `Secret`에 닿는 항목들을 하나씩 차례로 실행합니다([2.13.9](213-marker.md#2139-send--sync-스레드-경계-마커)). `as_bytes`나 슬라이싱으로 얻은 뷰는 저장소 자체를 읽습니다. 그래서 이후의 쓰기가 보이고, secret이 지워지면 0을 읽습니다. `Secret`에는 `==`가 없으므로 `constant_time_eq`로 비교합니다.
@@ -33,43 +31,43 @@ enum HashAlgorithm { Sha256, Sha384, Sha512 }       // crypto::sha2 (FIPS 180-4)
 impl HashAlgorithm {
     fn output_len(self) -> usize;
     fn block_len(self) -> usize;
-    fn digest(self, data: ByteInput) -> List<u8>;
+    fn digest<B: AsBytes>(self, data: B) -> List<u8>;
 }
 struct Digest {                                     // 진행 중인 해시; 복사하면 분기
     fn new(alg: HashAlgorithm) -> Digest;
     fn algorithm(self) -> HashAlgorithm;
-    fn update(ref self, data: ByteInput);
+    fn update<B: AsBytes>(ref self, data: B);
     fn finish(self) -> List<u8>;
 }
 struct Sha3_256 / Sha3_512 {                        // crypto::sha3 (FIPS 202)
     const OUTPUT_LEN: usize;                        // 32 / 64
-    fn new() -> Self; fn update(ref self, data: ByteInput); fn finish(self) -> List<u8>;
-    fn digest(data: ByteInput) -> List<u8>;
+    fn new() -> Self; fn update<B: AsBytes>(ref self, data: B); fn finish(self) -> List<u8>;
+    fn digest<B: AsBytes>(data: B) -> List<u8>;
 }
 struct Shake128 / Shake256 {
-    fn new() -> Self; fn update(ref self, data: ByteInput);
+    fn new() -> Self; fn update<B: AsBytes>(ref self, data: B);
     fn squeeze(ref self, n: usize) -> List<u8>;     // 다음 n 바이트의 출력
 }
 enum Sha3Algorithm { Sha3_256, Sha3_512 }           // crypto::sha3: 키를 받는 형태에 씀
 impl Sha3Algorithm {
     fn output_len(self) -> usize;                   // 32 / 64
     fn block_len(self) -> usize;                    // rate: 136 / 72
-    fn digest(self, data: ByteInput) -> List<u8>;
+    fn digest<B: AsBytes>(self, data: B) -> List<u8>;
 }
 struct Hmac {                                       // crypto::hmac (RFC 2104)
-    fn new(alg: HashAlgorithm, key: ByteInput) -> Hmac;
-    fn update(ref self, data: ByteInput);
+    fn new<B: AsBytes>(alg: HashAlgorithm, key: B) -> Hmac;
+    fn update<B: AsBytes>(ref self, data: B);
     fn finish(self) -> List<u8>;
-    fn mac(alg: HashAlgorithm, key: ByteInput, data: ByteInput) -> List<u8>;
-    fn verify(alg: HashAlgorithm, key: ByteInput, data: ByteInput, tag: ByteInput) -> bool;   // constant time
-    fn mac_sha3(alg: Sha3Algorithm, key: ByteInput, data: ByteInput) -> List<u8>;
-    fn verify_sha3(alg: Sha3Algorithm, key: ByteInput, data: ByteInput, tag: ByteInput) -> bool;
+    fn mac<K: AsBytes, D: AsBytes>(alg: HashAlgorithm, key: K, data: D) -> List<u8>;
+    fn verify<K: AsBytes, D: AsBytes, T: AsBytes>(alg: HashAlgorithm, key: K, data: D, tag: T) -> bool;   // constant time
+    fn mac_sha3<K: AsBytes, D: AsBytes>(alg: Sha3Algorithm, key: K, data: D) -> List<u8>;
+    fn verify_sha3<K: AsBytes, D: AsBytes, T: AsBytes>(alg: Sha3Algorithm, key: K, data: D, tag: T) -> bool;
 }
 struct Hkdf {                                       // RFC 5869
-    fn extract(alg: HashAlgorithm, salt: ByteInput, ikm: ByteInput) -> Secret;
-    fn expand(alg: HashAlgorithm, prk: ByteInput, info: ByteInput, len: usize) throws (ValueError) -> Secret;
-    fn extract_sha3(alg: Sha3Algorithm, salt: ByteInput, ikm: ByteInput) -> Secret;
-    fn expand_sha3(alg: Sha3Algorithm, prk: ByteInput, info: ByteInput, len: usize) throws (ValueError) -> Secret;
+    fn extract<S: AsBytes, I: AsBytes>(alg: HashAlgorithm, salt: S, ikm: I) -> Secret;
+    fn expand<P: AsBytes, I: AsBytes>(alg: HashAlgorithm, prk: P, info: I, len: usize) throws (ValueError) -> Secret;
+    fn extract_sha3<S: AsBytes, I: AsBytes>(alg: Sha3Algorithm, salt: S, ikm: I) -> Secret;
+    fn expand_sha3<P: AsBytes, I: AsBytes>(alg: Sha3Algorithm, prk: P, info: I, len: usize) throws (ValueError) -> Secret;
 }
 ```
 
@@ -81,10 +79,10 @@ struct Hkdf {                                       // RFC 5869
 enum AeadAlgorithm { Aes128Gcm, Aes256Gcm, ChaCha20Poly1305 }   // crypto::aead
 impl AeadAlgorithm { fn key_len(self) -> usize; fn nonce_len(self) -> usize; fn tag_len(self) -> usize; }
 struct Aead {
-    fn new(alg: AeadAlgorithm, key: ByteInput) throws (ValueError) -> Aead;
+    fn new<B: AsBytes>(alg: AeadAlgorithm, key: B) throws (ValueError) -> Aead;
     fn algorithm(self) -> AeadAlgorithm;
-    fn seal(self, nonce: ByteInput, aad: ByteInput, plaintext: ByteInput) throws (ValueError) -> List<u8>;   // ciphertext ‖ 16-byte tag
-    fn open(self, nonce: ByteInput, aad: ByteInput, ciphertext_and_tag: ByteInput) throws (ValueError) -> List<u8> | none;  // none: 인증 실패
+    fn seal<N: AsBytes, A: AsBytes, P: AsBytes>(self, nonce: N, aad: A, plaintext: P) throws (ValueError) -> List<u8>;   // ciphertext ‖ 16-byte tag
+    fn open<N: AsBytes, A: AsBytes, C: AsBytes>(self, nonce: N, aad: A, ciphertext_and_tag: C) throws (ValueError) -> List<u8> | none;  // none: 인증 실패
     fn wipe(self);                                  // 키 자료를 0 으로 덮어씀
 }
 impl Drop for Aead;
@@ -98,17 +96,17 @@ AES-GCM은 96비트 nonce를 쓰는 NIST SP 800-38D를 따르고, ChaCha20-Poly1
 
 ```rok
 struct X25519 {                                     // crypto::x25519 (RFC 7748)
-    fn public_key(secret: ByteInput) throws (ValueError) -> List<u8>;
-    fn shared_secret(secret: ByteInput, peer_public: ByteInput) throws (ValueError) -> Secret | none;  // none: 결과가 전부 0
+    fn public_key<B: AsBytes>(secret: B) throws (ValueError) -> List<u8>;
+    fn shared_secret<S: AsBytes, P: AsBytes>(secret: S, peer_public: P) throws (ValueError) -> Secret | none;  // none: 결과가 전부 0
 }
 struct MlKem768 {                                   // crypto::mlkem (FIPS 203)
     const ENCAPSULATION_KEY_LEN: usize = 1184;
     const DECAPSULATION_KEY_LEN: usize = 2400;
     const CIPHERTEXT_LEN: usize = 1088;
     const SHARED_KEY_LEN: usize = 32;
-    fn keygen(d: ByteInput, z: ByteInput) throws (ValueError) -> (List<u8>, Secret);       // 32-byte seed 로부터 (ek, dk)
-    fn encapsulate(ek: ByteInput, m: ByteInput) throws (ValueError) -> (Secret, List<u8>);  // 32-byte m 으로부터 (key, ciphertext)
-    fn decapsulate(dk: ByteInput, c: ByteInput) throws (ValueError) -> Secret;              // implicit rejection
+    fn keygen<D: AsBytes, Z: AsBytes>(d: D, z: Z) throws (ValueError) -> (List<u8>, Secret);       // 32-byte seed 로부터 (ek, dk)
+    fn encapsulate<E: AsBytes, M: AsBytes>(ek: E, m: M) throws (ValueError) -> (Secret, List<u8>);  // 32-byte m 으로부터 (key, ciphertext)
+    fn decapsulate<D: AsBytes, C: AsBytes>(dk: D, c: C) throws (ValueError) -> Secret;              // implicit rejection
 }
 ```
 
@@ -118,31 +116,31 @@ X25519 키는 32바이트입니다(아니면 `ValueError`). secret은 clamp하�
 
 ```rok
 struct Ed25519 {                                    // crypto::ed25519 (RFC 8032)
-    fn public_key(seed: ByteInput) throws (ValueError) -> List<u8>;
-    fn sign(seed: ByteInput, msg: ByteInput) throws (ValueError) -> List<u8>;
-    fn verify(public_key: ByteInput, msg: ByteInput, sig: ByteInput) -> bool;
+    fn public_key<B: AsBytes>(seed: B) throws (ValueError) -> List<u8>;
+    fn sign<S: AsBytes, M: AsBytes>(seed: S, msg: M) throws (ValueError) -> List<u8>;
+    fn verify<P: AsBytes, M: AsBytes, S: AsBytes>(public_key: P, msg: M, sig: S) -> bool;
 }
 enum EcCurve { P256, P384 }                         // crypto::ecdsa (FIPS 186-5)
 struct Ecdsa {
-    fn public_key(curve: EcCurve, private_key: ByteInput) throws (ValueError) -> List<u8>;  // SEC1 비압축
-    fn sign(curve: EcCurve, hash: HashAlgorithm, private_key: ByteInput, msg: ByteInput) throws (ValueError) -> List<u8>;  // DER, RFC 6979 nonce
-    fn verify(curve: EcCurve, hash: HashAlgorithm, public_key: ByteInput, msg: ByteInput, signature: ByteInput) -> bool;  // SEC1 비압축 키, DER 서명
+    fn public_key<B: AsBytes>(curve: EcCurve, private_key: B) throws (ValueError) -> List<u8>;  // SEC1 비압축
+    fn sign<P: AsBytes, M: AsBytes>(curve: EcCurve, hash: HashAlgorithm, private_key: P, msg: M) throws (ValueError) -> List<u8>;  // DER, RFC 6979 nonce
+    fn verify<P: AsBytes, M: AsBytes, S: AsBytes>(curve: EcCurve, hash: HashAlgorithm, public_key: P, msg: M, signature: S) -> bool;  // SEC1 비압축 키, DER 서명
 }
 struct RsaPublicKey {                               // crypto::rsa (RFC 8017), 2048..4096 bits
-    fn new(n: ByteInput, e: ByteInput) throws (ValueError) -> RsaPublicKey;
-    fn from_pkcs1_der(der: ByteInput) throws (ValueError) -> RsaPublicKey;
+    fn new<N: AsBytes, E: AsBytes>(n: N, e: E) throws (ValueError) -> RsaPublicKey;
+    fn from_pkcs1_der<B: AsBytes>(der: B) throws (ValueError) -> RsaPublicKey;
     fn bits(self) -> usize;
     fn modulus(self) -> List<u8>;                   // big-endian, 앞의 0 바이트 없음
     fn exponent(self) -> List<u8>;
-    fn verify_pkcs1v15(self, hash: HashAlgorithm, msg: ByteInput, signature: ByteInput) -> bool;
-    fn verify_pss(self, hash: HashAlgorithm, msg: ByteInput, signature: ByteInput, salt_len: usize | none = none) -> bool;  // MGF1(hash); none: salt 길이 = 해시 길이
+    fn verify_pkcs1v15<M: AsBytes, S: AsBytes>(self, hash: HashAlgorithm, msg: M, signature: S) -> bool;
+    fn verify_pss<M: AsBytes, S: AsBytes>(self, hash: HashAlgorithm, msg: M, signature: S, salt_len: usize | none = none) -> bool;  // MGF1(hash); none: salt 길이 = 해시 길이
 }
 struct RsaPrivateKey {
-    fn from_pkcs1_der(der: ByteInput) throws (ValueError) -> RsaPrivateKey;   // RSAPrivateKey, 소수 두 개
+    fn from_pkcs1_der<B: AsBytes>(der: B) throws (ValueError) -> RsaPrivateKey;   // RSAPrivateKey, 소수 두 개
     fn public_key(self) -> RsaPublicKey;
     fn bits(self) -> usize;
-    fn sign_pkcs1v15(self, hash: HashAlgorithm, msg: ByteInput) throws (ValueError) -> List<u8>;  // 결정적
-    fn sign_pss(self, hash: HashAlgorithm, msg: ByteInput, salt: ByteInput) throws (ValueError) -> List<u8>;  // salt: 새 난수, 해시 길이
+    fn sign_pkcs1v15<B: AsBytes>(self, hash: HashAlgorithm, msg: B) throws (ValueError) -> List<u8>;  // 결정적
+    fn sign_pss<M: AsBytes, S: AsBytes>(self, hash: HashAlgorithm, msg: M, salt: S) throws (ValueError) -> List<u8>;  // salt: 새 난수, 해시 길이
 }
 ```
 

@@ -38,8 +38,8 @@ Rok의 `str`은 수명을 추적하지 않아도 된다는 점에서 Python의 �
 ```rok
 impl str {
     fn new() -> str;                        // ""
-    fn from_utf8(bytes: List<u8> | Slice<u8>) throws (Utf8Error) -> str;
-    fn from_utf8_lossy(bytes: List<u8> | Slice<u8>) -> str;   // 잘못된 시퀀스마다 → U+FFFD
+    fn from_utf8<B: AsBytes>(bytes: B) throws (Utf8Error) -> str;
+    fn from_utf8_lossy<B: AsBytes>(bytes: B) -> str;   // 잘못된 시퀀스마다 → U+FFFD
 
     fn len(self) -> usize;                  // byte 길이
     fn char_count(self) -> usize;           // char 개수, chars().count() 와 같음
@@ -341,7 +341,7 @@ impl Utf8Error {
 }
 ```
 
-`Utf8Error`는 `Display`(`message()`), `Debug`, `Error`, `PartialEq`, `Eq`, `Clone`을 구현합니다. UTF-8 에러는 이것 하나입니다. 표준 라이브러리에서 UTF-8 검사가 실패하면 모두 이 에러를 던집니다(`str::from_utf8`, `CStr::to_str`, `RawStr::to_str`, `RawPath::try_to_path`).
+`Utf8Error`는 `Display`(`message()`), `Debug`, `Error`, `PartialEq`, `Eq`, `Clone`을 구현합니다. UTF-8 에러는 이것 하나입니다. 표준 라이브러리에서 UTF-8 검사가 실패하면 모두 이 에러를 던집니다(`str::from_utf8`, `CStr::to_str`, `RawStr::to_str`, `RawPath::to_path`).
 
 `str::from_utf8_lossy(bytes)`는 에러를 던지지 않습니다. 잘못된 시퀀스의 maximal subpart 하나하나가 U+FFFD 하나가 됩니다(Unicode §3.9, U+FFFD Substitution of Maximal Subparts, WHATWG UTF-8 decoder의 동작).
 

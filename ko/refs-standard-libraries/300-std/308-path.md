@@ -136,18 +136,18 @@ let q: Path = try raw.try_into();          // 같음
 struct RawPath { /* unix: Vec<u8>, windows: Vec<u16> */ }
 
 impl RawPath {
-    fn from_bytes(bytes: List<u8>) -> RawPath;        // unix
-    fn from_wide(wide: List<u16>) -> RawPath;          // windows
+    fn from_bytes<B: AsBytes>(bytes: B) -> RawPath;    // unix
+    fn from_wide(wide: Slice<u16>) -> RawPath;         // windows
 
     fn as_bytes(self) -> Slice<u8>;                    // unix 만
     fn as_wide(self) -> Slice<u16>;                    // windows 만
 
-    fn try_to_path(self) throws (Utf8Error) -> Path;
+    fn to_path(self) throws (Utf8Error) -> Path;       // RawStr::to_str 와 같음
     fn to_path_lossy(self) -> Path;
 }
 ```
 
-Windows에서 `Utf8Error::valid_up_to()`는 UTF-16 단위를 셉니다. `to_path_lossy`는 잘못된 최대 부분열(Unix) / 짝 없는 서로게이트(Windows) 하나하나를 U+FFFD 하나로 바꿉니다.
+`to_path`는 `str::from_utf8`, `RawStr::to_str`와 같은 에러인 `Utf8Error`([2.15.6](../200-core/215-string.md))를 던지고, Windows에서는 그 `valid_up_to()`가 UTF-16 단위를 셉니다. `to_path_lossy`는 잘못된 최대 부분열(Unix) / 짝 없는 서로게이트(Windows) 하나하나를 U+FFFD 하나로 바꿉니다.
 
 대부분의 코드는 이 타입을 볼 일이 없습니다. OS와 직접 시스템 콜을 주고받는 곳에서만 나옵니다.
 

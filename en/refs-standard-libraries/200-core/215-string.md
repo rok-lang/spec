@@ -38,8 +38,8 @@ Rok's `str` is close to Python's immutable `str` in needing no lifetime tracking
 ```rok
 impl str {
     fn new() -> str;                        // ""
-    fn from_utf8(bytes: List<u8> | Slice<u8>) throws (Utf8Error) -> str;
-    fn from_utf8_lossy(bytes: List<u8> | Slice<u8>) -> str;   // each ill-formed sequence → U+FFFD
+    fn from_utf8<B: AsBytes>(bytes: B) throws (Utf8Error) -> str;
+    fn from_utf8_lossy<B: AsBytes>(bytes: B) -> str;   // each ill-formed sequence → U+FFFD
 
     fn len(self) -> usize;                  // byte length
     fn char_count(self) -> usize;           // number of chars, same as chars().count()
@@ -341,7 +341,7 @@ impl Utf8Error {
 }
 ```
 
-`Utf8Error` implements `Display` (its `message()`), `Debug`, `Error`, `PartialEq`, `Eq` and `Clone`. It is the one UTF-8 error: every failed UTF-8 check in the standard libraries throws it (`str::from_utf8`, `CStr::to_str`, `RawStr::to_str`, `RawPath::try_to_path`).
+`Utf8Error` implements `Display` (its `message()`), `Debug`, `Error`, `PartialEq`, `Eq` and `Clone`. It is the one UTF-8 error: every failed UTF-8 check in the standard libraries throws it (`str::from_utf8`, `CStr::to_str`, `RawStr::to_str`, `RawPath::to_path`).
 
 `str::from_utf8_lossy(bytes)` never throws: each maximal subpart of an ill-formed sequence (Unicode §3.9, U+FFFD Substitution of Maximal Subparts; the WHATWG UTF-8 decoder's behavior) becomes one U+FFFD.
 
