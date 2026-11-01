@@ -65,7 +65,7 @@ The global options of `rok` are:
 
 Global options may also follow the subcommand: `rok new app -q` is `rok -q new app`.
 
-Environment variables are `ROK_HOME` (default `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6), `ROK_REGISTRY` (the index) and `ROK_REGISTRY_TOKEN` (the registry API token) (9.10.4a), and `ROK_DIST` (the release server, 9.10.6). `NO_COLOR`, `CLICOLOR_FORCE`, `COLORTERM` and `TERM` set colour as for `rokc` ([9.1.7](901-rokc-cli.md#917-environment-variables)).
+Environment variables are `ROK_HOME` (default `~/.rok`), `ROK_ENV` (9.10.5), `ROK_TOOLCHAIN` (9.10.6), `ROK_REGISTRY_TOKEN` (the rokstones.io registry API token, 9.10.4a; `ROK_REGISTRY` is ignored with a warning), and `ROK_DIST` (the release server, 9.10.6). `NO_COLOR`, `CLICOLOR_FORCE`, `COLORTERM` and `TERM` set colour as for `rokc` ([9.1.7](901-rokc-cli.md#917-environment-variables)).
 
 ## 9.10.2. `rok new` / `rok init`: package creation
 
@@ -125,13 +125,22 @@ Package {
     documentation: "https://example.com/geom/doc",   // string, optional
     readme: "README.md",             // string, optional (path relative to rok.rokon)
     keywords: ["geometry", "math"],  // list of strings, optional (at most 5)
+    categories: ["mathematics"],     // list of strings, optional (at most 5)
+    license_file: "LICENSE",         // string, optional (path relative to rok.rokon)
+    include: ["src/**", "README.md"],   // list of globs, optional (what the stone holds)
+    exclude: ["bench/**"],           // list of globs, optional (left out of it)
+    links: "z",                      // string, optional (the native library it links)
+    default_run: "geom",             // string, optional (the executable `rok run` runs)
+    metadata: { docs: { all_features: true } },   // table, optional (for other tools)
     publish: true,                   // bool, optional (false: `rok publish` refuses)
-    deps: {                          // package name (string) -> Dep
+    deps: {                          // dependency name (string) -> Dep
         "util": Dep::path("../util"),
         "parser": Dep::git("https://example.com/parser.git", tag: "v1.2"),
         "http": "0.9",                                   // stone (= Dep::version("0.9"))
         "json": Dep::version("^1.4", optional: true),    // only with a feature (9.10.4c)
         "csv": Dep::version("^0.3", registry: "https://example.com/index"),
+        "j5": Dep::version("^0.2", package: "json5"),    // the stone `json5`, `j5` in code
+        "nix": Dep::version("^0.4", target: "cfg(target_family = \"unix\")"),
     },
     dev_deps: {                      // same form as deps. test / bench only
         "fixtures": Dep::path("tests/fixtures"),
@@ -145,6 +154,8 @@ Package {
 
 - Values are ROKON literals (strings, `{ "k": v }` dicts, the empty dict `{}`) and `Dep::path("..")` / `Dep::git("url", rev | tag | branch: "..")` / `Dep::version("req", registry: "url")`. `Dep::git` takes at most one of `rev` / `tag` / `branch`, and `registry` of `Dep::version` is optional. A dependency value that is a single string is shorthand for `Dep::version`.
 - `Dep::path` / `Dep::git` / `Dep::version` also take `optional: true`, `features: ["<f>", ..]` and `default_features: false` (9.10.4c); an optional dev dependency is an error.
+- `package: "<name>"` renames a dependency: the key is what code calls it (`use j5::..`), `<name>` is the package (the stone, or the `name` of a path / git package) and what the lock records. One build calls a package by one name: two dependents that name it differently are an error naming both (`` package `json5` is called `j5` by .. and `json5` by ..; one build calls a package by one name ``).
+- `target: "<target>"` limits a dependency to builds for a matching target: a target name (`x86_64-unknown-linux-gnu`), or `cfg(<predicate>)` over the target keys of [6.3.2](../006-meta-system/603-conditional-compilation.md) (`target_os`, `target_arch`, `target_family`, `target_env`, `target_endian`, `target_pointer_width`) with `all(..)`, `any(..)`, `not(..)`. Anything else is an error when the manifest is read. Resolution and the lock cover the dependency for every target; a build for another target leaves it out, with the features it would enable.
 - `Dep::registry` is for `rok.lock` only; using it in `rok.rokon` is an error.
 - Package names (keys of `deps`, `name`) are lowercase ASCII `[a-z0-9_-]+` beginning with a letter (beginning with a digit, `-` or `_` is an error). The name `rok` is reserved for the standard library: a package, dependency, native package or registry name `rok` is an error (`` `rok` is reserved for the standard library; name the package something else, e.g. `rok_util` ``), and so is `rok new` / `rok init` / `rok add` with it. Code must be able to name the package too, so its code name (below) may not be a keyword (1.5: `fn`, `match`, `self`, ..) or a path start (5.5.7: `pkg`, `sup`); `use pkg::add;` in an executable always means its own root (`` `pkg` already names a package's own root (`pkg::`), so code can't name a package called that; name the package something else, e.g. `pkg_util` ``). Keys are strings (`"rok-syntax": Dep::version("^0.1")`).
 - A package name must also be one every supported OS can store as a file or directory: not a Windows device name (`con`, `prn`, `aux`, `nul`, `com1`-`com9`, `lpt1`-`lpt9`, in any case) and at most 64 characters (`` `nul` is a device name on Windows, so no file can be called that; name the package something else, e.g. `my_nul` ``). `rok new` / `rok init --script` / `rok add` / `rok publish` refuse such a name. In a `rok.rokon` that is read (its `name` and the keys of `deps`, `dev_deps`, `native`) it is a warning with `file:line:col`, and the build goes on.
@@ -155,14 +166,18 @@ Package {
 - `native` maps native package names (their own namespace: a package and a native package may share a name) to `Dep::native("req"[, registry: "url"])`, a requirement string, or `Dep::native(url: "<url or path relative to the manifest>", sha256: "<64 hex digits>")` (9.10.4b). `Dep::native` in `deps` / `dev_deps` is an error. Native dependencies of every package in the graph are linked into executables (those reached only through `dev_deps`, only for test / bench).
 - `lints` sets lint levels (lint or group name → `"allow"` | `"warn"` | `"deny"`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)). They are treated as if prepended to the CLI flags of every `rokc` command `rok` runs, so CLI `-A/-W/-D` and attributes in code override them.
 - `lints_from` names a directory (relative to this manifest's directory, or absolute) whose `rok.rokon` supplies starting lint levels. That manifest's `lints`, after its own `lints_from` chain, are applied first, and this manifest's `lints` follow, so an entry here overrides the same lint or group from the chain (all entries are passed as `-A`/`-W`/`-D` in this order; later flags win). It applies only to the package being built or checked (and to an environment's manifest); dependencies' manifests are never consulted for lints. It is an error if the directory does not exist, contains no `rok.rokon`, or if the chain returns to a manifest already in it (a cycle). `rok env import` rewrites a relative `lints_from` as an absolute path. A script's `//! ```rokon` block may not use it.
-- Package metadata: `authors` are `"Name <email>"` strings, and `rok new` / `rok init` do not fill them. `keywords` holds at most 5 entries. An empty entry of `authors` or `keywords` is an error. `readme` is a path inside the package, relative to the manifest's directory (an absolute path, or one whose `..` leaves the package, is an error); without it, `README.md` is the readme when present. `rok publish` checks that the readme file exists, and refuses a package with `publish: false` (9.10.4a).
-- Errors: unknown fields / `Dep` kinds / named arguments, duplicates, `features` that break the rules of 9.10.4c, package names violating the rules, syntax that is not ROKON, anything other than a single `Package { .. }`, trailing tokens. Diagnostics show the location with `file:line:col` and a caret.
+- Package metadata: `authors` are `"Name <email>"` strings, and `rok new` / `rok init` do not fill them. `keywords` and `categories` hold at most 5 entries each. An empty entry of `authors`, `keywords`, `categories`, `include` or `exclude` is an error. `readme` and `license_file` are paths inside the package, relative to the manifest's directory (an absolute path, or one whose `..` leaves the package, is an error); without `readme`, `README.md` is the readme when present. `metadata` is a table (`{ .. }`) `rok` does not read; it goes to the registry as written. `rok publish` checks that the readme and `license_file` exist, that `default_run` names one of the package's executables, and refuses a package with `publish: false` (9.10.4a).
+- `include` / `exclude` are globs over the paths of the files at the published commit (`*` and `?` within a name, `**` across names; a pattern without `/` matches a name at any depth, and one that matches a directory matches what is in it). The stone holds a file when `include` is empty or matches it and `exclude` does not; `rok.rokon` is always in. They set the packed size `rok publish` sends (9.10.4a); the source is still the whole commit.
+- `links` names the native library the package links. Two packages of one build with the same `links` are an error naming both.
+- `default_run` names the executable `rok run` runs; a package has at most one executable (`src/main.rok`, named after the package), so it is that name.
+- A field `rok` does not know is a warning with `file:line:col` (`` unknown field `edtion` is ignored; did you mean `edition`? ``, with a suggestion when one is close), and the manifest is read without it; `rok publish` sends it on in `meta` as written (9.10.4a), so a newer registry can use it.
+- Errors: unknown `Dep` kinds / named arguments, duplicates, `features` that break the rules of 9.10.4c, package names violating the rules, syntax that is not ROKON, anything other than a single `Package { .. }`, trailing tokens. Diagnostics show the location with `file:line:col` and a caret.
 
 | Dependency source | Form                                                         | Pinned in `rok.lock` |
 |-------------------|--------------------------------------------------------------|----------------------|
 | path        | `Dep::path("..")` (path relative to the manifest)            | No (always current content) |
 | git         | `Dep::git("url")`, optionally one of `rev:` / `tag:` / `branch:` | Commit and tree hash |
-| stone       | `Dep::version("req"[, registry: "url"])` or the string `"req"` ([9.10.4a](#9104a-stones-and-rokstonesio)) | Version, commit, tree hash |
+| stone       | `Dep::version("req"[, registry: "url"])` or the string `"req"` ([9.10.4a](#9104a-stones-and-rokstonesio)) | Version, commit, tree hash (with the index, never a mirror) |
 | native      | `Dep::native("req")` / `Dep::native(url:, sha256:)` ([9.10.4b](#9104b-native-packages)) | Version and entry SHA-256 (index); none (the hash pins it) |
 
 Rok has no build scripts: no code from a package runs at build time. C / C++ libraries come in as prebuilt native packages (9.10.4b).
@@ -171,12 +186,12 @@ Within one build, one name is one package. If the same name is required from dif
 
 ### `rok.lock` format
 
-`rok.lock` is ROKON (canonical form) written deterministically by `rok`. After a header comment it holds one `Locked` per git package and stone, in name order. Path dependencies are not pinned and do not appear.
+`rok.lock` is ROKON (canonical form) written deterministically by `rok`. After a header comment it holds one `Locked` per git package and stone, in name order. Path dependencies are not pinned and do not appear. Its field names follow the manifest's.
 
 ```rokon
 // rok.lock: generated by `rok`; do not edit. Commit it with your sources.
 Lock {
-    version: 1,
+    version: 2,
     packages: [
         Locked {
             name: "parser",
@@ -186,7 +201,7 @@ Lock {
         },
         Locked {
             name: "json",
-            vers: "1.4.2",
+            version: "1.4.2",
             source: Dep::registry("https://github.com/rok-lang/rokstones.io-index"),
             commit: "0b6d..",
             tree: "77e1..",
@@ -197,19 +212,19 @@ Lock {
 
 | Field     | Meaning                                                              |
 |-----------|----------------------------------------------------------------------|
-| `version` | Lock format version (`1`)                                            |
-| `name`    | The `deps` key in `rok.rokon`                                        |
-| `vers`    | Stones only. The resolved version                                    |
-| `source`  | For git, the `Dep::git(..)` exactly as written in `rok.rokon`; for stones, `Dep::registry("<index url>")` |
+| `version` | In `Lock`, the lock format version (`2`); in `Locked`, stones only: the resolved version |
+| `name`    | The package's name (the `deps` key, or its `package` when renamed)   |
+| `source`  | For git, the `Dep::git(..)` exactly as written in `rok.rokon`; for stones, `Dep::registry("<index url>")`: the index, never the mirror it was fetched from (9.10.4a) |
 | `commit`  | The resolved commit (40 hex digits)                                  |
 | `tree`    | The git tree hash of that commit. Used to verify the cached checkout |
 
 - The `source` of `Locked` is `Dep::git(..)` or `Dep::registry(..)`.
 - A missing `packages` field is read as an empty list.
 - Features are not recorded: the lock pins every package of the graph, optional ones included, so it does not depend on the features a build enables.
-- Native packages from an index are pinned in an optional `natives: [LockedNative { name, vers, source: Dep::registry("<index>"), sha256 }]`, sorted by name and written only when non-empty. `sha256` is the SHA-256 of the entry's canonical index line with `yanked: false`; a changed entry is a "run `rok update`" error.
-- `version` is read before the other fields. A `version` above `1` is a lock a newer `rok` wrote, and an error naming the toolchain to use instead of deleting it: ``rok.lock was written by a newer rok (lock version 2); run that rok's toolchain here: set `toolchain` in rok.rokon to its version, or run `rok +<version> ..` ``.
-- Any other `version` than `1` is an "unsupported lockfile version" error.
+- Native packages from an index are pinned in an optional `natives: [LockedNative { name, version, source: Dep::registry("<index>"), sha256 }]`, sorted by name and written only when non-empty. `sha256` is the SHA-256 of the entry's canonical index line with `yanked: false`; a changed entry is a "run `rok update`" error.
+- `rok` writes lock format 2. A lock of format 1 (rok 0.1: `vers` where 2 has `version`) is read once and written back as format 2 with the same pins, with a note (``note: rok.lock is written in lock format 2 (the pins are unchanged)``), also under `--locked`. Reading it, a stone or native index url that is a mirror in `sources.rokon` (9.10.4a) becomes the index it stands in for, and a native package keeps its version while its `sha256` is taken anew from the index's current line (format 1 hashed the 0.1 line form).
+- `version` is read before the other fields. A `version` above `2` is a lock a newer `rok` wrote, and an error naming the toolchain to use instead of deleting it: ``rok.lock was written by a newer rok (lock version 3); run that rok's toolchain here: set `toolchain` in rok.rokon to its version, or run `rok +<version> ..` ``.
+- Any other `version` than `1` or `2` is an "unsupported lockfile version" error.
 - Every other error raised while reading the lock appends "(delete rok.lock and run `rok update` to make it again)".
 
 ## 9.10.4. Dependencies: `rok add` / `remove` / `update` / `deps`
@@ -229,7 +244,7 @@ rok deps [--dev] [--features <f,..>] [--all-features] [--no-default-features] [-
 - `add` / `remove` edit `rok.rokon`, preserving comments and layout. `--dev` adds to `dev_deps`. `add` / `remove` edit the package's `rok.rokon`. Given a script file as the last argument, `add` / `remove` edit that file's `//! rokon` block instead (9.10.7): a missing block is created after the shebang line and the leading `//!` lines (written in canonical form; an existing block keeps its layout and comments), a block left empty is removed, a path is written relative to the script, and `--dev` / `--optional` are errors. A script inside a package is an error (it uses the package's `rok.rokon`). Outside a package without a script, or with `--env`, they are an error naming `rok add <name> <file.rok>` and `rok install` / `rok uninstall` ([9.10.5a](#9105a-rok-install--rok-uninstall)). Adding a stone without a requirement writes `^<newest version>`. `--features`, `--no-default-features` and `--optional` are written into the `Dep::..`; `--optional` also adds the feature `"<name>": ["dep:<name>"]` unless the package has a feature of that name.
 - `add` to a package reports `Added <name> v<version>`, the `version` in the dependency's `rok.rokon` (for a stone not yet resolved, the version pinned), or `Added <name>` when it has none; `--dev` adds ` (dev_deps)`.
 - Builds use the commits and versions in `rok.lock`. Newly declared dependencies are added to the lock and removed ones are cleaned up, but only `update` moves something already pinned. Given names, `update` re-resolves only those packages; otherwise it re-resolves all git dependencies and stones.
-- `deps` prints the resolved dependency packages as lines `<code name>=<path of its src/lib.rok>` (the code name has `-` replaced by `_`), dependencies first (`--dev` includes dev dependencies). Each such line is followed by its `--extern-feature=<code name>=<f>` lines; `deps` takes the feature options and `--dev`. For each native package (dependents first, for the host) it also prints `# native <name> <vers>` followed by its `rokc` arguments, one per line. With no dependencies it prints nothing.
+- `deps` prints the resolved dependency packages as lines `<code name>=<path of its src/lib.rok>` (the code name has `-` replaced by `_`), dependencies first (`--dev` includes dev dependencies). Each such line is followed by its `--extern-feature=<code name>=<f>` lines; `deps` takes the feature options and `--dev`. For each native package (dependents first, for the host) it also prints `# native <name> <version>` followed by its `rokc` arguments, one per line. With no dependencies it prints nothing.
 - `deps --format json` prints one JSON object per line instead, in the same order, each with `schema` (now `1`) and `type`. A `package` record has `name`, `version` (a stone's resolved version, else the `version` of the dependency's `rok.rokon`, else `null`), `source` (`path+<dir>`, `git+<url>#<commit>` or `registry+<index url>`), `path` (its `src/lib.rok`) and `features`. A `native` record has `name`, `version` and `args` (its `rokc` arguments). A last `summary` record counts `packages` and `natives`, so a package without dependencies prints only it. Records follow the `schema` rule of the JSON diagnostics ([9.9.4](909-debug-tools.md#994-diagnostics--error-messages)). `--format human` is the default; another value is a CLI error.
 - `rok.lock` is committed to version control.
 - `update` prints a line per change in the lock, `Updated <name> v0.1.0 -> v0.1.1` (a git dependency by its short commit; `Locked` for one newly pinned, `Removed` for one dropped), or `note: all dependencies are up to date`; with no dependencies, `` note: no dependencies to update; add one: `rok add <name>` ``. Outside a package without `--env`, it updates the environment used outside a package (9.10.5) when that has libraries (ending with `` Updated environment `<name>` `` when something changed); otherwise it is an error: `` not inside a package (..): make one with `rok init`; for an environment's libraries: `rok update --env <name>` ``.
@@ -269,7 +284,16 @@ A pre-release version (`1.3.0-beta.1`) matches only when the requirement names a
 
 ### Which index
 
-The order is `ROK_REGISTRY` > `Config { registry: "<url>" }` in `$ROK_HOME/config.rokon` > the default (the rokstones.io index). The `registry:` of `Dep::version` and `rok add --registry` set the index for that one dependency.
+A requirement without `registry:` (a bare requirement) always means the rokstones.io index, `https://github.com/rok-lang/rokstones.io-index`. The `registry:` of `Dep::version` and `rok add --registry` set the index for that one dependency; `rok publish`, `yank`, `login` and `logout` take `--registry <url>` for another index.
+
+`$ROK_HOME/sources.rokon` replaces where an index is fetched from (source replacement):
+
+```rokon
+Sources { replace: { "https://github.com/rok-lang/rokstones.io-index": "https://mirror.example.com/rokstones-index" } }
+```
+
+- Each key is an index url (a trailing `/` ignored), its value the git url of a mirror that has the same content. `rok` fetches the index from the mirror; everything else, the lock (9.10.3), tokens and messages, names the index. A missing file is no replacement; fields `rok` does not know are skipped.
+- `ROK_REGISTRY` and `registry` in `$ROK_HOME/config.rokon` (rok 0.1's settings) no longer pick the index. When one is set to another url it is ignored with a warning, once per run, naming what to write instead: ``ROK_REGISTRY is ignored: a bare requirement means https://github.com/rok-lang/rokstones.io-index; to fetch it from <url>, write `Sources { replace: { "https://github.com/rok-lang/rokstones.io-index": "<url>" } }` in <ROK_HOME>/sources.rokon``.
 
 ### Index format
 
@@ -282,19 +306,31 @@ The root of the index repository has a `config.rokon`, `Config { api: "<url>" }`
 | 3           | `3/a/abc`                |
 | 4 or more   | `ab/cd/abcd..`           |
 
-Each line of the file is one version, as single-line ROKON in canonical form. Older versions come first.
+Each line of the file is one version, as single-line ROKON in canonical form. Older versions come first. A line holds only what resolution needs, with the manifest's field names; the descriptive fields go to the registry API (`meta`, below).
 
 ```rokon
-Stone { name: "json", vers: "1.4.2", deps: [{ name: "util", req: "^0.3", kind: "normal" }], source: Dep::git("https://example.com/json.git", rev: "0b6d.."), cksum: "77e1..", yanked: false }
+Stone { name: "json", version: "1.4.2", deps: [{ name: "util", req: "^0.3", kind: "normal" }], source: Dep::git("https://example.com/json.git", rev: "0b6d.."), tree: "77e1..", yanked: false, toolchain: "0.2" }
 ```
 
-- The `kind` in `deps` is `"normal"`, `"dev"` or `"native"`; `registry` is optional.
+| Field       | Meaning |
+|-------------|---------|
+| `name`      | The stone's name as published |
+| `version`   | Its version |
+| `deps`      | Dependencies: `{ name, req, kind, registry?, optional?, features?, default_features?, package?, target? }` |
+| `features`  | Optional: the features (9.10.4c) |
+| `source`    | `Dep::git("<url>", rev: "<commit>")` |
+| `tree`      | The git tree hash of that commit |
+| `yanked`    | Whether it is yanked |
+| `toolchain` | Optional: the toolchains that build it, a pin (9.10.6) |
+| `links`     | Optional: the native library it links (9.10.3) |
+
+- The `kind` in `deps` is `"normal"`, `"dev"` or `"native"`; `registry` is optional. A renamed dependency has `name` the code name and `package` the stone's name; a target-specific one has `target` as in the manifest, which the client evaluates for each build (9.10.3).
 - A stone with features has `features: { "<name>": ["<entry>", ..] }` after `deps`, checked as in 9.10.4c. A `normal` dependency may have `optional: true`, `features: [..]` and `default_features: false` (written only when not the default); `dev` / `native` ones may not be optional, and native ones have no features. `rok publish` writes them from `rok.rokon`; resolution reads them from the entry. After checkout the entry's `features` must equal those of the stone's `rok.rokon` at that commit (in any order); otherwise it is an error.
 - `native/<shard path>` holds native packages, one `Native { .. }` per line ([9.10.4b](#9104b-native-packages)).
-- `toolchain` is optional and last: the toolchains that build the stone, as a pin (9.10.6). Readers honour it (Resolution, below); an entry without it suits any toolchain. `rok publish` does not write it yet, since `rok` 0.1.1 and older reject a line with a field they do not know.
-- `description`, `license` and `repository` from the manifest appear as optional trailing fields. The other package metadata (`authors`, `homepage`, `documentation`, `keywords`) is not in the entry yet.
-- Readers skip fields they do not know in an index line (`Stone`, its `deps` entries, `Native`, `Artifact`), so a newer `rok` can add fields without hiding a package from an older one. A `Native { .. }` file of one's own (`Dep::native(url:)`, `rok publish --native`) still rejects them.
-- The package is at the root of the `source` repository. `cksum` is the git tree hash of that commit, verified after checkout.
+- `toolchain` is the toolchains that build the stone, as a pin (9.10.6). `rok publish` writes the manifest's `toolchain`, else the publisher's series (`0.2`). Readers honour it (Resolution, below); an entry without it suits any toolchain.
+- This is the only line format: there is no format version per line, and a line from before 0.2 (`vers`, `cksum`, descriptive fields) is not read. The rokstones.io index moved its lines to these names once when 0.2.0 shipped; `rok` 0.1 does not read the 0.2 index.
+- Readers skip fields they do not know in an index line (`Stone`, its `deps` entries, `Native`, `Artifact`). A `Native { .. }` file of one's own (`Dep::native(url:)`, `rok publish --native`) still rejects them. The registry checks lines strictly.
+- The package is at the root of the `source` repository. `tree` is the git tree hash of that commit, verified after checkout.
 
 ### Resolution
 
@@ -312,25 +348,38 @@ rok search [--native] <query>
 rok login [--registry <url>] [<token>]
 rok logout [--registry <url> | --all]
 rok publish [--dry-run] [--registry <url> | --index-dir <checkout>]
-rok yank [--native] <name>@<version> [--undo] [--registry <url> | --index-dir <checkout>]
+rok yank [--native] <name>@<version> [--undo] [--message <why>] [--registry <url> | --index-dir <checkout>]
 ```
 
-- `search` searches the index by name and prints one line per match: `<name> <newest version> - <description>` (the description part omitted when the entry has none). Index lookups accept either spelling, `-` or `_`.
+- `search` searches the index by name and prints one line per match: `<name> <newest version> - <description>`. The description comes from the registry API (`GET <api>/api/v1/stones/<name>`, the newest version's `meta.description`); it is left out when the API has none or does not answer, and under `--offline`. Index lookups accept either spelling, `-` or `_`.
 - `publish` publishes (as `cargo publish` does); `publish --dry-run` is a dry run. A package with `publish: false` is refused, with an error naming the line to remove. The readme (9.10.3) must exist. It requires a clean work tree, the package at the repository root, and a `src/lib.rok`, a `src/main.rok` or both. A stone with only `src/main.rok` is a program: `rok install` builds it, and it cannot be a dependency. Normal path / git dependencies are rejected, and path / git dev dependencies are dropped. It checks for conflicts with the same version and with names equal under `-` / `_` and case folding. A name already owned under a different spelling is rejected. A dry run without `--index-dir` only prints the entry; with `--index-dir` it is also checked against that checkout. The entry's source is the url of git remote `origin` as configured (before `insteadOf` rewrites); it must be `https://`, except `http://127.0.0.1` and `http://localhost`.
-- Without `--dry-run`, `publish` adds the entry: with `--index-dir`, as a commit "Publish <name> <vers>" in that checkout (not pushed); without it, through the registry API of the index `--registry <url>` names, else of the configured index ("Which index"), which adds it to the index. `--index-dir` and `--registry` cannot be combined. The client never writes to the index repository itself.
-- `yank` sets (or with `--undo` clears) `yanked` for that version: with `--index-dir`, as a commit in that checkout; otherwise through the registry API of the index `--registry <url>` names, else of the configured index.
+- Without `--dry-run`, `publish` adds the entry: with `--index-dir`, as a commit "Publish <name> <version>" in that checkout (not pushed); without it, through the registry API of the index `--registry <url>` names, else of rokstones.io ("Which index"), which adds it to the index. `--index-dir` and `--registry` cannot be combined. The client never writes to the index repository itself.
+- `yank` sets (or with `--undo` clears) `yanked` for that version: with `--index-dir`, as a commit in that checkout; otherwise through the registry API of the index `--registry <url>` names, else of rokstones.io.
 - `--commit` (`publish`), `--index` (`publish` and `yank`) and `--vers` (`yank`) are errors that name the form to write: a bare `publish`, `--index-dir <dir>`, and `yank <name>@<version>`.
+- `yank --message <why>` says why (at most 512 bytes); the registry keeps it and shows it. It goes with a yank only: with `--undo`, or with `--index-dir` (a checkout has no place for it), it is an error.
 - The registry API is at `api` of the index's `config.rokon`. Requests carry `Authorization: Bearer <token>`, and bodies are single-line ROKON (`application/rokon; charset=utf-8`):
   - `GET <api>/api/v1/me` → `Me { login: "..", publish: <bool> }`
-  - `POST <api>/api/v1/publish`, body the index line (`Stone { .. }` / `Native { .. }`) → `Published { name, vers, file }`
-  - `POST <api>/api/v1/yank`, body `Yank { name, vers, undo: <bool>, native: <bool> }` → `Yanked { name, vers, yanked }`
+  - `POST <api>/api/v1/publish`, body `Publish { entry: <index line>, meta: { .. } }` (the line is `Stone { .. }` / `Native { .. }`) → `Published { name, version, file, warnings: ["..", ..] }`; `rok` prints each warning.
+  - `POST <api>/api/v1/yank`, body `Yank { name, version, undo: <bool>, native: <bool>, message: ".." }` (`message` written only with one) → `Yanked { name, version, yanked }`
+  - `GET <api>/api/v1/stones/<name>` and `/api/v1/native/<name>`, no token → `Stone { name, native, owners, versions: [Version { version, yanked, meta, yank_message, has_readme, downloads, published_by, yanked_by, unyanked_by }, ..] }`; `GET <api>/api/v1/stones/<name>/<version>/readme` → the README as markdown.
 
-  A failure is a 4xx / 5xx status with `Error { message: ".." }`, whose message `rok` reports; 401 means the token is not valid.
-- The registry API needs a token; an `--index-dir` checkout needs none. The token for an index is `ROK_REGISTRY_TOKEN` if set and non-empty (for an index other than rokstones.io this warns once: 0.2.0 sends it only to rokstones.io, and other indexes use `rok login --registry <url>`, whose token goes in `tokens.rokon`), else the one `rok login` saved for that index, else the one in `credentials.rokon` (below). Without any, it is an error "run `rok login` first" (``run `rok login --registry <url>` first`` for an index other than the configured one).
-- `rok login` takes a rokstones.io account token, created on the website (`<api>/me`, signed in with GitHub; currently only the registry's maintainers can create one). When the token is omitted it is read from standard input, not echoed (echo is restored on Ctrl-C). `login` asks `/api/v1/me`: it refuses a token the API rejects, and an account whose `publish` is false ("this account cannot publish yet: publishing is open to rokstones.io maintainers only"), saving nothing. Otherwise it saves the token for the index, `--registry <url>` or else the configured one, in `$ROK_HOME/tokens.rokon` as `Tokens { tokens: { "<index url>": "<token>" } }` (keys without a trailing `/`; fields and other indexes already there are kept), and prints "Logged in as <login>". A token is sent only to the registry API of its own index.
-- For the configured index, `rok login` also saves `Credentials { token: ".." }` in `$ROK_HOME/credentials.rokon`, which rok 0.1.5 and older read and send to whichever index is configured. A `credentials.rokon` token is still used for an index with no `tokens.rokon` entry; for one other than rokstones.io that warns ``the token in <file> is not tied to an index; run `rok login --registry <url>` ``, and 0.2.0 sends it only to rokstones.io.
-- Both files are written mode 0600 on Unix. On Windows they get the default permissions of `$ROK_HOME`, which is under the user's profile.
-- `rok logout` removes the configured index's token from both files; `--registry <url>` removes that index's entry from `tokens.rokon`; `--all` removes every token from both.
+  A failure is a 4xx / 5xx status with `Error { message: ".." }`, whose message `rok` reports; 401 means the token is not valid. `rok` skips reply fields it does not know.
+- `meta` holds what describes a stone and does not take part in resolution, from the manifest (9.10.3) and the package. Fields without a value are left out.
+
+  | Field | From |
+  |-------|------|
+  | `description`, `license`, `license_file`, `authors`, `homepage`, `documentation`, `repository`, `readme` (the path), `keywords`, `categories`, `include`, `exclude`, `publish`, `metadata`, `links`, `default_run` | The manifest's fields of the same names |
+  | `has_lib` | Whether the package has `src/lib.rok` |
+  | `bin_names` | Its executables: `[<name>]` with `src/main.rok`, else `[]` |
+  | `readme_content` | The text of the readme (9.10.3), at most 524288 bytes; a longer one is an error at `rok publish` |
+  | `size` | The packed size: the bytes of the files at HEAD the stone holds (`include` / `exclude`, 9.10.3) |
+
+  Manifest fields `rok` does not know are sent in `meta` as written, so a newer registry can store them. For `publish --native`, `meta` is the file's `description`, `license` and `repository`.
+- The registry API needs a token; an `--index-dir` checkout needs none. The token for rokstones.io is `ROK_REGISTRY_TOKEN` if set and non-empty, else the one `rok login` saved. For another index it is the one `rok login --registry <url>` saved; `ROK_REGISTRY_TOKEN` is never sent there (set, it warns once: ``ROK_REGISTRY_TOKEN goes only to https://github.com/rok-lang/rokstones.io-index; for <url> run `rok login --registry <url>` ``). Without a token, it is an error "run `rok login` first" (``run `rok login --registry <url>` first`` for another index).
+- `rok login` takes a rokstones.io account token, created on the website (`<api>/me`, signed in with GitHub; currently only the registry's maintainers can create one). When the token is omitted it is read from standard input, not echoed (echo is restored on Ctrl-C). `login` asks `/api/v1/me`: it refuses a token the API rejects, and an account whose `publish` is false ("this account cannot publish yet: publishing is open to rokstones.io maintainers only"), saving nothing. Otherwise it saves the token for the index, `--registry <url>` or else rokstones.io's, in `$ROK_HOME/tokens.rokon` as `Tokens { tokens: { "<index url>": "<token>" } }` (keys without a trailing `/`; fields and other indexes already there are kept), and prints "Logged in as <login>". A token is sent only to the registry API of its own index.
+- `tokens.rokon` is the only token file. rok 0.1's `credentials.rokon` is neither read nor written: a token saved by rok 0.1.0 - 0.1.5 needs `rok login` again.
+- `tokens.rokon` is written mode 0600 on Unix. On Windows it gets the default permissions of `$ROK_HOME`, which is under the user's profile.
+- `rok logout` removes rokstones.io's token from `tokens.rokon`; `--registry <url>` removes that index's entry; `--all` removes every token.
 - The token reaches `curl` only on its standard input: never on a command line or in the environment, and never printed (errors show `***`).
 
 ## 9.10.4b. Native packages
@@ -339,7 +388,7 @@ Rok compiles no C. A native package is a prebuilt archive per target triple plus
 
 ```rokon
 Native {
-    name: "png", vers: "1.6.43",
+    name: "png", version: "1.6.43",
     deps: { "zlib": Dep::native("^1.3") },
     targets: {
         "x86_64-unknown-linux-gnu": Artifact {
@@ -349,11 +398,11 @@ Native {
             runtime: [],
         },
     },
-    yanked: false, description: "PNG codec", license: "Libpng", repository: "https://example.com/png",
+    yanked: false,
 }
 ```
 
-The value is one index line, or a file for `Dep::native(url:, sha256:)`, whose artifact urls may be relative to it.
+The value is one index line, or a file for `Dep::native(url:, sha256:)`, whose artifact urls may be relative to it. A file `rok publish --native` reads may also have `description`, `license` and `repository`; they go to the registry API in `meta`, not into the index line.
 
 - The archive (any tar-readable format) holds `lib/`: `lib<n>.a`, `lib<n>.dylib` / `lib<n>.so`, Windows `<n>.lib` (static or import library). It also holds the `runtime` files and license files. Nothing in it is run.
 - Hashes are mandatory. An archive is checked before unpacking, and is refused if it has absolute or `..` paths, links leaving it, or lacks a named library or runtime file.
@@ -445,7 +494,7 @@ rok uninstall [--native] <name>..
 - The proxies `rok`, `rokc`, `rokls` ([9.10.6](#9106-toolchain)) are never replaced, and neither is a file in `$ROK_HOME/bin` that `rok install` did not put there (an error). Installing an executable again: one from the same stone version or git commit with the same features is kept, not rebuilt (`` `tool` 0.1.0 is installed already (<path>); to rebuild it, run `rok install tool --force` ``), and `--force` rebuilds it (`Reinstalled`); another version replaces it (`Upgraded tool from 0.1.0 to 0.2.0`, `Downgraded ...`), and another git commit too (`Replaced <url> at <commit> with ...`). One from a path or a script file is always rebuilt, as with `cargo install --path`. Library installs are unchanged.
 - `--list` prints ``libraries (environment `<env>`):`` and `executables (<bin dir>):`, each followed by `  <name> <source>` lines in install order.
 - `rok uninstall <name>..` removes each from the active environment's libraries (re-resolving its lock), or else removes the executable `rok install` put in `$ROK_HOME/bin`; `--native` removes a native package from the environment. A name that is neither is an error.
-- Apart from `rok install`, only `rok toolchain` (toolchains, proxies, `config.rokon`), `rok login` (`tokens.rokon`, `credentials.rokon`), `rok env` (environments) and the caches write under `$ROK_HOME`.
+- Apart from `rok install`, only `rok toolchain` (toolchains, proxies, `config.rokon`), `rok login` (`tokens.rokon`), `rok env` (environments) and the caches write under `$ROK_HOME`.
 
 ## 9.10.6. toolchain
 
@@ -493,11 +542,11 @@ rok toolchain clean                        # remove every installed toolchain bu
 
 ### Files shared across toolchains
 
-Every toolchain installed in one `$ROK_HOME` reads and writes the same files there: `config.rokon`, `credentials.rokon`, `installs.rokon` and `envs/CURRENT`. A newer `rok` may have written fields into them that an older one does not know.
+Every toolchain installed in one `$ROK_HOME` reads and writes the same files there: `config.rokon`, `tokens.rokon`, `sources.rokon`, `installs.rokon` and `envs/CURRENT`. A newer `rok` may have written fields into them that an older one does not know.
 
 - Reading them, `rok` skips fields it does not know, and in `installs.rokon` also `Dep` arguments and entry kinds it does not know (the entries of a kind it does not know are not listed). With `-v` it names what it skipped once per file: ``note: <file>: skipped `x`, written by a newer rok (kept in the file)``.
-- Writing them, it keeps what it does not know: `rok toolchain default` sets the one field of `config.rokon`, `rok install` / `rok uninstall` set or remove the one entry of `installs.rokon`, `rok login` sets `token` in `credentials.rokon`, and `rok logout` removes only `token` when the file holds other fields (else the file).
-- `rok.rokon` stays strict ([9.10.3](#9103-rokrokon--roklock)), and so does a `rok.lock` of a version `rok` knows.
+- Writing them, it keeps what it does not know: `rok toolchain default` sets the one field of `config.rokon`, `rok install` / `rok uninstall` set or remove the one entry of `installs.rokon`, `rok login` sets its index's entry in `tokens.rokon`, and `rok logout` removes only that entry. `sources.rokon` is only read.
+- A field of `rok.rokon` `rok` does not know is a warning ([9.10.3](#9103-rokrokon--roklock)); a `rok.lock` of a version `rok` knows stays strict.
 - A newer `rok` adds settings in new files, not as new fields of these, so that toolchains before this rule (which reject unknown fields) keep working beside it.
 
 ### Distribution

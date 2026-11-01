@@ -72,7 +72,7 @@ rok --env sci       # = rok repl --env sci
 
 전역 옵션은 서브명령 뒤에 와도 됩니다. `rok new app -q`는 `rok -q new app`과 같습니다.
 
-환경 변수는 `ROK_HOME`(기본 `~/.rok`), `ROK_ENV`(9.10.5), `ROK_TOOLCHAIN`(9.10.6), `ROK_REGISTRY`(index)와 `ROK_REGISTRY_TOKEN`(레지스트리 API 토큰, 9.10.4a), `ROK_DIST`(릴리스 서버, 9.10.6)입니다. `NO_COLOR`, `CLICOLOR_FORCE`, `COLORTERM`, `TERM`은 `rokc`와 같은 방식으로 색을 정합니다([9.1.7](901-rokc-cli.md#917-환경-변수)).
+환경 변수는 `ROK_HOME`(기본 `~/.rok`), `ROK_ENV`(9.10.5), `ROK_TOOLCHAIN`(9.10.6), `ROK_REGISTRY_TOKEN`(rokstones.io 레지스트리 API 토큰, 9.10.4a. `ROK_REGISTRY`는 경고와 함께 무시함), `ROK_DIST`(릴리스 서버, 9.10.6)입니다. `NO_COLOR`, `CLICOLOR_FORCE`, `COLORTERM`, `TERM`은 `rokc`와 같은 방식으로 색을 정합니다([9.1.7](901-rokc-cli.md#917-환경-변수)).
 
 ## 9.10.2. `rok new` / `rok init`: 패키지 생성
 
@@ -132,13 +132,22 @@ Package {
     documentation: "https://example.com/geom/doc",   // 문자열, 선택
     readme: "README.md",             // 문자열, 선택 (rok.rokon 기준 경로)
     keywords: ["geometry", "math"],  // 문자열 목록, 선택 (많아야 5 개)
+    categories: ["mathematics"],     // 문자열 목록, 선택 (많아야 5 개)
+    license_file: "LICENSE",         // 문자열, 선택 (rok.rokon 기준 경로)
+    include: ["src/**", "README.md"],   // glob 목록, 선택 (stone 에 담을 파일)
+    exclude: ["bench/**"],           // glob 목록, 선택 (뺄 파일)
+    links: "z",                      // 문자열, 선택 (링크하는 native 라이브러리)
+    default_run: "geom",             // 문자열, 선택 (`rok run` 이 실행할 실행 파일)
+    metadata: { docs: { all_features: true } },   // 표, 선택 (다른 도구용)
     publish: true,                   // bool, 선택 (false: `rok publish` 가 거부)
-    deps: {                          // 패키지 이름 (문자열) -> Dep
+    deps: {                          // 의존 이름 (문자열) -> Dep
         "util": Dep::path("../util"),
         "parser": Dep::git("https://example.com/parser.git", tag: "v1.2"),
         "http": "0.9",                                   // stone (= Dep::version("0.9"))
         "json": Dep::version("^1.4", optional: true),    // feature 가 켤 때만 (9.10.4c)
         "csv": Dep::version("^0.3", registry: "https://example.com/index"),
+        "j5": Dep::version("^0.2", package: "json5"),    // stone `json5`, 코드에서는 `j5`
+        "nix": Dep::version("^0.4", target: "cfg(target_family = \"unix\")"),
     },
     dev_deps: {                      // deps 와 같은 형태. test / bench 에서만
         "fixtures": Dep::path("tests/fixtures"),
@@ -152,6 +161,8 @@ Package {
 
 - 값은 ROKON의 리터럴(문자열, `{ "k": v }` dict, 빈 dict `{}`)과 `Dep::path("..")` / `Dep::git("url", rev | tag | branch: "..")` / `Dep::version("req", registry: "url")`입니다. `Dep::git`에는 `rev` / `tag` / `branch` 중 많아야 하나만 씁니다. `Dep::version`의 `registry`는 선택입니다. 의존성 값이 문자열 하나면 `Dep::version`을 줄여 쓴 것입니다.
 - `Dep::path` / `Dep::git` / `Dep::version`은 `optional: true`, `features: ["<f>", ..]`, `default_features: false`도 받습니다(9.10.4c). optional인 dev 의존은 에러입니다.
+- `package: "<name>"`은 의존의 이름을 바꿉니다. 키는 코드가 부르는 이름(`use j5::..`)이고, `<name>`은 패키지(stone, 또는 path / git 패키지의 `name`)이자 lock에 적히는 이름입니다. 한 빌드는 한 패키지를 한 이름으로 부릅니다. 두 의존하는 쪽이 서로 다른 이름으로 부르면 둘을 밝히는 에러입니다(`` package `json5` is called `j5` by .. and `json5` by ..; one build calls a package by one name ``).
+- `target: "<target>"`은 의존을 맞는 target의 빌드로 한정합니다. target 이름(`x86_64-unknown-linux-gnu`)이나, [6.3.2](../006-meta-system/603-cfg.md#632-predicate-종류)의 target 키(`target_os`, `target_arch`, `target_family`, `target_env`, `target_endian`, `target_pointer_width`)에 대한 `cfg(<조건>)`이고, `all(..)`, `any(..)`, `not(..)`을 씁니다. 그 밖의 값은 매니페스트를 읽을 때 에러입니다. 해소와 lock은 모든 target에 대해 그 의존을 다룹니다. 다른 target의 빌드는 그 의존과, 그 의존이 켤 feature를 뺍니다.
 - `Dep::registry`는 `rok.lock` 전용입니다. `rok.rokon`에 쓰면 에러입니다.
 - 패키지 이름(`deps`의 키, `name`)은 `[a-z0-9_-]+`의 소문자 ASCII이고 글자로 시작해야 합니다. 숫자, `-`, `_`로 시작하면 에러입니다.
 - 이름 `rok`은 표준 라이브러리용으로 예약되어 있습니다. 패키지, 의존 패키지, native 패키지, 레지스트리 이름이 `rok`이면 에러입니다(`` `rok` is reserved for the standard library; name the package something else, e.g. `rok_util` ``). 그 이름으로 `rok new` / `rok init` / `rok add`를 실행해도 마찬가지입니다.
@@ -166,16 +177,21 @@ Package {
 - `lints_from`은 시작 린트 수준을 주는 `rok.rokon`이 있는 디렉터리를 가리킵니다(이 매니페스트의 디렉터리 기준 상대 경로, 또는 절대 경로). 먼저 그 매니페스트의 `lints`를 그 자신의 `lints_from` 사슬 뒤에 적용합니다. 이 매니페스트의 `lints`는 그 뒤에 옵니다. 그래서 여기 항목이 사슬의 같은 린트나 그룹을 덮습니다. 모든 항목은 이 순서로 `-A`/`-W`/`-D`로 넘어가고, 뒤의 플래그가 이깁니다. 이 설정은 빌드하거나 검사하는 패키지(와 환경의 매니페스트)에만 적용합니다. 의존 패키지의 매니페스트는 린트에 쓰지 않습니다. 디렉터리가 없거나, `rok.rokon`이 없거나, 사슬이 이미 지난 매니페스트로 돌아오면(순환) 에러입니다. `rok env import`는 상대 `lints_from`을 절대 경로로 바꿔 씁니다. 스크립트의 `//! ```rokon` 블록에서는 쓸 수 없습니다.
 - 패키지 메타데이터
   - `authors`는 `"Name <email>"` 문자열입니다. `rok new` / `rok init`은 채우지 않습니다.
-  - `keywords`는 많아야 5개입니다. `authors`나 `keywords`의 빈 항목은 에러입니다.
-  - `readme`는 매니페스트의 디렉터리 기준으로 패키지 안의 경로입니다. 절대 경로나 `..`로 패키지를 벗어나는 경로는 에러입니다. 이 필드가 없으면 `README.md`가 있을 때 그 파일이 readme입니다.
-  - `rok publish`는 readme 파일이 있는지 검사하고, `publish: false`인 패키지는 거부합니다(9.10.4a).
-- 다음은 에러입니다. 모르는 필드 / `Dep` 종류 / 이름 있는 인자, 중복, 9.10.4c의 규칙을 어기는 `features`, 규칙에 맞지 않는 패키지 이름, ROKON이 아닌 문법, `Package { .. }` 하나가 아닌 값, 뒤에 남은 토큰. 진단은 `file:line:col`과 캐럿(^)으로 위치를 보여 줍니다.
+  - `keywords`와 `categories`는 각각 많아야 5개입니다. `authors`, `keywords`, `categories`, `include`, `exclude`의 빈 항목은 에러입니다.
+  - `readme`와 `license_file`은 매니페스트의 디렉터리 기준으로 패키지 안의 경로입니다. 절대 경로나 `..`로 패키지를 벗어나는 경로는 에러입니다. `readme`가 없으면 `README.md`가 있을 때 그 파일이 readme입니다.
+  - `metadata`는 `rok`이 읽지 않는 표(`{ .. }`)이고, 적은 그대로 레지스트리로 갑니다.
+  - `rok publish`는 readme와 `license_file`이 있는지, `default_run`이 패키지의 실행 파일 이름인지 검사하고, `publish: false`인 패키지는 거부합니다(9.10.4a).
+- `include` / `exclude`는 게시하는 커밋의 파일 경로에 대한 glob입니다(`*`와 `?`는 이름 하나 안에서, `**`는 여러 이름에 걸쳐 맞습니다. `/`가 없는 패턴은 어느 깊이의 이름에나 맞고, 디렉터리에 맞는 패턴은 그 안의 파일에도 맞습니다). `include`가 비었거나 파일에 맞고 `exclude`가 맞지 않으면 stone이 그 파일을 담습니다. `rok.rokon`은 늘 담습니다. 이 둘은 `rok publish`가 보내는 묶음 크기를 정합니다(9.10.4a). source는 여전히 커밋 전체입니다.
+- `links`는 패키지가 링크하는 native 라이브러리의 이름입니다. 한 빌드의 두 패키지가 같은 `links`를 쓰면 둘을 밝히는 에러입니다.
+- `default_run`은 `rok run`이 실행할 실행 파일의 이름입니다. 패키지의 실행 파일은 많아야 하나(`src/main.rok`, 패키지 이름)이므로 그 이름입니다.
+- `rok`이 모르는 필드는 `file:line:col`이 붙은 경고이고(`` unknown field `edtion` is ignored; did you mean `edition`? ``, 가까운 이름이 있으면 제안), 매니페스트는 그 필드 없이 읽습니다. `rok publish`는 그 필드를 적은 그대로 `meta`에 담아 보냅니다(9.10.4a). 그래서 새 레지스트리가 그 필드를 쓸 수 있습니다.
+- 다음은 에러입니다. 모르는 `Dep` 종류 / 이름 있는 인자, 중복, 9.10.4c의 규칙을 어기는 `features`, 규칙에 맞지 않는 패키지 이름, ROKON이 아닌 문법, `Package { .. }` 하나가 아닌 값, 뒤에 남은 토큰. 진단은 `file:line:col`과 캐럿(^)으로 위치를 보여 줍니다.
 
 | 의존성 출처 | 형태                                                         | `rok.lock`에 고정  |
 |-------------|--------------------------------------------------------------|---------------------|
 | path        | `Dep::path("..")`(매니페스트 기준 상대 경로)                 | 없음(늘 현재 내용)  |
 | git         | `Dep::git("url")`, 선택으로 `rev:` / `tag:` / `branch:` 중 하나 | 커밋과 tree 해시    |
-| stone       | `Dep::version("req"[, registry: "url"])` 또는 문자열 `"req"`([9.10.4a](#9104a-stone과-rokstonesio)) | 버전, 커밋, tree 해시 |
+| stone       | `Dep::version("req"[, registry: "url"])` 또는 문자열 `"req"`([9.10.4a](#9104a-stone과-rokstonesio)) | 버전, 커밋, tree 해시(index와 함께, 미러는 적지 않음) |
 | native      | `Dep::native("req")` / `Dep::native(url:, sha256:)`([9.10.4b](#9104b-네이티브-패키지)) | 버전과 항목 SHA-256(index), 없음(해시가 고정) |
 
 Rok에는 빌드 스크립트가 없습니다. 빌드할 때 패키지의 코드는 실행되지 않습니다. C / C++ 라이브러리는 미리 빌드된 native 패키지로 들어옵니다(9.10.4b).
@@ -184,12 +200,12 @@ Rok에는 빌드 스크립트가 없습니다. 빌드할 때 패키지의 코드
 
 ### `rok.lock` 형식
 
-`rok.lock`은 `rok`이 결정적으로 쓰는 ROKON(정규 형식)입니다. 머리 주석 뒤에 git 패키지와 stone마다 `Locked`를 하나씩 이름순으로 둡니다. path 의존은 고정하지 않으므로 나오지 않습니다.
+`rok.lock`은 `rok`이 결정적으로 쓰는 ROKON(정규 형식)입니다. 머리 주석 뒤에 git 패키지와 stone마다 `Locked`를 하나씩 이름순으로 둡니다. path 의존은 고정하지 않으므로 나오지 않습니다. 필드 이름은 매니페스트를 따릅니다.
 
 ```rokon
 // rok.lock: generated by `rok`; do not edit. Commit it with your sources.
 Lock {
-    version: 1,
+    version: 2,
     packages: [
         Locked {
             name: "parser",
@@ -199,7 +215,7 @@ Lock {
         },
         Locked {
             name: "json",
-            vers: "1.4.2",
+            version: "1.4.2",
             source: Dep::registry("https://github.com/rok-lang/rokstones.io-index"),
             commit: "0b6d..",
             tree: "77e1..",
@@ -210,19 +226,19 @@ Lock {
 
 | 필드      | 뜻                                                                   |
 |-----------|----------------------------------------------------------------------|
-| `version` | lock 형식 버전(`1`)                                                  |
-| `name`    | `rok.rokon`의 `deps` 키                                             |
-| `vers`    | stone만. 해소된 버전                                                |
-| `source`  | git은 `rok.rokon`에 적은 `Dep::git(..)` 그대로, stone은 `Dep::registry("<index url>")` |
+| `version` | `Lock`에서는 lock 형식 버전(`2`), `Locked`에서는 stone만: 해소된 버전 |
+| `name`    | 패키지 이름(`deps` 키, 이름을 바꿨으면 그 `package`)                 |
+| `source`  | git은 `rok.rokon`에 적은 `Dep::git(..)` 그대로, stone은 `Dep::registry("<index url>")`. 받아 온 미러가 아니라 index를 적음(9.10.4a) |
 | `commit`  | 해소된 커밋(40자리 16진수)                                         |
 | `tree`    | 그 커밋의 git tree 해시. 캐시의 checkout을 검증하는 데 씀           |
 
 - `Locked`의 `source`는 `Dep::git(..)` 또는 `Dep::registry(..)`입니다.
 - `packages` 필드가 없으면 빈 리스트로 읽습니다.
 - feature는 기록하지 않습니다. lock은 optional인 것을 포함해 그래프의 모든 패키지를 고정하므로 빌드가 켜는 feature에 의존하지 않습니다.
-- index의 native 패키지는 선택 필드 `natives: [LockedNative { name, vers, source: Dep::registry("<index>"), sha256 }]`에 고정합니다. 이름순으로 정렬하고 비어 있지 않을 때만 씁니다. `sha256`은 `yanked: false`로 둔 항목의 정규 index 줄의 SHA-256입니다. 항목이 바뀌면 "run `rok update`" 에러입니다.
-- `version`은 다른 필드보다 먼저 읽습니다. `version`이 `1`보다 크면 새 `rok`이 쓴 lock이고, 지우라는 대신 쓸 toolchain을 알리는 에러입니다. ``rok.lock was written by a newer rok (lock version 2); run that rok's toolchain here: set `toolchain` in rok.rokon to its version, or run `rok +<version> ..` ``.
-- 그 밖에 `version`이 `1`이 아니면 "unsupported lockfile version" 에러입니다.
+- index의 native 패키지는 선택 필드 `natives: [LockedNative { name, version, source: Dep::registry("<index>"), sha256 }]`에 고정합니다. 이름순으로 정렬하고 비어 있지 않을 때만 씁니다. `sha256`은 `yanked: false`로 둔 항목의 정규 index 줄의 SHA-256입니다. 항목이 바뀌면 "run `rok update`" 에러입니다.
+- `rok`은 lock 형식 2로 씁니다. 형식 1의 lock(rok 0.1: 2의 `version` 자리에 `vers`)은 한 번 읽어 같은 고정으로 형식 2로 다시 쓰고, note를 냅니다(``note: rok.lock is written in lock format 2 (the pins are unchanged)``). `--locked`에서도 그렇습니다. 읽을 때 stone이나 native의 index url이 `sources.rokon`의 미러(9.10.4a)면 그 미러가 대신하는 index로 바꿉니다. native 패키지는 버전을 그대로 두고 `sha256`을 index의 지금 줄에서 새로 얻습니다(형식 1은 0.1 줄 형태의 해시였음).
+- `version`은 다른 필드보다 먼저 읽습니다. `version`이 `2`보다 크면 새 `rok`이 쓴 lock이고, 지우라는 대신 쓸 toolchain을 알리는 에러입니다. ``rok.lock was written by a newer rok (lock version 3); run that rok's toolchain here: set `toolchain` in rok.rokon to its version, or run `rok +<version> ..` ``.
+- 그 밖에 `version`이 `1`이나 `2`가 아니면 "unsupported lockfile version" 에러입니다.
 - lock을 읽다 난 그 밖의 모든 에러는 "(delete rok.lock and run `rok update` to make it again)"를 덧붙입니다.
 
 ## 9.10.4. 의존성: `rok add` / `remove` / `update` / `deps`
@@ -245,7 +261,7 @@ rok deps [--dev] [--features <f,..>] [--all-features] [--no-default-features] [-
 - stone을 요구 없이 더하면 `^<가장 새 버전>`을 적습니다. `--features`, `--no-default-features`, `--optional`은 `Dep::..`에 적습니다. 패키지에 같은 이름의 feature가 없으면 `--optional`은 feature `"<name>": ["dep:<name>"]`도 더합니다.
 - 패키지에 `add`하면 `Added <name> v<version>`을 알립니다. 버전은 의존 패키지 `rok.rokon`의 `version`입니다(아직 해석되지 않은 stone은 고정한 버전). 버전이 없으면 `Added <name>`입니다. `--dev`는 ` (dev_deps)`를 덧붙입니다.
 - 빌드는 `rok.lock`의 커밋과 버전을 씁니다. 새로 선언된 의존은 lock에 더하고 지운 의존은 정리합니다. 하지만 이미 고정된 것을 옮기는 것은 `update`뿐입니다. `update`는 이름을 주면 그 패키지만, 없으면 모든 git 의존과 stone을 다시 해소합니다.
-- `deps`는 해소한 의존 패키지를 `<코드 이름>=<그 src/lib.rok 경로>` 줄로 출력합니다. 코드 이름은 `-`를 `_`로 바꾼 것이고, 의존되는 쪽이 먼저 옵니다(`--dev`면 dev 의존 포함). 각 줄 뒤에는 그 `--extern-feature=<코드 이름>=<f>` 줄이 옵니다. `deps`는 feature 옵션과 `--dev`를 받습니다. native 패키지마다(의존하는 쪽이 먼저, 호스트용) `# native <name> <vers>`와 그 `rokc` 인자를 한 줄에 하나씩 출력합니다. 의존성이 없으면 아무것도 출력하지 않습니다.
+- `deps`는 해소한 의존 패키지를 `<코드 이름>=<그 src/lib.rok 경로>` 줄로 출력합니다. 코드 이름은 `-`를 `_`로 바꾼 것이고, 의존되는 쪽이 먼저 옵니다(`--dev`면 dev 의존 포함). 각 줄 뒤에는 그 `--extern-feature=<코드 이름>=<f>` 줄이 옵니다. `deps`는 feature 옵션과 `--dev`를 받습니다. native 패키지마다(의존하는 쪽이 먼저, 호스트용) `# native <name> <version>`과 그 `rokc` 인자를 한 줄에 하나씩 출력합니다. 의존성이 없으면 아무것도 출력하지 않습니다.
 - `deps --format json`은 같은 순서로 JSON 객체를 한 줄에 하나씩 대신 출력합니다. 객체마다 `schema`(지금은 `1`)와 `type`이 있습니다. `package` 레코드에는 `name`, `version`(stone이면 해소한 버전, 아니면 그 의존성 `rok.rokon`의 `version`, 그것도 없으면 `null`), `source`(`path+<dir>`, `git+<url>#<commit>`, `registry+<index url>`), `path`(그 `src/lib.rok`), `features`가 있습니다. `native` 레코드에는 `name`, `version`, `args`(그 `rokc` 인자)가 있습니다. 마지막 `summary` 레코드는 `packages`와 `natives`의 수를 세므로, 의존성이 없는 패키지는 이것만 출력합니다. 레코드는 JSON 진단의 `schema` 규칙([9.9.4](909-debug-tools.md#994-진단--에러-메시지))을 따릅니다. 기본값은 `--format human`이고, 다른 값은 CLI 에러입니다.
 - `rok.lock`은 버전 관리에 함께 넣습니다.
 - `update`는 lock에서 바뀐 것마다 `Updated <name> v0.1.0 -> v0.1.1` 줄을 출력합니다. git 의존성은 짧은 커밋으로 적고, 새로 고정된 것은 `Locked`, 빠진 것은 `Removed`입니다. 바뀐 것이 없으면 `note: all dependencies are up to date`를, 의존성이 없으면 `` note: no dependencies to update; add one: `rok add <name>` ``를 출력합니다.
@@ -286,7 +302,16 @@ pre-release 버전(`1.3.0-beta.1`)은 요구에 같은 major.minor.patch의 pre-
 
 ### 사용하는 index
 
-`ROK_REGISTRY` > `$ROK_HOME/config.rokon`의 `Config { registry: "<url>" }` > 기본값(rokstones.io index) 순입니다. `Dep::version`의 `registry:`와 `rok add --registry`는 그 의존 하나의 index를 정합니다.
+`registry:`가 없는 요구(맨 요구)는 언제나 rokstones.io index, `https://github.com/rok-lang/rokstones.io-index`를 뜻합니다. `Dep::version`의 `registry:`와 `rok add --registry`는 그 의존 하나의 index를 정합니다. `rok publish`, `yank`, `login`, `logout`은 다른 index에 `--registry <url>`을 받습니다.
+
+`$ROK_HOME/sources.rokon`은 index를 받아 올 곳을 바꿉니다(source replacement).
+
+```rokon
+Sources { replace: { "https://github.com/rok-lang/rokstones.io-index": "https://mirror.example.com/rokstones-index" } }
+```
+
+- 키는 index url(끝의 `/`는 무시)이고, 값은 같은 내용을 가진 미러의 git url입니다. `rok`은 index를 미러에서 받아 옵니다. 그 밖의 모든 것, 곧 lock(9.10.3), 토큰, 메시지는 index를 적습니다. 파일이 없으면 바꾸지 않고, `rok`이 모르는 필드는 건너뜁니다.
+- `ROK_REGISTRY`와 `$ROK_HOME/config.rokon`의 `registry`(rok 0.1의 설정)는 더 이상 index를 고르지 않습니다. 다른 url로 설정되어 있으면 무시하고, 대신 쓸 것을 알리는 경고를 실행마다 한 번 냅니다. ``ROK_REGISTRY is ignored: a bare requirement means https://github.com/rok-lang/rokstones.io-index; to fetch it from <url>, write `Sources { replace: { "https://github.com/rok-lang/rokstones.io-index": "<url>" } }` in <ROK_HOME>/sources.rokon``.
 
 ### index 형식
 
@@ -299,19 +324,31 @@ index 저장소의 루트에는 `config.rokon`, `Config { api: "<url>" }`가 있
 | 3         | `3/a/abc`                |
 | 4 이상    | `ab/cd/abcd..`           |
 
-파일의 각 줄은 버전 하나이고, 정규 형식의 한 줄 ROKON입니다. 오래된 버전이 먼저 옵니다.
+파일의 각 줄은 버전 하나이고, 정규 형식의 한 줄 ROKON입니다. 오래된 버전이 먼저 옵니다. 줄에는 해소에 필요한 것만 매니페스트의 필드 이름으로 담습니다. 설명하는 필드는 레지스트리 API로 갑니다(아래 `meta`).
 
 ```rokon
-Stone { name: "json", vers: "1.4.2", deps: [{ name: "util", req: "^0.3", kind: "normal" }], source: Dep::git("https://example.com/json.git", rev: "0b6d.."), cksum: "77e1..", yanked: false }
+Stone { name: "json", version: "1.4.2", deps: [{ name: "util", req: "^0.3", kind: "normal" }], source: Dep::git("https://example.com/json.git", rev: "0b6d.."), tree: "77e1..", yanked: false, toolchain: "0.2" }
 ```
 
-- `deps`의 `kind`는 `"normal"`, `"dev"`, `"native"` 중 하나이고, `registry`는 선택입니다.
+| 필드        | 뜻 |
+|-------------|----|
+| `name`      | 게시한 stone 이름 |
+| `version`   | 그 버전 |
+| `deps`      | 의존: `{ name, req, kind, registry?, optional?, features?, default_features?, package?, target? }` |
+| `features`  | 선택: feature(9.10.4c) |
+| `source`    | `Dep::git("<url>", rev: "<commit>")` |
+| `tree`      | 그 커밋의 git tree 해시 |
+| `yanked`    | 철회 여부 |
+| `toolchain` | 선택: stone을 빌드하는 toolchain, 고정 형식(9.10.6) |
+| `links`     | 선택: 링크하는 native 라이브러리(9.10.3) |
+
+- `deps`의 `kind`는 `"normal"`, `"dev"`, `"native"` 중 하나이고, `registry`는 선택입니다. 이름을 바꾼 의존은 `name`이 코드 이름이고 `package`가 stone 이름입니다. target별 의존은 매니페스트처럼 `target`을 담고, 클라이언트가 빌드마다 판단합니다(9.10.3).
 - feature가 있는 stone은 `deps` 뒤에 `features: { "<name>": ["<entry>", ..] }`를 두고, 9.10.4c처럼 검사합니다. `normal` 의존에는 `optional: true`, `features: [..]`, `default_features: false`를 둘 수 있습니다(기본값이 아닐 때만 적음). `dev` / `native` 의존은 optional일 수 없고, native 의존에는 feature가 없습니다. `rok publish`가 `rok.rokon`에서 이 값을 옮겨 적고, 해소할 때는 항목에서 읽습니다. checkout한 뒤 항목의 `features`는 그 커밋에 있는 stone의 `rok.rokon`과 같아야 합니다(순서 무관). 다르면 에러입니다.
 - `native/<shard path>`는 native 패키지를 한 줄에 `Native { .. }` 하나씩 담습니다([9.10.4b](#9104b-네이티브-패키지)).
-- `toolchain`은 선택 필드이고 맨 뒤에 옵니다. stone을 빌드하는 toolchain을 고정(9.10.6) 형식으로 적습니다. 읽는 쪽은 이 필드를 따릅니다(아래 해소). 이 필드가 없는 항목은 어느 toolchain에나 맞습니다. `rok` 0.1.1 이하는 모르는 필드가 있는 줄을 거부하므로 `rok publish`는 아직 이 필드를 쓰지 않습니다.
-- 매니페스트의 `description`, `license`, `repository`는 뒤쪽의 선택 필드로 들어갑니다. 다른 패키지 메타데이터(`authors`, `homepage`, `documentation`, `keywords`)는 아직 항목에 들어가지 않습니다.
-- 읽는 쪽은 index 줄(`Stone`, 그 `deps` 항목, `Native`, `Artifact`)의 모르는 필드를 건너뜁니다. 그래서 새 `rok`이 필드를 더해도 옛 `rok`에서 패키지가 가려지지 않습니다. 직접 만든 `Native { .. }` 파일(`Dep::native(url:)`, `rok publish --native`)의 모르는 필드는 여전히 거부합니다.
-- 패키지는 `source` 저장소의 루트에 있습니다. `cksum`은 그 커밋의 git tree 해시이고, checkout한 뒤에 검증합니다.
+- `toolchain`은 stone을 빌드하는 toolchain을 고정(9.10.6) 형식으로 적습니다. `rok publish`는 매니페스트의 `toolchain`을, 없으면 게시하는 쪽의 series(`0.2`)를 씁니다. 읽는 쪽은 이 필드를 따릅니다(아래 해소). 이 필드가 없는 항목은 어느 toolchain에나 맞습니다.
+- 줄 형식은 이것 하나뿐입니다. 줄마다 형식 버전을 두지 않고, 0.2 전의 줄(`vers`, `cksum`, 설명 필드)은 읽지 않습니다. rokstones.io index는 0.2.0을 낼 때 줄을 한 번 이 이름으로 옮겼고, `rok` 0.1은 0.2 index를 읽지 않습니다.
+- 읽는 쪽은 index 줄(`Stone`, 그 `deps` 항목, `Native`, `Artifact`)의 모르는 필드를 건너뜁니다. 직접 만든 `Native { .. }` 파일(`Dep::native(url:)`, `rok publish --native`)의 모르는 필드는 여전히 거부합니다. 레지스트리는 줄을 엄격하게 검사합니다.
+- 패키지는 `source` 저장소의 루트에 있습니다. `tree`는 그 커밋의 git tree 해시이고, checkout한 뒤에 검증합니다.
 
 ### 해소
 
@@ -329,10 +366,10 @@ rok search [--native] <query>
 rok login [--registry <url>] [<token>]
 rok logout [--registry <url> | --all]
 rok publish [--dry-run] [--registry <url> | --index-dir <checkout>]
-rok yank [--native] <name>@<version> [--undo] [--registry <url> | --index-dir <checkout>]
+rok yank [--native] <name>@<version> [--undo] [--message <why>] [--registry <url> | --index-dir <checkout>]
 ```
 
-- `search`는 index에서 이름으로 찾고, 찾은 것마다 `<name> <newest version> - <description>`을 한 줄씩 출력합니다. 항목에 description이 없으면 그 부분은 생략합니다. index 조회는 `-` / `_` 어느 쪽 철자든 받습니다.
+- `search`는 index에서 이름으로 찾고, 찾은 것마다 `<name> <newest version> - <description>`을 한 줄씩 출력합니다. description은 레지스트리 API(`GET <api>/api/v1/stones/<name>`, 가장 새 버전의 `meta.description`)에서 얻습니다. API에 없거나 API가 답하지 않으면, 그리고 `--offline`이면 그 부분은 생략합니다. index 조회는 `-` / `_` 어느 쪽 철자든 받습니다.
 - `publish`는 `cargo publish`처럼 게시합니다. `publish --dry-run`은 dry run입니다.
   - `publish: false`인 패키지는 거부합니다. 에러는 지울 줄을 알려 줍니다.
   - readme(9.10.3)가 있어야 합니다. 깨끗한 작업 트리, 저장소 루트의 패키지, 그리고 `src/lib.rok`, `src/main.rok`, 또는 둘 다가 필요합니다.
@@ -341,20 +378,33 @@ rok yank [--native] <name>@<version> [--undo] [--registry <url> | --index-dir <c
   - 같은 버전이 있는지, 그리고 `-` / `_`와 대소문자를 같게 보았을 때 이름이 충돌하는지 검사합니다. 다른 철자가 이미 차지한 이름은 거부합니다. 9.10.3의 규칙을 어기는 이름(Windows 장치 이름, 64자 초과)도 거부합니다.
   - `--index-dir` 없는 dry run은 항목만 출력합니다. `--index-dir`가 있으면 그 checkout에 대해서도 검사합니다.
   - 항목의 source는 설정된 그대로(`insteadOf` 재작성 전)의 git remote `origin` url입니다. 이 url은 `https://`여야 하고, `http://127.0.0.1`과 `http://localhost`만 예외입니다.
-- `--dry-run`이 없으면 `publish`는 항목을 더합니다. `--index-dir`가 있으면 그 checkout에 "Publish <name> <vers>" 커밋으로 더합니다(push하지 않음). 없으면 `--registry <url>`이 가리키는 index, 그것도 없으면 설정된 index("Which index")의 레지스트리 API로 보내고, API가 항목을 index에 넣습니다. `--index-dir`와 `--registry`는 함께 쓸 수 없습니다. 클라이언트는 index 저장소에 직접 쓰지 않습니다.
-- `yank`는 그 버전의 `yanked`를 켭니다(`--undo`면 끕니다). `--index-dir`가 있으면 그 checkout의 커밋으로, 없으면 `--registry <url>`이 가리키는 index, 그것도 없으면 설정된 index의 레지스트리 API로 처리합니다.
+- `--dry-run`이 없으면 `publish`는 항목을 더합니다. `--index-dir`가 있으면 그 checkout에 "Publish <name> <version>" 커밋으로 더합니다(push하지 않음). 없으면 `--registry <url>`이 가리키는 index, 그것도 없으면 rokstones.io("사용하는 index")의 레지스트리 API로 보내고, API가 항목을 index에 넣습니다. `--index-dir`와 `--registry`는 함께 쓸 수 없습니다. 클라이언트는 index 저장소에 직접 쓰지 않습니다.
+- `yank`는 그 버전의 `yanked`를 켭니다(`--undo`면 끕니다). `--index-dir`가 있으면 그 checkout의 커밋으로, 없으면 `--registry <url>`이 가리키는 index, 그것도 없으면 rokstones.io의 레지스트리 API로 처리합니다.
 - `--commit`(`publish`), `--index`(`publish`와 `yank`), `--vers`(`yank`)는 에러이고, 대신 쓸 형식을 알립니다. 각각 옵션 없는 `publish`, `--index-dir <dir>`, `yank <name>@<version>`입니다.
+- `yank --message <why>`는 철회 이유를 적습니다(많아야 512바이트). 레지스트리가 보관하고 보여 줍니다. 철회할 때만 씁니다. `--undo`나 `--index-dir`(checkout에는 둘 곳이 없음)와 함께 쓰면 에러입니다.
 - 레지스트리 API의 주소는 index의 `config.rokon`의 `api`에 있습니다. 요청은 `Authorization: Bearer <token>`을 싣고, 본문은 한 줄 ROKON(`application/rokon; charset=utf-8`)입니다.
   - `GET <api>/api/v1/me` → `Me { login: "..", publish: <bool> }`
-  - `POST <api>/api/v1/publish`, 본문은 index 줄(`Stone { .. }` / `Native { .. }`) → `Published { name, vers, file }`
-  - `POST <api>/api/v1/yank`, 본문 `Yank { name, vers, undo: <bool>, native: <bool> }` → `Yanked { name, vers, yanked }`
+  - `POST <api>/api/v1/publish`, 본문 `Publish { entry: <index 줄>, meta: { .. } }`(줄은 `Stone { .. }` / `Native { .. }`) → `Published { name, version, file, warnings: ["..", ..] }`. `rok`은 경고를 하나씩 출력합니다.
+  - `POST <api>/api/v1/yank`, 본문 `Yank { name, version, undo: <bool>, native: <bool>, message: ".." }`(`message`는 있을 때만 적음) → `Yanked { name, version, yanked }`
+  - `GET <api>/api/v1/stones/<name>`과 `/api/v1/native/<name>`, 토큰 없음 → `Stone { name, native, owners, versions: [Version { version, yanked, meta, yank_message, has_readme, downloads, published_by, yanked_by, unyanked_by }, ..] }`. `GET <api>/api/v1/stones/<name>/<version>/readme` → markdown README.
 
-  실패는 4xx / 5xx 상태와 `Error { message: ".." }`로 옵니다. `rok`은 그 message를 보고합니다. 401은 토큰이 유효하지 않다는 뜻입니다.
-- 레지스트리 API에는 토큰이 필요하고, `--index-dir` checkout에는 필요 없습니다. index의 토큰은 다음 순서로 고릅니다. `ROK_REGISTRY_TOKEN`이 설정되어 있고 비어 있지 않으면 그 값입니다. rokstones.io가 아닌 index에 쓰면 경고를 한 번 냅니다. 0.2.0은 이 값을 rokstones.io로만 보내고, 다른 index는 `rok login --registry <url>`로 저장한 `tokens.rokon`의 토큰을 씁니다. 아니면 `rok login`이 그 index에 저장한 토큰이고, 그것도 없으면 `credentials.rokon`의 토큰(아래)입니다. 모두 없으면 "run `rok login` first" 에러입니다. 설정된 index가 아닌 index에서는 ``run `rok login --registry <url>` first``입니다.
-- `rok login`은 웹사이트에서 만든 rokstones.io 계정 토큰을 받습니다(`<api>/me`, GitHub로 로그인. 지금은 레지스트리 maintainer만 만들 수 있음). 토큰을 생략하면 표준 입력에서 화면에 보이지 않게 읽습니다(Ctrl-C에도 에코를 되돌림). `login`은 `/api/v1/me`에 물어봅니다. API가 거부하는 토큰과 `publish`가 false인 계정("this account cannot publish yet: publishing is open to rokstones.io maintainers only")은 아무것도 저장하지 않고 거절합니다. 그 밖에는 `--registry <url>`이 가리키는 index, 없으면 설정된 index의 토큰을 `$ROK_HOME/tokens.rokon`에 `Tokens { tokens: { "<index url>": "<token>" } }`로 저장하고 "Logged in as <login>"을 출력합니다. 키에는 끝의 `/`를 붙이지 않고, 이미 있던 필드와 다른 index의 토큰은 그대로 둡니다. 토큰은 자기 index의 레지스트리 API로만 보냅니다.
-- 설정된 index라면 `rok login`은 `$ROK_HOME/credentials.rokon`에도 `Credentials { token: ".." }`를 저장합니다. rok 0.1.5 이하는 이 파일을 읽어 설정된 index가 무엇이든 그곳으로 보냅니다. `tokens.rokon`에 항목이 없는 index에는 `credentials.rokon`의 토큰을 여전히 씁니다. 그 index가 rokstones.io가 아니면 ``the token in <file> is not tied to an index; run `rok login --registry <url>` `` 경고를 내고, 0.2.0은 이 토큰을 rokstones.io로만 보냅니다.
-- 두 파일 모두 Unix에서는 mode 0600으로 씁니다. Windows에서는 사용자 프로필 아래에 있는 `$ROK_HOME`의 기본 권한을 받습니다.
-- `rok logout`은 설정된 index의 토큰을 두 파일에서 지웁니다. `--registry <url>`이면 `tokens.rokon`에서 그 index의 항목을 지우고, `--all`이면 두 파일의 토큰을 모두 지웁니다.
+  실패는 4xx / 5xx 상태와 `Error { message: ".." }`로 옵니다. `rok`은 그 message를 보고합니다. 401은 토큰이 유효하지 않다는 뜻입니다. `rok`은 응답에서 모르는 필드를 건너뜁니다.
+- `meta`는 stone을 설명하고 해소에는 쓰지 않는 것을 매니페스트(9.10.3)와 패키지에서 모아 담습니다. 값이 없는 필드는 뺍니다.
+
+  | 필드 | 출처 |
+  |------|------|
+  | `description`, `license`, `license_file`, `authors`, `homepage`, `documentation`, `repository`, `readme`(경로), `keywords`, `categories`, `include`, `exclude`, `publish`, `metadata`, `links`, `default_run` | 같은 이름의 매니페스트 필드 |
+  | `has_lib` | 패키지에 `src/lib.rok`이 있는지 |
+  | `bin_names` | 실행 파일: `src/main.rok`이 있으면 `[<name>]`, 없으면 `[]` |
+  | `readme_content` | readme(9.10.3)의 내용, 많아야 524288바이트. 더 길면 `rok publish`에서 에러 |
+  | `size` | 묶음 크기: stone이 담는 HEAD의 파일 바이트 합(`include` / `exclude`, 9.10.3) |
+
+  `rok`이 모르는 매니페스트 필드는 적은 그대로 `meta`에 담아 보내므로, 새 레지스트리가 저장할 수 있습니다. `publish --native`의 `meta`는 그 파일의 `description`, `license`, `repository`입니다.
+- 레지스트리 API에는 토큰이 필요하고, `--index-dir` checkout에는 필요 없습니다. rokstones.io의 토큰은 `ROK_REGISTRY_TOKEN`이 설정되어 있고 비어 있지 않으면 그 값, 아니면 `rok login`이 저장한 토큰입니다. 다른 index의 토큰은 `rok login --registry <url>`이 저장한 것입니다. `ROK_REGISTRY_TOKEN`은 거기로 보내지 않습니다(설정되어 있으면 경고를 한 번 냄: ``ROK_REGISTRY_TOKEN goes only to https://github.com/rok-lang/rokstones.io-index; for <url> run `rok login --registry <url>` ``). 토큰이 없으면 "run `rok login` first" 에러이고, 다른 index에서는 ``run `rok login --registry <url>` first``입니다.
+- `rok login`은 웹사이트에서 만든 rokstones.io 계정 토큰을 받습니다(`<api>/me`, GitHub로 로그인. 지금은 레지스트리 maintainer만 만들 수 있음). 토큰을 생략하면 표준 입력에서 화면에 보이지 않게 읽습니다(Ctrl-C에도 에코를 되돌림). `login`은 `/api/v1/me`에 물어봅니다. API가 거부하는 토큰과 `publish`가 false인 계정("this account cannot publish yet: publishing is open to rokstones.io maintainers only")은 아무것도 저장하지 않고 거절합니다. 그 밖에는 `--registry <url>`이 가리키는 index, 없으면 rokstones.io의 토큰을 `$ROK_HOME/tokens.rokon`에 `Tokens { tokens: { "<index url>": "<token>" } }`로 저장하고 "Logged in as <login>"을 출력합니다. 키에는 끝의 `/`를 붙이지 않고, 이미 있던 필드와 다른 index의 토큰은 그대로 둡니다. 토큰은 자기 index의 레지스트리 API로만 보냅니다.
+- 토큰 파일은 `tokens.rokon` 하나뿐입니다. rok 0.1의 `credentials.rokon`은 읽지도 쓰지도 않습니다. rok 0.1.0 - 0.1.5가 저장한 토큰은 `rok login`을 다시 해야 합니다.
+- `tokens.rokon`은 Unix에서 mode 0600으로 씁니다. Windows에서는 사용자 프로필 아래에 있는 `$ROK_HOME`의 기본 권한을 받습니다.
+- `rok logout`은 `tokens.rokon`에서 rokstones.io의 토큰을 지웁니다. `--registry <url>`이면 그 index의 항목을, `--all`이면 모든 토큰을 지웁니다.
 - 토큰은 `curl`의 표준 입력으로만 전달합니다. 명령줄이나 환경에 넣지 않고 출력하지도 않습니다(에러에서는 `***`로 보임).
 
 ## 9.10.4b. 네이티브 패키지
@@ -363,7 +413,7 @@ Rok은 C를 컴파일하지 않습니다. native 패키지는 타깃 트리플�
 
 ```rokon
 Native {
-    name: "png", vers: "1.6.43",
+    name: "png", version: "1.6.43",
     deps: { "zlib": Dep::native("^1.3") },
     targets: {
         "x86_64-unknown-linux-gnu": Artifact {
@@ -373,11 +423,11 @@ Native {
             runtime: [],
         },
     },
-    yanked: false, description: "PNG codec", license: "Libpng", repository: "https://example.com/png",
+    yanked: false,
 }
 ```
 
-이 값은 index 한 줄이거나 `Dep::native(url:, sha256:)`의 파일입니다. 파일 안의 artifact url은 그 파일 기준 상대 경로여도 됩니다.
+이 값은 index 한 줄이거나 `Dep::native(url:, sha256:)`의 파일입니다. 파일 안의 artifact url은 그 파일 기준 상대 경로여도 됩니다. `rok publish --native`가 읽는 파일에는 `description`, `license`, `repository`도 둘 수 있습니다. 이 필드는 index 줄이 아니라 레지스트리 API의 `meta`로 갑니다.
 
 - 아카이브(tar로 읽을 수 있는 어떤 형식이든)에는 `lib/`가 들어갑니다. 그 안에는 `lib<n>.a`, `lib<n>.dylib` / `lib<n>.so`, Windows `<n>.lib`(static 또는 import library)가 있습니다. `runtime` 파일과 라이선스 파일도 들어갑니다. 그 안의 어떤 것도 실행하지 않습니다.
 - 해시는 필수입니다. 아카이브는 풀기 전에 검사합니다. 절대 경로나 `..` 경로, 밖으로 나가는 링크가 있거나, 이름 붙은 라이브러리나 runtime 파일이 없으면 거부합니다.
@@ -474,7 +524,7 @@ rok uninstall [--native] <name>..
   - 라이브러리 설치는 그대로입니다.
 - `--list`는 ``libraries (environment `<env>`):``와 `executables (<bin dir>):`를 출력합니다. 각각 뒤에 설치 순서대로 `  <name> <source>` 줄이 옵니다.
 - `rok uninstall <name>..`은 각 이름을 활성 환경의 라이브러리에서 지웁니다(lock을 다시 해소). 라이브러리가 아니면 `rok install`이 `$ROK_HOME/bin`에 둔 실행 파일을 지웁니다. `--native`는 환경에서 native 패키지를 지웁니다. 둘 다 아닌 이름은 에러입니다.
-- `rok install` 말고 `$ROK_HOME` 아래에 쓰는 것은 `rok toolchain`(toolchain, 프록시, `config.rokon`), `rok login`(`tokens.rokon`, `credentials.rokon`), `rok env`(환경), 그리고 캐시뿐입니다.
+- `rok install` 말고 `$ROK_HOME` 아래에 쓰는 것은 `rok toolchain`(toolchain, 프록시, `config.rokon`), `rok login`(`tokens.rokon`), `rok env`(환경), 그리고 캐시뿐입니다.
 
 ## 9.10.6. toolchain
 
@@ -522,11 +572,11 @@ rok toolchain clean                        # 기본값을 제외한 설치된 �
 
 ### toolchain이 함께 쓰는 파일
 
-한 `$ROK_HOME`에 설치된 모든 toolchain은 그 안의 같은 파일을 읽고 씁니다. `config.rokon`, `credentials.rokon`, `installs.rokon`, `envs/CURRENT`입니다. 새 `rok`이 옛 `rok`이 모르는 필드를 써 두었을 수 있습니다.
+한 `$ROK_HOME`에 설치된 모든 toolchain은 그 안의 같은 파일을 읽고 씁니다. `config.rokon`, `tokens.rokon`, `sources.rokon`, `installs.rokon`, `envs/CURRENT`입니다. 새 `rok`이 옛 `rok`이 모르는 필드를 써 두었을 수 있습니다.
 
 - 읽을 때 `rok`은 모르는 필드를 건너뜁니다. `installs.rokon`에서는 모르는 `Dep` 인자와 항목 종류도 건너뜁니다(모르는 종류의 항목은 목록에 나오지 않음). `-v`이면 건너뛴 것을 파일마다 한 번 알립니다. ``note: <file>: skipped `x`, written by a newer rok (kept in the file)``.
-- 쓸 때는 모르는 것을 그대로 둡니다. `rok toolchain default`는 `config.rokon`의 그 필드 하나만, `rok install` / `rok uninstall`은 `installs.rokon`의 그 항목 하나만 설정하거나 지웁니다. `rok login`은 `credentials.rokon`의 `token`을 설정하고, `rok logout`은 파일에 다른 필드가 있으면 `token`만 지웁니다(없으면 파일을 지움).
-- `rok.rokon`은 여전히 엄격하게 읽고([9.10.3](#9103-rokrokon--roklock)), `rok`이 아는 버전의 `rok.lock`도 마찬가지입니다.
+- 쓸 때는 모르는 것을 그대로 둡니다. `rok toolchain default`는 `config.rokon`의 그 필드 하나만, `rok install` / `rok uninstall`은 `installs.rokon`의 그 항목 하나만 설정하거나 지웁니다. `rok login`은 `tokens.rokon`에서 그 index의 항목을 설정하고, `rok logout`은 그 항목만 지웁니다. `sources.rokon`은 읽기만 합니다.
+- `rok.rokon`에서 `rok`이 모르는 필드는 경고이고([9.10.3](#9103-rokrokon--roklock)), `rok`이 아는 버전의 `rok.lock`은 여전히 엄격하게 읽습니다.
 - 새 `rok`은 새 설정을 이 파일들의 새 필드가 아니라 새 파일에 둡니다. 그래야 이 규칙 이전의 toolchain(모르는 필드를 거부함)도 함께 계속 동작합니다.
 
 ### 배포
