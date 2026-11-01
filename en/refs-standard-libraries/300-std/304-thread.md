@@ -23,11 +23,13 @@ The basic types and function signatures are as follows.
 ```rok
 struct Thread { /* OS handle, not generic */ }
 struct JoinHandle<T> { /* join result T */ }
-struct ThreadId { /* opaque */ }       // implements PartialEq
+struct ThreadId { /* opaque */ }       // Clone, Copy, PartialEq, Eq, Hash, Debug
 
 struct JoinError { .. }                 // private fields (0.5.10)
 impl JoinError {
+    fn new(kind: JoinErrorKind) -> JoinError;
     fn kind(self) -> JoinErrorKind;
+    fn os_code(self) -> i32 | none;      // the number of an Os kind
     fn message(self) -> str;             // as Display shows it
 }
 // implements Display, Debug, Error, PartialEq, Eq and Clone
@@ -37,7 +39,7 @@ enum JoinErrorKind {
     Os(i32),                             // the OS's join error number (errno)
     Lost,                                // the thread ended with a failed REPL cell
     Taken,                               // already joined or detached
-}                                        // + PartialEq, Debug
+}                                        // Clone, Copy, PartialEq, Eq, Hash, Debug
 
 fn spawn<T: Send>(f: fn() -> T + Send) -> JoinHandle<T>;   // = try! Builder::new().spawn(f)
 
@@ -77,6 +79,7 @@ fn park_timeout(dur: Duration);
 fn panicking() -> bool;                        // true on a thread that panicked, while the process ends
 
 // thread-local storage
+struct ThreadLocal<T> { .. }            // Send + Sync for every T: one value per thread
 fn local<T>(init: fn() -> T + Sync) -> ThreadLocal<T>;     // init is called on first use in each thread
 
 impl<T> ThreadLocal<T> {
@@ -159,7 +162,7 @@ let all = SEEN.take();                   // the list itself, leaving []
 
 The owned forms move values in and out: `set(v)` stores `v`, `replace(v)` stores `v` and returns the old value, `take()` returns the value and leaves `T::default()`. `get()` returns a copy and needs `T: Copy`; for any other `T` it is a compile error (use `with`, `replace` or `take`). `unsafe fn as_ptr()` points at the current thread's value; the slot stays pinned until the thread ends, and reads and writes through the pointer are the caller's responsibility.
 
-0.1.6 had `get()` for every `T` and the `thread_local_across_await` lint for a `get()` value kept across an `await`. 0.2.0 removes both: `with` cannot await, so the race cannot be written. The lint's name is still accepted in lint levels and does nothing ([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)).
+`with` takes a closure that cannot `await`, so a thread's value is never held across an `await`, where the task may resume on another thread.
 
 ## 3.4.5. impl / target
 

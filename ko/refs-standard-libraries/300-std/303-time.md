@@ -1,6 +1,6 @@
 # 3.3. `time::`: 시간
 
-시간은 필요한 것에 따라 두 모듈로 나뉩니다. `rok::core::time`에는 `Duration`과 `Instant`가 있습니다. 단조 시계는 이미 `rok::core`에서 돌고 있으므로(태스크 타이머, 2.18) 두 타입은 모든 타깃에서 동작하고 `use` 없이 씁니다(0.2). `rok::std::time`에는 운영체제가 필요한 시계가 있습니다. 벽시계 `SystemTime`, 부팅 시계 `BootTime`, `UNIX_EPOCH`입니다. 타입마다 경로는 하나입니다(0.1.6). `rok::std::time`은 core 타입을 다시 내보내지 않습니다. 단조 시계, 벽시계, 부팅 후 경과 시간을 명확히 나눠 두었습니다. 그래서 측정 목적에 맞는 시계를 고를 수 있습니다.
+시간은 필요한 것에 따라 두 모듈로 나뉩니다. `rok::core::time`에는 `Duration`과 `Instant`가 있습니다. 단조 시계는 이미 `rok::core`에서 돌고 있으므로(태스크 타이머, 2.18) 두 타입은 모든 타깃에서 동작하고 `use` 없이 씁니다(0.2). `rok::std::time`에는 운영체제가 필요한 시계가 있습니다. 벽시계 `SystemTime`, 부팅 시계 `BootTime`, `UNIX_EPOCH`입니다. 타입마다 경로는 하나입니다([0.1.6](../000-meta/001-tier-model.md#016-항목마다-경로-하나)). `rok::std::time`은 core 타입을 다시 내보내지 않습니다. 단조 시계, 벽시계, 부팅 후 경과 시간을 명확히 나눠 두었습니다. 그래서 측정 목적에 맞는 시계를 고를 수 있습니다.
 
 ## 3.3.1. 타입 4개 모델
 
@@ -59,7 +59,7 @@ log(f"computation took {elapsed:?}");
 
 ```rok
 // rok::std::time
-struct SystemTime { /* opaque (CLOCK_REALTIME / GetSystemTimeAsFileTime) */ }
+struct SystemTime { /* opaque (CLOCK_REALTIME / GetSystemTimePreciseAsFileTime) */ }
 
 impl SystemTime {
     fn now() -> SystemTime;
@@ -180,11 +180,11 @@ Duration::ns(1500);      // "1.5µs"
 Duration::ns(-20);       // "-20ns"
 ```
 
-시간 타입은 모두 `PartialEq` / `Eq` / `PartialOrd` / `Ord` / `Hash`를 구현합니다. `Instant`, `SystemTime`, `BootTime`은 `Debug`도 구현합니다.
+시간 타입은 모두 `Clone` / `Copy` / `PartialEq` / `Eq` / `PartialOrd` / `Ord` / `Hash` / `Debug`를 구현합니다. `Duration`은 `Default`(0)도 구현합니다.
 
 ### Duration 산술 정책
 
-`Duration` / `SystemTime` / `Instant` / `BootTime`의 산술(`duration_since`, `from_unix` 포함)은 오버플로 검사 설정을 따릅니다(`-C overflow-checks`, [refs-lang 9.1.2](../../refs-lang/009-tools/901-rokc-cli.md#rokc-build-aot-빌드)). 검사가 켜져 있으면 오버플로에서 panic이 일어나고, 꺼져 있으면 포화합니다. 0으로 나누면 항상 panic이 일어납니다. `Duration`의 `checked_*` / `saturating_*` 변형으로 동작을 명시적으로 고를 수 있습니다.
+`Duration` / `SystemTime` / `Instant` / `BootTime`의 산술(`duration_since`, `from_unix` 포함)은 오버플로 검사 설정을 따릅니다(`-C overflow-checks`, [refs-lang 9.1.2](../../refs-lang/009-tools/901-rokc-cli.md#rokc-build-aot-빌드)). 검사가 켜져 있으면 오버플로에서 panic이 일어나고, 꺼져 있으면 포화합니다. `f64` 형태(`Duration::secs_f64`, `f64 * Duration`)도 같은 규칙을 따릅니다. 결과가 유한하지 않거나 범위를 벗어나면 검사가 켜져 있을 때 panic이 일어나고, 꺼져 있을 때 포화합니다(NaN은 0). 0으로 나누면 항상 panic이 일어납니다. `Duration`의 `checked_*` / `saturating_*` 변형으로 동작을 명시적으로 고를 수 있습니다.
 
 ```rok
 impl Duration {

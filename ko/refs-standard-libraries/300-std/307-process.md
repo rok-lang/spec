@@ -26,7 +26,7 @@ impl Command {
     fn stdout(self, cfg: Stdio) -> Command;
     fn stderr(self, cfg: Stdio) -> Command;
 
-    fn kill_on_drop(self, on: bool) -> Command;         // using 으로 묶은 Child 가 해제될 때 kill
+    fn kill_on_drop(self, on: bool) -> Command;         // 띄운 Child 가 해제될 때 kill (Drop)
     // unix: process_group, CommandExt (3.11.5)
 
     // 실행
@@ -37,6 +37,7 @@ impl Command {
     async fn status_async(self) throws (IoError) -> ExitStatus;
 }
 
+#[non_exhaustive]
 enum Stdio {
     Inherit,                   // 부모 fd 그대로 (default)
     Null,                      // /dev/null
@@ -48,7 +49,7 @@ struct Output {
     status: ExitStatus;
     stdout: List<u8>;
     stderr: List<u8>;
-}
+}                                        // + Clone, PartialEq, Eq, Debug
 ```
 
 빌더 메서드는 바뀐 명령을 돌려주고, 호출한 쪽 명령은 그대로 둡니다. 그래서 `Command`의 복사본들은 서로 독립입니다. `let a = base.arg("x")` 뒤에도 `base`에는 `x`가 없습니다. 결과를 버린 빌더 호출(`base.arg("x");`)은 아무것도 바꾸지 않고 경고를 냅니다(`#[must_use]`).
@@ -98,6 +99,7 @@ impl ExitStatus {
 }
 impl Display for ExitStatus { ... }      // "exit status: 1" / "signal: 9"
 impl Debug for ExitStatus { ... }        // "ExitStatus { code: 1 }" / "ExitStatus { signal: 9 }"
+// ExitStatus: + Clone, Copy, PartialEq, Eq, Hash
 ```
 
 종료 결과는 불투명 타입 `ExitStatus`에 담깁니다. `code()`가 `none`이면 Unix에서 신호로 종료되었다는 뜻입니다. 그 신호는 `signal()`(`ExitStatusExt`, Unix에서 prelude에 있음)이 `Signal`로 알려 줍니다.
@@ -138,9 +140,9 @@ using child = try Command::new("long_running")
 }    // ← using 해제 시 Drop → kill
 ```
 
-마지막 예처럼 `kill_on_drop`을 켠 `Child`를 `using`으로 묶으면 에러 전파나 조기 반환 같은 흐름에서도 자식이 함께 정리됩니다. `using` 블록을 빠져나갈 때 `Drop`이 자식을 죽입니다. `using` 밖의 `Child`는 자동으로 죽지 않습니다([2.13.4](../200-core/213-marker.md#2134-drop-using-해제-시-정리)). `ChildStdin` / `ChildStdout` / `ChildStderr`는 파이프의 파일 핸들입니다. `File`과 같은 방식으로 읽고 씁니다.
+마지막 예처럼 `kill_on_drop`을 켠 `Child`를 `using`으로 묶으면 에러 전파나 조기 반환 같은 흐름에서도 자식이 함께 정리됩니다. 소유자가 `Child`를 해제하는 곳, 곧 `using` 블록의 끝이나 마지막 소유자가 스코프를 떠나는 곳에서 `Drop`이 자식을 죽입니다([2.13.4](../200-core/213-marker.md)). `ChildStdin` / `ChildStdout` / `ChildStderr`는 파이프의 파일 핸들입니다. `File`과 같은 방식으로 읽고 씁니다.
 
-`Child`의 복사본들은 같은 프로세스를 공유합니다. `wait` / `try_wait`는 다른 복사본으로 진행 중인 `signal` / `kill` 호출이 돌아온 뒤에야 자식을 회수합니다. 그래서 시그널이 재사용된 pid나 pidfd에 닿는 일은 없습니다. 자식이 끝나 회수되는 중에 보낸 `signal`은 아무 일도 하지 않습니다. 동시에 기다리는 복사본들은 모두 같은 `ExitStatus`를 받습니다.
+`Child`의 복사본들은 같은 프로세스를 공유합니다. `wait` / `try_wait`는 다른 복사본으로 진행 중인 `send_signal` / `kill` 호출이 돌아온 뒤에야 자식을 회수합니다. 그래서 시그널이 재사용된 pid나 pidfd에 닿는 일은 없습니다. 자식이 끝나 회수되는 중에 보낸 `send_signal`은 아무 일도 하지 않습니다. 동시에 기다리는 복사본들은 모두 같은 `ExitStatus`를 받습니다.
 
 ## 3.7.4. 최신 추가 기능: pidfd / posix_spawn / CLOEXEC
 
@@ -151,7 +153,7 @@ using child = try Command::new("long_running")
 | `posix_spawn` 빠른 경로 | fork+exec 대신 syscall        | 큰 프로세스에서도 빨리 띄움 |
 | `pidfd` (Linux 5.3+)    | pid 대신 fd로 추적           | 경쟁 없는 신호          |
 | `CLOEXEC` 기본값        | 모든 fd가 자동 close-on-exec | fd 누수 방지            |
-| `kill_on_drop`          | `using` 해제 시 kill          | 프로세스 누수 방지      |
+| `kill_on_drop`          | 소유자가 해제할 때 kill       | 프로세스 누수 방지      |
 
 이 결정은 모두 fd 누수, 프로세스 누수, 신호 경쟁을 줄이는 쪽을 향합니다.
 
@@ -172,12 +174,12 @@ enum Signal {
 
 impl Signal {
     fn number(self) -> i32;              // OS 의 번호 (SIGHUP = 1, ..; Linux 의 것, 아니면 BSD 의 것)
-}                                        // + PartialEq, Debug
+}                                        // + Clone, Copy, PartialEq, Eq, Hash, Debug
 
 fn on_signal(sig: Signal, handler: fn() + Send) throws (SignalError);
 fn send_signal(pid: u32, sig: Signal) throws (IoError);
 fn raise(sig: Signal) throws (IoError);  // Windows: Interrupt, Hangup 만
-fn id() -> u32;                          // 이 프로세스의 id
+fn id() -> u32;                          // 이 프로세스의 id. wasm32 에는 없으므로 panic
 fn exit(code: i32) -> !;                 // 런타임 rok_exit 로 즉시 종료; finally 와 Drop 은 돌지 않음 (refs-lang 4.16)
 fn abort() -> !;                         // 비정상 종료 (SIGABRT); 아무것도 정리하지 않음
 
@@ -207,6 +209,6 @@ Windows에서는 콘솔 이벤트를 신호에 대응합니다. Ctrl-C → `Inte
 | `pidfd`          | linux 5.3+ (`os::linux`) | ✗ | ✗         | ✗    |
 | `kill_on_drop`   | ✓          | ✓     | ✓               | ✗    |
 | 신호 핸들러      | ✓          | ✓     | (제한적)        | ✗    |
-| `process::id()`  | ✓          | ✓     | ✓               | `0` (wasm32) |
+| `process::id()`  | ✓          | ✓     | ✓               | panic (wasm32) |
 
 wasm32 타깃에서 ✗로 표시한 항목은 실행 중에 `IoErrorKind::Unsupported`로 실패합니다.

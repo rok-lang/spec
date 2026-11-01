@@ -23,4 +23,4 @@ fn secret(n: usize) -> Secret;   // 비밀 저장소의 n 개 난수 바이트 (
 | wasm32-wasip2, wasm32-wasip1-threads | WASI `random_get` (호스트의 CSPRNG) |
 | wasm32-unknown-unknown | JavaScript 호스트의 `crypto.getRandomValues` (호스트가 주는 `random_get` import로) |
 
-중단된 호출은 다시 시도합니다. 원천의 실패는 복구할 수 없습니다. 이때 `fill`, `bytes`, `secret`은 예측 가능한 바이트를 돌려주지 않고 panic을 일으킵니다(Go의 `crypto/rand`와 같음). 알고리듬은 `rok::core::crypto`(2.21)에 있고, 무작위 입력(키, seed, nonce, salt)을 인자로 받습니다. `net::tls`(3.2.5)는 이 입력을 모두 여기서 얻습니다.
+중단된 호출은 다시 시도합니다. 원천의 실패는 복구할 수 없습니다. 이때 `fill`, `bytes`, `secret`은 예측 가능한 바이트를 돌려주지 않고 panic을 일으킵니다(Go의 `crypto/rand`와 같음). 메시지에는 호출한 함수와 OS 에러를 적습니다. `random::fill: the OS random source failed (error N)`(`random::bytes: ..`, `random::secret: ..`). 알고리듬은 `rok::core::crypto`(2.21)에 있고, 무작위 입력(키, seed, nonce, salt)을 인자로 받습니다. `net::tls`(3.2.5)는 이 입력을 모두 여기서 얻습니다.

@@ -1,6 +1,6 @@
 # 3.3. `time::` - time
 
-Time is split across two modules by what it needs. `rok::core::time` holds `Duration` and `Instant`: the monotonic clock already runs in `rok::core` (task timers, 2.18), so both work on every target and need no `use` (0.2). `rok::std::time` holds the clocks that need the operating system: the wall clock `SystemTime`, the boot clock `BootTime` and `UNIX_EPOCH`. Each type has one path (0.1.6); `rok::std::time` does not re-export the core types. The monotonic clock, the wall clock and time elapsed since boot are kept clearly separate, so the clock that fits the measurement can be chosen.
+Time is split across two modules by what it needs. `rok::core::time` holds `Duration` and `Instant`: the monotonic clock already runs in `rok::core` (task timers, 2.18), so both work on every target and need no `use` (0.2). `rok::std::time` holds the clocks that need the operating system: the wall clock `SystemTime`, the boot clock `BootTime` and `UNIX_EPOCH`. Each type has one path ([0.1.6](../000-meta/001-tier-model.md#016-one-path-per-item)); `rok::std::time` does not re-export the core types. The monotonic clock, the wall clock and time elapsed since boot are kept clearly separate, so the clock that fits the measurement can be chosen.
 
 ## 3.3.1. The four-type model
 
@@ -59,7 +59,7 @@ log(f"computation took {elapsed:?}");
 
 ```rok
 // rok::std::time
-struct SystemTime { /* opaque (CLOCK_REALTIME / GetSystemTimeAsFileTime) */ }
+struct SystemTime { /* opaque (CLOCK_REALTIME / GetSystemTimePreciseAsFileTime) */ }
 
 impl SystemTime {
     fn now() -> SystemTime;
@@ -180,11 +180,11 @@ Duration::ns(1500);      // "1.5µs"
 Duration::ns(-20);       // "-20ns"
 ```
 
-All time types implement `PartialEq` / `Eq` / `PartialOrd` / `Ord` / `Hash`. `Instant`, `SystemTime` and `BootTime` also implement `Debug`.
+All time types implement `Clone` / `Copy` / `PartialEq` / `Eq` / `PartialOrd` / `Ord` / `Hash` / `Debug`. `Duration` also implements `Default` (zero).
 
 ### Duration arithmetic policy
 
-Arithmetic on `Duration` / `SystemTime` / `Instant` / `BootTime` (including `duration_since` and `from_unix`) panics on overflow when overflow checks are on and saturates when they are off (`-C overflow-checks`, [refs-lang 9.1.2](../../refs-lang/009-tools/901-rokc-cli.md#rokc-build-aot-build)). Division by zero always panics. The `checked_*` / `saturating_*` variants of `Duration` choose explicitly.
+Arithmetic on `Duration` / `SystemTime` / `Instant` / `BootTime` (including `duration_since` and `from_unix`) panics on overflow when overflow checks are on and saturates when they are off (`-C overflow-checks`, [refs-lang 9.1.2](../../refs-lang/009-tools/901-rokc-cli.md#rokc-build-aot-build)). The `f64` forms (`Duration::secs_f64`, `f64 * Duration`) follow the same rule: a non-finite or out-of-range result panics with checks on and saturates (NaN to zero) with them off. Division by zero always panics. The `checked_*` / `saturating_*` variants of `Duration` choose explicitly.
 
 ```rok
 impl Duration {

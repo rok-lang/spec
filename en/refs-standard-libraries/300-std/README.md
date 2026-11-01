@@ -1,6 +1,6 @@
 # 3. Std tier
 
-The standard library of the target-dependent area. It covers the file system, networking, time, OS threads, I/O, environment variables, processes and paths, and availability varies with the user's environment (operating system / platform).
+The standard library of the target-dependent area. It covers the file system, networking, time, OS threads, environment variables, processes, paths, the ROKON format, the OS random source and OS-specific items, and availability varies with the user's environment (operating system / platform).
 
 ## Location
 
@@ -22,7 +22,7 @@ use rok::std::thread::Builder;
 
 ## Module index
 
-This tier consists of the following twelve modules.
+This tier consists of the following eleven modules. 3.5 is not a module: it points to `rok::core::io`, where I/O lives.
 
 - [3.1. `fs::` - file system (atomic ops, Dir capability, reflink copy)](301-fs.md)
 - [3.2. `net::` - TCP / UDP / Unix + TLS 1.3](302-net.md)
@@ -162,6 +162,9 @@ Module availability per platform:
 | `rok::std::env`     | ✓                   | ✓             | ✓                   | ✗                |
 | `rok::std::process` | ✓                   | ✗             | ✗                   | ✗                |
 | `rok::std::path`    | ✓                   | ✓             | ✓                   | ✓                |
+| `rok::std::rokon`   | ✓                   | ✓             | ✓                   | ✓                |
+| `rok::std::random`  | ✓                   | ✓ (`random_get`) | ✓ (`random_get`) | ✓ (`crypto.getRandomValues`, 3.10) |
+| `rok::std::wit`     | empty               | ✓             | ✓                   | empty            |
 | `rok::std::os`      | its OS only (3.11)  | absent        | absent              | absent           |
 
-✗ means the module builds but its operations fail at run time with `IoErrorKind::Unsupported`; it is not a compile-time absence. `os::unix`, `os::linux` and `os::windows` are the exception: they exist only on their targets. In the browser, stdout / stderr go to the host console and stdin is at EOF. The availability section of each module spec gives per-platform behavior in more detail.
+✗ means the module builds but its operations fail at run time with `IoErrorKind::Unsupported`; it is not a compile-time absence. `os::unix`, `os::linux` and `os::windows` are the exception: they exist only on their targets. `wit` exists everywhere but has items only on the WASI targets ("empty"). In the browser, stdout / stderr go to the host console and stdin is at EOF. The availability section of each module spec gives per-platform behavior in more detail.

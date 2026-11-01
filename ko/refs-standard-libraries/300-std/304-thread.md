@@ -23,11 +23,13 @@ task로 가볍고 충분히 표현할 수 있는 곳에서는 task를 먼저 씁
 ```rok
 struct Thread { /* OS handle, 제네릭 아님 */ }
 struct JoinHandle<T> { /* join 결과 T */ }
-struct ThreadId { /* opaque */ }       // PartialEq 구현
+struct ThreadId { /* opaque */ }       // Clone, Copy, PartialEq, Eq, Hash, Debug
 
 struct JoinError { .. }                 // 비공개 필드 (0.5.10)
 impl JoinError {
+    fn new(kind: JoinErrorKind) -> JoinError;
     fn kind(self) -> JoinErrorKind;
+    fn os_code(self) -> i32 | none;      // Os 종류의 번호
     fn message(self) -> str;             // Display 가 보이는 그대로
 }
 // Display, Debug, Error, PartialEq, Eq, Clone 을 구현
@@ -37,7 +39,7 @@ enum JoinErrorKind {
     Os(i32),                             // OS 의 join 에러 번호 (errno)
     Lost,                                // 실패한 REPL 셀과 함께 끝난 스레드
     Taken,                               // 이미 join 또는 detach 됨
-}                                        // + PartialEq, Debug
+}                                        // Clone, Copy, PartialEq, Eq, Hash, Debug
 
 fn spawn<T: Send>(f: fn() -> T + Send) -> JoinHandle<T>;   // = try! Builder::new().spawn(f)
 
@@ -77,6 +79,7 @@ fn park_timeout(dur: Duration);
 fn panicking() -> bool;                        // panic 한 스레드에서, 프로세스가 끝나는 동안 true
 
 // thread-local storage
+struct ThreadLocal<T> { .. }            // 모든 T 에 Send + Sync: 스레드마다 값 하나
 fn local<T>(init: fn() -> T + Sync) -> ThreadLocal<T>;     // 각 스레드에서 처음 쓸 때 init 호출
 
 impl<T> ThreadLocal<T> {
@@ -159,7 +162,7 @@ let all = SEEN.take();                   // 리스트 자체를 꺼내고 []를 
 
 소유하는 형태는 값을 넣고 꺼냅니다. `set(v)`는 `v`를 저장하고, `replace(v)`는 `v`를 저장하고 이전 값을 돌려주며, `take()`는 값을 돌려주고 `T::default()`를 남깁니다. `get()`은 복사본을 돌려주므로 `T: Copy`가 필요합니다. 다른 `T`에 쓰면 컴파일 에러입니다(`with`, `replace`, `take`를 씁니다). `unsafe fn as_ptr()`는 현재 스레드의 값을 가리킵니다. 그 자리는 스레드가 끝날 때까지 고정되며, 포인터로 읽고 쓰는 일은 호출자가 책임집니다.
 
-0.1.6에는 모든 `T`에 대한 `get()`과, `await`를 넘어 든 `get()` 값을 보고하는 `thread_local_across_await` 린트가 있었습니다. 0.2.0은 둘 다 없앱니다. `with`는 `await`할 수 없으므로 그런 경쟁을 쓸 수 없습니다. 린트 이름은 린트 수준에 여전히 쓸 수 있고 아무것도 하지 않습니다([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)).
+`with`가 받는 클로저는 `await`할 수 없습니다. 그래서 스레드의 값을 `await` 너머로 들고 있을 수 없습니다. `await` 뒤에는 task가 다른 스레드에서 이어질 수 있습니다.
 
 ## 3.4.5. 구현 / 타깃
 

@@ -26,7 +26,7 @@ impl Command {
     fn stdout(self, cfg: Stdio) -> Command;
     fn stderr(self, cfg: Stdio) -> Command;
 
-    fn kill_on_drop(self, on: bool) -> Command;         // kill when a Child bound with using is released
+    fn kill_on_drop(self, on: bool) -> Command;         // kill when the spawned Child is released (Drop)
     // unix: process_group, CommandExt (3.11.5)
 
     // execution
@@ -37,6 +37,7 @@ impl Command {
     async fn status_async(self) throws (IoError) -> ExitStatus;
 }
 
+#[non_exhaustive]
 enum Stdio {
     Inherit,                   // parent's fd as is (default)
     Null,                      // /dev/null
@@ -48,7 +49,7 @@ struct Output {
     status: ExitStatus;
     stdout: List<u8>;
     stderr: List<u8>;
-}
+}                                        // + Clone, PartialEq, Eq, Debug
 ```
 
 A builder method returns the changed command and leaves the one it was called on as it was, so copies of a `Command` are independent: after `let a = base.arg("x")`, `base` has no `x`. A builder call whose result is dropped (`base.arg("x");`) changes nothing and warns (`#[must_use]`).
@@ -98,6 +99,7 @@ impl ExitStatus {
 }
 impl Display for ExitStatus { ... }      // "exit status: 1" / "signal: 9"
 impl Debug for ExitStatus { ... }        // "ExitStatus { code: 1 }" / "ExitStatus { signal: 9 }"
+// ExitStatus: + Clone, Copy, PartialEq, Eq, Hash
 ```
 
 The exit result is held in the opaque type `ExitStatus`. If `code()` is `none`, the process was terminated by a signal on unix, and `signal()` (`ExitStatusExt`, in the prelude on unix) names it as a `Signal`.
@@ -138,9 +140,9 @@ using child = try Command::new("long_running")
 }    // ← on using release, Drop → kill
 ```
 
-As the last example shows, binding a `Child` with `kill_on_drop` enabled in `using` cleans up the child even on flows such as error propagation or early return. `Drop` issues the kill when leaving the `using` block. A `Child` outside `using` is not killed automatically ([2.13.4](../200-core/213-marker.md#2134-drop---cleanup-on-using-release)). `ChildStdin` / `ChildStdout` / `ChildStderr` are file handles of the pipes and are read and written the same way as `File`.
+As the last example shows, binding a `Child` with `kill_on_drop` enabled in `using` cleans up the child even on flows such as error propagation or early return. `Drop` issues the kill where the owner releases the `Child`: at the end of the `using` block, or where its last owner leaves scope ([2.13.4](../200-core/213-marker.md)). `ChildStdin` / `ChildStdout` / `ChildStderr` are file handles of the pipes and are read and written the same way as `File`.
 
-Copies of a `Child` share the process. `wait` / `try_wait` reap the child only after the `signal` / `kill` calls in flight through other copies return, so a signal never reaches a pid or pidfd that was reused. A `signal` once the child has ended and is being reaped is a no-op. Copies that wait at the same time all get the same `ExitStatus`.
+Copies of a `Child` share the process. `wait` / `try_wait` reap the child only after the `send_signal` / `kill` calls in flight through other copies return, so a signal never reaches a pid or pidfd that was reused. A `send_signal` once the child has ended and is being reaped is a no-op. Copies that wait at the same time all get the same `ExitStatus`.
 
 ## 3.7.4. Modern additions - pidfd / posix_spawn / CLOEXEC
 
@@ -151,7 +153,7 @@ On top of the builder pattern, the standard library adds several modern reinforc
 | `posix_spawn` fast path | A syscall instead of fork+exec | Faster spawn from huge processes |
 | `pidfd` (Linux 5.3+)    | Track by fd instead of pid    | race-free signal        |
 | `CLOEXEC` default       | Every fd is close-on-exec automatically | Prevents fd leaks |
-| `kill_on_drop`          | Kill on `using` release       | Prevents process leaks  |
+| `kill_on_drop`          | Kill where the owner releases it | Prevents process leaks  |
 
 These decisions consistently aim at reducing fd leaks, process leaks and signal races.
 
@@ -172,12 +174,12 @@ enum Signal {
 
 impl Signal {
     fn number(self) -> i32;              // the OS's number (SIGHUP = 1, ..; Linux's, else the BSD one)
-}                                        // + PartialEq, Debug
+}                                        // + Clone, Copy, PartialEq, Eq, Hash, Debug
 
 fn on_signal(sig: Signal, handler: fn() + Send) throws (SignalError);
 fn send_signal(pid: u32, sig: Signal) throws (IoError);
 fn raise(sig: Signal) throws (IoError);  // Windows: Interrupt and Hangup only
-fn id() -> u32;                          // this process's id
+fn id() -> u32;                          // this process's id; panics on wasm32, which has none
 fn exit(code: i32) -> !;                 // exit now via the runtime's rok_exit; finally and Drop do not run (refs-lang 4.16)
 fn abort() -> !;                         // abnormal termination (SIGABRT); nothing is cleaned up
 
@@ -207,6 +209,6 @@ Per-platform support:
 | `pidfd`          | linux 5.3+ (`os::linux`) | ✗ | ✗         | ✗    |
 | `kill_on_drop`   | ✓          | ✓     | ✓               | ✗    |
 | signal handler   | ✓          | ✓     | (limited)       | ✗    |
-| `process::id()`  | ✓          | ✓     | ✓               | `0` (wasm32) |
+| `process::id()`  | ✓          | ✓     | ✓               | panics (wasm32) |
 
 On wasm32 targets the items marked ✗ fail at run time with `IoErrorKind::Unsupported`.

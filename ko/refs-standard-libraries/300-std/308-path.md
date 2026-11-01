@@ -67,6 +67,10 @@ enum Component {
     ParentDir,                  // ".."
     Normal(str),                // "data"
 }
+
+impl Component {
+    fn as_str(self) -> str;     // 경로에 적힌 그대로: "/", ".", "..", 이름
+}
 ```
 
 ## 3.8.3. `/` 연산자: Python pathlib 방식
@@ -83,6 +87,8 @@ impl Div<str> for Path {
 impl Div<Path> for Path { ... }
 
 impl From<str> for Path { ... }   // Path::new
+impl Display for Path { ... }     // 텍스트 그대로: /etc/nginx
+impl Debug for Path { ... }       // 따옴표 친 텍스트: "/etc/nginx"
 ```
 
 `p /= "x"`와 `p /= q`(`q: Path`)도 쓸 수 있으며, `p = p / ..`와 같습니다.
@@ -91,7 +97,7 @@ impl From<str> for Path { ... }   // Path::new
 
 ```rok
 let p = Path::new("/etc") / "nginx" / "nginx.conf";
-                                          //→ Path("/etc/nginx/nginx.conf")
+                                          //→ "/etc/nginx/nginx.conf"
 
 let home = env::home_dir()? / ".config" / "myapp" / "settings.toml";
 ```
@@ -112,13 +118,9 @@ impl AsPath for Path { ... }
 
 ## 3.8.4. UTF-8 불변식
 
-`Path`는 **항상 UTF-8**입니다. `Path::new(s)` 시점에 `s`는 이미 UTF-8이므로 별도 검증이 필요 없습니다.
+`Path`는 **항상 UTF-8**입니다. `Path::new(s)`는 이미 UTF-8인 `str`을 받으므로 아무것도 변환하거나 검증하지 않습니다.
 
-다만 드물게 OS가 UTF-8이 아닌 파일명을 돌려줄 때가 있습니다.
-- Unix에서는 임의의 바이트가 올 수 있으므로 `Path::new(...)`은 **손실 변환**(대체 문자 `U+FFFD`)을 합니다.
-- Windows에서는 이름이 WTF-16이고, 서로게이트 쌍을 따로 처리합니다.
-
-엄격한 변환이 필요하면 다음과 같이 씁니다.
+OS에는 UTF-8이 아닌 이름이 있을 수 있습니다. Unix에서는 임의의 바이트, Windows의 UTF-16에서는 짝 없는 서로게이트입니다. `fs`와 `env`는 이런 이름을 손실 변환하지 않습니다. 그런 이름을 `Path`로 돌려줄 호출은 `InvalidData`인 `IoError`를 throw합니다. 코드가 다른 곳(FFI 등)에서 얻은 OS 바이트로 만든 `RawPath`(3.8.5)는 명시적으로 변환합니다.
 
 ```rok
 let raw: RawPath = ...;
@@ -133,13 +135,13 @@ let q: Path = try raw.try_into();          // 같음
 `RawPath`는 OS 고유 표현이 그대로 필요한 곳에서 씁니다.
 
 ```rok
-struct RawPath { /* unix: Vec<u8>, windows: Vec<u16> */ }
+struct RawPath { /* windows: List<u16>, 그 밖: List<u8> */ }   // + Clone, PartialEq, Eq, Hash, Debug
 
 impl RawPath {
-    fn from_bytes<B: AsBytes>(bytes: B) -> RawPath;    // unix
+    fn from_bytes<B: AsBytes>(bytes: B) -> RawPath;    // windows 를 뺀 모든 타깃
     fn from_wide(wide: Slice<u16>) -> RawPath;         // windows
 
-    fn as_bytes(self) -> Slice<u8>;                    // unix 만
+    fn as_bytes(self) -> Slice<u8>;                    // windows 를 뺀 모든 타깃
     fn as_wide(self) -> Slice<u16>;                    // windows 만
 
     fn to_path(self) throws (Utf8Error) -> Path;       // RawStr::to_str 와 같음

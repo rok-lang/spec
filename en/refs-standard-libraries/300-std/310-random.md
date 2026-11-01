@@ -23,4 +23,4 @@ Bytes come from the operating system's cryptographically secure generator, read 
 | wasm32-wasip2, wasm32-wasip1-threads | WASI `random_get` (the host's CSPRNG) |
 | wasm32-unknown-unknown | the JavaScript host's `crypto.getRandomValues` (through the `random_get` import the host provides) |
 
-An interrupted call is retried. A failing source cannot be recovered from: `fill`, `bytes` and `secret` panic rather than return predictable bytes (as Go's `crypto/rand`). The algorithms are `rok::core::crypto` (2.21), which take their random inputs (keys, seeds, nonces, salts) as arguments; `net::tls` (3.2.5) draws all of its from here.
+An interrupted call is retried. A failing source cannot be recovered from: `fill`, `bytes` and `secret` panic rather than return predictable bytes (as Go's `crypto/rand`). The message names the called function and the OS error: `random::fill: the OS random source failed (error N)` (`random::bytes: ..`, `random::secret: ..`). The algorithms are `rok::core::crypto` (2.21), which take their random inputs (keys, seeds, nonces, salts) as arguments; `net::tls` (3.2.5) draws all of its from here.

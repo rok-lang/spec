@@ -1,6 +1,6 @@
 # 3. Std 계층
 
-타깃에 의존하는 영역의 표준 라이브러리입니다. 파일 시스템, 네트워크, 시간, OS 스레드, I/O, 환경 변수, 프로세스, 경로를 다룹니다. 사용자 환경(운영체제 / 플랫폼)에 따라 쓸 수 있는 기능이 다릅니다.
+타깃에 의존하는 영역의 표준 라이브러리입니다. 파일 시스템, 네트워크, 시간, OS 스레드, 환경 변수, 프로세스, 경로, ROKON 형식, OS 난수 원천, OS 고유 항목을 다룹니다. 사용자 환경(운영체제 / 플랫폼)에 따라 쓸 수 있는 기능이 다릅니다.
 
 ## 위치
 
@@ -22,7 +22,7 @@ use rok::std::thread::Builder;
 
 ## 모듈 목차
 
-이 tier는 다음 열두 모듈로 이루어집니다.
+이 tier는 다음 열한 모듈로 이루어집니다. 3.5는 모듈이 아닙니다. 입출력이 있는 `rok::core::io`를 가리킵니다.
 
 - [3.1. `fs::` - 파일 시스템 (atomic ops, Dir capability, reflink copy)](301-fs.md)
 - [3.2. `net::` - TCP / UDP / Unix + TLS 1.3](302-net.md)
@@ -33,9 +33,9 @@ use rok::std::thread::Builder;
 - [3.7. `process::` - `Command` / `Child` / pidfd / kill_on_drop](307-process.md)
 - [3.8. `path::` - UTF-8 `Path` (Python 식) + `RawPath` 이스케이프](308-path.md)
 - [3.9. `rokon::` - ROKON 데이터 형식 (`.rokon`)](309-rokon.md)
-- [3.10. `random::`: OS 난수 원천](310-random.md)
-- [3.11. `os::`: 일부 OS에만 있는 것, `unix` / `linux` / `windows`](311-os.md)
-- `wit::`: 생성된 WIT 바인딩이 부르는 component model의 async ABI([1.8](../100-bare/108-wit.md)). 바인딩 내부용입니다. 생성된 코드가 닿을 수 있도록 공개했지만 직접 호출하라고 둔 것은 아닙니다. 여기서 정의하지 않습니다.
+- [3.10. `random::` - OS 난수 원천](310-random.md)
+- [3.11. `os::` - 일부 OS에만 있는 것: `unix` / `linux` / `windows`](311-os.md)
+- `wit::` - 생성된 WIT 바인딩이 부르는 component model의 async ABI([1.8](../100-bare/108-wit.md)). 바인딩 내부용입니다. 생성된 코드가 닿을 수 있도록 공개했지만 직접 호출하라고 둔 것은 아닙니다. 여기서 정의하지 않습니다.
 
 ## 인자 규약
 
@@ -162,6 +162,9 @@ fn load_config() throws (ConfigError) -> Config {
 | `rok::std::env`     | ✓                   | ✓             | ✓                   | ✗                |
 | `rok::std::process` | ✓                   | ✗             | ✗                   | ✗                |
 | `rok::std::path`    | ✓                   | ✓             | ✓                   | ✓                |
+| `rok::std::rokon`   | ✓                   | ✓             | ✓                   | ✓                |
+| `rok::std::random`  | ✓                   | ✓ (`random_get`) | ✓ (`random_get`) | ✓ (`crypto.getRandomValues`, 3.10) |
+| `rok::std::wit`     | 비어 있음           | ✓             | ✓                   | 비어 있음        |
 | `rok::std::os`      | 해당 OS만 (3.11)    | 없음          | 없음                | 없음             |
 
-✗는 모듈은 빌드되지만 그 연산이 실행 중에 `IoErrorKind::Unsupported`로 실패한다는 뜻입니다. 컴파일 타임에 모듈이 없다는 뜻이 아닙니다. 예외는 `os::unix`, `os::linux`, `os::windows`로, 해당 타깃에만 있습니다. 브라우저에서 stdout / stderr는 호스트 콘솔로 가고 stdin은 EOF입니다. 플랫폼별 동작은 각 모듈 사양의 가용성 절에 더 자세히 있습니다.
+✗는 모듈은 빌드되지만 그 연산이 실행 중에 `IoErrorKind::Unsupported`로 실패한다는 뜻입니다. 컴파일 타임에 모듈이 없다는 뜻이 아닙니다. 예외는 `os::unix`, `os::linux`, `os::windows`로, 해당 타깃에만 있습니다. `wit`는 어디에나 있지만 항목은 WASI 타깃에만 있습니다("비어 있음"). 브라우저에서 stdout / stderr는 호스트 콘솔로 가고 stdin은 EOF입니다. 플랫폼별 동작은 각 모듈 사양의 가용성 절에 더 자세히 있습니다.

@@ -67,6 +67,10 @@ enum Component {
     ParentDir,                  // ".."
     Normal(str),                // "data"
 }
+
+impl Component {
+    fn as_str(self) -> str;     // as written in a path: "/", ".", "..", the name
+}
 ```
 
 ## 3.8.3. The `/` operator - Python pathlib style
@@ -83,6 +87,8 @@ impl Div<str> for Path {
 impl Div<Path> for Path { ... }
 
 impl From<str> for Path { ... }   // Path::new
+impl Display for Path { ... }     // the text: /etc/nginx
+impl Debug for Path { ... }       // the quoted text: "/etc/nginx"
 ```
 
 `p /= "x"` and `p /= q` (`q: Path`) are also allowed and mean `p = p / ..`.
@@ -91,7 +97,7 @@ The **effect** is clear from the following example.
 
 ```rok
 let p = Path::new("/etc") / "nginx" / "nginx.conf";
-                                          //→ Path("/etc/nginx/nginx.conf")
+                                          //→ "/etc/nginx/nginx.conf"
 
 let home = env::home_dir()? / ".config" / "myapp" / "settings.toml";
 ```
@@ -112,13 +118,9 @@ Path arguments of `fs` are taken as `AsPath`, so both `str` and `Path` can be pa
 
 ## 3.8.4. UTF-8 invariant
 
-`Path` is **always UTF-8**. At `Path::new(s)`, `s` is already UTF-8, so no separate validation is needed.
+`Path` is **always UTF-8**. `Path::new(s)` takes a `str`, which is already UTF-8, so it converts and validates nothing.
 
-There are rare situations, however, where the OS returns non-UTF-8 file names.
-- On Unix, arbitrary bytes are possible, so `Path::new(...)` performs a **lossy conversion** (replacement char `U+FFFD`).
-- On Windows, names are WTF-16, and surrogate pairs are handled separately.
-
-When a strict conversion is needed, write:
+The OS can hold names that are not UTF-8: arbitrary bytes on Unix, unpaired surrogates in Windows' UTF-16. `fs` and `env` never convert such a name lossily: a call that would return one as a `Path` throws `IoError` with `InvalidData`. A `RawPath` (3.8.5), built from OS bytes the code got elsewhere (through FFI, for one), converts explicitly:
 
 ```rok
 let raw: RawPath = ...;
@@ -133,13 +135,13 @@ This conversion is `impl TryFrom<RawPath> for Path { type Error = Utf8Error; ...
 `RawPath` exists for places that need the OS's native representation as is.
 
 ```rok
-struct RawPath { /* unix: Vec<u8>, windows: Vec<u16> */ }
+struct RawPath { /* windows: List<u16>, elsewhere: List<u8> */ }   // + Clone, PartialEq, Eq, Hash, Debug
 
 impl RawPath {
-    fn from_bytes<B: AsBytes>(bytes: B) -> RawPath;    // unix
+    fn from_bytes<B: AsBytes>(bytes: B) -> RawPath;    // every target but windows
     fn from_wide(wide: Slice<u16>) -> RawPath;         // windows
 
-    fn as_bytes(self) -> Slice<u8>;                    // unix only
+    fn as_bytes(self) -> Slice<u8>;                    // every target but windows
     fn as_wide(self) -> Slice<u16>;                    // windows only
 
     fn to_path(self) throws (Utf8Error) -> Path;       // as RawStr::to_str
