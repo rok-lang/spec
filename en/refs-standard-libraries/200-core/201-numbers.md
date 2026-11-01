@@ -53,7 +53,7 @@ impl Int {
     fn from_i32(n: i32) -> int;
     fn from_i64(n: i64) -> int;
     fn from_u64(n: u64) -> int;
-    fn parse_radix(s: str, radix: u32) -> int | none;  // radix parsing (base 10 is FromStr)
+    fn parse_radix(s: str, radix: u32) throws (ParseError) -> int;  // radix parsing (base 10 is FromStr); panics outside 2..=36
     fn to_str_radix(self, radix: u32) -> str;   // radix 2..=36, lowercase digits, `-` first; panics on another radix
 
     fn to_i32(self) -> i32 | none;  // the value if in range, none otherwise
@@ -163,8 +163,6 @@ impl Float {
     fn from_f32(x: f32) -> float;
     fn from_f64(x: f64) -> float;
     fn from_int(n: int) -> float;                  // nearest float, ties to even
-    fn parse_or_none(s: str) -> float | none;      // FromStr throws instead
-    fn try_parse(s: str) -> float | none;          // deprecated since 0.1.6: parse_or_none
 
     fn to_f32(self) -> f32 | none;     // none only when a finite value is outside the f32 range
     fn to_f64(self) -> f64;            // nearest f64; ±inf past f64::MAX, ±0 below the subnormals

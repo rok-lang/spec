@@ -82,10 +82,26 @@ This document defines only the **specification**. The actual implementations of 
 
 ## 0.5.8. The `try_` prefix
 
-A `try_` name marks one of three forms, and only these:
+A `try_` name marks one of two forms, and only these:
 
 1. A non-blocking attempt: it does now what the plain form waits for, and reports that it could not (`Mutex::try_lock`, `Receiver::try_recv`, `Sender::try_send`).
-2. A throwing form: it throws where the plain form panics or degrades, or where no plain form exists (`TryFrom::try_from`, `FormatSpec::try_parse`, `File::try_clone`).
-3. A form that passes on the throw of the closure it takes (`Iterator::try_fold`, `Iterator::try_for_each`, `par::try_scope`).
+2. A form that passes on the throw of the closure or future it takes (`Iterator::try_fold`, `Iterator::try_for_each`, `par::try_scope`, `task::try_block_on`).
 
-A form that returns `none` where the plain one panics is not a `try_` form: its name says what it returns, as `task::current_id` (`none` outside a task) and `Float::parse_or_none` do. Their old names `task::try_id` and `Float::try_parse` are deprecated since 0.1.6 ([refs-lang 6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md)). A new name in the standard library follows this rule; an older one that breaks it keeps its name until a release that may rename it.
+A throwing form of a trait method that cannot throw keeps the `try_` name too: `TryFrom::try_from`, `TryInto::try_into`, `File::try_clone`. No other function takes the prefix: a function that fails throws under its plain name (0.5.9), so there is no `try_` twin of it. `try_` is a prefix only; no name ends in `_try`.
+
+## 0.5.9. Error model
+
+Each function reports failure through exactly one channel, chosen by what the failure is:
+
+| Failure | Channel | Examples |
+|---|---|---|
+| An ordinary "no answer" with one cause | `-> T \| none` | `List::get`, `Iterator::find`, `Path::parent`, `Path::strip_prefix`, `checked_*`, `char::from_u32`, `NonZero::new` |
+| Caused by the input, the environment or I/O, or with several causes the caller may tell apart | `throws (E)` | `FromStr::from_str`, `str::from_utf8`, `Int::parse_radix`, `FormatSpec::parse`, `ClientConfig::new`, the `fs` and `net` operations |
+| A caller bug the caller can check cheaply first | panic, `#[track_caller]` | an operator index out of range, a radix outside 2..=36, a zero chunk size |
+
+1. **No twins.** No two functions differ only in the failure channel. `try? f()` is the `T | none` form of every throwing call ([refs-lang 3.14.3](../../refs-lang/003-expressions/314-error-control-flow.md)), so the library has no `_or_none` twin of a throwing function and no panicking twin of one.
+2. **No sentinels.** A result never encodes failure in a value of its own type (`0`, `-1`, `""`): it is `T | none`, or the function throws.
+3. **Closing throws.** `close()` of an OS resource (a file, a socket, a TLS connection) throws what the OS reports. `Drop` never throws: a value released by `Drop` drops the error.
+4. An operator and its named method may differ: `xs[i]` panics where `xs.get(i)` returns `none`.
+
+The forms 0.2.0 removed under these rules: `FormatSpec::try_parse` (`FormatSpec::parse` throws), `Float::parse_or_none` and `Float::try_parse` (`try? s.parse()`), `task::try_id` (`task::current_id`), `task::block_on_try` (renamed `task::try_block_on`), `ClientConfig::try_new` (`ClientConfig::new` throws), the sockets' `try_close` (`close` throws), and `Path::strip_prefix_or_none` with `StripPrefixError` (`Path::strip_prefix` returns `Path | none`).

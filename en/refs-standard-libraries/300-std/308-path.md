@@ -23,8 +23,8 @@ The `Path` interface is as follows.
 struct Path { /* UTF-8 str newtype, GC heap */ }
 
 impl Path {
-    fn new() -> Path;
-    fn from(s: str) -> Path;
+    fn new(s: str) -> Path;
+    fn empty() -> Path;
     fn from_components<I: Iterator<Item = str>>(components: I) -> Path;
 
     // decomposition
@@ -39,8 +39,7 @@ impl Path {
     fn join<P: AsPath>(self, other: P) -> Path;   // a str too
     fn with_file_name(self, name: str) -> Path;
     fn with_extension(self, ext: str) -> Path;
-    fn strip_prefix(self, base: Path) throws (StripPrefixError) -> Path;
-    fn strip_prefix_or_none<P: AsPath>(self, base: P) -> Path | none;   // none instead of the throw
+    fn strip_prefix<P: AsPath>(self, base: P) -> Path | none;   // none when base is not a prefix
 
     fn is_absolute(self) -> bool;
     fn is_relative(self) -> bool;
@@ -78,10 +77,12 @@ The `/` operator is introduced to make path joining more readable.
 impl Div<str> for Path {
     type Output = Path;
     #[infix("/")]
-    fn div(self, rhs: str) -> Path { self.join(Path::from(rhs)) }
+    fn div(self, rhs: str) -> Path { self.join(Path::new(rhs)) }
 }
 
 impl Div<Path> for Path { ... }
+
+impl From<str> for Path { ... }   // Path::new
 ```
 
 `p /= "x"` and `p /= q` (`q: Path`) are also allowed and mean `p = p / ..`.
@@ -89,7 +90,7 @@ impl Div<Path> for Path { ... }
 The **effect** is clear from the following example.
 
 ```rok
-let p = Path::from("/etc") / "nginx" / "nginx.conf";
+let p = Path::new("/etc") / "nginx" / "nginx.conf";
                                           //→ Path("/etc/nginx/nginx.conf")
 
 let home = env::home_dir()? / ".config" / "myapp" / "settings.toml";
@@ -111,10 +112,10 @@ Path arguments of `fs` are taken as `AsPath`, so both `str` and `Path` can be pa
 
 ## 3.8.4. UTF-8 invariant
 
-`Path` is **always UTF-8**. At `Path::from(s)`, `s` is already UTF-8, so no separate validation is needed.
+`Path` is **always UTF-8**. At `Path::new(s)`, `s` is already UTF-8, so no separate validation is needed.
 
 There are rare situations, however, where the OS returns non-UTF-8 file names.
-- On Unix, arbitrary bytes are possible, so `Path::from(...)` performs a **lossy conversion** (replacement char `U+FFFD`).
+- On Unix, arbitrary bytes are possible, so `Path::new(...)` performs a **lossy conversion** (replacement char `U+FFFD`).
 - On Windows, names are WTF-16, and surrogate pairs are handled separately.
 
 When a strict conversion is needed, write:
@@ -160,8 +161,8 @@ These two functions look similar but differ clearly in behavior and cost.
 | `canonicalize()` | Resolves symlinks + converts to an absolute path | **Yes** (`realpath`) |
 
 ```rok
-Path::from("/a/b/../c").normalize();              //→ "/a/c" (lexical)
-try Path::from("/a/b/../c").canonicalize();       //→ absolute path with symlinks resolved
+Path::new("/a/b/../c").normalize();              //→ "/a/c" (lexical)
+try Path::new("/a/b/../c").canonicalize();       //→ absolute path with symlinks resolved
 ```
 
 `normalize` is fast and makes no syscalls, so it does the job in 90% of places.
@@ -172,7 +173,7 @@ try Path::from("/a/b/../c").canonicalize();       //→ absolute path with symli
 
 ```rok
 let dir: Dir = try Dir::root().open_dir("data");
-let f = try dir.open(Path::from("config.toml"));
+let f = try dir.open(Path::new("config.toml"));
                                           // Path is relative to dir; escape rejected
 ```
 

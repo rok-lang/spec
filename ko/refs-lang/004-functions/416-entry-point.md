@@ -85,7 +85,7 @@ fn main() throws {          // 암묵 main 의 형태 (4.16.4 참고)
 | `fn main() throws` / `throws (E)` | `0`                    | 미처리 예외 → 4.16.4               |
 | 위 세 형태에 `async`를 붙인 것    | 위와 같음              | 4.16.5                             |
 
-`Result`를 반환하는 `main`도, `throws`와 `-> i32`를 함께 쓴 `main`도 없습니다. 에러가 났을 때 특정 종료 코드가 필요하면 `catch`에서 [`rok::std::env::exit(code)`](../../refs-standard-libraries/300-std/306-env.md)를 호출합니다.
+`Result`를 반환하는 `main`도, `throws`와 `-> i32`를 함께 쓴 `main`도 없습니다. 에러가 났을 때 특정 종료 코드가 필요하면 `catch`에서 [`rok::std::process::exit(code)`](../../refs-standard-libraries/300-std/307-process.md)를 호출합니다.
 
 명령행 인자와 환경 변수는 매개변수가 아니라 표준 라이브러리 [`rok::std::env`](../../refs-standard-libraries/300-std/306-env.md)로 얻습니다. `unsafe`, `yield` 수식어는 `main`에 붙일 수 없습니다. 가시성(`pub`)은 진입점인지 여부에 영향을 주지 않습니다.
 
@@ -98,14 +98,14 @@ fn main() throws {          // 암묵 main 의 형태 (4.16.4 참고)
 - **정상 종료**: 4.16.3의 표대로 `0` 또는 반환된 `i32`.
 - **미처리 예외**: `throws` main에서 에러가 진입점 밖으로 전파되면 런타임은 ``error: `main` returned an uncaught error: `` 뒤에 예외 값을 붙여 표준 에러(stderr)에 출력합니다. 그리고 종료 코드 **`1`**로 끝냅니다. 값이 [`Display`](../../refs-standard-libraries/200-core/210-fmt.md)를 구현하면 `Display`로, 아니면 `Debug`로 출력합니다. 둘 다 없으면 타입 이름을 출력합니다. [`Error`](../../refs-standard-libraries/200-core/214-error.md) 트레잇은 `Display`를 요구하므로 일반적인 에러 타입은 `Display`로 출력됩니다. 다음 줄에는 에러가 `main`을 떠난 위치를 `  --> path:line:col` 형식으로 씁니다.
 - **panic**: panic과 fatal 에러는 `catch`로 잡히지 않습니다. 런타임은 메시지를 표준 에러에 출력하고 종료 코드 **`101`**로 끝냅니다([4.14.13](414-throws.md#41413-panic과-fatal-에러)).
-- **명시 종료**: [`rok::std::env::exit(code)`](../../refs-standard-libraries/300-std/306-env.md)는 어느 지점에서든 즉시 프로세스를 종료합니다. 이 경로는 `finally`와 `Drop`을 실행하지 않습니다.
+- **명시 종료**: [`rok::std::process::exit(code)`](../../refs-standard-libraries/300-std/307-process.md)는 어느 지점에서든 즉시 프로세스를 종료합니다. 이 경로는 `finally`와 `Drop`을 실행하지 않습니다.
 
 **암묵 `main`**은 타입을 적지 않은 `fn main() throws`(에러 타입 `any Error`)로 봅니다. 본체에 `await`가 있으면 `async fn main() throws`로 봅니다(4.16.5). 그래서 top-level 문에서 `try`로 표시한 throwing 호출의 에러는 따로 `catch`하지 않아도 진입점 밖으로 전파될 수 있습니다. 미처리 예외는 위 규칙대로 종료 코드 `1`이 됩니다. 끝까지 정상 실행되면 종료 코드는 `0`입니다.
 
 `wasm32-wasip2`(preview 2 component)에서는 `wasi:cli/exit`가 성공과 실패만 전합니다. 그래서 0이 아닌 종료 코드(`1`, `101` 포함)는 모두 호스트에 실패(status 1)로 전해집니다. `wasm32-wasip1-threads`(preview 1)는 코드를 그대로 전합니다. 다만 호스트가 126 이상의 `proc_exit`를 실패(status 1)로 바꿀 수 있습니다. `abort` 같은 trap은 134로 끝납니다.
 
 > [!IMPORTANT]
-> **top-level `return`은 쓸 수 없습니다.** `main.rok`의 top-level에 `return`이 있으면 컴파일 에러입니다. 암묵 `main`에서 0이 아닌 종료 코드가 필요하면 `env::exit(code)`를 호출합니다. 반환값으로 종료 코드를 나타내려면 명시 `fn main() -> i32` 형태를 씁니다. top-level `return`을 허용하면 암묵 `main`에만 따로 규칙이 생깁니다. "어떤 타입의 `return`을 허용하는가", "top-level 블록 안쪽의 `return`은 무엇을 반환하는가" 같은 규칙입니다. 그래서 진입점 형태를 둘로 나누는 편이 더 단순합니다.
+> **top-level `return`은 쓸 수 없습니다.** `main.rok`의 top-level에 `return`이 있으면 컴파일 에러입니다. 암묵 `main`에서 0이 아닌 종료 코드가 필요하면 `process::exit(code)`를 호출합니다. 반환값으로 종료 코드를 나타내려면 명시 `fn main() -> i32` 형태를 씁니다. top-level `return`을 허용하면 암묵 `main`에만 따로 규칙이 생깁니다. "어떤 타입의 `return`을 허용하는가", "top-level 블록 안쪽의 `return`은 무엇을 반환하는가" 같은 규칙입니다. 그래서 진입점 형태를 둘로 나누는 편이 더 단순합니다.
 
 ## 4.16.5. 비동기 `main`
 

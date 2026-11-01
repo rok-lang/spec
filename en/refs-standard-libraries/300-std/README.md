@@ -123,12 +123,12 @@ A decision to avoid the **ergonomic burden** of Rust's `Path` / `PathBuf` + `OsS
 ```rok
 use rok::std::path::Path;
 
-let p: Path = Path::from("data/config.toml");
+let p: Path = Path::new("data/config.toml");
 let parent: Path = p.parent()?;
 let with_ext: Path = p.with_extension("bak");
 
 // `/` operator (Python pathlib style)
-let full = Path::from("/etc") / "nginx" / "nginx.conf";
+let full = Path::new("/etc") / "nginx" / "nginx.conf";
 ```
 
 `Path` is a **UTF-8 newtype**. Non-UTF-8 file names (which occasionally exist on Unix) are handled separately with `RawPath` (bytes). `Path` alone should cover 99% of code.

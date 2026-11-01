@@ -83,10 +83,26 @@ let z = x + y;        //→ 4.0 (f64)
 
 ## 0.5.8. `try_` 접두사
 
-`try_` 이름은 다음 세 형태 가운데 하나를 나타내며, 이 셋만 나타냅니다.
+`try_` 이름은 다음 두 형태 가운데 하나를 나타내며, 이 둘만 나타냅니다.
 
 1. 막히지 않는 시도: 기본 형태가 기다리는 일을 지금 하고, 할 수 없었으면 그렇다고 알립니다(`Mutex::try_lock`, `Receiver::try_recv`, `Sender::try_send`).
-2. 던지는 형태: 기본 형태가 panic하거나 결과를 낮추는 자리, 또는 기본 형태가 없는 자리에서 던집니다(`TryFrom::try_from`, `FormatSpec::try_parse`, `File::try_clone`).
-3. 받은 클로저가 던진 것을 그대로 넘기는 형태(`Iterator::try_fold`, `Iterator::try_for_each`, `par::try_scope`).
+2. 받은 클로저나 future가 던진 것을 그대로 넘기는 형태(`Iterator::try_fold`, `Iterator::try_for_each`, `par::try_scope`, `task::try_block_on`).
 
-기본 형태가 panic하는 자리에서 `none`을 돌려주는 형태는 `try_` 형태가 아닙니다. 그런 형태는 `task::current_id`(task 밖이면 `none`)나 `Float::parse_or_none`처럼 돌려주는 것을 이름에 담습니다. 옛 이름 `task::try_id`와 `Float::try_parse`는 0.1.6부터 deprecated입니다([refs-lang 6.2.7](../../refs-lang/006-meta-system/602-built-in-attributes.md)). 표준 라이브러리의 새 이름은 이 규칙을 따릅니다. 규칙에 어긋나는 예전 이름은 이름을 바꿀 수 있는 릴리스까지 그대로 둡니다.
+던질 수 없는 trait 메서드의 던지는 형태도 `try_` 이름을 씁니다. `TryFrom::try_from`, `TryInto::try_into`, `File::try_clone`이 그렇습니다. 그 밖의 함수는 이 접두사를 쓰지 않습니다. 실패하는 함수는 기본 이름 그대로 던지므로(0.5.9) `try_` 짝이 따로 없습니다. `try_`는 접두사로만 쓰며, `_try`로 끝나는 이름은 없습니다.
+
+## 0.5.9. 오류 모델
+
+함수는 실패를 한 통로로만 알리며, 통로는 실패의 성격으로 정합니다.
+
+| 실패 | 통로 | 예 |
+|---|---|---|
+| 원인이 하나뿐인 평범한 "답 없음" | `-> T \| none` | `List::get`, `Iterator::find`, `Path::parent`, `Path::strip_prefix`, `checked_*`, `char::from_u32`, `NonZero::new` |
+| 입력, 환경, I/O 때문이거나, 호출자가 구별할 수 있는 원인이 여럿인 실패 | `throws (E)` | `FromStr::from_str`, `str::from_utf8`, `Int::parse_radix`, `FormatSpec::parse`, `ClientConfig::new`, `fs`와 `net`의 연산 |
+| 호출자가 먼저 쉽게 확인할 수 있는 호출자의 버그 | panic, `#[track_caller]` | 범위를 벗어난 연산자 인덱스, 2..=36 밖의 진법, 0인 chunk 크기 |
+
+1. **짝을 두지 않습니다.** 실패 통로만 다른 두 함수는 없습니다. `try? f()`가 모든 던지는 호출의 `T | none` 형태이므로([refs-lang 3.14.3](../../refs-lang/003-expressions/314-error-control-flow.md)), 라이브러리에는 던지는 함수의 `_or_none` 짝도, panic하는 짝도 없습니다.
+2. **sentinel 값을 쓰지 않습니다.** 결과는 실패를 자기 타입의 값(`0`, `-1`, `""`)으로 나타내지 않습니다. `T | none`을 돌려주거나 던집니다.
+3. **닫기는 던집니다.** OS 자원(파일, 소켓, TLS 연결)의 `close()`는 OS가 알린 오류를 던집니다. `Drop`은 던지지 않으며, `Drop`이 놓아 주는 값의 오류는 버려집니다.
+4. 연산자와 그 이름 붙은 메서드는 다를 수 있습니다. `xs[i]`는 panic하지만 `xs.get(i)`는 `none`을 돌려줍니다.
+
+0.2.0에서 이 규칙에 따라 없앤 형태는 다음과 같습니다. `FormatSpec::try_parse`(`FormatSpec::parse`가 던집니다), `Float::parse_or_none`과 `Float::try_parse`(`try? s.parse()`), `task::try_id`(`task::current_id`), `task::block_on_try`(`task::try_block_on`으로 이름이 바뀌었습니다), `ClientConfig::try_new`(`ClientConfig::new`가 던집니다), 소켓의 `try_close`(`close`가 던집니다), `Path::strip_prefix_or_none`과 `StripPrefixError`(`Path::strip_prefix`가 `Path | none`을 돌려줍니다).

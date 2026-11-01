@@ -23,8 +23,8 @@ Rok의 경로 표현은 두 타입으로 나뉩니다.
 struct Path { /* UTF-8 str newtype, GC heap */ }
 
 impl Path {
-    fn new() -> Path;
-    fn from(s: str) -> Path;
+    fn new(s: str) -> Path;
+    fn empty() -> Path;
     fn from_components<I: Iterator<Item = str>>(components: I) -> Path;
 
     // 분해
@@ -39,8 +39,7 @@ impl Path {
     fn join<P: AsPath>(self, other: P) -> Path;   // str 도 받음
     fn with_file_name(self, name: str) -> Path;
     fn with_extension(self, ext: str) -> Path;
-    fn strip_prefix(self, base: Path) throws (StripPrefixError) -> Path;
-    fn strip_prefix_or_none<P: AsPath>(self, base: P) -> Path | none;   // throw 대신 none
+    fn strip_prefix<P: AsPath>(self, base: P) -> Path | none;   // base 가 접두가 아니면 none
 
     fn is_absolute(self) -> bool;
     fn is_relative(self) -> bool;
@@ -78,10 +77,12 @@ enum Component {
 impl Div<str> for Path {
     type Output = Path;
     #[infix("/")]
-    fn div(self, rhs: str) -> Path { self.join(Path::from(rhs)) }
+    fn div(self, rhs: str) -> Path { self.join(Path::new(rhs)) }
 }
 
 impl Div<Path> for Path { ... }
+
+impl From<str> for Path { ... }   // Path::new
 ```
 
 `p /= "x"`와 `p /= q`(`q: Path`)도 쓸 수 있으며, `p = p / ..`와 같습니다.
@@ -89,7 +90,7 @@ impl Div<Path> for Path { ... }
 **효과**는 다음 예에서 분명합니다.
 
 ```rok
-let p = Path::from("/etc") / "nginx" / "nginx.conf";
+let p = Path::new("/etc") / "nginx" / "nginx.conf";
                                           //→ Path("/etc/nginx/nginx.conf")
 
 let home = env::home_dir()? / ".config" / "myapp" / "settings.toml";
@@ -111,10 +112,10 @@ impl AsPath for Path { ... }
 
 ## 3.8.4. UTF-8 불변식
 
-`Path`는 **항상 UTF-8**입니다. `Path::from(s)` 시점에 `s`는 이미 UTF-8이므로 별도 검증이 필요 없습니다.
+`Path`는 **항상 UTF-8**입니다. `Path::new(s)` 시점에 `s`는 이미 UTF-8이므로 별도 검증이 필요 없습니다.
 
 다만 드물게 OS가 UTF-8이 아닌 파일명을 돌려줄 때가 있습니다.
-- Unix에서는 임의의 바이트가 올 수 있으므로 `Path::from(...)`은 **손실 변환**(대체 문자 `U+FFFD`)을 합니다.
+- Unix에서는 임의의 바이트가 올 수 있으므로 `Path::new(...)`은 **손실 변환**(대체 문자 `U+FFFD`)을 합니다.
 - Windows에서는 이름이 WTF-16이고, 서로게이트 쌍을 따로 처리합니다.
 
 엄격한 변환이 필요하면 다음과 같이 씁니다.
@@ -160,8 +161,8 @@ Windows에서 `NonUtf8Error.valid_up_to`는 UTF-16 단위를 셉니다. `to_path
 | `canonicalize()` | 심볼릭 링크 해석 + 절대 경로 변환 | **함** (`realpath`) |
 
 ```rok
-Path::from("/a/b/../c").normalize();              //→ "/a/c" (lexical)
-try Path::from("/a/b/../c").canonicalize();       //→ symlink 해석된 절대 경로
+Path::new("/a/b/../c").normalize();              //→ "/a/c" (lexical)
+try Path::new("/a/b/../c").canonicalize();       //→ symlink 해석된 절대 경로
 ```
 
 `normalize`는 빠르고 시스템 콜을 하지 않으므로 90%의 경우에 충분합니다.
@@ -172,7 +173,7 @@ try Path::from("/a/b/../c").canonicalize();       //→ symlink 해석된 절대
 
 ```rok
 let dir: Dir = try Dir::root().open_dir("data");
-let f = try dir.open(Path::from("config.toml"));
+let f = try dir.open(Path::new("config.toml"));
                                           // Path 가 dir 에 상대적, escape 거부
 ```
 

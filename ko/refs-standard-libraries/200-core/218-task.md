@@ -10,7 +10,7 @@
 
 ```rok
 fn block_on<F: Future>(f: F) -> F::Output;              // sync 진입점: executor 에 붙어 f 를 끝까지 실행
-fn block_on_try<T, E>(f: TryAsyncFuture<T, E>) throws (E) -> T;   // throw 하는 async body 용 block_on. 그 에러를 여기서 throw
+fn try_block_on<T, E>(f: TryAsyncFuture<T, E>) throws (E) -> T;   // throw 하는 async body 용 block_on. 그 에러를 여기서 throw
 fn spawn<F: Future + Send>(f: F) -> Task<F::Output> where F::Output: Send;
 fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future, 현재 worker 에 고정 (OS 스레드가 아님)
 fn spawn_blocking<T: Send>(f: fn() -> T + Send) -> Blocking<T>;   // blocking 작업을 executor 밖 OS 스레드에서
@@ -20,7 +20,6 @@ async fn race<T>(tasks: List<Task<T>>) -> T;            // 첫 완료 task 결�
 fn select<F: Future>(futs: List<F>) -> SelectFuture<F>; // await: (index, 결과), spawn 하지 않음
 fn id() -> TaskId;                                      // 현재 task 의 id, task 밖이면 panic
 fn current_id() -> TaskId | none;                       // 현재 task 의 id, task 밖이면 none
-fn try_id() -> TaskId | none;                           // 0.1.6부터 deprecated: current_id
 async fn join<T>(tasks: List<Task<T>>) -> List<T>;      // 모두 완료 후
 async fn timeout<T>(dur: Duration, task: Task<T>) throws (TimeoutError) -> T;   // try await 에서 던짐
 async fn sleep(dur: Duration);

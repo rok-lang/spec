@@ -123,12 +123,12 @@ Rust `Path` / `PathBuf` + `OsStr`의 **사용성 부담**을 피하려는 결정
 ```rok
 use rok::std::path::Path;
 
-let p: Path = Path::from("data/config.toml");
+let p: Path = Path::new("data/config.toml");
 let parent: Path = p.parent()?;
 let with_ext: Path = p.with_extension("bak");
 
 // `/` 연산자 (Python pathlib 식)
-let full = Path::from("/etc") / "nginx" / "nginx.conf";
+let full = Path::new("/etc") / "nginx" / "nginx.conf";
 ```
 
 `Path`는 **UTF-8 newtype**입니다. UTF-8이 아닌 파일명(Unix에 드물게 있음)은 `RawPath`(바이트)로 따로 처리합니다. 코드의 99%는 `Path`만으로 충분합니다.

@@ -85,7 +85,7 @@ An explicit `fn main` has no parameters and no generic parameters, and must have
 | `fn main() throws` / `throws (E)` | `0`                      | unhandled exception → 4.16.4           |
 | the three forms above with `async` | same as above           | 4.16.5                                 |
 
-There is no `main` returning `Result`, and no `main` combining `throws` with `-> i32`. If a specific exit code is needed on error, call [`rok::std::env::exit(code)`](../../refs-standard-libraries/300-std/306-env.md) in a `catch`.
+There is no `main` returning `Result`, and no `main` combining `throws` with `-> i32`. If a specific exit code is needed on error, call [`rok::std::process::exit(code)`](../../refs-standard-libraries/300-std/307-process.md) in a `catch`.
 
 Command-line arguments and environment variables are obtained through the standard library [`rok::std::env`](../../refs-standard-libraries/300-std/306-env.md), not through parameters. The `unsafe` and `yield` modifiers cannot be applied to `main`. Visibility (`pub`) does not affect whether it is the entry point.
 
@@ -98,14 +98,14 @@ The process exit code is determined by how the entry point finishes.
 - **Normal exit**: `0` or the returned `i32`, per the table in 4.16.3.
 - **Unhandled exception**: if an error propagates out of the entry point in a `throws` main, the runtime prints ``error: `main` returned an uncaught error: `` followed by the exception value to standard error (stderr) and exits with code **`1`**. The output format is `Display` if the value implements [`Display`](../../refs-standard-libraries/200-core/210-fmt.md), otherwise `Debug`, and the type name if it has neither (the [`Error`](../../refs-standard-libraries/200-core/214-error.md) trait requires `Display`, so ordinary error types print with `Display`). The next line gives the location where the error left `main`, as `  --> path:line:col`.
 - **Panic**: panics and fatal errors are not caught by `catch`; the runtime prints the message to standard error and exits with code **`101`** ([4.14.13](414-throws.md#41413-panics-and-fatal-errors)).
-- **Explicit exit**: [`rok::std::env::exit(code)`](../../refs-standard-libraries/300-std/306-env.md) terminates the process immediately from any point. This path does not run `finally` or `Drop`.
+- **Explicit exit**: [`rok::std::process::exit(code)`](../../refs-standard-libraries/300-std/307-process.md) terminates the process immediately from any point. This path does not run `finally` or `Drop`.
 
 The **implicit `main`** is treated as an untyped `fn main() throws` (error type `any Error`) (or `async fn main() throws` if the body contains `await`, 4.16.5). Errors from throwing calls marked with `try` in top-level statements may therefore propagate out of the entry point without a separate `catch`, and an unhandled exception yields exit code `1` per the rules above. If execution runs to the end normally, the exit code is `0`.
 
 On `wasm32-wasip2` (a preview 2 component), `wasi:cli/exit` carries only success or failure, so any nonzero exit code (including `1` and `101`) reaches the host as failure (status 1). `wasm32-wasip1-threads` (preview 1) carries the full code, except that hosts may turn a `proc_exit` of 126 or more into failure (status 1). A trap such as `abort` exits with 134.
 
 > [!IMPORTANT]
-> **Top-level `return` is not allowed.** A `return` at the top level of `main.rok` is a compile error. If the implicit `main` needs a nonzero exit code, call `env::exit(code)`; to express the exit code as a return value, use the explicit `fn main() -> i32` form. Allowing top-level `return` would add rules only for the implicit `main`, such as "what type of `return` is allowed" and "what does a `return` inside a top-level block return", so splitting the entry point into two forms is simpler.
+> **Top-level `return` is not allowed.** A `return` at the top level of `main.rok` is a compile error. If the implicit `main` needs a nonzero exit code, call `process::exit(code)`; to express the exit code as a return value, use the explicit `fn main() -> i32` form. Allowing top-level `return` would add rules only for the implicit `main`, such as "what type of `return` is allowed" and "what does a `return` inside a top-level block return", so splitting the entry point into two forms is simpler.
 
 ## 4.16.5. Async `main`
 

@@ -10,7 +10,7 @@ The signatures of the core API:
 
 ```rok
 fn block_on<F: Future>(f: F) -> F::Output;              // sync entry point: attaches to the executor and runs f to completion
-fn block_on_try<T, E>(f: TryAsyncFuture<T, E>) throws (E) -> T;   // block_on for a throwing async body; its error is thrown here
+fn try_block_on<T, E>(f: TryAsyncFuture<T, E>) throws (E) -> T;   // block_on for a throwing async body; its error is thrown here
 fn spawn<F: Future + Send>(f: F) -> Task<F::Output> where F::Output: Send;
 fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future, pinned to the current worker (not an OS thread)
 fn spawn_blocking<T: Send>(f: fn() -> T + Send) -> Blocking<T>;   // blocking work on an OS thread outside the executor
@@ -20,7 +20,6 @@ async fn race<T>(tasks: List<Task<T>>) -> T;            // result of the first t
 fn select<F: Future>(futs: List<F>) -> SelectFuture<F>; // await: (index, result), does not spawn
 fn id() -> TaskId;                                      // id of the current task; panics outside a task
 fn current_id() -> TaskId | none;                       // id of the current task; none outside a task
-fn try_id() -> TaskId | none;                           // deprecated since 0.1.6: current_id
 async fn join<T>(tasks: List<Task<T>>) -> List<T>;      // after all complete
 async fn timeout<T>(dur: Duration, task: Task<T>) throws (TimeoutError) -> T;   // throws in try await
 async fn sleep(dur: Duration);

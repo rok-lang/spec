@@ -169,7 +169,7 @@ extern "rok" {
 }
 ```
 
-[`rok::std::env::exit`](../../refs-standard-libraries/300-std/306-env.md) calls this symbol. `finally` and `Drop` are not run ([4.16.4](../004-functions/416-entry-point.md#4164-exit-codes-and-unhandled-exceptions)).
+[`rok::std::process::exit`](../../refs-standard-libraries/300-std/307-process.md) calls this symbol. `finally` and `Drop` are not run ([4.16.4](../004-functions/416-entry-point.md#4164-exit-codes-and-unhandled-exceptions)).
 
 ### String helpers
 

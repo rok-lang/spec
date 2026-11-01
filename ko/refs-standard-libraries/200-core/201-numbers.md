@@ -45,7 +45,7 @@ impl Int {
     fn from_i32(n: i32) -> int;
     fn from_i64(n: i64) -> int;
     fn from_u64(n: u64) -> int;
-    fn parse_radix(s: str, radix: u32) -> int | none;  // 진법 파싱 (10 진은 FromStr)
+    fn parse_radix(s: str, radix: u32) throws (ParseError) -> int;  // 진법 파싱 (10 진은 FromStr); 2..=36 밖이면 panic
     fn to_str_radix(self, radix: u32) -> str;   // 진법 2..=36, 소문자 숫자, 음수면 `-` 가 앞; 그 밖의 진법은 panic
 
     fn to_i32(self) -> i32 | none;  // 범위 안이면 값, 밖이면 none
@@ -137,8 +137,6 @@ impl Float {
     fn from_f32(x: f32) -> float;
     fn from_f64(x: f64) -> float;
     fn from_int(n: int) -> float;                  // 가장 가까운 float, 동률은 짝수 쪽
-    fn parse_or_none(s: str) -> float | none;      // FromStr 은 대신 던짐
-    fn try_parse(s: str) -> float | none;          // 0.1.6부터 deprecated: parse_or_none
 
     fn to_f32(self) -> f32 | none;     // 유한 값이 f32 범위 밖일 때만 none
     fn to_f64(self) -> f64;            // 가장 가까운 f64; f64::MAX 를 넘으면 ±inf, subnormal 아래면 ±0

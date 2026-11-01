@@ -169,7 +169,7 @@ extern "rok" {
 }
 ```
 
-[`rok::std::env::exit`](../../refs-standard-libraries/300-std/306-env.md)가 이 심볼을 호출합니다. `finally`와 `Drop`은 실행하지 않습니다([4.16.4](../004-functions/416-entry-point.md#4164-종료-코드와-미처리-예외)).
+[`rok::std::process::exit`](../../refs-standard-libraries/300-std/307-process.md)가 이 심볼을 호출합니다. `finally`와 `Drop`은 실행하지 않습니다([4.16.4](../004-functions/416-entry-point.md#4164-종료-코드와-미처리-예외)).
 
 ### 문자열 헬퍼
 
