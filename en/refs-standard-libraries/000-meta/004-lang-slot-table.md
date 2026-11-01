@@ -62,6 +62,7 @@ Trait slots indicate which trait the compiler goes to when user-written syntax i
 | `display_trait`       | `f"{x}"` default format         | `rok::core::fmt::Display`       | 2.10 |
 | `debug_trait`         | `f"{x:?}"` debug format         | `rok::core::fmt::Debug`         | 2.10 |
 | `future_trait`        | Stepping in `await expr`        | `rok::core::future::Future`     | 2.20 |
+| `close_trait`         | A close that can fail: the owner closes it | `rok::std::io::Close`      | 3.5  |
 
 Next come the operator trait slots. The dispatch target of an operator token is determined by the `#[infix]` / `#[prefix]` ([refs-lang 6.7](../../refs-lang/006-meta-system/607-operator-magic.md)) attached to each trait method, and precedence is fixed by the table in [refs-lang 3.2](../../refs-lang/003-expressions/302-precedence-and-associativity.md); the slots below are fixed locations that let the compiler find "the addition trait", "the comparison trait", etc. by name during primitive lowering and diagnostics. Compound assignment (`AddAssign`, etc., 2.4), broadcast (`DotAdd`, etc., 2.6) and floored modulo (`Modulo`, `%%`) traits need only `#[infix]` registration and have no slots.
 
@@ -142,7 +143,7 @@ Method slots are for methods the compiler calls automatically without the user w
 
 | Slot name     | Meaning                              | Standard library method         | Ref  |
 |---------------|--------------------------------------|---------------------------------|------|
-| `drop_method` | Called when a `using` block releases | `rok::core::marker::Drop::drop` | 2.13 |
+| `drop_method` | Called where a value is released (`using`, or its owner leaving scope) | `rok::core::marker::Drop::drop` | 2.13 |
 
 ## 0.4.6. Slot consumers: where the compiler looks up slots
 

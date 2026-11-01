@@ -240,7 +240,6 @@ The default level of every lint is `warn`. The Since column is the release that 
 | `none_comparison`        | 0.1.0   | `x == none` instead of `x is none`                                  |
 | `bool_comparison`        | 0.1.0   | Comparing a `bool` with `true` / `false`                            |
 | `self_assignment`        | 0.1.0   | `x = x;`                                                            |
-| `unclosed_resource`      | 0.1.0   | A `Drop` resource the function makes (`File`, `Dir`, `ReadDir`, `TcpStream`, `TcpListener`, `UdpSocket`, `Child`, any type whose `drop` the program reaches; not a crypto `Secret`, which the collector wipes) that some path leaves open: not under `using`, not closed (`close`, `wait`, `into_*`, a buffered writer's `flush`, a `for` that drains a `ReadDir`, ..), not handed on. Such a path is a `return`, a `throw` from a call between opening and closing, the end of the function, a reassignment, the next pass of a loop, or a value never bound (`(try! File::open(p)).read_to_str()`). A function that only calls the value's own methods does not take it over (warn) |
 | `while_true`             | 0.1.0   | `while true` instead of `loop`                                      |
 | `deprecated`             | 0.1.0   | Use of a `#[deprecated]` function, method, field, type, constant or static ([6.2.7](#627-deprecated-discouraged-use-marker)) |
 | `deprecated_safe`        | 0.1.6   | A call of a `#[deprecated_safe]` function, or a use of such a static, outside `unsafe` ([6.2.14](#6214-deprecated_safe-safe-today-unsafe-later)) |
@@ -256,8 +255,6 @@ The default level of every lint is `warn`. The Since column is the release that 
 | `confusable_idents`      | 0.1.0   | Identifiers that resemble each other ([1.4](../001-lexical/104-identifiers.md)) |
 | `missing_f_prefix`       | 0.1.0   | A plain string literal containing `{name}` where `name` is a local in scope: the `f` prefix is missing (warn) |
 | `literal_spread_mismatch` | 0.1.6   | A `List` or Dict literal spread into fixed parameters that cannot fill them: a length that differs, or a key that names no parameter left ([4.2](../004-functions/402-parameters.md)); the call panics at run time (warn) |
-| `unclosed_sender`        | 0.1.6   | A channel `Sender` the function makes (`channel`, `clone`) that some path leaves open, as `unclosed_resource` judges it; a closure that only sends through it does not close it ([stdlib 2.17.3](../../refs-standard-libraries/200-core/217-channel.md#2173-close-semantics)) (warn) |
-| `using_twice`            | 0.1.6   | A second `using` (or `drop`) of the same `Drop` value, or a use of it after its `using` released it ([3.17.6](../003-expressions/317-using-expression.md#3176-when-drop-is-called)) (warn) |
 | `guard_escape`           | 0.1.6   | A `throw` inside a lock guard's `using` block whose error holds what the lock protects ([stdlib 2.16.3](../../refs-standard-libraries/200-core/216-sync.md#2163-mutext---exclusive-lock)) (warn) |
 | `thread_local_across_await` | 0.1.6   | A `ThreadLocal::get()` value used after an `await` in an `async` body ([stdlib 3.4.4](../../refs-standard-libraries/300-std/304-thread.md#344-thread-local-storage)) (warn) |
 | `extern_static_unsafe`   | 0.1.6   | An extern `static` read or written outside `unsafe` ([5.9.6](../005-modules/509-extern-block.md#596-calls--use)) (warn) |

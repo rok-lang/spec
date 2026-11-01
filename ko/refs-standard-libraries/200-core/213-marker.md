@@ -143,9 +143,28 @@ trait Drop {
 }
 ```
 
-### 호출 시점: `using` 바인딩에서만
+### 소유권
 
-Rok은 GC 언어이므로 일반 바인딩이 스코프를 벗어날 때 `drop`을 자동으로 부르지 않습니다. `drop`은 `using`으로 묶은 바인딩에서만, 블록을 빠져나갈 때 호출됩니다([refs-lang 3.17 `using`](../../refs-lang/003-expressions/317-using-expression.md)).
+타입이 `Drop`을 구현한 값은 affine입니다. 주인이 하나이고, 한 번만 해제됩니다. 그런 값을 담은 struct, 튜플, enum, 합 타입도 affine입니다.
+
+- `let b = a`는 값을 옮깁니다. 이제 `b`가 주인이고, 그 뒤에 `a`를 쓰면 컴파일 에러(E202)입니다. struct, 튜플, enum, 컨테이너에 넣거나, 클로저나 `async` 블록이 캡처하거나, 반환해도 똑같이 옮겨집니다.
+- 호출은 호출된 함수가 값을 간직할 때만 값을 가져갑니다. 저장하거나, 반환하거나, 닫거나, 간직하는 호출에 넘기는 경우입니다. 그 밖의 호출은 값을 빌리기만 하고, 주인은 여전히 호출자입니다.
+- `clone()`(`File`은 `try_clone()`)은 따로 주인을 가진 독립된 값을 만듭니다.
+- struct에서 일부를 꺼내 옮기는 방법은 `marker::replace(ref s.f, v)`나 `marker::take(ref s.f)`뿐입니다. 둘 다 그 자리에 새 값을 남깁니다.
+- `unsafe { marker::share(x) }`는 컴파일러가 따라가지 않는 두 번째 핸들을 만듭니다. 이 핸들로는 `x`가 옮겨지지도 해제되지도 않습니다. 주인이 값을 해제한 뒤에 이 핸들을 쓰지 않도록 하는 일은 프로그램이 맡습니다.
+
+```rok
+let (tx, rx) = channel::<i32>();
+let other = tx;          // 옮김: `tx`는 이제 없음
+try tx.send(1);          // 에러: `tx` was moved at line 2, and is used here
+let copy = other.clone(); // 따로 주인을 가진 두 번째 sender
+```
+
+### 호출 시점
+
+컴파일러는 주인이 스코프를 벗어나는 곳의 모든 출구(정상 종료, `return`, `break`, 에러 전파)에서 값을 해제합니다. task가 끝나거나 취소될 때는 그 `async` 블록이 캡처한 값을 해제합니다. `using`은 블록이 끝날 때 값을 해제합니다([refs-lang 3.17 `using`](../../refs-lang/003-expressions/317-using-expression.md)). 다른 곳으로 옮겨 간 값은 이곳이 아니라 새 주인이 해제합니다.
+
+닫기가 실패할 수 있는 타입은 `io::Close`(`fn close(self) throws (IoError)`)를 구현합니다. `File`, 그 위의 `BufWriter`나 `LineWriter`, 그리고 그런 값을 담은 struct입니다. 닫기 에러를 잃게 되므로 컴파일러는 이런 값을 대신 닫지 않습니다. `try x.close()`로 닫거나 `using`으로 묶습니다. 어떤 경로에서 열린 채로 스코프를 벗어나면 컴파일 에러입니다. 에러로 빠져나가는 경로에서는 값을 해제합니다(그때 닫기 자체의 에러는 버립니다).
 
 - 정상 종료, `return`, `break`, 에러 전파 모두에서 호출됩니다.
 - 여러 바인딩은 선언의 역순(LIFO)으로 호출됩니다.
@@ -161,14 +180,14 @@ fn process(path: str) throws (IoError) {
 
 {
     let f = try! File::open("data.txt");
-}   // ← 자동 drop 없음: f 는 GC 가 회수하지만 File::drop 은 불리지 않음
+}   // ← 에러: `f` holds a `File` that is never closed
 ```
 
 `Drop`을 구현하지 않은 타입을 `using`으로 묶으면 컴파일 에러입니다. 에러 메시지는 `Drop`이 필요하다고 알립니다.
 
 ### GC와 관계
 
-GC는 `drop`을 부르지 않으며 finalizer도 없습니다. 정리가 필요한 자원은 `using`으로 묶거나 `close()` 같은 메서드로 직접 닫아야 합니다. 그러지 않으면 `unclosed_resource` 린트가 경고합니다([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)).
+GC는 `drop`을 부르지 않으며 finalizer도 없습니다. 해제 지점은 위에서 말한 곳들이고, 컴파일 시점에 정해집니다.
 
 ### `Drop` 구현 예
 

@@ -97,7 +97,7 @@ The pitfalls of `as` casts on pointers in C and Rust are the biggest hazard. Rok
 
 ### 5. RAII via `using` block - no reliance on finalizers
 
-Every GC language has learned that finalizers are unreliable in a GC environment. External resources such as files, sockets and mutexes are therefore released by explicit `using` blocks. The GC never calls `drop` and there are no finalizers; an unreleased resource is reported by the `unclosed_resource` lint ([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)).
+Every GC language has learned that finalizers are unreliable in a GC environment. External resources such as files, sockets and mutexes are therefore released by explicit `using` blocks. The GC never calls `drop` and there are no finalizers; the compiler releases a resource where its owner leaves scope, and a resource whose close can fail must be closed explicitly ([stdlib 2.13.4](../200-core/213-marker.md#2134-drop---cleanup-on-using-release)).
 
 ```rok
 use rok::bare::ptr::{ConstPtr, CPtr, Ptr};

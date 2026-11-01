@@ -93,7 +93,7 @@ rx.recv();             //→ 1
 rx.recv();             //→ none  (closed)
 ```
 
-A sender that some path never closes keeps the channel open: `rx.recv()` blocks and `for v in rx` never ends. Close every sender you make (each `clone` too) once it has sent its last value, on every path, or in the thread or task it is moved to. The `unclosed_sender` lint ([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)) reports a `Sender` made in a function that some path leaves open, including one captured by a closure that only sends through it.
+A `Sender` is a `Drop` resource ([2.13.4](213-marker.md#2134-drop---cleanup-on-using-release)): `let tx2 = tx` moves it, `clone()` makes another sender with its own owner, and `close()` closes that sender only. The compiler releases a sender where its last owner leaves scope, and a task releases the senders its `async` block captured when it ends; the channel closes once every sender is closed or released. Releasing a sender cannot fail, so no explicit close is needed. A thread's closure does not release what it captured: close the sender at the end of the thread's work.
 
 ## 2.17.4. Multiple producers and consumers
 

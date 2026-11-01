@@ -93,7 +93,7 @@ rx.recv();             //→ 1
 rx.recv();             //→ none  (closed)
 ```
 
-어떤 경로에서 닫지 않은 sender는 채널을 열린 채로 둡니다. `rx.recv()`는 막히고 `for v in rx`는 끝나지 않습니다. 만든 sender는 모두(`clone`한 것도) 마지막 값을 보낸 뒤 모든 경로에서 닫거나, 옮겨 간 스레드나 task에서 닫습니다. `unclosed_sender` 린트([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어))는 함수가 만든 `Sender`를 어떤 경로가 열린 채로 두면 보고합니다. 보내기만 하는 클로저가 캡처한 것도 포함합니다.
+`Sender`는 `Drop` 자원입니다([2.13.4](213-marker.md#2134-drop-using-해제-시-정리)). `let tx2 = tx`는 sender를 옮기고, `clone()`은 따로 주인을 가진 sender를 하나 더 만들며, `close()`는 그 sender만 닫습니다. 컴파일러는 마지막 주인이 스코프를 벗어나는 곳에서 sender를 해제하고, task는 끝날 때 `async` 블록이 캡처한 sender를 해제합니다. 모든 sender가 닫히거나 해제되면 채널이 닫힙니다. sender 해제는 실패하지 않으므로 직접 닫지 않아도 됩니다. 스레드의 클로저는 캡처한 값을 해제하지 않으므로, 스레드에서는 할 일을 마친 뒤 sender를 닫습니다.
 
 ## 2.17.4. 다중 생산자와 다중 소비자
 

@@ -164,6 +164,8 @@ buf.push(1);
 
 The detailed parallelism and concurrency rules are defined by the standard library specification; this chapter covers only the language-level capture mechanism.
 
+A captured `Drop` resource (a `File`, a socket, a channel `Sender`) is not copied: the capture moves it into the closure or `async` block, and using it outside afterwards is an error ([stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop---cleanup-on-using-release)). An `async` block's task releases what it captured when it ends; capture `x.clone()` to keep a value outside too.
+
 ## 4.6.10. Lifetime of captured variables
 
 Captured variables live as long as the closure value. Even after the closure leaves the outer scope, the captured values are kept inside the closure object.

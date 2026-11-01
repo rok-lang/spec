@@ -143,9 +143,28 @@ trait Drop {
 }
 ```
 
-### When called - only for `using` bindings
+### Ownership
 
-Rok is a GC language, so `drop` is not called automatically when an ordinary binding leaves scope. `drop` is called only for bindings bound with `using`, on leaving the block ([refs-lang 3.17 `using`](../../refs-lang/003-expressions/317-using-expression.md)).
+A value whose type implements `Drop` is affine: it has one owner, and it is released once. A struct, tuple, enum or sum that holds one is affine too.
+
+- `let b = a` moves the value: `b` owns it, and using `a` afterwards is a compile error (E202). Storing it into a struct, a tuple, an enum or a container, capturing it in a closure or an `async` block, and returning it move it the same way.
+- A call takes the value only when the callee keeps it: stores it, returns it, closes it, or passes it to a call that keeps it. Any other call borrows it, and the caller still owns it.
+- `clone()` (`try_clone()` for a `File`) makes an independent value with its own owner.
+- A part moves out of a struct only through `marker::replace(ref s.f, v)` or `marker::take(ref s.f)`, which leave a new value in its place.
+- `unsafe { marker::share(x) }` makes a second handle the compiler does not follow: it neither moves nor releases `x`. Using it after the owner released the value is the program's to rule out.
+
+```rok
+let (tx, rx) = channel::<i32>();
+let other = tx;          // moves: `tx` is gone
+try tx.send(1);          // error: `tx` was moved at line 2, and is used here
+let copy = other.clone(); // a second sender with its own owner
+```
+
+### When called
+
+The compiler releases a value where its owner leaves scope, on every exit (normal completion, `return`, `break`, error propagation), and when a task finishes or is cancelled, for what its `async` block captured. `using` releases its value at the end of its block ([refs-lang 3.17 `using`](../../refs-lang/003-expressions/317-using-expression.md)). A value that moved away is released by its new owner, not here.
+
+A type whose close can fail implements `io::Close` (`fn close(self) throws (IoError)`): `File`, a `BufWriter` or `LineWriter` over one, and any struct holding one. The compiler does not close such a value for you, since the close's error would be lost: close it with `try x.close()` or bind it with `using`. Leaving its scope open on some path is a compile error; a path that leaves with an error releases it (the close's own error is dropped there).
 
 - It is called on normal completion, `return`, `break` and error propagation alike.
 - Multiple bindings are dropped in reverse declaration order (LIFO).
@@ -161,14 +180,14 @@ fn process(path: str) throws (IoError) {
 
 {
     let f = try! File::open("data.txt");
-}   // ← no automatic drop: the GC reclaims f but File::drop is not called
+}   // ← error: `f` holds a `File` that is never closed
 ```
 
 Binding a type that does not implement `Drop` with `using` is a compile error stating that `Drop` is required.
 
 ### Relation to the GC
 
-The GC never calls `drop`, and there are no finalizers. A resource that needs cleanup must be bound with `using` or closed directly with a method such as `close()`; the `unclosed_resource` lint warns otherwise ([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)).
+The GC never calls `drop`, and there are no finalizers: the release points are the ones above, fixed at compile time.
 
 ### `Drop` implementation example
 

@@ -240,7 +240,6 @@ fn strict_zone() { ... }
 | `none_comparison`        | 0.1.0   | `x is none` 대신 `x == none`                                       |
 | `bool_comparison`        | 0.1.0   | `bool`을 `true` / `false`와 비교                                 |
 | `self_assignment`        | 0.1.0   | `x = x;`                                                           |
-| `unclosed_resource`      | 0.1.0   | 함수가 만든 `Drop` 자원(`File`, `Dir`, `ReadDir`, `TcpStream`, `TcpListener`, `UdpSocket`, `Child`, 프로그램이 `drop`에 닿는 모든 타입. 수집기가 지우는 암호 `Secret`은 제외)을 어떤 경로가 열린 채로 둠. `using` 아래에 있지 않고, 닫지 않았고(`close`, `wait`, `into_*`, 버퍼 writer의 `flush`, `ReadDir`를 끝까지 도는 `for` 등), 넘겨주지도 않은 경우. 그런 경로는 `return`, 열기와 닫기 사이의 호출이 던지는 `throw`, 함수의 끝, 다시 대입, 루프의 다음 회차, 묶지 않은 값(`(try! File::open(p)).read_to_str()`)임. 값의 메서드만 부르는 함수는 그 값을 넘겨받지 않음 (warn) |
 | `while_true`             | 0.1.0   | `loop` 대신 `while true`                                           |
 | `deprecated`             | 0.1.0   | `#[deprecated]` 함수, 메서드, 필드, 타입, 상수, static 사용 ([6.2.7](#627-deprecated-사용-자제-표시)) |
 | `deprecated_safe`        | 0.1.6   | `unsafe` 밖에서 `#[deprecated_safe]` 함수를 호출하거나 그런 static을 씀 ([6.2.14](#6214-deprecated_safe-지금은-안전-나중에-unsafe)) |
@@ -256,8 +255,6 @@ fn strict_zone() { ... }
 | `confusable_idents`      | 0.1.0   | 서로 닮은 식별자 ([1.4](../001-lexical/104-identifiers.md))        |
 | `missing_f_prefix`       | 0.1.0   | 범위 안의 지역 변수 `name`을 가리키는 `{name}`을 담은 보통 문자열 리터럴: `f` 접두어가 빠짐 (warn) |
 | `literal_spread_mismatch` | 0.1.6   | 고정 매개변수에 펼친 `List`나 Dict 리터럴이 자리를 채울 수 없음: 길이가 다르거나 남은 매개변수 어느 것의 이름도 아닌 키가 있음([4.2](../004-functions/402-parameters.md)). 그 호출은 런타임에 panic이 일어남 (warn) |
-| `unclosed_sender`        | 0.1.6   | 함수가 만든(`channel`, `clone`) 채널 `Sender`를 어떤 경로가 열린 채로 둠. 판단은 `unclosed_resource`와 같음. 보내기만 하는 클로저는 그것을 닫지 않음 ([stdlib 2.17.3](../../refs-standard-libraries/200-core/217-channel.md#2173-닫기-의미)) (warn) |
-| `using_twice`            | 0.1.6   | 같은 `Drop` 값을 두 번째로 `using`(또는 `drop`)하거나, `using`이 해제한 뒤에 그 값을 씀 ([3.17.6](../003-expressions/317-using-expression.md#3176-drop-호출-시점)) (warn) |
 | `guard_escape`           | 0.1.6   | 잠금 가드의 `using` 블록 안에서 잠금이 보호하는 것을 담은 에러를 `throw`함 ([stdlib 2.16.3](../../refs-standard-libraries/200-core/216-sync.md#2163-mutext-배타적-잠금)) (warn) |
 | `thread_local_across_await` | 0.1.6   | `async` 본체에서 `ThreadLocal::get()` 값을 `await` 뒤에 씀 ([stdlib 3.4.4](../../refs-standard-libraries/300-std/304-thread.md#344-스레드-로컬-저장소)) (warn) |
 | `extern_static_unsafe`   | 0.1.6   | extern `static`을 `unsafe` 밖에서 읽거나 씀 ([5.9.6](../005-modules/509-extern-block.md#596-호출--사용)) (warn) |

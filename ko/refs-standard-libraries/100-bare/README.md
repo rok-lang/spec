@@ -97,7 +97,7 @@ C와 Rust에서 포인터에 쓰는 `as` 캐스트의 함정은 가장 큰 위�
 
 ### 5. `using` 블록으로 RAII: finalizer에 의존하지 않음
 
-GC 환경에서는 finalizer를 믿을 수 없습니다. 모든 GC 언어가 겪어서 배운 사실입니다. 따라서 파일, 소켓, 뮤텍스 같은 외부 자원은 명시적인 `using` 블록으로 해제합니다. GC는 `drop`을 호출하지 않고, finalizer도 없습니다. 해제하지 않은 자원은 `unclosed_resource` 린트가 알립니다([refs-lang 6.2.9](../../refs-lang/006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)).
+GC 환경에서는 finalizer를 믿을 수 없습니다. 모든 GC 언어가 겪어서 배운 사실입니다. 따라서 파일, 소켓, 뮤텍스 같은 외부 자원은 명시적인 `using` 블록으로 해제합니다. GC는 `drop`을 호출하지 않고, finalizer도 없습니다. 컴파일러는 주인이 스코프를 벗어나는 곳에서 자원을 해제하고, 닫기가 실패할 수 있는 자원은 직접 닫아야 합니다([stdlib 2.13.4](../200-core/213-marker.md#2134-drop-using-해제-시-정리)).
 
 ```rok
 use rok::bare::ptr::{ConstPtr, CPtr, Ptr};
