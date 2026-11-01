@@ -12,11 +12,11 @@ In Rok's runtime, the [Immix + Sticky Mark-Bit Generational GC](../../refs-lang/
 |----------------------|------------------------------|---------------------------------------------------|
 | Memory reclamation   | `Drop` is responsible        | GC automatically; `Drop` **does not**             |
 | Meaning of `Drop::drop` | release resource + free memory | **external resource cleanup only** (file handle, socket, ...) |
-| When called          | deterministic (scope exit)   | **only on leaving a `using` block** (unrelated to GC collection) |
+| When called          | deterministic (scope exit)   | deterministic: where the last owner leaves scope, or at the end of a `using` block (unrelated to GC collection) |
 | Effect if omitted    | resource leak + memory leak  | resource leak only (the GC eventually reclaims memory) |
 
 > [!NOTE]
-> Ordinary bindings have no automatic drop at scope exit. `Drop::drop` is called only for bindings bound with `using` ([refs-lang 3.17 `using`](../../refs-lang/003-expressions/317-using-expression.md)). The GC does not guarantee finalization of other objects and never calls `drop`.
+> A `Drop` value is affine: the compiler calls `Drop::drop` where its last owner leaves scope, or at the end of the `using` block that binds it ([refs-lang 3.17 `using`](../../refs-lang/003-expressions/317-using-expression.md)); a type whose close can fail must be closed explicitly (2.13.4). The GC never calls `drop`.
 
 Because memory reclamation and resource cleanup are separate, ordinary objects need not care about `Drop` (the GC reclaims them), and only types that handle external resources implement `Drop` to obtain a deterministic cleanup point.
 
@@ -132,7 +132,7 @@ struct Vec3 { x: f64; y: f64; z: f64; }
 > [!IMPORTANT]
 > Deriving `Copy` is allowed only when `Clone` is implemented as well, and only when every field is `Copy`.
 
-## 2.13.4. `Drop` - cleanup on `using` release
+## 2.13.4. `Drop` - cleanup on release
 
 A file that was opened must be closed; a mutex that was locked must be unlocked. Such external resource cleanup cannot be left to the GC. Holding a resource until an unpredictable sweep could exhaust file descriptors or leave other code stalled on a lock that was never released. The `Drop` trait and the `using` expression solve this.
 
@@ -153,6 +153,15 @@ A value whose type implements `Drop` is affine: it has one owner, and it is rele
 - `clone()` (`try_clone()` for a `File`) makes an independent value with its own owner.
 - A part moves out of a struct only through `marker::replace(ref s.f, v)` or `marker::take(ref s.f)`, which leave a new value in its place.
 - `unsafe { marker::share(x) }` makes a second handle the compiler does not follow: it neither moves nor releases `x`. Using it after the owner released the value is the program's to rule out.
+
+```rok
+// rok::core::marker
+pub unsafe fn share<T>(x: T) -> T;
+#[discardable]
+pub fn replace<T>(ref dest: T, value: T) -> T;     // puts `value` in `dest`, returns the old value
+#[discardable]
+pub fn take<T: Default>(ref dest: T) -> T;         // replace(ref dest, T::default())
+```
 
 ```rok
 let (tx, rx) = channel::<i32>();
@@ -195,16 +204,20 @@ The GC never calls `drop`, and there are no finalizers: the release points are t
 The most typical implementation is a wrapper around an OS resource.
 
 ```rok
-struct File {
+extern "C" { fn close(fd: i32) -> i32; }
+
+struct Fd {
     handle: i32;
 }
 
-impl Drop for File {
+impl Drop for Fd {
     fn drop(ref self) {
-        rok::bare::close_fd(self.handle);     // OS file descriptor close
+        unsafe { close(self.handle); }    // OS file descriptor close; its result is ignored
     }
 }
 ```
+
+`Fd`'s close result is ignored, so the compiler releases it implicitly. A type whose close can fail (`File`) also implements `io::Close` and is closed explicitly, as above.
 
 ### Restrictions on `Drop`
 
@@ -216,7 +229,7 @@ struct File { handle: i32; }
 impl Drop for File { ... }
 ```
 
-Second, calling `drop` directly is a compile error. Correctness is guaranteed only if it is called exactly once, at `using` release.
+Second, calling `drop` directly is a compile error. Correctness is guaranteed only if it is called exactly once, at release.
 
 ```rok
 let f = File::open(path);
@@ -239,14 +252,14 @@ impl Drop for X {
 
 ### derive policy
 
-Unlike `Clone`, `Drop` cannot be derived. After the `drop` of a value bound with `using` finishes, the compiler calls `drop` on that struct's `Drop` fields in reverse declaration order. A user-written `Drop` body therefore handles only "what needs cleaning up beyond the fields".
+Unlike `Clone`, `Drop` cannot be derived. After a value's own `drop` finishes, at whichever release point, the compiler calls `drop` on that struct's `Drop` fields in reverse declaration order. A user-written `Drop` body therefore handles only "what needs cleaning up beyond the fields".
 
 ```rok
 struct Container {
     a: File;
     b: Socket;
 }
-// when Container is bound with using, release does b.drop() → a.drop()
+// when a Container is released, release does b.drop() → a.drop()
 // (because the fields themselves implement Drop)
 
 impl Drop for Container {
@@ -264,7 +277,7 @@ This module connects to the compiler through four lang slots. The automatic call
 | slot          | Attached to                  | Automatic call point                       |
 |---------------|------------------------------|--------------------------------------------|
 | `clone_trait` | `Clone` trait                | none; used in the `#[derive(Clone)]` expansion  |
-| `drop_method` | `Drop::drop` method          | release of a `using` binding (and drop glue) |
+| `drop_method` | `Drop::drop` method          | every release: the last owner leaving scope, task end, end of a `using` block (and drop glue) |
 | `send_trait`  | `Send` trait (2.13.9)        | implemented automatically, thread-boundary checks |
 | `sync_trait`  | `Sync` trait (2.13.9)        | implemented automatically, thread-boundary checks |
 
@@ -282,11 +295,11 @@ How the main standard library types relate to the three traits:
 | `List<T>`, `Dict<K,V>`, `Set<T>` | ✓ (T:Clone) | ✗              | ✗                               | recursive clone                      |
 | tuples                           | ✓ (all)     | ✓ (all Copy)   | ✗                               | per component                        |
 | `Range<T>`                       | ✓ (T:Clone) | ✓ (T:Copy)     | ✗                               | derived automatically                |
-| `File`                           | ✗           | ✗              | ✓                               | `rok::bare::close_fd`                 |
-| `MutexGuard<T>`                  | ✗           | ✗              | ✓ (on `using` release)          | `rok::bare::unlock`                   |
-| `Channel::Sender<T>`             | ✓           | ✗              | ✗ (closed with `close()`)       | (same as above)                      |
+| `File`                           | ✗           | ✗              | ✓ (plus `io::Close`)            | closes the OS handle; closed explicitly (2.13.4) |
+| `MutexGuard<T>`                  | ✗           | ✗              | ✓ (on release)                  | unlocks the mutex                    |
+| `channel::Sender<T>`             | ✓           | ✗              | ✓                               | calls `close()`; released implicitly |
 
-The principle behind the table is simple. Every primitive and internal GC type implements `Clone`, and only those for which a bit copy is semantically correct are `Copy`. The collections are `Clone` but not `Copy`, because a bit copy of a handle does not preserve the meaning of a deep copy. `str` is `Copy`: it is immutable, so copying its `(ptr, len)` is an independent copy. `Drop` is implemented only by wrappers around external resources such as `File`, `Socket` and `MutexGuard`. These types usually do not implement `Clone`, to prevent duplicate ownership of the resource.
+The principle behind the table is simple. Every primitive type and the collections above implement `Clone`, and only those for which a bit copy is semantically correct are `Copy`. The collections are `Clone` but not `Copy`, because a bit copy of a handle does not preserve the meaning of a deep copy. `str` is `Copy`: it is immutable, so copying its `(ptr, len)` is an independent copy. `Drop` is implemented only by wrappers around external resources such as `File`, `Socket` and `MutexGuard`. These types usually do not implement `Clone`, to prevent duplicate ownership of the resource.
 
 ## 2.13.7. Comparison with other languages
 
@@ -300,7 +313,7 @@ Comparing Rok's model with existing languages makes the design intent clearer.
 | Meaning of Clone        | deep copy                | `clone()` (Object.clone)        | deep copy                |
 | derive                  | `#[derive(Clone, Copy)]` | `Cloneable` interface           | `#[derive(Clone, Copy)]` |
 
-What sets Rok apart is the coexistence of a GC with a deterministic `Drop`. Because the GC handles memory reclamation, `Drop` does not mean memory deallocation, so ordinary objects never need to implement `Drop`. Only types that need external resource cleanup implement `Drop`, and users bind them with `using`.
+What sets Rok apart is the coexistence of a GC with a deterministic `Drop`. Because the GC handles memory reclamation, `Drop` does not mean memory deallocation, so ordinary objects never need to implement `Drop`. Only types that need external resource cleanup implement `Drop`; the compiler releases them where their last owner leaves scope, and users close the ones whose close can fail with `close()` or `using`.
 
 This model avoids both the nondeterminism of Java/Python finalizers and the costs Rust incurs from having no GC.
 
@@ -329,7 +342,7 @@ Both traits are **automatic marker traits** with no methods; the compiler implem
 - Primitive numbers, `bool`, `char`, `c_char`, `str` and `none` are `Send + Sync`.
 - A `struct`, `enum`, `union`, tuple, array or sum type is `Send` if all its fields (components) are `Send`, and `Sync` if all are `Sync`. `Send` for a generic container follows `T` by the same rule.
 - Collections (`List`, `Dict`, `Set`, `StrBuf`, `Deque`, `BinaryHeap`, `Slice`) are `Send` and `!Sync`: they share a mutable handle. Across threads they are shared through `Mutex` / `RwLock` / channels.
-- Rok has no move semantics. Handing a value over (`Mutex::new(xs)`, `RwLock::new(xs)`, `tx.send(xs)` / `try_send` / `send_async`, `Handoff::new(xs)`) leaves the sender's handle pointing at the object the new owner now shares with other threads. A handle taken out of a guard (`get`), given to it (`set`) or reached by `update`'s closure still points at the guarded object after the guard's `using` block ends. Using such a value afterwards, on any path, is a compile error (`E0106`, [refs-lang 9.9.4](../../refs-lang/009-tools/909-debug-tools.md#994-diagnostics--error-messages)). The value is followed through:
+- Apart from affine `Drop` values (2.13.4), Rok has no move semantics. Handing a value over (`Mutex::new(xs)`, `RwLock::new(xs)`, `tx.send(xs)` / `try_send` / `send_async`, `Handoff::new(xs)`) leaves the sender's handle unusable: the new owner gets a copy (see the run-time copy below), and the sender may not use what it handed over. A handle taken out of a guard (`get`), given to it (`set`) or reached by `update`'s closure still points at the guarded object after the guard's `using` block ends. Using such a value afterwards, on any path, is a compile error (`E0106`, [refs-lang 9.9.4](../../refs-lang/009-tools/909-debug-tools.md#994-diagnostics--error-messages)). The value is followed through:
   - copies (`let ys = xs`, a struct field or tuple element, a field assignment);
   - the fields it is passed by (`Mutex::new(s.items)`);
   - the objects that hold it (`all.push(xs)`, a closure that captures it), both ways: handing over `xs` leaves `all` unusable too;
@@ -379,6 +392,7 @@ impl<T> Handoff<T> {
 
 unsafe impl<T: Send> Send for Handoff<T> {}
 unsafe impl<T: Send> Sync for Handoff<T> {}
+impl<T> Debug for Handoff<T> { .. }     // prints `Handoff`
 
 #[internal]
 pub fn hand_over<T>(x: T) -> T;

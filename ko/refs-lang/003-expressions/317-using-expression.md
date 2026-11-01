@@ -2,7 +2,7 @@
 
 `using` 키워드([키워드](../001-lexical/105-keywords.md))는 자원을 블록 하나의 수명에 묶는 표현식 형태입니다. 블록이 어떻게 끝나든(정상 종료, 조기 `return`, `?`의 `none` 반환, 에러 전파) 묶인 자원의 `Drop::drop`이 항상 호출됩니다.
 
-GC가 메모리는 자동으로 회수하지만, 외부 자원(파일, 소켓, 뮤텍스, FFI 핸들, GC pin 등)은 결정론적으로 해제해야 합니다. `Drop` 값은 affine이므로 컴파일러가 소유자가 스코프를 벗어나는 곳에서 해제합니다([stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop-using-해제-시-정리)). `using`은 그 지점을 드러내 적습니다. 값을 블록에 묶고 블록이 끝날 때 해제하며, 닫기가 실패할 수 있는 값을 `try x.close()` 없이 닫는 방법이기도 합니다.
+GC가 메모리는 자동으로 회수하지만, 외부 자원(파일, 소켓, 뮤텍스, FFI 핸들, GC pin 등)은 결정론적으로 해제해야 합니다. `Drop` 값은 affine이므로 컴파일러가 소유자가 스코프를 벗어나는 곳에서 해제합니다([stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop-해제-시-정리)). `using`은 그 지점을 드러내 적습니다. 값을 블록에 묶고 블록이 끝날 때 해제하며, 닫기가 실패할 수 있는 값을 `try x.close()` 없이 닫는 방법이기도 합니다.
 
 ## 3.17.1. 형태
 
@@ -97,11 +97,11 @@ let content = using f = try fs::open(path) {
 
 panic과 fatal 에러는 프로세스를 바로 종료하므로 `drop`을 호출하지 않습니다([3.14.8](314-error-control-flow.md#3148-panic과-fatal-에러)). panic의 일반적인 동작이며, `using`에만 해당하지 않습니다.
 
-값은 한 번만 해제합니다([stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop-using-해제-시-정리)). `using x = a { .. }`는 `a`를 `x`로 옮기므로, 두 번째 `using y = a { .. }`나 첫 블록 뒤의 `a` 사용은 컴파일 에러(E0134)입니다. `using`마다 그 자리에서 만든 값을 묶거나(`using g = m.lock() { .. }`), 할 일을 모두 한 `using` 블록 안에서 합니다. 블록 안에서 닫은 값(`try x.close()`)은 다시 해제하지 않습니다.
+값은 한 번만 해제합니다([stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop-해제-시-정리)). `using x = a { .. }`는 `a`를 `x`로 옮기므로, 두 번째 `using y = a { .. }`나 첫 블록 뒤의 `a` 사용은 컴파일 에러(E0134)입니다. `using`마다 그 자리에서 만든 값을 묶거나(`using g = m.lock() { .. }`), 할 일을 모두 한 `using` 블록 안에서 합니다. 블록 안에서 닫은 값(`try x.close()`)은 다시 해제하지 않습니다.
 
 ## 3.17.7. 묶을 수 있는 타입
 
-`using` 우변 식의 타입은 [`Drop`](../../refs-standard-libraries/200-core/213-marker.md)을 구현하거나, `Drop`이 있는 필드를 담아야 합니다(drop glue, [stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop-using-해제-시-정리)). 둘 다 아니면 컴파일 에러입니다.
+`using` 우변 식의 타입은 [`Drop`](../../refs-standard-libraries/200-core/213-marker.md)을 구현하거나, `Drop`이 있는 필드를 담아야 합니다(drop glue, [stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop-해제-시-정리)). 둘 다 아니면 컴파일 에러입니다.
 
 ```rok
 using x = 42 { ... }   // ERROR: using 에는 Drop 구현 타입이 필요. i32 는 Drop 을 구현하지 않음

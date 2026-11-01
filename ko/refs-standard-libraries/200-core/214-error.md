@@ -2,15 +2,17 @@
 
 `rok::core::error` / `rok::core::panic` 모듈은 에러 처리의 권위입니다(`ZeroError`는 `NonZero` 옆, `rok::core::num::niche`에 있습니다). Rok의 에러 모델은 하나입니다. 에러를 던질 수 있는 함수는 시그니처에 `throws`를 적고, 호출하는 쪽은 그 호출을 `try`로 표시합니다([refs-lang 4.14](../../refs-lang/004-functions/414-throws.md)). `Result<T, E>`는 에러를 **값으로 담아 두는** 평범한 enum입니다. 에러를 전파하는 수단이 아닙니다.
 
-이 장은 lang slot 48개 가운데 `panic_fn` / `oom_fn` / `unreachable_fn` 세 개를 정의합니다.
+이 장은 lang slot 67개 가운데 `panic_fn` / `oom_fn` / `unreachable_fn` 세 개를 정의합니다.
 
 ## 2.14.1. 모델 개요: 던지면 `throws`, 담아 두면 `Result`
 
 ```rok
 // (a) 던지기: throws 와 try
 fn parse_int(s: str) throws (ParseError) -> i32 {
-    if !s.is_digit() { throw ParseError::new(s, 0, "not a digit"); }
-    s.to_i32()
+    if s.is_empty() || !s.chars().all(|c| c.is_ascii_digit()) {
+        throw ParseError::new(s, 0, "not a digit");
+    }
+    try s.parse::<i32>()
 }
 
 let n = try parse_int("42") catch e: ParseError {
@@ -67,7 +69,7 @@ impl<T, E> Result<T, E> {
     fn ok(self) -> T | none;
     fn err(self) -> E | none;
 
-    fn unwrap(self) -> T;                               // Err 시 panic
+    fn unwrap(self) -> T;                               // Err 시 panic: `Result::unwrap: called on `Err(<e>)`; ...`
     fn unwrap_or(self, default: T) -> T;
     fn unwrap_or_else(self, f: fn(E) -> T) -> T;
 
@@ -80,6 +82,10 @@ impl<T, E> Result<T, E> {
     fn catching(f: fn() throws (E) -> T) -> Result<T, E>;   // 에러 흐름을 값으로 담기
 }
 ```
+
+`Err`에 `unwrap`을 부르면 `Result::unwrap: called on `Err(<e>)``와 에러 텍스트, 이어서 `; use `try r.get()` to throw it instead`로 panic합니다(0.5.10).
+
+`Result<T, E>`는 `T`와 `E`가 모두 구현하면 `Debug`, `Clone`, `PartialEq`, `Eq`, `Hash`를 구현합니다(2.14.8).
 
 `get`과 `catching`은 두 세계를 잇는 다리입니다. `catching`은 에러를 던지는 함수를 호출해 성공이면 `Ok`로, 에러면 `Err`로 담습니다. `get`은 담아 둔 값을 꺼내고, `Err`면 그 에러를 다시 던집니다.
 
@@ -109,7 +115,7 @@ fn load(r: Result<Config, IoError>) throws (IoError) -> Config {
 
 ```rok
 trait Error: Display + Debug {
-    fn source(self) -> any Error | none {
+    const fn source(self) -> any Error | none {
         none                                  // default: chain 없음
     }
 }
@@ -348,7 +354,7 @@ try {
 } catch e: IoError {
     log(f"io error: {e}");
 } finally {
-    f.close();      // 정상 / 에러 둘 다 실행
+    try? f.close();     // 정상 / 에러 둘 다 실행, 닫기 에러는 버림
 }
 ```
 
@@ -399,7 +405,7 @@ if let Ok(v) = r { use(v); }
 if let n: i32 = r.ok() { use(n); }     // T | none 으로 추출
 ```
 
-## 2.14.8. 모듈 매핑
+## 2.14.8. 트레잇 구현 매트릭스
 
 각 에러 타입이 구현하는 트레잇은 다음과 같습니다.
 
@@ -417,7 +423,7 @@ if let n: i32 = r.ok() { use(n); }     // T | none 으로 추출
 | `StackOverflowError` | ✓       | ✓             | ✓     | Fatal: 잡을 수 없음        |
 | `OutOfMemoryError`   | ✓       | ✓             | ✓     | Fatal: 잡을 수 없음        |
 | `InternalError`      | ✓       | ✓             | ✓     | Fatal: 컴파일러 버그일 때  |
-| `Result<T, E>`       | ✗       | ✓ (T,E:Debug) | ✗     | 보관용 enum                |
+| `Result<T, E>`       | ✗       | ✓ (T,E:Debug) | ✗     | 보관용 enum, `T`와 `E`가 가지면 `Clone` / `PartialEq` / `Eq` / `Hash` |
 | `any Error`          | ✓       | ✓             | ✓     | 제약 붙은 any, 사슬 가능   |
 
 `Display`는 사용자가 읽기 좋은 메시지를 냅니다. 예를 들어 `TypeError::new("i32", "str")`는 ``"expected `i32`, found `str`"``입니다. `Debug`는 구조를 그대로 보여 줍니다. 표의 에러 타입은 모두 `PartialEq`, `Eq`, `Clone`도 구현합니다(0.5.10). `any Error` 값은 런타임 태그로 실제 타입의 `Display` / `Debug` / `source`를 호출합니다.

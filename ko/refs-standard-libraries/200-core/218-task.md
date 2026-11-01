@@ -17,7 +17,7 @@ fn spawn_blocking<T: Send>(f: fn() -> T + Send) -> Task<T>;   // blocking 작업
 fn worker_count() -> usize;                               // executor 안에서는 pool 크기, 밖에서는 1
 fn cpu_count() -> usize;                                // 온라인 CPU 수 (pool 크기)
 async fn race<I: IntoIterator<Item = Task<T>>, T>(tasks: I) -> T;   // 첫 완료 task 결과. 나머지는 취소
-fn select<I: IntoIterator<Item = F>, F: Future>(futs: I) -> SelectFuture<F>;   // await: (index, 결과), spawn 하지 않음
+const fn select<I: IntoIterator<Item = F>, F: Future>(iter: I) -> SelectFuture<F>;   // await: (index, 결과), spawn 하지 않음
 fn id() -> TaskId;                                      // 현재 task 의 id, task 밖이면 panic
 fn current_id() -> TaskId | none;                       // 현재 task 의 id, task 밖이면 none
 async fn join<I: IntoIterator<Item = Task<T>>, T>(tasks: I) -> List<T>;   // 모두 완료 후
@@ -122,7 +122,7 @@ task::spawn(make());                       // ERROR: helper 가 만든 future �
 ### `select`: 먼저 끝나는 future
 
 ```rok
-fn select<I: IntoIterator<Item = F>, F: Future>(futs: I) -> SelectFuture<F>;   // Output = (usize, F::Output)
+const fn select<I: IntoIterator<Item = F>, F: Future>(iter: I) -> SelectFuture<F>;   // Output = (usize, F::Output)
 
 let (i, v) = await task::select([fetch_a(), fetch_b()]);
 ```
@@ -149,7 +149,7 @@ let (_, ev) = await task::select([
 
 ### `TaskId`
 
-`task::id()`는 실행 중인 task의 id입니다. task 밖에서 부르면 panic이 일어납니다(그 자리에서 `current_id()`는 `none`을 돌려줍니다). `Task::id()`는 그 task의 id입니다. id는 프로세스 전역 카운터에서 나오고 다시 쓰이지 않습니다.
+`task::id()`는 실행 중인 task의 id입니다. task 밖에서 부르면 ``task::id: called outside a task; use `task::current_id()`, which is `none` there``로 panic합니다. `Task::id()`는 그 task의 id입니다. id는 프로세스 전역 카운터에서 나오고 다시 쓰이지 않습니다.
 
 ## 2.18.2. `Task<T>` 타입
 
@@ -172,7 +172,7 @@ struct TaskId { /* u64 */ }
 impl TaskId {
     fn as_u64(self) -> u64;
 }
-// TaskId: PartialEq / Eq / Hash / Display / Debug
+// TaskId: Clone / Copy / PartialEq / Eq / Hash / Display / Debug
 
 struct CancellationError;           // message() 와 Display 는 "task cancelled"
 
@@ -184,7 +184,7 @@ impl<T> Future for Task<T> {              // `await t`: 완료까지 suspend
 
 ### `IntoFuture` 통합
 
-`Task<T>`는 `Future<Output = T>`를 구현하므로 `await t`로 기다릴 수 있습니다. [2.20 future](220-future.md)의 `IntoFuture` 블랭킷 impl에도 포함되므로 `Thread`와 같은 방식으로 기다릴 수 있습니다. `IntoFuture` 트레잇과 lang slot `future_trait`의 권위 있는 정의는 [2.20 future](220-future.md)에 있고, 이 절은 그 정의를 따릅니다.
+`Task<T>`는 `Future<Output = T>`를 구현하므로 `await t`로 기다릴 수 있습니다. [2.20 future](220-future.md)의 `IntoFuture` 블랭킷 impl에도 포함되므로 `thread::JoinHandle`(자기 `IntoFuture` impl이 있습니다, 3.4)과 같은 방식으로 기다릴 수 있습니다. `IntoFuture` 트레잇과 lang slot `future_trait`의 권위 있는 정의는 [2.20 future](220-future.md)에 있고, 이 절은 그 정의를 따릅니다.
 
 ## 2.18.3. 스케줄러 모델: work-stealing
 
@@ -258,7 +258,7 @@ let r = try await t.join() catch _: CancellationError { fallback() };
 use rok::std::thread;
 
 let t = thread::spawn { os_level_work() };
-let r = t.join();              // OS-level 동기 대기
+let r = try t.join();          // OS-level 동기 대기
 ```
 
 두 모델의 차이는 다음과 같습니다.

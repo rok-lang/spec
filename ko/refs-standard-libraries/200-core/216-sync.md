@@ -2,15 +2,15 @@
 
 `rok::core::sync` 모듈은 공유 상태에 안전하게 접근하는 기본 트레잇과 타입을 정의합니다. Rok의 GC와 M:N 스케줄러 아래에서 여러 task나 스레드가 데이터를 공유할 때 씁니다.
 
-`Atomic`, `Mutex`, `RwLock`, `Cell`은 [prelude](../000-meta/002-import.md)에 들어 있어 따로 가져오지 않아도 씁니다. `AtomicOrdering`은 들어 있지 않지만 그 변형은 매개변수 타입으로 정해집니다(`x.load(SeqCst)`). 동시성 코드임을 드러내고 싶은 자리에서는 다음처럼 필요한 항목만 가져오기를 권장합니다.
+`Atomic`, `Mutex`, `RwLock`, `Cell`은 [prelude](../000-meta/002-import.md)에 들어 있어 따로 가져오지 않아도 씁니다. 순서 enum(`LoadOrdering`, `StoreOrdering`, `UpdateOrdering`)은 들어 있지 않지만 그 변형은 매개변수 타입으로 정해집니다(`x.load(SeqCst)`). 동시성 코드임을 드러내고 싶은 자리에서는 다음처럼 필요한 항목만 가져오기를 권장합니다.
 
 ```rok
 use rok::core::sync::{Atomic, Mutex, RwLock, Once, Condvar, Cell};
 ```
 
-## 2.16.1. 기본 요소 4개 개요
+## 2.16.1. 기본 요소 개요
 
-네 기본 요소는 각각 다른 동시성 상황을 맡습니다. 각 타입의 의미와 쓰는 자리는 다음과 같습니다.
+기본 요소는 각각 다른 동시성 상황을 맡습니다. 각 타입의 의미와 쓰는 자리는 다음과 같습니다.
 
 | 타입        | 의미                                       | 사용 자리                      |
 |-------------|--------------------------------------------|--------------------------------|
@@ -18,6 +18,9 @@ use rok::core::sync::{Atomic, Mutex, RwLock, Once, Condvar, Cell};
 | `Mutex<T>`  | 배타적 잠금 (쓰는 쪽 하나)                 | 공유 가변 상태                 |
 | `RwLock<T>` | 읽는 쪽 여럿 또는 쓰는 쪽 하나             | 읽기가 많은 상태               |
 | `Cell<T>`   | thread-local interior mutability (no lock) | single-threaded mutable        |
+| `Once`      | 초기화를 정확히 한 번 실행 (2.16.4a)       | 지연 전역 설정                 |
+| `Condvar`   | `Mutex` 아래에서 조건을 기다림 (2.16.4a)   | 생산자 / 소비자                |
+| `Frozen<T>` | 복사한 값을 읽기 전용으로 공유 (2.16.4b)   | 공유 설정                      |
 
 ## 2.16.2. `Atomic<T>`: lock-free 원자 타입
 
@@ -35,6 +38,7 @@ impl<T: AtomicPrimitive + PartialEq> Atomic<T> {
 
     fn load(self, ordering: LoadOrdering = SeqCst) -> T;
     fn store(self, value: T, ordering: StoreOrdering = SeqCst);
+    #[discardable]
     fn swap(self, value: T, ordering: UpdateOrdering = SeqCst) -> T;
     fn compare_exchange(
         self, current: T, new: T,
@@ -46,6 +50,7 @@ impl<T: AtomicPrimitive + PartialEq> Atomic<T> {
     ) -> Result<T, T>;                  // 실패 결과도 값, 에러가 아님
 
     // 정수 전용
+    // fetch_* 는 모두 #[discardable]
     fn fetch_add(self, value: T, ordering: UpdateOrdering = SeqCst) -> T;
     fn fetch_sub(self, value: T, ordering: UpdateOrdering = SeqCst) -> T;
     fn fetch_and(self, value: T, ordering: UpdateOrdering = SeqCst) -> T;
@@ -127,8 +132,8 @@ struct Mutex<T> {
 }
 
 impl<T> Mutex<T> {
-    fn new(value: T) -> Mutex<T>;
-    unsafe fn new_unshared(value: T) -> Mutex<T>;   // 넘김 복사 없는 new
+    const fn new(value: T) -> Mutex<T>;
+    const unsafe fn new_unshared(value: T) -> Mutex<T>;   // 넘김 복사 없는 new
 
     fn lock(self) -> MutexGuard<T>;            // 스레드를 block
     fn lock_async(self) -> LockFuture<T>;      // await m.lock_async(): task 만 중단 (Future<Output = MutexGuard<T>>)
@@ -192,7 +197,7 @@ match STATE.try_lock() {
 
 Rok의 Mutex는 Rust의 PoisonError 모델과 다릅니다. panic이 일어나도 잠금은 자동으로 풀리고, 다음 task는 정상적으로 들어갈 수 있습니다. 이렇게 설계한 이유는 두 가지입니다.
 
-1. panic은 잡을 수 없고 프로세스를 끝내므로 panic 도중의 잠금 상태를 다른 task가 볼 일이 없습니다. 에러가 `throw`로 전파되어 `using` 블록을 벗어날 때에는 [`using`이 Drop을 호출](213-marker.md#2134-drop-using-해제-시-정리)합니다. 그래서 `MutexGuard`의 drop이 잠금을 풉니다.
+1. panic은 잡을 수 없고 프로세스를 끝내므로 panic 도중의 잠금 상태를 다른 task가 볼 일이 없습니다. 에러가 `throw`로 전파되어 `using` 블록을 벗어날 때에는 [`using`이 Drop을 호출](213-marker.md#2134-drop-해제-시-정리)합니다. 그래서 `MutexGuard`의 drop이 잠금을 풉니다.
 2. poisoning은 보수적으로 보이지만 쓰는 쪽의 부담이 크고, 대부분 거짓 양성(false positive)입니다.
 
 에러로 빠져나가기 전에 일관성을 꼭 되돌려야 하는 자리에서는 다음과 같이 직접 처리합니다.
@@ -214,7 +219,7 @@ using g = MUTEX.lock() {
 struct RwLock<T> { /* ... */ }
 
 impl<T> RwLock<T> {
-    fn new(value: T) -> RwLock<T>;
+    const fn new(value: T) -> RwLock<T>;
 
     fn read(self) -> RwLockReadGuard<T>;        // 다중 reader OK
     fn write(self) -> RwLockWriteGuard<T>;      // 단일 writer
@@ -225,6 +230,24 @@ impl<T> RwLock<T> {
     fn read_async(self) -> ReadFuture<T>;       // await l.read_async(): task 만 중단
     fn write_async(self) -> WriteFuture<T>;
 }
+
+struct RwLockReadGuard<T> { /* RAII 가드: 읽기 잠금을 풂 */ }
+
+impl<T> RwLockReadGuard<T> {
+    fn get(self) -> T;                  // 보호된 값의 범위 한정 뷰
+    fn get_clone(self) -> T where T: Clone;   // 깊은 복사본, 잠금보다 오래 살아도 됨
+}
+
+struct RwLockWriteGuard<T> { /* RAII 가드: 쓰기 잠금을 풂 */ }
+
+impl<T> RwLockWriteGuard<T> {
+    fn get(self) -> T;
+    fn get_clone(self) -> T where T: Clone;
+    fn set(self, value: T);             // 값을 바꿈
+    fn update(self, f: fn(T) -> T);     // 읽고, 변환하고, 다시 씀
+}
+
+// 두 가드 모두: Drop (잠금을 풂), Debug, !Sync
 ```
 
 설정이나 캐시처럼 읽기가 대부분인 상태에 알맞습니다. 쓰기가 드문 작업에서는 Mutex보다 처리량이 높습니다.
@@ -313,10 +336,12 @@ static SETTINGS: Frozen<Settings> = Frozen::new(load());
 struct Cell<T> { /* ... */ }
 
 impl<T> Cell<T> {
-    fn new(value: T) -> Cell<T>;
+    const fn new(value: T) -> Cell<T>;
     fn get(self) -> T            where T: Copy;
     fn set(ref self, value: T);
+    #[discardable]
     fn replace(ref self, value: T) -> T;
+    #[discardable]
     fn take(ref self) -> T       where T: Default;
 }
 ```
@@ -345,7 +370,7 @@ task::spawn(async { c.set(100) });       // ERROR: Cell 은 cross-task 안전 X
 
 ## 2.16.6. 모듈 매핑
 
-모든 기본 요소는 `rok::core::sync`에 정의되고, 그 경로 하나만 있습니다(0.1.6). 타입별 하위 모듈은 없습니다.
+모든 항목은 `rok::core::sync`에 정의되고, 그 경로 하나만 있습니다([0.1.6](../000-meta/001-tier-model.md#016-항목마다-경로-하나)). 타입별 하위 모듈은 없습니다.
 
 | 타입         | 모듈              | 내부 구조                        |
 |--------------|-------------------|----------------------------------|
@@ -354,3 +379,10 @@ task::spawn(async { c.set(100) });       // ERROR: Cell 은 cross-task 안전 X
 | `RwLock<T>`  | `rok::core::sync` | futex + reader counter           |
 | `Cell<T>`    | `rok::core::sync` | 단순 래퍼, 잠금 없음             |
 | `MutexGuard` | `rok::core::sync` | RAII via Drop                    |
+| `RwLockReadGuard`, `RwLockWriteGuard` | `rok::core::sync` | RAII via Drop |
+| `LockFuture`, `ReadFuture`, `WriteFuture` | `rok::core::sync` | `lock_async` / `read_async` / `write_async`의 future |
+| `Once`       | `rok::core::sync` | 상태 워드 + 대기 큐              |
+| `Condvar`, `CondvarWait` | `rok::core::sync` | 대기 큐, `CondvarWait`는 `wait_async`의 future |
+| `Frozen<T>`  | `rok::core::sync` | 다른 것이 닿지 않는 복사본       |
+| `LoadOrdering`, `StoreOrdering`, `UpdateOrdering` | `rok::core::sync` | 메모리 순서 (2.16.2) |
+| `AtomicPrimitive` | `rok::core::sync` | sealed 마커 트레잇           |

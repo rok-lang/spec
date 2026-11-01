@@ -275,7 +275,7 @@ let c3 = try char::try_from(n);      //→ char (TryFrom<u32>: from_u32 를 써�
 
 ## 2.15.5. `c_char`: C ABI 1바이트(언어 내장)
 
-`c_char`는 struct가 아니라 컴파일러에 내장된 FFI 원시 타입입니다. 크기는 1바이트입니다. 부호가 있는지(`i8`) 없는지(`u8`)는 타깃(OS / 아키텍처)에 따라 다릅니다. 이 모듈은 비교, 순서, 해시를 그 바이트(`c as u8`) 기준으로 정의합니다.
+`c_char`는 struct가 아니라 컴파일러에 내장된 FFI 원시 타입입니다. 크기는 1바이트입니다. 부호가 있는지(`i8`) 없는지(`u8`)는 타깃(OS / 아키텍처)에 따라 다릅니다. 이 모듈은 비교, 순서, 해시를 그 바이트(`c as u8`) 기준으로 정의합니다. `Clone`, `Copy`, `PartialEq`, `Eq`, `PartialOrd`, `Ord`, `Hash`, `Debug`를 구현하며, `Debug`는 바이트를 숫자(`65`)로 출력합니다. `Display`는 없습니다.
 
 C의 `char`와 ABI가 호환됩니다. UTF-8 인코딩 단위가 아니라 날 바이트(raw byte)입니다. 용도는 FFI 전용입니다.
 
@@ -313,7 +313,7 @@ let n: c_char = c'\n';       //→ 10
 
 ## 2.15.6. UTF-8 불변식: 프로세스 안의 모든 문자열
 
-`str` 값은 항상 올바른 UTF-8임이 보장됩니다. 근거는 다음과 같습니다. 생성자가 검증하므로 `str::from_utf8(bytes)`는 잘못된 바이트열이면 `Utf8Error`를 던집니다(`throws (Utf8Error)`). 슬라이싱은 바이트 경계를 검증해 멀티바이트 시퀀스 중간을 거부합니다. `push`나 `insert` 같은 제자리 수정도 UTF-8 무결성을 지킵니다. 검증을 우회할 수 있는 것은 `rok::bare::str_from_bytes_unchecked`뿐이며, 이 함수는 unsafe 계층에 속합니다.
+`str` 값은 항상 올바른 UTF-8임이 보장됩니다. 근거는 다음과 같습니다. 생성자가 검증하므로 `str::from_utf8(bytes)`는 잘못된 바이트열이면 `Utf8Error`를 던집니다(`throws (Utf8Error)`). 슬라이싱은 바이트 경계를 검증해 멀티바이트 시퀀스 중간을 거부합니다. `StrBuf::push`나 `push_str` 같은 제자리 수정도 UTF-8 무결성을 지킵니다. 검증을 우회할 수 있는 것은 `unsafe` 코드뿐입니다. 바이트 하나를 검사 없이 덧붙이는 `unsafe fn`인 `StrBuf::push_byte`와 `rok::bare::mem::transmute_unchecked`입니다.
 
 ### 검증 우회를 제한하는 이유
 
@@ -354,12 +354,13 @@ trait FromStr {
 }
 ```
 
-`str.parse::<T>()`는 `throws (T::Err)`이며 이 트레잇으로 디스패치됩니다. 숫자 타입과 `bool`의 `Err`는 core의 `ParseError`(`input()`, `position()`, `message()`)([2.14.4](214-error.md#2144-내장-에러-타입))입니다. 숫자 파싱은 런타임 helper `rok_str_parse_int` / `rok_str_parse_float` 위에 구현됩니다([refs-lang 8.5](../../refs-lang/008-abi/805-extern-symbols.md#문자열-헬퍼)). 실수의 `FromStr`은 유한한 숫자가 타입의 범위를 넘으면 `number out of range`로 실패합니다. `inf` / `NaN` 텍스트는 파싱됩니다.
+`str.parse::<T>()`는 `throws (T::Err)`이며 이 트레잇으로 디스패치됩니다. 숫자 타입, `bool`, `char`, `str`의 `Err`는 core의 `ParseError`(`input()`, `position()`, `message()`)([2.14.4](214-error.md#2144-내장-에러-타입))입니다. `char`는 정확히 한 글자인 문자열을 파싱하며, `empty string`이나 `too many characters`로 실패합니다. `str`은 입력을 그대로 돌려주고 던지지 않습니다. 숫자 파싱은 런타임 helper `rok_str_parse_int` / `rok_str_parse_float` 위에 구현됩니다([refs-lang 8.5](../../refs-lang/008-abi/805-extern-symbols.md#문자열-헬퍼)). 실수의 `FromStr`은 유한한 숫자가 타입의 범위를 넘으면 `number out of range`로 실패합니다. `inf` / `NaN` 텍스트는 파싱됩니다.
 
 ```rok
 let n: i32 = try "42".parse();         // FromStr for i32
 let f: f64 = try "3.14".parse();       // FromStr for f64
 let b: bool = try "true".parse();      // FromStr for bool
+let c: char = try "x".parse();         // FromStr for char
 
 // 사용자 정의
 impl FromStr for Color {

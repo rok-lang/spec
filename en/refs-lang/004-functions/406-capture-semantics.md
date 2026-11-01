@@ -165,7 +165,7 @@ buf.push(1);
 
 The detailed parallelism and concurrency rules are defined by the standard library specification; this chapter covers only the language-level capture mechanism.
 
-A captured `Drop` resource (a `File`, a socket, a channel `Sender`) is not copied: the capture moves it into the closure or `async` block, and using it outside afterwards is an error ([stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop---cleanup-on-using-release)). An `async` block's task releases what it captured when it ends, for a value whose release cannot fail (a `Sender`); a captured value whose close can fail (a `File`) must be closed inside the block (`try f.close()` or `using`), or the block is an error (E0135). To keep a value outside too, capture a copy: `x.clone()`, or `try x.try_clone()` for a `File`.
+A captured `Drop` resource (a `File`, a socket, a channel `Sender`) is not copied: the capture moves it into the closure or `async` block, and using it outside afterwards is an error ([stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop---cleanup-on-release)). An `async` block's task releases what it captured when it ends, for a value whose release cannot fail (a `Sender`); a captured value whose close can fail (a `File`) must be closed inside the block (`try f.close()` or `using`), or the block is an error (E0135). To keep a value outside too, capture a copy: `x.clone()`, or `try x.try_clone()` for a `File`.
 
 ## 4.6.10. Lifetime of captured variables
 

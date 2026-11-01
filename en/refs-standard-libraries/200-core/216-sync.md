@@ -2,15 +2,15 @@
 
 The `rok::core::sync` module defines the primitive traits and types for safe access to shared state. They are used to share data between multiple tasks or threads under Rok's GC and M:N scheduler.
 
-`Atomic`, `Mutex`, `RwLock` and `Cell` are in the [prelude](../000-meta/002-import.md) and usable without any import; `AtomicOrdering` is not, but its variants resolve from the parameter type (`x.load(SeqCst)`). Where concurrent code should be visibly marked as such, a narrow import like the following is recommended.
+`Atomic`, `Mutex`, `RwLock` and `Cell` are in the [prelude](../000-meta/002-import.md) and usable without any import; the ordering enums (`LoadOrdering`, `StoreOrdering`, `UpdateOrdering`) are not, but their variants resolve from the parameter type (`x.load(SeqCst)`). Where concurrent code should be visibly marked as such, a narrow import like the following is recommended.
 
 ```rok
 use rok::core::sync::{Atomic, Mutex, RwLock, Once, Condvar, Cell};
 ```
 
-## 2.16.1. Overview of the four primitives
+## 2.16.1. Overview of the primitives
 
-Each of the four primitives covers a different concurrency scenario. The following table summarizes each type's meaning and where it fits.
+Each primitive covers a different concurrency scenario. The following table summarizes each type's meaning and where it fits.
 
 | Type        | Meaning                                    | Where used                     |
 |-------------|--------------------------------------------|--------------------------------|
@@ -18,6 +18,9 @@ Each of the four primitives covers a different concurrency scenario. The followi
 | `Mutex<T>`  | exclusive lock (single writer)             | shared mutable state           |
 | `RwLock<T>` | multiple readers or a single writer        | read-heavy state               |
 | `Cell<T>`   | thread-local interior mutability (no lock) | single-threaded mutable        |
+| `Once`      | runs an initializer exactly once (2.16.4a) | lazy global setup              |
+| `Condvar`   | waits for a condition under a `Mutex` (2.16.4a) | producer / consumer       |
+| `Frozen<T>` | read-only sharing of a copied value (2.16.4b) | shared configuration    |
 
 ## 2.16.2. `Atomic<T>` - lock-free atomics
 
@@ -35,6 +38,7 @@ impl<T: AtomicPrimitive + PartialEq> Atomic<T> {
 
     fn load(self, ordering: LoadOrdering = SeqCst) -> T;
     fn store(self, value: T, ordering: StoreOrdering = SeqCst);
+    #[discardable]
     fn swap(self, value: T, ordering: UpdateOrdering = SeqCst) -> T;
     fn compare_exchange(
         self, current: T, new: T,
@@ -45,7 +49,7 @@ impl<T: AtomicPrimitive + PartialEq> Atomic<T> {
         success: UpdateOrdering, failure: LoadOrdering,
     ) -> Result<T, T>;                  // the failure result is a value too, not an error
 
-    // integers only
+    // integers only; each fetch_* is #[discardable]
     fn fetch_add(self, value: T, ordering: UpdateOrdering = SeqCst) -> T;
     fn fetch_sub(self, value: T, ordering: UpdateOrdering = SeqCst) -> T;
     fn fetch_and(self, value: T, ordering: UpdateOrdering = SeqCst) -> T;
@@ -127,8 +131,8 @@ struct Mutex<T> {
 }
 
 impl<T> Mutex<T> {
-    fn new(value: T) -> Mutex<T>;
-    unsafe fn new_unshared(value: T) -> Mutex<T>;   // new without the hand-off copy
+    const fn new(value: T) -> Mutex<T>;
+    const unsafe fn new_unshared(value: T) -> Mutex<T>;   // new without the hand-off copy
 
     fn lock(self) -> MutexGuard<T>;            // blocks the thread
     fn lock_async(self) -> LockFuture<T>;      // await m.lock_async(): suspends only the task (Future<Output = MutexGuard<T>>)
@@ -184,7 +188,7 @@ match STATE.try_lock() {
 
 Rok's Mutex differs from Rust's PoisonError model. Even if a panic occurs, the lock is released automatically and the next task can enter normally. There are two reasons for this design.
 
-1. A panic cannot be caught and ends the process, so no other task ever observes the lock state mid-panic. When an error propagates via `throw` out of a `using` block, [`using` calls Drop](213-marker.md#2134-drop---cleanup-on-using-release), so the `MutexGuard`'s drop is responsible for releasing the lock.
+1. A panic cannot be caught and ends the process, so no other task ever observes the lock state mid-panic. When an error propagates via `throw` out of a `using` block, [`using` calls Drop](213-marker.md#2134-drop---cleanup-on-release), so the `MutexGuard`'s drop is responsible for releasing the lock.
 2. Poisoning looks conservative but burdens users heavily and is a false positive in most cases.
 
 Where consistency really must be restored before leaving with an error, handle it explicitly:
@@ -206,7 +210,7 @@ Where reads vastly outnumber writes, `RwLock<T>` fits better. Separating multipl
 struct RwLock<T> { /* ... */ }
 
 impl<T> RwLock<T> {
-    fn new(value: T) -> RwLock<T>;
+    const fn new(value: T) -> RwLock<T>;
 
     fn read(self) -> RwLockReadGuard<T>;        // multiple readers OK
     fn write(self) -> RwLockWriteGuard<T>;      // single writer
@@ -217,6 +221,24 @@ impl<T> RwLock<T> {
     fn read_async(self) -> ReadFuture<T>;       // await l.read_async(): suspends only the task
     fn write_async(self) -> WriteFuture<T>;
 }
+
+struct RwLockReadGuard<T> { /* RAII guard: releases the read lock */ }
+
+impl<T> RwLockReadGuard<T> {
+    fn get(self) -> T;                  // a scoped view of the protected value
+    fn get_clone(self) -> T where T: Clone;   // a deep copy, free to outlive the lock
+}
+
+struct RwLockWriteGuard<T> { /* RAII guard: releases the write lock */ }
+
+impl<T> RwLockWriteGuard<T> {
+    fn get(self) -> T;
+    fn get_clone(self) -> T where T: Clone;
+    fn set(self, value: T);             // replaces the value
+    fn update(self, f: fn(T) -> T);     // reads, transforms and writes back
+}
+
+// both guards: Drop (releases the lock), Debug, !Sync
 ```
 
 It suits read-dominated state such as config or caches, and for workloads with rare writes its throughput exceeds that of Mutex.
@@ -305,10 +327,12 @@ Finally, `Cell<T>` provides interior mutability that works only within a single 
 struct Cell<T> { /* ... */ }
 
 impl<T> Cell<T> {
-    fn new(value: T) -> Cell<T>;
+    const fn new(value: T) -> Cell<T>;
     fn get(self) -> T            where T: Copy;
     fn set(ref self, value: T);
+    #[discardable]
     fn replace(ref self, value: T) -> T;
+    #[discardable]
     fn take(ref self) -> T       where T: Default;
 }
 ```
@@ -337,7 +361,7 @@ task::spawn(async { c.set(100) });       // ERROR: Cell is not cross-task safe
 
 ## 2.16.6. Module mapping
 
-Every primitive is defined in `rok::core::sync`, its one path (0.1.6); there are no per-type submodules.
+Every item is defined in `rok::core::sync`, its one path ([0.1.6](../000-meta/001-tier-model.md#016-one-path-per-item)); there are no per-type submodules.
 
 | Type         | Module            | Internal structure               |
 |--------------|-------------------|----------------------------------|
@@ -346,3 +370,10 @@ Every primitive is defined in `rok::core::sync`, its one path (0.1.6); there are
 | `RwLock<T>`  | `rok::core::sync` | futex + reader counter           |
 | `Cell<T>`    | `rok::core::sync` | plain wrapper, no lock           |
 | `MutexGuard` | `rok::core::sync` | RAII via Drop                    |
+| `RwLockReadGuard`, `RwLockWriteGuard` | `rok::core::sync` | RAII via Drop |
+| `LockFuture`, `ReadFuture`, `WriteFuture` | `rok::core::sync` | futures of `lock_async` / `read_async` / `write_async` |
+| `Once`       | `rok::core::sync` | state word + wait queue          |
+| `Condvar`, `CondvarWait` | `rok::core::sync` | wait queue; `CondvarWait` is the future of `wait_async` |
+| `Frozen<T>`  | `rok::core::sync` | a copy no one else reaches       |
+| `LoadOrdering`, `StoreOrdering`, `UpdateOrdering` | `rok::core::sync` | memory orderings (2.16.2) |
+| `AtomicPrimitive` | `rok::core::sync` | sealed marker trait          |

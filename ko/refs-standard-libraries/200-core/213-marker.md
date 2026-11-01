@@ -12,11 +12,11 @@ Rok 런타임에서는 [Immix + Sticky Mark-Bit Generational GC](../../refs-lang
 |-------------------|-------------------------|-------------------------------------------------|
 | 메모리 회수       | `Drop`이 책임          | GC가 자동으로, `Drop`은 **관여하지 않음**      |
 | `Drop::drop` 의미 | 자원 해제 + 메모리 해제 | **외부 자원 정리만** (파일 핸들, 소켓 등)      |
-| 호출 시점         | 결정론적 (스코프 종료)  | **`using` 블록을 빠져나갈 때만** (GC 수집과 무관) |
+| 호출 시점         | 결정론적 (스코프 종료)  | 결정론적: 마지막 주인이 스코프를 벗어날 때, 또는 `using` 블록이 끝날 때 (GC 수집과 무관) |
 | 누락 시 영향      | 자원 누수 + 메모리 누수 | 자원 누수만 (메모리는 GC가 결국 회수)          |
 
 > [!NOTE]
-> 일반 바인딩은 스코프를 벗어나도 자동으로 정리되지 않습니다. `Drop::drop`은 `using`으로 묶은 바인딩에서만 호출됩니다([refs-lang 3.17 `using`](../../refs-lang/003-expressions/317-using-expression.md)). GC는 다른 객체의 정리를 보장하지 않으며, 어떤 경우에도 `drop`을 부르지 않습니다.
+> `Drop` 값은 affine입니다. 컴파일러는 마지막 주인이 스코프를 벗어나는 곳, 또는 값을 묶은 `using` 블록이 끝나는 곳에서 `Drop::drop`을 부릅니다([refs-lang 3.17 `using`](../../refs-lang/003-expressions/317-using-expression.md)). 닫기가 실패할 수 있는 타입은 명시적으로 닫아야 합니다(2.13.4). GC는 어떤 경우에도 `drop`을 부르지 않습니다.
 
 메모리 회수와 자원 정리가 분리되어 있으므로 일반 객체는 `Drop`을 신경 쓰지 않아도 됩니다(GC가 회수합니다). 외부 자원을 다루는 타입만 `Drop`을 구현해 정리 시점을 결정론적으로 정합니다.
 
@@ -132,7 +132,7 @@ struct Vec3 { x: f64; y: f64; z: f64; }
 > [!IMPORTANT]
 > `Copy`의 derive는 `Clone`도 함께 구현하고 모든 필드가 `Copy`일 때만 쓸 수 있습니다.
 
-## 2.13.4. `Drop`: `using` 해제 시 정리
+## 2.13.4. `Drop`: 해제 시 정리
 
 파일을 열었으면 닫아야 하고, 뮤텍스를 잠갔으면 풀어야 합니다. 이런 외부 자원 정리는 GC에 맡길 수 없습니다. 언제 올지 모르는 GC 스윕까지 자원을 붙들고 있으면 파일 디스크립터가 바닥날 수 있습니다. 풀리지 않은 잠금 때문에 다른 코드가 멈출 수도 있습니다. `Drop` 트레잇과 `using` 표현식이 이 문제를 풉니다.
 
@@ -153,6 +153,15 @@ trait Drop {
 - `clone()`(`File`은 `try_clone()`)은 따로 주인을 가진 독립된 값을 만듭니다.
 - struct에서 일부를 꺼내 옮기는 방법은 `marker::replace(ref s.f, v)`나 `marker::take(ref s.f)`뿐입니다. 둘 다 그 자리에 새 값을 남깁니다.
 - `unsafe { marker::share(x) }`는 컴파일러가 따라가지 않는 두 번째 핸들을 만듭니다. 이 핸들로는 `x`가 옮겨지지도 해제되지도 않습니다. 주인이 값을 해제한 뒤에 이 핸들을 쓰지 않도록 하는 일은 프로그램이 맡습니다.
+
+```rok
+// rok::core::marker
+pub unsafe fn share<T>(x: T) -> T;
+#[discardable]
+pub fn replace<T>(ref dest: T, value: T) -> T;     // `dest`에 `value`를 넣고 이전 값을 돌려줌
+#[discardable]
+pub fn take<T: Default>(ref dest: T) -> T;         // replace(ref dest, T::default())
+```
 
 ```rok
 let (tx, rx) = channel::<i32>();
@@ -195,16 +204,20 @@ GC는 `drop`을 부르지 않으며 finalizer도 없습니다. 해제 지점은 
 가장 전형적인 구현은 OS 자원을 감싼 래퍼입니다.
 
 ```rok
-struct File {
+extern "C" { fn close(fd: i32) -> i32; }
+
+struct Fd {
     handle: i32;
 }
 
-impl Drop for File {
+impl Drop for Fd {
     fn drop(ref self) {
-        rok::bare::close_fd(self.handle);     // OS file descriptor close
+        unsafe { close(self.handle); }    // OS 파일 디스크립터 닫기, 결과는 무시
     }
 }
 ```
+
+`Fd`는 닫기 결과를 무시하므로 컴파일러가 묵시적으로 해제합니다. 닫기가 실패할 수 있는 타입(`File`)은 `io::Close`도 구현하며, 위와 같이 명시적으로 닫습니다.
 
 ### `Drop`의 제약
 
@@ -216,7 +229,7 @@ struct File { handle: i32; }
 impl Drop for File { ... }
 ```
 
-그다음 `drop`을 직접 호출하면 컴파일 에러입니다. `using` 해제 시점에 정확히 한 번 호출되어야 정확성이 보장되기 때문입니다.
+그다음 `drop`을 직접 호출하면 컴파일 에러입니다. 해제 시점에 정확히 한 번 호출되어야 정확성이 보장되기 때문입니다.
 
 ```rok
 let f = File::open(path);
@@ -239,14 +252,14 @@ impl Drop for X {
 
 ### derive 정책
 
-`Clone`과 달리 `Drop`은 derive로 구현할 수 없습니다. `using`으로 묶인 값의 `drop`이 끝나면, 컴파일러는 그 struct에서 `Drop`이 있는 필드의 `drop`을 선언 역순으로 이어서 호출합니다. 따라서 사용자가 쓰는 `Drop` 본문은 '필드 말고 더 정리해야 할 것'만 다루면 됩니다.
+`Clone`과 달리 `Drop`은 derive로 구현할 수 없습니다. 어느 해제 지점에서든 값 자신의 `drop`이 끝나면, 컴파일러는 그 struct에서 `Drop`이 있는 필드의 `drop`을 선언 역순으로 이어서 호출합니다. 따라서 사용자가 쓰는 `Drop` 본문은 '필드 말고 더 정리해야 할 것'만 다루면 됩니다.
 
 ```rok
 struct Container {
     a: File;
     b: Socket;
 }
-// Container 를 using 으로 묶으면 해제 시 b.drop() → a.drop()
+// Container 를 해제하면 b.drop() → a.drop()
 // (필드 자체가 Drop 구현이라)
 
 impl Drop for Container {
@@ -264,7 +277,7 @@ impl Drop for Container {
 | slot          | 부착 항목                 | 자동 호출 시점                           |
 |---------------|---------------------------|------------------------------------------|
 | `clone_trait` | `Clone` 트레잇            | 없음, `#[derive(Clone)]` 확장에서 사용   |
-| `drop_method` | `Drop::drop` 메서드       | `using` 바인딩 해제 시 (drop glue 포함)  |
+| `drop_method` | `Drop::drop` 메서드       | 모든 해제 지점: 마지막 주인의 스코프 종료, task 종료, `using` 블록 끝 (drop glue 포함) |
 | `send_trait`  | `Send` 트레잇 (2.13.9)    | 자동 구현, 스레드 경계 검사              |
 | `sync_trait`  | `Sync` 트레잇 (2.13.9)    | 자동 구현, 스레드 경계 검사              |
 
@@ -282,11 +295,11 @@ impl Drop for Container {
 | `List<T>`, `Dict<K,V>`, `Set<T>` | ✓ (T:Clone) | ✗             | ✗                               | 재귀 복제                            |
 | 튜플                             | ✓ (모두)    | ✓ (모두 Copy) | ✗                               | 컴포넌트별                           |
 | `Range<T>`                       | ✓ (T:Clone) | ✓ (T:Copy)    | ✗                               | derive 자동                          |
-| `File`                           | ✗           | ✗             | ✓                               | `rok::bare::close_fd`                 |
-| `MutexGuard<T>`                  | ✗           | ✗             | ✓ (`using` 해제 시)             | `rok::bare::unlock`                   |
-| `Channel::Sender<T>`             | ✓           | ✗             | ✗ (`close()`로 닫음)           | (위와 동일)                          |
+| `File`                           | ✗           | ✗             | ✓ (`io::Close`도)               | OS 핸들을 닫음, 명시적으로 닫음(2.13.4) |
+| `MutexGuard<T>`                  | ✗           | ✗             | ✓ (해제 시)                     | 뮤텍스 잠금을 품                     |
+| `channel::Sender<T>`             | ✓           | ✗             | ✓                               | `close()` 호출, 묵시적으로 해제      |
 
-표의 원칙은 단순합니다. 모든 원시 타입과 내부 GC 타입은 `Clone`을 구현하고, 그중 비트 복사가 의미상 맞는 것만 `Copy`입니다. 컬렉션은 `Clone`이지만 `Copy`는 아닙니다. 핸들을 비트 복사하면 깊은 복제의 의미가 지켜지지 않기 때문입니다. `str`은 불변이므로 `(ptr, len)`을 복사하면 곧 독립된 사본이 됩니다. 그래서 `Copy`입니다. `Drop`은 `File`, `Socket`, `MutexGuard`처럼 외부 자원을 감싸는 래퍼만 구현합니다. 이런 타입은 자원을 중복으로 소유하지 않도록 보통 `Clone`을 구현하지 않습니다.
+표의 원칙은 단순합니다. 모든 원시 타입과 위 표의 컬렉션은 `Clone`을 구현하고, 그중 비트 복사가 의미상 맞는 것만 `Copy`입니다. 컬렉션은 `Clone`이지만 `Copy`는 아닙니다. 핸들을 비트 복사하면 깊은 복제의 의미가 지켜지지 않기 때문입니다. `str`은 불변이므로 `(ptr, len)`을 복사하면 곧 독립된 사본이 됩니다. 그래서 `Copy`입니다. `Drop`은 `File`, `Socket`, `MutexGuard`처럼 외부 자원을 감싸는 래퍼만 구현합니다. 이런 타입은 자원을 중복으로 소유하지 않도록 보통 `Clone`을 구현하지 않습니다.
 
 ## 2.13.7. 다른 언어와 비교
 
@@ -300,7 +313,7 @@ Rok의 모델을 기존 언어와 비교하면 설계 의도가 더 분명해집
 | Clone 의미        | 깊은 복제                | `clone()` (Object.clone)    | 깊은 복제                |
 | derive            | `#[derive(Clone, Copy)]` | `Cloneable` 인터페이스      | `#[derive(Clone, Copy)]` |
 
-Rok의 특징은 GC와 결정론적 `Drop`이 함께 있다는 점입니다. 메모리 회수는 GC가 맡으므로 `Drop`은 메모리 해제를 뜻하지 않습니다. 일반 객체는 `Drop`을 구현하지 않아도 됩니다. 외부 자원 정리가 필요한 타입만 `Drop`을 구현하고, 쓰는 쪽은 `using`으로 묶습니다.
+Rok의 특징은 GC와 결정론적 `Drop`이 함께 있다는 점입니다. 메모리 회수는 GC가 맡으므로 `Drop`은 메모리 해제를 뜻하지 않습니다. 일반 객체는 `Drop`을 구현하지 않아도 됩니다. 외부 자원 정리가 필요한 타입만 `Drop`을 구현합니다. 컴파일러는 마지막 주인이 스코프를 벗어나는 곳에서 이를 해제하고, 닫기가 실패할 수 있는 것은 쓰는 쪽이 `close()`나 `using`으로 닫습니다.
 
 이 모델은 Java/Python finalizer의 비결정성과, GC가 없는 Rust가 치르는 비용을 함께 피합니다.
 
@@ -329,7 +342,7 @@ trait Sync { }      // 공유 참조로 여러 스레드에서 읽어도 안전
 - 원시 숫자, `bool`, `char`, `c_char`, `str`, `none`은 `Send + Sync`입니다.
 - `struct`, `enum`, `union`, 튜플, 배열, 합 타입은 모든 필드(구성 요소)가 `Send`이면 `Send`, 모두 `Sync`이면 `Sync`입니다. 제네릭 컨테이너의 `Send`는 같은 규칙으로 `T`를 따릅니다.
 - 컬렉션(`List`, `Dict`, `Set`, `StrBuf`, `Deque`, `BinaryHeap`, `Slice`)은 `Send`이고 `!Sync`입니다. 가변 핸들을 공유하기 때문입니다. 스레드 사이에서는 `Mutex` / `RwLock` / 채널로 공유합니다.
-- Rok에는 move 의미론이 없습니다. 값을 넘겨도(`Mutex::new(xs)`, `RwLock::new(xs)`, `tx.send(xs)` / `try_send` / `send_async`, `Handoff::new(xs)`) 보낸 쪽의 핸들은 그대로 남습니다. 그 핸들은 새 소유자가 이제 다른 스레드와 공유하는 객체를 가리킵니다. 가드에서 꺼낸(`get`) 핸들, 가드에 넣은(`set`) 핸들, `update`의 클로저가 닿은 핸들도 가드의 `using` 블록이 끝난 뒤 여전히 보호된 객체를 가리킵니다. 그 뒤에 그런 값을 어느 경로에서든 쓰면 컴파일 에러(`E0106`, [refs-lang 9.9.4](../../refs-lang/009-tools/909-debug-tools.md#994-진단--에러-메시지))입니다. 컴파일러는 다음 경로로 값을 추적합니다.
+- affine `Drop` 값(2.13.4)을 빼면 Rok에는 move 의미론이 없습니다. 값을 넘기면(`Mutex::new(xs)`, `RwLock::new(xs)`, `tx.send(xs)` / `try_send` / `send_async`, `Handoff::new(xs)`) 보낸 쪽의 핸들은 쓸 수 없게 됩니다. 새 소유자는 사본을 받고(아래 런타임 사본 참고), 보낸 쪽은 넘긴 값을 쓰면 안 됩니다. 가드에서 꺼낸(`get`) 핸들, 가드에 넣은(`set`) 핸들, `update`의 클로저가 닿은 핸들도 가드의 `using` 블록이 끝난 뒤 여전히 보호된 객체를 가리킵니다. 그 뒤에 그런 값을 어느 경로에서든 쓰면 컴파일 에러(`E0106`, [refs-lang 9.9.4](../../refs-lang/009-tools/909-debug-tools.md#994-진단--에러-메시지))입니다. 컴파일러는 다음 경로로 값을 추적합니다.
   - 복사(`let ys = xs`, struct 필드나 튜플 원소, 필드 대입)
   - 그 값을 넘기는 필드(`Mutex::new(s.items)`)
   - 그 값을 담는 객체(`all.push(xs)`, 그 값을 캡처하는 클로저). 추적은 양방향입니다. `xs`를 넘기면 `all`도 쓸 수 없습니다.
@@ -379,6 +392,7 @@ impl<T> Handoff<T> {
 
 unsafe impl<T: Send> Send for Handoff<T> {}
 unsafe impl<T: Send> Sync for Handoff<T> {}
+impl<T> Debug for Handoff<T> { .. }     // `Handoff`를 출력
 
 #[internal]
 pub fn hand_over<T>(x: T) -> T;

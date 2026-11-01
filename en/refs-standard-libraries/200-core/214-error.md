@@ -2,15 +2,17 @@
 
 The `rok::core::error` / `rok::core::panic` modules provide the authority for error handling (`ZeroError` lives beside `NonZero` in `rok::core::num::niche`). Rok has a single error model. A function that can throw an error writes `throws` in its signature, and the caller marks the call with `try` ([refs-lang 4.14](../../refs-lang/004-functions/414-throws.md)). `Result<T, E>` is an ordinary enum for **holding an error as a value**; it is not a means of propagating errors.
 
-This chapter defines three of the 48 lang slots: `panic_fn` / `oom_fn` / `unreachable_fn`.
+This chapter defines three of the 67 lang slots: `panic_fn` / `oom_fn` / `unreachable_fn`.
 
 ## 2.14.1. Model overview - `throws` to throw, `Result` to hold
 
 ```rok
 // (a) throwing: throws and try
 fn parse_int(s: str) throws (ParseError) -> i32 {
-    if !s.is_digit() { throw ParseError::new(s, 0, "not a digit"); }
-    s.to_i32()
+    if s.is_empty() || !s.chars().all(|c| c.is_ascii_digit()) {
+        throw ParseError::new(s, 0, "not a digit");
+    }
+    try s.parse::<i32>()
 }
 
 let n = try parse_int("42") catch e: ParseError {
@@ -67,7 +69,7 @@ impl<T, E> Result<T, E> {
     fn ok(self) -> T | none;
     fn err(self) -> E | none;
 
-    fn unwrap(self) -> T;                               // panics on Err
+    fn unwrap(self) -> T;                               // panics on Err: `Result::unwrap: called on `Err(<e>)`; ...`
     fn unwrap_or(self, default: T) -> T;
     fn unwrap_or_else(self, f: fn(E) -> T) -> T;
 
@@ -80,6 +82,10 @@ impl<T, E> Result<T, E> {
     fn catching(f: fn() throws (E) -> T) -> Result<T, E>;   // captures the error flow as a value
 }
 ```
+
+`unwrap` on an `Err` panics with `Result::unwrap: called on `Err(<e>)`` and the error's text, then `; use `try r.get()` to throw it instead` (0.5.10).
+
+`Result<T, E>` implements `Debug`, `Clone`, `PartialEq`, `Eq` and `Hash` when both `T` and `E` do (2.14.8).
 
 `get` and `catching` bridge the two worlds. `catching` calls a throwing function and holds the outcome as `Ok` on success or `Err` on error; `get` extracts the held value and rethrows the error if it is `Err`.
 
@@ -109,7 +115,7 @@ The surface of every error type is defined by the `Error` trait.
 
 ```rok
 trait Error: Display + Debug {
-    fn source(self) -> any Error | none {
+    const fn source(self) -> any Error | none {
         none                                  // default: no chain
     }
 }
@@ -348,7 +354,7 @@ try {
 } catch e: IoError {
     log(f"io error: {e}");
 } finally {
-    f.close();      // runs on both normal completion and error
+    try? f.close();     // runs on both normal completion and error; a close error is dropped
 }
 ```
 
@@ -399,7 +405,7 @@ if let Ok(v) = r { use(v); }
 if let n: i32 = r.ok() { use(n); }     // extracted as T | none
 ```
 
-## 2.14.8. Module mapping
+## 2.14.8. Trait implementation matrix
 
 The traits each error type implements:
 
@@ -417,7 +423,7 @@ The traits each error type implements:
 | `StackOverflowError` | ✓       | ✓             | ✓     | Fatal: cannot be caught        |
 | `OutOfMemoryError`   | ✓       | ✓             | ✓     | Fatal: cannot be caught        |
 | `InternalError`      | ✓       | ✓             | ✓     | Fatal: on a compiler bug       |
-| `Result<T, E>`       | ✗       | ✓ (T,E:Debug) | ✗     | enum for holding               |
+| `Result<T, E>`       | ✗       | ✓ (T,E:Debug) | ✗     | enum for holding; `Clone` / `PartialEq` / `Eq` / `Hash` when `T` and `E` have them |
 | `any Error`          | ✓       | ✓             | ✓     | constrained any, can chain     |
 
 `Display` provides a user-friendly message; for example, `TypeError::new("i32", "str")` reads ``"expected `i32`, found `str`"``. `Debug` shows the structure as is. Every error type in the table also implements `PartialEq`, `Eq` and `Clone` (0.5.10). An `any Error` value calls the `Display` / `Debug` / `source` of its actual type through the runtime tag.

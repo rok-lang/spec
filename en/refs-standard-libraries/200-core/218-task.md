@@ -17,7 +17,7 @@ fn spawn_blocking<T: Send>(f: fn() -> T + Send) -> Task<T>;   // blocking work o
 fn worker_count() -> usize;                               // pool size inside the executor, 1 outside
 fn cpu_count() -> usize;                                // number of online CPUs (the pool size)
 async fn race<I: IntoIterator<Item = Task<T>>, T>(tasks: I) -> T;   // result of the first task to complete; cancels the others
-fn select<I: IntoIterator<Item = F>, F: Future>(futs: I) -> SelectFuture<F>;   // await: (index, result), does not spawn
+const fn select<I: IntoIterator<Item = F>, F: Future>(iter: I) -> SelectFuture<F>;   // await: (index, result), does not spawn
 fn id() -> TaskId;                                      // id of the current task; panics outside a task
 fn current_id() -> TaskId | none;                       // id of the current task; none outside a task
 async fn join<I: IntoIterator<Item = Task<T>>, T>(tasks: I) -> List<T>;   // after all complete
@@ -120,7 +120,7 @@ The check may approximate conservatively. An implementation may reject a future 
 ### `select` - the first future to finish
 
 ```rok
-fn select<I: IntoIterator<Item = F>, F: Future>(futs: I) -> SelectFuture<F>;   // Output = (usize, F::Output)
+const fn select<I: IntoIterator<Item = F>, F: Future>(iter: I) -> SelectFuture<F>;   // Output = (usize, F::Output)
 
 let (i, v) = await task::select([fetch_a(), fetch_b()]);
 ```
@@ -147,7 +147,7 @@ let (_, ev) = await task::select([
 
 ### `TaskId`
 
-`task::id()` is the id of the running task; calling it outside a task panics (`current_id()` returns `none` there). `Task::id()` is the id of that task. Ids come from a process-wide counter and are never reused.
+`task::id()` is the id of the running task; calling it outside a task panics with ``task::id: called outside a task; use `task::current_id()`, which is `none` there``. `Task::id()` is the id of that task. Ids come from a process-wide counter and are never reused.
 
 ## 2.18.2. `Task<T>` type
 
@@ -170,7 +170,7 @@ struct TaskId { /* u64 */ }
 impl TaskId {
     fn as_u64(self) -> u64;
 }
-// TaskId: PartialEq / Eq / Hash / Display / Debug
+// TaskId: Clone / Copy / PartialEq / Eq / Hash / Display / Debug
 
 struct CancellationError;           // message() and Display "task cancelled"
 
@@ -182,7 +182,7 @@ impl<T> Future for Task<T> {              // `await t`: suspend until completion
 
 ### `IntoFuture` integration
 
-`Task<T>` implements `Future<Output = T>`, so it can be awaited with `await t`, and it is covered by the `IntoFuture` blanket impl of [2.20 future](220-future.md), so it is awaited the same way as `Thread`. The authoritative definitions of the `IntoFuture` trait and the lang slot `future_trait` are in [2.20 future](220-future.md); this section follows them as is.
+`Task<T>` implements `Future<Output = T>`, so it can be awaited with `await t`, and it is covered by the `IntoFuture` blanket impl of [2.20 future](220-future.md), so it is awaited the same way as `thread::JoinHandle` (which has its own `IntoFuture` impl, 3.4). The authoritative definitions of the `IntoFuture` trait and the lang slot `future_trait` are in [2.20 future](220-future.md); this section follows them as is.
 
 ## 2.18.3. Scheduler model - work-stealing
 
@@ -256,7 +256,7 @@ The separate `thread` module spawns **OS threads** directly rather than using th
 use rok::std::thread;
 
 let t = thread::spawn { os_level_work() };
-let r = t.join();              // OS-level synchronous wait
+let r = try t.join();          // OS-level synchronous wait
 ```
 
 The two models compare as follows.

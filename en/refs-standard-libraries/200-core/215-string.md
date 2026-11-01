@@ -275,7 +275,7 @@ let c3 = try char::try_from(n);      //→ char (TryFrom<u32>: via from_u32, Ove
 
 ## 2.15.5. `c_char` - C ABI 1-byte (language built-in)
 
-`c_char` is an FFI primitive built into the compiler, not a struct. It is one byte; whether it is signed (`i8`) or unsigned (`u8`) depends on the target (OS / arch). This module compares, orders and hashes it as its byte (`c as u8`).
+`c_char` is an FFI primitive built into the compiler, not a struct. It is one byte; whether it is signed (`i8`) or unsigned (`u8`) depends on the target (OS / arch). This module compares, orders and hashes it as its byte (`c as u8`). It implements `Clone`, `Copy`, `PartialEq`, `Eq`, `PartialOrd`, `Ord`, `Hash` and `Debug`, which prints the byte as a number (`65`); it has no `Display`.
 
 It is ABI-compatible with C's `char`; note that it is a raw byte, not a UTF-8 encoding unit. Its use is FFI only:
 
@@ -313,7 +313,7 @@ Standard library functions therefore use **`char` first** as a rule, and `c_char
 
 ## 2.15.6. UTF-8 invariant - every in-process string
 
-A `str` is always guaranteed to be valid UTF-8, for these reasons. Constructors validate: `str::from_utf8(bytes)` throws `Utf8Error` on an invalid byte sequence (`throws (Utf8Error)`). Slicing validates byte boundaries and rejects positions in the middle of a multibyte sequence. In-place modifications such as `push` or `insert` also preserve UTF-8 integrity. Only `rok::bare::str_from_bytes_unchecked` can bypass validation, and it belongs to the unsafe tier.
+A `str` is always guaranteed to be valid UTF-8, for these reasons. Constructors validate: `str::from_utf8(bytes)` throws `Utf8Error` on an invalid byte sequence (`throws (Utf8Error)`). Slicing validates byte boundaries and rejects positions in the middle of a multibyte sequence. In-place modifications such as `StrBuf::push` or `push_str` also preserve UTF-8 integrity. Only `unsafe` code can bypass validation: `StrBuf::push_byte` (an `unsafe fn` that appends one byte unchecked) and `rok::bare::mem::transmute_unchecked`.
 
 ### Why validation bypass is restricted
 
@@ -354,12 +354,13 @@ trait FromStr {
 }
 ```
 
-`str.parse::<T>()` is `throws (T::Err)` and dispatches through this trait. For numeric types and `bool`, `Err` is core's `ParseError` (`input()`, `position()`, `message()`) ([2.14.4](214-error.md#2144-built-in-error-types)). Numeric parsing is implemented on top of the runtime helpers `rok_str_parse_int` / `rok_str_parse_float` ([refs-lang 8.5](../../refs-lang/008-abi/805-extern-symbols.md#string-helpers)). Float `FromStr` fails with `number out of range` when finite digits exceed the type's range; `inf` / `NaN` text parses.
+`str.parse::<T>()` is `throws (T::Err)` and dispatches through this trait. For numeric types, `bool`, `char` and `str`, `Err` is core's `ParseError` (`input()`, `position()`, `message()`) ([2.14.4](214-error.md#2144-built-in-error-types)). `char` parses a string of exactly one character and fails with `empty string` or `too many characters`; `str` returns its input and never throws. Numeric parsing is implemented on top of the runtime helpers `rok_str_parse_int` / `rok_str_parse_float` ([refs-lang 8.5](../../refs-lang/008-abi/805-extern-symbols.md#string-helpers)). Float `FromStr` fails with `number out of range` when finite digits exceed the type's range; `inf` / `NaN` text parses.
 
 ```rok
 let n: i32 = try "42".parse();         // FromStr for i32
 let f: f64 = try "3.14".parse();       // FromStr for f64
 let b: bool = try "true".parse();      // FromStr for bool
+let c: char = try "x".parse();         // FromStr for char
 
 // user-defined
 impl FromStr for Color {

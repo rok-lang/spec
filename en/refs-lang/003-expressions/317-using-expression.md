@@ -2,7 +2,7 @@
 
 The `using` keyword ([keywords](../001-lexical/105-keywords.md)) is an expression form that ties a resource to the lifetime of a block. However the block ends (normal completion, early `return`, `none` return by `?`, error propagation), `Drop::drop` of the bound resource is always called.
 
-The GC reclaims memory automatically, but external resources (files, sockets, mutexes, FFI handles, GC pins, etc.) must be released deterministically. A `Drop` value is affine: the compiler releases it where its owner leaves scope ([stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop---cleanup-on-using-release)). `using` makes that point explicit: it ties the value to its block and releases it when the block ends, and it is the way to close a value whose close can fail without writing `try x.close()`.
+The GC reclaims memory automatically, but external resources (files, sockets, mutexes, FFI handles, GC pins, etc.) must be released deterministically. A `Drop` value is affine: the compiler releases it where its owner leaves scope ([stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop---cleanup-on-release)). `using` makes that point explicit: it ties the value to its block and releases it when the block ends, and it is the way to close a value whose close can fail without writing `try x.close()`.
 
 ## 3.17.1. Form
 
@@ -97,11 +97,11 @@ This is the biggest structural difference from function-scoped `defer` (Go). The
 
 Panics and fatal errors terminate the process immediately, so `drop` is not called ([3.14.8](314-error-control-flow.md#3148-panics-and-fatal-errors)). This is the general result of a panic, not behavior specific to `using`.
 
-A value is released once ([stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop---cleanup-on-using-release)). `using x = a { .. }` moves `a` into `x`, so a second `using y = a { .. }`, or a use of `a` after the first block, is a compile error (E0134): give each `using` the value it makes (`using g = m.lock() { .. }`), or do all the work inside one `using` block. A value closed inside the block (`try x.close()`) is not released again.
+A value is released once ([stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop---cleanup-on-release)). `using x = a { .. }` moves `a` into `x`, so a second `using y = a { .. }`, or a use of `a` after the first block, is a compile error (E0134): give each `using` the value it makes (`using g = m.lock() { .. }`), or do all the work inside one `using` block. A value closed inside the block (`try x.close()`) is not released again.
 
 ## 3.17.7. Types that can be bound
 
-The type of the right-hand expression of `using` must implement [`Drop`](../../refs-standard-libraries/200-core/213-marker.md) or contain fields that have `Drop` (drop glue, [stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop---cleanup-on-using-release)). Otherwise it is a compile error.
+The type of the right-hand expression of `using` must implement [`Drop`](../../refs-standard-libraries/200-core/213-marker.md) or contain fields that have `Drop` (drop glue, [stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop---cleanup-on-release)). Otherwise it is a compile error.
 
 ```rok
 using x = 42 { ... }   // ERROR: using requires a type implementing Drop; i32 does not implement Drop
