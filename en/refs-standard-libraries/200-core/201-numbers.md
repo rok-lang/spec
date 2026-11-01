@@ -25,8 +25,7 @@ silently wraps into an absurd result.
 Fixed primitives, by contrast, are the world close to the hardware. They comprise 15 types
 such as `i32` / `f64`; their syntax is defined by [refs-lang 2.1 Type expressions](../../refs-lang/002-types/201-type-expressions.md).
 They suit situations that need precise control of memory and performance (FFI interfaces, SIMD,
-large arrays, hot loops), and their overflow policy is explicit (see the fixed-width arithmetic section of [2.3 ops
-arithmetic](203-ops.md)).
+large arrays, hot loops), and their overflow policy is explicit (see [2.3 overflow behavior](203-ops.md#overflow-behavior)).
 
 ### Which one is the default
 
@@ -49,7 +48,6 @@ let perf_critical: i64 = 0;       // i64: follows the expected type
 struct Int { ... }  // internal representation: small-int or BigInt
 
 impl Int {
-    fn new() -> int;              // initialized to 0
     fn from_i32(n: i32) -> int;
     fn from_i64(n: i64) -> int;
     fn from_u64(n: u64) -> int;
@@ -103,11 +101,10 @@ impl Int {
     fn modpow(self, exp: int, m: int) -> int;   // self^exp %% m; panics if m == 0 or exp < 0
     fn gcd(self, other: int) -> int;            // never negative; gcd(0, 0) == 0
     fn lcm(self, other: int) -> int;            // never negative; 0 if either operand is 0
-    ...
 }
 ```
 
-These follow the fixed-width integers' names and panics. Bit counts and indices are `u64`, like `bit_length`: a value can have more than 2^32 bits (the fixed-width rule is below). The width-bound bit methods (`leading_zeros`, `rotate_left`, `swap_bytes`, ...) have no meaning without a width and are left out. `count_ones` counts `|self|` (Python's `bit_count`), since a negative number has infinitely many one bits. The representation is in the name: `to_le_bytes` / `from_le_bytes` use two's complement, which agrees with the fixed-width integers' bytes, and the `_unsigned` forms use the magnitude, which panics on a negative value (`Int::to_le_bytes_unsigned: negative value; use to_le_bytes for two's complement or call .abs() first`). The bytes are as short as the value allows: `128` is `[128, 0]` and `[128]` unsigned, `-1` is `[255]`, zero is `[0]`. The `write_*` forms fill a fixed width instead, every byte of `out` (a `List<u8>` or a view of one): `-2` in four bytes is `[254, 255, 255, 255]` little-endian, and a value that needs more bytes than `out` has panics (`Int::write_le_bytes: the value needs 2 bytes but `out` has 1; pass a view of at least 2 bytes`). The `from_*` forms take any bytes ([`AsBytes`](211-conversion.md)): a `List<u8>`, a `Slice<u8>`, a `[u8; N]` or a `str`. `pow` takes a `u32` exponent: a larger one gives at least 2^32 bits for any base but 0 and ±1. `modpow` takes an `int` exponent, since its result stays below `|m|`; the result has the sign of `m`, like [`%%`](203-ops.md#modulo---floored-modulo-). A negative exponent is an error (no modular inverse).
+These follow the fixed-width integers' names and panics. Bit counts and indices are `u64`, like `bit_length`: a value can have more than 2^32 bits (the fixed-width rule is below). The width-bound bit methods (`leading_zeros`, `rotate_left`, `swap_bytes`, ...) have no meaning without a width and are left out. `count_ones` counts `|self|` (Python's `bit_count`), since a negative number has infinitely many one bits. The representation is in the name: `to_le_bytes` / `from_le_bytes` use two's complement, which agrees with the fixed-width integers' bytes, and the `_unsigned` forms use the magnitude, which panics on a negative value (`Int::to_le_bytes_unsigned: negative value; use to_le_bytes for two's complement or call .abs() first`). The bytes are as short as the value allows: `128` is `[128, 0]` and `[128]` unsigned, `-1` is `[255]`, zero is `[0]`. The `write_*` forms fill a fixed width instead, every byte of `out` (a `List<u8>` or a view of one): `-2` in four bytes is `[254, 255, 255, 255]` little-endian, and a value that needs more bytes than `out` has panics (`Int::write_le_bytes: the value needs 2 bytes but `out` has 1; pass a view of at least 2 bytes`). The `from_*` forms take any bytes ([`AsBytes`](211-conversion.md)): a `List<u8>`, a `Slice<u8>`, a `[u8; N]` or a `str`. `pow` takes a `u32` exponent: a larger one gives at least 2^32 bits for any base but 0 and ±1. `modpow` takes an `int` exponent, since its result stays below `|m|`; the result has the sign of `m`, like [`%%`](203-ops.md#modulo---floored-modulo-). A negative exponent is an error (no modular inverse). Zero is `Int::default()` (or `Int::zero()`, see `Zero` in 2.1.5); `Int` has no `new`. Dividing by zero panics: the operators `/`, `%` and `%%` with Rust's text (`attempt to divide by zero`, `attempt to calculate the remainder with a divisor of zero`), the methods with their own name (`Int::div_rem: the divisor is zero`, likewise `div_euclid` and `rem_euclid`). The checked `to_i32` / `to_i64` / `to_u64` sit beside `TryFrom` as inherent methods ([0.5.11](../000-meta/005-notation.md)).
 
 `Int` is defined in `rok::core::num::bigint::Int` (`Float` in
 `rok::core::num::bigfloat::Float`). `#[keyword("int")]` registers the identifier `int` as a type keyword,
@@ -141,10 +138,9 @@ big = big * big;
 // big = 10^42, a larger BigInt, exact
 ```
 
-All of the arithmetic traits ([2.3 ops](203-ops.md)) `Add`, `Sub`, `Mul`, `Div`, `Rem` are
-implemented. `Div` is integer division (truncating), so
-`7 / 2 = 3` and `-7 / 2 = -3`. The comparison traits ([2.5
-cmp](205-cmp.md)) `Eq`, `Ord`, `Hash` are all implemented as well.
+`int` implements the arithmetic traits ([2.3 ops](203-ops.md)) `Add`, `Sub`, `Mul`, `Div`, `Rem`, `Modulo` and `Neg`. `Div` is integer division (truncating), so
+`7 / 2 = 3` and `-7 / 2 = -3`. The bitwise traits `BitAnd`, `BitOr`, `BitXor` and `BitNot` work on two's complement with the sign bit repeated forever (`~x == -x - 1`). The shifts are `Shl<u32>` and `Shr<u32>`: the right side is a `u32`, not `int`; `x << n == x * 2^n` and `x >> n == floor(x / 2^n)` (an arithmetic shift). The comparison traits ([2.5
+cmp](205-cmp.md)) `PartialEq`, `Eq`, `PartialOrd`, `Ord` and `Hash` are implemented, as are `Clone`, `Copy`, `Default` (zero), `Zero`, `One`, `Display`, `Debug` and `FromStr`.
 
 ### Main uses
 
@@ -184,7 +180,6 @@ impl Float {
     fn is_zero(self) -> bool;
     fn is_sign_negative(self) -> bool;
     fn abs(self) -> float;
-    ...
 }
 ```
 
@@ -244,7 +239,7 @@ This section defines the standard library methods and behavior on top of that.
 |----------|----------------------------------------------------------------------------------------|
 | `bool`   | `true` / `false`                                                                       |
 | `char`   | Unicode scalar value (4 bytes), compiler primitive. Methods in [2.15](215-string.md)  |
-| `c_char` | C ABI compatible char (1-byte signed); FFI only                                        |
+| `c_char` | C ABI compatible char (1-byte signed, compares as `i8`); FFI only                      |
 
 ### Two groups - language built-ins vs standard library additions
 
@@ -278,8 +273,8 @@ compiler's responsibility.
 ### Arithmetic / comparison trait impls
 
 Each primitive implements the traits of [2.3 ops](203-ops.md), [2.4 ops-assign](204-ops-assign.md) and
-[2.5 cmp](205-cmp.md). Every operator method and every `PartialEq` / `PartialOrd` method carries
-`#[intrinsic("rok.OP.TYPE")]`, which binds it directly to a compiler backend PrimOp.
+[2.5 cmp](205-cmp.md). Every operator method and every `PartialEq` / `PartialOrd` method, `bool`, `char` and `c_char` included, carries
+`#[intrinsic("rok.OP.TYPE")]`, which binds it directly to a compiler backend PrimOp. `c_char` compares as a signed byte: `-1 as c_char < 1 as c_char`.
 
 ### Methods (per primitive)
 
@@ -383,8 +378,8 @@ for every value but 0. They add powers of two.
 
 A bit count or bit index has the type of `BITS` and of shift amounts: `u32` for every fixed-width
 integer (`count_ones`, `leading_zeros`, `trailing_zeros`, `ilog2`, `rotate_left(n: u32)`,
-`pow(exp: u32)`), whatever the integer's own width; `trailing_zeros(0)` is `BITS`. `int` uses
-`u64` instead, since a value can exceed 2^32 bits, and `trailing_zeros` of 0 is `none`.
+`pow(exp: u32)`, `wrapping_shl(n: u32)`), whatever the integer's own width; `trailing_zeros(0)` is `BITS`. `int` uses
+`u64` instead, since a value can exceed 2^32 bits, and `trailing_zeros` of 0 is `none`. The `<<` / `>>` operators differ: on a fixed-width integer the right side has the left side's type (`Shl for T`, so `i64 << i64`), on `int` it is `u32` (`Shl<u32>`).
 
 ```rok
 impl u32 {
@@ -449,7 +444,7 @@ impl f64 {
     fn next_up(self) -> f64;                   // least value > self; inf and NaN stay
     fn next_down(self) -> f64;                 // greatest value < self
 
-    fn sqrt(self) -> f64;        // the Sqrt trait (2.3)
+    fn sqrt(self) -> f64;        // not inherent: the Sqrt trait (2.3); a rok:: trait's method needs no `use`
     fn cbrt(self) -> f64;
     fn hypot(self, other: f64) -> f64;   // sqrt(self² + other²) without overflow
     fn pow(self, exp: f64) -> f64;

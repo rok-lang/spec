@@ -4,7 +4,7 @@ The broadcast traits in `rok::core::ops` are the trait authority for Julia-style
 
 This chapter defines the 19 broadcast traits together with the desugaring rules for function broadcast.
 
-The traits are declared in `rok::core::ops`, their one path (0.1.6); there is no `broadcast` submodule. `Dot`, the `⋅` dot-product trait of [2.3.10](203-ops.md#2310-unicode-math-operator-traits), sits beside them. `Dot` is not one of the 19 broadcast traits: `a ⋅ b` reduces two operands to one value (`fn dot(self, rhs: Rhs) -> Output`) instead of working element-wise, and the standard library implements it for no type.
+The traits are declared in `rok::core::ops`, their one path ([0.1.6](../000-meta/001-tier-model.md#016-one-path-per-item)); there is no `broadcast` submodule. `Dot`, the `⋅` dot-product trait of [2.3.10](203-ops.md#2310-unicode-math-operator-traits), sits beside them. `Dot` is not one of the 19 broadcast traits: `a ⋅ b` reduces two operands to one value (`fn dot(self, rhs: Rhs) -> Output`) instead of working element-wise, and the standard library implements it for no type.
 
 ## 2.6.1. Motivation - why separate dot operators
 
@@ -31,12 +31,12 @@ The full set is arithmetic (6) + comparison (6) + logical (2) + bitwise (3) + sh
 
 | Trait       | Operator | Precedence | Meaning                       |
 |-------------|----------|------------|-------------------------------|
-| `DotAdd`    | `.+`     | 7 (left)   | element-wise addition         |
-| `DotSub`    | `.-`     | 7 (left)   | element-wise subtraction      |
-| `DotMul`    | `.*`     | 8 (left)   | element-wise product (Hadamard) |
-| `DotDiv`    | `./`     | 8 (left)   | element-wise division         |
-| `DotRem`    | `.%`     | 8 (left)   | element-wise remainder (Rem)  |
-| `DotModulo` | `.%%`    | 8 (left)   | element-wise floored modulo   |
+| `DotAdd`    | `.+`     | 9 (left)   | element-wise addition         |
+| `DotSub`    | `.-`     | 9 (left)   | element-wise subtraction      |
+| `DotMul`    | `.*`     | 10 (left)  | element-wise product (Hadamard) |
+| `DotDiv`    | `./`     | 10 (left)  | element-wise division         |
+| `DotRem`    | `.%`     | 10 (left)  | element-wise remainder (Rem)  |
+| `DotModulo` | `.%%`    | 10 (left)  | element-wise floored modulo   |
 
 ### Comparison (6)
 
@@ -63,7 +63,7 @@ The full set is arithmetic (6) + comparison (6) + logical (2) + bitwise (3) + sh
 
 | Trait       | Operator | Precedence | Meaning        |
 |-------------|----------|------------|----------------|
-| `DotBitAnd` | `.&`     | 6 (left)   | element-wise & |
+| `DotBitAnd` | `.&`     | 7 (left)   | element-wise & |
 | `DotBitOr`  | `.\|`     | 5 (left)   | element-wise \| |
 | `DotBitXor` | `.^`     | 6 (left)   | element-wise ^ |
 
@@ -71,8 +71,8 @@ The full set is arithmetic (6) + comparison (6) + logical (2) + bitwise (3) + sh
 
 | Trait    | Operator | Precedence | Meaning         |
 |----------|----------|------------|-----------------|
-| `DotShl` | `.<<`    | 9 (left)   | element-wise << |
-| `DotShr` | `.>>`    | 9 (left)   | element-wise >> |
+| `DotShl` | `.<<`    | 8 (left)   | element-wise << |
+| `DotShr` | `.>>`    | 8 (left)   | element-wise >> |
 
 Precedence and associativity mirror the ordinary traits ([2.3 ops](203-ops.md), [2.5 cmp](205-cmp.md)).
 
@@ -148,7 +148,7 @@ let e = b .- a;          //→ [9, 18, 27]
 let f = b ./ a;          //→ [10, 10, 10]
 ```
 
-A length mismatch panics at runtime. If the sizes are known at compile time, it is caught as a compile error.
+A length mismatch panics at runtime, naming the method (`List::dot_add: lengths 3 and 2 differ; make both sides the same length`). If the sizes are known at compile time, it is caught as a compile error.
 
 ```rok
 let x: [i32; 3] = [1, 2, 3];
@@ -239,7 +239,7 @@ Function broadcast is written by adding a dot at an ordinary function call.
 ```rok
 let xs: List<f64> = [0.0, 0.5, 1.0];
 
-let s = sin.(xs);                    //→ [0.0, 0.479..., 0.841...]
+let s = f64::sin.(xs);               //→ [0.0, 0.479..., 0.841...]
 let r = f64::sqrt.(xs);              //→ [0.0, 0.707..., 1.0]
 let g = (|x: f64| x * 2.0).(xs);     //→ [0.0, 1.0, 2.0]
 ```
@@ -251,24 +251,24 @@ let a: List<f64> = [1.0, 2.0, 3.0];
 let b: List<f64> = [10.0, 20.0, 30.0];
 
 let r = f64::pow.(a, b);             //→ [1.0, 4_194_304.0, ...]
-let m = max.(a, b);                  //→ [10.0, 20.0, 30.0]
+let m = f64::max.(a, b);             //→ [10.0, 20.0, 30.0]
 ```
 
-Arguments that are a `List`, `Slice` or array are iterated together; any other argument is passed unchanged to every call (`pow.(xs, 2.0)`). The iterated arguments must have the same length, checked at run time. There is **no limit** on the number of arguments, so any N-ary function applies.
+Arguments that are a `List`, `Slice` or array are iterated together; any other argument is passed unchanged to every call (`f64::pow.(xs, 2.0)`). The iterated arguments must have the same length, checked at run time. There is **no limit** on the number of arguments, so any N-ary function applies.
 
 ## 2.6.6. Loop fusion
 
 The compiler fuses consecutive dot operations into a single loop.
 
 ```rok
-let result = sin.(a) .+ cos.(b) .* 2.0;
+let result = f64::sin.(a) .+ f64::cos.(b) .* 2.0;
 ```
 
 A naive lowering would need 3 temporary List allocations and 3 loops. Rok guarantees one loop with no intermediate collections; the mechanism (for example a `linalg.generic` op) is the compiler's choice.
 
 ```rok
 // conceptually equivalent to this single elementwise call
-let result = elementwise(a, b, |x, y| sin(x) + cos(y) * 2.0);
+let result = elementwise(a, b, |x, y| x.sin() + y.cos() * 2.0);
 ```
 
 ## 2.6.7. Trait implementation matrix
@@ -280,7 +280,7 @@ Dot trait impls map onto container types as follows.
 | `List<T>`        | T:Add    | T:Mul    | T:PartialEq | element-wise, lengths must match        |
 | `[T; N]` (fixed) | T:Add    | T:Mul    | T:PartialEq | fixed N, compile time                   |
 | `Slice<T>`       | T:Add    | T:Mul    | T:PartialEq | view, element-wise                      |
-| `i32`/`f64`/etc. | **none** | **none** | **none**    | scalars use ordinary `+`/`*`/`==`       |
+| `i32`/`f64`/etc. | scalar-left | scalar-left | scalar-left | no scalar-scalar impl (ordinary `+`/`*`/`==`); `T` implements `DotAdd<List<T>>` / `DotAdd<Slice<T>>` for the scalar-left form (2.6.4) |
 | `T \| none`       | (operator) | (operator) | (operator) | option propagation (`none .+ x = none`) |
 
 The dot meaning of `T | none` is option propagation: if either side is `none`, the result is `none`. It is handled at the operator level, with no library impl.

@@ -167,7 +167,7 @@ fn add_assign(ref self, rhs: Rhs);
 
 ## 2.4.5. 우선순위 / 결합성: prec=-1, right
 
-모든 `*Assign` 토큰은 [refs-lang 3.2](../../refs-lang/003-expressions/302-precedence-and-associativity.md) 표에서 같은 등급으로 고정됩니다. 우선순위는 `prec = -1`이므로 일반 산술(+=7, *=8)보다 낮고 `..`(=0)보다도 낮습니다. 가장 낮은 등급입니다. 연쇄 대입은 쓸 수 없습니다([refs-lang 3.4.4](../../refs-lang/003-expressions/304-assignment.md)).
+모든 `*Assign` 토큰은 [refs-lang 3.2](../../refs-lang/003-expressions/302-precedence-and-associativity.md) 표에서 같은 등급으로 고정됩니다. 우선순위는 `prec = -1`이므로 일반 산술(`+`는 9, `*`는 10)보다 낮고 `..`(=0)보다도 낮습니다. 가장 낮은 등급입니다. 연쇄 대입은 쓸 수 없습니다([refs-lang 3.4.4](../../refs-lang/003-expressions/304-assignment.md)).
 
 ## 2.4.6. 트레잇 구현 매트릭스
 
@@ -178,7 +178,7 @@ fn add_assign(ref self, rhs: Rhs);
 | `i*`, `u*`   | 산술 6개 + 비트 5개 (11 트레잇)           | `rok.add_assign.i32`, `rok.shl_assign.u32`, ... |
 | `f32`, `f64` | 산술 6개만                                  | `rok.add_assign.f64`, ...                       |
 | `bool`       | `BitAndAssign`/`BitOrAssign`/`BitXorAssign` | `rok.and_assign.bool`, ...                      |
-| `int`        | 산술 + 비트                                 | 자동 승격 로직, 새 값으로 교체(불변)            |
+| `int`        | 산술 + 비트; `ShlAssign<u32>` / `ShrAssign<u32>` | 자동 승격 로직, 새 값으로 교체(불변)            |
 | `float`      | 산술                                        | (위와 같음: 자동 승격)                          |
 | `List<T>`    | `AddAssign<T>`, `AddAssign<List<T>>`        | `xs += x`는 `x`를 넣음, `xs += ys`는 `ys`의 모든 원소를 제자리에서 넣음 |
 | `str`        | `AddAssign<str>`, `AddAssign<char>`         | `s = s + t`: 새 str로 교체(str은 불변)        |
@@ -271,4 +271,4 @@ impl<T> List<T> {
 }
 ```
 
-두 길이는 같아야 합니다. 다르면 panic이 일어납니다. `Slice` 형태는 없습니다.
+두 길이는 같아야 합니다. 다르면 메서드 이름을 담아 panic이 일어납니다(`List::dot_add_assign: lengths 3 and 2 differ; make both sides the same length`). `Slice` 형태는 없습니다.

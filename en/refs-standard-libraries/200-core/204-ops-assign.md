@@ -167,7 +167,7 @@ This signature is the core of in-place behavior. If it took only `self` (by valu
 
 ## 2.4.5. Precedence / associativity - prec=-1, right
 
-Every `*Assign` token is fixed at the same level in the [refs-lang 3.2](../../refs-lang/003-expressions/302-precedence-and-associativity.md) table. Its precedence is `prec = -1`, lower than ordinary arithmetic (+=7, *=8) and lower than `..` (=0). It is the lowest level. Chained assignment is not allowed ([refs-lang 3.4.4](../../refs-lang/003-expressions/304-assignment.md)).
+Every `*Assign` token is fixed at the same level in the [refs-lang 3.2](../../refs-lang/003-expressions/302-precedence-and-associativity.md) table. Its precedence is `prec = -1`, lower than ordinary arithmetic (`+` is 9, `*` is 10) and lower than `..` (=0). It is the lowest level. Chained assignment is not allowed ([refs-lang 3.4.4](../../refs-lang/003-expressions/304-assignment.md)).
 
 ## 2.4.6. Trait implementation matrix
 
@@ -178,7 +178,7 @@ Every `*Assign` impl for primitive types carries `#[intrinsic("rok.OP_assign.TYP
 | `i*`, `u*`   | 6 arithmetic + 5 bitwise (11 traits)        | `rok.add_assign.i32`, `rok.shl_assign.u32`, ... |
 | `f32`, `f64` | 6 arithmetic only                           | `rok.add_assign.f64`, ...                       |
 | `bool`       | `BitAndAssign`/`BitOrAssign`/`BitXorAssign` | `rok.and_assign.bool`, ...                      |
-| `int`        | Arithmetic + bitwise                        | auto-promote logic; replaced by a new value (immutable)  |
+| `int`        | Arithmetic + bitwise; `ShlAssign<u32>` / `ShrAssign<u32>` | auto-promote logic; replaced by a new value (immutable)  |
 | `float`      | Arithmetic                                  | (same as above: auto-promote)                   |
 | `List<T>`    | `AddAssign<T>`, `AddAssign<List<T>>`        | `xs += x` pushes `x`; `xs += ys` pushes every element of `ys`, in place |
 | `str`        | `AddAssign<str>`, `AddAssign<char>`         | `s = s + t`: replaced by a new str (str is immutable)  |
@@ -271,4 +271,4 @@ impl<T> List<T> {
 }
 ```
 
-The lengths must match; otherwise it panics. There is no `Slice` form.
+The lengths must match; otherwise it panics, naming the method (`List::dot_add_assign: lengths 3 and 2 differ; make both sides the same length`). There is no `Slice` form.

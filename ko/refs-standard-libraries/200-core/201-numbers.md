@@ -17,8 +17,7 @@ fixed primitive (i8..i64, u8..u64, isize, usize, f32, f64; 하드웨어 친화�
 
 ### 고정 폭 원시 타입: 하드웨어 친화 세계
 
-반면 fixed primitive는 하드웨어에 가까운 세계입니다. `i32` / `f64` 등 15종이고, 문법은 [refs-lang 2.1 타입 표현식](../../refs-lang/002-types/201-type-expressions.md)이 정의합니다. FFI 인터페이스, SIMD, 큰 배열, 핫 루프처럼 메모리와 성능을 정밀하게 제어해야 하는 상황에 알맞습니다. 오버플로 정책도 명시되어 있습니다([2.3 ops
-산술](203-ops.md)의 fixed-width 산술 절 참고).
+반면 fixed primitive는 하드웨어에 가까운 세계입니다. `i32` / `f64` 등 15종이고, 문법은 [refs-lang 2.1 타입 표현식](../../refs-lang/002-types/201-type-expressions.md)이 정의합니다. FFI 인터페이스, SIMD, 큰 배열, 핫 루프처럼 메모리와 성능을 정밀하게 제어해야 하는 상황에 알맞습니다. 오버플로 정책도 명시되어 있습니다([2.3 오버플로 동작](203-ops.md#오버플로-동작) 참고).
 
 ### 기본으로 쓰는 쪽
 
@@ -41,7 +40,6 @@ let perf_critical: i64 = 0;       // i64: 기대 타입을 따름
 struct Int { ... }  // 내부 표현: small-int 또는 BigInt
 
 impl Int {
-    fn new() -> int;              // 0 으로 초기화
     fn from_i32(n: i32) -> int;
     fn from_i64(n: i64) -> int;
     fn from_u64(n: u64) -> int;
@@ -95,11 +93,10 @@ impl Int {
     fn modpow(self, exp: int, m: int) -> int;   // self^exp %% m; m == 0 이거나 exp < 0 이면 panic
     fn gcd(self, other: int) -> int;            // 음수가 아님; gcd(0, 0) == 0
     fn lcm(self, other: int) -> int;            // 음수가 아님; 피연산자 중 하나가 0 이면 0
-    ...
 }
 ```
 
-이 메서드는 고정 폭 정수의 이름과 panic 규칙을 따릅니다. 비트 수와 비트 위치는 `bit_length`처럼 `u64`입니다. 값이 2^32비트를 넘을 수 있기 때문입니다(고정 폭 규칙은 아래에 있습니다). 폭에 묶인 비트 메서드(`leading_zeros`, `rotate_left`, `swap_bytes` 등)는 폭이 없으면 뜻이 없으므로 뺍니다. 음수에는 1인 비트가 끝없이 많으므로 `count_ones`는 `|self|`를 셉니다(Python의 `bit_count`). 표현 방식은 이름에 드러납니다. `to_le_bytes` / `from_le_bytes`는 2의 보수를 쓰며 고정 폭 정수의 바이트와 일치합니다. `_unsigned` 형태는 절댓값을 쓰고, 음수에서는 panic합니다(`Int::to_le_bytes_unsigned: negative value; use to_le_bytes for two's complement or call .abs() first`). 바이트는 값이 허락하는 만큼 짧습니다. `128`은 `[128, 0]`, `_unsigned`로는 `[128]`이고, `-1`은 `[255]`, 0은 `[0]`입니다. `write_*` 형태는 대신 고정 폭을 채웁니다. `out`(`List<u8>`나 그 뷰)의 모든 바이트에 씁니다. `-2`를 네 바이트에 little-endian으로 쓰면 `[254, 255, 255, 255]`이고, `out`보다 많은 바이트가 필요한 값은 panic합니다(`Int::write_le_bytes: the value needs 2 bytes but `out` has 1; pass a view of at least 2 bytes`). `from_*` 형태는 어떤 바이트든 받습니다([`AsBytes`](211-conversion.md)). `List<u8>`, `Slice<u8>`, `[u8; N]`, `str`이 됩니다. `pow`는 `u32` 지수를 받습니다. 그보다 큰 지수는 0과 ±1을 뺀 모든 밑에서 결과가 적어도 2^32비트가 됩니다. `modpow`는 결과가 `|m|`보다 작게 머무르므로 `int` 지수를 받습니다. 결과의 부호는 [`%%`](203-ops.md#modulo-내림-modulo)처럼 `m`의 부호를 따릅니다. 음수 지수는 에러입니다(모듈러 역원 없음).
+이 메서드는 고정 폭 정수의 이름과 panic 규칙을 따릅니다. 비트 수와 비트 위치는 `bit_length`처럼 `u64`입니다. 값이 2^32비트를 넘을 수 있기 때문입니다(고정 폭 규칙은 아래에 있습니다). 폭에 묶인 비트 메서드(`leading_zeros`, `rotate_left`, `swap_bytes` 등)는 폭이 없으면 뜻이 없으므로 뺍니다. 음수에는 1인 비트가 끝없이 많으므로 `count_ones`는 `|self|`를 셉니다(Python의 `bit_count`). 표현 방식은 이름에 드러납니다. `to_le_bytes` / `from_le_bytes`는 2의 보수를 쓰며 고정 폭 정수의 바이트와 일치합니다. `_unsigned` 형태는 절댓값을 쓰고, 음수에서는 panic합니다(`Int::to_le_bytes_unsigned: negative value; use to_le_bytes for two's complement or call .abs() first`). 바이트는 값이 허락하는 만큼 짧습니다. `128`은 `[128, 0]`, `_unsigned`로는 `[128]`이고, `-1`은 `[255]`, 0은 `[0]`입니다. `write_*` 형태는 대신 고정 폭을 채웁니다. `out`(`List<u8>`나 그 뷰)의 모든 바이트에 씁니다. `-2`를 네 바이트에 little-endian으로 쓰면 `[254, 255, 255, 255]`이고, `out`보다 많은 바이트가 필요한 값은 panic합니다(`Int::write_le_bytes: the value needs 2 bytes but `out` has 1; pass a view of at least 2 bytes`). `from_*` 형태는 어떤 바이트든 받습니다([`AsBytes`](211-conversion.md)). `List<u8>`, `Slice<u8>`, `[u8; N]`, `str`이 됩니다. `pow`는 `u32` 지수를 받습니다. 그보다 큰 지수는 0과 ±1을 뺀 모든 밑에서 결과가 적어도 2^32비트가 됩니다. `modpow`는 결과가 `|m|`보다 작게 머무르므로 `int` 지수를 받습니다. 결과의 부호는 [`%%`](203-ops.md#modulo-내림-modulo)처럼 `m`의 부호를 따릅니다. 음수 지수는 에러입니다(모듈러 역원 없음). 0은 `Int::default()`(또는 `Int::zero()`, 2.1.5의 `Zero` 참고)이고, `Int`에는 `new`가 없습니다. 0으로 나누면 panic합니다. 연산자 `/`, `%`, `%%`는 Rust의 문구(`attempt to divide by zero`, `attempt to calculate the remainder with a divisor of zero`)를, 메서드는 자기 이름을 씁니다(`Int::div_rem: the divisor is zero`, `div_euclid`와 `rem_euclid`도 같은 꼴). 검사형 `to_i32` / `to_i64` / `to_u64`는 `TryFrom` 옆에 고유 메서드로 둡니다([0.5.11](../000-meta/005-notation.md)).
 
 `Int`는 `rok::core::num::bigint::Int`에, `Float`는 `rok::core::num::bigfloat::Float`에 정의합니다. `#[keyword("int")]`가 식별자 `int`를 타입 키워드로 등록하고, 이 등록은 모든 패키지에 적용됩니다. 그래서 사용자 코드에서는 PascalCase `Int`가 아니라 소문자 `int`로 타입을 적습니다. 권위 있는 정의는 [refs-lang 6.6](../../refs-lang/006-meta-system/606-keyword-magic.md)에 있습니다. 컴파일러는 `#[lang("int_type")]`로 `int` 타입을 찾습니다.
 
@@ -125,8 +122,8 @@ big = big * big;
 // big = 10^42, 더 큰 BigInt, 정확
 ```
 
-산술 트레잇([2.3 ops](203-ops.md)) `Add`, `Sub`, `Mul`, `Div`, `Rem`을 모두 구현합니다. `Div`는 소수점 아래를 버리는 정수 나눗셈이므로 `7 / 2 = 3`, `-7 / 2 = -3`입니다. 비교 트레잇([2.5
-cmp](205-cmp.md)) `Eq`, `Ord`, `Hash`도 모두 구현합니다.
+`int`는 산술 트레잇([2.3 ops](203-ops.md)) `Add`, `Sub`, `Mul`, `Div`, `Rem`, `Modulo`, `Neg`를 구현합니다. `Div`는 소수점 아래를 버리는 정수 나눗셈이므로 `7 / 2 = 3`, `-7 / 2 = -3`입니다. 비트 트레잇 `BitAnd`, `BitOr`, `BitXor`, `BitNot`은 부호 비트가 끝없이 반복되는 2의 보수로 동작합니다(`~x == -x - 1`). 시프트는 `Shl<u32>`와 `Shr<u32>`입니다. 오른쪽은 `int`가 아니라 `u32`이고, `x << n == x * 2^n`, `x >> n == floor(x / 2^n)`(산술 시프트)입니다. 비교 트레잇([2.5
+cmp](205-cmp.md)) `PartialEq`, `Eq`, `PartialOrd`, `Ord`, `Hash`를 구현하고, `Clone`, `Copy`, `Default`(0), `Zero`, `One`, `Display`, `Debug`, `FromStr`도 구현합니다.
 
 ### 주요 사용처
 
@@ -158,7 +155,6 @@ impl Float {
     fn is_zero(self) -> bool;
     fn is_sign_negative(self) -> bool;
     fn abs(self) -> float;
-    ...
 }
 ```
 
@@ -210,7 +206,7 @@ impl Float {
 |----------|---------------------------------------------------------------------------------------|
 | `bool`   | `true` / `false`                                                                      |
 | `char`   | 유니코드 스칼라 값(4바이트), 컴파일러 원시 타입. 메서드는 [2.15](215-string.md) |
-| `c_char` | C ABI 호환 char(1바이트, 부호 있음), FFI 전용                                         |
+| `c_char` | C ABI 호환 char(1바이트, 부호 있음, `i8`로 비교), FFI 전용                            |
 
 ### 두 부류: 언어 내장과 표준 라이브러리 추가
 
@@ -238,7 +234,7 @@ impl PartialEq for c_char { ... }
 
 ### 산술 / 비교 트레잇 impl
 
-원시 타입은 각각 [2.3 ops](203-ops.md), [2.4 ops-assign](204-ops-assign.md), [2.5 cmp](205-cmp.md)의 트레잇을 구현합니다. 모든 연산자 메서드와 `PartialEq` / `PartialOrd` 메서드에는 `#[intrinsic("rok.OP.TYPE")]`가 붙습니다. 그래서 이 메서드는 컴파일러 백엔드 PrimOp로 바로 이어집니다.
+원시 타입은 각각 [2.3 ops](203-ops.md), [2.4 ops-assign](204-ops-assign.md), [2.5 cmp](205-cmp.md)의 트레잇을 구현합니다. `bool`, `char`, `c_char`를 포함해 모든 연산자 메서드와 `PartialEq` / `PartialOrd` 메서드에는 `#[intrinsic("rok.OP.TYPE")]`가 붙습니다. 그래서 이 메서드는 컴파일러 백엔드 PrimOp로 바로 이어집니다. `c_char`는 부호 있는 바이트로 비교합니다. `-1 as c_char < 1 as c_char`입니다.
 
 ### 메서드(원시 타입별)
 
@@ -340,8 +336,8 @@ impl i32 {
 
 비트 수와 비트 위치는 `BITS`, 시프트 양과 같은 타입입니다. 고정 폭 정수는 자기 폭과 상관없이 모두
 `u32`입니다(`count_ones`, `leading_zeros`, `trailing_zeros`, `ilog2`, `rotate_left(n: u32)`,
-`pow(exp: u32)`). `trailing_zeros(0)`은 `BITS`입니다. `int`는 값이 2^32비트를 넘을 수 있으므로
-`u64`를 쓰고, 0의 `trailing_zeros`는 `none`입니다.
+`pow(exp: u32)`, `wrapping_shl(n: u32)`). `trailing_zeros(0)`은 `BITS`입니다. `int`는 값이 2^32비트를 넘을 수 있으므로
+`u64`를 쓰고, 0의 `trailing_zeros`는 `none`입니다. `<<` / `>>` 연산자는 다릅니다. 고정 폭 정수에서는 오른쪽이 왼쪽과 같은 타입이고(`Shl for T`, 그래서 `i64 << i64`), `int`에서는 `u32`입니다(`Shl<u32>`).
 
 ```rok
 impl u32 {
@@ -405,7 +401,7 @@ impl f64 {
     fn next_up(self) -> f64;                   // self 보다 큰 가장 작은 값; inf 와 NaN 은 그대로
     fn next_down(self) -> f64;                 // self 보다 작은 가장 큰 값
 
-    fn sqrt(self) -> f64;        // Sqrt 트레잇 (2.3)
+    fn sqrt(self) -> f64;        // 고유 메서드가 아님: Sqrt 트레잇 (2.3); rok:: 트레잇 메서드는 `use` 가 필요 없음
     fn cbrt(self) -> f64;
     fn hypot(self, other: f64) -> f64;   // overflow 없는 sqrt(self² + other²)
     fn pow(self, exp: f64) -> f64;

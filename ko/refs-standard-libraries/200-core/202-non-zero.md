@@ -2,6 +2,8 @@
 
 `rok::core::num::niche`에는 값을 부분집합으로 제한하는 래퍼(wrapper)가 있습니다. 각 래퍼는 `#[niche(..)]`([refs-lang 2.7.4](../../refs-lang/002-types/207-niche-optimization.md#274-opt-in-niche-niche))를 붙인 newtype입니다. 래퍼가 제외한 값은 `T | none`의 niche가 됩니다.
 
+래퍼는 prelude에 없습니다. `num::niche::`로 적거나 `use rok::core::num::niche::NonZero;`로 가져옵니다. 모든 래퍼는 `Clone`, `Copy`, `PartialEq`, `Eq`, `PartialOrd`, `Ord`, `Hash`, `Display`, `Debug`(`NonZero(42)`)를 구현하고, `From`으로 자기 `T`로 손실 없이 돌아갑니다.
+
 ## 2.2.1. 크기
 
 niche가 있는 `T | none`은 크기가 `T`와 같습니다([refs-lang 2.7.2](../../refs-lang/002-types/207-niche-optimization.md#272-자동-niche)). `none`은 그 niche 값으로 표현합니다. 실제 비트는 구현이 정합니다.
@@ -21,6 +23,7 @@ niche가 있는 `T | none`은 크기가 `T`와 같습니다([refs-lang 2.7.2](..
 ## 2.2.2. `NonZero<T>`: 0 금지
 
 ```rok
+#[sealed]
 trait NicheInt { .. }            // 10 개의 정수 타입이 구현
 
 #[niche(0)]
@@ -37,13 +40,15 @@ impl<T: NicheInt> NonZero<T> {
 
 | 연산                        | 결과                                              |
 |-----------------------------|---------------------------------------------------|
-| `NonZero<T> * NonZero<T>`   | `NonZero<T>`. 곱이 넘쳐 0으로 돌아오면 panic이 일어남 |
+| `NonZero<T> * NonZero<T>`   | `NonZero<T>`. 곱이 넘쳐 0으로 돌아오면 panic이 일어남(`NonZero::mul: the product wrapped to zero; use `checked_mul` on the values`, `#[track_caller]`) |
 | `NonZero<T> + - / NonZero<T>` | `T`                                             |
 | `T / NonZero<T>`            | `T`. 0으로 나누기가 없음                         |
 
 `TryFrom<T>`는 0이면 `ZeroError`를 던집니다. `ZeroError`는 이 모듈에 정의한 unit struct(`rok::core::num::niche::ZeroError`)이고 `Error`를 구현합니다([2.14.4](214-error.md#2144-내장-에러-타입)). `From<NonZero<T>> for T`는 손실 없이 변환합니다.
 
 ```rok
+use rok::core::num::niche::NonZero;
+
 let n: NonZero<i32> = NonZero::new(42) ?? panic("zero");
 let nz: NonZero<i32> = try 7.try_into();
 let v: i32 = nz.into();
@@ -52,7 +57,8 @@ let v: i32 = nz.into();
 ## 2.2.3. `NonNan<F>`: NaN 금지
 
 ```rok
-trait NicheFloat { .. }          // f32, f64 가 구현
+#[sealed]
+trait NicheFloat { .. }          // f32, f64 가 구현; 보조 메서드는 #[internal]
 
 #[niche(F::NAN)]
 struct NonNan<F>(F);
@@ -82,7 +88,8 @@ impl<F: NicheFloat> Finite<F> {
 ```
 
 - `Eq`, `Ord`, `Hash`를 구현합니다. `-0.0 == 0.0`입니다.
-- `+ - *`의 결과는 `Result<Finite<F>, OverflowError>`입니다. 결과가 ±∞이면 `Err`입니다.
+- `+ - *`의 결과는 `Result<Finite<F>, OverflowError>`입니다. 결과가 ±∞이면 `Err`입니다. 연산자는 던질 수 없으므로([2.3](203-ops.md)) 실패할 수 있는 연산자는 `Result`를 돌려줍니다.
+- `/`는 없습니다. 0으로 나누면 NaN이나 ±∞가 되므로 `get()` 값으로 나누고 `Finite::new`로 확인합니다.
 - `TryFrom<F>`는 NaN / ±∞이면 `ConversionError`를 던집니다.
 
 ## 2.2.5. `Positive<T>`: 음수 금지
@@ -98,13 +105,15 @@ impl<T: NicheInt> Positive<T> {
 }
 ```
 
-값은 0 이상입니다. 부호 없는 `T`에는 음수가 없으므로 niche가 없습니다.
+값은 0 이상입니다. 부호 없는 `T`에는 음수가 없으므로 niche가 없습니다. `TryFrom<T>`는 음수면 `ConversionError`를 던지고, `From<Positive<T>> for T`는 손실 없이 변환합니다.
 
 ## 2.2.6. `new_unchecked`
 
 `new_unchecked`는 `unsafe fn`입니다. 불변식을 어기면 미정의 동작(UB)입니다. 이때 `T | none`이 그 값을 `none`으로 읽을 수 있습니다.
 
 ```rok
+use rok::core::num::niche::NonZero;
+
 let n: i32 = compute();                                // 0 이 아님을 호출자가 보장
 let nz: NonZero<i32> = unsafe { NonZero::new_unchecked(n) };
 ```
