@@ -13,15 +13,15 @@ fn block_on<F: Future>(f: F) -> F::Output;              // sync entry point: att
 fn try_block_on<T, E>(f: TryAsyncFuture<T, E>) throws (E) -> T;   // block_on for a throwing async body; its error is thrown here
 fn spawn<F: Future + Send>(f: F) -> Task<F::Output> where F::Output: Send;
 fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future, pinned to the current worker (not an OS thread)
-fn spawn_blocking<T: Send>(f: fn() -> T + Send) -> Blocking<T>;   // blocking work on an OS thread outside the executor
-fn workers() -> usize;                                  // pool size inside the executor, 1 outside
+fn spawn_blocking<T: Send>(f: fn() -> T + Send) -> Task<T>;   // blocking work on an OS thread outside the executor
+fn worker_count() -> usize;                               // pool size inside the executor, 1 outside
 fn cpu_count() -> usize;                                // number of online CPUs (the pool size)
-async fn race<T>(tasks: List<Task<T>>) -> T;            // result of the first task to complete
-fn select<F: Future>(futs: List<F>) -> SelectFuture<F>; // await: (index, result), does not spawn
+async fn race<I: IntoIterator<Item = Task<T>>, T>(tasks: I) -> T;   // result of the first task to complete; cancels the others
+fn select<I: IntoIterator<Item = F>, F: Future>(futs: I) -> SelectFuture<F>;   // await: (index, result), does not spawn
 fn id() -> TaskId;                                      // id of the current task; panics outside a task
 fn current_id() -> TaskId | none;                       // id of the current task; none outside a task
-async fn join<T>(tasks: List<Task<T>>) -> List<T>;      // after all complete
-async fn timeout<T>(dur: Duration, task: Task<T>) throws (TimeoutError) -> T;   // throws in try await
+async fn join<I: IntoIterator<Item = Task<T>>, T>(tasks: I) -> List<T>;   // after all complete
+async fn timeout<T>(dur: Duration, task: Task<T>) throws (TimeoutError) -> T;   // throws in try await; cancels the task
 async fn sleep(dur: Duration);
 async fn sleep_until(when: Instant);
 async fn yield_now();                                   // await: yields once to other ready tasks
@@ -76,20 +76,23 @@ await task::yield_now();
 
 `spawn` takes a future, not a closure, so it is passed an `async` block or the result of an `async fn` call, as in `task::spawn(async { ... })`. A future that is not `Send` runs on the current worker through `spawn_local`. `join` / `race` / `timeout` are `await`ed to obtain their results.
 
-`race` and `timeout` cancel nothing: the tasks that lose a `race`, and the task of a `timeout` that runs out, keep running to the end, and their results are dropped. Keep their `Task` handles and call `cancel` ([2.18.4](#2184-cooperative-cancellation---taskcancel)) when their work is no longer wanted. `select` (below) runs futures rather than tasks and cancels the ones it leaves.
+`join`, `race` and `select` take any `IntoIterator` of their tasks or futures, a list literal included.
+
+`race` and `timeout` cancel their losers. Once `race` sees the first task finish (in list order, so a tie goes to the earlier task), it calls `cancel` ([2.18.4](#2184-cooperative-cancellation---taskcancel)) on every other task it was given; once the time of a `timeout` runs out, it cancels its task and throws `TimeoutError`. A loser is then a task cancelled as by `cancel`:
+
+- If it passed a cancellation point, `is_cancelled()` is true, `try await t.join()` throws `CancellationError`, and plain `await t` panics with a message that names the cause: ``awaited a task cancelled by `task::race`; use `try await t.join()` `` (or `task::timeout`).
+- If it had already finished, or finished without passing another cancellation point, `await t` and `join` return its own value. A loser never yields the result of the `race`.
+
+Neither waits for the losers' cleanups: they return once cancellation is requested, as `select` does. Code that needs a loser's cleanups finished writes `try await loser.join()`, which completes after them. Cancelling the task that awaits `race` or `timeout` cancels the tasks given to it; a copy of such a `Task` held elsewhere sees that cancellation. `race` of no tasks panics.
 
 ### `spawn_blocking` - blocking work
 
-```rok
-struct Blocking<T> { /* result slot */ }
-impl<T> Future for Blocking<T> { type Output = T; ... }
-```
-
-`spawn_blocking(f)` runs `f` on an OS thread of the blocking pool rather than on an executor worker, and returns a future that completes with its result. It is used to wait inside a task on blocking syscalls that cannot be awaited by readiness (regular file I/O, etc., [stdlib 3.1.4a](../300-std/301-fs.md#314a-asynchronous-file-io-_async)).
+`spawn_blocking(f)` runs `f` on an OS thread of the blocking pool rather than on an executor worker, and returns a `Task<T>` that completes with its result, the same handle `spawn` returns (2.18.2). It is used to wait inside a task on blocking syscalls that cannot be awaited by readiness (regular file I/O, etc., [stdlib 3.1.4a](../300-std/301-fs.md#314a-asynchronous-file-io-_async)).
 
 - `f` starts **immediately on the call**, not at the first poll (if the pool is full, it is queued first).
 - There is one blocking pool per process. It adds threads as needed (up to a limit) and ends threads that stay idle for a while. Jobs are processed in arrival order (FIFO). The limit is 512 threads; once reached, jobs queue up. A thread idle for 10 seconds ends. Each job is handed to one idle thread.
-- Even if the `await`ing task is cancelled, `f` runs to completion; only its result is discarded.
+- `f` has no cancellation point. `cancel()` before a pool thread takes the job means `f` never runs, and `join` throws `CancellationError`; once `f` runs it finishes, and `await` / `join` return its result.
+- If the `await`ing task is cancelled, it leaves its `await` as for any `Task`; the blocking task is not cancelled, and its result stays in the handle.
 
 ```rok
 let n = await task::spawn_blocking(|| heavy_checksum(path));
@@ -124,7 +127,7 @@ The check may approximate conservatively. An implementation may reject a future 
 ### `select` - the first future to finish
 
 ```rok
-fn select<F: Future>(futs: List<F>) -> SelectFuture<F>;   // Output = (usize, F::Output)
+fn select<I: IntoIterator<Item = F>, F: Future>(futs: I) -> SelectFuture<F>;   // Output = (usize, F::Output)
 
 let (i, v) = await task::select([fetch_a(), fetch_b()]);
 ```
@@ -135,7 +138,7 @@ Unlike `race`, it does not spawn the futures; it runs them **inside** the waitin
 - When one finishes, all the others that have already started are cancelled. They are polled once more in the cancelled state so that `finally` / `using` run (2.18.4). A loser whose cleanups `await` finishes them in the background, as a task of its own; `select` does not wait for it. A future never polled is never run.
 - All wakeup registrations (timers, parking) made by the losing futures are released.
 - If the waiting task is cancelled, the child futures are cancelled too.
-- An empty list panics.
+- No futures panics.
 - The futures must have a single type. If the result types differ, wrap them: `async { Msg::A(await a) }`.
 
 A timeout can also be built from `select` and `sleep`.
@@ -231,7 +234,8 @@ t.cancel();              // cooperative signal; the task ends at a cancellation 
 - A blocking syscall is not a cancellation point. The task leaves at the next `await` after the call finishes.
 - A task waiting in socket I/O (`*_async`), `readable` / `writable`, `sleep` / `timeout`, `lock_async`, or `recv_async` / `send_async` wakes when cancelled and leaves at the next `await`.
 - When a task ends, all its wakeup registrations (I/O readiness, timers, parked waits) are released.
-- If cancelled while waiting on `spawn_blocking` or the `fs::*_async` built on it, work already started runs to completion in the background and only the result is discarded. Side effects such as writes do happen. A result that finished in the meantime is dropped too: a cancelled poll returns `Pending`.
+- A task cancelled before its first poll never runs: no part of its body runs, and it ends without a result.
+- If cancelled while waiting on `spawn_blocking` or the `fs::*_async` built on it, work already started runs to completion in the background. Side effects such as writes do happen. A result that finished before the task polls again is kept by that poll, as below.
 - A poll in which the awaited future handed over a value (a message, a lock guard) keeps that value. The cancellation check looks at "whether the awaited coroutine left because of cancellation"; the value stays and the task leaves at the next `await` ([refs-lang 7.7.9](../../refs-lang/007-runtime/707-io-and-timer.md#779-cancellation)).
 - A task cancelled after passing its last cancellation point finishes normally and has a result. `await t` / `join` return that result.
 - `CancellationError` is received by whoever waits on a task that ended without a result. Waiting on such a task with `try await t.join()` throws `CancellationError`; waiting with `await t` panics.

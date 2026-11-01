@@ -62,7 +62,7 @@ Following the principle of minimizing reserved keywords in [Keywords](../001-lex
 | `task::spawn(fut)`      | Push the future onto the queue as a new task. Result `Task<T>`.          |
 | `task::yield_now()`     | Voluntary yield (`await`). Lets other ready tasks run once.              |
 | `task::sleep(d)`        | Move to the timer queue.                                                 |
-| `task::race([...])`     | The task that finishes first (`List<Task<T>>`, await).                   |
+| `task::race([...])`     | The task that finishes first; the others are cancelled (await).          |
 | `task::join([...])`     | Until all finish (`List<Task<T>>`, await).                               |
 | `task::timeout(d, t)`   | Time limit. If exceeded, `TimeoutError` at `try await`.                  |
 | `thread::spawn(f)`      | Create a new OS thread (1:1).                                            |

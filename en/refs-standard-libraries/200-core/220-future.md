@@ -117,7 +117,7 @@ impl<F: Future> IntoFuture for F {               // Task<T>: Future<Output = T> 
     type IntoFuture = F;
     fn into_future(self) -> F { self }
 }
-impl<T: Send> IntoFuture for JoinHandle<T> { type Output = T; type IntoFuture = Blocking<T>; ... }
+impl<T: Send> IntoFuture for JoinHandle<T> { type Output = T; type IntoFuture = Task<T>; ... }
 ```
 
 The impl for `JoinHandle<T>` joins the thread in the blocking pool (`task::spawn_blocking`, [2.18](218-task.md)), so only the awaiting task waits. It is legal only as long as that type does not implement `Future`, so that it does not overlap with the blanket impl ([refs-lang 2.9.5](../../refs-lang/002-types/209-impl.md#coherence)).

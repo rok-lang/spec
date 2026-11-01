@@ -117,7 +117,7 @@ impl<F: Future> IntoFuture for F {               // Task<T>: Future<Output = T> 
     type IntoFuture = F;
     fn into_future(self) -> F { self }
 }
-impl<T: Send> IntoFuture for JoinHandle<T> { type Output = T; type IntoFuture = Blocking<T>; ... }
+impl<T: Send> IntoFuture for JoinHandle<T> { type Output = T; type IntoFuture = Task<T>; ... }
 ```
 
 `JoinHandle<T>`의 impl은 블로킹 풀(`task::spawn_blocking`, [2.18](218-task.md))에서 스레드를 기다립니다. 그래서 기다리는 task만 기다립니다. 이 impl은 그 타입이 `Future`를 구현하지 않는 동안에만 블랭킷 impl과 겹치지 않습니다. 그래서 그동안에만 합법입니다([refs-lang 2.9.5](../../refs-lang/002-types/209-impl.md#일관성coherence)).

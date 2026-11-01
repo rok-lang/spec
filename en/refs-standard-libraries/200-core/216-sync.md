@@ -34,52 +34,56 @@ trait AtomicPrimitive { /* marker: i8/i16/i32/i64/isize, u8/u16/u32/u64/usize, b
 impl<T: AtomicPrimitive + PartialEq> Atomic<T> {
     const fn new(value: T) -> Atomic<T>;
 
-    fn load(self, ordering: AtomicOrdering = SeqCst) -> T;
-    fn store(self, value: T, ordering: AtomicOrdering = SeqCst);
-    fn swap(self, value: T, ordering: AtomicOrdering = SeqCst) -> T;
+    fn load(self, ordering: LoadOrdering = SeqCst) -> T;
+    fn store(self, value: T, ordering: StoreOrdering = SeqCst);
+    fn swap(self, value: T, ordering: UpdateOrdering = SeqCst) -> T;
     fn compare_exchange(
         self, current: T, new: T,
-        success: AtomicOrdering, failure: AtomicOrdering,
+        success: UpdateOrdering, failure: LoadOrdering,
     ) -> Result<T, T>;                  // the failure result is a value too, not an error
     fn compare_exchange_weak(
         self, current: T, new: T,
-        success: AtomicOrdering, failure: AtomicOrdering,
+        success: UpdateOrdering, failure: LoadOrdering,
     ) -> Result<T, T>;                  // the failure result is a value too, not an error
 
     // integers only
-    fn fetch_add(self, value: T, ordering: AtomicOrdering = SeqCst) -> T;
-    fn fetch_sub(self, value: T, ordering: AtomicOrdering = SeqCst) -> T;
-    fn fetch_and(self, value: T, ordering: AtomicOrdering = SeqCst) -> T;
-    fn fetch_or(self, value: T, ordering: AtomicOrdering = SeqCst) -> T;
-    fn fetch_xor(self, value: T, ordering: AtomicOrdering = SeqCst) -> T;
+    fn fetch_add(self, value: T, ordering: UpdateOrdering = SeqCst) -> T;
+    fn fetch_sub(self, value: T, ordering: UpdateOrdering = SeqCst) -> T;
+    fn fetch_and(self, value: T, ordering: UpdateOrdering = SeqCst) -> T;
+    fn fetch_or(self, value: T, ordering: UpdateOrdering = SeqCst) -> T;
+    fn fetch_xor(self, value: T, ordering: UpdateOrdering = SeqCst) -> T;
 }
 
 impl Atomic<i32> {
-    fn wait(self, expected: i32, timeout_ns: i64 = -1);   // waits while the value is expected, up to timeout_ns (< 0 means forever)
-    fn wait_timeout(self, expected: i32, timeout: Duration);   // wait, the limit a Duration (negative: forever)
+    fn wait(self, expected: i32);                          // waits while the value is expected
+    fn wait_timeout(self, expected: i32, timeout: Duration);   // wait, at most timeout (none left: returns at once)
     fn wake(self);                                         // wakes every thread waiting on this cell
 }
 ```
 
 `wait` may return spuriously, so the caller re-checks the condition (futex semantics).
 
-`load` and the `failure` ordering of `compare_exchange` / `compare_exchange_weak` are load orderings: passing `Release` or `AcqRel` there panics. `compare_exchange_weak` never fails spuriously in this implementation; it behaves as `compare_exchange`. `PartialEq` is required because `compare_exchange` compares the old value with `current`; `Ptr<T>` compares by address.
+`store` is an atomic store, not a swap. `compare_exchange_weak` never fails spuriously in this implementation; it behaves as `compare_exchange`. `PartialEq` is required because `compare_exchange` compares the old value with `current`; `Ptr<T>` compares by address.
 
-### `AtomicOrdering`
+### `LoadOrdering`, `StoreOrdering`, `UpdateOrdering`
 
-Atomic operations come in five memory-ordering strengths, with the following meanings.
+Atomic operations come in five memory-ordering strengths. Each kind of operation has its own ordering type, which holds only the orderings it can take, so an invalid ordering is a compile error rather than a runtime check (Swift Atomics' split).
 
 ```rok
-enum AtomicOrdering {
-    Relaxed,        // no synchronization (counters etc.)
-    Acquire,        // synchronization guaranteed after the load
-    Release,        // synchronization guaranteed before the store
-    AcqRel,         // both directions for RMW
-    SeqCst,         // global sequential consistency (default, safe)
-}
+enum LoadOrdering   { Relaxed, Acquire, SeqCst }                     // load; a failed compare-exchange
+enum StoreOrdering  { Relaxed, Release, SeqCst }                     // store
+enum UpdateOrdering { Relaxed, Acquire, Release, AcqRel, SeqCst }    // swap, fetch_*, a compare-exchange that succeeds
 ```
 
-This model is isomorphic to the atomic ordering model of C++ and Rust, and the default is the safe `SeqCst`. The name `AtomicOrdering` avoids a clash with the comparison `cmp::Ordering` under the implicit core glob; the variants (`Relaxed`, `Acquire`, `Release`, `AcqRel`, `SeqCst`) can be written without a prefix. The ordering argument must be a compile-time constant. Weak orderings should be used carefully and only where performance is critical.
+| Ordering  | Meaning                                         |
+|-----------|-------------------------------------------------|
+| `Relaxed` | no synchronization (counters etc.)              |
+| `Acquire` | synchronization guaranteed after the load       |
+| `Release` | synchronization guaranteed before the store     |
+| `AcqRel`  | both directions for a read-modify-write         |
+| `SeqCst`  | global sequential consistency (default, safe)   |
+
+This model is isomorphic to the atomic ordering model of C++ and Rust, and the default is the safe `SeqCst`. A load cannot release and a store cannot acquire: `a.store(x, Acquire)` is a compile error (`StoreOrdering` has no `Acquire`; a store takes `Relaxed`, `Release` or `SeqCst`). The failure ordering of a compare-exchange is a load ordering. The variants are written without a prefix: the parameter's type picks the enum ([refs-lang 2.4.8](../../refs-lang/002-types/204-enum.md#248-bare-variants-from-the-expected-type)). The three types are not in the prelude, and their names do not clash with the comparison `cmp::Ordering`. The ordering argument must be a compile-time constant. Weak orderings should be used carefully and only where performance is critical.
 
 ### Example
 

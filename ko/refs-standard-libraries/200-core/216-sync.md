@@ -34,52 +34,56 @@ trait AtomicPrimitive { /* marker: i8/i16/i32/i64/isize, u8/u16/u32/u64/usize, b
 impl<T: AtomicPrimitive + PartialEq> Atomic<T> {
     const fn new(value: T) -> Atomic<T>;
 
-    fn load(self, ordering: AtomicOrdering = SeqCst) -> T;
-    fn store(self, value: T, ordering: AtomicOrdering = SeqCst);
-    fn swap(self, value: T, ordering: AtomicOrdering = SeqCst) -> T;
+    fn load(self, ordering: LoadOrdering = SeqCst) -> T;
+    fn store(self, value: T, ordering: StoreOrdering = SeqCst);
+    fn swap(self, value: T, ordering: UpdateOrdering = SeqCst) -> T;
     fn compare_exchange(
         self, current: T, new: T,
-        success: AtomicOrdering, failure: AtomicOrdering,
+        success: UpdateOrdering, failure: LoadOrdering,
     ) -> Result<T, T>;                  // 실패 결과도 값, 에러가 아님
     fn compare_exchange_weak(
         self, current: T, new: T,
-        success: AtomicOrdering, failure: AtomicOrdering,
+        success: UpdateOrdering, failure: LoadOrdering,
     ) -> Result<T, T>;                  // 실패 결과도 값, 에러가 아님
 
     // 정수 전용
-    fn fetch_add(self, value: T, ordering: AtomicOrdering = SeqCst) -> T;
-    fn fetch_sub(self, value: T, ordering: AtomicOrdering = SeqCst) -> T;
-    fn fetch_and(self, value: T, ordering: AtomicOrdering = SeqCst) -> T;
-    fn fetch_or(self, value: T, ordering: AtomicOrdering = SeqCst) -> T;
-    fn fetch_xor(self, value: T, ordering: AtomicOrdering = SeqCst) -> T;
+    fn fetch_add(self, value: T, ordering: UpdateOrdering = SeqCst) -> T;
+    fn fetch_sub(self, value: T, ordering: UpdateOrdering = SeqCst) -> T;
+    fn fetch_and(self, value: T, ordering: UpdateOrdering = SeqCst) -> T;
+    fn fetch_or(self, value: T, ordering: UpdateOrdering = SeqCst) -> T;
+    fn fetch_xor(self, value: T, ordering: UpdateOrdering = SeqCst) -> T;
 }
 
 impl Atomic<i32> {
-    fn wait(self, expected: i32, timeout_ns: i64 = -1);   // 값이 expected 인 동안, 최대 timeout_ns (< 0 이면 무한) 대기
-    fn wait_timeout(self, expected: i32, timeout: Duration);   // wait, 한도를 Duration 으로 (음수면 무한)
+    fn wait(self, expected: i32);                          // 값이 expected 인 동안 대기
+    fn wait_timeout(self, expected: i32, timeout: Duration);   // wait, 최대 timeout 까지 (남은 시간이 없으면 바로 돌아옴)
     fn wake(self);                                         // 이 cell 에서 wait 중인 스레드를 모두 깨움
 }
 ```
 
 `wait`는 이유 없이 돌아올 수 있으므로 호출자가 조건을 다시 확인합니다(futex 의미).
 
-`load`와 `compare_exchange` / `compare_exchange_weak`의 `failure` ordering은 load ordering입니다. 이 자리에 `Release`나 `AcqRel`을 주면 panic이 일어납니다. 이 구현에서 `compare_exchange_weak`는 이유 없이 실패하지 않고 `compare_exchange`와 똑같이 동작합니다. `compare_exchange`가 이전 값을 `current`와 비교하므로 `PartialEq`가 필요합니다. `Ptr<T>`는 주소로 비교합니다.
+`store`는 swap이 아니라 atomic store입니다. 이 구현에서 `compare_exchange_weak`는 이유 없이 실패하지 않고 `compare_exchange`와 똑같이 동작합니다. `compare_exchange`가 이전 값을 `current`와 비교하므로 `PartialEq`가 필요합니다. `Ptr<T>`는 주소로 비교합니다.
 
-### `AtomicOrdering`
+### `LoadOrdering`, `StoreOrdering`, `UpdateOrdering`
 
-원자 연산은 메모리 순서 보장 강도에 따라 다섯 가지로 나뉩니다.
+원자 연산은 메모리 순서 보장 강도에 따라 다섯 가지로 나뉩니다. 연산 종류마다 그 연산이 받을 수 있는 ordering만 담은 타입이 따로 있어서, 맞지 않는 ordering은 실행 중 검사가 아니라 컴파일 에러가 됩니다(Swift Atomics의 구분).
 
 ```rok
-enum AtomicOrdering {
-    Relaxed,        // 동기화 없음 (counter 등)
-    Acquire,        // load 후 동기화 보장
-    Release,        // store 전 동기화 보장
-    AcqRel,         // RMW 시 양방향
-    SeqCst,         // 전역 순차 일관성 (default, 안전)
-}
+enum LoadOrdering   { Relaxed, Acquire, SeqCst }                     // load, 실패한 compare-exchange
+enum StoreOrdering  { Relaxed, Release, SeqCst }                     // store
+enum UpdateOrdering { Relaxed, Acquire, Release, AcqRel, SeqCst }    // swap, fetch_*, 성공한 compare-exchange
 ```
 
-이 모델은 C++와 Rust의 atomic ordering 모델과 같은 구조입니다. 기본값은 안전한 `SeqCst`입니다. 이름을 `AtomicOrdering`으로 정해서 암묵 core glob 아래에서 비교용 `cmp::Ordering`과 겹치지 않게 했습니다. 변형(`Relaxed`, `Acquire`, `Release`, `AcqRel`, `SeqCst`)은 접두 없이 쓸 수 있습니다. ordering 인자는 컴파일 타임 상수여야 합니다. 약한 ordering은 성능이 중요한 자리에서만 신중하게 쓰기를 권장합니다.
+| Ordering  | 의미                                   |
+|-----------|----------------------------------------|
+| `Relaxed` | 동기화 없음 (counter 등)               |
+| `Acquire` | load 후 동기화 보장                    |
+| `Release` | store 전 동기화 보장                   |
+| `AcqRel`  | read-modify-write 시 양방향            |
+| `SeqCst`  | 전역 순차 일관성 (default, 안전)       |
+
+이 모델은 C++와 Rust의 atomic ordering 모델과 같은 구조입니다. 기본값은 안전한 `SeqCst`입니다. load는 release할 수 없고 store는 acquire할 수 없습니다. `a.store(x, Acquire)`는 컴파일 에러입니다(`StoreOrdering`에는 `Acquire`가 없고, store는 `Relaxed`, `Release`, `SeqCst`를 받습니다). compare-exchange의 실패 ordering은 load ordering입니다. 변형은 접두 없이 씁니다. 매개변수의 타입이 enum을 정합니다([refs-lang 2.4.8](../../refs-lang/002-types/204-enum.md#248-기대-타입으로-정하는-맨-변형)). 세 타입은 prelude에 없고, 이름이 비교용 `cmp::Ordering`과 겹치지 않습니다. ordering 인자는 컴파일 타임 상수여야 합니다. 약한 ordering은 성능이 중요한 자리에서만 신중하게 쓰기를 권장합니다.
 
 ### 사용 예
 

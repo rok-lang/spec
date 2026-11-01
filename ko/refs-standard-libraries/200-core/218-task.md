@@ -13,15 +13,15 @@ fn block_on<F: Future>(f: F) -> F::Output;              // sync 진입점: execu
 fn try_block_on<T, E>(f: TryAsyncFuture<T, E>) throws (E) -> T;   // throw 하는 async body 용 block_on. 그 에러를 여기서 throw
 fn spawn<F: Future + Send>(f: F) -> Task<F::Output> where F::Output: Send;
 fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future, 현재 worker 에 고정 (OS 스레드가 아님)
-fn spawn_blocking<T: Send>(f: fn() -> T + Send) -> Blocking<T>;   // blocking 작업을 executor 밖 OS 스레드에서
-fn workers() -> usize;                                  // executor 안에서는 pool 크기, 밖에서는 1
+fn spawn_blocking<T: Send>(f: fn() -> T + Send) -> Task<T>;   // blocking 작업을 executor 밖 OS 스레드에서
+fn worker_count() -> usize;                               // executor 안에서는 pool 크기, 밖에서는 1
 fn cpu_count() -> usize;                                // 온라인 CPU 수 (pool 크기)
-async fn race<T>(tasks: List<Task<T>>) -> T;            // 첫 완료 task 결과
-fn select<F: Future>(futs: List<F>) -> SelectFuture<F>; // await: (index, 결과), spawn 하지 않음
+async fn race<I: IntoIterator<Item = Task<T>>, T>(tasks: I) -> T;   // 첫 완료 task 결과. 나머지는 취소
+fn select<I: IntoIterator<Item = F>, F: Future>(futs: I) -> SelectFuture<F>;   // await: (index, 결과), spawn 하지 않음
 fn id() -> TaskId;                                      // 현재 task 의 id, task 밖이면 panic
 fn current_id() -> TaskId | none;                       // 현재 task 의 id, task 밖이면 none
-async fn join<T>(tasks: List<Task<T>>) -> List<T>;      // 모두 완료 후
-async fn timeout<T>(dur: Duration, task: Task<T>) throws (TimeoutError) -> T;   // try await 에서 던짐
+async fn join<I: IntoIterator<Item = Task<T>>, T>(tasks: I) -> List<T>;   // 모두 완료 후
+async fn timeout<T>(dur: Duration, task: Task<T>) throws (TimeoutError) -> T;   // try await 에서 던짐. task 를 취소
 async fn sleep(dur: Duration);
 async fn sleep_until(when: Instant);
 async fn yield_now();                                   // await: 다른 ready task 에 한 번 양보
@@ -78,20 +78,23 @@ await task::yield_now();
 
 `spawn`은 클로저가 아니라 future를 받습니다. 그래서 `task::spawn(async { ... })`처럼 `async` 블록이나 `async fn` 호출 결과를 넘깁니다. `Send`가 아닌 future는 `spawn_local`로 현재 워커에서 실행합니다. `join` / `race` / `timeout`은 `await`로 기다려 결과를 받습니다.
 
-`race`와 `timeout`은 아무것도 취소하지 않습니다. `race`에서 진 task와 시간이 다 된 `timeout`의 task는 끝까지 계속 실행되고, 그 결과는 버려집니다. 그 일이 더는 필요 없으면 `Task` 핸들을 남겨 두었다가 `cancel`([2.18.4](#2184-협력적-취소-taskcancel))을 부릅니다. 아래 `select`는 task가 아니라 future를 실행하고, 남겨 둔 future를 취소합니다.
+`join`, `race`, `select`는 task나 future의 `IntoIterator`를 받습니다. 목록 리터럴도 됩니다.
+
+`race`와 `timeout`은 진 쪽을 취소합니다. `race`는 처음 끝난 task를 보면(목록 순서로 보므로 동시에 끝나면 앞의 task가 이깁니다) 받은 나머지 task마다 `cancel`([2.18.4](#2184-협력적-취소-taskcancel))을 부릅니다. `timeout`은 시간이 다 되면 그 task를 취소하고 `TimeoutError`를 던집니다. 그러면 진 task는 `cancel`로 취소한 task와 같습니다.
+
+- 취소 지점을 지났다면 `is_cancelled()`는 true이고, `try await t.join()`은 `CancellationError`를 던지고, 그냥 `await t`는 원인을 밝히는 메시지로 panic합니다: ``awaited a task cancelled by `task::race`; use `try await t.join()` ``(또는 `task::timeout`).
+- 이미 끝났거나 다른 취소 지점을 지나지 않고 끝났다면 `await t`와 `join`은 그 task 자신의 값을 돌려줍니다. 진 task가 `race`의 결과를 내는 일은 없습니다.
+
+둘 다 진 task의 정리를 기다리지 않습니다. `select`처럼 취소를 요청하면 바로 돌아옵니다. 진 task의 정리가 끝나야 하는 코드는 `try await loser.join()`을 씁니다. 이것은 정리가 끝난 뒤에 완료됩니다. `race`나 `timeout`을 기다리는 task를 취소하면 거기에 넘긴 task도 취소됩니다. 그 `Task`의 복사본을 다른 곳에서 들고 있으면 그 취소가 보입니다. task 없이 부른 `race`는 panic합니다.
 
 ### `spawn_blocking`: 블로킹 작업
 
-```rok
-struct Blocking<T> { /* 결과 슬롯 */ }
-impl<T> Future for Blocking<T> { type Output = T; ... }
-```
-
-`spawn_blocking(f)`는 `f`를 실행기(executor)의 워커가 아니라 블로킹 풀의 OS 스레드에서 실행합니다. 그리고 그 결과로 끝나는 future를 돌려줍니다. readiness로 기다릴 수 없는 블로킹 시스템 호출(일반 파일 I/O 등, [stdlib 3.1.4a](../300-std/301-fs.md#314a-비동기-파일-io_async))을 task 안에서 기다릴 때 씁니다.
+`spawn_blocking(f)`는 `f`를 실행기(executor)의 워커가 아니라 블로킹 풀의 OS 스레드에서 실행합니다. 그리고 그 결과로 끝나는 `Task<T>`를 돌려줍니다. `spawn`이 돌려주는 것과 같은 핸들입니다(2.18.2). readiness로 기다릴 수 없는 블로킹 시스템 호출(일반 파일 I/O 등, [stdlib 3.1.4a](../300-std/301-fs.md#314a-비동기-파일-io_async))을 task 안에서 기다릴 때 씁니다.
 
 - `f`는 첫 poll이 아니라 **호출하는 즉시** 시작합니다. 풀이 가득 차 있으면 먼저 큐에 들어갑니다.
 - 블로킹 풀은 프로세스 전체에 하나입니다. 필요할 때 스레드를 늘리고(상한 있음), 한동안 일이 없는 스레드는 끝냅니다. 작업은 들어온 순서(FIFO)로 처리합니다. 상한은 스레드 512개이고, 상한에 닿으면 작업을 큐에 쌓습니다. 10초 동안 일이 없는 스레드는 끝납니다. 작업 하나는 쉬고 있는 스레드 하나에 넘깁니다.
-- `await`로 기다리던 task가 취소되어도 `f`는 끝까지 실행되고, 결과만 버려집니다.
+- `f`에는 취소 지점이 없습니다. 풀 스레드가 작업을 가져가기 전에 `cancel()`하면 `f`는 실행되지 않고 `join`은 `CancellationError`를 던집니다. 일단 `f`가 실행되면 끝까지 가고, `await` / `join`은 그 결과를 돌려줍니다.
+- `await`로 기다리던 task가 취소되면 다른 `Task`를 기다릴 때처럼 그 `await`를 떠납니다. 블로킹 task는 취소되지 않고, 결과는 핸들에 남습니다.
 
 ```rok
 let n = await task::spawn_blocking(|| heavy_checksum(path));
@@ -126,7 +129,7 @@ task::spawn(make());                       // ERROR: helper 가 만든 future �
 ### `select`: 먼저 끝나는 future
 
 ```rok
-fn select<F: Future>(futs: List<F>) -> SelectFuture<F>;   // Output = (usize, F::Output)
+fn select<I: IntoIterator<Item = F>, F: Future>(futs: I) -> SelectFuture<F>;   // Output = (usize, F::Output)
 
 let (i, v) = await task::select([fetch_a(), fetch_b()]);
 ```
@@ -137,7 +140,7 @@ let (i, v) = await task::select([fetch_a(), fetch_b()]);
 - 하나가 끝나면 이미 시작한 나머지는 모두 취소됩니다. 취소된 상태로 한 번 더 폴링되어 `finally` / `using`이 실행됩니다(2.18.4). 정리 중에 `await`하는 진 future는 따로 task가 되어 백그라운드에서 정리를 마칩니다. `select`는 그것을 기다리지 않습니다. 한 번도 폴링되지 않은 future는 실행되지 않습니다.
 - 진 future가 만든 깨우기 등록(타이머, parking)은 모두 풀립니다.
 - 기다리는 task가 취소되면 자식 future도 취소됩니다.
-- 목록이 비어 있으면 panic이 일어납니다.
+- future가 하나도 없으면 panic이 일어납니다.
 - future는 모두 한 타입이어야 합니다. 결과 타입이 다르면 `async { Msg::A(await a) }`처럼 감쌉니다.
 
 `select`와 `sleep`으로 타임아웃을 만들 수도 있습니다.
@@ -233,7 +236,8 @@ t.cancel();              // 협력적 신호. task 가 cancellation point 에서
 - 블로킹 시스템 호출은 취소 지점이 아닙니다. task는 그 호출이 끝난 뒤 다음 `await`에서 떠납니다.
 - 소켓 I/O(`*_async`), `readable` / `writable`, `sleep` / `timeout`, `lock_async`, `recv_async` / `send_async`에서 기다리던 task는 취소되면 깨어나고 다음 `await`에서 떠납니다.
 - task가 끝나면 그 task의 깨우기 등록(I/O readiness, 타이머, park한 대기)은 모두 풀립니다.
-- `spawn_blocking`이나 그 위의 `fs::*_async`를 기다리다 취소되면 이미 시작된 작업은 백그라운드에서 끝까지 실행되고 결과만 버려집니다. 쓰기 같은 부수 효과는 일어납니다. 그 사이에 끝난 결과도 버립니다. 취소된 poll은 `Pending`을 돌려줍니다.
+- 첫 poll 전에 취소된 task는 실행되지 않습니다. 본문은 조금도 실행되지 않고, 결과 없이 끝납니다.
+- `spawn_blocking`이나 그 위의 `fs::*_async`를 기다리다 취소되면 이미 시작된 작업은 백그라운드에서 끝까지 실행됩니다. 쓰기 같은 부수 효과는 일어납니다. task가 다시 poll되기 전에 끝난 결과는 아래처럼 그 poll이 지킵니다.
 - 기다리던 future가 값(메시지, 락 guard)을 넘겨준 poll은 그 값을 지킵니다. 취소 검사는 "기다린 코루틴이 취소 때문에 떠났는가"를 봅니다. 값은 남고, task는 다음 `await`에서 떠납니다([refs-lang 7.7.9](../../refs-lang/007-runtime/707-io-and-timer.md#779-취소)).
 - 마지막 취소 지점을 지난 뒤 취소된 task는 정상적으로 끝나고 결과가 있습니다. `await t` / `join`은 그 결과를 돌려줍니다.
 - `CancellationError`는 결과 없이 끝난 task를 기다리는 쪽이 받습니다. 그런 task를 `try await t.join()`으로 기다리면 `CancellationError`가 던져집니다. `await t`로 기다리면 panic이 일어납니다.

@@ -62,7 +62,7 @@ Global injector:
 | `task::spawn(fut)`      | future를 새 task로 큐에 push. 결과 `Task<T>`.                            |
 | `task::yield_now()`     | 자발적 양보 (`await`). 다른 ready task를 한 번 실행함.                   |
 | `task::sleep(d)`        | timer 큐로 이동.                                                         |
-| `task::race([...])`     | 먼저 끝나는 task (`List<Task<T>>`, await).                               |
+| `task::race([...])`     | 먼저 끝나는 task. 나머지는 취소 (await).                                 |
 | `task::join([...])`     | 모두 끝날 때까지 (`List<Task<T>>`, await).                               |
 | `task::timeout(d, t)`   | 시간 제한. 초과하면 `try await`에서 `TimeoutError`.                      |
 | `thread::spawn(f)`      | 새 OS 스레드 만들기 (1:1).                                               |
