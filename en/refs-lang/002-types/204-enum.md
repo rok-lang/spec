@@ -136,3 +136,43 @@ The three forms compare as follows.
 | `union`           | Untagged; the same memory read as several types | No  | Yes (intentional overlap)          |
 
 The detailed differences are defined in each container's document.
+
+## 2.4.8. Bare variants from the expected type
+
+A variant is written with its enum's path (`Ordering::Less`, `Shape::Circle`), or bare when the position expects a type that picks the enum. A bare name that ordinary lookup does not resolve ([5.7.1](../005-modules/507-paths.md#571-starting-identifier-of-a-path)) names the variant `V` when the expected type is an enum `E` with a variant `V`, or a sum type with exactly one enum member that has a variant `V`. This holds for any enum, the user's and the standard library's alike, with no `use`.
+
+The expected type comes from:
+
+- a `let` with a type;
+- a parameter, also of a method, and a parameter's default value;
+- `return` and a function's tail expression;
+- a struct field in a struct literal;
+- an element of a list or dict literal whose element type is known;
+- the right-hand side of `==` / `!=` whose left-hand side has type `E`;
+- a pattern of `match`, `if let` and `let` on a scrutinee of type `E` ([3.11](../003-expressions/311-patterns.md)).
+
+```rok
+enum Shape { Circle, Square, Tri(i32) }
+
+fn area(s: Shape = Square) -> i32 {
+    match s { Circle => 1, Square => 2, Tri(n) => n }
+}
+
+fn main() {
+    let s: Shape = Tri(3);
+    let o: Ordering = Less;
+    let n = Atomic::new(0);
+    n.store(1, SeqCst);                     // AtomicOrdering::SeqCst
+    let lt = 1.cmp(2) == Less;
+    println(f"{area()} {area(Circle)} {lt}");
+}
+```
+
+Locals, items and `use`s come first: the expected type is a fallback only for a name nothing else resolves, so a later variant of a core enum never takes over a user's name. A generic enum's instance is the expected type's (`Ok(1)` in a `-> Result<i32, str>` function is `Result<i32, str>::Ok`).
+
+With no expected type, a bare variant is an error that names it by its shortest path:
+
+```rok
+let o = Less;   // ERROR: `Less` is not in scope: it is the variant `Ordering::Less`
+                // help: write `Ordering::Less`
+```

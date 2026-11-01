@@ -305,7 +305,7 @@ fn assert_eq<T: PartialEq + Debug>(left: T, right: T, msg: str = "") -> ();
 fn assert_ne<T: PartialEq + Debug>(left: T, right: T, msg: str = "") -> ();
 ```
 
-core prelude로 어디서든 쓸 수 있습니다. 조건이 거짓이면 panic이 일어납니다(종료 코드 101). 메시지는 다음과 같으며, `msg`가 비어 있지 않으면 `: msg`를 붙입니다.
+prelude에 들어 있어 어디서든 쓸 수 있습니다. 조건이 거짓이면 panic이 일어납니다(종료 코드 101). 메시지는 다음과 같으며, `msg`가 비어 있지 않으면 `: msg`를 붙입니다.
 
 ```
 assertion failed[: msg]

@@ -119,7 +119,7 @@ trait Stream {
 반환 타입은 [2.7 iter](207-iter.md)의 어댑터처럼 이름 있는 구체 struct입니다. 모두 `rok::core::stream` 모듈에 있습니다(`stream::Map<S, U>`, `stream::Filter<S>` 등). `Map<Self, U>`는 `Stream<Item = U>`를 구현합니다. `Buffered<Self>` / `BufferUnordered<Self>`는 `Stream<Item = Item::Output>`을 구현합니다. 이 둘은 future 자체가 아니라 future의 결과를 내보냅니다. 나머지는 `Stream<Item = Item>`을 구현합니다.
 
 > [!NOTE]
-> `stream::Map` / `Filter` / `Take` / `Skip` / `Zip`은 `iter::Map` 등과 이름이 같습니다. 묵시 `use rok::core::**;` 아래에서는 맨 이름 `Map`이 모호합니다([refs-lang 5.5.6](../../refs-lang/005-modules/505-use.md)). 타입을 적어야 할 때는 `stream::Map`처럼 경로를 쓰거나 명시 `use`로 가져옵니다.
+> `stream::Map` / `Filter` / `Take` / `Skip` / `Zip`은 `iter::Map` 등과 이름이 같습니다. 둘 다 [prelude](../000-meta/002-import.md)에 없습니다. 타입을 적어야 할 때는 `stream::Map`처럼 경로를 쓰거나 명시 `use`로 가져옵니다.
 
 이 가운데 `buffer_unordered(n)`과 `buffered(n)`은 동시성을 제어합니다. 둘 다 future N개를 동시에 처리합니다.
 
@@ -176,7 +176,7 @@ fn select<S1: Stream, S2: Stream>(a: S1, b: S2) -> Select<S1, S2>;  // Stream<It
 `merge`는 두 스트림을 하나로 합칩니다. `zip`은 두 스트림의 원소를 쌍으로 묶습니다. `select`는 두 스트림을 경쟁시켜 먼저 준비된 쪽을 가져옵니다.
 
 > [!NOTE]
-> `select`는 `task::select`와 이름이 같습니다. 묵시 `use rok::core::**;` 아래에서는 맨 이름이 모호합니다([refs-lang 5.5.6](../../refs-lang/005-modules/505-use.md#556-glob--재귀-glob의-충돌)). `stream::select`로 적거나 가져와서(import) 씁니다.
+> `select`는 `task::select`와 이름이 같습니다. 둘 다 [prelude](../000-meta/002-import.md)에 없습니다. `stream::select`로 적거나 가져와서(import) 씁니다.
 
 ## 2.8.8a. `AsyncStream<T>` / `TryAsyncStream<T, E>`: 비동기 스트림의 값
 

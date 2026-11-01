@@ -102,7 +102,7 @@ This separation applies directly the principle "syntax belongs to the language, 
 To give a type dot-prefixed operations, implement the **Dot** trait family the same way as for ordinary operators.
 
 ```rok
-impl DotAdd for MyVector {
+impl ops::DotAdd for MyVector {
     type Output = MyVector;
     fn dot_add(self, rhs: MyVector) -> MyVector { ... }
 }

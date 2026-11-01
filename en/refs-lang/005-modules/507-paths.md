@@ -29,13 +29,14 @@ The first identifier of a path is one of:
 
 `self::` is not a path starting point. Children and items of the same module are reachable by ordinary identifiers (`child::item`).
 
-Name resolution does not implicitly search ancestor modules (exception: `extern` functions, [5.9.4](509-extern-block.md#name-space-of-extern-functions)). An ordinary identifier is looked up only among the current module's items, child modules, and names imported with `use` (including the implicit `use rok::core::**`). Items of the parent or higher modules must be named with `sup::` or imported with `use`.
+Name resolution does not implicitly search ancestor modules (exception: `extern` functions, [5.9.4](509-extern-block.md#name-space-of-extern-functions)). An ordinary identifier is looked up only among the current module's items, child modules, and names imported with `use` (including the implicit `use rok::core::prelude::*`). Items of the parent or higher modules must be named with `sup::` or imported with `use`.
 
 Lookup order is as follows; the first match wins.
 
 1. Items and child modules of the current module
 2. `use`s of the current module. Named imports take precedence over globs (`*`, `**`).
-3. The implicit `use rok::core::**`
+3. The implicit `use rok::core::prelude::*` (the standard library's own modules: `use rok::core::**`)
+4. For a bare name in a position that expects an enum type, a variant of that enum ([2.4.8](../002-types/204-enum.md#248-bare-variants-from-the-expected-type))
 
 Functions, generic or not, share a single value name space. The nearest declaration therefore wins regardless of kind (a non-generic `max` in the current module hides the generic `max` of core).
 
@@ -87,7 +88,7 @@ rok::std::fs::File
 
 The three packages are separate archives the compiler links automatically at build time, handled by the `-NL` mechanism distinct from user package dependencies. In source, `rok` merely presents them under one path root; the build system separates the package boundaries.
 
-`rok::bare` and `rok::std` are not automatically imported and require an explicit import. The `rok::core` area, by contrast, is visible automatically through the implicit `use rok::core::**;` defined in [5.5 use](505-use.md).
+`rok::bare` and `rok::std` are not automatically imported and require an explicit import. The `rok::core` prelude, by contrast, is visible automatically through the implicit `use rok::core::prelude::*;` defined in [5.5 use](505-use.md).
 
 ## 5.7.5. Starting with an ordinary identifier
 

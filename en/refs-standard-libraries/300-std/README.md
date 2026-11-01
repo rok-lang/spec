@@ -12,7 +12,7 @@ Upward, it depends on `rok` and `unsafe`. Downward, user code stands in the depe
 
 ## User import policy
 
-The implicit `use rok::core::**;` does not include std items; `rok::std::*` requires a separate explicit import. Because availability differs by target, the design makes users express platform dependencies **explicitly**.
+The implicit prelude does not include std items; `rok::std::*` requires a separate explicit import. Because availability differs by target, the design makes users express platform dependencies **explicitly**.
 
 ```rok
 use rok::std::fs;

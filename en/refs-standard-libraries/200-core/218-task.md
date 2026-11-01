@@ -2,7 +2,7 @@
 
 The `rok::core::task` module provides a cooperative task API running on the M:N scheduler. Inspired by Rust Tokio and Go goroutines, tasks are implemented as **stackless coroutines** on a work-stealing scheduler.
 
-Because `use rok::core::**;` applies implicitly, `task::spawn`, `task::race`, `Task<T>` and the rest are usable without any import; the module prefix `task::` is still kept. Where code should be explicitly marked as asynchronous, `use rok::core::task::*;` is recommended, to make the asynchronous flow visibly separate.
+The module `task` and `Task<T>` are in the [prelude](../000-meta/002-import.md), so `task::spawn`, `task::race`, `Task<T>` and the rest are usable without any import; the module prefix `task::` is still kept. Where code should be explicitly marked as asynchronous, `use rok::core::task::*;` is recommended, to make the asynchronous flow visibly separate.
 
 ## 2.18.1. Core API
 

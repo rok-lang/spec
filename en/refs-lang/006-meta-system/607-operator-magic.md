@@ -151,7 +151,7 @@ A registration through attributes such as `#[infix]` takes effect only where the
 
 This rule fits library isolation: a user-defined operator trait defined in a package works only in code that imports that package.
 
-The standard library's operator traits (`Add`, `Sub`, `Mul`, ...) live in `rok::core::ops`. Since the compiler implicitly applies `use rok::core::**;` to every source ([standard library tiers](../000-meta/005-standard-libraries-tiers.md)), arithmetic and comparison expressions work without a separate import.
+The standard library's operator traits (`Add`, `Sub`, `Mul`, ...) live in `rok::core::ops`. An operator needs no trait name in scope: the mappings of `rok::core` traits apply in every source, so arithmetic and comparison expressions work without a separate import. Naming the trait itself, as in `impl ops::Add for V`, goes through the prelude module `ops` or a `use` ([stdlib 0.2.3](../../refs-standard-libraries/000-meta/002-import.md)).
 
 ## 6.7.9. User-defined operators
 

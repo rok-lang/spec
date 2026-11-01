@@ -44,7 +44,7 @@ let x: int = int::from(42i32);   // i32 → int (lossless)
 
 ### import
 
-`From`은 [묵시 `use rok::core::**;`](../000-meta/002-import.md) 덕분에 바로 쓸 수 있습니다. 따로 `use`를 선언하지 않아도 됩니다.
+`From`은 [prelude](../000-meta/002-import.md)에 들어 있으므로 바로 쓸 수 있습니다. 따로 `use`를 선언하지 않아도 됩니다.
 
 ## 2.11.3. `Into` 트레잇: `From`의 반대 방향
 

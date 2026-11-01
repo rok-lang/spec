@@ -136,3 +136,43 @@ C ABI 호환이 필요하면 `#[repr(...)]` 속성으로 표현을 강제할 수
 | `union`           | 비태그. 같은 메모리를 여러 형으로 해석 | 없음 | 예 (의도한 겹침)                |
 
 자세한 차이는 각 컨테이너 문서에서 정의합니다.
+
+## 2.4.8. 기대 타입으로 정하는 맨 변형
+
+변형은 enum의 경로와 함께 쓰거나(`Ordering::Less`, `Shape::Circle`), 그 자리가 기대하는 타입이 enum을 정해 줄 때는 맨 이름으로 씁니다. 보통의 이름 찾기([5.7.1](../005-modules/507-paths.md#571-경로의-시작-식별자))로 해소되지 않는 맨 이름은, 기대 타입이 변형 `V`를 가진 enum `E`이거나 변형 `V`를 가진 enum 멤버가 정확히 하나인 합 타입일 때 그 변형 `V`를 가리킵니다. 사용자의 enum이든 표준 라이브러리의 enum이든 똑같이 `use` 없이 적용됩니다.
+
+기대 타입은 다음에서 옵니다.
+
+- 타입을 적은 `let`
+- 매개변수(메서드 포함)와 매개변수의 기본값
+- `return`과 함수의 꼬리 식
+- 구조체 리터럴의 필드
+- 원소 타입을 아는 리스트와 딕셔너리 리터럴의 원소
+- 왼쪽이 `E` 타입인 `==` / `!=`의 오른쪽
+- `E` 타입 검사 대상에 대한 `match`, `if let`, `let`의 패턴([3.11](../003-expressions/311-patterns.md))
+
+```rok
+enum Shape { Circle, Square, Tri(i32) }
+
+fn area(s: Shape = Square) -> i32 {
+    match s { Circle => 1, Square => 2, Tri(n) => n }
+}
+
+fn main() {
+    let s: Shape = Tri(3);
+    let o: Ordering = Less;
+    let n = Atomic::new(0);
+    n.store(1, SeqCst);                     // AtomicOrdering::SeqCst
+    let lt = 1.cmp(2) == Less;
+    println(f"{area()} {area(Circle)} {lt}");
+}
+```
+
+지역 변수, 항목, `use`가 먼저입니다. 기대 타입은 다른 무엇으로도 해소되지 않는 이름에만 쓰는 대체 규칙이므로, 나중에 core enum에 변형이 생겨도 사용자의 이름을 빼앗지 않습니다. 제네릭 enum의 인스턴스는 기대 타입의 것입니다(`-> Result<i32, str>` 함수 안의 `Ok(1)`은 `Result<i32, str>::Ok`).
+
+기대 타입이 없으면 맨 변형은 에러이고, 에러는 그 변형을 가장 짧은 경로로 알려 줍니다.
+
+```rok
+let o = Less;   // ERROR: `Less` is not in scope: it is the variant `Ordering::Less`
+                // help: write `Ordering::Less`
+```

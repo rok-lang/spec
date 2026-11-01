@@ -40,19 +40,18 @@ let p: CPtr<u8> = unsafe { alloc(layout) };    // null on failure (see 1.4 alloc
 
 The middle, foundation tier, `rok::core`, holds modules such as `rok::core::collections`, `rok::core::iter` and `rok::core::ops`, and depends on `rok::bare` only internally. Nearly every abstraction needed for everyday use of the language (numeric types, arithmetic traits,
 iter, collections, fmt, conversion, sync, task, future, etc.) is gathered in this tier. In user code,
-**`use rok::core::**;` is applied implicitly and automatically** (see [0.2 Import policy](002-import.md)
+**its prelude, `use rok::core::prelude::*;`, is applied implicitly and automatically** (see [0.2 Import policy](002-import.md)
 for the detailed policy), so it can be used directly without any import.
 
 ```rok
-let xs: List<i32> = [1, 2, 3];        // List used directly, brought in by the implicit use rok::core::**;
+let xs: List<i32> = [1, 2, 3];        // List used directly, brought in by the prelude
 let r = a + b;                         // Add trait automatic
 let m = Mutex::new(0);                 // sync::Mutex automatic too
 task::spawn(async { /* ... */ });              // task module automatic too
 ```
 
-Note that there is no separate `rok::core::prelude` module for this automatic application.
-The `**` recursive glob itself plays the role of the prelude, leaving no room for an additional
-indirection.
+The prelude is a fixed list of names ([0.2.3](002-import.md)); the rest of `rok::core` is named
+through a prelude module (`task::sleep`, `ops::Add`) or imported.
 
 ### `rok::std`
 
@@ -84,7 +83,7 @@ either: once a low-level tier starts depending on a high-level one, the layering
 meaning. Finally, circular dependencies among individual `rok::std::*` modules are forbidden, so
 each std module remains a unit that can be built independently.
 
-The rule governs what a tier writes: its `use`s and paths. The implicit `use rok::core::**` still supplies every tier the language's vocabulary (the 0.4 slot items, `List`, `Slice`, `Result`, `panic`) that bare's own signatures use (1.6, 1.7).
+The rule governs what a tier writes: its `use`s and paths. Each tier's internal `use rok::core::**` still supplies it the language's vocabulary (the 0.4 slot items, `List`, `Slice`, `Result`, `panic`) that bare's own signatures use (1.6, 1.7).
 
 ## 0.1.3. Build units
 

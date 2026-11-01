@@ -248,7 +248,6 @@ The default level of every lint is `warn`, except `nan_comparison` and `self_ass
 | `fstring_g_precision`    | 0.1.6   | `{x:.3g}` on a number, which prints like `{x:.3}` until `g` becomes the general format in 0.2.0 ([1.7.3](../001-lexical/107-string-literals.md#173-format-strings)) |
 | `discarded_ref_write`    | 0.1.6   | A `ref self` method called on an element or a `Dict` entry: there is no place to write back to ([4.7](../004-functions/407-ref-keyword.md)) |
 | `trait_not_in_scope`     | 0.1.6   | A method from a trait outside `rok::` that is neither defined nor `use`d in the module ([3.5](../003-expressions/305-member-access-and-method-call.md)) |
-| `implicit_core_fn`       | 0.1.6   | A bare call of a core module's free function (`sleep`) that only the implicit `use rok::core::**` resolves ([stdlib 0.2.3](../../refs-standard-libraries/000-meta/002-import.md)); write `task::sleep(..)` |
 | `redundant_cast`         | 0.1.0   | `x as T` where `x` is already `T`                                   |
 | `redundant_clone`        | 0.1.0   | `.clone()` on a value of a primitive type                           |
 | `non_snake_case`         | 0.1.0   | Function, local variable, parameter, or module names not in snake_case |
@@ -367,7 +366,7 @@ The compiler also recognizes the following attributes. Each is specified where i
 | Attribute                      | Placement                     | Meaning |
 |--------------------------------|-------------------------------|---------|
 | `#[path("file.rok")]`          | `mod name;`                   | Loads the module from that file instead of `name.rok` ([5.4.6](../005-modules/504-modules.md#546-custom-paths-path)) |
-| `#![no_implicit_rok]`          | file (inner)                  | Turns off the implicit `use rok::core::**;` for that file ([stdlib 0.2.5](../../refs-standard-libraries/000-meta/002-import.md#025-opting-out---no_implicit_rok)) |
+| `#![no_implicit_rok]`          | file (inner)                  | Turns off the implicit `use rok::core::prelude::*;` for that file ([stdlib 0.2.6](../../refs-standard-libraries/000-meta/002-import.md#026-opting-out---no_implicit_rok)) |
 | `#[export_name("sym")]`        | function                      | Exports the function under the unmangled symbol `sym` (a wasm export of that name on wasm32); a root for unreachable-function elimination ([9.5.8](../009-tools/905-symbol-mangling.md)) |
 | `#[no_mangle]`                 | function                      | Exempts the function from the naming and unused-function lints. It does not change the symbol; use `#[export_name]` for that |
 | `#[wit::export]`               | function, `pub struct`        | Implements a WIT export: a function, or a resource ([stdlib 1.8](../../refs-standard-libraries/100-bare/108-wit.md)) |

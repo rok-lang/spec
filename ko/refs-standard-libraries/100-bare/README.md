@@ -16,7 +16,7 @@ let layout = try! Layout::array::<u8>(1024);
 let p: CPtr<u8> = unsafe { alloc(layout) };    // 실패 시 null
 ```
 
-묵시적으로 적용되는 `use rok::core::**;`에는 unsafe 항목이 들어 있지 않습니다. 따라서 `rok::bare::*`는 따로 명시적으로 가져와야 합니다. 그래서 사용자가 위험 영역에 들어가는 지점이 코드에 드러납니다.
+묵시적으로 적용되는 prelude에는 unsafe 항목이 들어 있지 않습니다. 따라서 `rok::bare::*`는 따로 명시적으로 가져와야 합니다. 그래서 사용자가 위험 영역에 들어가는 지점이 코드에 드러납니다.
 
 ## 모듈 목차
 

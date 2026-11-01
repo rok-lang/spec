@@ -2,7 +2,7 @@
 
 The `rok::core::sync` module defines the primitive traits and types for safe access to shared state. They are used to share data between multiple tasks or threads under Rok's GC and M:N scheduler.
 
-Because `use rok::core::**;` applies implicitly, `Atomic`, `Mutex`, `RwLock` and `Cell` are usable without any import. Where concurrent code should be visibly marked as such, a narrow import like the following is recommended.
+`Atomic`, `Mutex`, `RwLock` and `Cell` are in the [prelude](../000-meta/002-import.md) and usable without any import; `AtomicOrdering` is not, but its variants resolve from the parameter type (`x.load(SeqCst)`). Where concurrent code should be visibly marked as such, a narrow import like the following is recommended.
 
 ```rok
 use rok::core::sync::{Atomic, Mutex, RwLock, Once, Condvar, Cell};

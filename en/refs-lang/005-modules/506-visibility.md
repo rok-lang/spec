@@ -97,7 +97,7 @@ The inclusion for `pub(sub)` is meaningful only among the related modules, that 
 
 ## 5.6.7. Glob imports and visibility
 
-A glob import (`*`, `**`, including the implicit `use rok::core::**`) imports only items visible from the importing module. An item is pulled in only if its reach includes that module, and invisible items neither hide names nor cause conflicts. There is no per-item glob-block marker; to narrow the external surface, create a separate `prelude` module and curate it with `pub use`.
+A glob import (`*`, `**`, including the implicit `use rok::core::prelude::*`) imports only items visible from the importing module. An item is pulled in only if its reach includes that module, and invisible items neither hide names nor cause conflicts. There is no per-item glob-block marker; to narrow the external surface, create a separate `prelude` module and curate it with `pub use`.
 
 ## 5.6.8. Visibility of `struct` fields
 

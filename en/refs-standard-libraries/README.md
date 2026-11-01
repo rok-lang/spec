@@ -45,7 +45,7 @@ rok::std   (target-dep; uses rok::core + rok::bare)
 Library-wide policies and tables.
 
 - [0.1. The 3-tier model](000-meta/001-tier-model.md)
-- [0.2. Import policy (implicit `use rok::core::**;`)](000-meta/002-import.md)
+- [0.2. Import policy (the prelude `rok::core::prelude`)](000-meta/002-import.md)
 - [0.3. Intrinsic mechanism - the compiler ↔ standard library boundary](000-meta/003-intrinsics.md)
 - [0.4. `#[lang]` slot mapping table](000-meta/004-lang-slot-table.md)
 - [0.5. Notation](000-meta/005-notation.md)
@@ -65,7 +65,7 @@ Low-level / dangerous area. Explicit import required.
 
 ### 2. Rok - [200-core/](200-core/README.md)
 
-Safe area. All targets. `use rok::core::**;` applied implicitly (no separate prelude module).
+Safe area. All targets. Its prelude, `use rok::core::prelude::*;`, applied implicitly.
 
 - 2.1. [Numeric types (`int`, `float`, auto-promote)](200-core/201-numbers.md)
 - 2.2. [Niche wrappers (`NonZero`, `NonNan`, `Finite`, `Positive`)](200-core/202-non-zero.md)

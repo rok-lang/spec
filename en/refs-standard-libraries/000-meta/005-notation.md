@@ -60,7 +60,7 @@ Saturating / checked / wrapping variants are exposed as separate methods (`satur
 
 ## 0.5.5. Examples
 
-Each trait and method is accompanied by one or more working examples. Examples assume the implicit `use rok::core::**;` is in effect, so they must be code that runs as is without any imports.
+Each trait and method is accompanied by one or more working examples. Examples assume the implicit prelude import, `use rok::core::prelude::*;`, is in effect, so they must be code that runs as is without any imports.
 
 ```rok
 let a: i32 = 5;

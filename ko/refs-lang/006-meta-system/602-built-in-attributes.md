@@ -248,7 +248,6 @@ fn strict_zone() { ... }
 | `fstring_g_precision`    | 0.1.6   | 수에 쓴 `{x:.3g}`. 0.2.0에서 `g`가 일반 형식이 되기 전까지는 `{x:.3}`처럼 출력됨 ([1.7.3](../001-lexical/107-string-literals.md#173-형식-문자열)) |
 | `discarded_ref_write`    | 0.1.6   | 원소나 `Dict` 항목에 `ref self` 메서드를 부름: 되쓸 자리가 없음 ([4.7](../004-functions/407-ref-keyword.md)) |
 | `trait_not_in_scope`     | 0.1.6   | `rok::` 밖의 트레잇 중 그 모듈에서 정의하지도 `use`로 가져오지도 않은 트레잇의 메서드 ([3.5](../003-expressions/305-member-access-and-method-call.md)) |
-| `implicit_core_fn`       | 0.1.6   | 묵시 `use rok::core::**`로만 해소되는 core 모듈 자유 함수의 맨 이름 호출(`sleep`) ([stdlib 0.2.3](../../refs-standard-libraries/000-meta/002-import.md)). `task::sleep(..)`으로 씀 |
 | `redundant_cast`         | 0.1.0   | `x`가 이미 `T`인 `x as T`                                         |
 | `redundant_clone`        | 0.1.0   | 원시 타입 값의 `.clone()`                                          |
 | `non_snake_case`         | 0.1.0   | 함수, 지역 변수, 매개변수, 모듈 이름이 snake_case가 아님           |
@@ -367,7 +366,7 @@ fn expect_positive(n: i32) -> i32 {
 | 속성                           | 붙는 곳                       | 의미 |
 |--------------------------------|-------------------------------|------|
 | `#[path("file.rok")]`          | `mod name;`                   | `name.rok` 대신 그 파일에서 모듈을 읽음 ([5.4.6](../005-modules/504-modules.md#546-사용자-정의-경로-path)) |
-| `#![no_implicit_rok]`          | 파일 (내부)                   | 그 파일의 묵시적 `use rok::core::**;`를 끔 ([stdlib 0.2.5](../../refs-standard-libraries/000-meta/002-import.md#025-적용-해제-no_implicit_rok)) |
+| `#![no_implicit_rok]`          | 파일 (내부)                   | 그 파일의 묵시적 `use rok::core::prelude::*;`를 끔 ([stdlib 0.2.6](../../refs-standard-libraries/000-meta/002-import.md#026-적용-해제-no_implicit_rok)) |
 | `#[export_name("sym")]`        | 함수                          | 함수를 맹글링하지 않은 심볼 `sym`으로 내보냄 (wasm32에서는 그 이름의 wasm export). 도달 불가 함수 제거의 루트 ([9.5.8](../009-tools/905-symbol-mangling.md)) |
 | `#[no_mangle]`                 | 함수                          | 함수를 이름 린트와 미사용 함수 린트에서 뺌. 심볼은 바꾸지 않음. 심볼 이름은 `#[export_name]`으로 정함 |
 | `#[wit::export]`               | 함수, `pub struct`            | WIT export를 구현함. 함수 또는 resource ([stdlib 1.8](../../refs-standard-libraries/100-bare/108-wit.md)) |

@@ -101,7 +101,7 @@ fingerprint가 같으면 다시 빌드하지 않습니다. fingerprint에는 다
 
 [`use`(가져오기)](../005-modules/505-use.md), [가시성](../005-modules/506-visibility.md), [경로](../005-modules/507-paths.md), [재내보내기(`pub use`)](../005-modules/508-re-export.md)의 규칙에 따라 모든 경로와 식별자를 항목에 연결합니다.
 
-이 단계는 `rok::core::**` 묵시적 가져오기를 적용합니다([표준 라이브러리 계층](../000-meta/005-standard-libraries-tiers.md) 참고). `rok::bare::*`와 `rok::std::*`는 명시적으로 가져와야 하므로 여기서 빠집니다. 또 가시성을 검사해 허용되지 않는 접근을 에러로 보고하고, 가져오기 충돌도 검사합니다.
+이 단계는 `rok::core::prelude` 묵시적 가져오기를 적용합니다([표준 라이브러리 계층](../000-meta/005-standard-libraries-tiers.md) 참고). `rok::bare::*`와 `rok::std::*`는 명시적으로 가져와야 하므로 여기서 빠집니다. 또 가시성을 검사해 허용되지 않는 접근을 에러로 보고하고, 가져오기 충돌도 검사합니다.
 
 ## 9.2.6. 타입 검사
 

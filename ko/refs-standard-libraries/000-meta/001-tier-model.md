@@ -29,16 +29,16 @@ let p: CPtr<u8> = unsafe { alloc(layout) };    // 실패 시 null (1.4 alloc 참
 
 ### `rok::core`(foundation)
 
-가운데 foundation 계층인 `rok::core`에는 `rok::core::collections`, `rok::core::iter`, `rok::core::ops` 같은 모듈이 있습니다. 이 계층은 내부에서만 `rok::bare`에 의존합니다. 숫자 타입, 산술 트레잇, iter, 컬렉션, fmt, 변환, sync, task, future 등 언어를 일상적으로 쓰는 데 필요한 추상은 거의 모두 이 층에 있습니다. 사용자 코드에는 **`use rok::core::**;`가 묵시적으로 자동 적용**되므로 따로 가져오지 않고 바로 쓸 수 있습니다. 자세한 정책은 [0.2 import 정책](002-import.md)에 있습니다.
+가운데 foundation 계층인 `rok::core`에는 `rok::core::collections`, `rok::core::iter`, `rok::core::ops` 같은 모듈이 있습니다. 이 계층은 내부에서만 `rok::bare`에 의존합니다. 숫자 타입, 산술 트레잇, iter, 컬렉션, fmt, 변환, sync, task, future 등 언어를 일상적으로 쓰는 데 필요한 추상은 거의 모두 이 층에 있습니다. 사용자 코드에는 **prelude `use rok::core::prelude::*;`가 묵시적으로 자동 적용**되므로 따로 가져오지 않고 바로 쓸 수 있습니다. 자세한 정책은 [0.2 import 정책](002-import.md)에 있습니다.
 
 ```rok
-let xs: List<i32> = [1, 2, 3];        // List 직접 사용, 묵시 use rok::core::**; 가 가져옴
+let xs: List<i32> = [1, 2, 3];        // List 직접 사용, prelude 가 가져옴
 let r = a + b;                         // Add 트레잇 자동
 let m = Mutex::new(0);                 // sync::Mutex 도 자동
 task::spawn(async { /* ... */ });              // task 모듈도 자동
 ```
 
-이 자동 적용을 위한 `rok::core::prelude` 모듈은 따로 없습니다. `**` 재귀 glob 자체가 prelude 역할을 하므로 간접 계층(indirection)을 하나 더 둘 자리가 없습니다.
+prelude는 정해 둔 이름 목록입니다([0.2.3](002-import.md)). `rok::core`의 나머지는 prelude 모듈을 거쳐 부르거나(`task::sleep`, `ops::Add`) 가져옵니다.
 
 ### `rok::std`
 
@@ -62,7 +62,7 @@ use rok::std::time::Instant;
 
 다음 방향의 의존은 **금지**합니다. foundation(`rok::core`)은 `rok::std`를 가져오면 안 됩니다. foundation은 모든 타깃에서 빌드할 수 있어야 하므로, 플랫폼 의존 코드를 끌어들이는 순간 이식성이 무너집니다. `rok::bare`도 foundation이나 `rok::std`를 가져오면 안 됩니다. 저수준 층이 고수준 층에 의존하기 시작하면 계층 구조 자체가 의미를 잃습니다. 마지막으로 개별 `rok::std::*` 모듈끼리 순환 의존하면 안 됩니다. 그래서 std 모듈 하나하나는 독립적으로 빌드할 수 있는 단위로 남습니다.
 
-이 규칙이 다스리는 대상은 계층이 직접 적는 것, 곧 그 계층의 `use`와 경로입니다. 묵시 `use rok::core::**`는 여전히 모든 계층에 언어 어휘를 공급합니다. bare 자신의 시그니처가 쓰는 0.4의 slot 항목, `List`, `Slice`, `Result`, `panic`이 여기에 들어갑니다(1.6, 1.7).
+이 규칙이 다스리는 대상은 계층이 직접 적는 것, 곧 그 계층의 `use`와 경로입니다. 각 계층 내부의 `use rok::core::**`는 여전히 그 계층에 언어 어휘를 공급합니다. bare 자신의 시그니처가 쓰는 0.4의 slot 항목, `List`, `Slice`, `Result`, `panic`이 여기에 들어갑니다(1.6, 1.7).
 
 ## 0.1.3. 빌드 단위
 

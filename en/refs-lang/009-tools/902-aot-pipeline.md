@@ -101,7 +101,7 @@ The scanner pre-pass of the [`#[keyword]` magic](../006-meta-system/606-keyword-
 
 Every path and identifier is mapped to an item according to the rules of [`use` (imports)](../005-modules/505-use.md), [Visibility](../005-modules/506-visibility.md), [Paths](../005-modules/507-paths.md) and [Re-export (`pub use`)](../005-modules/508-re-export.md).
 
-This step applies the implicit `rok::core::**` import (see [Standard library tiers](../000-meta/005-standard-libraries-tiers.md); `rok::bare::*` and `rok::std::*` are excluded as they require explicit import), performs visibility checks reporting improper access as errors, and checks for import conflicts.
+This step applies the implicit `rok::core::prelude` import (see [Standard library tiers](../000-meta/005-standard-libraries-tiers.md); `rok::bare::*` and `rok::std::*` are excluded as they require explicit import), performs visibility checks reporting improper access as errors, and checks for import conflicts.
 
 ## 9.2.6. Type checking
 

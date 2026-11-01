@@ -2,7 +2,7 @@
 
 `rok::core::task` 모듈은 M:N 스케줄러 위에서 동작하는 협력적 task API입니다. Rust Tokio와 Go 고루틴에서 영감을 받았습니다. task는 work-stealing 스케줄러 위의 **스택 없는 코루틴**(stackless coroutine)으로 구현됩니다.
 
-`use rok::core::**;`가 묵시적으로 적용되므로 `task::spawn`, `task::race`, `Task<T>` 등은 가져오지 않고 쓸 수 있습니다. 모듈 접두 `task::`는 그대로 남습니다. 비동기 코드임을 드러내 흐름을 눈에 띄게 나누고 싶은 자리에서는 `use rok::core::task::*;`를 권장합니다.
+모듈 `task`와 `Task<T>`는 [prelude](../000-meta/002-import.md)에 들어 있으므로 `task::spawn`, `task::race`, `Task<T>` 등은 가져오지 않고 쓸 수 있습니다. 모듈 접두 `task::`는 그대로 남습니다. 비동기 코드임을 드러내 흐름을 눈에 띄게 나누고 싶은 자리에서는 `use rok::core::task::*;`를 권장합니다.
 
 ## 2.18.1. 핵심 API
 

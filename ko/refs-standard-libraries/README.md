@@ -45,7 +45,7 @@ rok::std   (target-dep; uses rok::core + rok::bare)
 라이브러리 전체에 걸친 정책과 표입니다.
 
 - [0.1. 3계층 모델](000-meta/001-tier-model.md)
-- [0.2. import 정책 (`use rok::core::**;` 묵시 적용)](000-meta/002-import.md)
+- [0.2. import 정책 (prelude `rok::core::prelude`)](000-meta/002-import.md)
 - [0.3. intrinsic 메커니즘: 컴파일러 ↔ 표준 라이브러리 경계](000-meta/003-intrinsics.md)
 - [0.4. `#[lang]` 슬롯 매핑 표](000-meta/004-lang-slot-table.md)
 - [0.5. 표기법](000-meta/005-notation.md)
@@ -65,7 +65,7 @@ rok::std   (target-dep; uses rok::core + rok::bare)
 
 ### 2. Rok: [200-core/](200-core/README.md)
 
-안전 영역입니다. 모든 타깃에서 쓸 수 있습니다. `use rok::core::**;`가 묵시적으로 적용됩니다. 별도 prelude 모듈은 없습니다.
+안전 영역입니다. 모든 타깃에서 쓸 수 있습니다. prelude `use rok::core::prelude::*;`가 묵시적으로 적용됩니다.
 
 - 2.1. [숫자 타입 (`int`, `float`, auto-promote)](200-core/201-numbers.md)
 - 2.2. [niche wrapper (`NonZero`, `NonNan`, `Finite`, `Positive`)](200-core/202-non-zero.md)

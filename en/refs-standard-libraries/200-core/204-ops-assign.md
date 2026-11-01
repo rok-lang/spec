@@ -224,7 +224,7 @@ If a user type implements only `Add` and not `AddAssign`, the compiler uses the 
 ```rok
 struct Vec3 { x: f64; y: f64; z: f64; }
 
-impl Add for Vec3 {
+impl ops::Add for Vec3 {
     type Output = Vec3;
     fn add(self, rhs: Vec3) -> Vec3 { ... }
 }
@@ -239,7 +239,7 @@ v += Vec3 { x: 0.5, y: 0.5, z: 0.5 };
 Where performance matters, the user is advised to implement `AddAssign` explicitly.
 
 ```rok
-impl AddAssign for Vec3 {
+impl ops::AddAssign for Vec3 {
     fn add_assign(ref self, rhs: Vec3) {
         self.x += rhs.x;
         self.y += rhs.y;

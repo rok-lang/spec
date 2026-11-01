@@ -119,7 +119,7 @@ trait Stream {
 As with the adapters of [2.7 iter](207-iter.md), the return types are named concrete structs, located in the `rok::core::stream` module (`stream::Map<S, U>`, `stream::Filter<S>`, ...). `Map<Self, U>` implements `Stream<Item = U>`, and `Buffered<Self>` / `BufferUnordered<Self>` implement `Stream<Item = Item::Output>` (they yield the futures' outputs, not the futures); the rest implement `Stream<Item = Item>`.
 
 > [!NOTE]
-> `stream::Map` / `Filter` / `Take` / `Skip` / `Zip` share their names with `iter::Map` and the like. Under the implicit `use rok::core::**;` the bare name `Map` is ambiguous ([refs-lang 5.5.6](../../refs-lang/005-modules/505-use.md)), so when the type must be written, use a path such as `stream::Map` or import it with an explicit `use`.
+> `stream::Map` / `Filter` / `Take` / `Skip` / `Zip` share their names with `iter::Map` and the like. Neither is in the [prelude](../000-meta/002-import.md), so when the type must be written, use a path such as `stream::Map` or import it with an explicit `use`.
 
 Of these, `buffer_unordered(n)` and `buffered(n)` serve as concurrency control, processing N futures concurrently.
 
@@ -176,7 +176,7 @@ fn select<S1: Stream, S2: Stream>(a: S1, b: S2) -> Select<S1, S2>;  // Stream<It
 `merge` produces the union of two streams, `zip` pairs two streams, and `select` races them, taking whichever is ready first.
 
 > [!NOTE]
-> `select` shares its name with `task::select`; under the implicit `use rok::core::**;` the bare name is ambiguous ([refs-lang 5.5.6](../../refs-lang/005-modules/505-use.md#556-glob--recursive-glob-conflicts)): write `stream::select` or import it.
+> `select` shares its name with `task::select`; neither is in the [prelude](../000-meta/002-import.md): write `stream::select` or import it.
 
 ## 2.8.8a. `AsyncStream<T>` / `TryAsyncStream<T, E>` - the value of an async stream
 

@@ -2,7 +2,7 @@
 
 `rok::core::channel` 모듈에는 task와 스레드 사이에서 메시지를 주고받는 채널 기본 요소가 있습니다. 설계는 Go의 채널과 Rust의 `mpsc::channel`에서 영감을 받았습니다.
 
-`use rok::core::**;`가 묵시적으로 적용됩니다. 그래서 `channel`, `Sender`, `Receiver` 같은 이름은 가져오지 않고도 `channel::<T>()`, `Sender<T>`처럼 짧게 쓸 수 있습니다. 출처를 드러내야 하는 자리에서는 `use rok::core::channel::*;`를 적기를 권장합니다.
+`channel`, `Sender`, `Receiver`는 [prelude](../000-meta/002-import.md)에 들어 있습니다. 그래서 가져오지 않고도 `channel::<T>()`, `Sender<T>`처럼 짧게 쓸 수 있습니다. 출처를 드러내야 하는 자리에서는 `use rok::core::channel::*;`를 적기를 권장합니다.
 
 ## 2.17.1. 기본 형태
 

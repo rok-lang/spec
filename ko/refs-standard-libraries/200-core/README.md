@@ -14,18 +14,18 @@ Rok tier는 위로는 내부 용도로 `unsafe`에 의존합니다. 아래로는
 
 ## 사용자 import 정책
 
-`use rok::core::**;`는 **묵시적으로 적용**됩니다. 컴파일러가 모든 사용자 파일 앞에 이 줄을 붙입니다. 그래서 Rok의 모든 pub 항목(List, Dict, Add, Display, Iterator, Mutex, task 등)을 따로 가져오지 않고 쓸 수 있습니다.
+`use rok::core::prelude::*;`는 **묵시적으로 적용**됩니다. 컴파일러가 모든 사용자 파일 앞에 이 줄을 붙입니다. prelude의 이름(List, Dict, Display, Iterator, Mutex, task 등)은 따로 가져오지 않고 쓸 수 있고, core의 나머지는 prelude 모듈을 거치거나(`ops::Add`, `task::sleep`) `use`로 가져옵니다.
 
 필요하면 가져올 항목을 좁게 적어도 됩니다.
 
 ```rok
 use rok::core::collections::List;           // 좁은 명시
-use rok::core::ops::{Add, Sub};
+use rok::core::ops::{Add, Sub};           // 연산자 트레잇은 prelude 에 없음
 ```
 
 > [!NOTE]
-> Rok에는 **별도의 `rok::core::prelude` 모듈이 없습니다**. `**` 재귀 glob 자체가
-> prelude 역할을 하고, 그 사이에 다른 간접 단계는 없습니다.
+> prelude 목록은 규범이며 enum 변형을 담지 않습니다. 맨 변형은 기대 타입으로 정해집니다
+> ([refs-lang 2.4.8](../../refs-lang/002-types/204-enum.md#248-기대-타입으로-정하는-맨-변형)).
 
 자세한 정책은 [0.2 import 정책](../000-meta/002-import.md)에 있습니다.
 

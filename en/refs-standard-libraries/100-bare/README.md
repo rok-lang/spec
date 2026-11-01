@@ -16,7 +16,7 @@ let layout = try! Layout::array::<u8>(1024);
 let p: CPtr<u8> = unsafe { alloc(layout) };    // null on failure
 ```
 
-The implicitly applied `use rok::core::**;` does not include unsafe items. `rok::bare::*` therefore requires a separate explicit import, which makes visible in the code the point where the user enters dangerous territory.
+The implicitly applied prelude does not include unsafe items. `rok::bare::*` therefore requires a separate explicit import, which makes visible in the code the point where the user enters dangerous territory.
 
 ## Module contents
 

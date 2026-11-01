@@ -14,18 +14,18 @@ Upward, the Rok tier depends on `unsafe` for internal use; downward, `std` and u
 
 ## User import policy
 
-`use rok::core::**;` is **applied implicitly**: the compiler prepends it to every user file. As a result, every pub item of Rok (List, Dict, Add, Display, Iterator, Mutex, task, ...) is usable without an explicit import.
+`use rok::core::prelude::*;` is **applied implicitly**: the compiler prepends it to every user file. The prelude's names (List, Dict, Display, Iterator, Mutex, task, ...) are usable without an explicit import; the rest of core goes through a prelude module (`ops::Add`, `task::sleep`) or a `use`.
 
 Narrow explicit imports are also allowed where needed.
 
 ```rok
 use rok::core::collections::List;           // narrow, explicit
-use rok::core::ops::{Add, Sub};
+use rok::core::ops::{Add, Sub};           // operator traits are not in the prelude
 ```
 
 > [!NOTE]
-> Rok has **no separate `rok::core::prelude` module**. The `**` recursive glob itself serves
-> as the prelude, with no extra indirection.
+> The prelude's list is normative and holds no enum variants: a bare variant resolves from the
+> expected type ([refs-lang 2.4.8](../../refs-lang/002-types/204-enum.md#248-bare-variants-from-the-expected-type)).
 
 The full policy is covered in [0.2 Import policy](../000-meta/002-import.md).
 

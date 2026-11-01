@@ -102,7 +102,7 @@ NumPy의 `*`가 암묵적으로 원소별 연산이 되어 생긴 혼동을 피�
 타입에 점-접두 연산을 주려면 일반 연산자와 같은 방식으로 **Dot** 트레잇 패밀리를 구현하면 됩니다.
 
 ```rok
-impl DotAdd for MyVector {
+impl ops::DotAdd for MyVector {
     type Output = MyVector;
     fn dot_add(self, rhs: MyVector) -> MyVector { ... }
 }

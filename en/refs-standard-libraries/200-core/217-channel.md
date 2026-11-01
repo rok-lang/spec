@@ -2,7 +2,7 @@
 
 The `rok::core::channel` module provides channel primitives for exchanging messages between tasks and threads. The design is inspired by Go's channels and Rust's `mpsc::channel`.
 
-Because `use rok::core::**;` applies implicitly, names such as `channel`, `Sender` and `Receiver` are usable without any import, in short forms like `channel::<T>()` or `Sender<T>`. Where the origin should be visible, writing `use rok::core::channel::*;` explicitly is recommended.
+The names `channel`, `Sender` and `Receiver` are in the [prelude](../000-meta/002-import.md) and usable without any import, in short forms like `channel::<T>()` or `Sender<T>`. Where the origin should be visible, writing `use rok::core::channel::*;` explicitly is recommended.
 
 ## 2.17.1. Basic form
 

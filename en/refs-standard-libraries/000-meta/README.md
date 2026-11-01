@@ -5,7 +5,7 @@ This chapter collects in one place the policies and tables that apply across the
 ## Contents
 
 - [0.1. The 3-tier model (bare / core / std)](001-tier-model.md)
-- [0.2. Import policy (`use rok::core::**;` - no automatic prelude)](002-import.md)
+- [0.2. Import policy (the prelude `rok::core::prelude`)](002-import.md)
 - [0.3. Intrinsic mechanism - the compiler ↔ standard library boundary](003-intrinsics.md)
 - [0.4. `#[lang]` slot mapping table](004-lang-slot-table.md)
 - [0.5. Notation](005-notation.md)
@@ -17,8 +17,7 @@ policies that the library **as a whole** must follow consistently.
 
 The **3-tier model** prescribes the direction of dependencies: `std` may use `core` and `bare`, and
 `core` may use `bare`, but dependencies in the opposite direction are not allowed. The **import policy**
-specifies how `use rok::core::**;` is applied implicitly and automatically. There is no separate
-prelude module; the recursive glob over `rok::core` plays that role directly. The **intrinsic** entry that follows covers how
+specifies the prelude, `rok::core::prelude`, that every user file imports implicitly, and lists its names. The **intrinsic** entry that follows covers how
 standard library methods are connected to the compiler backend (PrimOp, etc.), and finally the **lang
 slot** entry shows how the 48 slots the compiler looks up through the `#[lang(...)]` attribute map to
 standard library items.

@@ -224,7 +224,7 @@ alias;                       //→ [1, 2, 3, 4, 5]  (alias 도 변화 봄)
 ```rok
 struct Vec3 { x: f64; y: f64; z: f64; }
 
-impl Add for Vec3 {
+impl ops::Add for Vec3 {
     type Output = Vec3;
     fn add(self, rhs: Vec3) -> Vec3 { ... }
 }
@@ -239,7 +239,7 @@ v += Vec3 { x: 0.5, y: 0.5, z: 0.5 };
 성능이 중요하다면 `AddAssign`을 명시적으로 구현하기를 권장합니다.
 
 ```rok
-impl AddAssign for Vec3 {
+impl ops::AddAssign for Vec3 {
     fn add_assign(ref self, rhs: Vec3) {
         self.x += rhs.x;
         self.y += rhs.y;

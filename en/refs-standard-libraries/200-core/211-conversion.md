@@ -44,7 +44,7 @@ let x: int = int::from(42i32);   // i32 → int (lossless)
 
 ### import
 
-`From` is available automatically through the [implicit `use rok::core::**;`](../000-meta/002-import.md), so no separate `use` declaration is needed.
+`From` is in [the prelude](../000-meta/002-import.md), so no separate `use` declaration is needed.
 
 ## 2.11.3. `Into` trait - mirror of `From`
 

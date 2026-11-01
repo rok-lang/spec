@@ -130,7 +130,7 @@ The call form clearly distinguishes what a function means.
 When `x.method()` has multiple candidates, one is chosen in this order:
 
 1. Methods of an inherent `impl` take precedence over trait methods.
-2. Among trait methods, a trait defined by the current package or explicitly `use`d takes precedence over a trait visible only through the implicit `use rok::core::**`. The current package is the actual package in which the call is written. A dependency package's trait does not take precedence over core's traits unless it is `use`d.
+2. Among trait methods, a trait defined by the current package or explicitly `use`d takes precedence over a `rok::core` trait, which is in method scope everywhere. The current package is the actual package in which the call is written. A dependency package's trait does not take precedence over core's traits unless it is `use`d.
 3. If there is still more than one candidate, it is an ambiguity error, and the diagnostic suggests writing it as `Trait::method(x)`.
 
 ```rok

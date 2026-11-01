@@ -32,7 +32,7 @@ The caller of a function in this tier is responsible for safety, and the path it
 
 Acceleration domains such as tensors / automatic differentiation / SIMD / GPU are not part of `rok::core`; external libraries implement them and reach the compiler's backend through the backend interface, planned for Rok 0.2.2. The standard libraries are responsible only for the surface semantics of ordinary code and leave the acceleration domain to decisions at the library layer.
 
-The items of `rok::core` are made visible by the compiler implicitly applying `use rok::core::**;` at the start of every Rok source. That is, `rok::core::collections::List` can be written simply as `List`. There is no separate prelude module; the implicit recursive glob itself plays that role.
+The common items of `rok::core` are made visible by the compiler implicitly applying `use rok::core::prelude::*;` at the start of every Rok source. That is, `rok::core::collections::List` can be written simply as `List`, and `rok::core::task::sleep` as `task::sleep`. The prelude's list is fixed in [stdlib 0.2.3](../../refs-standard-libraries/000-meta/002-import.md).
 
 Items of `rok::core` are `pub` by default. The surface exposed to external packages is exactly the automatically visible surface, so no separate step is needed.
 
@@ -48,7 +48,7 @@ The visibility rules are as follows.
 
 | Area            | Implicit import | Explicit import required | Notes                                         |
 |-----------------|-----------------|--------------------------|-----------------------------------------------|
-| `rok::core::**` | ✓ automatic     | ✗ not required           | `use rok::core::**;` applied automatically    |
+| `rok::core`     | ✓ automatic     | ✗ not required           | `use rok::core::prelude::*;` applied automatically    |
 | `rok::bare::**` | ✗               | ✓ required               | Makes the danger signal visible in code       |
 | `rok::std::**` | ✗               | ✓ required               | Makes target dependency visible in code       |
 | User packages   | ✗               | ✓ required               | Items of other packages                       |

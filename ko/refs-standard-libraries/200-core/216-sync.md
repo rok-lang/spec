@@ -2,7 +2,7 @@
 
 `rok::core::sync` 모듈은 공유 상태에 안전하게 접근하는 기본 트레잇과 타입을 정의합니다. Rok의 GC와 M:N 스케줄러 아래에서 여러 task나 스레드가 데이터를 공유할 때 씁니다.
 
-`use rok::core::**;`가 묵시적으로 적용되므로 따로 가져오지 않아도 `Atomic`, `Mutex`, `RwLock`, `Cell`을 쓸 수 있습니다. 동시성 코드임을 드러내고 싶은 자리에서는 다음처럼 필요한 항목만 가져오기를 권장합니다.
+`Atomic`, `Mutex`, `RwLock`, `Cell`은 [prelude](../000-meta/002-import.md)에 들어 있어 따로 가져오지 않아도 씁니다. `AtomicOrdering`은 들어 있지 않지만 그 변형은 매개변수 타입으로 정해집니다(`x.load(SeqCst)`). 동시성 코드임을 드러내고 싶은 자리에서는 다음처럼 필요한 항목만 가져오기를 권장합니다.
 
 ```rok
 use rok::core::sync::{Atomic, Mutex, RwLock, Once, Condvar, Cell};
