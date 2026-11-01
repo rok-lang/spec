@@ -56,6 +56,7 @@ rokc build --extern util=../util --extern parser=target/debug/deps/libparser.a
 - `pkg::` inside a dependency package refers to that dependency package itself.
 - A dependency package is a separate package. Only `pub` items are usable from outside; `pub(pkg)` / `pub(sub)` / private items are not ([5.7.14](../005-modules/507-paths.md#5714-paths-between-packages)).
 - It is an error for a module of the user package to have the same name as a dependency package.
+- A later `--extern` whose path is that of an earlier one is another name for the same package (packages may call a dependency differently, [9.10.2](910-rok-frontend.md)). The package is built and mounted once, under the first name; a path that starts with another name (`other::..`, in code and in meta block templates) names it, so its items and types are the same under every name.
 
 `rokc build` on a package with `src/lib.rok` produces `lib<name>.a` and `<name>.rokhir`, and with `src/main.rok` the executable `<name>`; a package with both produces all three, the executable linked against that library. `--name <n>` sets the package name (the output name and mount name); the default is the directory name.
 

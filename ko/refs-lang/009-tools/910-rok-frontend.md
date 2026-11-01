@@ -161,6 +161,7 @@ Package {
 
 - 값은 ROKON의 리터럴(문자열, `{ "k": v }` dict, 빈 dict `{}`)과 `Dep::path("..")` / `Dep::git("url", rev | tag | branch: "..")` / `Dep::version("req", registry: "url")`입니다. `Dep::git`에는 `rev` / `tag` / `branch` 중 많아야 하나만 씁니다. `Dep::version`의 `registry`는 선택입니다. 의존성 값이 문자열 하나면 `Dep::version`을 줄여 쓴 것입니다.
 - `Dep::path` / `Dep::git` / `Dep::version`은 `optional: true`, `features: ["<f>", ..]`, `default_features: false`도 받습니다(9.10.4c). optional인 dev 의존은 에러입니다.
+- `package: "<name>"`은 의존성의 이름을 바꿉니다. `<name>`이 패키지이고, 키는 이 패키지의 코드가 그 패키지를 부르는 이름입니다(`"j": Dep::version("^1", package: "json5")`는 `json5`이고 `use j::..`로 씁니다). 이름은 의존하는 패키지마다 따로 정하므로 두 패키지가 한 패키지를 서로 다른 이름으로 부를 수 있습니다. 그래도 한 패키지이고 한 번만 빌드하며, 어느 이름으로 불러도 타입은 같습니다. 한 패키지에 키 둘로 의존하면 에러입니다(`` the root package depends on package `json5` twice, as `j` and `json5`; depend on it once ``).
 - `package: "<name>"`은 의존의 이름을 바꿉니다. 키는 코드가 부르는 이름(`use j5::..`)이고, `<name>`은 패키지(stone, 또는 path / git 패키지의 `name`)이자 lock에 적히는 이름입니다. 한 빌드는 한 패키지를 한 이름으로 부릅니다. 두 의존하는 쪽이 서로 다른 이름으로 부르면 둘을 밝히는 에러입니다(`` package `json5` is called `j5` by .. and `json5` by ..; one build calls a package by one name ``).
 - `target: "<target>"`은 의존을 맞는 target의 빌드로 한정합니다. target 이름(`x86_64-unknown-linux-gnu`)이나, [6.3.2](../006-meta-system/603-cfg.md#632-predicate-종류)의 target 키(`target_os`, `target_arch`, `target_family`, `target_env`, `target_endian`, `target_pointer_width`)에 대한 `cfg(<조건>)`이고, `all(..)`, `any(..)`, `not(..)`을 씁니다. 그 밖의 값은 매니페스트를 읽을 때 에러입니다. 해소와 lock은 모든 target에 대해 그 의존을 다룹니다. 다른 target의 빌드는 그 의존과, 그 의존이 켤 feature를 뺍니다.
 - `Dep::registry`는 `rok.lock` 전용입니다. `rok.rokon`에 쓰면 에러입니다.
@@ -196,7 +197,7 @@ Package {
 
 Rok에는 빌드 스크립트가 없습니다. 빌드할 때 패키지의 코드는 실행되지 않습니다. C / C++ 라이브러리는 미리 빌드된 native 패키지로 들어옵니다(9.10.4b).
 
-한 빌드 안에서 한 이름은 한 패키지입니다. 같은 이름이 서로 다른 출처(다른 경로, 또는 다른 url / 커밋)로 요구되면 에러입니다. 에러는 두 요구처를 보여 줍니다.
+한 빌드 안에서 한 이름은 한 패키지입니다. 같은 이름이 서로 다른 출처(다른 경로, 또는 다른 url / 커밋)로 요구되면 에러입니다. 에러는 두 요구처를 보여 줍니다. 두 의존하는 쪽이 같은 코드 이름을 서로 다른 패키지에 붙여도 에러입니다(`` `hello` is package `other` for the root package and package `greet` for `mid` ``). 한 패키지는 코드 이름을 여럿 가질 수 있습니다(`package`). `rok`은 이름마다 같은 경로로 `--extern`을 넘깁니다.
 
 ### `rok.lock` 형식
 
@@ -261,7 +262,7 @@ rok deps [--dev] [--features <f,..>] [--all-features] [--no-default-features] [-
 - stone을 요구 없이 더하면 `^<가장 새 버전>`을 적습니다. `--features`, `--no-default-features`, `--optional`은 `Dep::..`에 적습니다. 패키지에 같은 이름의 feature가 없으면 `--optional`은 feature `"<name>": ["dep:<name>"]`도 더합니다.
 - 패키지에 `add`하면 `Added <name> v<version>`을 알립니다. 버전은 의존 패키지 `rok.rokon`의 `version`입니다(아직 해석되지 않은 stone은 고정한 버전). 버전이 없으면 `Added <name>`입니다. `--dev`는 ` (dev_deps)`를 덧붙입니다.
 - 빌드는 `rok.lock`의 커밋과 버전을 씁니다. 새로 선언된 의존은 lock에 더하고 지운 의존은 정리합니다. 하지만 이미 고정된 것을 옮기는 것은 `update`뿐입니다. `update`는 이름을 주면 그 패키지만, 없으면 모든 git 의존과 stone을 다시 해소합니다.
-- `deps`는 해소한 의존 패키지를 `<코드 이름>=<그 src/lib.rok 경로>` 줄로 출력합니다. 코드 이름은 `-`를 `_`로 바꾼 것이고, 의존되는 쪽이 먼저 옵니다(`--dev`면 dev 의존 포함). 각 줄 뒤에는 그 `--extern-feature=<코드 이름>=<f>` 줄이 옵니다. `deps`는 feature 옵션과 `--dev`를 받습니다. native 패키지마다(의존하는 쪽이 먼저, 호스트용) `# native <name> <version>`과 그 `rokc` 인자를 한 줄에 하나씩 출력합니다. 의존성이 없으면 아무것도 출력하지 않습니다.
+- `deps`는 해소한 의존 패키지를 `<코드 이름>=<그 src/lib.rok 경로>` 줄로 출력합니다. 코드 이름은 `-`를 `_`로 바꾼 것이고, 의존되는 쪽이 먼저 옵니다(`--dev`면 dev 의존 포함). 의존하는 쪽이 다른 이름(`package`)으로 부르는 패키지는 이름마다 이런 줄이 하나씩 더 있습니다. 각 패키지의 줄 뒤에는 그 `--extern-feature=<코드 이름>=<f>` 줄이 옵니다. `deps`는 feature 옵션과 `--dev`를 받습니다. native 패키지마다(의존하는 쪽이 먼저, 호스트용) `# native <name> <version>`와 그 `rokc` 인자를 한 줄에 하나씩 출력합니다. 의존성이 없으면 아무것도 출력하지 않습니다.
 - `deps --format json`은 같은 순서로 JSON 객체를 한 줄에 하나씩 대신 출력합니다. 객체마다 `schema`(지금은 `1`)와 `type`이 있습니다. `package` 레코드에는 `name`, `version`(stone이면 해소한 버전, 아니면 그 의존성 `rok.rokon`의 `version`, 그것도 없으면 `null`), `source`(`path+<dir>`, `git+<url>#<commit>`, `registry+<index url>`), `path`(그 `src/lib.rok`), `features`가 있습니다. `native` 레코드에는 `name`, `version`, `args`(그 `rokc` 인자)가 있습니다. 마지막 `summary` 레코드는 `packages`와 `natives`의 수를 세므로, 의존성이 없는 패키지는 이것만 출력합니다. 레코드는 JSON 진단의 `schema` 규칙([9.9.4](909-debug-tools.md#994-진단--에러-메시지))을 따릅니다. 기본값은 `--format human`이고, 다른 값은 CLI 에러입니다.
 - `rok.lock`은 버전 관리에 함께 넣습니다.
 - `update`는 lock에서 바뀐 것마다 `Updated <name> v0.1.0 -> v0.1.1` 줄을 출력합니다. git 의존성은 짧은 커밋으로 적고, 새로 고정된 것은 `Locked`, 빠진 것은 `Removed`입니다. 바뀐 것이 없으면 `note: all dependencies are up to date`를, 의존성이 없으면 `` note: no dependencies to update; add one: `rok add <name>` ``를 출력합니다.
