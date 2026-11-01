@@ -414,6 +414,7 @@ rok_os_env_at         rok_os_getenv         rok_os_setenv         rok_os_spawn
 rok_os_waitpid        rok_os_signal_install rok_os_raise          rok_os_kill
 rok_os_pidfd_open     rok_os_pidfd_signal   rok_os_getpid         rok_os_getppid
 rok_os_abort          rok_os_random         rok_os_trust_roots
+rok_os_openat_raw     rok_os_create_file2   rok_os_chmod
 ```
 
 ### `rok_stdio_*` / `rok_stdin_read` - standard streams (internal, subject to change)
