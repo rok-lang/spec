@@ -45,6 +45,7 @@ Every template token starts with the `@` token ([punctuation and operator tokens
 | `@item`, `@item.name` / `.params` / `.return_type` / `.body` | The item attached to and its parts (attribute only) | 6.9.7 |
 | `@attribute`                                             | The attribute arguments at the use site (attribute only) | 6.9.7 |
 | `<name token>.as_str()`                                  | String literal of the name                             | 6.9.3 |
+| `@use_site(path)`                                        | `path`, looked up where the meta block is used         | 6.9.9 |
 
 An `@name` not in the list is an error. `@where_for_fields` is a reserved name; using it is also an error.
 
@@ -429,23 +430,35 @@ let r = s.foo();                              // no collision with the meta-gene
 
 Names bound by `match` arm patterns and the `S { x }` shorthand are not renamed. Templates do not use names in those positions that could collide with the item. Bindings of `@variant.pattern` are compiler-generated names and do not collide.
 
-### Resolution of free identifiers
+### Names in an expansion
 
-Generated items are placed in the **use site's module**. Identifiers not bound within the template (e.g. `compute()`, `now()`, `log()`) are therefore resolved at the use site, not in the meta block's module.
+Each token of an expansion comes either from the **definition** (the template, or code the compiler writes) or from the **use** (what `@Self`, `@field`, `@variant`, `@item`, `@attribute`, `@derive_attr` and macro captures substitute). A path takes the side of its first segment; its generic arguments keep their own.
 
-Template authors use absolute paths (`rok::core::..`, the library's `pkg::..`) or only names visible at the use site (the prelude's names, etc.). `pkg::` in a template names the package that defines the meta block, wherever it expands.
+A path from the definition is resolved and its access checked as if it were written in the module that contains the meta block: names the expansion itself declares come first, then that module's scope (its items and `use`s, `pkg::`, the dependencies of its package, the prelude's names). It may name that module's private items and its package's `pub(pkg)` items. A method name from the definition is looked up with the traits in scope there ([3.5](../003-expressions/305-member-access-and-method-call.md)). A path from the use is resolved and checked at the use site, so code passed into a meta definition gains no access. `pkg::` in a template names the package that defines the meta block, wherever it expands.
+
+Code the compiler writes (built-in derives, `#[literal]` handler calls) is seen from the module of what it names: a handler is called as if from its own module, so it may have any visibility.
+
+Generated items are placed in the use site's module and the names they declare are visible there. Template locals are renamed (Hygiene above).
+
+`@use_site(path)` makes a template path resolve at the use site, for a name the user is expected to define. Its argument must be a path.
 
 ```rok
+// package mylib
+pub(pkg) fn combine(h: u64, x: u64) -> u64 { .. }
+
 #[impl_derive(MyHash)] pub @derive {
     impl MyHash for @Self {
         fn my_hash(self) -> u64 {
             let h: u64 = 0u64;
-            @for_fields { h = mylib::hash::combine(h, self.@field.my_hash()); }   // absolute path
+            @for_fields { h = combine(h, self.@field.my_hash()); }   // mylib's, though pub(pkg)
+            @use_site(check)(self);                                    // the user's `check`
             h
         }
     }
 }
 ```
+
+A name from the definition that the defining module does not have is an error at the template, with the use as a note, and help naming `@use_site(..)`. When a package is built, every rooted path (`pkg::..`, `rok::..`, a dependency's) in its `pub` meta blocks must resolve from the block's module, used or not, so the error is the author's.
 
 ### Diagnostic locations
 

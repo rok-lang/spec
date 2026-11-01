@@ -245,7 +245,6 @@ The default level of every lint is `warn`, except `nan_comparison` and `self_ass
 | `while_true`             | 0.1.0   | `while true` instead of `loop`                                      |
 | `deprecated`             | 0.1.0   | Use of a `#[deprecated]` function, method, field, type, constant or static ([6.2.7](#627-deprecated-discouraged-use-marker)) |
 | `deprecated_safe`        | 0.1.6   | A call of a `#[deprecated_safe]` function, or a use of such a static, outside `unsafe` ([6.2.14](#6214-deprecated_safe-safe-today-unsafe-later)) |
-| `trait_not_in_scope`     | 0.1.6   | A method from a trait outside `rok::` that is neither defined nor `use`d in the module ([3.5](../003-expressions/305-member-access-and-method-call.md)) |
 | `redundant_cast`         | 0.1.0   | `x as T` where `x` is already `T`                                   |
 | `redundant_clone`        | 0.1.0   | `.clone()` on a value of a primitive type                           |
 | `non_snake_case`         | 0.1.0   | Function, local variable, parameter, or module names not in snake_case |
@@ -254,10 +253,11 @@ The default level of every lint is `warn`, except `nan_comparison` and `self_ass
 | `confusable_idents`      | 0.1.0   | Identifiers that resemble each other ([1.4](../001-lexical/104-identifiers.md)) |
 | `missing_f_prefix`       | 0.1.0   | A plain string literal containing `{name}` where `name` is a local in scope: the `f` prefix is missing (warn) |
 | `literal_spread_mismatch` | 0.1.6   | A `List` or Dict literal spread into fixed parameters that cannot fill them: a length that differs, or a key that names no parameter left ([4.2](../004-functions/402-parameters.md)); the call panics at run time (warn) |
-| `unqualified_meta`       | 0.1.6   | Another package's macro, derive or attribute used by its bare name, found only through the build-wide scope that 0.2.0 removes; write `dep::name!`, `#[derive(dep::Name)]`, `#[dep::name]` or `use dep::name!;` ([6.8.11](608-meta-blocks.md#6811-combination-with-registrationvisibility)) |
 | `assoc_type_shadowing`   | 0.2.0   | An associated type named like an outer type, which it hides inside its trait or `impl` (2.8.3) |
 | `builtin_attribute_name` | 0.2.0   | A meta block that takes the name of a built-in attribute |
 | `missing_docs`           | 0.2.0   | A `pub` item, a `pub` method of an inherent impl, a method of a `pub` trait or an inline `pub mod` without a `///` doc comment; `#[doc(hidden)]` counts as documented, a trait impl's methods are not checked (allow) |
+
+0.2.0 removes the 0.1.6 lints `trait_not_in_scope` and `unqualified_meta`: a method of a trait out of scope ([3.5](../003-expressions/305-member-access-and-method-call.md)) and another package's bare meta name ([6.8.11](608-meta-blocks.md#6811-combination-with-registrationvisibility)) are errors. Naming a removed lint in `#[allow]`, `-A` or `lints` does nothing.
 
 `unclosed_sender`, `using_twice`, `guard_escape` and `thread_local_across_await` were added in 0.1.6. 0.2.0 makes what `guard_escape` reports an error. In 0.2.0 an extern `static` read or written outside `unsafe` ([5.9.6](../005-modules/509-extern-block.md#596-calls--use)) and a GC type in an extern item ([5.9.4](../005-modules/509-extern-block.md#594-ffi-compatible-types)) are errors; their 0.1.6 lint names `extern_static_unsafe` and `improper_ctypes` are removed names, accepted in `allow` / `-A` / `lints` and ignored.
 

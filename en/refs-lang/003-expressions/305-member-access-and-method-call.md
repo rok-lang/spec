@@ -50,11 +50,11 @@ The form is `expr . method_name ( arguments )`. Method resolution looks at the s
 A method with the same name may be defined in several places. The compiler looks for candidates in this order:
 
 1. Methods defined in an inherent `impl` ([`impl`](../002-types/209-impl.md)) first.
-2. Then methods of trait `impl`s, limited to traits the left-hand type satisfies that are visible in the current module. Visibility comes from the automatically visible traits of `rok::**`, traits imported with `use`, or traits defined in the same module.
+2. Then methods of trait `impl`s, limited to traits the left-hand type satisfies that are in scope in the current module: the automatically visible traits of `rok::**`, traits imported with `use` (in the module or an enclosing block), traits defined in the same module, and the bounds of a type parameter receiver. The same holds for an associated function written through a type (`Point::origin()`). A method name a meta template writes is looked up with the traits in scope at the template's module ([6.9.9](../006-meta-system/609-template-tokens.md#names-in-an-expansion)).
 
 If several trait candidates exist and exactly one of them comes from a trait defined or `use`d in the module (an inherent method always wins), that one is picked. Otherwise several candidates at once are an ambiguity compile error. The user must then resolve it explicitly with the fully qualified form of [type paths](../002-types/213-type-paths.md).
 
-In the 0.1 series a trait method still resolves when its trait is not visible, with a warning (`trait_not_in_scope`, [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)) that names the `use` to add: ``method `hi` comes from trait `a::Greet`, which is not in scope``, help ``add `use a::Greet;` ``.
+A method that only a trait out of scope provides is an error that names the `use` to add: ``method `hi` comes from trait `a::Greet`, which is not in scope``, help ``add `use a::Greet;` ``. The fully qualified form (`a::Greet::hi(x)`) needs no `use`.
 
 ### Automatic `ref` for the method receiver
 

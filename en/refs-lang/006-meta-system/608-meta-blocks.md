@@ -188,7 +188,7 @@ The visibility keyword is attached to the template block itself. Its effect:
 | `pub` (including `pub(pkg)`)  | The whole build. Another package writes it with this package's name: `#[derive(dep::X)]` / `#[dep::x]` / `dep::x!(..)` (6.8.11) |
 | private                       | Within the file that defines the meta block                |
 
-Meta names have no module path: a name belongs to the package whose meta block registers it, written bare in that package and with the package's name in others (6.8.11). A meta block's or keyword handler's `#[cfg]` is evaluated with the cfg of the package that defines it (its own features, [9.10.4c](../009-tools/910-rok-frontend.md#9104c-features)).
+Meta names have no module path: a name belongs to the package whose meta block registers it, written bare in that package and with the package's name in others (6.8.11). A meta block's template sees what its module sees: the names it writes resolve, and are access-checked, there ([6.9.9](609-template-tokens.md#names-in-an-expansion)). A meta block's or keyword handler's `#[cfg]` is evaluated with the cfg of the package that defines it (its own features, [9.10.4c](../009-tools/910-rok-frontend.md#9104c-features)).
 
 ## 6.8.7. Body introducers (`@derive` / `@attribute`)
 
@@ -268,7 +268,7 @@ fn main() {
 }
 ```
 
-Until 0.2.0 a bare name also reaches a `pub` meta block of any package in the build (the build-wide scope). Such a use, neither qualified nor imported, gets the `unqualified_meta` warning ([6.2.9](602-built-in-attributes.md#629-allow--deny--warn-lint-control)), whose help gives the qualified form. Rok 0.2.0 removes the build-wide scope. The standard library's meta names (`#[derive(Inspect)]`) stay bare. When several packages register a bare name, a use takes this package's block, else the one a `use` imports, else it is an error that lists the qualified forms.
+A bare name resolves to this package's block, else the one a `use` imports, else the standard library's (its meta names stay bare: `#[derive(Inspect)]`). Otherwise it is an error that lists the qualified forms: `` `log!` is package `json`'s macro, which a bare name does not reach ``, help ``write `json::log!`, or add `use json::log!;` ``. Two packages whose `use`s both import the name make it ambiguous, also an error. Inside an expansion, a meta name the template wrote follows the same rule from the defining package and file, so a dependency's macros keep working wherever they expand; a name the use passed in follows it from the use site ([6.9.9](609-template-tokens.md#names-in-an-expansion)).
 
 The following are errors:
 

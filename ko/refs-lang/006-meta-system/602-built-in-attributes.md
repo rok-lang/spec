@@ -245,7 +245,6 @@ fn strict_zone() { ... }
 | `while_true`             | 0.1.0   | `loop` 대신 `while true`                                           |
 | `deprecated`             | 0.1.0   | `#[deprecated]` 함수, 메서드, 필드, 타입, 상수, static 사용 ([6.2.7](#627-deprecated-사용-자제-표시)) |
 | `deprecated_safe`        | 0.1.6   | `unsafe` 밖에서 `#[deprecated_safe]` 함수를 호출하거나 그런 static을 씀 ([6.2.14](#6214-deprecated_safe-지금은-안전-나중에-unsafe)) |
-| `trait_not_in_scope`     | 0.1.6   | `rok::` 밖의 트레잇 중 그 모듈에서 정의하지도 `use`로 가져오지도 않은 트레잇의 메서드 ([3.5](../003-expressions/305-member-access-and-method-call.md)) |
 | `redundant_cast`         | 0.1.0   | `x`가 이미 `T`인 `x as T`                                         |
 | `redundant_clone`        | 0.1.0   | 원시 타입 값의 `.clone()`                                          |
 | `non_snake_case`         | 0.1.0   | 함수, 지역 변수, 매개변수, 모듈 이름이 snake_case가 아님           |
@@ -254,10 +253,11 @@ fn strict_zone() { ... }
 | `confusable_idents`      | 0.1.0   | 서로 닮은 식별자 ([1.4](../001-lexical/104-identifiers.md))        |
 | `missing_f_prefix`       | 0.1.0   | 범위 안의 지역 변수 `name`을 가리키는 `{name}`을 담은 보통 문자열 리터럴: `f` 접두어가 빠짐 (warn) |
 | `literal_spread_mismatch` | 0.1.6   | 고정 매개변수에 펼친 `List`나 Dict 리터럴이 자리를 채울 수 없음: 길이가 다르거나 남은 매개변수 어느 것의 이름도 아닌 키가 있음([4.2](../004-functions/402-parameters.md)). 그 호출은 런타임에 panic이 일어남 (warn) |
-| `unqualified_meta`       | 0.1.6   | 다른 패키지의 macro, derive, 속성을 이름만 써서 0.2.0이 없애는 빌드 전역 범위로만 찾음. `dep::name!`, `#[derive(dep::Name)]`, `#[dep::name]`, `use dep::name!;`으로 씀 ([6.8.11](608-meta-blocks.md#6811-등록가시성과-결합)) |
 | `assoc_type_shadowing`   | 0.2.0   | 연관 타입이 바깥 타입과 이름이 같아 트레이트나 `impl` 안에서 그 타입을 가림 |
 | `builtin_attribute_name` | 0.2.0   | 메타 블록이 내장 속성의 이름을 가져감 |
 | `missing_docs`           | 0.2.0   | `///` 문서 주석이 없는 `pub` 항목, 고유 impl의 `pub` 메서드, `pub` 트레잇의 메서드, 인라인 `pub mod`. `#[doc(hidden)]`은 문서가 있는 것으로 보고, 트레잇 impl의 메서드는 검사하지 않음 (allow) |
+
+0.2.0은 0.1.6 린트 `trait_not_in_scope`와 `unqualified_meta`를 없앱니다. 스코프 밖 트레잇의 메서드([3.5](../003-expressions/305-member-access-and-method-call.md))와 다른 패키지의 메타 이름을 이름만 쓴 사용([6.8.11](608-meta-blocks.md#6811-등록가시성과-결합))은 에러입니다. 없어진 린트를 `#[allow]`, `-A`, `lints`에 써도 아무 일도 하지 않습니다.
 
 `unclosed_sender`, `using_twice`, `guard_escape`, `thread_local_across_await`는 0.1.6에서 추가되었습니다. `guard_escape`가 보고하는 코드는 0.2.0에서 에러가 됩니다. 0.2.0에서는 `unsafe` 밖에서 extern `static`을 읽거나 쓰는 것([5.9.6](../005-modules/509-extern-block.md#596-호출--사용))과 extern 항목의 GC 타입([5.9.4](../005-modules/509-extern-block.md#594-ffi-호환-타입))이 에러입니다. 0.1.6의 린트 이름 `extern_static_unsafe`, `improper_ctypes`는 제거된 이름이라 `allow` / `-A` / `lints`에 써도 받아들이고 무시합니다.
 

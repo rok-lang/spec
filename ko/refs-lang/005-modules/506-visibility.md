@@ -223,6 +223,8 @@ pub trait T { ... }
 
 항목이 보이지 않으면 컴파일러 진단이 그 이유를 알려 줍니다.
 
+메타 템플릿이나 컴파일러가 쓴 코드는 확장된 곳이 아니라 정의의 모듈에서 검사합니다([6.9.9](../006-meta-system/609-template-tokens.md#확장-안의-이름)). 템플릿은 자기 모듈의 비공개 항목과 자기 패키지의 `pub(pkg)` 항목을 부를 수 있고, 사용처가 넘긴 것은 사용처에서 검사합니다.
+
 ```
 ERROR: 'foo::secret' is not visible from this module.
        It is declared as private; only visible within 'foo'.

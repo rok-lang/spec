@@ -223,6 +223,8 @@ When both hold, the item can be used by its short name.
 
 For an item with insufficient visibility, the compiler diagnostic reports why it is not visible.
 
+Code a meta template or the compiler writes is checked from the module of its definition, not where it expands ([6.9.9](../006-meta-system/609-template-tokens.md#names-in-an-expansion)): a template may call its own module's private items and its package's `pub(pkg)` items, while what the use passes in is checked at the use.
+
 ```
 ERROR: 'foo::secret' is not visible from this module.
        It is declared as private; only visible within 'foo'.
