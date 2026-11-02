@@ -57,18 +57,40 @@ This blocks the pitfall common in Julia and Python where a typo silently creates
 
 Explicitness takes priority: a typo is a compile error.
 
-## 5.1.4. No redeclaration in the same scope
+## 5.1.4. Redeclaration in the same scope
 
-Declaring the same name again in the same scope is a compile error.
+A `let` may declare a name that is already bound in the same scope. This makes a new binding with its own slot; from the end of the statement on, the name refers to the new binding (shadowing).
 
 ```rok
-let x = 1;
-let x: i32 = 5i32;                  // ERROR: x already exists in this scope
+let line = "  42  ";
+let line = line.trim();                // the initializer reads the old `line`
+let n: i32 = try! line.parse();
+let n = n * 2;                         // a new slot, of the same type here
+let x = "abc";
+let x = x.len();                       // the type may differ: str, then usize
+let (a, b) = (1, 2);
+let (a, b) = (b, a);                   // patterns follow the same rule
 ```
 
-A variable's slot type is fixed at declaration and does not change within the same scope.
+- The initializer is checked before the new binding exists, so the name in it refers to the old binding. The new binding starts after the statement.
+- The new binding has its own type, written or inferred (5.1.7); it need not match the old one. Each slot keeps the type it was declared with: the old slot is not changed, and a reassignment without `let` (5.1.2) writes the newest binding.
+- The old binding is not reassigned, dropped or closed. It lives to the end of its scope as before (5.1.10), out of reach by name. Closures, views and guards made from it keep referring to it.
+- A value that must be closed ([stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop---cleanup-on-release)) is not closed by a redeclaration: close or move it before redeclaring its name. Moving it into the new value is the intended use. Leaving it open is the usual compile error (E0135), whose help says to close or move it before the redeclaration.
 
-The exception is the top level of REPL and Jupyter cells. To support re-running cells, the same name may be declared again with `let` at the top level of a cell, which creates a new binding ([0.1](../000-meta/001-execution-modes.md), [9.7.3](../009-tools/907-jit-cells.md#redeclaration-of-the-same-name)). This exception does not apply to ordinary source files.
+```rok
+let f = try fs::open(path);
+let f = io::BufReader::new(f);         // OK: the reader owns the file now
+try for l in f.lines() { println(l); }
+try f.close();
+
+let g = try fs::open(path);
+let g = 1;                             // ERROR (E0135): the first `g` is never closed
+                                        //        help: close or move it before redeclaring it
+```
+
+A view of a stream made from the old binding ends where the old value moves, also when it moves into the new binding (E0140, [stdlib 2.23.1](../../refs-standard-libraries/200-core/223-io.md#2231-read)).
+
+To change the value of a binding rather than make a new one, assign without `let` (5.1.2). The REPL and Jupyter follow the same rule at the top level of a cell ([9.7.3](../009-tools/907-jit-cells.md#redeclaration-of-the-same-name)).
 
 ## 5.1.5. Scope: per block
 
@@ -87,7 +109,7 @@ A `let` inside a block is a new local binding belonging to that block, so the va
 
 ## 5.1.6. Nested scopes: separate bindings
 
-When a variable of the same name is declared anew in an inner block, it is a separate binding (not shadowing).
+When a variable of the same name is declared anew in an inner block, it is a separate binding.
 
 ```rok
 let a = 1;
@@ -102,11 +124,18 @@ An inner block's `let` creates an entirely new binding. Even if the same name ex
 
 The design keeps both the meaning that an inner variable disappears when the block ends and the intent to protect outer variables.
 
-### Difference from shadowing
+### Difference from redeclaration in the same scope
 
-Rust-style shadowing allows declaring the same name again in the same scope. Rok forbids redeclaration within the same scope (5.1.4).
+Both make a new binding that hides the old name, and neither changes the old slot. They differ in where the old name comes back: a binding in an inner block ends with the block, and after it the outer name is visible again. A redeclaration in the same scope (5.1.4) lasts to the end of that scope, so the old binding is not reachable by name again.
 
-Declaring the same name in an inner block is not shadowing but a separate binding in a new scope. The effect (the outer name is hidden inside the block) looks similar, but the semantics clearly differ.
+```rok
+let a = 1;
+{
+    let a = "inner";               // hides the outer a inside the block
+}
+// a = 1 again
+let a = a + 1;                     // same scope: a = 2 from here to the end
+```
 
 ## 5.1.7. Type annotations and type inference
 
@@ -167,7 +196,7 @@ let a = 1; let b = 2;              // two statements: OK
 
 ## 5.1.10. Lifetime of variables declared with `let`
 
-A variable lives from the point of declaration until the end of the scope that introduced it.
+A variable lives from the point of declaration until the end of the scope that introduced it. A redeclaration of its name in the same scope (5.1.4) does not end it.
 
 A variable captured by a closure through a `ref` capture ([capture semantics](../004-functions/406-capture-semantics.md)) is additionally kept alive while that closure object is alive. It is managed by the [GC](../000-meta/007-glossary.md#gc-garbage-collector), so the user never frees it manually.
 

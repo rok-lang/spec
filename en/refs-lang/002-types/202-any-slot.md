@@ -171,14 +171,16 @@ This requirement lets the compiler determine the struct's memory layout.
 
 ## 2.2.8. The slot kind is fixed by the declaration
 
-Whether a variable's slot is dynamic or static is visible from the declaration syntax alone. Writing `: any` makes a dynamic slot; anything else (explicit or inferred type) makes a static slot. Redeclaring the same name in the same scope is not allowed, so once fixed, a slot's kind never changes within its scope.
+Whether a variable's slot is dynamic or static is visible from the declaration syntax alone. Writing `: any` makes a dynamic slot; anything else (explicit or inferred type) makes a static slot. Once fixed, a slot's kind never changes. A `let` that redeclares the name makes a new slot with a kind of its own ([5.1.4](../005-modules/501-variable-declaration.md#514-redeclaration-in-the-same-scope)); the old slot keeps its kind.
 
 ```rok
 let x = 1;              // static slot (inferred from initializer)
-let x: any = 5i32;      // ERROR: x already exists in the same scope
+x = "hi";               // ERROR: x is a static slot
+let x: any = 5i32;      // a new binding: a dynamic slot
+x = "hi";               // OK
 ```
 
-In a new scope it acts as a separate binding; details are defined in [Variable declarations](../005-modules/501-variable-declaration.md).
+Details are defined in [Variable declarations](../005-modules/501-variable-declaration.md).
 
 ## 2.2.9. Compiler / tooling friendliness
 

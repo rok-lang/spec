@@ -179,7 +179,7 @@ IDE와 CI 시스템은 이 형식으로 진단을 기계적으로 읽을 수 있
 | `E0035` | `module` | module file problem |
 | `E0036` | `module` | invalid program entry point |
 | `E0037` | `module` | invalid dependency |
-| `E0038` | `resolve` | local declared twice |
+| `E0038` | `resolve` | variable named like a nested function |
 | `E0039` | `resolve` | nested item uses an outer local |
 | `E0040` | `type` | mismatched types |
 | `E0041` | `type` | branches of different types |
@@ -456,7 +456,7 @@ rokc build --release -C profile-use=app.profdata  #    profile 로 다시 빌드
 | `:load <file>`       | 실행 중인 세션에 프로그램을 로드([9.7.10](907-jit-cells.md#9710-프로그램-로드repl-path)). 그 항목이 같은 이름 항목을 대신함. `:save`로 쓴 스크립트는 그 셀을 하나씩 다시 실행 |
 | `:reload`            | 마지막으로 로드한 프로그램을 다시 로드                               |
 | `:edit`              | `$VISUAL`이나 `$EDITOR`(없으면 `vi`, Windows는 `notepad`)로 임시 파일을 열고 그 내용을 셀로 실행. 셀이 실패하면 다음 `:edit`에서 그 텍스트를 다시 엶 |
-| `:save <file>`       | 세션을 스크립트로 씀. 항목을 먼저, 이어서 실행된 셀을 씀. 같은 타입으로 다시 선언한 이름은 대입으로 씀. 타입이 다르면 파일 끝까지 이어지는 블록을 엶([5.1.4](../005-modules/501-variable-declaration.md#514-같은-스코프-내-재선언-금지)). `it`은 이후 셀이 읽는 곳에서만 선언. 첫 줄은 `// rok repl session (:save); :load replays it cell by cell`이고 각 셀 앞에 `// :cell` 줄이 옴. 스크립트를 `:load`로 로드하면 셀을 하나씩 다시 실행하므로 다시 선언한 이름은 마지막 바인딩을 유지함. `rokc run`은 프로그램으로 실행함 |
+| `:save <file>`       | 세션을 스크립트로 씀. 항목을 먼저, 이어서 실행된 셀을 입력한 그대로 씀. 다시 선언한 이름은 거기서도 재선언임([5.1.4](../005-modules/501-variable-declaration.md#514-같은-스코프-안의-재선언)). `it`은 이후 셀이 읽는 곳에서만 선언. 첫 줄은 `// rok repl session (:save); :load replays it cell by cell`이고 각 셀 앞에 `// :cell` 줄이 옴. 스크립트를 `:load`로 로드하면 셀을 하나씩 다시 실행하므로 다시 선언한 이름은 마지막 바인딩을 유지함. `rokc run`은 프로그램으로 실행함 |
 | `:opt [<level>]`     | 최적화 수준(`-O`처럼 `0`, `1`, `2`, `3`, `s`)을 출력하거나 이후 셀에 설정 |
 | `:reset`             | 세션을 처음 상태로 되돌림(라이브러리 경로의 `use`는 다시 넣음)         |
 | `:add <dep> ..`      | 의존성을 추가하고(현재 환경에서는 `rok install`, 패키지의 세션에서는 `rok add`) 세션에 붙임([9.10.5](910-rok-frontend.md#9105-환경)) |

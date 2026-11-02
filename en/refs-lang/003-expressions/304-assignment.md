@@ -61,7 +61,13 @@ let x = 1;       // new declaration, 'let' required
 x = 2;           // reassignment, without 'let'
 ```
 
-Creating a new variable requires `let`; writing again to an existing variable's slot is written without `let`. Assigning without `let` to an undeclared name is a compile error. The exact rules are defined in [variable declaration](../005-modules/501-variable-declaration.md).
+Creating a new variable requires `let`; writing again to an existing variable's slot is written without `let`. Assigning without `let` to an undeclared name is a compile error. A `let` of a name already declared in the same scope is a redeclaration: it makes a new binding, which may have another type, and leaves the old slot as it was ([5.1.4](../005-modules/501-variable-declaration.md#514-redeclaration-in-the-same-scope)). The exact rules are defined in [variable declaration](../005-modules/501-variable-declaration.md).
+
+```rok
+let n = "42";
+let n: i32 = try! n.parse();   // redeclaration: a new binding of another type
+n = n + 1;                     // reassignment of the new binding
+```
 
 ```
 counter = counter + 1;     // OK if counter is declared

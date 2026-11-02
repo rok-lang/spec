@@ -173,7 +173,7 @@ let copy = other.clone(); // 따로 주인을 가진 두 번째 sender
 
 ### 호출 시점
 
-컴파일러는 주인이 스코프를 벗어나는 곳의 모든 출구(정상 종료, `return`, `break`, 에러 전파)에서 값을 해제합니다. task가 끝나거나 취소될 때는 그 `async` 블록이 캡처한 값을 해제합니다. `using`은 블록이 끝날 때 값을 해제합니다([refs-lang 3.17 `using`](../../refs-lang/003-expressions/317-using-expression.md)). 다른 곳으로 옮겨 간 값은 이곳이 아니라 새 주인이 해제합니다.
+컴파일러는 주인이 스코프를 벗어나는 곳의 모든 출구(정상 종료, `return`, `break`, 에러 전파)에서 값을 해제합니다. task가 끝나거나 취소될 때는 그 `async` 블록이 캡처한 값을 해제합니다. `using`은 블록이 끝날 때 값을 해제합니다([refs-lang 3.17 `using`](../../refs-lang/003-expressions/317-using-expression.md)). 다른 곳으로 옮겨 간 값은 이곳이 아니라 새 주인이 해제합니다. 주인의 이름을 다시 선언하는 `let`([refs-lang 5.1.4](../../refs-lang/005-modules/501-variable-declaration.md#514-같은-스코프-안의-재선언))은 이전 값을 옮기지도 해제하지도 않습니다. 이전 값은 이전 바인딩이 스코프를 벗어나는 곳에서 해제됩니다. 닫아야 하는 값이면 재선언 전에 닫거나 옮깁니다.
 
 닫기가 실패할 수 있는 타입은 `io::Close`(`fn close(self) throws (IoError)`)를 구현합니다. `File`, 그 위의 `BufWriter`나 `LineWriter`, 그리고 그런 값을 담은 struct입니다. 닫기 에러를 잃게 되므로 컴파일러는 이런 값을 대신 닫지 않습니다. `try x.close()`로 닫거나 `using`으로 묶습니다. 어떤 경로에서 열린 채로 스코프를 벗어나면 컴파일 에러입니다. 빌리기만 하는 호출에 주려고 만든 임시 값(`(try File::open(p)).read_to_str()`, `io::BufReader::new(try File::open(p)).lines()`)도 마찬가지입니다. 호출이 끝나면 주인이 없어 아무도 닫지 않으므로 컴파일 에러(E0135)입니다. `using`으로 묶습니다(`using f = try File::open(p) { try f.read_to_str() }`). 에러로 빠져나가는 경로에서는 값을 해제합니다(그때 닫기 자체의 에러는 버립니다). `try?`는 잡은 에러를 버리므로, 에러가 그런 값을 담을 수 있는 호출(`SendError<File>`은 보내지 못한 값을 돌려줍니다)에 `try?`를 쓰면 컴파일 에러입니다. `try .. catch`로 에러를 잡고 값을 꺼내 닫습니다. 실패한 `try!`는 패닉하므로, 그 에러가 담은 값은 닫지 않아도 됩니다. 그런 값을 담은 sum이나 enum은 멤버별로 닫습니다. 그 값을 보는 `match` 가지가 닫고, 컴파일러가 해제하는 멤버(`Sender`)만 보는 가지는 닫지 않아도 됩니다.
 

@@ -179,7 +179,7 @@ The titles are written exactly as `rokc --explain` prints them.
 | `E0035` | `module` | module file problem |
 | `E0036` | `module` | invalid program entry point |
 | `E0037` | `module` | invalid dependency |
-| `E0038` | `resolve` | local declared twice |
+| `E0038` | `resolve` | variable named like a nested function |
 | `E0039` | `resolve` | nested item uses an outer local |
 | `E0040` | `type` | mismatched types |
 | `E0041` | `type` | branches of different types |
@@ -451,7 +451,7 @@ An unset or empty variable has its default. A value outside those listed prints 
 | `:load <file>`       | Loads a program into the running session ([9.7.10](907-jit-cells.md#9710-loading-a-program-repl-path)); its items replace those of the same name. A script written by `:save` runs its cells again one by one |
 | `:reload`            | Loads the last loaded program again                                  |
 | `:edit`              | Opens `$VISUAL` or `$EDITOR` (else `vi`; `notepad` on Windows) on a scratch file, then runs what it holds as cells; after a failed cell the text opens again on the next `:edit` |
-| `:save <file>`       | Writes the session as a script: the items, then the cells that ran. A name declared again with the same type is assigned; with another type, it opens a block that lasts to the end of the file ([5.1.4](../005-modules/501-variable-declaration.md#514-no-redeclaration-in-the-same-scope)). `it` is declared only where a later cell reads it. The first line is `// rok repl session (:save); :load replays it cell by cell` and a `// :cell` line comes before each cell: `:load` of the script runs the cells again one by one, so a name declared again keeps its last binding; `rokc run` runs it as a program |
+| `:save <file>`       | Writes the session as a script: the items, then the cells that ran, as typed; a name declared again is a redeclaration there too ([5.1.4](../005-modules/501-variable-declaration.md#514-redeclaration-in-the-same-scope)). `it` is declared only where a later cell reads it. The first line is `// rok repl session (:save); :load replays it cell by cell` and a `// :cell` line comes before each cell: `:load` of the script runs the cells again one by one, so a name declared again keeps its last binding; `rokc run` runs it as a program |
 | `:opt [<level>]`     | Prints, or sets for later cells, the optimization level (`0`, `1`, `2`, `3`, `s`, as `-O`) |
 | `:reset`             | Resets the session to its initial state (the `use` of a library path is inserted again) |
 | `:add <dep> ..`      | Adds dependencies (`rok install` into the current environment, or `rok add` in a package's session) and attaches them to the session ([9.10.5](910-rok-frontend.md#9105-environments)) |

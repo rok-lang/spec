@@ -36,7 +36,7 @@ All five follow the same cell processing flow; only the final output differs. Th
 A cell may `await` in a top-level statement, as the implicit `main` may ([4.16.5](../004-functions/416-entry-point.md#4165-async-main)): the cell then runs on the executor until it completes. Its `let` bindings and its value carry over to later cells like those of any other cell.
 
 > [!IMPORTANT]
-> In terms of language semantics, a sequence of cells is equivalent to appending top-level statements and items to the end of an implicit `main.rok` ([4.16.10](../004-functions/416-entry-point.md#41610-relationship-to-jit--repl)). A cell's `let` is a local variable of the implicit `main`, so it is visible to statements of later cells but not inside the bodies of `fn`s declared in cells. The global storage of 9.7.3 below is an implementation technique for keeping local variables alive across cell boundaries and does not change this visibility rule. Same-name re-`let` at cell top level (9.7.3), cell re-execution (9.7.4), automatic display of the last expression value and its binding `it` (9.7.7) are session operations that exist only on the interactive surfaces.
+> In terms of language semantics, a sequence of cells is equivalent to appending top-level statements and items to the end of an implicit `main.rok` ([4.16.10](../004-functions/416-entry-point.md#41610-relationship-to-jit--repl)). A cell's `let` is a local variable of the implicit `main`, so it is visible to statements of later cells but not inside the bodies of `fn`s declared in cells. The global storage of 9.7.3 below is an implementation technique for keeping local variables alive across cell boundaries and does not change this visibility rule. Cell re-execution (9.7.4), automatic display of the last expression value and its binding `it` (9.7.7) are session operations that exist only on the interactive surfaces.
 
 ## 9.7.2. Execution flow: in detail
 
@@ -87,7 +87,7 @@ See the shadow stack part of [Barriers and root tracking](../007-runtime/704-bar
 [2] let x = "hi";            // redeclaration at cell top level: new binding (x: str)
 ```
 
-In [Variable declaration](../005-modules/501-variable-declaration.md#514-no-redeclaration-in-the-same-scope), redeclaration within the same scope is an ERROR. However, to support editing and re-running cells, the same name may be declared again with `let` at the top level of REPL and Jupyter cells. A redeclaration creates a new binding, whose type may differ from the previous binding. Later cells see the new binding. This exception applies only at cell top level, not to blocks inside a cell or to ordinary source files.
+A `let` of a name already bound at cell top level is a redeclaration, as in a source file ([5.1.4](../005-modules/501-variable-declaration.md#514-redeclaration-in-the-same-scope)). It creates a new binding, whose type may differ from the previous binding. Later cells see the new binding.
 
 The existing global is then overwritten: its memory is left in place and only the name slot is redirected to the new definition.
 
