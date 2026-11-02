@@ -97,7 +97,7 @@ error[E0027]: cannot find value `count` in this scope
 
 머리줄은 `<severity>[<code>]: <message>`이고 `--> path:line:col`이 주 위치입니다. 주 span에는 `^`로, 보조 span에는 `-`로 밑줄을 긋습니다. 다른 파일의 보조 span은 `::: path:line:col`로 시작합니다. 끝의 `= note:` 줄은 맥락을, `= help:` 줄은 고치는 방법을 덧붙입니다. 찾지 못한 이름이 다른 곳에 항목으로 있으면 help는 그 항목을 가져오는 `use` 줄을 알립니다. 줄은 최대 세 개이고, 패키지 자신의 항목, 표준 라이브러리, 의존 패키지 순서로 고릅니다. 패키지에 그런 항목이 하나뿐이고 그 항목이 비공개이면 빠진 `pub`을 알립니다(``add `use geo::Point;` ``, `` `geo::secret` has that name, but it is private to module `geo`: add `pub` to it ``).
 
-주 span은 잘못된 코드를 가리킵니다. 타입이 맞지 않는 값이면 그 값을 담은 문장이 아니라 값 자체를 가리킵니다. 메시지는 라이브러리 항목을 코드에 쓰는 이름으로 부릅니다(`rok::core::marker::Send`가 아니라 `List::sort`, `Send`, `print`). 사람용 형식은 이 사양의 인용(`(spec 3.12.5)`)을 뺍니다. JSON 형식은 인용을 글에 그대로 두고 `spec`에도 모읍니다.
+주 span은 잘못된 코드를 가리킵니다. 타입이 맞지 않는 값이면 그 값을 담은 문장이 아니라 값 자체를 가리킵니다. 메시지는 라이브러리 항목을 코드에 쓰는 이름으로 부릅니다(`rok::core::marker::Send`가 아니라 `List::sort`, `Send`, `print`). 메시지는 이 사양의 절을 인용하지 않습니다. 대신 쓸 것은 메시지와 help 줄, `rokc --explain <code>`에 있습니다.
 
 ### JSON 형식(도구 통합)
 
@@ -110,7 +110,7 @@ rokc build --message-format=json
 진단 하나가 stdout의 JSON 객체 한 줄입니다. 사람용 형식의 진단은 출력하지 않고, stderr에는 진행 줄만 나옵니다.
 
 ```json
-{"type":"error","code":"E0040","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"...","line_end":5,"col_end":15}],"notes":["..."],"fixes":[],"spec":["..."],"help":["..."],"lint":null,"schema":2}
+{"type":"error","code":"E0040","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"...","line_end":5,"col_end":15}],"notes":["..."],"fixes":[],"help":["..."],"lint":null,"schema":2}
 ```
 
 | 필드       | 뜻                                                                 |
@@ -122,7 +122,6 @@ rokc build --message-format=json
 | `spans`    | 위치 목록. 첫 원소가 주 위치(`is_primary: true`), 나머지는 보조 위치 |
 | `notes`    | note 문자열 목록. help 항목은 빠짐                                 |
 | `fixes`    | 코드를 고치는 편집 목록. 각 편집은 파일 하나의 span에 그 자리를 바꿀 `text`와 `title`을 더한 것(아래). 비어 있을 때가 많음 |
-| `spec`     | 메시지와 note가 인용하는 절(`spec 3.12.5`). 사람용 형식에서는 빠짐 |
 | `help`     | help 항목(사람용 형식의 `= help:` 줄)에서 `help: ` 접두어를 뗀 것  |
 | `lint`     | 경고나 린트 에러가 속한 린트(`unused_variables`). `#[allow(..)]`와 `-A`가 받는 이름([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). 나머지는 `null` |
 | `schema`   | 이 형식의 버전. 지금은 `2`                                         |

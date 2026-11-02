@@ -97,7 +97,7 @@ This format uses the file + line + column diagnostic units of [Source files](../
 
 The header is `<severity>[<code>]: <message>` and `--> path:line:col` gives the primary location. The primary span is underlined with `^`, secondary spans with `-`; a secondary span in another file is introduced by `::: path:line:col`. Trailing `= note:` lines add context and `= help:` lines suggest a fix. For a name not found that an item elsewhere has, the help gives the `use` lines that bring it in (up to three: the package's own items first, then the standard library's, then the dependencies'), or the missing `pub` when the package's only such item is hidden (``add `use geo::Point;` ``; `` `geo::secret` has that name, but it is private to module `geo`: add `pub` to it ``).
 
-The primary span is the code at fault: for a value of the wrong type, the value, not the statement that holds it. Messages name library items as they are written (`List::sort`, `Send`, `print`, not `rok::core::marker::Send`). The human format leaves out citations of this specification (`(spec 3.12.5)`); the JSON format keeps them in the text and lists them in `spec`.
+The primary span is the code at fault: for a value of the wrong type, the value, not the statement that holds it. Messages name library items as they are written (`List::sort`, `Send`, `print`, not `rok::core::marker::Send`). Messages do not cite sections of this specification; what to write instead is in the message, the help lines and `rokc --explain <code>`.
 
 ### JSON format (tool integration)
 
@@ -110,7 +110,7 @@ rokc build --message-format=json
 Each diagnostic is one line of JSON object on stdout; no human-format diagnostic is printed, and stderr holds only progress lines.
 
 ```json
-{"type":"error","code":"E0040","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"...","line_end":5,"col_end":15}],"notes":["..."],"fixes":[],"spec":["..."],"help":["..."],"lint":null,"schema":2}
+{"type":"error","code":"E0040","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"...","line_end":5,"col_end":15}],"notes":["..."],"fixes":[],"help":["..."],"lint":null,"schema":2}
 ```
 
 | Field      | Meaning                                                            |
@@ -122,7 +122,6 @@ Each diagnostic is one line of JSON object on stdout; no human-format diagnostic
 | `spans`    | List of locations. The first element is the primary location (`is_primary: true`); the rest are secondary |
 | `notes`    | List of note strings, without the help entries                     |
 | `fixes`    | Edits that fix the code, each a span of one file with the `text` that replaces it and a `title` (below); often empty |
-| `spec`     | Sections the message and notes cite (`spec 3.12.5`), which the human format leaves out |
 | `help`     | The help entries (the `= help:` lines of the human format), without the `help: ` prefix |
 | `lint`     | The lint a warning or lint error belongs to (`unused_variables`), the name `#[allow(..)]` and `-A` take ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)); `null` for the others |
 | `schema`   | The version of this format, now `2`                                |
