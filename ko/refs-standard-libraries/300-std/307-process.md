@@ -42,7 +42,7 @@ enum Stdio {
     Inherit,                   // 부모 fd 그대로 (default)
     Null,                      // /dev/null
     Piped,                     // pipe, Child 에서 읽기/쓰기 가능
-    File(File),                // 명시 fd
+    File(File),                // 이 파일, 이제부터 명령이 소유
 }
 
 struct Output {
@@ -54,21 +54,22 @@ struct Output {
 
 빌더 메서드는 바뀐 명령을 돌려주고, 호출한 쪽 명령은 그대로 둡니다. 그래서 `Command`의 복사본들은 서로 독립입니다. `let a = base.arg("x")` 뒤에도 `base`에는 `x`가 없습니다. 결과를 버린 빌더 호출(`base.arg("x");`)은 아무것도 바꾸지 않고 경고를 냅니다(`#[must_use]`).
 
-`Stdio`는 네 가지입니다. 부모의 fd를 그대로 물려주는 `Inherit`, 출력을 모두 버리는 `Null`, 양방향 통신용 `Piped`, 임의의 fd를 명시적으로 연결하는 `File`입니다.
+`Stdio`는 네 가지입니다. 부모의 fd를 그대로 물려주는 `Inherit`, 출력을 모두 버리는 `Null`, 양방향 통신용 `Piped`, 열린 파일을 연결하는 `File`입니다.
+
+`Stdio::File`로 옮긴 `File`은 프로그램이 아니라 명령의 것입니다. 다른 `File` 이동과 같이 이 이동은 값을 소비하고([2.13.4](../200-core/213-marker.md)), 프로그램은 그 파일을 닫지 않습니다. 명령을 실행하면(`spawn`, `output`, `status`와 그 `_async` 쌍둥이) 자식을 띄운 직후 부모 쪽 사본을 닫고, 띄우기에 실패해도 닫습니다. 자식은 자기 사본을 따로 가집니다. 이때 닫기가 실패하면 그 실행의 `IoError`가 됩니다. 이미 띄운 자식은 먼저 죽이고 회수하므로 잃어버리는 `Child`는 없습니다. 앞선 실행이 파일을 닫은 명령의 복사본은 실행하지 않고 `InvalidInput`으로 실패합니다. 실행마다 따로 파일을 주세요(`File::try_clone`). 한 번도 실행하지 않은 명령의 파일은 수집기가 해제할 때까지 열려 있습니다.
 
 ## 3.7.2. `Child`
 
 `spawn`이 성공하면 실행 중인 프로세스의 핸들인 `Child`를 돌려줍니다. 이 핸들로 표준 입출력 스트림에 접근하거나, 종료를 기다리거나, 신호를 보낼 수 있습니다.
 
 ```rok
-struct Child {
-    stdin: ChildStdin | none;
-    stdout: ChildStdout | none;
-    stderr: ChildStderr | none;
-}
+struct Child { /* opaque: pid, 아직 꺼내지 않은 pipe 스트림 */ }
 
 impl Child {
     fn id(self) -> u32;                                  // pid
+    fn take_stdin(ref self) -> ChildStdin | none;        // none: Piped 가 아니거나 이미 꺼냄
+    fn take_stdout(ref self) -> ChildStdout | none;
+    fn take_stderr(ref self) -> ChildStderr | none;
     fn kill(self) throws (IoError);
     fn wait(self) throws (IoError) -> ExitStatus;
     async fn wait_async(ref self) throws (IoError) -> ExitStatus;
@@ -126,11 +127,17 @@ let child = try Command::new("grep")
     .stdout(Stdio::Piped)
     .spawn();
 
-let stdin = child.stdin ?? panic("stdin not piped");     // 필드는 ChildStdin | none
-let stdout = child.stdout ?? panic("stdout not piped");
+let stdin = child.take_stdin() ?? panic("stdin not piped");
 try stdin.write_all(input_bytes);
+try stdin.close();                                       // 입력 끝: grep 이 끝날 수 있음
+let stdout = child.take_stdout() ?? panic("stdout not piped");
 let result = try stdout.read_to_end();
+try stdout.close();
 try child.wait();
+
+// 파일로 출력: 명령이 파일을 가져가고 우리 쪽 사본을 닫음
+let log = try File::create("ls.txt");
+try Command::new("ls").stdout(Stdio::File(log)).status();
 
 // kill_on_drop 으로 process leak 방지
 using child = try Command::new("long_running")
@@ -140,7 +147,7 @@ using child = try Command::new("long_running")
 }    // ← using 해제 시 Drop → kill
 ```
 
-마지막 예처럼 `kill_on_drop`을 켠 `Child`를 `using`으로 묶으면 에러 전파나 조기 반환 같은 흐름에서도 자식이 함께 정리됩니다. 소유자가 `Child`를 해제하는 곳, 곧 `using` 블록의 끝이나 마지막 소유자가 스코프를 떠나는 곳에서 `Drop`이 자식을 죽입니다([2.13.4](../200-core/213-marker.md)). `ChildStdin` / `ChildStdout` / `ChildStderr`는 파이프의 파일 핸들입니다. `File`과 같은 방식으로 읽고 씁니다.
+마지막 예처럼 `kill_on_drop`을 켠 `Child`를 `using`으로 묶으면 에러 전파나 조기 반환 같은 흐름에서도 자식이 함께 정리됩니다. 소유자가 `Child`를 해제하는 곳, 곧 `using` 블록의 끝이나 마지막 소유자가 스코프를 떠나는 곳에서 `Drop`이 자식을 죽입니다([2.13.4](../200-core/213-marker.md)). `ChildStdin` / `ChildStdout` / `ChildStderr`는 파이프의 파일 핸들입니다. `File`과 같은 방식으로 읽고 씁니다. `Child`는 `Piped` 스트림을 들고 있다가 `take_stdin` / `take_stdout` / `take_stderr`가 하나를 넘겨주면 그 자리에 `none`을 남깁니다. 그때부터 파이프는 꺼낸 쪽의 것이고, `File`처럼 직접 닫아야 합니다. 꺼내지 않은 파이프는 `Child`가 해제되는 곳에서 닫힙니다. `wait`는 `Child`가 아직 들고 있는 stdin을 먼저 닫으므로 입력 끝까지 읽는 자식도 끝날 수 있습니다. 꺼낸 stdin은 꺼낸 쪽이 `wait` 전에 닫습니다.
 
 `Child`의 복사본들은 같은 프로세스를 공유합니다. `wait` / `try_wait`는 다른 복사본으로 진행 중인 `send_signal` / `kill` 호출이 돌아온 뒤에야 자식을 회수합니다. 그래서 시그널이 재사용된 pid나 pidfd에 닿는 일은 없습니다. 자식이 끝나 회수되는 중에 보낸 `send_signal`은 아무 일도 하지 않습니다. 동시에 기다리는 복사본들은 모두 같은 `ExitStatus`를 받습니다.
 

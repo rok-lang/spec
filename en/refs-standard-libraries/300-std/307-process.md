@@ -42,7 +42,7 @@ enum Stdio {
     Inherit,                   // parent's fd as is (default)
     Null,                      // /dev/null
     Piped,                     // pipe, readable/writable from Child
-    File(File),                // explicit fd
+    File(File),                // this file; the command owns it from here
 }
 
 struct Output {
@@ -54,21 +54,22 @@ struct Output {
 
 A builder method returns the changed command and leaves the one it was called on as it was, so copies of a `Command` are independent: after `let a = base.arg("x")`, `base` has no `x`. A builder call whose result is dropped (`base.arg("x");`) changes nothing and warns (`#[must_use]`).
 
-Note that `Stdio` has four branches: `Inherit`, which passes on the parent's fd; `Null`, which discards output entirely; `Piped`, for two-way communication; and `File`, which plugs in an arbitrary fd explicitly.
+Note that `Stdio` has four branches: `Inherit`, which passes on the parent's fd; `Null`, which discards output entirely; `Piped`, for two-way communication; and `File`, which plugs in an open file.
+
+A `File` moved into `Stdio::File` belongs to the command, not to the program: the move consumes it, as any move of a `File` does ([2.13.4](../200-core/213-marker.md)), and the program does not close it. Running the command (`spawn`, `output`, `status` and their `_async` twins) closes the parent's copy right after the child is started, and also when starting it fails; the child keeps its own. A failed close there is the run's `IoError`: the child, already started, is killed and reaped first, so no `Child` is lost. A copy of a command whose file an earlier run closed fails with `InvalidInput` instead of running; give each run its own file (`File::try_clone`). A command that never runs leaves its file open until the collector frees it.
 
 ## 3.7.2. `Child`
 
 When `spawn` succeeds, it returns a `Child`, the handle to the running process. Through it you can access the standard I/O streams, wait for exit, or send signals.
 
 ```rok
-struct Child {
-    stdin: ChildStdin | none;
-    stdout: ChildStdout | none;
-    stderr: ChildStderr | none;
-}
+struct Child { /* opaque: pid, the piped streams not yet taken */ }
 
 impl Child {
     fn id(self) -> u32;                                  // pid
+    fn take_stdin(ref self) -> ChildStdin | none;        // none: not Piped, or taken already
+    fn take_stdout(ref self) -> ChildStdout | none;
+    fn take_stderr(ref self) -> ChildStderr | none;
     fn kill(self) throws (IoError);
     fn wait(self) throws (IoError) -> ExitStatus;
     async fn wait_async(ref self) throws (IoError) -> ExitStatus;
@@ -126,11 +127,17 @@ let child = try Command::new("grep")
     .stdout(Stdio::Piped)
     .spawn();
 
-let stdin = child.stdin ?? panic("stdin not piped");     // the field is ChildStdin | none
-let stdout = child.stdout ?? panic("stdout not piped");
+let stdin = child.take_stdin() ?? panic("stdin not piped");
 try stdin.write_all(input_bytes);
+try stdin.close();                                       // end of input: grep can finish
+let stdout = child.take_stdout() ?? panic("stdout not piped");
 let result = try stdout.read_to_end();
+try stdout.close();
 try child.wait();
+
+// output into a file: the command takes the file and closes our copy
+let log = try File::create("ls.txt");
+try Command::new("ls").stdout(Stdio::File(log)).status();
 
 // kill_on_drop prevents process leaks
 using child = try Command::new("long_running")
@@ -140,7 +147,7 @@ using child = try Command::new("long_running")
 }    // ← on using release, Drop → kill
 ```
 
-As the last example shows, binding a `Child` with `kill_on_drop` enabled in `using` cleans up the child even on flows such as error propagation or early return. `Drop` issues the kill where the owner releases the `Child`: at the end of the `using` block, or where its last owner leaves scope ([2.13.4](../200-core/213-marker.md)). `ChildStdin` / `ChildStdout` / `ChildStderr` are file handles of the pipes and are read and written the same way as `File`.
+As the last example shows, binding a `Child` with `kill_on_drop` enabled in `using` cleans up the child even on flows such as error propagation or early return. `Drop` issues the kill where the owner releases the `Child`: at the end of the `using` block, or where its last owner leaves scope ([2.13.4](../200-core/213-marker.md)). `ChildStdin` / `ChildStdout` / `ChildStderr` are file handles of the pipes and are read and written the same way as `File`. The `Child` holds its `Piped` streams until `take_stdin` / `take_stdout` / `take_stderr` hand one over, leaving `none`; from then on the taker owns the pipe and must close it, like a `File`. The pipes never taken close where the `Child` is released. `wait` closes a stdin still held by the `Child` first, so a child reading to end of input can finish; a taken stdin is the taker's to close before `wait`.
 
 Copies of a `Child` share the process. `wait` / `try_wait` reap the child only after the `send_signal` / `kill` calls in flight through other copies return, so a signal never reaches a pid or pidfd that was reused. A `send_signal` once the child has ended and is being reaped is a no-op. Copies that wait at the same time all get the same `ExitStatus`.
 
