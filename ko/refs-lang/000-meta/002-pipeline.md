@@ -16,7 +16,7 @@
    rok-mir         (Mid-level IR: monomorphized / operators desugared, all types fixed)
         │
         ▼
-   standard MLIR   (upstream MLIR dialects: `func`, `arith`, `scf`, ...)     -O1 이상
+   standard MLIR   (upstream MLIR dialects: `func`, `arith`, `cf`, ...)     -O1 이상
         │
         ▼
    LLVM IR → native object → lld
@@ -41,10 +41,8 @@ Rok 전용 MLIR 다이얼렉트는 따로 정의하지 않습니다. 사용하�
 |------------|------------------------------------------|
 | `func`     | 함수 정의 / 호출                         |
 | `arith`    | 정수 / 부동소수 산술 / 비교              |
-| `scf`      | 구조적 제어 흐름(`if` / `for` / `while`) |
-| `cf`       | 비구조적 분기(switch, cond_br)           |
-| `index`    | 인덱스 타입 연산                         |
-| `math`     | 수학 함수                                |
+| `cf`       | 분기(`cf.br`, `cf.cond_br`)              |
+| `math`     | 정확한 부동소수 함수(`sqrt`, `floor`, ..) |
 | `llvm`     | 저수준 op(intrinsic, `struct`)           |
 
 이렇게 하면 세 가지를 보장할 수 있습니다. 업스트림 MLIR이 개선되면 Rok에 자동으로 들어옵니다. IREE, Enzyme, Triton 같은 외부 MLIR 기반 도구와 그대로 상호운용합니다. 자체 다이얼렉트를 등록하고 유지보수하는 비용이 들지 않습니다.

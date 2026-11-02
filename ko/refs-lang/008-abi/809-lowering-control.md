@@ -4,62 +4,66 @@
 
 컴파일러가 생성하는 MLIR / LLVM 모듈에는 빌드 타깃(`--target`)의 타깃 트리플과 data layout이 들어갑니다.
 
+rok-mir는 제어 흐름 그래프입니다. 블록 인자를 가진 기본 블록이고, 각 블록은 goto, `i1`에 대한 두 갈래 분기, return, `unreachable` 중 하나로 끝납니다. 이들은 각각 `cf.br`, `cf.cond_br`, `func.return`, `llvm.unreachable`이 되며, 구조적 `scf` 영역은 내보내지 않습니다. `-O1` 이상에서 LLVM의 패스(SimplifyCFG, 루프 회전, LICM, 벡터화)가 이 CFG 위에서 동작하고, 한 값에 대한 동등 비교 사슬을 `switch`로 바꿉니다.
+
 ## 8.9.1. `if` 표현식
 
 ```rok
 if cond { x } else { y }
 ```
 
-이 표현식은 `scf.if`를 쓰는 다음 MLIR로 낮춥니다.
+이 표현식은 `cf.cond_br`로 낮춥니다. 값은 합류 블록의 인자로 도착합니다.
 
 ```
-%result = scf.if %cond -> (i32) {
-  scf.yield %x : i32
-} else {
-  scf.yield %y : i32
-}
+cf.cond_br %cond, ^then, ^else
+^then:
+  cf.br ^end(%x : i32)
+^else:
+  cf.br ^end(%y : i32)
+^end(%result: i32):
 ```
 
-`else` 분기가 없고 값이 unit인 `if`의 예입니다.
+`else` 갈래가 없고 값이 unit인 `if`는 합류 블록으로 바로 분기합니다.
 
 ```rok
 if cond { do_thing(); }
 ```
 
-이 경우는 더 단순한 형태로 낮춥니다.
-
 ```
-scf.if %cond {
-  func.call @do_thing()
-}
+cf.cond_br %cond, ^then, ^end
+^then:
+  func.call @do_thing(%tls) : (!llvm.ptr) -> ()
+  cf.br ^end
+^end:
 ```
 
 ## 8.9.2. `if let`
 
-[`if` 표현식](../003-expressions/310-if-expression.md)의 `if let pattern = expr` 형태의 예입니다.
+[`if` 표현식](../003-expressions/310-if-expression.md)의 `if let pattern = expr` 형태입니다.
 
 ```rok
 if let v: T = compute() { use(v) } else { fallback() }
 ```
 
-이 표현식은 decision tree 형태의 MLIR로 낮춥니다.
+패턴 검사는 `match`(8.9.3)처럼 낮춥니다.
 
 ```
-%opt = func.call @compute() : () -> !sum_T_none
-%tag = llvm.extractvalue %opt[0] : i32
-%is_some = arith.cmpi "ne", %tag, %TAG_NONE : i32
-
-scf.if %is_some {
-  %payload = llvm.extractvalue %opt[1] : !T
-  func.call @use(%payload)
-} else {
-  func.call @fallback()
-}
+%opt = func.call @compute(%tls) : (!llvm.ptr) -> !llvm.struct<(i32, i64)>
+%tag = llvm.extractvalue %opt[0] : !llvm.struct<(i32, i64)>
+%is_some = arith.cmpi ne, %tag, %TAG_NONE : i32
+cf.cond_br %is_some, ^then, ^else
+^then:
+  %payload = llvm.extractvalue %opt[1] : !llvm.struct<(i32, i64)>
+  func.call @use(%payload, %tls) : (i64, !llvm.ptr) -> ()
+  cf.br ^end
+^else:
+  func.call @fallback(%tls) : (!llvm.ptr) -> ()
+  cf.br ^end
 ```
 
 ## 8.9.3. `match`의 결정 트리
 
-[`match`](../003-expressions/312-match-expression.md)의 가지는 decision tree로 낮춥니다.
+[`match`](../003-expressions/312-match-expression.md)의 갈래는 소스 순서대로 검사하며, 각 패턴은 `cf.cond_br` 검사의 연속입니다.
 
 ```rok
 match v {
@@ -70,100 +74,86 @@ match v {
 }
 ```
 
-이 `match` 식은 다음 MLIR이 됩니다.
+이 `match` 표현식은 다음 MLIR이 됩니다.
 
 ```
-cf.switch %v : i32, [
-  default: ^check_guard,
-  1: ^arm_a,
-  2: ^arm_b
-]
-
+%is1 = arith.cmpi eq, %v, %c1 : i32
+cf.cond_br %is1, ^arm_a, ^test2
+^test2:
+  %is2 = arith.cmpi eq, %v, %c2 : i32
+  cf.cond_br %is2, ^arm_b, ^check_guard
 ^check_guard:
-  %is_big = arith.cmpi "sgt", %v, %100 : i32
+  %is_big = arith.cmpi sgt, %v, %c100 : i32
   cf.cond_br %is_big, ^arm_c, ^arm_d
 
 ^arm_a: ; ... = a
-  cf.br ^end(%a)
-
+  cf.br ^end(%a : i32)
 ^arm_b: ; ... = b
-  cf.br ^end(%b)
-
+  cf.br ^end(%b : i32)
 ^arm_c: ; ... = c
-  cf.br ^end(%c)
-
+  cf.br ^end(%c : i32)
 ^arm_d: ; ... = d
-  cf.br ^end(%d)
+  cf.br ^end(%d : i32)
 
 ^end(%result: i32):
   ; ...
 ```
 
-튜플, `struct`, `enum` 변형, 범위 같은 복잡한 패턴은 분해 단계마다 내부 switch / cmp로 낮춥니다.
+튜플, `struct`, `enum` 변형([8.8.6](808-lowering-types.md#886-enum의-표현)), 합 타입 멤버도 같은 방식으로 각 부분을 검사합니다. 범위 패턴은 비교 두 번, 문자열 패턴은 `str` 동등 비교입니다(8.7.6). match는 망라적이므로 마지막 검사 뒤의 블록은 `llvm.unreachable`입니다.
+
+`cf.switch`는 내보내지 않습니다. 한 값을 상수들과 비교하는 `cf.cond_br` 사슬은 LLVM의 SimplifyCFG가 `-O1` 이상에서 `switch` 하나로 접는 모양이고, 그 `switch`는 case가 촘촘하면 점프 테이블, 아니면 이진 탐색이 됩니다. `enum` match는 간접 점프 한 번이며, `cf.switch`가 줄 코드와 같습니다. `-O0`에서는 네이티브 백엔드가 사슬을 그대로 컴파일합니다.
 
 ## 8.9.4. `loop` / `while` / `for`
 
 ### `loop`
 
-`loop`는 다음과 같이 씁니다.
-
 ```rok
 let v = loop { ...; if cond { break x; } }
 ```
 
-이 식은 `scf.while`을 쓰거나 `cf.br`로 직접 표현해서 MLIR로 낮춥니다.
+루프는 헤더 블록과 그리로 돌아가는 back-edge `cf.br`입니다. `break x`는 `x`를 인자로 출구 블록에 분기합니다.
 
 ```
-%v = scf.while () : () -> (i32) {
-  ; condition check (loop 은 항상 true)
-  scf.condition (%true) ()
-} do {
-  ; body
-  ; if cond { break x; } 는 별도 처리 (아래)
-  scf.yield
-}
+cf.br ^head
+^head:
+  ; 본문
+  cf.cond_br %cond, ^exit(%x : i32), ^latch
+^latch:
+  ; safepoint poll (8.9.11)
+  cf.br ^head
+^exit(%v: i32):
 ```
-
-`break value`는 `scf.while` 안에서 표현하기 어려우므로 `scf.execute_region`이나 `cf.br`로 풀어 씁니다.
 
 ### `while`
-
-`while`은 다음과 같이 씁니다.
 
 ```rok
 while cond { body }
 ```
 
-이 식은 `scf.while`로 낮춥니다.
+조건은 헤더에서 검사합니다.
 
 ```
-scf.while () : () -> () {
-  ; condition
+cf.br ^head
+^head:
   %c = ...
-  scf.condition (%c) ()
-} do {
-  ; body
-  scf.yield
-}
+  cf.cond_br %c, ^body, ^exit
+^body:
+  ; 본문, 그다음 back-edge poll
+  cf.br ^head
+^exit:
 ```
 
 ### `for`
-
-`for`는 다음과 같이 씁니다.
 
 ```rok
 for x in xs { body }
 ```
 
-[루프 표현식](../003-expressions/313-loop-expressions.md)의 규칙이 이 식을 `let it = xs.into_iter(); loop { match it.next() { ... } }`로 풉니다. 그 결과는 위에서 설명한 lowering 과정을 똑같이 거칩니다.
+[루프 표현식](../003-expressions/313-loop-expressions.md)의 풀어 쓰기로 `let it = xs.into_iter(); loop { match it.next() { ... } }`가 되고, 위와 같은 lowering을 거칩니다. 정수 범위(`for i in a..b`, 경계는 한 번만 평가)나 배열에 대한 `for`는 바로 세는 `while` 루프로 낮춥니다. 인덱스는 본문 앞에서 증가시키므로 `continue`가 증가를 건너뛰지 못합니다.
 
 ## 8.9.5. `break` / `continue`
 
-루프 안의 `break`와 `continue`는 `cf.br`로 루프의 시작이나 끝으로 점프합니다.
-
-`scf.while`만으로는 표현하기 불편하므로 `cf` 다이얼렉트의 직접 분기로 낮춥니다.
-
-라벨(`'outer:`)도 알맞은 [블록](../000-meta/007-glossary.md#block-블록)으로 점프합니다.
+`break`와 `continue`는 루프의 출구 블록이나 back-edge 블록으로 가는 `cf.br`입니다. 레이블(`'outer:`)도 마찬가지로 해당 [블록](../000-meta/007-glossary.md#block-블록)으로 분기합니다.
 
 ## 8.9.6. `try` / `catch` / `finally`: 값 기반 분기
 
@@ -265,65 +255,47 @@ cleanup 블록 안에서 새 에러를 던지면 그 에러가 원래 경로를 
 
 ## 8.9.9. GC 할당: fast / slow path
 
-[할당](../007-runtime/702-allocation.md)도 함께 참고하세요.
+[할당](../007-runtime/702-allocation.md)도 함께 참고하세요. `struct`는 값이므로 할당하지 않습니다(8.8.3). 힙 객체는 클로저 환경, box(`any`), `List` / `Dict` 버퍼, 실행 중에 만든 문자열입니다.
 
 ```rok
-let p = Point { x: 1.0, y: 2.0 };
+let n = 10;
+let f = |x: i32| x + n;    // env: header + i32 하나
 ```
 
-이 식은 fast path를 인라인한 다음 MLIR로 낮춥니다.
+환경은 컴파일러가 모듈마다 한 번 내보내는 작은 함수 `@rok.alloc`을 불러 할당합니다.
 
 ```
-; fast path
-%t = llvm.mlir.addressof @rok_tls : !llvm.ptr
-%cursor_ptr = llvm.getelementptr %t[8] : (!llvm.ptr) -> !llvm.ptr, i8    ; tlab_cursor at p
-%limit_ptr = llvm.getelementptr %t[16] : (!llvm.ptr) -> !llvm.ptr, i8    ; tlab_limit at 2p
+%cp  = llvm.getelementptr %t[8] : (!llvm.ptr) -> !llvm.ptr, i8     ; tlab_cursor at p
+%lp  = llvm.getelementptr %t[16] : (!llvm.ptr) -> !llvm.ptr, i8    ; tlab_limit at 2p
+%env = llvm.call @rok.alloc(%cp, %lp, %c24, %c24, %c8, %TYPE_ID_ENV, %true)
+         : (!llvm.ptr, !llvm.ptr, i64, i64, i64, i32, i1) -> !llvm.ptr
+```
 
-%cursor = llvm.load %cursor_ptr : !llvm.ptr -> !llvm.ptr
-%new_cursor = llvm.getelementptr %cursor[24] : !llvm.ptr
-%limit = llvm.load %limit_ptr : !llvm.ptr -> !llvm.ptr
+`%t`는 스레드의 TLS 기준 주소(8.7.7), `24`는 객체 크기(8로 올림한 값과 원래 크기), `8`은 정렬, `%TYPE_ID_ENV`는 type_id입니다. `@rok.alloc`은 객체가 들어가면 TLAB 커서를 올리고, 헤더의 `type_id`와 `gc_word`(= 크기, [8.1.4](801-object-header-abi.md#814-gc_word오프셋-8-u64-또는-ptr))를 쓴 뒤 헤더 주소를 돌려줍니다. 들어가지 않으면 `rok_gc_alloc_slow`를 부릅니다.
 
-%overflow = llvm.icmp "ugt" %new_cursor, %limit : !llvm.ptr
-cf.cond_br %overflow, ^slow, ^fast
-
+```
+llvm.func internal @rok.alloc(%cp, %lp, %size8, %size, %align, %tid, %ok) -> !llvm.ptr {
+  %cur  = llvm.load %cp ; %lim = llvm.load %lp
+  %fits = (%size8 <= %lim - %cur) and %ok
+  llvm.cond_br %fits, ^fast, ^slow
 ^fast:
-  llvm.store %new_cursor, %cursor_ptr : !llvm.ptr, !llvm.ptr
-  cf.br ^cont(%cursor)
-
+  llvm.store %cur + %size8, %cp
+  llvm.store %tid, %cur            ; type_id
+  llvm.store %size8, %cur + 8      ; gc_word
+  llvm.return %cur
 ^slow:
-  %p_slow = func.call @rok_gc_alloc_slow(%24, %8, %TYPE_ID_POINT) : (i64, i64, i32) -> !llvm.ptr
-  cf.br ^cont(%p_slow)
-
-^cont(%p: !llvm.ptr):
-  ; %p 가 객체 헤더의 시작. 헤더 채우고 필드 채우기
-  ; ...
+  %obj = llvm.call @rok_gc_alloc_slow(%size, %align, %tid)
+  llvm.return %obj
+}
 ```
 
-위 fast path에서 `%24`는 객체 총 크기, `%8`은 정렬, `%TYPE_ID_POINT`는 type_id 상수입니다. fast path는 TLAB의 bump 포인터를 올리고 헤더의 `type_id`와 `gc_word`(= 크기, [8.1.4](801-object-header-abi.md#814-gc_word오프셋-8-u64-또는-ptr))를 인라인으로 씁니다.
+최적화기가 도는 동안에는 `noinline`이라서, 최적화기는 옮기거나 없앨 수 있는 할당 호출 하나로 봅니다. 파이프라인 끝에서 모든 호출자에 인라인되어 fast path가 호출자 안에 들어갑니다. `gc_flags`는 쓰지 않습니다. TLAB 메모리는 0으로 채워져 있기 때문입니다. 대형 객체 크기 이상이거나 8보다 크게 정렬된 객체는 `rok_gc_alloc_slow`를 바로 부릅니다.
 
-slow path는 `rok_gc_alloc_slow`를 호출합니다.
-
-### 헤더 채우기
-
-객체 헤더와 필드는 다음과 같이 채웁니다.
+그다음 16바이트 헤더 뒤에 필드를 씁니다.
 
 ```
-; type_id 채우기
-%hdr_type_addr = llvm.getelementptr %p[0, 0] : ...
-llvm.store %TYPE_ID_POINT, %hdr_type_addr : i32
-
-; gc_flags 초기값 0
-; ... (slow path 가 채울 수도)
-
-; gc_word = 객체 크기 (8.1.4)
-%hdr_word_addr = llvm.getelementptr %p[0, 2] : ...
-llvm.store %24, %hdr_word_addr : i64
-
-; 필드 채우기
-%x_addr = llvm.getelementptr %p[0, 3] : ...
-llvm.store %1.0, %x_addr : f64
-%y_addr = llvm.getelementptr %p[0, 4] : ...
-llvm.store %2.0, %y_addr : f64
+%f0 = llvm.getelementptr %env[16] : (!llvm.ptr) -> !llvm.ptr, i8
+llvm.store %n, %f0 : i32, !llvm.ptr
 ```
 
 ## 8.9.10. write barrier
@@ -363,23 +335,22 @@ cf.cond_br %need_log, ^log, ^store
 [safepoint 프로토콜](804-safepoint.md)도 참고하세요.
 
 ```
-; safepoint poll
-%t = llvm.mlir.addressof @rok_tls : !llvm.ptr
+; safepoint poll (%t: TLS 기준 주소, 8.7.7)
 %flag_ptr = llvm.getelementptr %t[88] : (!llvm.ptr) -> !llvm.ptr, i8    ; yield_flag at 10p+8
-%flag = llvm.load %flag_ptr : !llvm.ptr -> i8
+%flag = llvm.load %flag_ptr atomic monotonic : !llvm.ptr -> i8
 %need_yield = arith.cmpi "ne", %flag, %0 : i8
 
 cf.cond_br %need_yield, ^slow, ^cont
 
 ^slow:
-  func.call @rok_runtime_yield() : () -> ()
+  llvm.call @rok_runtime_yield() : () -> ()
   cf.br ^cont
 
 ^cont:
   ; ... 계속 ...
 ```
 
-컴파일러는 함수 진입 지점(또는 각 경로의 첫 safepoint 앞, [8.4.7](804-safepoint.md#847-safepoint-불변식))과 루프의 back-edge에 위 코드를 내보냅니다.
+컴파일러는 루프의 back-edge에 위 코드를 내보냅니다. 루프 poll을 거치지 않고 호출 사이클로 다시 들어올 수 있는 함수(재귀 사이클의 멤버, 포인터나 C에서 불리는 함수, export된 함수)에도 내보냅니다. 직접 Rok 호출이 아닌 경로로 들어오는 함수는 진입 지점에, 나머지는 각 경로의 첫 safepoint 앞에 둡니다([8.4.7](804-safepoint.md#847-safepoint-불변식)). 그 밖의 함수는 진입 시 폴링하지 않습니다. 호출자가 폴링하기 때문입니다.
 
 ## 8.9.12. shadow stack 프레임
 
@@ -394,7 +365,7 @@ GC 참조 word가 2개(`%x`, `%y`)인 함수의 예입니다. 슬롯에는 word�
 llvm.store %null, %x : !llvm.ptr, !llvm.ptr
 llvm.store %null, %y : !llvm.ptr, !llvm.ptr
 %frame = llvm.alloca %c1 x !llvm.struct<(ptr, i64, array<2 x ptr>)> : (i64) -> !llvm.ptr
-%head_ptr = llvm.mlir.addressof @rok_tls : !llvm.ptr             ; shadow stack head at offset 0
+%head_ptr = %t                                                    ; TLS base: shadow stack head at offset 0
 %head = llvm.load %head_ptr : !llvm.ptr -> !llvm.ptr
 %prev_p = llvm.getelementptr %frame[0, 0] : (!llvm.ptr) -> !llvm.ptr
 llvm.store %head, %prev_p : !llvm.ptr, !llvm.ptr
@@ -414,7 +385,7 @@ llvm.store %obj, %x : !llvm.ptr, !llvm.ptr
 llvm.store %saved, %head_ptr : !llvm.ptr, !llvm.ptr
 ```
 
-`@rok_tls`는 [8.3.8](803-tls-slots.md#838-컴파일러-출력-형식)의 스레드 로컬 블록입니다. shadow stack 머리는 이 블록의 오프셋 0 슬롯입니다. 에러 반환도 일반 `return`이므로([8.9.6](#896-try--catch--finally-값-기반-분기)) 프레임을 떼는 같은 코드를 거칩니다. 프레임은 위 예보다 늦게, 각 경로의 첫 safepoint 앞에서 이어도 됩니다([8.4.7](804-safepoint.md#847-safepoint-불변식)). 그때는 프레임을 이은 경로의 return에서만 프레임을 뗍니다. 프레임은 GC 참조를 쥐고 있고 safepoint에 닿을 수 있는 함수에만 필요합니다([8.4.2](804-safepoint.md#842-삽입-위치)). 이때 반환하지 않는 함수(panic)의 호출과, 할당도 block도 하지 않는 런타임 함수([8.5.2](805-extern-symbols.md#safepoint가-아닌-함수))의 호출은 세지 않습니다.
+`%t`는 [8.3.8](803-tls-slots.md#838-컴파일러-출력-형식)의 스레드 로컬 블록 `@rok_tls`의 주소입니다(8.7.7). shadow stack 머리는 이 블록의 오프셋 0 슬롯입니다. 에러 반환도 일반 `return`이므로([8.9.6](#896-try--catch--finally-값-기반-분기)) 프레임을 떼는 같은 코드를 거칩니다. 프레임은 위 예보다 늦게, 각 경로의 첫 safepoint 앞에서 이어도 됩니다([8.4.7](804-safepoint.md#847-safepoint-불변식)). 그때는 프레임을 이은 경로의 return에서만 프레임을 뗍니다. 프레임은 GC 참조를 쥐고 있고 safepoint에 닿을 수 있는 함수에만 필요합니다([8.4.2](804-safepoint.md#842-삽입-위치)). 이때 반환하지 않는 함수(panic)의 호출과, 할당도 block도 하지 않는 런타임 함수([8.5.2](805-extern-symbols.md#safepoint가-아닌-함수))의 호출은 세지 않습니다.
 
 ### 모듈의 데이터 레이아웃
 
@@ -443,9 +414,9 @@ arr[5]
 
 대표적인 hot path인 [TLAB](../000-meta/007-glossary.md#tlab-thread-local-allocation-buffer) alloc과 필드 쓰기의 LLVM IR 비용은 다음과 같습니다.
 
-- TLAB 커서 검사: load / add / icmp / cond_br (명령어 4개)
+- TLAB 커서 검사: load \* 2 / sub / icmp / and / cond_br (`@rok.alloc`에서 인라인됨)
 - 커서 갱신: store (명령어 1개)
-- 헤더 채우기: store \* 3 (type_id, gc_flags, gc_word)
+- 헤더 채우기: store \* 2 (type_id, gc_word)
 - 필드 채우기: store \* N (필드 수)
 - write barrier (필요 시): load / and / icmp / cond_br + (slow) call (명령어 4~6개)
 - safepoint 폴링 (필요 시): load / icmp / cond_br (명령어 3개)

@@ -16,7 +16,7 @@ The overall flow is as follows.
    rok-mir         (Mid-level IR: monomorphized / operators desugared, all types fixed)
         │
         ▼
-   standard MLIR   (upstream MLIR dialects: `func`, `arith`, `scf`, ...)     -O1 and above
+   standard MLIR   (upstream MLIR dialects: `func`, `arith`, `cf`, ...)     -O1 and above
         │
         ▼
    LLVM IR → native object → lld
@@ -41,10 +41,8 @@ No rok-specific MLIR dialect is defined. All dialects used are official upstream
 |------------|-------------------------------------------------|
 | `func`     | Function definition / call                      |
 | `arith`    | Integer / floating-point arithmetic / comparison |
-| `scf`      | Structured control flow (`if` / `for` / `while`) |
-| `cf`       | Unstructured branches (switch, cond_br)         |
-| `index`    | Index type operations                           |
-| `math`     | Math functions                                  |
+| `cf`       | Branches (`cf.br`, `cf.cond_br`)                |
+| `math`     | Exact float functions (`sqrt`, `floor`, ..)     |
 | `llvm`     | Low-level ops (intrinsic, `struct`)             |
 
 This choice guarantees the following. Improvements in upstream MLIR flow into Rok automatically. Rok interoperates with external MLIR-based tools such as IREE, Enzyme and Triton. And there is no cost of registering and maintaining a custom dialect.

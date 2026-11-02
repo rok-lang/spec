@@ -10,7 +10,7 @@
 |-------------------|---------------------------------------------------------------------------------------------|
 | `i8` ~ `i64`      | `i8` ~ `i64`                                                                                |
 | `u8` ~ `u64`      | `i8` ~ `i64` (부호는 op가 결정)                                                             |
-| `usize` / `isize` | `index` 또는 타깃별 `iN`                                                                    |
+| `usize` / `isize` | `iN`, N = 타깃의 포인터 폭 (`index`는 쓰지 않음)                                            |
 | `f32` / `f64`     | `f32` / `f64`                                                                               |
 | `bool`            | `i1` (또는 i8, [ABI](../000-meta/007-glossary.md#abi-application-binary-interface)에 따라)  |
 | `char`            | `i32` (Unicode 코드 포인트)                                                                 |
@@ -53,8 +53,10 @@ struct Point { x: f64; y: f64; }
 필드로 이루어진 LLVM struct로 낮춥니다. 배치는 [2.3.6](../002-types/203-struct.md#236-메모리-레이아웃)을 따릅니다.
 
 ```
-!Point = !llvm.struct<"Point", (f64, f64)>
+!llvm.struct<(f64, f64)>
 ```
+
+struct 타입은 이름 없는 리터럴 LLVM struct입니다. 필드가 같은 두 struct는 MLIR 타입도 같습니다. LLVM이 그대로 재현하지 못하는 배치(명시적 `#[repr]` 정렬이나 오프셋)를 가진 struct는 `!llvm.array<k x i8>` 패딩을 명시한 packed struct가 되어, LLVM의 오프셋과 크기가 2.3.6과 같아집니다.
 
 struct 값은 SSA 레지스터나 스택 슬롯에 있거나, 담는 쪽 안에 인라인으로 있습니다. 담는 쪽은 다른 struct의 필드, `List` 버퍼의 원소, 클로저 환경이나 코루틴 프레임의 슬롯입니다. 대입과 인자 전달은 필드를 복사합니다. 컴파일러는 box가 겉으로 드러나지 않는 곳에서만 값을 내부적으로 box에 담을 수 있습니다.
 
@@ -63,8 +65,8 @@ struct 값은 SSA 레지스터나 스택 슬롯에 있거나, 담는 쪽 안에 
 SSA 값에서 `p.x`는 `extractvalue`입니다. 스택 슬롯이나 인라인 위치에서는 필드 주소로 읽는 load입니다.
 
 ```
-%val  = llvm.extractvalue %p[0] : !Point
-%addr = llvm.getelementptr %slot[0, 0] : (!llvm.ptr) -> !llvm.ptr, !Point
+%val  = llvm.extractvalue %p[0] : !llvm.struct<(f64, f64)>
+%addr = llvm.getelementptr %slot[0, 0] : (!llvm.ptr) -> !llvm.ptr, !llvm.struct<(f64, f64)>
 %val2 = llvm.load %addr : !llvm.ptr -> f64
 ```
 
@@ -73,7 +75,7 @@ SSA 값에서 `p.x`는 `extractvalue`입니다. 스택 슬롯이나 인라인 �
 `p.x = 1.0f64`는 변수 자신의 사본을 바꿉니다. SSA 값이면 `insertvalue`이고, 슬롯이면 필드 주소에 쓰는 store입니다.
 
 ```
-%p2 = llvm.insertvalue %one, %p[0] : !Point
+%p2 = llvm.insertvalue %one, %p[0] : !llvm.struct<(f64, f64)>
 ```
 
 struct가 GC 힙 객체 안에 인라인으로 있고 필드가 GC 참조를 담으면 그 store는 write barrier를 거칩니다([배리어와 루트](../007-runtime/704-barriers-and-roots.md)). 스택 슬롯에 있는 struct의 포인터 필드는 GC 루트입니다([7.4](../007-runtime/704-barriers-and-roots.md)).
@@ -96,11 +98,11 @@ struct Pair(i32, i32);
 (i32, str, bool)
 ```
 
-`!llvm.struct<(i32, !llvm.ptr, i1)>`로 낮춥니다. `struct`처럼 헤더 없는 값입니다.
+64비트 타깃에서 `!llvm.struct<(i32, !llvm.struct<(ptr, i64)>, i1)>`로 낮춥니다. `str`은 어디에 있든 `(ptr, iN)` 쌍입니다(8.8.1). `struct`처럼 헤더 없는 값입니다.
 
 ## 8.8.6. `enum`의 표현
 
-[`enum`](../002-types/204-enum.md)의 `enum`은 tagged `union`으로 낮춥니다.
+[`enum`](../002-types/204-enum.md)의 `enum`은 객체 헤더가 없는 값이며, 태그 있는 `union`으로 낮춥니다. 합 타입(8.8.8)과 같은 `(i32 tag, payload)` 배치입니다.
 
 ```rok
 enum Result {
@@ -110,45 +112,37 @@ enum Result {
 }
 ```
 
-다음과 같이 표현합니다.
+표현은 다음과 같습니다.
 
 ```
-!Result = !llvm.struct<"Result", (
-    i32,                                // type_id
-    i32,                                // gc_flags
-    i64,                                // gc_word
-    i32,                                // discriminant (tag)
-    !llvm.struct<(i64)>                 // 가장 큰 변형의 payload (8 바이트)
-)>
+!llvm.struct<(i32, !llvm.array<2 x i64>)>    ; 64비트 타깃
+;            tag   payload: 16바이트, 8 정렬
 ```
 
-discriminant는 변형 식별자(`Ok`=0, `Err`=1, `Pending`=2)를 담습니다. payload는 모든 변형의 `union`이며, 크기는 가장 큰 변형의 크기입니다.
+tag에는 변형의 번호(`Ok`=0, `Err`=1, `Pending`=2)가 들어갑니다. 페이로드 자리는 데이터가 있는 모든 변형을 담습니다.
+
+- 페이로드 타입이 같은 변형은 그 타입을 함께 씁니다(`enum E { A(i64), B(i64) }`는 `(i32, i64)`).
+- 타입이 다른 스칼라 페이로드는 가장 넓은 것과 같은 폭의 부호 없는 정수를 함께 씁니다(`A(i32)`, `B(f64)`는 `i64` 하나).
+- 그 밖의 조합(집합 타입, `str`)은 가장 큰 변형만큼 크고 그만큼 정렬된 바이트 배열 `!llvm.array<k x iN>`을 함께 씁니다.
+- GC 참조를 담을 수 있는 페이로드는 포인터 폭 워드의 `!llvm.array<k x iN>`이며, 컬렉터는 tag를 보고 훑습니다([8.2](802-scan-table.md), `SUM_PAYLOAD`).
+
+필드가 없는 enum은 tag 하나입니다. 맨 `i32`, 또는 `#[repr(..)]`의 정수입니다.
 
 ### 변형 생성
 
-변형을 만드는 식은 다음과 같습니다.
-
-```rok
-Result::Ok(42)
-```
-
-컴파일러는 이 식을 다음 MLIR 시퀀스로 낮춥니다.
+`Result::Ok(42)`는 레지스터나 대상의 슬롯에서 값을 만듭니다. 할당은 없습니다.
 
 ```
-; struct 할당 + 헤더 채우기 + tag 채우기 + payload 채우기
-%obj = call @rok_gc_alloc_slow(...)
-; ... 헤더 ...
-%tag_addr = llvm.getelementptr %obj [0, 3] : ...
-llvm.store i32 0, %tag_addr  ; Ok = 0
-%payload_addr = llvm.getelementptr %obj [0, 4] : ...
-llvm.store %42_i32, %payload_addr
+%t = llvm.insertvalue %c0_i32, %undef[0] : !llvm.struct<(i32, !llvm.array<2 x i64>)>
+; 페이로드는 자기 타입으로 쓰고 슬롯의 타입으로 다시 해석합니다
+%v = llvm.insertvalue %payload, %t[1] : !llvm.struct<(i32, !llvm.array<2 x i64>)>
 ```
 
-더 짧은 변형의 페이로드로 만든 union 값은 그 페이로드 뒤의 바이트를 0으로 채웁니다. 그래서 여기서 복사한 루트 word는 null이거나 참조입니다. 오래된 스택 값일 수 없습니다([8.9.12](809-lowering-control.md#8912-shadow-stack-프레임)).
+더 짧은 변형의 페이로드로 만든 union 값은 그 페이로드 너머의 바이트를 0으로 둡니다. 그래서 거기서 복사한 루트 워드는 null이거나 참조이고, 낡은 스택 값이 되지 않습니다([8.9.12](809-lowering-control.md#8912-shadow-stack-프레임)).
 
 ### 변형 매칭
 
-변형을 매칭하는 식은 다음과 같습니다.
+변형을 매칭하는
 
 ```rok
 match v {
@@ -158,32 +152,20 @@ match v {
 }
 ```
 
-컴파일러는 이 식을 decision tree 형태의 MLIR로 낮춥니다.
+은 tag를 각 갈래의 변형 번호와 갈래 순서대로 비교하는 `cf.cond_br` 사슬입니다(8.9.3). 어느 갈래에도 맞지 않는 값은 unreachable 블록에 닿습니다.
 
 ```
-%tag = llvm.load %v[3] : i32
-
-cf.switch %tag, [
-  default: ^unreachable,    ; 모든 변형이 case 에 있어 default 도달 안 함
-  0: ^ok,
-  1: ^err,
-  2: ^pending
-]
-
+%tag = llvm.extractvalue %v[0] : !llvm.struct<(i32, !llvm.array<2 x i64>)>
+%is_ok = arith.cmpi eq, %tag, %c0 : i32
+cf.cond_br %is_ok, ^ok, ^next1
+^next1:
+%is_err = arith.cmpi eq, %tag, %c1 : i32
+cf.cond_br %is_err, ^err, ^pending
 ^ok:
-  %payload = llvm.load %v[4] : i32
-  ; ... n 으로 사용 ...
-  br ^end
-
-^err:
-  %payload_str = llvm.load %v[4] : !llvm.ptr
-  ; ... s 로 사용 ...
-  br ^end
-
-^pending:
-  ; ...
-  br ^end
+  ; 페이로드를 i32로 다시 해석 -> n
 ```
+
+`-O1` 이상에서 LLVM이 이 사슬을 tag에 대한 `switch` 하나로 바꾸고, case가 촘촘하면 점프 테이블이 됩니다(8.7.3).
 
 ## 8.8.7. 비태그 `union`의 표현
 
@@ -207,7 +189,7 @@ union EpollData {
 type X = i32 | f64
 ```
 
-이 타입은 `!llvm.struct<(i32, i64)>`로 표현합니다. tag(i32)와 페이로드(i64, 가장 큰 변형 크기)를 묶은 것입니다.
+이 타입은 `!llvm.struct<(i32, i64)>`로 표현합니다. tag(i32)와 페이로드 자리를 묶은 것이며, 페이로드 자리는 `enum`(8.8.6)과 같은 방식으로 정합니다. 여기서는 두 스칼라 페이로드가 `i64` 하나를 함께 씁니다. `none` 멤버는 tag 0이고 페이로드가 없으므로, 0으로 채운 메모리는 `none`으로 읽힙니다.
 
 [niche 최적화](../002-types/207-niche-optimization.md)가 적용되면 tag 자리가 사라지고 합집합 비트 패턴만 남습니다.
 
@@ -225,43 +207,42 @@ Ptr<u8> | none
 let x: any = ...
 ```
 
-`(i32 tag, usize payload)` 쌍으로 낮추며, tag는 type_id입니다. `any Tr`과 맨 `any`의 표현은 같습니다.
+`(i32 tag, payload)` 쌍으로 낮춥니다. `any Tr`과 맨 `any`의 표현은 같습니다.
 
 ```
-!Any = !llvm.struct<(i32, iN)>      ; iN = 타깃의 포인터 폭 (usize)
+!llvm.struct<(i32, !llvm.ptr)>
 ```
 
-포인터 폭 이하의 숫자, `bool`, `char` 값은 페이로드에 직접 담습니다. 그 밖의 값은 GC 힙의 box이고, 페이로드는 그 box의 포인터입니다. 따라서 페이로드가 포인터인지는 tag로만 알 수 있습니다. GC는 `any` 슬롯을 훑을 때 tag를 보고 판단해야 합니다.
+tag의 하위 31비트는 값의 타입을 가리킵니다. 타입 이름의 31비트 FNV-1a 해시이므로 따로 컴파일한 패키지끼리도 값이 같습니다(한 빌드 안에서 충돌하면 다음 빈 값을 씁니다). 포인터 폭 이하의 숫자, `bool`, `char` 값은 페이로드 워드에 비트 그대로 담습니다(`inttoptr` / `ptrtoint`). 그 밖의 값은 GC 힙의 box이고, 페이로드는 그 box이며, tag의 31번 비트(`ANY_BOXED`)가 켜집니다. GC는 `any` 슬롯을 훑을 때 이 비트를 읽습니다([8.2.7](802-scan-table.md)).
 
-### `any`의 동적 디스패치
+### `any`의 타입 검사
 
-다음 식을 예로 듭니다.
+`any` 값에 대한 타입 패턴
 
 ```rok
-v + 1i32     // v: any
+match v {
+    n: i32 => n + 1,
+    s: str => s.len() as i32,
+    _ => 0,
+}
 ```
 
-컴파일러는 이 식을 런타임 검사가 들어간 다음 MLIR로 낮춥니다.
+은 `ANY_BOXED`를 지운 tag를 각 패턴 타입의 tag와 비교하는 `cf.cond_br` 사슬입니다.
 
 ```
-%tag = llvm.extractvalue %v[0] : i32
-
-cf.switch %tag, [
-  default: ^trap,
-  TAG_I32: ^add_i32,
-  TAG_F64: ^add_f64,       ; 다른 피연산자 타입 불일치는 ^trap (panic, exit 101)
-  ...
-]
-
-^add_i32:
-  %payload = llvm.extractvalue %v[1] : i64     ; 64-bit 타깃
-  %i = llvm.trunc %payload : i64 to i32
-  %sum = arith.addi %i, %1_const : i32
-  ; 결과를 any 로 다시 wrap
-  ...
+%tag = llvm.extractvalue %v[0] : !llvm.struct<(i32, !llvm.ptr)>
+%t   = arith.andi %tag, %c0x7fffffff : i32
+%is  = arith.cmpi eq, %t, %TAG_I32 : i32
+cf.cond_br %is, ^as_i32, ^next
+^as_i32:
+  %w = llvm.extractvalue %v[1] : !llvm.struct<(i32, !llvm.ptr)>
+  %i = llvm.ptrtoint %w : !llvm.ptr to i64
+  %n = arith.trunci %i : i64 to i32
+^next:
+  ; box에 담긴 `str`: 쌍을 box 페이로드(오프셋 16)에서 읽음
 ```
 
-이 분기 구조는 런타임에 가능한 모든 타입을 검사해야 합니다. 이것이 `any` 슬롯의 비용입니다.
+실행 시간의 이런 검사가 `any` 슬롯의 비용입니다.
 
 ## 8.8.10. 배열 타입: `[T; N]`
 
@@ -281,7 +262,13 @@ cf.switch %tag, [
 fn(i32, i32) -> i32
 ```
 
-`(i32, i32) -> i32` 타입의 함수 포인터, 곧 `!llvm.ptr`이나 `!llvm.func<...>`로 낮춥니다. 함수 포인터는 값이므로 변수에 저장할 수 있습니다.
+함수 값은 이름 있는 함수든 클로저든 모두 `{code, env}` 쌍입니다.
+
+```
+!llvm.struct<(ptr, ptr)>      ; code, env
+```
+
+`code`는 `env`를 첫 인자로 받고, 그다음에 선언한 인자를 받습니다(그리고 모든 Rok 함수처럼 마지막에 스레드의 TLS 기준 주소를 받습니다, [8.6](806-calling-convention.md)). 값으로 쓴 이름 있는 함수는 `env`가 null이고, 코드 포인터는 `env`를 버리는 thunk를 가리킵니다. C 함수 타입(`extern "C" fn(..)`)만 맨 코드 포인터 `!llvm.ptr`입니다.
 
 ## 8.8.12. 클로저의 표현
 
@@ -292,23 +279,19 @@ let n = 10;
 let f = |x| x + n;       // n 캡처
 ```
 
-다음 MLIR로 낮춥니다.
+`env`가 캡처를 담은 GC 객체인 함수 값(8.8.11)으로 낮춥니다. 캡처는 16바이트 헤더 뒤의 struct에 하나씩 필드로 들어갑니다.
 
 ```
-; 클로저 객체 = 환경 + 코드 포인터
-!Closure = !llvm.struct<(
-    i32, i32, i64,                ; GC header
-    !llvm.ptr,                    ; 함수 포인터 (코드)
-    i32                            ; 환경: n 의 복사본
-)>
+; env 객체: header + !llvm.struct<(i32)>    ; n 의 복사본
+%f = !llvm.struct<(ptr, ptr)>               ; {클로저 본문의 code, env}
 
 ; 호출 시
-%env = llvm.getelementptr %clo[0, 4] : ...
-%fn_ptr = llvm.extractvalue %clo[0, 3] : !llvm.ptr
-%result = llvm.call %fn_ptr(%env, %x) : ...
+%code = llvm.extractvalue %f[0] : !llvm.struct<(ptr, ptr)>
+%env  = llvm.extractvalue %f[1] : !llvm.struct<(ptr, ptr)>
+%r    = llvm.call %code(%env, %x, %tls) : !llvm.ptr, (!llvm.ptr, i32, !llvm.ptr) -> i32
 ```
 
-호출할 때 환경은 함수에 덧붙인 첫 인자로 넘어갑니다.
+아무것도 캡처하지 않는 클로저는 `env`가 null이고 아무것도 할당하지 않습니다.
 
 ## 8.8.13. 식별자 / 변수 접근
 

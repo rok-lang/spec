@@ -1,6 +1,6 @@
 # 8.7. MLIR 다이얼렉트 사용
 
-[컴파일 파이프라인](../000-meta/002-pipeline.md)에서 정한 표준 MLIR 다이얼렉트를 이 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 블록의 lowering 사양에 적용합니다. 일반 코드는 핵심 다이얼렉트 7개로 낮춥니다. 가속 영역의 라이브러리는 8.7.5에서 다룹니다. 이 문서는 MLIR → LLVM 백엔드(`-O1` 이상)의 lowering을 다룹니다. 네이티브 백엔드(`-O0`, REPL)는 rok-mir에서 바로 기계어를 만들고 같은 ABI를 따릅니다([0.2.4](../000-meta/002-pipeline.md#024-백엔드)).
+[컴파일 파이프라인](../000-meta/002-pipeline.md)에서 정한 표준 MLIR 다이얼렉트를 이 [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) 블록의 lowering 사양에 적용합니다. 일반 코드는 upstream 다이얼렉트 5개로 낮춥니다. 가속 영역의 라이브러리는 8.7.5에서 다룹니다. 이 문서는 MLIR → LLVM 백엔드(`-O1` 이상)의 lowering을 다룹니다. 네이티브 백엔드(`-O0`, REPL)는 rok-mir에서 바로 기계어를 만들고 같은 ABI를 따릅니다([0.2.4](../000-meta/002-pipeline.md#024-백엔드)).
 
 ## 8.7.1. 일반 코드 사용 다이얼렉트(재확인)
 
@@ -8,15 +8,13 @@
 
 | 다이얼렉트 | 용도                                     | 이 블록의 사용                                                          |
 |------------|------------------------------------------|-------------------------------------------------------------------------|
-| `func`     | 함수 정의 / 호출                         | 함수 lowering                                                           |
-| `arith`    | 정수 / 부동소수 산술 / 비교              | 연산자 lowering                                                         |
-| `scf`      | 구조적 제어흐름 (`if` / `for` / `while`) | `if` / 루프 lowering                                                    |
-| `cf`       | 비구조적 분기 (switch, cond_br)          | `match` decision tree                                                   |
-| `index`    | 인덱스 타입 연산                         | 인덱싱 lowering                                                         |
-| `math`     | 수학 함수                                | sqrt / sin / cos 등                                                     |
-| `llvm`     | 저수준 op (intrinsic, `struct`, `alloca`, load / store) | 스택 슬롯, 객체 / 배열, [GC](../000-meta/007-glossary.md#gc-garbage-collector) |
+| `func`     | 함수 정의 / 호출                         | 함수 lowering, Rok 함수와 대부분의 런타임 함수 호출                     |
+| `arith`    | 정수 / 부동소수 산술 / 비교              | 연산자 lowering, 부동소수 `min` / `max`                                 |
+| `math`     | 정확한 부동소수 함수                     | `sqrt`, 반올림 계열, `abs`, `copysign`, `mul_add`                       |
+| `cf`       | 분기 (`cf.br`, `cf.cond_br`)             | 모든 제어 흐름: `if`, 루프, `match`, `try`                              |
+| `llvm`     | 저수준 op (intrinsic, `struct`, `alloca`, load / store) | 스택 슬롯, 객체 / 배열, [GC](../000-meta/007-glossary.md#gc-garbage-collector), C 호출 |
 
-커스텀 Rok 다이얼렉트는 없습니다. 일반 Rok 코드의 의미는 위의 표준 다이얼렉트 일곱 개로 표현합니다. 가속 라이브러리는 8.7.5에서 다룹니다.
+커스텀 Rok 다이얼렉트는 없습니다. 일반 Rok 코드의 의미는 위의 표준 다이얼렉트 다섯 개로 표현합니다. 가속 라이브러리는 8.7.5에서 다룹니다. `scf`와 `index`는 내보내지 않습니다. rok-mir는 이미 기본 블록으로 된 제어 흐름 그래프이고, `scf`를 `cf`로 바꾸는 변환은 같은 분기를 만들기 때문입니다(8.7.4).
 
 ## 8.7.2. 변환 흐름
 
@@ -29,7 +27,7 @@ rok-hir
    ↓ (specialize / monomorphize, desugar)
 rok-mir
    ↓ (lowering: 본 블록의 808 ~ 810)
-표준 MLIR  (일반 코드는 7 개 다이얼렉트, 라이브러리는 추가 가능)
+표준 MLIR  (일반 코드는 5 개 다이얼렉트, 라이브러리는 추가 가능)
    ↓ (표준 패스, LLVM 다이얼렉트로 변환)
 LLVM IR
    ↓ (LLVM 최적화와 코드 생성)
@@ -42,7 +40,7 @@ object
 
 ## 8.7.3. 다이얼렉트별 핵심 op
 
-`rokc`가 어느 다이얼렉트를 내보내는지는 구현이 정합니다. `rokc`는 `func`, `arith`, `cf`, `llvm`을 내보냅니다. 수학 intrinsic을 낮추는 곳에서는 `math`도 내보냅니다. `scf`와 `index`는 써도 됩니다. 아래는 각 다이얼렉트의 핵심 op입니다.
+`rokc`는 `func`, `arith`, `math`, `cf`, `llvm`을 내보냅니다. 아래는 각 다이얼렉트의 핵심 op입니다.
 
 ### `func`
 
@@ -69,52 +67,35 @@ arith.cmpf "olt", %a, %b : f64
 
 다만 사용자 정의 트레잇 구현은 제네릭 단형화를 거친 뒤 함수 호출로 낮춥니다.
 
-### `scf`
-
-```
-scf.if %cond -> (i32) {
-  scf.yield %a : i32
-} else {
-  scf.yield %b : i32
-}
-
-scf.while ... do { ... }
-scf.for %i = %lb to %ub step %step { ... }
-```
-
-[`if` 표현식](../003-expressions/310-if-expression.md)과 [루프](../003-expressions/313-loop-expressions.md)의 정상 제어 흐름은 `scf`로 낮춥니다.
-
 ### `cf`
 
 ```
+cf.br ^next(args)
 cf.cond_br %cond, ^true_block(args), ^false_block(args)
-cf.switch %v : i32, [
-  default: ^default,
-  0: ^case0,
-  1: ^case1
-]
 ```
 
-복잡한 [`match`](../003-expressions/312-match-expression.md)의 decision tree는 `cf` 다이얼렉트의 cond_br와 switch로 낮춥니다.
-
-### `index`
-
-```
-%idx = index.constant 5
-%new_idx = index.add %idx, %step
-```
-
-`index` 타입이 필요한 자리(`scf.for`의 경계 등)는 `index` 다이얼렉트로 낮춥니다.
+rok-mir의 분기는 모두 `cf.br`(goto) 또는 `cf.cond_br`(두 갈래 `if`)입니다. [`if` 표현식](../003-expressions/310-if-expression.md), [루프](../003-expressions/313-loop-expressions.md), [`match`](../003-expressions/312-match-expression.md)의 decision tree, 에러 전달이 모두 그렇습니다. 태그나 정수에 대한 `match`는 같은 값을 각 상수와 비교하는 `cf.cond_br` 사슬입니다(8.9.3). `-O1` 이상에서 LLVM 최적화기가 이 사슬을 하나의 `switch`(점프 테이블이나 이진 탐색)로 바꿉니다.
 
 ### `math`
 
 ```
 math.sqrt %x : f64
-math.sin %x : f64
-math.cos %x : f64
+math.floor %x : f64
+math.fma %a, %b, %c : f64
 ```
 
-표준 라이브러리의 수학 함수는 가능하면 `math` 다이얼렉트로 표현합니다. `math`에 직접 대응하는 op가 없는 함수는 일반 함수 호출로 처리합니다.
+결과가 정확하거나 올바르게 반올림되는 부동소수 메서드는 인라인으로 낮춥니다. 그래서 최적화기는 이들을 LLVM intrinsic으로 봅니다(대부분의 타깃에서 명령어 하나).
+
+| 메서드                                  | op                                         |
+|-----------------------------------------|--------------------------------------------|
+| `sqrt`                                  | `math.sqrt`                                |
+| `floor` / `ceil` / `trunc`              | `math.floor` / `math.ceil` / `math.trunc`  |
+| `round` (0에서 먼 쪽으로)               | `math.round`                               |
+| `abs` / `copysign`                      | `math.absf` / `math.copysign`              |
+| `mul_add` (반올림 한 번)                | `math.fma`                                 |
+| `min` / `max` (NaN 피연산자는 무시)     | `arith.minnumf` / `arith.maxnumf`          |
+
+`f64`와 `f32` 모두 같습니다. 나머지 수학 함수(`sin`, `exp`, `ln`, `pow`, `powi`, `cbrt`, `hypot`, ..)는 libm을 부르는 런타임의 `rok_f64_*` / `rok_f32_*` 함수 호출입니다([8.5](805-extern-symbols.md)). 그래서 결과는 항상 타깃의 libm이 내고, 호스트에서 컴파일 시간에 계산하지 않습니다.
 
 ### `llvm`
 
@@ -126,11 +107,11 @@ llvm.struct<(...)>
 llvm.intr.expect / llvm.intr.assume
 ```
 
-스택 슬롯, 객체 접근, 저수준 intrinsic은 `llvm` 다이얼렉트의 영역입니다. 코루틴은 컴파일러가 만든 상태 기계이므로 `llvm.coro.*`를 쓰지 않습니다([7.8](../007-runtime/708-coroutine.md)). GC 루트는 intrinsic 없이 일반 load / store로 shadow stack 프레임을 다룹니다([8.9.12](809-lowering-control.md#8912-shadow-stack-프레임)). 에러 전달은 반환값과 일반 분기로 표현하므로([8.9.6](809-lowering-control.md#896-try--catch--finally-값-기반-분기)) `llvm` 다이얼렉트의 특수 기능을 쓰지 않습니다.
+스택 슬롯, 객체 접근, C 호출(`byval` / `sret` 속성이 붙은 `llvm.call`, 8.6), 저수준 intrinsic(`llvm.intr.ctpop`, `llvm.intr.ctlz`, `llvm.call_intrinsic`을 거치는 포화 변환)은 `llvm` 다이얼렉트의 영역입니다. 코루틴은 컴파일러가 만든 상태 기계이므로 `llvm.coro.*`를 쓰지 않습니다([7.8](../007-runtime/708-coroutine.md)). GC 루트는 intrinsic 없이 일반 load / store로 shadow stack 프레임을 다룹니다([8.9.12](809-lowering-control.md#8912-shadow-stack-프레임)). 에러 전달은 반환값과 일반 분기로 표현하므로([8.9.6](809-lowering-control.md#896-try--catch--finally-값-기반-분기)) `llvm` 다이얼렉트의 특수 기능을 쓰지 않습니다.
 
 ## 8.7.4. 다이얼렉트 사용 우선순위
 
-lowering 단계는 `scf`, `index`, `math`로 의미를 표현할 수 있으면 이들을 써도 됩니다. 다른 것으로 표현할 수 없는 곳에서는 `llvm`을 써도 됩니다. 어느 쪽을 고를지는 구현이 정합니다(8.7.3).
+`arith`, `math`, `func`의 op로 의미를 표현할 수 있으면 그 op를 쓰고, 그럴 수 없는 곳에서만 `llvm`을 씁니다. 제어 흐름은 `cf`에 둡니다. rok-mir에는 되살릴 구조적 영역이 없고, `scf`는 LLVM IR로 가기 전에 같은 `cf` 분기로 되돌아가므로 얻는 것이 없습니다. MLIR 파이프라인은 (`-O1` 이상에서) `canonicalize`와 `cse`를 돌린 뒤 `math`, `func`, `arith`, `cf`를 `llvm` 다이얼렉트로 변환합니다.
 
 ## 8.7.5. 가속 영역 라이브러리
 
@@ -138,14 +119,15 @@ Rok 소스는 MLIR에 직접 접근하지 않습니다. MLIR은 컴파일러만 
 
 ## 8.7.6. `extern` 함수(런타임 함수)
 
-[Extern "C" 심볼](805-extern-symbols.md)에 나오는 `rok_*` 함수는 외부 `llvm.func` 선언으로 선언합니다(선언 형태는 구현이 정함).
+[Extern "C" 심볼](805-extern-symbols.md)에 나오는 `rok_*` 함수는 `func.func private`로 선언하고 `func.call`로 부릅니다. 참조와 헤더만 쓰는 세 함수(`rok_runtime_yield`, `rok_gc_alloc_slow`, `rok_gc_wb_slow`)는 `llvm.func`로 선언하고 `llvm.call`로 부릅니다. `llvm.call`은 호출 너머에서도 다른 힙 load가 유효하도록 지키는 TBAA 태그를 실을 수 있기 때문입니다.
 
 ```
+func.func private @rok_str_cmp(!llvm.struct<(ptr, i64)>, !llvm.struct<(ptr, i64)>) -> i32
 llvm.func @rok_gc_alloc_slow(i64, i64, i32) -> !llvm.ptr
 llvm.func @rok_runtime_yield()
 ```
 
-호출에는 `llvm.call`을 씁니다.
+아예 부르지 않는 런타임 함수도 있습니다. `rok_str_len`과 `rok_str_byte`는 `str` 쌍을 바로 읽고, `rok_str_eq`는 16바이트까지의 문자열을 인라인으로 비교하며(그보다 길면 호출), 정확한 부동소수 함수는 `math` op입니다(8.7.3).
 
 ## 8.7.7. TLS 접근
 
@@ -154,12 +136,13 @@ llvm.func @rok_runtime_yield()
 ```
 llvm.mlir.global external thread_local @rok_tls() : !llvm.array<N x i8>
 
-%t = llvm.mlir.addressof @rok_tls : !llvm.ptr
+%g = llvm.mlir.addressof @rok_tls : !llvm.ptr
+%t = "llvm.intr.threadlocal.address"(%g) : (!llvm.ptr) -> !llvm.ptr
 %flag_ptr = llvm.getelementptr %t[88] : (!llvm.ptr) -> !llvm.ptr, i8   ; yield_flag at 10p+8, p = 8
 %flag = llvm.load %flag_ptr : !llvm.ptr -> i8
 ```
 
-LLVM 백엔드가 이 코드를 타깃별 TLS 명령어로 자동으로 낮춥니다.
+스레드의 기준 주소는 entry 블록에서 한 번 계산해 모든 슬롯에 다시 씁니다. LLVM 백엔드가 이를 타깃별 TLS 명령어로 낮춥니다.
 
 ## 8.7.8. 각 단계의 책임
 
@@ -172,6 +155,6 @@ object → 바이너리           lld, 프로세스 안 (ROK_CC 로 대체, 9.2.
 
 ## 8.7.9. 변환 검증
 
-`tests/integration/` 아래의 종단 간(end-to-end) 테스트는 사용자가 작성한 .rok 파일을 빌드하고 실행해서 검증합니다.
+종단 간(end-to-end) 테스트(`compiler/rokc/tests/integration.rs`, `compiler/rokc/tests/cases/`의 프로그램 대상)는 .rok 파일을 빌드하고 실행합니다. `-O0`에서 돌리고, `ROK_TEST_OPT=-O2`이면 이 lowering을 거칩니다.
 
 이 검증이 이 블록에서 정의한 lowering 규칙이 정확함을 보장합니다.

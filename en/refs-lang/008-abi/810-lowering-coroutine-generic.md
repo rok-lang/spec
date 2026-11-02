@@ -9,7 +9,7 @@ This section defines coroutine lowering for [generators](../004-functions/411-ge
 1. HIR: `yield` / `async` / `async yield` blocks are lifted into body functions, like closures. An expression that creates the frame remains in place of the block.
 2. MIR: the body function is turned into a resume function. Each suspend point gets a state number, and locals live across that point are moved into frame fields.
 3. The frame type is `(i32 state, locals..)` and has a ScanTable. Frames are created through the ordinary allocation path ([8.9.9](809-lowering-control.md#899-gc-alloc-fast--slow-path)).
-4. The entry of the resume function branches (`switch`) on `state`.
+4. The entry of the resume function dispatches on `state`: a chain of two-way branches comparing it with each state number (8.9.3), which LLVM folds into a `switch` at `-O1` and above.
 
 ## 8.10.2. Generator (`yield fn`)
 
@@ -85,21 +85,21 @@ let b = id(3.14f64);   // id<f64>
 After monomorphization, the MLIR looks like this.
 
 ```
-func.func @id_i32(%x: i32) -> i32 {
+func.func @id<i32>(%x: i32, %tls: !llvm.ptr) -> i32 {
   func.return %x : i32
 }
 
-func.func @id_f64(%x: f64) -> f64 {
+func.func @id<f64>(%x: f64, %tls: !llvm.ptr) -> f64 {
   func.return %x : f64
 }
 
-func.func @main() {
-  %a = func.call @id_i32(%42) : (i32) -> i32
-  %b = func.call @id_f64(%3.14) : (f64) -> f64
+func.func @main(%tls: !llvm.ptr) {
+  %a = func.call @id<i32>(%c42, %tls) : (i32, !llvm.ptr) -> i32
+  %b = func.call @id<f64>(%c3_14, %tls) : (f64, !llvm.ptr) -> f64
 }
 ```
 
-A separate function is created for each concrete type tuple.
+A separate function is created for each concrete type tuple (`@id<i32>` stands for its mangled symbol, below).
 
 ### When monomorphization happens
 
@@ -119,7 +119,7 @@ The symbol mangling rule used by the [compilation pipeline](../000-meta/002-pipe
 _Y<pkg_hash_8>_<path>_<name>_<typehash_16>
 ```
 
-For example, `id<i32>` becomes something like `_Y3f8a1c2b_my_pkg_id_a7c91d8e44b2f190` (illustrative), and this symbol is the name of the `func.func @...`.
+The package is the hash, so a function at the package root has an empty `<path>`: `id<i32>` becomes something like `_Y3f8a1c2b__id_a7c91d8e44b2f190` (illustrative), and this symbol is the name of the `func.func @...`. A non-generic item has an empty `<typehash>` (`_Y3f8a1c2b__main_`). A literal `_` in an identifier is escaped as `_0` ([9.5](../009-tools/905-symbol-mangling.md)).
 
 ## 8.10.7. `const` generic monomorphization
 
@@ -134,7 +134,7 @@ let r = dot([1.0, 2.0, 3.0], [4.0, 5.0, 6.0]);  // T=f64, N=3
 This is monomorphized to the following MLIR.
 
 ```
-func.func @dot_f64_3(%a: !llvm.array<3 x f64>, %b: !llvm.array<3 x f64>) -> f64 {
+func.func @dot<f64, 3>(%a: !llvm.array<3 x f64>, %b: !llvm.array<3 x f64>, %tls: !llvm.ptr) -> f64 {
   ; ... unrolled or an ordinary loop
 }
 ```
@@ -152,18 +152,18 @@ fn process<T: Describe>(x: T) -> str {
 The concrete type T is determined at the call site, so for `T = Point` the lowering is:
 
 ```
-func.func @process_Point(%x: !Point_ptr) -> !str_ptr {
+func.func @process<Point>(%x: !llvm.struct<(f64, f64)>, %tls: !llvm.ptr) -> !llvm.struct<(ptr, i64)> {
   ; call Point's Describe::describe directly
-  %r = func.call @Point_Describe_describe(%x) : (!Point_ptr) -> !str_ptr
-  func.return %r
+  %r = func.call @Point.describe(%x, %tls) : (!llvm.struct<(f64, f64)>, !llvm.ptr) -> !llvm.struct<(ptr, i64)>
+  func.return %r : !llvm.struct<(ptr, i64)>
 }
 ```
 
-There are no indirect calls through a vtable; everything is a direct function call. Combined with the [trait-as-type ban](../002-types/212-trait-as-type-banned.md), this model guarantees zero vtable cost.
+`Point` is passed as its value struct (8.8.3), `str` as its `(ptr, i64)` pair (8.8.1). There are no indirect calls through a vtable; everything is a direct function call. Combined with the [trait-as-type ban](../002-types/212-trait-as-type-banned.md), this model guarantees zero vtable cost.
 
 ## 8.10.9. Branch dispatch on sum types
 
-Matching on [sum types](../002-types/206-sum-types.md) is lowered to a `cf.switch`-based decision tree.
+Matching on [sum types](../002-types/206-sum-types.md) is lowered to tag tests, a chain of `cf.cond_br` (8.9.3).
 
 ```rok
 let v: i32 | str = ...;
@@ -173,34 +173,32 @@ match v {
 }
 ```
 
-In MLIR:
+`i32 | str` is `!llvm.struct<(i32, !llvm.array<2 x i64>)>` on a 64-bit target: tag 0 is `i32`, tag 1 is `str`, and the payload is two words because `str` is the two-word pair holding a GC reference (8.8.6). In MLIR:
 
 ```
-%tag = llvm.extractvalue %v[0] : i32
-
-cf.switch %tag, [
-  default: ^trap,
-  TAG_I32: ^use_int,
-  TAG_STR: ^use_str
-]
+%tag = llvm.extractvalue %v[0] : !llvm.struct<(i32, !llvm.array<2 x i64>)>
+%p   = llvm.extractvalue %v[1] : !llvm.struct<(i32, !llvm.array<2 x i64>)>
+%is_i32 = arith.cmpi eq, %tag, %c0 : i32
+cf.cond_br %is_i32, ^use_int, ^test_str
+^test_str:
+%is_str = arith.cmpi eq, %tag, %c1 : i32
+cf.cond_br %is_str, ^use_str, ^unreachable
 
 ^use_int:
-  %n = llvm.extractvalue %v[1] : i64
-  %n_i32 = llvm.trunc %n : i64 to i32
-  func.call @use_int(%n_i32) : ...
+  ; payload reinterpreted as i32
+  func.call @use_int(%n, %tls) : (i32, !llvm.ptr) -> ()
   cf.br ^end
 
 ^use_str:
-  %s = llvm.extractvalue %v[1] : i64
-  %s_ptr = llvm.inttoptr %s : i64 to !llvm.ptr
-  func.call @use_str(%s_ptr) : ...
+  ; payload reinterpreted as !llvm.struct<(ptr, i64)>
+  func.call @use_str(%s, %tls) : (!llvm.struct<(ptr, i64)>, !llvm.ptr) -> ()
   cf.br ^end
 
 ^end:
   ...
 ```
 
-Tag checks and branches are all static code.
+The match is exhaustive, so `^unreachable` is never reached. Tag checks and branches are all static code.
 
 ## 8.10.10. Trait-bound dispatch of trait methods
 

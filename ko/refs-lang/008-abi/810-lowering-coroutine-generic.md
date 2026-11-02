@@ -9,7 +9,7 @@
 1. HIR: `yield` / `async` / `async yield` 블록을 클로저처럼 body 함수로 끌어올립니다. 블록 자리에는 프레임을 만드는 식이 남습니다.
 2. MIR: body 함수를 resume 함수로 바꿉니다. suspend 지점마다 state 번호를 매깁니다. 그 지점을 넘어서도 살아 있는 지역 변수는 프레임 필드로 옮깁니다.
 3. 프레임 타입은 `(i32 state, locals..)`이며 ScanTable이 있습니다. 프레임은 일반 할당 경로로 만듭니다([8.9.9](809-lowering-control.md#899-gc-할당-fast--slow-path)).
-4. resume 함수의 입구는 `state`로 분기(`switch`)합니다.
+4. resume 함수의 입구는 `state`로 분기합니다. `state`를 각 상태 번호와 비교하는 두 갈래 분기의 사슬이며(8.9.3), `-O1` 이상에서 LLVM이 이를 `switch`로 접습니다.
 
 ## 8.10.2. 제너레이터(`yield fn`)
 
@@ -85,21 +85,21 @@ let b = id(3.14f64);   // id<f64>
 단형화를 거친 MLIR은 다음과 같습니다.
 
 ```
-func.func @id_i32(%x: i32) -> i32 {
+func.func @id<i32>(%x: i32, %tls: !llvm.ptr) -> i32 {
   func.return %x : i32
 }
 
-func.func @id_f64(%x: f64) -> f64 {
+func.func @id<f64>(%x: f64, %tls: !llvm.ptr) -> f64 {
   func.return %x : f64
 }
 
-func.func @main() {
-  %a = func.call @id_i32(%42) : (i32) -> i32
-  %b = func.call @id_f64(%3.14) : (f64) -> f64
+func.func @main(%tls: !llvm.ptr) {
+  %a = func.call @id<i32>(%c42, %tls) : (i32, !llvm.ptr) -> i32
+  %b = func.call @id<f64>(%c3_14, %tls) : (f64, !llvm.ptr) -> f64
 }
 ```
 
-구체 타입 튜플마다 별개의 함수가 만들어집니다.
+구체 타입 튜플마다 별개의 함수가 만들어집니다(`@id<i32>`는 아래의 맹글링된 심볼을 뜻합니다).
 
 ### 단형화의 시점
 
@@ -119,7 +119,7 @@ rok-hir → specialize(hir, type_tuple) → rok-mir → MLIR
 _Y<pkg_hash_8>_<path>_<name>_<typehash_16>
 ```
 
-예를 들어 `id<i32>`는 `_Y3f8a1c2b_my_pkg_id_a7c91d8e44b2f190`(예시) 같은 형태가 됩니다. 이 심볼이 `func.func @...`의 이름입니다.
+패키지는 해시로 나타내므로 패키지 루트의 함수는 `<path>`가 비어 있습니다. 예를 들어 `id<i32>`는 `_Y3f8a1c2b__id_a7c91d8e44b2f190`(예시) 같은 형태가 됩니다. 이 심볼이 `func.func @...`의 이름입니다. 제네릭이 아닌 항목은 `<typehash>`가 비어 있습니다(`_Y3f8a1c2b__main_`). 식별자 안의 `_`는 `_0`으로 이스케이프합니다([9.5](../009-tools/905-symbol-mangling.md)).
 
 ## 8.10.7. `const` 제네릭 단형화
 
@@ -134,7 +134,7 @@ let r = dot([1.0, 2.0, 3.0], [4.0, 5.0, 6.0]);  // T=f64, N=3
 이 코드는 다음 MLIR로 단형화됩니다.
 
 ```
-func.func @dot_f64_3(%a: !llvm.array<3 x f64>, %b: !llvm.array<3 x f64>) -> f64 {
+func.func @dot<f64, 3>(%a: !llvm.array<3 x f64>, %b: !llvm.array<3 x f64>, %tls: !llvm.ptr) -> f64 {
   ; ... unroll 또는 일반 loop
 }
 ```
@@ -152,18 +152,18 @@ fn process<T: Describe>(x: T) -> str {
 구체 타입 T는 호출 지점에서 정해집니다. `T = Point`이면 다음과 같이 낮춥니다.
 
 ```
-func.func @process_Point(%x: !Point_ptr) -> !str_ptr {
+func.func @process<Point>(%x: !llvm.struct<(f64, f64)>, %tls: !llvm.ptr) -> !llvm.struct<(ptr, i64)> {
   ; Point 의 Describe::describe 를 직접 호출
-  %r = func.call @Point_Describe_describe(%x) : (!Point_ptr) -> !str_ptr
-  func.return %r
+  %r = func.call @Point.describe(%x, %tls) : (!llvm.struct<(f64, f64)>, !llvm.ptr) -> !llvm.struct<(ptr, i64)>
+  func.return %r : !llvm.struct<(ptr, i64)>
 }
 ```
 
-vtable을 거치는 간접 호출은 없고 모두 직접 함수 호출입니다. 이 모델과 [트레잇-as-타입 금지](../002-types/212-trait-as-type-banned.md)가 함께 vtable 비용이 0임을 보장합니다.
+`Point`는 값 struct(8.8.3)로, `str`은 `(ptr, i64)` 쌍(8.8.1)으로 넘깁니다. vtable을 거치는 간접 호출은 없고 모두 직접 함수 호출입니다. 이 모델과 [트레잇-as-타입 금지](../002-types/212-trait-as-type-banned.md)가 함께 vtable 비용이 0임을 보장합니다.
 
 ## 8.10.9. 합 타입의 분기 디스패치
 
-[합 타입](../002-types/206-sum-types.md)의 매칭은 `cf.switch` 기반 decision tree로 낮춥니다.
+[합 타입](../002-types/206-sum-types.md)의 매칭은 `cf.cond_br` 사슬인 tag 검사로 낮춥니다(8.9.3).
 
 ```rok
 let v: i32 | str = ...;
@@ -173,34 +173,32 @@ match v {
 }
 ```
 
-MLIR로는 다음과 같습니다.
+64비트 타깃에서 `i32 | str`은 `!llvm.struct<(i32, !llvm.array<2 x i64>)>`입니다. tag 0은 `i32`, tag 1은 `str`이며, `str`이 GC 참조를 담은 두 워드 쌍이므로 페이로드는 두 워드입니다(8.8.6). MLIR로는 다음과 같습니다.
 
 ```
-%tag = llvm.extractvalue %v[0] : i32
-
-cf.switch %tag, [
-  default: ^trap,
-  TAG_I32: ^use_int,
-  TAG_STR: ^use_str
-]
+%tag = llvm.extractvalue %v[0] : !llvm.struct<(i32, !llvm.array<2 x i64>)>
+%p   = llvm.extractvalue %v[1] : !llvm.struct<(i32, !llvm.array<2 x i64>)>
+%is_i32 = arith.cmpi eq, %tag, %c0 : i32
+cf.cond_br %is_i32, ^use_int, ^test_str
+^test_str:
+%is_str = arith.cmpi eq, %tag, %c1 : i32
+cf.cond_br %is_str, ^use_str, ^unreachable
 
 ^use_int:
-  %n = llvm.extractvalue %v[1] : i64
-  %n_i32 = llvm.trunc %n : i64 to i32
-  func.call @use_int(%n_i32) : ...
+  ; 페이로드를 i32로 다시 해석
+  func.call @use_int(%n, %tls) : (i32, !llvm.ptr) -> ()
   cf.br ^end
 
 ^use_str:
-  %s = llvm.extractvalue %v[1] : i64
-  %s_ptr = llvm.inttoptr %s : i64 to !llvm.ptr
-  func.call @use_str(%s_ptr) : ...
+  ; 페이로드를 !llvm.struct<(ptr, i64)>로 다시 해석
+  func.call @use_str(%s, %tls) : (!llvm.struct<(ptr, i64)>, !llvm.ptr) -> ()
   cf.br ^end
 
 ^end:
   ...
 ```
 
-tag 검사와 분기는 모두 정적인 코드입니다.
+match는 망라적이므로 `^unreachable`에는 닿지 않습니다. tag 검사와 분기는 모두 정적인 코드입니다.
 
 ## 8.10.10. 트레잇 메서드의 트레잇 바운드 디스패치
 

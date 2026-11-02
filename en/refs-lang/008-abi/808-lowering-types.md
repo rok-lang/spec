@@ -10,7 +10,7 @@ Primitive numeric types map to MLIR types as follows.
 |-------------------|---------------------------------------------------------------------------------------------|
 | `i8` ~ `i64`      | `i8` ~ `i64`                                                                                |
 | `u8` ~ `u64`      | `i8` ~ `i64` (sign determined by the op)                                                    |
-| `usize` / `isize` | `index` or target-specific `iN`                                                             |
+| `usize` / `isize` | `iN`, N = the target's pointer width (never `index`)                                        |
 | `f32` / `f64`     | `f32` / `f64`                                                                               |
 | `bool`            | `i1` (or i8, depending on the [ABI](../000-meta/007-glossary.md#abi-application-binary-interface)) |
 | `char`            | `i32` (Unicode code point)                                                                  |
@@ -53,8 +53,10 @@ struct Point { x: f64; y: f64; }
 It is lowered to an LLVM struct of its fields, in the layout of [2.3.6](../002-types/203-struct.md#236-memory-layout).
 
 ```
-!Point = !llvm.struct<"Point", (f64, f64)>
+!llvm.struct<(f64, f64)>
 ```
+
+Struct types are literal (unnamed) LLVM structs; two structs with the same fields have the same MLIR type. A struct whose layout LLVM would not reproduce (an explicit `#[repr]` alignment or offset) is a packed struct with explicit `!llvm.array<k x i8>` padding, so LLVM's offsets and size are those of 2.3.6.
 
 A struct value lives in SSA registers, in stack slots, or inline in its container: a field of another struct, an element of a `List` buffer, a slot of a closure environment or coroutine frame. Assignment and argument passing copy the fields. The compiler may box a value internally only where the box cannot be observed.
 
@@ -63,8 +65,8 @@ A struct value lives in SSA registers, in stack slots, or inline in its containe
 `p.x` on an SSA value is an `extractvalue`; on a stack slot or an inline location it is a load through a field address.
 
 ```
-%val  = llvm.extractvalue %p[0] : !Point
-%addr = llvm.getelementptr %slot[0, 0] : (!llvm.ptr) -> !llvm.ptr, !Point
+%val  = llvm.extractvalue %p[0] : !llvm.struct<(f64, f64)>
+%addr = llvm.getelementptr %slot[0, 0] : (!llvm.ptr) -> !llvm.ptr, !llvm.struct<(f64, f64)>
 %val2 = llvm.load %addr : !llvm.ptr -> f64
 ```
 
@@ -73,7 +75,7 @@ A struct value lives in SSA registers, in stack slots, or inline in its containe
 `p.x = 1.0f64` updates the variable's own copy: `insertvalue` on an SSA value, or a store to the field address of its slot.
 
 ```
-%p2 = llvm.insertvalue %one, %p[0] : !Point
+%p2 = llvm.insertvalue %one, %p[0] : !llvm.struct<(f64, f64)>
 ```
 
 When the struct is stored inline in a GC heap object and the field holds a GC reference, the store goes through the write barrier ([Barriers and roots](../007-runtime/704-barriers-and-roots.md)). Pointer fields of a struct in a stack slot are GC roots ([7.4](../007-runtime/704-barriers-and-roots.md)).
@@ -96,11 +98,11 @@ The tuple type
 (i32, str, bool)
 ```
 
-is lowered to `!llvm.struct<(i32, !llvm.ptr, i1)>`. Like a `struct`, it is a value with no header.
+is lowered to `!llvm.struct<(i32, !llvm.struct<(ptr, i64)>, i1)>` on a 64-bit target: `str` is its `(ptr, iN)` pair (8.8.1) wherever it appears. Like a `struct`, it is a value with no header.
 
 ## 8.8.6. Representation of `enum`
 
-An `enum` from [`enum`](../002-types/204-enum.md) is lowered as a tagged `union`.
+An `enum` from [`enum`](../002-types/204-enum.md) is a value with no object header, lowered as a tagged `union`: the same `(i32 tag, payload)` layout as a sum type (8.8.8).
 
 ```rok
 enum Result {
@@ -113,35 +115,27 @@ enum Result {
 It is represented as:
 
 ```
-!Result = !llvm.struct<"Result", (
-    i32,                                // type_id
-    i32,                                // gc_flags
-    i64,                                // gc_word
-    i32,                                // discriminant (tag)
-    !llvm.struct<(i64)>                 // payload of the largest variant (8 bytes)
-)>
+!llvm.struct<(i32, !llvm.array<2 x i64>)>    ; 64-bit target
+;            tag   payload: 16 bytes, 8-aligned
 ```
 
-The discriminant holds the variant identifier (`Ok`=0, `Err`=1, `Pending`=2), and the payload is the `union` of all variants, with the size of the largest variant.
+The tag holds the variant's index (`Ok`=0, `Err`=1, `Pending`=2). The payload slot holds every variant with data:
+
+- variants with the same payload type share it (`enum E { A(i64), B(i64) }` is `(i32, i64)`);
+- scalar payloads of different types share an unsigned integer as wide as the widest (`A(i32)`, `B(f64)` share an `i64`);
+- any other mix (aggregates, `str`) shares a byte-array `!llvm.array<k x iN>`, as large and as aligned as the largest variant;
+- a payload that can hold a GC reference is `!llvm.array<k x iN>` of pointer-width words, which the collector scans per the tag ([8.2](802-scan-table.md), `SUM_PAYLOAD`).
+
+A fieldless enum is its tag alone: a bare `i32`, or the integer of its `#[repr(..)]`.
 
 ### Variant construction
 
-Constructing a variant:
-
-```rok
-Result::Ok(42)
-```
-
-is lowered to the following MLIR sequence.
+`Result::Ok(42)` builds the value in registers or in the destination's slot: no allocation.
 
 ```
-; allocate struct + fill header + fill tag + fill payload
-%obj = call @rok_gc_alloc_slow(...)
-; ... header ...
-%tag_addr = llvm.getelementptr %obj [0, 3] : ...
-llvm.store i32 0, %tag_addr  ; Ok = 0
-%payload_addr = llvm.getelementptr %obj [0, 4] : ...
-llvm.store %42_i32, %payload_addr
+%t = llvm.insertvalue %c0_i32, %undef[0] : !llvm.struct<(i32, !llvm.array<2 x i64>)>
+; the payload is written as its own type and reinterpreted as the slot's
+%v = llvm.insertvalue %payload, %t[1] : !llvm.struct<(i32, !llvm.array<2 x i64>)>
 ```
 
 A union value built from a shorter variant's payload holds zero in the bytes past that payload, so a root word copied from it is null or a reference, never stale stack ([8.9.12](809-lowering-control.md#8912-shadow-stack-frame)).
@@ -158,32 +152,20 @@ match v {
 }
 ```
 
-is lowered to MLIR in decision tree form.
+compares the tag with each arm's variant index in arm order, a chain of `cf.cond_br` (8.9.3); a value no arm matches reaches an unreachable block.
 
 ```
-%tag = llvm.load %v[3] : i32
-
-cf.switch %tag, [
-  default: ^unreachable,    ; every variant has a case, so default is never reached
-  0: ^ok,
-  1: ^err,
-  2: ^pending
-]
-
+%tag = llvm.extractvalue %v[0] : !llvm.struct<(i32, !llvm.array<2 x i64>)>
+%is_ok = arith.cmpi eq, %tag, %c0 : i32
+cf.cond_br %is_ok, ^ok, ^next1
+^next1:
+%is_err = arith.cmpi eq, %tag, %c1 : i32
+cf.cond_br %is_err, ^err, ^pending
 ^ok:
-  %payload = llvm.load %v[4] : i32
-  ; ... used as n ...
-  br ^end
-
-^err:
-  %payload_str = llvm.load %v[4] : !llvm.ptr
-  ; ... used as s ...
-  br ^end
-
-^pending:
-  ; ...
-  br ^end
+  ; payload reinterpreted as i32 -> n
 ```
+
+At `-O1` and above LLVM turns the chain into one `switch` on the tag, a jump table when the cases are dense (8.7.3).
 
 ## 8.8.7. Representation of (untagged) `union`
 
@@ -207,7 +189,7 @@ Sum types from [Sum types](../002-types/206-sum-types.md) are handled as follows
 type X = i32 | f64
 ```
 
-This is represented as `!llvm.struct<(i32, i64)>`, a combination of tag (i32) and payload (i64, the size of the largest variant).
+This is represented as `!llvm.struct<(i32, i64)>`, a combination of tag (i32) and payload slot, built as for an `enum` (8.8.6): here the two scalar payloads share an `i64`. A `none` member is tag 0 and carries no payload, so zeroed memory reads back as `none`.
 
 If niche optimization ([niche optimization](../002-types/207-niche-optimization.md)) applies, the tag slot disappears and only the union bit pattern remains.
 
@@ -225,43 +207,42 @@ Consider the dynamic slot from [`any` slot](../002-types/202-any-slot.md).
 let x: any = ...
 ```
 
-It is lowered to an `(i32 tag, usize payload)` pair, where the tag is the type_id. `any Tr` and bare `any` have the same representation.
+It is lowered to an `(i32 tag, payload)` pair. `any Tr` and bare `any` have the same representation.
 
 ```
-!Any = !llvm.struct<(i32, iN)>      ; iN = target pointer width (usize)
+!llvm.struct<(i32, !llvm.ptr)>
 ```
 
-Number, `bool` and `char` values no wider than a pointer are stored directly in the payload. Other values are boxes on the GC heap, and the payload is the pointer to the box. Whether the payload is a pointer is therefore known only from the tag, and the GC must look at the tag when scanning an `any` slot.
+The low 31 bits of the tag identify the value's type: a 31-bit FNV-1a hash of the type's name, so separately compiled packages agree (a collision in one build takes the next free value). Number, `bool` and `char` values no wider than a pointer are stored directly in the payload word, as its bits (`inttoptr` / `ptrtoint`). Other values are boxes on the GC heap, the payload is the box, and bit 31 of the tag (`ANY_BOXED`) is set; the GC reads that bit when scanning an `any` slot ([8.2.7](802-scan-table.md)).
 
-### Dynamic dispatch on `any`
+### Type tests on `any`
 
-Consider:
+A type pattern on an `any` value
 
 ```rok
-v + 1i32     // v: any
+match v {
+    n: i32 => n + 1,
+    s: str => s.len() as i32,
+    _ => 0,
+}
 ```
 
-It is lowered to the following MLIR with runtime checks.
+masks off `ANY_BOXED` and compares the tag with each pattern type's tag, a chain of `cf.cond_br`:
 
 ```
-%tag = llvm.extractvalue %v[0] : i32
-
-cf.switch %tag, [
-  default: ^trap,
-  TAG_I32: ^add_i32,
-  TAG_F64: ^add_f64,       ; other operand type mismatches go to ^trap (panic, exit 101)
-  ...
-]
-
-^add_i32:
-  %payload = llvm.extractvalue %v[1] : i64     ; 64-bit target
-  %i = llvm.trunc %payload : i64 to i32
-  %sum = arith.addi %i, %1_const : i32
-  ; wrap the result back into any
-  ...
+%tag = llvm.extractvalue %v[0] : !llvm.struct<(i32, !llvm.ptr)>
+%t   = arith.andi %tag, %c0x7fffffff : i32
+%is  = arith.cmpi eq, %t, %TAG_I32 : i32
+cf.cond_br %is, ^as_i32, ^next
+^as_i32:
+  %w = llvm.extractvalue %v[1] : !llvm.struct<(i32, !llvm.ptr)>
+  %i = llvm.ptrtoint %w : !llvm.ptr to i64
+  %n = arith.trunci %i : i64 to i32
+^next:
+  ; boxed `str`: the pair is loaded from the box payload (offset 16)
 ```
 
-This branching structure, which must check every possible type at runtime, is the cost of `any` slots.
+These tests at run time are the cost of `any` slots.
 
 ## 8.8.10. Array types: `[T; N]`
 
@@ -281,7 +262,13 @@ Consider a [function type](../004-functions/404-function-type.md).
 fn(i32, i32) -> i32
 ```
 
-It is lowered to a function pointer of type `(i32, i32) -> i32`, i.e. `!llvm.ptr` or `!llvm.func<...>`. Function pointer values can be stored in variables as values.
+Every function value, a named function or a closure, is a `{code, env}` pair:
+
+```
+!llvm.struct<(ptr, ptr)>      ; code, env
+```
+
+`code` takes `env` as its first argument, then the declared arguments (and, like every Rok function, the thread's TLS base last, [8.6](806-calling-convention.md)). A named function used as a value has a null `env` and a code pointer to a thunk that drops it. Only a C function type (`extern "C" fn(..)`) is a bare code pointer `!llvm.ptr`.
 
 ## 8.8.12. Representation of closures
 
@@ -292,23 +279,19 @@ let n = 10;
 let f = |x| x + n;       // captures n
 ```
 
-It is lowered to the following MLIR.
+It is lowered to a function value (8.8.11) whose `env` is a GC object holding the captures, one field each, in a struct after the 16-byte header:
 
 ```
-; closure object = environment + code pointer
-!Closure = !llvm.struct<(
-    i32, i32, i64,                ; GC header
-    !llvm.ptr,                    ; function pointer (code)
-    i32                            ; environment: copy of n
-)>
+; env object: header + !llvm.struct<(i32)>   ; copy of n
+%f = !llvm.struct<(ptr, ptr)>                ; {code of the closure body, env}
 
 ; on call
-%env = llvm.getelementptr %clo[0, 4] : ...
-%fn_ptr = llvm.extractvalue %clo[0, 3] : !llvm.ptr
-%result = llvm.call %fn_ptr(%env, %x) : ...
+%code = llvm.extractvalue %f[0] : !llvm.struct<(ptr, ptr)>
+%env  = llvm.extractvalue %f[1] : !llvm.struct<(ptr, ptr)>
+%r    = llvm.call %code(%env, %x, %tls) : !llvm.ptr, (!llvm.ptr, i32, !llvm.ptr) -> i32
 ```
 
-On call, the environment is passed as an extra first argument to the function.
+A closure that captures nothing has a null `env` and allocates nothing.
 
 ## 8.8.13. Identifier / variable access
 

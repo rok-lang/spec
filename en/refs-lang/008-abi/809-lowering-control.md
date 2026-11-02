@@ -4,34 +4,37 @@ This section covers the lowering rules for [`if` expressions](../003-expressions
 
 The generated MLIR / LLVM module carries the target triple and data layout of the build target (`--target`).
 
+rok-mir is a control-flow graph: basic blocks with block arguments, each ending in a goto, a two-way branch on an `i1`, a return or `unreachable`. Every one maps to `cf.br`, `cf.cond_br`, `func.return` or `llvm.unreachable`; no structured `scf` region is emitted. LLVM's own passes (SimplifyCFG, loop rotation, LICM, the vectorizer) work on this CFG at `-O1` and above, and turn chains of equality tests on one value into a `switch`.
+
 ## 8.9.1. `if` expressions
 
 ```rok
 if cond { x } else { y }
 ```
 
-This expression is lowered to MLIR using `scf.if` as follows.
+This expression is lowered to a `cf.cond_br`; the value arrives as the argument of the join block.
 
 ```
-%result = scf.if %cond -> (i32) {
-  scf.yield %x : i32
-} else {
-  scf.yield %y : i32
-}
+cf.cond_br %cond, ^then, ^else
+^then:
+  cf.br ^end(%x : i32)
+^else:
+  cf.br ^end(%y : i32)
+^end(%result: i32):
 ```
 
-An `if` with no `else` branch and a unit value:
+An `if` with no `else` branch and a unit value branches straight to the join block:
 
 ```rok
 if cond { do_thing(); }
 ```
 
-lowers to the simpler form:
-
 ```
-scf.if %cond {
-  func.call @do_thing()
-}
+cf.cond_br %cond, ^then, ^end
+^then:
+  func.call @do_thing(%tls) : (!llvm.ptr) -> ()
+  cf.br ^end
+^end:
 ```
 
 ## 8.9.2. `if let`
@@ -42,24 +45,25 @@ Consider the `if let pattern = expr` form from [`if` expressions](../003-express
 if let v: T = compute() { use(v) } else { fallback() }
 ```
 
-This expression is lowered to MLIR in decision tree form:
+The pattern's test is lowered as in a `match` (8.9.3):
 
 ```
-%opt = func.call @compute() : () -> !sum_T_none
-%tag = llvm.extractvalue %opt[0] : i32
-%is_some = arith.cmpi "ne", %tag, %TAG_NONE : i32
-
-scf.if %is_some {
-  %payload = llvm.extractvalue %opt[1] : !T
-  func.call @use(%payload)
-} else {
-  func.call @fallback()
-}
+%opt = func.call @compute(%tls) : (!llvm.ptr) -> !llvm.struct<(i32, i64)>
+%tag = llvm.extractvalue %opt[0] : !llvm.struct<(i32, i64)>
+%is_some = arith.cmpi ne, %tag, %TAG_NONE : i32
+cf.cond_br %is_some, ^then, ^else
+^then:
+  %payload = llvm.extractvalue %opt[1] : !llvm.struct<(i32, i64)>
+  func.call @use(%payload, %tls) : (i64, !llvm.ptr) -> ()
+  cf.br ^end
+^else:
+  func.call @fallback(%tls) : (!llvm.ptr) -> ()
+  cf.br ^end
 ```
 
 ## 8.9.3. `match` decision tree
 
-The arms of a [`match`](../003-expressions/312-match-expression.md) are lowered to a decision tree.
+The arms of a [`match`](../003-expressions/312-match-expression.md) are tested in source order, each pattern a sequence of `cf.cond_br` tests.
 
 ```rok
 match v {
@@ -73,97 +77,83 @@ match v {
 This `match` expression becomes the following MLIR.
 
 ```
-cf.switch %v : i32, [
-  default: ^check_guard,
-  1: ^arm_a,
-  2: ^arm_b
-]
-
+%is1 = arith.cmpi eq, %v, %c1 : i32
+cf.cond_br %is1, ^arm_a, ^test2
+^test2:
+  %is2 = arith.cmpi eq, %v, %c2 : i32
+  cf.cond_br %is2, ^arm_b, ^check_guard
 ^check_guard:
-  %is_big = arith.cmpi "sgt", %v, %100 : i32
+  %is_big = arith.cmpi sgt, %v, %c100 : i32
   cf.cond_br %is_big, ^arm_c, ^arm_d
 
 ^arm_a: ; ... = a
-  cf.br ^end(%a)
-
+  cf.br ^end(%a : i32)
 ^arm_b: ; ... = b
-  cf.br ^end(%b)
-
+  cf.br ^end(%b : i32)
 ^arm_c: ; ... = c
-  cf.br ^end(%c)
-
+  cf.br ^end(%c : i32)
 ^arm_d: ; ... = d
-  cf.br ^end(%d)
+  cf.br ^end(%d : i32)
 
 ^end(%result: i32):
   ; ...
 ```
 
-For complex patterns such as tuples, `struct`s, `enum` variants and ranges, each destructuring step is lowered to internal switch / cmp operations.
+Tuples, `struct`s, `enum` variants ([8.8.6](808-lowering-types.md#886-representation-of-enum)) and sum members test their parts the same way; a range pattern is two comparisons, a string pattern a `str` equality (8.7.6). A match is exhaustive, so the block after its last test is `llvm.unreachable`.
+
+`cf.switch` is not emitted. A chain of `cf.cond_br` comparing one value with constants is the shape LLVM's SimplifyCFG folds into a single `switch` at `-O1` and above, which then becomes a jump table when the cases are dense, a binary search otherwise: an `enum` match costs one indexed jump, the same code a `cf.switch` would give. At `-O0` the native backend compiles the chain as written.
 
 ## 8.9.4. `loop` / `while` / `for`
 
 ### `loop`
 
-`loop` is used as follows.
-
 ```rok
 let v = loop { ...; if cond { break x; } }
 ```
 
-It is lowered to MLIR using `scf.while` or expressed directly with `cf.br`.
+A loop is a header block and a back-edge `cf.br` to it; `break x` branches to the exit block with `x` as its argument.
 
 ```
-%v = scf.while () : () -> (i32) {
-  ; condition check (always true for loop)
-  scf.condition (%true) ()
-} do {
+cf.br ^head
+^head:
   ; body
-  ; if cond { break x; } is handled separately (below)
-  scf.yield
-}
+  cf.cond_br %cond, ^exit(%x : i32), ^latch
+^latch:
+  ; safepoint poll (8.9.11)
+  cf.br ^head
+^exit(%v: i32):
 ```
-
-`break value` is hard to express inside `scf.while`, so it is spelled out with `scf.execute_region` or `cf.br`.
 
 ### `while`
-
-`while` is used as follows.
 
 ```rok
 while cond { body }
 ```
 
-It is lowered to `scf.while`:
+The condition is tested in the header:
 
 ```
-scf.while () : () -> () {
-  ; condition
+cf.br ^head
+^head:
   %c = ...
-  scf.condition (%c) ()
-} do {
-  ; body
-  scf.yield
-}
+  cf.cond_br %c, ^body, ^exit
+^body:
+  ; body, then the back-edge poll
+  cf.br ^head
+^exit:
 ```
 
 ### `for`
-
-`for` is used as follows.
 
 ```rok
 for x in xs { body }
 ```
 
-The desugaring from [Loop expressions](../003-expressions/313-loop-expressions.md) expands it to `let it = xs.into_iter(); loop { match it.next() { ... } }`, which then goes through the same lowering described above.
+The desugaring from [Loop expressions](../003-expressions/313-loop-expressions.md) expands it to `let it = xs.into_iter(); loop { match it.next() { ... } }`, which then goes through the same lowering described above. A `for` over an integer range (`for i in a..b`, bounds evaluated once) or an array is lowered directly to a counting `while` loop that steps the index before the body, so `continue` cannot skip it.
 
 ## 8.9.5. `break` / `continue`
 
-`break` and `continue` inside a loop jump with `cf.br` to the start or end of the loop.
-
-`scf.while` alone is awkward for this, so they are lowered to direct branches of the `cf` dialect.
-
-Labels (`'outer:`) likewise jump to the appropriate [block](../000-meta/007-glossary.md#block).
+`break` and `continue` are `cf.br` to the loop's exit block or to its back-edge block. Labels (`'outer:`) likewise jump to the appropriate [block](../000-meta/007-glossary.md#block).
 
 ## 8.9.6. `try` / `catch` / `finally`: value-based branching
 
@@ -265,65 +255,47 @@ If a new error is thrown inside the cleanup block, it replaces the original path
 
 ## 8.9.9. GC alloc: fast / slow path
 
-Consider [Allocation](../007-runtime/702-allocation.md) together with this.
+Consider [Allocation](../007-runtime/702-allocation.md) together with this. A `struct` is a value and is never allocated (8.8.3); heap objects are closure environments, boxes (`any`), `List` / `Dict` buffers and strings built at run time.
 
 ```rok
-let p = Point { x: 1.0, y: 2.0 };
+let n = 10;
+let f = |x: i32| x + n;    // env: header + an i32
 ```
 
-This is lowered to the following MLIR with the fast path inlined.
+The environment is allocated by a call to `@rok.alloc`, a small function the compiler emits once per module:
 
 ```
-; fast path
-%t = llvm.mlir.addressof @rok_tls : !llvm.ptr
-%cursor_ptr = llvm.getelementptr %t[8] : (!llvm.ptr) -> !llvm.ptr, i8    ; tlab_cursor at p
-%limit_ptr = llvm.getelementptr %t[16] : (!llvm.ptr) -> !llvm.ptr, i8    ; tlab_limit at 2p
+%cp  = llvm.getelementptr %t[8] : (!llvm.ptr) -> !llvm.ptr, i8     ; tlab_cursor at p
+%lp  = llvm.getelementptr %t[16] : (!llvm.ptr) -> !llvm.ptr, i8    ; tlab_limit at 2p
+%env = llvm.call @rok.alloc(%cp, %lp, %c24, %c24, %c8, %TYPE_ID_ENV, %true)
+         : (!llvm.ptr, !llvm.ptr, i64, i64, i64, i32, i1) -> !llvm.ptr
+```
 
-%cursor = llvm.load %cursor_ptr : !llvm.ptr -> !llvm.ptr
-%new_cursor = llvm.getelementptr %cursor[24] : !llvm.ptr
-%limit = llvm.load %limit_ptr : !llvm.ptr -> !llvm.ptr
+`%t` is the thread's TLS base (8.7.7), `24` the object size (rounded up to 8, and the size), `8` the alignment, `%TYPE_ID_ENV` the type_id. `@rok.alloc` bumps the TLAB cursor when the object fits, writes the header's `type_id` and `gc_word` (= size, [8.1.4](801-object-header-abi.md#814-gc_word-offset-8-u64-or-ptr)) and returns the header's address; otherwise it calls `rok_gc_alloc_slow`:
 
-%overflow = llvm.icmp "ugt" %new_cursor, %limit : !llvm.ptr
-cf.cond_br %overflow, ^slow, ^fast
-
+```
+llvm.func internal @rok.alloc(%cp, %lp, %size8, %size, %align, %tid, %ok) -> !llvm.ptr {
+  %cur  = llvm.load %cp ; %lim = llvm.load %lp
+  %fits = (%size8 <= %lim - %cur) and %ok
+  llvm.cond_br %fits, ^fast, ^slow
 ^fast:
-  llvm.store %new_cursor, %cursor_ptr : !llvm.ptr, !llvm.ptr
-  cf.br ^cont(%cursor)
-
+  llvm.store %cur + %size8, %cp
+  llvm.store %tid, %cur            ; type_id
+  llvm.store %size8, %cur + 8      ; gc_word
+  llvm.return %cur
 ^slow:
-  %p_slow = func.call @rok_gc_alloc_slow(%24, %8, %TYPE_ID_POINT) : (i64, i64, i32) -> !llvm.ptr
-  cf.br ^cont(%p_slow)
-
-^cont(%p: !llvm.ptr):
-  ; %p is the start of the object header; fill header, then fields
-  ; ...
+  %obj = llvm.call @rok_gc_alloc_slow(%size, %align, %tid)
+  llvm.return %obj
+}
 ```
 
-In the fast path above, `%24` is the total object size, `%8` the alignment, and `%TYPE_ID_POINT` the type_id constant. The fast path bumps the TLAB pointer and then writes the header's `type_id` and `gc_word` (= size, [8.1.4](801-object-header-abi.md#814-gc_word-offset-8-u64-or-ptr)) inline.
+It is marked `noinline` while the optimizer runs, so the optimizer sees one allocation call it may move or drop, and inlined into every caller at the end of the pipeline: the fast path ends up in line. `gc_flags` is not written: TLAB memory is zeroed. Objects of the large-object size and above, or aligned past 8, call `rok_gc_alloc_slow` directly.
 
-The slow path calls `rok_gc_alloc_slow`.
-
-### Filling the header
-
-The object header and fields are filled as follows.
+The fields are then stored after the 16-byte header:
 
 ```
-; fill type_id
-%hdr_type_addr = llvm.getelementptr %p[0, 0] : ...
-llvm.store %TYPE_ID_POINT, %hdr_type_addr : i32
-
-; gc_flags initial value 0
-; ... (may be filled by the slow path)
-
-; gc_word = object size (8.1.4)
-%hdr_word_addr = llvm.getelementptr %p[0, 2] : ...
-llvm.store %24, %hdr_word_addr : i64
-
-; fill fields
-%x_addr = llvm.getelementptr %p[0, 3] : ...
-llvm.store %1.0, %x_addr : f64
-%y_addr = llvm.getelementptr %p[0, 4] : ...
-llvm.store %2.0, %y_addr : f64
+%f0 = llvm.getelementptr %env[16] : (!llvm.ptr) -> !llvm.ptr, i8
+llvm.store %n, %f0 : i32, !llvm.ptr
 ```
 
 ## 8.9.10. Write barrier
@@ -363,23 +335,22 @@ cf.cond_br %need_log, ^log, ^store
 Consider also the [Safepoint protocol](804-safepoint.md).
 
 ```
-; safepoint poll
-%t = llvm.mlir.addressof @rok_tls : !llvm.ptr
+; safepoint poll (%t: the TLS base, 8.7.7)
 %flag_ptr = llvm.getelementptr %t[88] : (!llvm.ptr) -> !llvm.ptr, i8    ; yield_flag at 10p+8
-%flag = llvm.load %flag_ptr : !llvm.ptr -> i8
+%flag = llvm.load %flag_ptr atomic monotonic : !llvm.ptr -> i8
 %need_yield = arith.cmpi "ne", %flag, %0 : i8
 
 cf.cond_br %need_yield, ^slow, ^cont
 
 ^slow:
-  func.call @rok_runtime_yield() : () -> ()
+  llvm.call @rok_runtime_yield() : () -> ()
   cf.br ^cont
 
 ^cont:
   ; ... continue ...
 ```
 
-The compiler emits this code at function entry (or before the first safepoint of each path, [8.4.7](804-safepoint.md#847-safepoint-invariant)) and on loop back-edges.
+The compiler emits this code on loop back-edges, and in the functions a call cycle can re-enter without passing a loop poll (members of a recursive cycle, functions called through a pointer or from C, exported functions): at entry for those entered other than by a direct Rok call, before the first safepoint of each path for the others ([8.4.7](804-safepoint.md#847-safepoint-invariant)). Other functions do not poll at entry: their callers do.
 
 ## 8.9.12. Shadow stack frame
 
@@ -394,7 +365,7 @@ Example of a function with 2 GC reference words (`%x`, `%y`). Slots hold the add
 llvm.store %null, %x : !llvm.ptr, !llvm.ptr
 llvm.store %null, %y : !llvm.ptr, !llvm.ptr
 %frame = llvm.alloca %c1 x !llvm.struct<(ptr, i64, array<2 x ptr>)> : (i64) -> !llvm.ptr
-%head_ptr = llvm.mlir.addressof @rok_tls : !llvm.ptr             ; shadow stack head at offset 0
+%head_ptr = %t                                                    ; TLS base: shadow stack head at offset 0
 %head = llvm.load %head_ptr : !llvm.ptr -> !llvm.ptr
 %prev_p = llvm.getelementptr %frame[0, 0] : (!llvm.ptr) -> !llvm.ptr
 llvm.store %head, %prev_p : !llvm.ptr, !llvm.ptr
@@ -414,7 +385,7 @@ llvm.store %obj, %x : !llvm.ptr, !llvm.ptr
 llvm.store %saved, %head_ptr : !llvm.ptr, !llvm.ptr
 ```
 
-`@rok_tls` is the thread-local block of [8.3.8](803-tls-slots.md#838-form-of-compiler-emission); the shadow stack head is its slot at offset 0. An error return is also an ordinary `return` ([8.9.6](#896-try--catch--finally-value-based-branching)), so it passes through the same unlink. The link may also come later than shown, before the first safepoint of each path ([8.4.7](804-safepoint.md#847-safepoint-invariant)); then only the returns of paths that linked unlink. A function needs a frame only if it holds GC references and can reach a safepoint ([8.4.2](804-safepoint.md#842-emission-sites)). Calls to functions that never return (panics) and to runtime functions that neither allocate nor block ([8.5.2](805-extern-symbols.md#functions-that-are-not-safepoints)) do not count.
+`%t` is the address of the thread-local block `@rok_tls` of [8.3.8](803-tls-slots.md#838-form-of-compiler-emission) (8.7.7); the shadow stack head is its slot at offset 0. An error return is also an ordinary `return` ([8.9.6](#896-try--catch--finally-value-based-branching)), so it passes through the same unlink. The link may also come later than shown, before the first safepoint of each path ([8.4.7](804-safepoint.md#847-safepoint-invariant)); then only the returns of paths that linked unlink. A function needs a frame only if it holds GC references and can reach a safepoint ([8.4.2](804-safepoint.md#842-emission-sites)). Calls to functions that never return (panics) and to runtime functions that neither allocate nor block ([8.5.2](805-extern-symbols.md#functions-that-are-not-safepoints)) do not count.
 
 ### Module data layout
 
@@ -443,9 +414,9 @@ This result falls out automatically from generic monomorphization and inlining.
 
 The LLVM IR cost of the typical hot path, a [TLAB](../000-meta/007-glossary.md#tlab-thread-local-allocation-buffer) alloc plus field writes, is:
 
-- TLAB cursor check: load / add / icmp / cond_br (4 instructions)
+- TLAB cursor check: load \* 2 / sub / icmp / and / cond_br (inlined from `@rok.alloc`)
 - cursor update: store (1 instruction)
-- header fill: store \* 3 (type_id, gc_flags, gc_word)
+- header fill: store \* 2 (type_id, gc_word)
 - field fill: store \* N (number of fields)
 - write barrier (if needed): load / and / icmp / cond_br + (slow) call (4 ~ 6 instructions)
 - safepoint poll (if needed): load / icmp / cond_br (3 instructions)
