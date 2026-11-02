@@ -133,6 +133,8 @@ loop {
 
 The `try` of `try for` covers the iteration only: the iterable expression and every `next`. It does not cover the body; a throwing call in the body is marked with its own `try`, as everywhere else ([3.14.2](314-error-control-flow.md#coverage)). An error from a step goes where the loop's `try` sends it: out of the function for `try for`, to a panic for `try! for`, and to the end of the loop for `try? for`, whose value is then `none`. A `catch` after the loop attaches to the whole `try for` expression ([4.14.10](../004-functions/414-throws.md#try-for)). The same rules apply to `try for await` over a `TryStream` ([stdlib 2.8.11](../../refs-standard-libraries/200-core/208-stream.md#2811-trystream---fallible-streams)).
 
+A `TryIterator` held in a variable, or in a field of one, is stepped in place: `it` above is that place, not a copy, as a stream in `for await` is polled in place ([4.13.5](../004-functions/413-stream.md#4135-the-for-await-form)).
+
 ### Result value
 
 The result value of `for` is always unit (for the same reason as `while`), and a `break` with a value whose target is a `for` is a compile error.

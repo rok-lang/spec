@@ -133,6 +133,8 @@ loop {
 
 `try for`의 `try`는 반복만 덮습니다. 반복 대상 식과 각 `next`입니다. 본체는 덮지 않습니다. 본체 안에서 에러를 던지는 호출은 다른 곳과 똑같이 자기 `try`를 붙입니다([3.14.2](314-error-control-flow.md#덮는-범위)). 단계에서 난 에러는 루프의 `try`가 보내는 곳으로 갑니다. `try for`면 함수 밖으로, `try! for`면 패닉으로, `try? for`면 루프 끝으로 가며 이때 식의 값은 `none`입니다. 루프 뒤의 `catch`는 `try for` 식 전체에 붙습니다([4.14.10](../004-functions/414-throws.md#try-for)). `TryStream`을 도는 `try for await`도 같은 규칙을 따릅니다([stdlib 2.8.11](../../refs-standard-libraries/200-core/208-stream.md#2811-trystream-실패할-수-있는-스트림)).
 
+변수나 변수의 필드에 든 `TryIterator`는 그 자리에서 진행합니다. 위의 `it`은 복사본이 아니라 그 자리이며, `for await`의 스트림을 그 자리에서 폴링하는 것과 같습니다([4.13.5](../004-functions/413-stream.md#4135-for-await-형태)).
+
 ### 결과 값
 
 `for`의 결과 값은 항상 unit입니다(`while`과 같은 이유). 대상이 `for`인 `break`에 값을 붙이면 컴파일 에러입니다.

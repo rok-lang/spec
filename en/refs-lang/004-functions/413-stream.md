@@ -80,6 +80,8 @@ for await pat in stream { body }
 
 `for await` is a keyword combination for asynchronous iteration. Each iteration has the effect of `await stream.next()`, and the body is written like an ordinary `for` body.
 
+A stream held in a variable, or in a field of one, is polled in place, not through a copy: a loop that leaves early leaves the variable where the loop stopped, and the variable's owner closes what is left. A stream that owns a resource has one owner, so `let t = s` moves it, and the old name can no longer be walked.
+
 This form may be used only inside the bodies of `async fn`, `async {}` and `async ||`.
 
 ## 4.13.6. Evaluation flow of `yield` and `await`
