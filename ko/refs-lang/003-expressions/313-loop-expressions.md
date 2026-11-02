@@ -134,7 +134,9 @@ loop {
 
 `try for`의 `try`는 반복만 덮습니다. 반복 대상 식과 각 `next`입니다. 본체는 덮지 않습니다. 본체 안에서 에러를 던지는 호출은 다른 곳과 똑같이 자기 `try`를 붙입니다([3.14.2](314-error-control-flow.md#덮는-범위)). 단계에서 난 에러는 루프의 `try`가 보내는 곳으로 갑니다. `try for`면 함수 밖으로, `try! for`면 패닉으로, `try? for`면 루프 끝으로 가며 이때 식의 값은 `none`입니다. 루프 뒤의 `catch`는 `try for` 식 전체에 붙습니다([4.14.10](../004-functions/414-throws.md#try-for)). `TryStream`을 도는 `try for await`도 같은 규칙을 따릅니다([stdlib 2.8.11](../../refs-standard-libraries/200-core/208-stream.md#2811-trystream-실패할-수-있는-스트림)).
 
-변수나 변수의 필드에 든 `TryIterator`는 그 자리에서 진행합니다. 위의 `it`은 복사본이 아니라 그 자리이며, `for await`의 스트림을 그 자리에서 폴링하는 것과 같습니다([4.13.5](../004-functions/413-stream.md#4135-for-await-형태)).
+변수나 변수의 필드에 든 `TryIterator`는 그 자리에서 진행합니다. 위의 `it`은 복사본이 아니라 그 자리이며, `for await`의 스트림을 그 자리에서 폴링하는 것과 같습니다([4.13.5](../004-functions/413-stream.md#4135-for-await-형태)). 그런 자리를 `match` 갈래(또는 `if let`)로 묶은 바인딩도 같습니다. 바인딩은 그 자리를 가리키므로, 반복이 멈추면 그 자리도 멈춘 곳에 머뭅니다.
+
+변수에 든 `Iterator`를 도는 일반 `for`는 복사본을 진행합니다. 반복자의 `into_iter`는 반복자 자신이고, 위의 `it`은 새 변수입니다. 변수는 자기 위치를 그대로 가지므로 `let r = 0..3; for i in r { .. } for i in r { .. }`는 `r`을 두 번 돕니다. 반복이 멈춘 곳에서 이어 가려면 반복자를 직접 진행하세요(`while let x: T = it.next() { .. }`). 이렇게 하면 변수 자체가 진행합니다.
 
 ### 결과 값
 
