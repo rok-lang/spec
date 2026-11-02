@@ -200,7 +200,17 @@ rows.push("x");
 
 - 클로저를 만들면 채널 send와 같은 방식으로 `x`를 넘깁니다([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync-스레드-경계-마커)). 클로저는 `x`가 닿는 모든 컬렉션의 복사본을 받고, 그 뒤에 `x`(나 그 값을 가리키는 다른 핸들)를 쓰면 컴파일 에러(`E0105`)입니다. `Sync` 값(숫자, `str`, 그런 값의 배열)은 예외입니다. 클로저의 사본과 `x`가 같은 값이므로 둘 다 써도 됩니다.
 - move 캡처는 클로저가 스레드를 건널 때 `Send`만 요구합니다. 다른 코드가 닿지 않기 때문입니다. 그래서 컬렉션, `Command`, `Child`도 `thread::spawn`, `task::spawn_blocking`, `par::Scope::spawn`에 넘길 수 있습니다. 일반 캡처는 [4.6.9](#469-병렬과-동시성-문맥의-추가-제약)의 `Send + Sync` 규칙을 그대로 따르고, `+ Sync` 자리(모든 워커가 부르는 `par::for_each`)는 모든 캡처가 `Sync`여야 합니다.
-- `Sync`가 아닌 move 캡처를 가진 클로저는 한 번만 넘길 수 있습니다. `Sync` 없이 `fn(..) + Send`로 적은 매개변수에 넘기면, 어떤 함수든 그 클로저를 넘긴 것입니다. 그런 매개변수는 호출된 함수가 다른 스레드에서 실행할 수 있는 자리이기 때문입니다(`thread::spawn`, `thread::Builder::spawn`, `task::spawn_blocking`, `task::spawn_blocking_with_arg`의 `f`, `par::join`, `par::Scope::spawn`, `par::TryScope::spawn`, 그리고 그런 매개변수가 있는 프로그램 자신의 함수). 그 뒤에 어떤 경로로든(변수, struct 필드, 리스트 원소, 매개변수) 그 클로저를 다시 쓰면 컴파일 에러(`E0134`)입니다. 타입에 `Sync`가 없는 `fn(..) + Send` 값도 그런 캡처를 가질 수 있으므로 한 번만 넘깁니다. `+ Send + Sync` 값과 캡처가 모두 `Send + Sync`인 클로저는 다시 넘길 수 있습니다. 클로저를 부르는 것은 넘기는 것이 아니므로 몇 번이든 부를 수 있습니다. 같은 일을 다른 스레드에서 두 번 하려면 클로저를 두 개 만들고, 각각 자기 `.clone()`을 move로 넘깁니다.
+- `Sync`가 아닌 move 캡처를 가진 클로저는 한 번만 넘길 수 있습니다. `Sync` 없이 `fn(..) + Send`로 적은 매개변수에 넘기면, 어떤 함수든 그 클로저를 넘긴 것입니다. 그런 매개변수는 호출된 함수가 다른 스레드에서 실행할 수 있는 자리이기 때문입니다(`thread::spawn`, `thread::Builder::spawn`, `task::spawn_blocking`, `task::spawn_blocking_with_arg`의 `f`, `par::join`, `par::Scope::spawn`, `par::TryScope::spawn`, 그리고 그런 매개변수가 있는 프로그램 자신의 함수). 그 뒤에 어떤 경로로든(변수, struct나 튜플 필드, 리스트 원소, 매개변수, `if` / `match` 가지, 인자를 그대로 돌려주는 함수의 결과) 그 클로저를 다시 쓰면 컴파일 에러(`E0134`)입니다. 한 호출에 두 번 넘기는 것(`par::join(f, f)`)도 마찬가지입니다. 타입에 `Sync`가 없는 `fn(..) + Send` 값도 그런 캡처를 가질 수 있으므로 한 번만 넘깁니다. `+ Send + Sync` 값과 캡처가 모두 `Send + Sync`인 클로저는 다시 넘길 수 있습니다. 클로저를 부르는 것은 넘기는 것이 아니므로 몇 번이든 부를 수 있습니다. 같은 일을 다른 스레드에서 두 번 하려면 클로저를 두 개 만들고, 각각 자기 `.clone()`을 move로 넘깁니다.
+- `async [move ..]` 클로저도 부른다고 넘기는 것은 아니지만, 호출이 만드는 future는 클로저가 move로 받은 값 위에서 실행됩니다. 그래서 클로저와 그 future들은 모두 한 주인입니다. future들은 여기서 하나씩 차례로 await할 수 있습니다(`await f(); await f();`). 클로저나 future 중 하나를 넘기면(`task::spawn`에, 다른 클로저의 `[move f]`로) 나머지도 함께 넘어가고, 그 뒤에 쓰면 컴파일 에러(`E0105` / `E0134`)입니다.
+
+```rok
+let xs: List<i32> = [];
+let f = async [move xs] || { xs.push(1); xs.len() };
+let a = await f();                 // OK: 여기서 실행
+let t = task::spawn(f());          // 이제 task가 f가 move로 받은 값을 가짐
+let b = await f();
+// ERROR: `f` was spawned as a task at line 4: it may own values moved into it
+```
 - 반드시 닫아야 하는 값(`File`, 소켓)은 일반 캡처와 마찬가지로 클로저로 옮겨 가며([4.6.9](#469-병렬과-동시성-문맥의-추가-제약)), 클로저가 닫습니다.
 - 한 리스트에 `move`와 `ref`를 섞을 수 있습니다(`[move xs, ref n]`). 한 이름이 둘 다일 수는 없습니다. 리스트에 적었지만 본문이 쓰지 않는 이름은 캡처하지 않습니다.
 

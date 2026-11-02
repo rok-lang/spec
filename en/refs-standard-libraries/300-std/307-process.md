@@ -58,6 +58,8 @@ Note that `Stdio` has four branches: `Inherit`, which passes on the parent's fd;
 
 A `File` moved into `Stdio::File` belongs to the command, not to the program: the move consumes it, as any move of a `File` does ([2.13.4](../200-core/213-marker.md)), and the program does not close it. Running the command (`spawn`, `output`, `status` and their `_async` twins) closes the parent's copy right after the child is started, and also when starting it fails; the child keeps its own. A failed close there is the run's `IoError`: the child, already started, is killed and reaped first, so no `Child` is lost. A copy of a command whose file an earlier run closed fails with `InvalidInput` instead of running; give each run its own file (`File::try_clone`). A command that never runs leaves its file open until the collector frees it.
 
+A `Stdio` holding a file is affine too: the builder call it is given to moves it into the command. Giving one `Stdio::File` value to two commands, or to two streams of one command (`.stdout(s).stderr(s)`), is compile error `E0134`; give each its own file (`Stdio::File(try f.try_clone())`). `Stdio::Inherit`, `Null` and `Piped` hold nothing and may be given any number of times. `Stdio` implements `Close`: a `Stdio::File` never given to a command is closed by the program (`try s.close()`), as its `File` would be.
+
 ## 3.7.2. `Child`
 
 When `spawn` succeeds, it returns a `Child`, the handle to the running process. Through it you can access the standard I/O streams, wait for exit, or send signals.
