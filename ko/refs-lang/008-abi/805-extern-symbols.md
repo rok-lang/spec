@@ -186,6 +186,8 @@ extern "rok" {
 }
 ```
 
+Rok 쪽에서 `rok_str_slice`는 앞의 세 매개변수만으로 `#[track_caller]`를 붙여 선언합니다([6.2.12](../006-meta-system/602-built-in-attributes.md#6212-track_caller-호출-위치-전달)). 넷째 C 인자 `at`, 곧 호출자의 위치는 컴파일러가 넘깁니다.
+
 ### `rok_runtime_yield`
 
 [safepoint 프로토콜](804-safepoint.md)의 `yield` 함수, 곧 safepoint 폴링의 slow path입니다. **Thread-safety: `caller-thread-only`**(호출자 mutator가 자기 yield_flag를 폴링한 결과로 호출).
@@ -650,7 +652,7 @@ cont:
 ```
 extern "rok" {
     // 메모리
-    fn rok_free(ptr: Ptr<u8>);                             // null 무시
+    fn rok_free(ptr: usize);                               // 0(null) 무시
 
     // C 문자열
     fn rok_cstr_len(s: ConstPtr<u8>) -> usize;             // strlen; null → 0

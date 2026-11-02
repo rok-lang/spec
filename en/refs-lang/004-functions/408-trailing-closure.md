@@ -168,7 +168,7 @@ run("compute") { ... };           // positional + trailing OK
 run(name: "compute") { ... };     // named + trailing OK
 ```
 
-Positional arguments, named arguments and trailing closures may be combined freely.
+Positional arguments, named arguments and trailing closures may be combined freely. `body` has no default yet follows `name`, which has one: defaults are trailing, but a last parameter of a `fn` type is exempt so that a trailing closure can fill it ([4.2.3](402-parameters.md#423-default-values)). A parameter of another type in that place would need a default.
 
 ## 4.8.10. Summary
 

@@ -186,6 +186,8 @@ extern "rok" {
 }
 ```
 
+On the Rok side `rok_str_slice` is declared `#[track_caller]` with the first three parameters only ([6.2.12](../006-meta-system/602-built-in-attributes.md#6212-track_caller-passing-the-call-site)); the compiler passes `at`, the caller's location, as the fourth C argument.
+
 ### `rok_runtime_yield`
 
 The `yield` function of the [Safepoint protocol](804-safepoint.md), i.e. the slow path of the safepoint poll. **Thread-safety: `caller-thread-only`** (called by the calling mutator as a result of polling its own yield_flag).
@@ -650,7 +652,7 @@ Signatures use the same notation as the main text (`Ptr<T>` = mutable raw pointe
 ```
 extern "rok" {
     // memory
-    fn rok_free(ptr: Ptr<u8>);                             // null ignored
+    fn rok_free(ptr: usize);                               // 0 (null) ignored
 
     // C strings
     fn rok_cstr_len(s: ConstPtr<u8>) -> usize;             // strlen; null → 0
