@@ -422,7 +422,7 @@ trait Default {
 | `List`, `Dict`, `Set` 등 컬렉션   | 빈 컬렉션          |
 | `T \| none`                       | `none`             |
 
-`Default`는 derive로 구현할 수 있으며, 모든 필드의 `default()`로 값을 만듭니다.
+`Default`는 derive로 구현할 수 있으며, 각 필드에 선언한 기본값([refs-lang 2.3.3](../../refs-lang/002-types/203-struct.md#233-필드-기본값))으로, 기본값이 없는 필드는 필드 타입의 `default()`로 값을 만듭니다. `#[derive(Default)] struct Cfg { host: str = "localhost"; port: i32; }`는 `Cfg { host: "localhost", port: 0 }`을 만듭니다.
 
 ## 2.13.11. derive 가능한 트레잇
 
@@ -433,7 +433,7 @@ trait Default {
 | `Clone`       | 필드별 `clone`                              | 모든 필드 `Clone`                   |
 | `Copy`        | marker                                      | `Clone`도 derive/구현, `Drop` 아님 |
 | `Debug`       | 필드 이름과 값을 `f"{x:?}"` 형식으로        | 모든 필드 `Debug`                   |
-| `Default`     | 필드별 `default()`                          | 모든 필드 `Default`                 |
+| `Default`     | 필드별: 선언한 기본값, 없으면 `default()` | 기본값이 없는 모든 필드 `Default` |
 | `PartialEq`   | 필드별 `==`의 AND                          | 모든 필드 `PartialEq`               |
 | `Eq`          | marker                                      | `PartialEq`도 derive/구현          |
 | `PartialOrd`  | 필드 선언 순서의 사전식 비교                | 모든 필드 `PartialOrd`, `PartialEq` |

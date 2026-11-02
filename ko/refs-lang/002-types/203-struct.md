@@ -83,7 +83,7 @@ struct Config {
 
 기본값에는 다음 제약이 있습니다. `const` 표현식만 쓸 수 있습니다. 리터럴, `const` 변수, `const` 함수 호출, 그리고 그런 값으로 된 `List` / `Dict` 리터럴(`[]`, `[1, 2]`, `{"a": 1}`)을 쓸 수 있습니다. 컬렉션 기본값은 컴파일 타임에 검사하고 인스턴스마다 새로 만듭니다. 그래서 인스턴스끼리 공유하지 않습니다. `const` 표현식의 정의는 [`const`](../005-modules/502-const.md)에 있습니다. 현재 시각이나 난수처럼 런타임 호출이 필요한 식은 쓸 수 없습니다. 그런 코드는 컴파일 에러입니다. 같은 struct의 다른 필드도 참조할 수 없습니다. 기본값은 인스턴스를 만들 때 그 필드를 생략한 경우에만 평가하고, 인스턴스마다 평가합니다. 평가가 결정론적이므로 컴파일러는 캐시 최적화를 적용할 수 있습니다.
 
-이 제약은 결정론과 예측 가능한 비용, SemVer 안전성을 보장합니다. 런타임 초기화가 필요하면 따로 팩토리 함수를 두는 `fn new() -> T` 패턴을 쓰세요. 필드 기본값 안의 이름은 값을 만드는 자리가 아니라 struct를 선언한 모듈의 스코프에서 해소합니다.
+이 제약은 결정론과 예측 가능한 비용, SemVer 안전성을 보장합니다. 런타임 초기화가 필요하면 따로 팩토리 함수를 두는 `fn new() -> T` 패턴을 쓰세요. 필드 기본값 안의 이름은 값을 만드는 자리가 아니라 struct를 선언한 모듈의 스코프에서 해소합니다. derive한 `Default`도 선언한 기본값을 씁니다([stdlib 2.13.10](../../refs-standard-libraries/200-core/213-marker.md#21310-default-기본값)).
 
 struct의 모듈 밖에서 쓰는 리터럴은 비공개 필드를 기본값이 있을 때만 생략할 수 있습니다([5.6.8](../005-modules/506-visibility.md#568-struct-필드의-가시성)). `#[non_exhaustive]` struct는 처음 릴리스한 뒤에 더하는 필드에 모두 기본값을 주므로, 다른 패키지의 리터럴은 계속 컴파일됩니다([6.2.10](../006-meta-system/602-built-in-attributes.md#6210-non_exhaustive-외부-완전성-검사-회피)).
 
@@ -135,6 +135,17 @@ let ps: List<Point> = [a];
 let q = ps[0];
 q.x = 9.0;                        // ps[0].x 는 그대로
 ps[0] = q;                        // 되씀
+```
+
+아무도 나중에 읽지 않는 사본에 필드를 쓰면 컴파일 에러 `E0057`입니다. 바꾼 내용이 사라지기 때문입니다. 검사하는 사본은 값으로 받은 매개변수나 `self`, `for` 바인딩, 원소의 `let`(`let q = xs[i];`)입니다. 이후의 읽기, 루프 반복, 반환, 호출 어느 것도 그 변경을 볼 수 없을 때 에러이고, 같은 변수에 다시 쓰는 데에만 쓰이는 읽기는 세지 않으며, 클로저나 코루틴 블록이 언급하는 변수는 검사하지 않습니다. help가 대신 쓸 형태를 알려 줍니다. `ref self`나 `ref` 매개변수([4.7](../004-functions/407-ref-keyword.md)), `for ref`([3.13.3](../003-expressions/313-loop-expressions.md#for-ref-원소를-자리로)), 또는 원소에 되쓰기입니다.
+
+```rok
+impl Counter {
+    fn inc(self) { self.n += 1; }   // error[E0057]: self.n 은 receiver 의 사본. fn inc(ref self) 로 적음
+}
+for p in ps { p.x = 0.0; }        // error[E0057]: p.x 는 원소의 사본. for ref p in ps 로 적음
+for ref p in ps { p.x = 0.0; }    // ps 의 모든 원소에 씀
+let c = self;                     // 일부러 만든 지역 사본: c 를 바꾸고 읽거나 반환
 ```
 
 값을 공유하려면 참조 핸들을 씁니다. 컬렉션(`List`, `Dict`, `Set`, `StrBuf`, `Deque` 등, [stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md#참조-핸들)), `Mutex`, `RwLock`, atomic, 채널, `[ref x]` 캡처 셀이 참조 핸들입니다. 핸들을 복사하면 같은 객체를 공유합니다.

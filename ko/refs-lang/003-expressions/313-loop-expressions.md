@@ -7,6 +7,7 @@ loop_expr   ::= label? "loop" block
               | label? "while" expr block
               | label? "for" pattern "in" expr block
               | label? "for" "await" pattern "in" expr block
+              | label? "for" "ref" identifier "in" expr block
 label       ::= "'" identifier ":"
 break_stmt  ::= "break" label_target? expr? ";"
 continue_stmt ::= "continue" label_target? ";"
@@ -150,6 +151,33 @@ for Point { x, y } in points { ... }      // struct 분해
 ```
 
 반증 가능 패턴(예: `enum` 변형 매칭)은 매칭에 실패했을 때의 처리가 모호하므로 `for`의 패턴 자리에 쓸 수 없습니다. 그런 형태가 필요하면 `while let`을 쓰거나 `for`와 `if let`을 함께 쓰세요.
+
+### `for ref`: 원소를 자리로
+
+```rok
+struct Point { x: f64; y: f64; }
+
+let ps: List<Point> = [Point { x: 1.0, y: 2.0 }, Point { x: 3.0, y: 4.0 }];
+for ref p in ps {
+    p.x = 0.0;                            // ps 의 원소에 씀
+}
+println(f"{ps[1].x}");                    // 0
+```
+
+보통의 `for`는 각 원소의 사본을 묶습니다. struct는 값이므로([2.3.8](../002-types/203-struct.md#238-값-의미)) 바인딩의 필드에 써도 루프 밖은 바뀌지 않고, 아무도 읽지 않으면 컴파일 에러입니다. `for ref x in xs`는 대신 `x`를 각 원소의 자리로 묶습니다. `x`를 읽으면 원소를 읽고, `x = v`, `x.f = v`, `x.f += v`, `ref self` 메서드 호출(`x.m()`, [4.7](../004-functions/407-ref-keyword.md))은 원소에 씁니다. 패턴은 이름 하나입니다.
+
+`xs`는 `List`, `SliceMut`, 배열 중 하나입니다. 배열은 저장된 자리에 쓰므로 임시값이 아닌 변수나 필드여야 합니다. 다른 반복 대상은 항목이 자리가 아니므로 컴파일 에러입니다. 루프는 다음과 같습니다.
+
+```
+let v = xs;                    // List: 그 SliceMut 뷰, 배열: xs 그대로
+for i in 0..v.len() {          // 길이는 한 번 읽음
+    body                       // x 는 v[i] 를 뜻함
+}
+```
+
+리스트는 `SliceMut` 뷰로 순회하므로 뷰의 규칙을 따릅니다([stdlib 2.9.7a](../../refs-standard-libraries/200-core/209-collections.md#297a-slicemutt-쓰기-가능한-뷰)). 본문에서 `xs`의 크기를 바꾸면(`push`, `remove`, `clear` 등) 본문에 크기 변경과 이후의 `x` 사용이 보이는 곳에서는 컴파일 에러 `E0138`, 그 밖(호출한 함수 안의 크기 변경)에서는 다음 `x` 사용에서 panic입니다. 더하거나 뺄 원소를 모아 두었다가 루프가 끝난 뒤 `xs`를 바꾸세요.
+
+클로저나 `async` 블록은 `x`를 캡처할 수 없습니다. 원소를 먼저 복사하세요(`let v = x;`). `if x is T`는 `x`를 좁히지 않고, `for await`는 `for ref`가 될 수 없습니다.
 
 ## 3.13.4. 라벨: 중첩 루프 제어
 

@@ -10,7 +10,7 @@
 3. at the call:             f(ref x)
 ```
 
-In all three positions it has the same meaning: changes are reflected in the outer variable.
+In all three positions it has the same meaning: changes are reflected in the outer variable. `for ref x in xs` binds each element of a list or array the same way: changes are reflected in the element ([3.13.3](../003-expressions/313-loop-expressions.md#for-ref-elements-as-places)).
 
 ## 4.7.2. Function parameters
 

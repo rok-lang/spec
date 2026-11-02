@@ -132,12 +132,22 @@ The right-hand expression of a destructuring is evaluated exactly once, and the 
 Destructuring assignment can be seen as a generalization of multiple assignment.
 
 ```rok
-let (a, b) = (b, a);                    // swap, in one expression
 let (q, r) = divmod(num, den);          // two results
 let (head, ..tail) = items;             // split
 ```
 
-This form also expresses the C- or Python-style `a, b = b, a` pattern naturally.
+A destructuring `let` declares new variables; it does not write existing ones. `let (a, b) = (b, a);` shadows `a` and `b` for the rest of its block, so inside a loop body the outer `a` and `b` keep their values. To update existing variables from several values at once (the C- or Python-style `a, b = b, a + b`), destructure into new names and assign each:
+
+```rok
+let a = 0;
+let b = 1;
+for _ in 0..10 {
+    let (x, y) = (b, a + b);            // both computed from the old values
+    a = x;
+    b = y;
+}
+println(f"{a}");                        // 55
+```
 
 ## 3.15.12. Without `let`: destructuring reassignment (none)
 
@@ -145,6 +155,7 @@ Destructuring reassignment of existing variables is not adopted.
 
 ```
 (a, b) = (1, 2);                // not adopted
+let (x, y) = (1, 2); a = x; b = y;      // write this
 ```
 
 `let` is always required, to keep the distinction between new declaration and reassignment clear (consistent with the decision in [assignment](304-assignment.md)).

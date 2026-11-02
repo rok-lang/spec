@@ -83,7 +83,7 @@ struct Config {
 
 Default values are constrained as follows. Only `const` expressions are allowed: literals, `const` variables, `const` function calls, and `List` / `Dict` literals of such values (`[]`, `[1, 2]`, `{"a": 1}`). A collection default is checked at compile time and built fresh for each instance, so instances never share it. `const` expressions are defined in [`const`](../005-modules/502-const.md). Expressions that require a runtime call, such as the current time or a random number, cannot be used; such code is a compile error. Referring to another field of the same struct is also forbidden. A default is evaluated only when the field is omitted at instance creation, and it is evaluated for each instance. Because evaluation is deterministic, the compiler may apply caching optimizations.
 
-These constraints ensure determinism, predictable cost, and SemVer safety. If runtime initialization is needed, use a separate factory function, i.e. the `fn new() -> T` pattern. Names in a field default are resolved in the scope of the module that declares the struct, not where the value is built.
+These constraints ensure determinism, predictable cost, and SemVer safety. If runtime initialization is needed, use a separate factory function, i.e. the `fn new() -> T` pattern. Names in a field default are resolved in the scope of the module that declares the struct, not where the value is built. A derived `Default` uses the declared defaults too ([stdlib 2.13.10](../../refs-standard-libraries/200-core/213-marker.md#21310-default---default-values)).
 
 A literal outside the struct's module may leave out a private field only when it has a default ([5.6.8](../005-modules/506-visibility.md#568-visibility-of-struct-fields)). A `#[non_exhaustive]` struct gives every field added after its first release a default, so literals in other packages keep compiling ([6.2.10](../006-meta-system/602-built-in-attributes.md#6210-non_exhaustive-opting-out-of-external-exhaustiveness)).
 
@@ -135,6 +135,17 @@ let ps: List<Point> = [a];
 let q = ps[0];
 q.x = 9.0;                        // ps[0].x unchanged
 ps[0] = q;                        // written back
+```
+
+A field write on a copy that nothing reads afterwards is a compile error, `E0057`: the change would be lost. The copies checked are a by-value parameter or `self`, a `for` binding, and a `let` of an element (`let q = xs[i];`). The write is an error when no later read, loop iteration, return or call can see the change; a read that only feeds another write to the same variable does not count, and a variable a closure or coroutine block mentions is not checked. The help names what to write instead: `ref self` or a `ref` parameter ([4.7](../004-functions/407-ref-keyword.md)), `for ref` ([3.13.3](../003-expressions/313-loop-expressions.md#for-ref-elements-as-places)), or writing the element back.
+
+```rok
+impl Counter {
+    fn inc(self) { self.n += 1; }   // error[E0057]: `self.n` is set on a copy of the receiver; write `fn inc(ref self)`
+}
+for p in ps { p.x = 0.0; }        // error[E0057]: `p.x` is set on a copy of the element; write `for ref p in ps`
+for ref p in ps { p.x = 0.0; }    // writes every element of ps
+let c = self;                     // a local copy on purpose: change `c`, then read or return it
 ```
 
 Sharing goes through reference handles: collections (`List`, `Dict`, `Set`, `StrBuf`, `Deque`, ..., [stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md#reference-handles)), `Mutex`, `RwLock`, atomics, channels, and `[ref x]` capture cells. Copying a handle shares the object.

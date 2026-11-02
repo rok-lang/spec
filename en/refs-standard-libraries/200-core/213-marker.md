@@ -422,7 +422,7 @@ trait Default {
 | collections such as `List`, `Dict`, `Set` | empty collection |
 | `T \| none`                          | `none`             |
 
-`Default` can be derived; it builds the value from every field's `default()`.
+`Default` can be derived; it builds the value from each field's declared default ([refs-lang 2.3.3](../../refs-lang/002-types/203-struct.md#233-field-default-values)), and from the field type's `default()` for a field without one: `#[derive(Default)] struct Cfg { host: str = "localhost"; port: i32; }` gives `Cfg { host: "localhost", port: 0 }`.
 
 ## 2.13.11. Derivable traits
 
@@ -433,7 +433,7 @@ The built-in traits that `#[derive(...)]` ([refs-lang 6.2.1](../../refs-lang/006
 | `Clone`       | per-field `clone`                             | every field `Clone`                    |
 | `Copy`        | marker                                        | `Clone` also derived/implemented, not `Drop` |
 | `Debug`       | field names and values in `f"{x:?}"` form     | every field `Debug`                    |
-| `Default`     | per-field `default()`                         | every field `Default`                  |
+| `Default`     | per field: its declared default, else `default()` | every field without a default `Default` |
 | `PartialEq`   | AND of per-field `==`                         | every field `PartialEq`                |
 | `Eq`          | marker                                        | `PartialEq` also derived/implemented   |
 | `PartialOrd`  | lexicographic comparison in field declaration order | every field `PartialOrd`, `PartialEq` |

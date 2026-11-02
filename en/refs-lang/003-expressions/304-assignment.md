@@ -48,7 +48,7 @@ The following cannot be lvalues.
 foo() = 2;                // a call result is not an lvalue
 foo().x = 2;              // nor is a field of one
 (x + 1) = 2;              // an arithmetic result is not an lvalue
-(a, b) = (b, a);          // a tuple is not an lvalue; write let (a, b) = (b, a);
+(a, b) = (b, a);          // a tuple is not an lvalue; swap with a temporary: let t = a; a = b; b = t;
 ```
 
 An element of a `List`, `Dict` or other shared collection is a place even when the collection comes from a call: `rows()[0] = 1;` writes into the list `rows()` returns. A field of a call result is not a place, nor is an element of a fixed array that is one.

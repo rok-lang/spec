@@ -7,6 +7,7 @@ loop_expr   ::= label? "loop" block
               | label? "while" expr block
               | label? "for" pattern "in" expr block
               | label? "for" "await" pattern "in" expr block
+              | label? "for" "ref" identifier "in" expr block
 label       ::= "'" identifier ":"
 break_stmt  ::= "break" label_target? expr? ";"
 continue_stmt ::= "continue" label_target? ";"
@@ -150,6 +151,33 @@ for Point { x, y } in points { ... }      // struct destructuring
 ```
 
 Refutable patterns (e.g. matching an `enum` variant) are rejected in the pattern position of `for`, because handling a failed match would be ambiguous. When such a form is needed, use `while let` or a combination of `for` and `if let`.
+
+### `for ref`: elements as places
+
+```rok
+struct Point { x: f64; y: f64; }
+
+let ps: List<Point> = [Point { x: 1.0, y: 2.0 }, Point { x: 3.0, y: 4.0 }];
+for ref p in ps {
+    p.x = 0.0;                            // writes the element of ps
+}
+println(f"{ps[1].x}");                    // 0
+```
+
+A plain `for` binds a copy of each element: a struct is a value ([2.3.8](../002-types/203-struct.md#238-value-semantics)), so a field write on the binding changes nothing outside the loop, and is a compile error when nothing reads it. `for ref x in xs` binds `x` to each element as a place instead. Reading `x` reads the element; `x = v`, `x.f = v`, `x.f += v` and a call of a `ref self` method (`x.m()`, [4.7](../004-functions/407-ref-keyword.md)) write it. The pattern is a single name.
+
+`xs` is a `List`, a `SliceMut` or an array. An array is written where it is kept, so it must be a variable or a field, not a temporary. Any other iterable is a compile error: its items are not places. The loop is equivalent to:
+
+```
+let v = xs;                    // a List: a SliceMut view of it; an array: xs itself
+for i in 0..v.len() {          // the length is read once
+    body                       // with x standing for v[i]
+}
+```
+
+A list is walked through a `SliceMut` view, so the view's rules apply ([stdlib 2.9.7a](../../refs-standard-libraries/200-core/209-collections.md#297a-slicemutt---writable-view)): resizing `xs` in the body (`push`, `remove`, `clear`, ...) is a compile error, `E0138`, where the body shows the resize and a later use of `x`, and otherwise (a resize inside a called function) a panic at the next use of `x`. Collect the elements to add or remove and change `xs` after the loop.
+
+A closure or `async` block cannot capture `x`; copy the element first (`let v = x;`). `if x is T` does not narrow `x`, and `for await` cannot be `for ref`.
 
 ## 3.13.4. Labels: controlling nested loops
 
