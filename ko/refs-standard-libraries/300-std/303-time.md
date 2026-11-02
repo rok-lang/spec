@@ -135,14 +135,15 @@ impl Duration {
     const ZERO: Duration;             // 0 ns
     const MAX: Duration;              // I64_MAX ns
 
-    // 생성자
-    const fn ns(n: i64) -> Duration;
-    const fn us(n: i64) -> Duration;        // microseconds
-    const fn ms(n: i64) -> Duration;        // milliseconds
-    const fn secs(n: i64) -> Duration;
-    const fn mins(n: i64) -> Duration;
-    const fn hours(n: i64) -> Duration;
-    const fn days(n: i64) -> Duration;
+    // 생성자: i64로 손실 없이 바뀌는 정수 타입이면 무엇이든
+    // (i8 .. i64, u8 .. u32), u64 / usize는 try_into
+    const fn ns<N>(n: N) -> Duration where i64: From<N>;
+    const fn us<N>(n: N) -> Duration where i64: From<N>;        // microseconds
+    const fn ms<N>(n: N) -> Duration where i64: From<N>;        // milliseconds
+    const fn secs<N>(n: N) -> Duration where i64: From<N>;
+    const fn mins<N>(n: N) -> Duration where i64: From<N>;
+    const fn hours<N>(n: N) -> Duration where i64: From<N>;
+    const fn days<N>(n: N) -> Duration where i64: From<N>;
 
     const fn secs_f64(s: f64) -> Duration;  // 부동소수 초, ns 단위로 버림
 

@@ -72,9 +72,9 @@ The operator traits are not in the prelude: write `ops::Add`, or `use rok::core:
 
 **OS extension traits.** On the targets that have them, the prelude also names `PermissionsExt`, `CommandExt` and `ExitStatusExt` (unix) and `ChildExt` and `TcpStreamExt` (linux), so their methods need no `use` there ([3.11.1](../300-std/311-os.md#3111-ext-traits-in-the-prelude)). They are not counted above.
 
-**Functions (11).**
+**Functions (12).**
 
-`print` `println` `eprint` `eprintln` `panic` `assert` `assert_eq` `assert_ne` `unreachable` `channel` `channel_bounded`
+`print` `println` `eprint` `eprintln` `dbg` `panic` `assert` `assert_eq` `assert_ne` `unreachable` `channel` `channel_bounded`
 
 **Variants.** None. See [refs-lang 2.4.8](../../refs-lang/002-types/204-enum.md#248-bare-variants-from-the-expected-type).
 

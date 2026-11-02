@@ -110,10 +110,10 @@ arr[expensive_index()] += 1;
 
 If the lvalue is a plain variable or field, it is referenced twice as is; if it contains a call or computation, that part is bound to a temporary and evaluated once. This guarantee prevents an index or method with side effects from being called twice unintentionally.
 
-The lvalue must be a place (3.4.1). `f() += 1` and `d.entry(k).or_insert(0) += 1` are errors (E0141): each would update a temporary. To count in a dictionary, write the entry back:
+The lvalue must be a place (3.4.1). `f() += 1` and `d.entry(k).or_insert(0) += 1` are errors (E0141): each would update a temporary. To count in a dictionary, index with a default ([3.6.1](306-indexing-and-slicing.md#361-indexing-arri)):
 
 ```rok
-counts[w] = (counts.get(w) ?? 0) + 1;
+counts[w, default: 0] += 1;
 ```
 
 ### Trait mapping

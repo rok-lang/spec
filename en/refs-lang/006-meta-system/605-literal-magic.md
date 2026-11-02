@@ -14,6 +14,7 @@ Beyond the lexical literals from [numeric literals](../001-lexical/106-numeric-l
 0..5                       → Range<T>
 0..=5                      → RangeInclusive<T>
 1:3                        → Slice<T> (compiler)
+2i                         → Complex<f64>
 ```
 
 The `(compiler)` marker denotes literals the compiler builds directly without a handler. Fixed arrays, tuples, and the slice `a[i:j]` inside an index are intrinsic to the language and cannot be registered (6.5.7, 6.5.9).
@@ -22,7 +23,7 @@ The syntax of these literals consists of tokens from [punctuation and operator t
 
 The `#[literal]` magic attaches that decision to a trait or function.
 
-The type of numeric literals is decided by the language, not by this magic ([1.6.2](../001-lexical/106-numeric-literals.md#162-type-suffixes), [1.6.3](../001-lexical/106-numeric-literals.md#163-unsuffixed-literals)). For numbers, `#[literal]` handles only suffixes the language does not define, such as `2i` registered by a package with its own complex type. The standard libraries register no numeric suffix.
+The type of numeric literals is decided by the language, not by this magic ([1.6.2](../001-lexical/106-numeric-literals.md#162-type-suffixes), [1.6.3](../001-lexical/106-numeric-literals.md#163-unsuffixed-literals)). For numbers, `#[literal]` handles only suffixes the language does not define. The standard library registers one, `i` (`2i` is the imaginary `Complex<f64>`, [stdlib 2.1.11](../../refs-standard-libraries/200-core/201-numbers.md#2111-numeric-traits-float-ordering-ranges-complex-numbers)), at priority -1 so that a package's own `i` handler wins (6.5.5).
 
 ## 6.5.2. Form
 
@@ -55,8 +56,8 @@ fn range_literal<T>(start: T, end: T) -> Range<T> { ... }
 #[literal(expr "..=" expr)]
 fn range_inclusive_literal<T>(start: T, end: T) -> RangeInclusive<T> { ... }
 
-#[literal(number "i")]
-fn imaginary_literal(n: f64) -> Complex<f64> { ... }
+#[literal(number "i", priority = -1)]
+fn imaginary_literal(n: f64) -> Complex<f64> { ... }      // rok::core::num::complex
 
 #[literal("m" "[" {{expr} % "," +} % ";" + "]", priority = 2)]
 fn matrix_literal<const C: usize>(rows: ...[f64; C]) -> Matrix { ... }   // [f64; C] per row

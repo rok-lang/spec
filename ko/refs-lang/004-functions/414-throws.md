@@ -241,7 +241,7 @@ impl Database {
 
 호출자의 의무와 전파 규칙은 자유 함수와 똑같이 적용합니다.
 
-트레잇을 구현하는 impl 메서드의 `throws`는 트레잇 메서드의 `throws`와 같아야 합니다. impl이 `throws`를 새로 붙이거나 에러 타입을 넓히면 컴파일 에러입니다.
+트레잇을 구현하는 impl 메서드의 `throws`는 트레잇 메서드의 `throws`와 같아야 합니다. impl이 `throws`를 새로 붙이거나 에러 타입을 넓히면 컴파일 에러입니다. `throws` 없이 쓴 impl 메서드는 트레잇 메서드의 것을 받으며, 그 에러 타입은 트레잇에서 가리키는 것을 가리킵니다: `impl Display for P { fn fmt(self, ref f: Formatter) { try f.write_str(..); } }`는 `FmtError`를 던집니다.
 
 연산자 트레잇 메서드(`Add::add` 등)는 `throws` 없이 선언되므로 연산자는 에러를 던지지 않습니다. 실패할 수 있는 연산은 이름 있는 메서드로 두거나 `Result`를 반환합니다([stdlib 2.3](../../refs-standard-libraries/200-core/203-ops.md)).
 

@@ -574,3 +574,24 @@ Rok의 두 세계 모델(auto-promote `int`와 fixed primitive)은 여러 언어
 rational / real)도 중요한 참고 대상입니다. **Python int**는 무한 정밀도를 기본으로 두지만 fixed primitive가 없습니다. **Julia**는 fixed primitive를 기본으로 둡니다. Rok도 리터럴의 기본은 fixed(`i32` / `f64`)이고, `int`는 opt-in입니다.
 
 언어별 차이는 다음과 같습니다. **Python**에는 int만 있고 고정 폭 타입이 없습니다. 그래서 FFI나 성능이 중요한 작업에서는 NumPy에 의존합니다. **Julia**는 Rok처럼 fixed가 기본이고, 무한 정밀도가 필요하면 `BigInt`를 명시합니다. **Rust**에는 fixed만 있어서 사용자가 매번 타입을 적어야 합니다. **Rok**에는 두 세계가 함께 있습니다. 리터럴은 기대 타입을 따르고(없으면 `i32` / `f64`), 무한 정밀도가 필요한 자리에는 `int` / `float`를 적습니다.
+
+## 2.1.11. 수 트레잇, 부동소수 순서, 범위, 복소수
+
+**`Num`.** `trait Num: Copy + Zero + One + Add<Output = Self> + Sub<Output = Self> + Mul<Output = Self> + Div<Output = Self> + PartialEq + PartialOrd {}`는 고정 폭 기본 수 타입 12개가 구현합니다. 그중 어느 것이든 받는 코드에는 `T: Num`을 씁니다. 섞인 피연산자는 여전히 거부합니다(2.1.6).
+
+**`FloatingPoint`.** `trait FloatingPoint: Num + Neg<Output = Self>`는 `f32`와 `f64`가 구현합니다(`float`는 아닙니다. 그 타입 이름이 `Float`이어서 트레잇은 Swift의 이름을 씁니다). 상수 `NAN`, `INFINITY`, `NEG_INFINITY`, `EPSILON`, `PI`, `E`와 메서드 `abs sqrt cbrt exp ln log2 log10 powi pow sin cos tan asin acos atan atan2 sinh cosh tanh hypot floor ceil round trunc signum mul_add min max is_nan is_infinite is_finite total_cmp`(각각 그 타입의 같은 이름 메서드), `to_f64`, `from_f64`(가장 가까운 값으로 반올림), `from_usize`를 가집니다.
+
+**`total_cmp`.** `f32::total_cmp` / `f64::total_cmp(self, other) -> Ordering`은 IEEE 754 `totalOrder`입니다: `-NaN < -inf < .. < -0.0 < +0.0 < .. < inf < +NaN`. `xs.sort_by(f64::total_cmp)`는 어떤 부동소수 리스트든 정렬합니다. `f64`에는 여전히 `Ord`가 없고 `==`는 IEEE 그대로입니다.
+
+**`linspace` / `arange`**(`rok::core::num`, `T: FloatingPoint`에 대해 제네릭, `List<T>`를 돌려줌):
+
+```rok
+linspace(0.0, 1.0, 5)     //→ [0.0, 0.25, 0.5, 0.75, 1.0]: 값 n개, 양 끝 포함
+arange(0.0, 1.0, 0.25)    //→ [0.0, 0.25, 0.5, 0.75]: stop 전까지 start + i*step
+```
+
+`linspace(start, stop, n)`은 `step = (stop - start) / (n - 1)`로 `start + i * step`을 내고 마지막 값은 정확히 `stop`입니다(`n == 1`이면 `start` 하나, `0`이면 없음). `arange(start, stop, step)`은 `ceil((stop - start) / step)`개의 값 `start + i * step`을 내며 각 값을 `i`로 계산하므로 오차가 쌓이지 않습니다. step이 0이거나 NaN이면 패닉합니다. `Range<f64>`는 여전히 거부합니다.
+
+**`div_floor` / `rem_floor`.** 모든 정수 타입에 `div_floor(rhs)`(음의 무한대 쪽으로 내린 몫, Python의 `//`)와 `rem_floor(rhs)`(나누는 수의 부호를 따르는 나머지, Python의 `%`, Rok의 `%%`)가 있습니다: `(-7).div_floor(2) == -4`, `(-7).rem_floor(2) == 1`. 부호 없는 타입에서는 `/`와 `%`입니다.
+
+**`Complex<T>`**(`rok::core::num::Complex`, `num::complex`에 있음)는 `struct Complex<T> { pub re: T; pub im: T; }`입니다. `T: FloatingPoint`이면 `new`, `i()`, `from_polar`, `abs`, `norm_sqr`, `arg`, `conj`, `recip`, `exp`, `ln`, `sqrt`, `powi`, `pow`, `is_nan`이 있습니다. 복소수끼리, 그리고 어느 쪽이든 실수 `T`와의 `+ - * /`와 단항 `-`(`2.0 * z`, `z / 2.0`. 왼쪽 실수는 `f32`와 `f64`), `Zero`, `One`, `PartialEq`, `Debug`(`Complex { re: 1.0, im: 2.0 }`), `Display`(`1+2i`, `1-2i`)를 구현합니다. 수 접미사 `i`는 core가 `#[literal(number "i", priority = -1)]`로 등록하며 허수 `Complex<f64>`를 만듭니다: `3.0 + 4.0i`, `1i`. 패키지 자신의 `i` 처리기가 이보다 우선합니다([refs-lang 6.5.5](../../refs-lang/006-meta-system/605-literal-magic.md#655-여러-처리기-모호성)).

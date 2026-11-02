@@ -72,9 +72,9 @@ use foo::**;             // recursive glob (foo + 하위 모듈 모두)
 
 **OS 확장 트레잇.** 그 트레잇이 있는 타깃에서는 prelude가 `PermissionsExt`, `CommandExt`, `ExitStatusExt`(unix)와 `ChildExt`, `TcpStreamExt`(linux)도 들여오므로, 거기서는 그 메서드에 `use`가 필요 없습니다([3.11.1](../300-std/311-os.md#3111-prelude의-ext-트레잇)). 위 개수에는 들지 않습니다.
 
-**함수 (11).**
+**함수 (12).**
 
-`print` `println` `eprint` `eprintln` `panic` `assert` `assert_eq` `assert_ne` `unreachable` `channel` `channel_bounded`
+`print` `println` `eprint` `eprintln` `dbg` `panic` `assert` `assert_eq` `assert_ne` `unreachable` `channel` `channel_bounded`
 
 **변형.** 없습니다. [refs-lang 2.4.8](../../refs-lang/002-types/204-enum.md#248-기대-타입으로-정하는-맨-변형)을 봅니다.
 

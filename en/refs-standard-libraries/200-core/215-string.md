@@ -100,6 +100,17 @@ impl Sliceable<Range<usize>> for str { type Output = str; }   // shares bytes
 
 `as_ptr` returns a pointer to the string's bytes in place. The GC does not move the string, and the pointer stays valid, while a variable holding the `str` is in scope in a function where a pointer value can appear: a variable's or an expression's type names a `rok::bare::ptr` type, also as a type argument (`List<ConstPtr<u8>>`) or in a function type. In a generator or `async` body this holds across `yield` / `await`. Elsewhere a variable holds the string only up to its last use, and a string reachable only through another object may be moved by the GC: it is not pinned ([stdlib 1.6](../100-bare/106-gc-pin.md)). To keep the bytes in place longer, pin the string ([1.6.6](../100-bare/106-gc-pin.md#166-extraction-methods)).
 
+### Python-named gaps
+
+```rok
+fn reversed(self) -> str;                       // characters in reverse order; Python s[::-1]
+fn count(self, pat: str) -> usize;              // non-overlapping occurrences; "" counts len+1
+fn replacen(self, from: str, to: str, n: usize) -> str;   // the first n occurrences
+fn to_titlecase(self) -> str;                   // each word's first letter titlecased, the rest lowercased
+```
+
+`reversed` reverses code points. `count("")` is the number of characters plus one, as Python. In `to_titlecase` a word starts at a letter that does not follow a letter, a digit or an apostrophe, so `"don't"` stays one word (unlike Python's `title()`); the mappings are the full Unicode ones (2.15.4).
+
 ### `StrBuf` - mutable buffer
 
 Use `StrBuf` to build a string piece by piece.

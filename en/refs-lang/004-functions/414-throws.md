@@ -241,7 +241,7 @@ impl Database {
 
 The caller's obligations and propagation rules apply exactly as for free functions.
 
-The `throws` of an impl method implementing a trait must be the same as the `throws` of the trait method. If the impl adds `throws` or widens the error type, it is a compile error.
+The `throws` of an impl method implementing a trait must be the same as the `throws` of the trait method. If the impl adds `throws` or widens the error type, it is a compile error. An impl method written without `throws` takes the trait method's, its error types naming what they name at the trait: `impl Display for P { fn fmt(self, ref f: Formatter) { try f.write_str(..); } }` throws `FmtError`.
 
 Operator trait methods (`Add::add`, etc.) are declared without `throws`, so operators do not throw. Operations that can fail are provided as named methods or return a `Result` ([stdlib 2.3](../../refs-standard-libraries/200-core/203-ops.md)).
 

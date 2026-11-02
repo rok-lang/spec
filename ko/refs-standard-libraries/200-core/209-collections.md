@@ -250,6 +250,8 @@ impl<K: Hash + Eq, V, S: BuildHasher> Dict<K, V, S> {
     fn insert(self, k: K, v: V) -> V | none;       // 기존 V 반환 / 없으면 none
     fn remove(self, k: K) -> V | none;
     fn get(self, k: K) -> V | none;
+    fn get_or(self, k: K, default: V) -> V;        // 없으면 `default`, 넣지 않음
+    fn get_or_insert(self, k: K, default: V) -> V; // 없으면 `default`를 넣음
     fn contains_key(self, k: K) -> bool;
     fn clear(self);
     fn retain(self, keep: fn(K, V) -> bool);      // 제자리
@@ -790,3 +792,22 @@ impl<T> GcBuf<T> {
 #[intrinsic("rok.buf_same")]
 fn buf_same<T>(a: GcBuf<T>, b: GcBuf<T>) -> bool;   // 같은 buffer 인가 (내용이 아니라 정체). 아무것도 고정하지 않음
 ```
+
+## 2.9.13. 기본값, 연산자, 생성자
+
+**`d[k, default: v]`.** 이름 붙은 마지막 부분 `default:`가 있는 인덱스는 읽을 때 `d.get_or(k, v)`입니다. `k`가 없으면 `v`이고 딕셔너리는 바뀌지 않습니다. `=`나 복합 대입의 대상일 때, 필드 / 인덱스 대상의 바탕일 때(`d[k, default: v].f += 1`), 메서드 호출의 수신자일 때(`d[k, default: []].push(x)`)는 먼저 `d.get_or_insert(k, v)`를 실행해 `k`가 없으면 `v`를 넣고, 그다음 `d[k]`에 대해 동작합니다. `d`와 `k`는 한 번 평가하고, `v`는 식이 실행될 때마다 평가합니다(Swift의 `subscript(_:default:)`. Python의 `defaultdict`는 읽을 때마다 넣지만 Rok의 읽기는 넣지 않습니다).
+
+```rok
+counts[w, default: 0] += 1;
+groups[sale.region, default: Group {}].orders += 1;
+by_len[w.len(), default: []].push(w);
+let n = counts["zz", default: 0];        // 항목을 만들지 않음
+```
+
+**`Dict<K, usize>::most_common(n: usize | none = none) -> List<(K, usize)>`.** 가장 큰 횟수 `n`개(`none`이면 전부)를 큰 것부터 돌려주며, 같은 횟수는 처음 본 순서입니다(Python의 `Counter.most_common`).
+
+**Set 연산자.** `a | b`는 `a.union(b)`, `a & b`는 `a.intersection(b)`, `a - b`는 `a.difference(b)`, `a ^ b`는 `a.symmetric_difference(b)`입니다. 모두 새 집합을 만들고 두 피연산자는 바꾸지 않습니다([2.3](203-ops.md)).
+
+**`List + List`.** `xs + ys`는 `xs`의 항목 다음에 `ys`의 항목이 오는 새 리스트이고 둘 다 바뀌지 않습니다(`xs += ys`는 제자리에 덧붙임). 원소별 덧셈은 브로드캐스트 `.+`입니다([2.6](206-broadcast.md)).
+
+**`List::from_fn(n: usize, f: fn(usize) -> T) -> List<T>`**는 항목 `n`개를 만들며 `i`번째 항목은 `f(i)`입니다. `List::filled(n, x)`는 `x`를 `n`개 복사해 만듭니다.

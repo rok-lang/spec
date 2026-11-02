@@ -29,6 +29,8 @@ impl<T> List<T> { ... }                          // impl
 type Maybe<T> = T | none;                        // 타입 별칭
 ```
 
+`impl` 블록에 쓴 메서드는 impl의 매개변수와 같은 이름의 제네릭 매개변수를 선언할 수 없습니다. `impl<K> W<K> { fn get<K>(..) }`는 메서드 안에서 `K`가 둘 중 어느 것인지 모호하므로 에러(E0142)입니다. 메서드의 것의 이름을 바꾸거나(`fn get<K2>`) impl의 것을 씁니다. 트레잇의 기본 메서드는 impl이 아니라 트레잇에 쓰므로, 그 매개변수는 구현하는 impl의 같은 이름 매개변수를 가립니다. `impl<K, V> Iterator for DictIter<K, V>`의 `Iterator::min_by_key<K>`는 자기 `K`를 가집니다.
+
 매개변수를 선언하는 형태는 어느 위치에서나 같습니다. 이름 뒤의 `<...>` 안에 매개변수 이름을 콤마로 구분해 나열합니다.
 
 ## 2.10.2. 매개변수의 종류
@@ -88,6 +90,14 @@ fn sum<T: num::Zero + ops::Add<Output = T>>(xs: List<T>) -> T {
     let acc: T = T::zero();          // Self = T
     ...
 }
+```
+
+**연관 타입 바인딩.** 바인딩이 있는 바운드 `T: Add<U, Output = V>`는 그 바운드가 고르는 impl의 연관 타입을 `V`에 줍니다. impl은 `T`와 트레잇의 인자(`U`)로 고르므로, 바인딩은 `T`와 모든 트레잇 인자를 인자나 기대 타입에서 알게 된 뒤에만 읽고, 그때까지 `V`는 열려 있습니다. 아무것도 정하지 않는 트레잇 인자가 있으면 `V`는 정해지지 않습니다(``type annotations needed``). 컴파일러는 한 타입의 그 트레잇 impl들 사이에서 추측하지 않습니다.
+
+```rok
+fn plus<T, U, V>(a: T, b: U) -> V where T: Add<U, Output = V> { a + b }
+plus(7.0, 0.5)        // 0.5에서 U = f64, 그래서 Add<f64> for f64: V = f64
+plus(3.0, 4.0i)       // U = Complex<f64>: V = Complex<f64>
 ```
 
 제네릭 `enum`의 변형 생성자는 인스턴스를 먼저 인자에서, 다음으로 타입 매개변수의 기본값에서, 그다음 그 값을 받는 `let` 추론 변수에서 정합니다. 그래도 정해지지 않으면 ``type annotations needed`` 에러입니다.

@@ -100,6 +100,17 @@ impl Sliceable<Range<usize>> for str { type Output = str; }   // 바이트 공�
 
 `as_ptr`는 문자열 바이트가 있는 자리를 가리키는 포인터를 돌려줍니다. 포인터 값이 나올 수 있는 함수에서는, 그 `str`을 담은 변수가 스코프 안에 있는 동안 GC가 문자열을 옮기지 않고 포인터도 유효합니다. 포인터 값이 나올 수 있는 함수란 변수나 식의 타입에 `rok::bare::ptr` 타입이 이름으로 나오는 함수입니다. 타입 인자(`List<ConstPtr<u8>>`)나 함수 타입 안에 나와도 됩니다. 제너레이터나 `async` 본문에서는 `yield` / `await`를 지나서도 마찬가지입니다. 그 밖에서는 변수가 문자열을 마지막 사용까지만 붙듭니다. 다른 객체를 거쳐서만 닿는 문자열은 고정(pin)되지 않으므로 GC가 옮길 수 있습니다([stdlib 1.6](../100-bare/106-gc-pin.md)). 바이트를 더 오래 그 자리에 두려면 문자열을 고정하세요([1.6.6](../100-bare/106-gc-pin.md#166-추출-메서드)).
 
+### Python 이름의 빈 곳
+
+```rok
+fn reversed(self) -> str;                       // 문자를 거꾸로, Python s[::-1]
+fn count(self, pat: str) -> usize;              // 겹치지 않는 출현 횟수, ""는 len+1
+fn replacen(self, from: str, to: str, n: usize) -> str;   // 처음 n번만
+fn to_titlecase(self) -> str;                   // 단어 첫 글자는 제목 대문자, 나머지는 소문자
+```
+
+`reversed`는 코드 포인트를 뒤집습니다. `count("")`는 Python처럼 문자 수 더하기 1입니다. `to_titlecase`에서 단어는 글자, 숫자, 아포스트로피 뒤가 아닌 글자에서 시작하므로 `"don't"`는 한 단어입니다(Python의 `title()`과 다름). 대소문자 매핑은 Unicode 전체 매핑입니다(2.15.4).
+
 ### `StrBuf`: 가변 버퍼
 
 문자열을 조금씩 만들어 갈 때는 `StrBuf`를 씁니다.

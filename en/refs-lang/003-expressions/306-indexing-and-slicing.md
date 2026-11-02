@@ -30,6 +30,18 @@ arr[i] = v;            →   <typeof(arr) as IndexSet<typeof(i)>>::index_set(ref
 matrix[i, j]           →   <typeof(matrix) as Index<(typeof(i), typeof(j))>>::index(matrix, (i, j))
 ```
 
+A named last part `default:` gives an index with a default, `d[k, default: v]`:
+
+```
+d[k, default: v]                  →   d.get_or(k, v)                      // a read; d unchanged
+d[k, default: v] = e;             →   { let t = d; let i = k; t.get_or_insert(i, v); t[i] = e; }
+d[k, default: v] op= e;           →   the same, with t[i] op= e
+d[k, default: v].f op= e;         →   the same, with t[i].f op= e
+d[k, default: v].m(args)          →   d.get_or_insert(k, v).m(args)
+```
+
+`d` and `k` are evaluated once; `v` each time the expression runs. A type takes the form by having `get_or` and `get_or_insert` (`Dict`, [stdlib 2.9.13](../../refs-standard-libraries/200-core/209-collections.md#2913-defaults-operators-and-constructors)).
+
 Reads and writes map to different traits, so attempting to write to read-only data is a compile error. Multidimensional indexing desugars to a single index trait call with the indices bundled into a tuple: `g[i, j]` is `g[(i, j)]` through `Index<(I, J)>`. When a type has several `Index<K>` impls, the argument type selects one.
 
 ### Negative indices

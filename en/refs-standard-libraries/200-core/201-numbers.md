@@ -639,3 +639,24 @@ work. **Julia**, like Rok, defaults to fixed and requires an explicit `BigInt` w
 needed. **Rust** is fixed only, so the user must always
 write the type. **Rok** lets the two worlds coexist:
 literals follow the expected type (`i32` / `f64` if none), and `int` / `float` are written where arbitrary precision is needed.
+
+## 2.1.11. Numeric traits, float ordering, ranges, complex numbers
+
+**`Num`.** `trait Num: Copy + Zero + One + Add<Output = Self> + Sub<Output = Self> + Mul<Output = Self> + Div<Output = Self> + PartialEq + PartialOrd {}`, implemented by the twelve fixed primitives: write `T: Num` for code over any of them. Mixed operands stay rejected (2.1.6).
+
+**`FloatingPoint`.** `trait FloatingPoint: Num + Neg<Output = Self>` is implemented by `f32` and `f64` (not by `float`, whose type is named `Float`, hence the trait's Swift name). It carries the constants `NAN`, `INFINITY`, `NEG_INFINITY`, `EPSILON`, `PI`, `E` and the methods `abs sqrt cbrt exp ln log2 log10 powi pow sin cos tan asin acos atan atan2 sinh cosh tanh hypot floor ceil round trunc signum mul_add min max is_nan is_infinite is_finite total_cmp`, each the type's own method of that name, and `to_f64`, `from_f64` (round to nearest) and `from_usize`.
+
+**`total_cmp`.** `f32::total_cmp` / `f64::total_cmp(self, other) -> Ordering` is the IEEE 754 `totalOrder`: `-NaN < -inf < .. < -0.0 < +0.0 < .. < inf < +NaN`. `xs.sort_by(f64::total_cmp)` sorts any float list; `f64` stays without `Ord` and `==` stays IEEE.
+
+**`linspace` / `arange`** (`rok::core::num`, generic over `T: FloatingPoint`, returning `List<T>`):
+
+```rok
+linspace(0.0, 1.0, 5)     //→ [0.0, 0.25, 0.5, 0.75, 1.0]: n values, both ends included
+arange(0.0, 1.0, 0.25)    //→ [0.0, 0.25, 0.5, 0.75]: start + i*step while before stop
+```
+
+`linspace(start, stop, n)` gives `start + i * step` with `step = (stop - start) / (n - 1)` and the last value exactly `stop` (just `start` for `n == 1`, nothing for `0`). `arange(start, stop, step)` gives `ceil((stop - start) / step)` values `start + i * step`, each computed from `i` so no error accumulates; a zero or NaN step panics. `Range<f64>` stays rejected.
+
+**`div_floor` / `rem_floor`.** Every integer type has `div_floor(rhs)`, the quotient rounded toward negative infinity (Python's `//`), and `rem_floor(rhs)`, the remainder with the divisor's sign (Python's `%`, Rok's `%%`): `(-7).div_floor(2) == -4`, `(-7).rem_floor(2) == 1`. For unsigned types they are `/` and `%`.
+
+**`Complex<T>`** (`rok::core::num::Complex`, in `num::complex`) is `struct Complex<T> { pub re: T; pub im: T; }` with `new`, `i()`, `from_polar`, `abs`, `norm_sqr`, `arg`, `conj`, `recip`, `exp`, `ln`, `sqrt`, `powi`, `pow`, `is_nan` for `T: FloatingPoint`; `+ - * /` and unary `-` between complex numbers and with a real `T` on either side (`2.0 * z`, `z / 2.0`; a real on the left for `f32` and `f64`), `Zero`, `One`, `PartialEq`, `Debug` (`Complex { re: 1.0, im: 2.0 }`) and `Display` (`1+2i`, `1-2i`). The numeric suffix `i` is registered in core by `#[literal(number "i", priority = -1)]` and makes the imaginary `Complex<f64>`: `3.0 + 4.0i`, `1i`. A package's own `i` handler outranks it ([refs-lang 6.5.5](../../refs-lang/006-meta-system/605-literal-magic.md#655-multiple-handlers-ambiguity)).

@@ -138,6 +138,7 @@ impl<T> Mutex<T> {
     fn lock(self) -> MutexGuard<T>;            // 스레드를 block
     fn lock_async(self) -> LockFuture<T>;      // await m.lock_async(): task 만 중단 (Future<Output = MutexGuard<T>>)
     fn try_lock(self) -> MutexGuard<T> | none; // non-blocking
+    fn with<R>(self, f: fn(T) -> R) -> R;      // 잠그고 f(값), 풂
 }
 
 struct MutexGuard<T> { /* RAII guard */ }
@@ -157,6 +158,8 @@ impl<T> MutexGuard<T> {
 ```
 
 가드는 자신이 보호하는 값의 메서드를 전달(forward)하지 않습니다. `MutexGuard<List<i32>>`에 `g.push(1)`을 쓰면 에러입니다. 값에는 `get`, `set`, `update`로 접근합니다.
+
+`m.with(f)`는 잠그고, 보호하는 값으로 `f`를 호출하고, `f`가 돌아오면 풀며 그 결과를 돌려줍니다: `log.with(|v| v.push(x))`, `let n = log.with(|v| v.len())`. 값은 `get()`의 뷰처럼 `ThreadLocal::with`의 규칙으로 `f`에 빌려줍니다. 값은 `f` 밖으로 나갈 수 없으므로(반환, 저장, 전송, 피호출자나 클로저가 보관) `f`는 `async`일 수 없습니다(E0137). 복사본(`.clone()`)이나 값으로 계산한 것을 돌려주세요. 여러 문장이나 `await`에 걸쳐 잠금을 쥐려면 가드를 둡니다(`using g = m.lock()`). `RwLock::read_with(f)`와 `write_with(f)`는 읽기 잠금과 쓰기 잠금으로 같은 일을 합니다.
 
 ### 사용 예
 

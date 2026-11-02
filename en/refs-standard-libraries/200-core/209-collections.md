@@ -250,6 +250,8 @@ impl<K: Hash + Eq, V, S: BuildHasher> Dict<K, V, S> {
     fn insert(self, k: K, v: V) -> V | none;       // returns the previous V / none if absent
     fn remove(self, k: K) -> V | none;
     fn get(self, k: K) -> V | none;
+    fn get_or(self, k: K, default: V) -> V;        // `default` when absent; no insert
+    fn get_or_insert(self, k: K, default: V) -> V; // inserts `default` when absent
     fn contains_key(self, k: K) -> bool;
     fn clear(self);
     fn retain(self, keep: fn(K, V) -> bool);      // in place
@@ -790,3 +792,22 @@ Each element occupies one word. Ordinary user code uses `List<T>`; `GcBuf<T>` is
 #[intrinsic("rok.buf_same")]
 fn buf_same<T>(a: GcBuf<T>, b: GcBuf<T>) -> bool;   // whether they are the same buffer (identity, not contents). Pins nothing
 ```
+
+## 2.9.13. Defaults, operators and constructors
+
+**`d[k, default: v]`.** A two-part index with the named part `default:` reads `d.get_or(k, v)`: `v` when `k` is absent, and the dict is unchanged. As the target of `=` or a compound assignment, or as the base of a field / index target (`d[k, default: v].f += 1`), and as the receiver of a method call (`d[k, default: []].push(x)`), it first runs `d.get_or_insert(k, v)`, so `v` is stored when `k` is absent, and then works on `d[k]`. `d` and `k` are evaluated once; `v` is evaluated each time the expression runs (Swift's `subscript(_:default:)`; Python's `defaultdict` inserts on every read, Rok's read does not).
+
+```rok
+counts[w, default: 0] += 1;
+groups[sale.region, default: Group {}].orders += 1;
+by_len[w.len(), default: []].push(w);
+let n = counts["zz", default: 0];        // no entry made
+```
+
+**`Dict<K, usize>::most_common(n: usize | none = none) -> List<(K, usize)>`.** The `n` largest counts (all when `none`), largest first, equal counts in first-seen order (Python's `Counter.most_common`).
+
+**Set operators.** `a | b` is `a.union(b)`, `a & b` `a.intersection(b)`, `a - b` `a.difference(b)`, `a ^ b` `a.symmetric_difference(b)`; each makes a new set and leaves both operands unchanged ([2.3](203-ops.md)).
+
+**`List + List`.** `xs + ys` is a new list of `xs`'s items then `ys`'s; neither changes (`xs += ys` appends in place). Element-wise addition is the broadcast `.+` ([2.6](206-broadcast.md)).
+
+**`List::from_fn(n: usize, f: fn(usize) -> T) -> List<T>`** makes `n` items, item `i` being `f(i)`; `List::filled(n, x)` makes `n` copies of `x`.

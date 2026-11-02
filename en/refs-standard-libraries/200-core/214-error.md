@@ -123,6 +123,10 @@ trait Error: Display + Debug {
 
 An error type implements this trait and uses `Display` for message output and `Debug` for debug display. An untyped `throws` is shorthand for `throws (any Error)`, so values thrown by an untyped throwing function must implement `Error`. To hold or pass errors regardless of type, use `any Error`, a [constrained `any`](../../refs-lang/002-types/202-any-slot.md) (`any Error | none` is `(any Error) | none`).
 
+### `#[derive(Error)]`
+
+`#[derive(Error)]` implements `Error` with its default `source()`. It asks nothing of the fields; the `Display` and `Debug` supertraits come from their own derive / attribute or impl, so an error type is usually `#[derive(Debug, Error)]` with `#[display("..")]` ([2.10.14](210-fmt.md#21014-derive-policy-summary)).
+
 ### Chain - `source()`
 
 When wrapping an error, the cause chain can be expressed as follows.

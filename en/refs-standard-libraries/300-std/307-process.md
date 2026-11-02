@@ -60,6 +60,14 @@ A `File` moved into `Stdio::File` belongs to the command, not to the program: th
 
 A `Stdio` holding a file is affine too: the builder call it is given to moves it into the command. Giving one `Stdio::File` value to two commands, or to two streams of one command (`.stdout(s).stderr(s)`), is compile error `E0134`; give each its own file (`Stdio::File(try f.try_clone())`). `Stdio::Inherit`, `Null` and `Piped` hold nothing and may be given any number of times. `Stdio` implements `Close`: a `Stdio::File` never given to a command is closed by the program (`try s.close()`), as its `File` would be.
 
+### `run`
+
+```rok
+pub fn run<P: AsPath>(program: P, args: List<str> = []) throws (IoError | ExitStatusError | Utf8Error) -> str;
+```
+
+The convenient form over `Command`: runs `program` with `args` as `Command::output` does and returns its stdout as text. A non-success status throws `ExitStatusError` (`status()`, `stderr()` as text with invalid UTF-8 replaced, `message()`); stdout that is not UTF-8 throws `Utf8Error`. `let out = try process::run("git", ["log", "-1"]);` (Python's `subprocess.run(.., check=True, capture_output=True, text=True).stdout`).
+
 ## 3.7.2. `Child`
 
 When `spawn` succeeds, it returns a `Child`, the handle to the running process. Through it you can access the standard I/O streams, wait for exit, or send signals.

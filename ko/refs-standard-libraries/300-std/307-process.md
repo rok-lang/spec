@@ -60,6 +60,14 @@ struct Output {
 
 파일을 담은 `Stdio`도 affine입니다. 받는 builder 호출이 그 값을 명령으로 옮깁니다. `Stdio::File` 값 하나를 두 명령에, 또는 한 명령의 두 스트림에(`.stdout(s).stderr(s)`) 주면 컴파일 에러(`E0134`)입니다. 각자 자기 파일을 주세요(`Stdio::File(try f.try_clone())`). `Stdio::Inherit`, `Null`, `Piped`는 아무것도 담지 않으므로 몇 번이든 줄 수 있습니다. `Stdio`는 `Close`를 구현합니다. 명령에 주지 않은 `Stdio::File`은 그 `File`처럼 프로그램이 닫습니다(`try s.close()`).
 
+### `run`
+
+```rok
+pub fn run<P: AsPath>(program: P, args: List<str> = []) throws (IoError | ExitStatusError | Utf8Error) -> str;
+```
+
+`Command` 위의 편한 형태입니다. `program`을 `args`로 `Command::output`처럼 실행하고 stdout을 텍스트로 돌려줍니다. 성공이 아닌 상태는 `ExitStatusError`(`status()`, 잘못된 UTF-8을 바꾼 텍스트 `stderr()`, `message()`)를 던지고, UTF-8이 아닌 stdout은 `Utf8Error`를 던집니다. `let out = try process::run("git", ["log", "-1"]);`(Python의 `subprocess.run(.., check=True, capture_output=True, text=True).stdout`).
+
 ## 3.7.2. `Child`
 
 `spawn`이 성공하면 실행 중인 프로세스의 핸들인 `Child`를 돌려줍니다. 이 핸들로 표준 입출력 스트림에 접근하거나, 종료를 기다리거나, 신호를 보낼 수 있습니다.

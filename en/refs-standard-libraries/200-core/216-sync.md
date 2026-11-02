@@ -137,6 +137,7 @@ impl<T> Mutex<T> {
     fn lock(self) -> MutexGuard<T>;            // blocks the thread
     fn lock_async(self) -> LockFuture<T>;      // await m.lock_async(): suspends only the task (Future<Output = MutexGuard<T>>)
     fn try_lock(self) -> MutexGuard<T> | none; // non-blocking
+    fn with<R>(self, f: fn(T) -> R) -> R;      // lock, f(value), unlock
 }
 
 struct MutexGuard<T> { /* RAII guard */ }
@@ -156,6 +157,8 @@ impl<T> MutexGuard<T> {
 ```
 
 A guard does not forward the methods of the value it protects: `g.push(1)` on a `MutexGuard<List<i32>>` is an error. Reach the value through `get`, `set` and `update`.
+
+`m.with(f)` locks, calls `f` with the protected value and unlocks when `f` returns, returning its result: `log.with(|v| v.push(x))`, `let n = log.with(|v| v.len())`. The value is lent to `f` like `get()`'s view, under the rules of `ThreadLocal::with`: it may not leave `f` (returned, stored, sent, kept by a callee or a closure), so `f` is not `async` (E0137); return a copy (`.clone()`) or what is computed from it. Keep the guard (`using g = m.lock()`) to hold the lock across statements or an `await`. `RwLock::read_with(f)` and `write_with(f)` are the same under the read and write lock.
 
 ### Example
 

@@ -100,6 +100,7 @@ The inside of a hole `{ .. }` consists of ordinary tokens read by the ordinary l
 - A string literal inside a hole keeps its own escapes (`f"{"a\tb"}"`).
 - A `\` outside a string literal is an error. The diagnostic advises writing `"` as is.
 - The expression ends at a `}` or `:` at parenthesis depth 0. `::` is a path separator.
+- `{expr=}`: a `=` at depth 0 followed (after spaces) by `}` or `:` ends the expression and echoes it. The hole writes its own source text through the `=` and the spaces, then the value's `Debug` form, or the value under the spec when one follows (`f"{x=}"` is `x=5`, `f"{x = :.2}"` is `x = 5.00`).
 
 ```rok
 f"name = {user.name ?? "anon"}"     // OK
@@ -120,10 +121,11 @@ f"{val:?}"        // debug format
 The grammar of format specifiers is as follows.
 
 ```
-spec  := [fill][align][sign]['#'][0][width]['.'precision][type]
+spec  := [fill][align][sign]['#'][0][width][grouping]['.'precision][type]
+grouping := ',' | '_'
 align := '<' | '>' | '^' | '='
 sign  := '+' | '-' | ' '
-type  := 'd' | 'g' | 's' | 'f' | 'b' | 'o' | 'x' | 'X' | 'e' | 'E' | '?'
+type  := 'd' | 'g' | 's' | 'f' | 'b' | 'o' | 'x' | 'X' | 'e' | 'E' | '?' | '%'
 ```
 
 If `width` is present and `align` is not, numbers (integers and floating-point) are right-aligned and other types are left-aligned. When `<` `>` `^` is given (with a fill character), any type follows that alignment. An f-string is turned into formatting code at the stage where the types of the holes are known, so the alignment default and spec checking are determined by type. Holes are written in sequence into the buffer of a single `Formatter`, without creating an intermediate string per hole ([stdlib 2.10.1](../../refs-standard-libraries/200-core/210-fmt.md#2101-dispatch)).
@@ -135,6 +137,7 @@ If `width` is present and `align` is not, numbers (integers and floating-point) 
 | `sign`       | `+` shows `+` for positives too, space shows a space for positives, `-` is the default (`-` for negatives only) |
 | `#`          | `0b` / `0o` / `0x` prefix for `b` / `o` / `x` / `X`; `g` keeps its trailing zeros; `?` pretty-prints (`{x:#?}`) |
 | `0`          | Zero-pad numbers (same as `=` alignment with fill `0`)                                       |
+| `grouping`   | Numbers only: `,` between groups of 3 integer digits (decimal forms only), `_` between groups of 3 (4 for `b` `o` `x` `X`) |
 | `.precision` | Digits after the decimal point for floating-point (without conversion); maximum length (truncation) for strings etc.; ignored for integers |
 
 | `type`          | Applies to              | Meaning                                                           |
@@ -145,6 +148,7 @@ If `width` is present and `align` is not, numbers (integers and floating-point) 
 | `b` `o` `x` `X` | Integers                | Base 2 / 8 / 16, at the width of the integer type (`{-1i8:x}` is `ff`) |
 | `e` `E`         | Integers, floating-point | Exponent notation                                                |
 | `?`             | All types               | `Debug`. May be combined with width / align                       |
+| `%`             | Numbers                 | Times 100 in the `f` form (6 places by default), then `%`        |
 
 `g` is the general format of C and Python: `precision` significant digits (6 when absent, 1 when 0), in exponent form when the exponent is below -4 or not below the precision, else fixed; trailing zeros and a bare `.` are dropped unless `#`. The exponent has a sign and at least two digits: `{1234.5678:.3g}` is `1.23e+03`, `{1e20:g}` is `1e+20`, `{0.0001:g}` is `0.0001`, `{1234567:g}` is `1.23457e+06`.
 

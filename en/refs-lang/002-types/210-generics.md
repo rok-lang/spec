@@ -31,6 +31,8 @@ type Maybe<T> = T | none;                        // type alias
 
 The parameter declaration form is the same in every position: parameter names listed in `<...>` after the name, separated by commas.
 
+A method written in an `impl` block may not declare a generic parameter named like one of the impl's: `impl<K> W<K> { fn get<K>(..) }` is an error (E0142), since inside the method `K` could mean either; rename the method's (`fn get<K2>`) or use the impl's. A trait's default method is written in the trait, not in the impl, so its parameters shadow an implementing impl's of the same name: `Iterator::min_by_key<K>` on `impl<K, V> Iterator for DictIter<K, V>` has its own `K`.
+
 ## 2.10.2. Kinds of parameters
 
 ### Type parameters
@@ -88,6 +90,14 @@ fn sum<T: num::Zero + ops::Add<Output = T>>(xs: List<T>) -> T {
     let acc: T = T::zero();          // Self = T
     ...
 }
+```
+
+**Associated-type bindings.** A bound with a binding, `T: Add<U, Output = V>`, gives `V` the associated type of the impl it selects. That impl is selected by `T` and by the trait's arguments (`U`), so the binding is read only once `T` and every trait argument are known from the arguments or the expected type; until then `V` stays open. A trait argument that nothing determines leaves `V` undetermined (``type annotations needed``): the compiler never guesses among a type's impls of the trait.
+
+```rok
+fn plus<T, U, V>(a: T, b: U) -> V where T: Add<U, Output = V> { a + b }
+plus(7.0, 0.5)        // U = f64 from 0.5, so Add<f64> for f64: V = f64
+plus(3.0, 4.0i)       // U = Complex<f64>: V = Complex<f64>
 ```
 
 A variant constructor of a generic `enum` determines its instance from its arguments first, then from the type parameters' defaults, then from the `let` inference variable it is bound to; otherwise it is an error, ``type annotations needed``.

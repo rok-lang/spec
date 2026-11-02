@@ -64,7 +64,7 @@ impl Iterator {
     // transforming adapters (lazy)
     fn map<U>(self, f: fn(Item) -> U) -> Map<Self, U>;
     fn filter(self, pred: fn(Item) -> bool) -> Filter<Self>;
-    fn enumerate(self) -> Enumerate<Self>;        // (index, item) pairs
+    fn enumerate(self, start: usize = 0) -> Enumerate<Self>;   // (index, item) pairs, from `start`
     fn zip<J: Iterator>(self, other: J) -> Zip<Self, J>;    // Item = (Item, J::Item)
     fn chain<I: Iterator<Item = Item>>(self, other: I) -> Chain<Self, I>;
     fn take(self, n: usize) -> Take<Self>;
@@ -86,7 +86,7 @@ impl Iterator {
 
     // terminal methods (eager)
     fn count(self) -> usize;
-    fn sum(self) -> Item where Item: Add<Output = Item> + Zero;     // 0 if empty
+    fn sum(self) -> Item where Item: Add<Output = Item> + Zero;     // 0 if empty; floats pairwise (2.7.15)
     fn product(self) -> Item where Item: Mul<Output = Item> + One;  // 1 if empty
     fn fold<B>(self, init: B, f: fn(B, Item) -> B) -> B;
     fn try_fold<B, E>(self, init: B, f: fn(B, Item) throws (E) -> B) throws (E) -> B;
@@ -98,11 +98,24 @@ impl Iterator {
     fn all(self, pred: fn(Item) -> bool) -> bool;
     fn find(self, pred: fn(Item) -> bool) -> Item | none;
     fn position(self, pred: fn(Item) -> bool) -> usize | none;
-    fn min(self) -> Item | none where Item: Ord;             // the first of equal minima
-    fn max(self) -> Item | none where Item: Ord;             // the last of equal maxima
+    fn min(self) -> Item | none where Item: PartialOrd;      // the first of equal minima; NaN propagates
+    fn max(self) -> Item | none where Item: PartialOrd;      // the last of equal maxima; NaN propagates
     fn min_by_key<K: Ord>(self, key: fn(Item) -> K) -> Item | none;  // the first of equals
     fn max_by_key<K: Ord>(self, key: fn(Item) -> K) -> Item | none;  // the last of equals
-    fn collect<C: FromIterator<Item>>(self) -> C;
+    fn collect<C: FromIterator<Item> = List<Item>>(self) -> C;   // a List when nothing picks C
+
+    // materializing, sorting, counting, combinatorics (2.7.15)
+    fn to_list(self) -> List<Item>;
+    fn to_set(self) -> Set<Item> where Item: Hash;
+    fn to_dict<K: Hash, V>(self) -> Dict<K, V> where Self: Iterator<Item = (K, V)>;
+    fn sorted(self, reverse: bool = false) -> List<Item> where Item: Ord;
+    fn sorted_by_key<K: Ord>(self, key: fn(Item) -> K, reverse: bool = false) -> List<Item>;
+    fn sorted_by(self, cmp: fn(Item, Item) -> Ordering) -> List<Item>;
+    fn counts(self) -> Dict<Item, usize> where Item: Hash;
+    fn group_by<K: Hash>(self, key: fn(Item) -> K) -> Dict<K, List<Item>>;
+    fn pairwise(self) -> Pairwise<Self>;                    // Item = (Item, Item)
+    fn combinations(self, k: usize) -> Combinations<Item>;  // Item = List<Item>
+    fn permutations(self, k: usize | none = none) -> Permutations<Item>;
     fn for_each(self, f: fn(Item));               // side effects only
     fn last(self) -> Item | none;
     fn nth(ref self, n: usize) -> Item | none;
@@ -115,7 +128,7 @@ impl Iterator {
 
 ### `min` / `max` and floats
 
-`min`, `max`, `min_by_key` and `max_by_key` need `Ord`, a total order. `f32` and `f64` are not `Ord`, since NaN is unordered, so `xs.iter().max()` over floats is an error (E0069) whose help names the float form: fold with the float method, `xs.iter().reduce(|a, b| a.max(b))`. `f64::max` returns the other operand when one is NaN.
+`min` and `max` need `PartialOrd`, so float iterators have them: an item unordered with itself (NaN) is the result (2.7.15). `min_by_key` and `max_by_key` need `K: Ord`, a total order; `f32` and `f64` are not `Ord`, since NaN is unordered, and a float key is an error (E0069) whose help gives the `reduce` form. A float list sorts by the total order, `xs.sort_by(f64::total_cmp)`.
 
 ### Stopping, running state, groups
 
@@ -568,7 +581,7 @@ trait TryIterator {
     fn map<U>(self, f: fn(Item) throws (Error) -> U) -> TryMap<Self, U>;
     fn filter(self, pred: fn(Item) throws (Error) -> bool) -> TryFilter<Self>;
     fn map_err<E2>(self, f: fn(Error) -> E2) -> MapErr<Self, E2>;
-    fn enumerate(self) -> TryEnumerate<Self>;
+    fn enumerate(self, start: usize = 0) -> TryEnumerate<Self>;
     fn zip<J: IntoIterator>(self, other: J) -> TryZip<Self, J::IntoIter>;
     fn chain<J: TryIterator<Item = Item, Error = Error>>(self, other: J) -> TryChain<Self, J>;
     fn take(self, n: usize) -> TryTake<Self>;
@@ -646,4 +659,37 @@ fn total(path: str) throws (IoError | ParseError) -> i64 {
     }
     n
 }
+```
+
+## 2.7.14. Collections answer iterator methods
+
+A method call `x.m(args)` whose receiver type has no method `m` but has a method `iter()` taking no arguments is `x.iter().m(args)` when the type `iter()` returns has `m`. A zero-argument `x.min()` / `x.max()` is forwarded too, since `Ord::min` / `max` take an argument. The receiver's own methods win otherwise (`List::contains`, `List::windows`, `Set::to_list`). The forwarded call is exactly the `iter()` form: lazy adapters stay lazy and nothing is copied.
+
+```rok
+let xs = [3, 1, 2];
+let total = xs.sum();                          // xs.iter().sum()
+let evens = xs.filter(|x| x % 2 == 0).to_list();
+let big = xs.max();                            // xs.iter().max(), 3
+let d = counts.map(|p| p.1).sum();             // a Dict iterates (k, v) pairs
+```
+
+`collect()` with no expected type, and no later use that fixes `C`, collects into a `List<Item>` (the default of its type parameter).
+
+## 2.7.15. Materializing, sorting, counting
+
+- `to_list()`, `to_set()`, `to_dict()` gather the items into a new collection; `to_dict` takes `(K, V)` items and a later key's value replaces an earlier one's.
+- `sorted(reverse:)` returns a new sorted `List` (stable; `reverse: true` puts the largest first). `sorted_by_key(key, reverse:)` sorts by `key`, equal keys keeping their order in both directions; `sorted_by(cmp)` sorts by a comparison. Python's `sorted(xs, key=f, reverse=True)` is `xs.sorted_by_key(f, reverse: true)`; Rok names the key form `_by_key` as `sort_by_key` and `min_by_key` do.
+- `counts()` maps each item to how often it occurs, keys in first-seen order (Python's `Counter`); `Dict<K, usize>::most_common(n)` ranks the result ([2.9.3](209-collections.md#293-dictk-v-s---hash-map)). `group_by(key)` maps each key to the list of its items, in order; unlike Python's `itertools.groupby` the equal keys need not be adjacent.
+- `enumerate(start: 1)` counts from `start`.
+- `pairwise()` yields each item with the next. `combinations(k)` yields each choice of `k` items as a list, and `permutations(k)` each ordering of `k` items at distinct positions (all items when `k` is `none`), both in lexicographic order of positions, after gathering the items (Python's `itertools`).
+- `min()` / `max()` need `PartialOrd`, so float iterators have them: an item unordered with itself (NaN) is the result, as IEEE 754 `minimum` / `maximum` and NumPy. `min_by_key` / `max_by_key` keep `K: Ord`.
+- `sum()` of `f32` / `f64` items is pairwise: blocks of 128 consecutive items are added left to right; the block sums are combined as a binary counter (each new sum merges with the previous one of the same number of blocks, `left + right`), and the remaining partial sums are added from the last to the first (`p0 + (p1 + (.. + pn))`). The order depends only on the number of items, so the result is the same on every target, thread count and optimization level. Other item types add left to right.
+
+```rok
+let words = ["b", "a", "c", "a"];
+words.sorted()                         //→ ["a", "a", "b", "c"]
+words.sorted_by_key(|w| w.len(), reverse: true)
+words.counts().most_common(1)          //→ [("a", 2)]
+[1, 4, 9].pairwise().map(|p| p.1 - p.0).to_list()   //→ [3, 5]
+["a", "b", "c"].combinations(2).count()             //→ 3
 ```

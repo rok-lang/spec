@@ -123,6 +123,10 @@ trait Error: Display + Debug {
 
 에러 타입은 이 트레잇을 구현합니다. 메시지 출력에는 `Display`를, 디버그 표시에는 `Debug`를 씁니다. 타입 없는 `throws`는 `throws (any Error)`의 축약이므로, 타입 없이 에러를 던지는 함수가 던지는 값은 `Error`를 구현해야 합니다. 타입에 상관없이 에러를 담거나 넘길 때는 [제약 붙은 `any`](../../refs-lang/002-types/202-any-slot.md)인 `any Error`를 씁니다(`any Error | none`은 `(any Error) | none`입니다).
 
+### `#[derive(Error)]`
+
+`#[derive(Error)]`는 기본 `source()`로 `Error`를 구현합니다. 필드에는 아무것도 요구하지 않습니다. 상위 트레잇 `Display`와 `Debug`는 각자의 derive / 속성이나 impl로 얻으므로, 에러 타입은 보통 `#[derive(Debug, Error)]`에 `#[display("..")]`를 붙입니다([2.10.14](210-fmt.md#21014-derive-정책-요약)).
+
 ### 체인: `source()`
 
 에러를 감쌀 때는 원인 사슬을 다음과 같이 표현합니다.

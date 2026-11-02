@@ -64,7 +64,7 @@ impl Iterator {
     // 변환 어댑터 (lazy)
     fn map<U>(self, f: fn(Item) -> U) -> Map<Self, U>;
     fn filter(self, pred: fn(Item) -> bool) -> Filter<Self>;
-    fn enumerate(self) -> Enumerate<Self>;        // (index, item) 쌍
+    fn enumerate(self, start: usize = 0) -> Enumerate<Self>;   // (index, item) 쌍, `start`부터
     fn zip<J: Iterator>(self, other: J) -> Zip<Self, J>;    // Item = (Item, J::Item)
     fn chain<I: Iterator<Item = Item>>(self, other: I) -> Chain<Self, I>;
     fn take(self, n: usize) -> Take<Self>;
@@ -86,7 +86,7 @@ impl Iterator {
 
     // 종결 메서드 (eager)
     fn count(self) -> usize;
-    fn sum(self) -> Item where Item: Add<Output = Item> + Zero;     // 비면 0
+    fn sum(self) -> Item where Item: Add<Output = Item> + Zero;     // 비면 0, 부동소수는 쌍별 합(2.7.15)
     fn product(self) -> Item where Item: Mul<Output = Item> + One;  // 비면 1
     fn fold<B>(self, init: B, f: fn(B, Item) -> B) -> B;
     fn try_fold<B, E>(self, init: B, f: fn(B, Item) throws (E) -> B) throws (E) -> B;
@@ -98,11 +98,24 @@ impl Iterator {
     fn all(self, pred: fn(Item) -> bool) -> bool;
     fn find(self, pred: fn(Item) -> bool) -> Item | none;
     fn position(self, pred: fn(Item) -> bool) -> usize | none;
-    fn min(self) -> Item | none where Item: Ord;             // 같은 최솟값 중 첫 번째
-    fn max(self) -> Item | none where Item: Ord;             // 같은 최댓값 중 마지막
+    fn min(self) -> Item | none where Item: PartialOrd;      // 같은 최솟값 중 첫 번째, NaN 전파
+    fn max(self) -> Item | none where Item: PartialOrd;      // 같은 최댓값 중 마지막, NaN 전파
     fn min_by_key<K: Ord>(self, key: fn(Item) -> K) -> Item | none;  // 같은 값 중 첫 번째
     fn max_by_key<K: Ord>(self, key: fn(Item) -> K) -> Item | none;  // 같은 값 중 마지막
-    fn collect<C: FromIterator<Item>>(self) -> C;
+    fn collect<C: FromIterator<Item> = List<Item>>(self) -> C;   // C를 정하는 것이 없으면 List
+
+    // 모으기, 정렬, 세기, 조합 (2.7.15)
+    fn to_list(self) -> List<Item>;
+    fn to_set(self) -> Set<Item> where Item: Hash;
+    fn to_dict<K: Hash, V>(self) -> Dict<K, V> where Self: Iterator<Item = (K, V)>;
+    fn sorted(self, reverse: bool = false) -> List<Item> where Item: Ord;
+    fn sorted_by_key<K: Ord>(self, key: fn(Item) -> K, reverse: bool = false) -> List<Item>;
+    fn sorted_by(self, cmp: fn(Item, Item) -> Ordering) -> List<Item>;
+    fn counts(self) -> Dict<Item, usize> where Item: Hash;
+    fn group_by<K: Hash>(self, key: fn(Item) -> K) -> Dict<K, List<Item>>;
+    fn pairwise(self) -> Pairwise<Self>;                    // Item = (Item, Item)
+    fn combinations(self, k: usize) -> Combinations<Item>;  // Item = List<Item>
+    fn permutations(self, k: usize | none = none) -> Permutations<Item>;
     fn for_each(self, f: fn(Item));               // side effect 한정
     fn last(self) -> Item | none;
     fn nth(ref self, n: usize) -> Item | none;
@@ -115,7 +128,7 @@ impl Iterator {
 
 ### `min` / `max`와 부동소수점
 
-`min`, `max`, `min_by_key`, `max_by_key`에는 전순서인 `Ord`가 필요합니다. NaN은 순서가 없으므로 `f32`와 `f64`는 `Ord`가 아닙니다. 그래서 부동소수점에 `xs.iter().max()`를 쓰면 에러(E0069)이고, 그 도움말이 부동소수점 형태를 알려 줍니다. 부동소수점 메서드로 접습니다: `xs.iter().reduce(|a, b| a.max(b))`. `f64::max`는 한쪽이 NaN이면 다른 쪽을 돌려줍니다.
+`min`과 `max`는 `PartialOrd`만 요구하므로 부동소수점 이터레이터에도 있습니다. 자기 자신과 순서가 없는 항목(NaN)이 결과가 됩니다(2.7.15). `min_by_key`와 `max_by_key`는 전순서인 `K: Ord`가 필요합니다. NaN은 순서가 없으므로 `f32`와 `f64`는 `Ord`가 아니며, 부동소수점 키는 에러(E0069)이고 그 도움말이 `reduce` 형태를 알려 줍니다. 부동소수점 리스트는 전순서로 정렬합니다: `xs.sort_by(f64::total_cmp)`.
 
 ### 멈춤, 누적 상태, 묶음
 
@@ -568,7 +581,7 @@ trait TryIterator {
     fn map<U>(self, f: fn(Item) throws (Error) -> U) -> TryMap<Self, U>;
     fn filter(self, pred: fn(Item) throws (Error) -> bool) -> TryFilter<Self>;
     fn map_err<E2>(self, f: fn(Error) -> E2) -> MapErr<Self, E2>;
-    fn enumerate(self) -> TryEnumerate<Self>;
+    fn enumerate(self, start: usize = 0) -> TryEnumerate<Self>;
     fn zip<J: IntoIterator>(self, other: J) -> TryZip<Self, J::IntoIter>;
     fn chain<J: TryIterator<Item = Item, Error = Error>>(self, other: J) -> TryChain<Self, J>;
     fn take(self, n: usize) -> TryTake<Self>;
@@ -646,4 +659,37 @@ fn total(path: str) throws (IoError | ParseError) -> i64 {
     }
     n
 }
+```
+
+## 2.7.14. 컬렉션이 이터레이터 메서드에 답함
+
+수신자 타입에 메서드 `m`이 없고 인자 없는 메서드 `iter()`가 있으면, `iter()`가 돌려주는 타입에 `m`이 있을 때 메서드 호출 `x.m(args)`는 `x.iter().m(args)`입니다. 인자 없는 `x.min()` / `x.max()`도 넘깁니다. `Ord::min` / `max`는 인자를 하나 받기 때문입니다. 그 밖에는 수신자 자신의 메서드가 이깁니다(`List::contains`, `List::windows`, `Set::to_list`). 넘긴 호출은 `iter()` 형태 그대로이므로 지연 어댑터는 지연인 채로 남고 아무것도 복사하지 않습니다.
+
+```rok
+let xs = [3, 1, 2];
+let total = xs.sum();                          // xs.iter().sum()
+let evens = xs.filter(|x| x % 2 == 0).to_list();
+let big = xs.max();                            // xs.iter().max(), 3
+let d = counts.map(|p| p.1).sum();             // Dict는 (k, v) 쌍을 순회
+```
+
+기대 타입도 없고 뒤에서 `C`를 정하는 쓰임도 없는 `collect()`는 `List<Item>`으로 모읍니다(타입 매개변수의 기본값).
+
+## 2.7.15. 모으기, 정렬, 세기
+
+- `to_list()`, `to_set()`, `to_dict()`는 항목을 새 컬렉션에 모읍니다. `to_dict`는 `(K, V)` 항목을 받고, 나중 키의 값이 앞의 값을 대신합니다.
+- `sorted(reverse:)`는 정렬한 새 `List`를 돌려줍니다(안정 정렬, `reverse: true`면 큰 것부터). `sorted_by_key(key, reverse:)`는 `key`로 정렬하며 두 방향 모두 같은 키끼리는 순서를 지킵니다. `sorted_by(cmp)`는 비교 함수로 정렬합니다. Python의 `sorted(xs, key=f, reverse=True)`는 `xs.sorted_by_key(f, reverse: true)`입니다. `sort_by_key`, `min_by_key`처럼 키를 받는 형태는 `_by_key`라고 이름 짓습니다.
+- `counts()`는 항목마다 나온 횟수를 처음 본 순서대로 담습니다(Python의 `Counter`). 결과의 순위는 `Dict<K, usize>::most_common(n)`이 매깁니다([2.9.3](209-collections.md#293-dictk-v-s-해시-맵)). `group_by(key)`는 키마다 그 항목의 리스트를 순서대로 담습니다. Python의 `itertools.groupby`와 달리 같은 키가 붙어 있지 않아도 됩니다.
+- `enumerate(start: 1)`은 `start`부터 셉니다.
+- `pairwise()`는 각 항목을 다음 항목과 짝지어 냅니다. `combinations(k)`는 항목 `k`개를 고르는 각 경우를 리스트로, `permutations(k)`는 서로 다른 위치의 항목 `k`개를 늘어놓는 각 경우를 냅니다(`k`가 `none`이면 모든 항목). 둘 다 항목을 먼저 모은 뒤 위치의 사전순으로 냅니다(Python의 `itertools`).
+- `min()` / `max()`는 `PartialOrd`만 요구하므로 부동소수 이터레이터에도 있습니다. 자기 자신과 순서가 없는 항목(NaN)이 결과가 됩니다(IEEE 754 `minimum` / `maximum`, NumPy와 같음). `min_by_key` / `max_by_key`는 그대로 `K: Ord`입니다.
+- `f32` / `f64` 항목의 `sum()`은 쌍별 합입니다. 연속한 항목 128개씩을 왼쪽부터 더하고, 블록 합은 이진 카운터처럼 합칩니다(새 합은 블록 수가 같은 앞의 합과 `left + right`로 합침). 남은 부분합은 마지막부터 처음 쪽으로 더합니다(`p0 + (p1 + (.. + pn))`). 순서는 항목 수에만 달려 있으므로 결과는 타깃, 스레드 수, 최적화 수준과 상관없이 같습니다. 다른 항목 타입은 왼쪽부터 더합니다.
+
+```rok
+let words = ["b", "a", "c", "a"];
+words.sorted()                         //→ ["a", "a", "b", "c"]
+words.sorted_by_key(|w| w.len(), reverse: true)
+words.counts().most_common(1)          //→ [("a", 2)]
+[1, 4, 9].pairwise().map(|p| p.1 - p.0).to_list()   //→ [3, 5]
+["a", "b", "c"].combinations(2).count()             //→ 3
 ```

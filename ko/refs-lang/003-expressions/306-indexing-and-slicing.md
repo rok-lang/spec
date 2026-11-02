@@ -30,6 +30,18 @@ arr[i] = v;            →   <typeof(arr) as IndexSet<typeof(i)>>::index_set(ref
 matrix[i, j]           →   <typeof(matrix) as Index<(typeof(i), typeof(j))>>::index(matrix, (i, j))
 ```
 
+이름 붙은 마지막 부분 `default:`는 기본값이 있는 인덱스 `d[k, default: v]`를 만듭니다.
+
+```
+d[k, default: v]                  →   d.get_or(k, v)                      // 읽기, d는 그대로
+d[k, default: v] = e;             →   { let t = d; let i = k; t.get_or_insert(i, v); t[i] = e; }
+d[k, default: v] op= e;           →   위와 같고 t[i] op= e
+d[k, default: v].f op= e;         →   위와 같고 t[i].f op= e
+d[k, default: v].m(args)          →   d.get_or_insert(k, v).m(args)
+```
+
+`d`와 `k`는 한 번 평가하고 `v`는 식이 실행될 때마다 평가합니다. `get_or`와 `get_or_insert`가 있는 타입이 이 형태를 받습니다(`Dict`, [stdlib 2.9.13](../../refs-standard-libraries/200-core/209-collections.md#2913-기본값-연산자-생성자)).
+
 읽기와 쓰기는 서로 다른 트레잇에 매핑되므로, 읽기 전용 자료에 쓰려고 하면 컴파일 에러입니다. 다차원 인덱싱은 인덱스를 튜플로 묶어 인덱스 트레잇 호출 하나로 풉니다. `g[i, j]`는 `Index<(I, J)>`를 거치는 `g[(i, j)]`입니다. 한 타입에 `Index<K>` impl이 여럿 있으면 인자 타입으로 그중 하나를 고릅니다.
 
 ### 음수 인덱스

@@ -14,6 +14,7 @@ Rok에는 [숫자 리터럴](../001-lexical/106-numeric-literals.md)부터 [진�
 0..5                       → Range<T>
 0..=5                      → RangeInclusive<T>
 1:3                        → Slice<T> (컴파일러)
+2i                         → Complex<f64>
 ```
 
 `(컴파일러)` 표시가 붙은 것은 핸들러 없이 컴파일러가 직접 만드는 리터럴입니다. 고정 배열, 튜플, 인덱스 안의 슬라이스 `a[i:j]`는 언어 고유의 문법이므로 등록할 수 없습니다(6.5.7, 6.5.9).
@@ -22,7 +23,7 @@ Rok에는 [숫자 리터럴](../001-lexical/106-numeric-literals.md)부터 [진�
 
 `#[literal]` 매직은 그 결정을 트레잇이나 함수에 붙입니다.
 
-숫자 리터럴의 타입은 이 매직이 아니라 언어가 정합니다([1.6.2](../001-lexical/106-numeric-literals.md#162-타입-접미사), [1.6.3](../001-lexical/106-numeric-literals.md#163-접미사-없는-리터럴)). 숫자에서 `#[literal]`이 다루는 것은 언어가 정의하지 않은 접미사뿐입니다. 예를 들어 자기 복소수 타입이 있는 패키지가 `2i`를 등록할 수 있습니다. 표준 라이브러리는 숫자 접미사를 등록하지 않습니다.
+숫자 리터럴의 타입은 이 매직이 아니라 언어가 정합니다([1.6.2](../001-lexical/106-numeric-literals.md#162-타입-접미사), [1.6.3](../001-lexical/106-numeric-literals.md#163-접미사-없는-리터럴)). 숫자에서 `#[literal]`이 다루는 것은 언어가 정의하지 않은 접미사뿐입니다. 표준 라이브러리는 하나, `i`를 등록합니다(`2i`는 허수 `Complex<f64>`, [stdlib 2.1.11](../../refs-standard-libraries/200-core/201-numbers.md#2111-수-트레잇-부동소수-순서-범위-복소수)). 우선순위가 -1이므로 패키지 자신의 `i` 처리기가 이깁니다(6.5.5).
 
 ## 6.5.2. 형태
 
@@ -55,8 +56,8 @@ fn range_literal<T>(start: T, end: T) -> Range<T> { ... }
 #[literal(expr "..=" expr)]
 fn range_inclusive_literal<T>(start: T, end: T) -> RangeInclusive<T> { ... }
 
-#[literal(number "i")]
-fn imaginary_literal(n: f64) -> Complex<f64> { ... }
+#[literal(number "i", priority = -1)]
+fn imaginary_literal(n: f64) -> Complex<f64> { ... }      // rok::core::num::complex
 
 #[literal("m" "[" {{expr} % "," +} % ";" + "]", priority = 2)]
 fn matrix_literal<const C: usize>(rows: ...[f64; C]) -> Matrix { ... }   // 행마다 [f64; C]
