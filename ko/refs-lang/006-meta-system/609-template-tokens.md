@@ -334,9 +334,9 @@ match self {
 ```rok
 #[impl_attribute(timed)] pub @attribute {
     fn @item.name(@item.params) -> @item.return_type {
-        let start = now();
+        let start = Instant::now();
         let r = { @item.body };
-        log(f"@item.name took {now() - start}");
+        log(f"@item.name took {Instant::now() - start}");
         r
     }
 }

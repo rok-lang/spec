@@ -100,7 +100,7 @@ Everything else in `rok::core` is named through a prelude module or imported:
 let p: future::Poll<i32> = future::Poll::Pending;
 impl ops::Add for V { ... }
 use rok::core::sync::LoadOrdering;
-let h = encoding::hex_encode("rok");
+let h = encoding::hex::encode("rok");
 ```
 
 A name that is not in scope gets an error that says what to write: the shortest path that works (`task::sleep`, `ops::Add`, `Ordering::Less`), and the `use` that imports it.

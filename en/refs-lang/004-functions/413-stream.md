@@ -127,10 +127,10 @@ The detailed functions and methods are defined in the standard library specifica
 A stream may also continue indefinitely.
 
 ```rok
-async yield fn ticks() -> Time {
+async yield fn ticks() -> Instant {
     loop {
-        yield now();
-        await sleep(1.second());
+        yield Instant::now();
+        await task::sleep(Duration::secs(1));
     }
 }
 

@@ -304,9 +304,11 @@ $ROK_HOME/
 │           │                           #   libclang_rt.profile.a (Windows clang_rt.profile.lib), host 의 것 포함
 │           └── rok/{core, std, bare}/src/   # 표준 라이브러리 소스: tier 마다 패키지처럼 놓이며 루트는 src/lib.rok (5.4)
 ├── cache/                       # git, registry, native, 스크립트 (9.10.4)
-├── envs/<name>/, envs/CURRENT   # 이름 있는 환경: rok.rokon, rok.lock, target/ (9.10.5)
+├── envs/<name>/, envs/.current  # 이름 있는 환경: rok.rokon, rok.lock, target/ (9.10.5)
 ├── installs.rokon               # rok install 이 bin/ 에 둔 것과 그 출처
-└── config.rokon                 # Config { registry, toolchain }
+├── tokens.rokon                 # registry API 토큰, rok login 이 씀 (9.10.4a)
+├── sources.rokon                # index 미러, 읽기만 함 (9.10.4a)
+└── config.rokon                 # Config { toolchain }
 ```
 
 `rokc`는 표준 라이브러리와 런타임을 자기 실행 파일 기준으로 찾습니다(sysroot = 실행 파일의 `..`). `ROK_HOME`은 보지 않습니다. 표준 라이브러리의 각 계층은 라이브러리 패키지처럼 놓입니다. 루트 모듈은 `lib/rok/<tier>/src/lib.rok`이고 모듈은 `lib/rok/<tier>/src/` 아래에 있습니다. 구현 저장소에서 빌드한 `rokc`는 같은 레이아웃을 저장소의 `library/<tier>/src/`에서 읽습니다. 자기 캐시는 toolchain의 `lib/rok-cache/`입니다(저장소 빌드는 `target/<profile>/rok-cache/`). 이 캐시에는 toolchain, 빌드 옵션, 소스를 키로 미리 빌드한 표준 라이브러리가 있고(9.2.16), `.facts/`에는 캐시한 타깃 data layout과 도구 정보가 있습니다. 활성 toolchain은 [9.10.6](910-rok-frontend.md#9106-toolchain)이 정한 대로 고릅니다.

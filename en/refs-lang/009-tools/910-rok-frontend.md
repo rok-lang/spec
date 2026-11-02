@@ -506,7 +506,7 @@ rok uninstall [--native] <name>..
 2. The environment variable `ROK_TOOLCHAIN`
 3. `toolchain: "X"` in the block of the script run ([9.10.7](#9107-inline-manifest-for-single-file-scripts)), for `rok <file>` and `rok run` / `build` / `check` / `test` of a `.rok` file outside a package (the proxy reads the first 64 KiB of the file)
 4. `toolchain: "X"` in the manifest (the nearest `rok.rokon`; the proxy reads only this field, so fields it does not know keep the pin)
-5. The default (`Config { registry, toolchain }` in `$ROK_HOME/config.rokon`)
+5. The default (`Config { toolchain }` in `$ROK_HOME/config.rokon`)
 
 A pin is one of:
 
@@ -571,8 +571,6 @@ The `rok toolchain update` / `install` of the 0.1.0 through 0.1.6 toolchains and
 - The pointer: `<dist>/latest/download/rok-version`, one line naming the newest release, so that their bare `rok toolchain update` reaches it. Given a series (`update 0.1`), 0.1.6 looks for `download/channels/rok-version-<series>` first; none is published, so it falls back to this pointer and otherwise asks for a full version.
 - The layout: one top directory `rok-<version>-<triple>/` holding `bin/rok` and `bin/rokc` (Windows `bin\rok.exe` and `bin\rokc.exe`), `lib/<runtime>` (`lib/librokr.a`; Windows `lib\rokr.lib`) and `lib/rok/core/src/lib.rok`.
 - `bin/rokc --version --verbose` prints `rokc <version>` as its first line (optionally followed by a space and more text) and a line `host: <triple>`.
-
-The `rok-mlir-dev-<version>-<triple>` bundle beside a release is not part of the contract.
 
 ## 9.10.7. Inline manifest for single-file scripts
 

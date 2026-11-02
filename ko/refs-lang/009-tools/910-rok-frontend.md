@@ -536,7 +536,7 @@ rok uninstall [--native] <name>..
 2. 환경 변수 `ROK_TOOLCHAIN`
 3. 실행하는 스크립트 블록([9.10.7](#9107-단일-파일-스크립트의-인라인-매니페스트))의 `toolchain: "X"`. `rok <file>`, 그리고 패키지 밖 `.rok` 파일의 `rok run` / `build` / `check` / `test`에 적용합니다(프록시는 파일의 처음 64 KiB를 읽음).
 4. 매니페스트의 `toolchain: "X"`(가장 가까운 `rok.rokon`). 프록시는 이 필드만 읽으므로 모르는 필드가 있어도 고정은 유지됩니다.
-5. 기본값(`$ROK_HOME/config.rokon`의 `Config { registry, toolchain }`)
+5. 기본값(`$ROK_HOME/config.rokon`의 `Config { toolchain }`)
 
 고정은 다음 중 하나입니다.
 
@@ -607,8 +607,6 @@ rok toolchain clean                        # 기본값을 제외한 설치된 �
 - 포인터: `<dist>/latest/download/rok-version`은 가장 새 릴리스를 한 줄로 적습니다. 이들의 인자 없는 `rok toolchain update`가 이것으로 가장 새 릴리스에 닿습니다. 시리즈를 주면(`update 0.1`) 0.1.6은 먼저 `download/channels/rok-version-<series>`를 찾습니다. 그 파일은 내보내지 않으므로 이 포인터로 돌아가고, 맞지 않으면 전체 버전을 적으라고 합니다.
 - 레이아웃: 최상위 디렉터리 `rok-<version>-<triple>/` 하나에 `bin/rok`과 `bin/rokc`(Windows는 `bin\rok.exe`와 `bin\rokc.exe`), `lib/<runtime>`(`lib/librokr.a`, Windows는 `lib\rokr.lib`), `lib/rok/core/src/lib.rok`이 있습니다.
 - `bin/rokc --version --verbose`는 첫 줄에 `rokc <version>`(뒤에 공백과 다른 글이 올 수 있음)을, 그리고 `host: <triple>` 줄을 출력합니다.
-
-릴리스 옆의 `rok-mlir-dev-<version>-<triple>` 묶음은 계약에 들지 않습니다.
 
 ## 9.10.7. 단일 파일 스크립트의 인라인 매니페스트
 

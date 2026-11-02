@@ -304,9 +304,11 @@ $ROK_HOME/
 │           │                           #   libclang_rt.profile.a (Windows clang_rt.profile.lib); the host's included
 │           └── rok/{core, std, bare}/src/   # standard library sources: each tier is laid out as a package, root src/lib.rok (5.4)
 ├── cache/                       # git, registry, native, scripts (9.10.4)
-├── envs/<name>/, envs/CURRENT   # named environments: rok.rokon, rok.lock, target/ (9.10.5)
+├── envs/<name>/, envs/.current  # named environments: rok.rokon, rok.lock, target/ (9.10.5)
 ├── installs.rokon               # what rok install put in bin/, and where from
-└── config.rokon                 # Config { registry, toolchain }
+├── tokens.rokon                 # registry API tokens, written by rok login (9.10.4a)
+├── sources.rokon                # index mirrors, only read (9.10.4a)
+└── config.rokon                 # Config { toolchain }
 ```
 
 `rokc` finds the standard library and runtime relative to its own executable (sysroot = the executable's `..`) and does not look at `ROK_HOME`. Each tier of the standard library is laid out like a library package: its root module is `lib/rok/<tier>/src/lib.rok` and its modules are under `lib/rok/<tier>/src/`. A `rokc` built in the implementation repository reads the same layout from the repository's `library/<tier>/src/`. Its own cache is the toolchain's `lib/rok-cache/` (a repository build uses `target/<profile>/rok-cache/`). It holds the prebuilt standard library, keyed by toolchain, build options and sources (9.2.16), and in `.facts/` the cached target data layout and tool facts. Selection of the active toolchain is defined by [9.10.6](910-rok-frontend.md#9106-toolchain).

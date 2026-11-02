@@ -127,10 +127,10 @@ stream::throttle(s, delay)        // 속도 제한
 스트림은 다음처럼 끝없이 이어질 수도 있습니다.
 
 ```rok
-async yield fn ticks() -> Time {
+async yield fn ticks() -> Instant {
     loop {
-        yield now();
-        await sleep(1.second());
+        yield Instant::now();
+        await task::sleep(Duration::secs(1));
     }
 }
 

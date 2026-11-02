@@ -100,7 +100,7 @@ fn main() {
 let p: future::Poll<i32> = future::Poll::Pending;
 impl ops::Add for V { ... }
 use rok::core::sync::LoadOrdering;
-let h = encoding::hex_encode("rok");
+let h = encoding::hex::encode("rok");
 ```
 
 스코프에 없는 이름을 쓰면 무엇을 써야 하는지 알려 주는 에러가 납니다. 동작하는 가장 짧은 경로(`task::sleep`, `ops::Add`, `Ordering::Less`)와 그 이름을 가져오는 `use`를 함께 보여 줍니다.

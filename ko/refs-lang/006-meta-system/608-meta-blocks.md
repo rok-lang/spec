@@ -98,11 +98,11 @@ struct Point { x: f64; y: f64; }
     @accept(fn)                                  // fn 항목에만 부착 가능
 
     fn @item.name(@item.params) -> @item.return_type {
-        let start = now();
+        let start = Instant::now();
         let result = {
             @item.body
         };
-        log(f"@item.name took {now() - start}");
+        log(f"@item.name took {Instant::now() - start}");
         result
     }
 }
@@ -114,9 +114,9 @@ fn process(x: i32) -> i32 {
 }
 // → 자동 생성됨.
 //   fn process(x: i32) -> i32 {
-//       let start = now();
+//       let start = Instant::now();
 //       let result = { expensive(x) };
-//       log(f"process took {now() - start}");
+//       log(f"process took {Instant::now() - start}");
 //       result
 //   }
 ```
