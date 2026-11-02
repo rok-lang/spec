@@ -96,17 +96,21 @@ fn(i32) -> i32 + Send
 fn() + Send + Sync
 ```
 
-- 클로저 리터럴이 `+ Send` 자리에 오면, 캡처한 값은 모두 `Send + Sync`여야 합니다. 캡처는 만든 쪽도 계속 쓰는 핸들이므로 두 스레드가 모두 접근할 수 있습니다. 그래서 `fn(..) + Send` 값은 `Sync`이기도 합니다.
-- spawn 함수(`task::spawn`, `thread::spawn`, `par::*`)는 `+ Send` 클로저와 future를 받습니다. 그래서 이 함수로 띄운 코드는 `Sync`가 아닌 값을 캡처할 수 없습니다.
-- `fn` 타입 변수를 이 자리에 쓰려면 그 변수의 타입에 이미 같은 바운드가 있어야 합니다. `fn() -> T` 값은 `fn() -> T + Send` 자리에 들어가지 않습니다.
+- 클로저 리터럴이 `+ Send` 자리에 오면, 일반 캡처는 모두 `Send + Sync`여야 합니다. 일반 캡처는 만든 쪽도 계속 쓰는 핸들이므로 두 스레드가 모두 접근할 수 있습니다. `[move x]` 캡처는 클로저만의 것이므로([4.6.11](406-capture-semantics.md#4611-move-캡처-move-x-캡처-리스트)) `Send`만 요구합니다.
+- `+ Sync` 자리는 move 여부와 상관없이 모든 캡처가 `Sync`여야 합니다. `fn(..) + Send` 값은 타입에 적지 않는 한 `Sync`가 아닙니다. 그 뒤의 클로저가 `Sync`가 아닌 move 캡처를 가질 수 있기 때문입니다. 여러 스레드가 동시에 부르는 값(`static`, `par::*`의 클로저)의 타입은 `fn(..) + Send + Sync`입니다.
+- spawn 함수(`task::spawn_blocking`, `thread::spawn`, `par::Scope::spawn`)는 `+ Send` 클로저를 받습니다. 그래서 이 함수로 띄운 코드는 `Sync`가 아닌 값을 만든 쪽과 공유하지 않습니다. 그런 값은 `[move x]`로 넘깁니다. `par::for_each`, `par::map`, `par::filter`는 모든 워커가 부르는 `+ Send + Sync` 클로저를 받습니다.
+- `fn` 타입 변수를 이 자리에 쓰려면 그 변수의 타입에 이미 같은 바운드가 있어야 합니다. `fn() -> T` 값은 `fn() -> T + Send` 자리에 들어가지 않습니다. `fn(..) + Send` 값을 캡처한 클로저는 그 값을 move로 넘기거나(`[move f]`) 값의 타입이 `+ Send + Sync`일 때만 스레드를 건넙니다.
 - 이름 있는 함수는 캡처가 없으므로 항상 `Send + Sync`입니다.
 
 ```rok
 let c: Cell<i32> = Cell::new(0);
-let f: fn() + Send = || print("hi");     // OK: 캡처 없음
-let g: fn() + Send = || c.set(1);        // ERROR: Cell 은 Send 가 아님
+let xs: List<i32> = [1, 2];
+let f: fn() + Send = || print("hi");             // OK: 캡처 없음
+let g: fn() + Send = || c.set(1);                // ERROR: Cell 은 Send 가 아님
 let h: fn() = || print("hi");
-let k: fn() + Send = h;                  // ERROR: h 의 타입에 + Send 없음
+let k: fn() + Send = h;                          // ERROR: h 의 타입에 + Send 없음
+let m: fn() + Send = || print(xs.len());         // ERROR: List 는 Sync 가 아님
+let n: fn() + Send = [move xs] || print(xs.len());  // OK: 클로저가 xs 를 가짐
 ```
 
 ## 4.4.7. 매개변수 / 반환의 점진성

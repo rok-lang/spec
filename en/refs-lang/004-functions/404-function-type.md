@@ -96,17 +96,21 @@ fn(i32) -> i32 + Send
 fn() + Send + Sync
 ```
 
-- When a closure literal appears in a `+ Send` position, every captured value must be `Send + Sync`: a capture is a handle the creator keeps using, so both threads can reach it. A `fn(..) + Send` value is therefore also `Sync`.
-- Spawn functions (`task::spawn`, `thread::spawn`, `par::*`) take `+ Send` closures and futures, so the spawned code cannot capture a non-`Sync` value.
-- To use an `fn`-typed variable, the variable's type must already have the same bound. A `fn() -> T` value does not fit a `fn() -> T + Send` position.
+- When a closure literal appears in a `+ Send` position, every plain capture must be `Send + Sync`: a plain capture is a handle the creator keeps using, so both threads can reach it. A `[move x]` capture belongs to the closure alone ([4.6.11](406-capture-semantics.md#4611-move-capture-the-move-x-capture-list)), so it needs only `Send`.
+- A `+ Sync` position needs every capture `Sync`, moved or not. A `fn(..) + Send` value is not `Sync` unless its type says so: the closure behind it may own a moved capture that is not `Sync`. A value several threads call at once (a `static`, a `par::*` closure) has the type `fn(..) + Send + Sync`.
+- Spawn functions (`task::spawn_blocking`, `thread::spawn`, `par::Scope::spawn`) take `+ Send` closures, so the spawned code shares no non-`Sync` value with its creator; `[move x]` gives it one instead. `par::for_each`, `par::map` and `par::filter` take `+ Send + Sync` closures, which every worker calls.
+- To use an `fn`-typed variable, the variable's type must already have the same bound. A `fn() -> T` value does not fit a `fn() -> T + Send` position. A closure that captures a `fn(..) + Send` value crosses threads only when it moves the value in (`[move f]`), or when the value's type is `+ Send + Sync`.
 - Named functions have no captures and are therefore always `Send + Sync`.
 
 ```rok
 let c: Cell<i32> = Cell::new(0);
-let f: fn() + Send = || print("hi");     // OK: no captures
-let g: fn() + Send = || c.set(1);        // ERROR: Cell is not Send
+let xs: List<i32> = [1, 2];
+let f: fn() + Send = || print("hi");             // OK: no captures
+let g: fn() + Send = || c.set(1);                // ERROR: Cell is not Send
 let h: fn() = || print("hi");
-let k: fn() + Send = h;                  // ERROR: h's type has no + Send
+let k: fn() + Send = h;                          // ERROR: h's type has no + Send
+let m: fn() + Send = || print(xs.len());         // ERROR: List is not Sync
+let n: fn() + Send = [move xs] || print(xs.len());  // OK: the closure owns xs
 ```
 
 ## 4.4.7. Gradual parameters and returns

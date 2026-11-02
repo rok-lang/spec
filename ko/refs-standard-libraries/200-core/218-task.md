@@ -14,6 +14,7 @@ fn try_block_on<T, E>(f: TryAsyncFuture<T, E>) throws (E) -> T;   // throw 하�
 fn spawn<F: Future + Send>(f: F) -> Task<F::Output> where F::Output: Send;
 fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future, 현재 worker 에 고정 (OS 스레드가 아님)
 fn spawn_blocking<T: Send>(f: fn() -> T + Send) -> Task<T>;   // blocking 작업을 executor 밖 OS 스레드에서
+fn spawn_blocking_with_arg<V: Send, T: Send>(arg: V, f: fn(V) -> T + Send) -> Task<T>;   // arg 를 f 에 넘기는 spawn_blocking
 fn worker_count() -> usize;                               // executor 안에서는 pool 크기, 밖에서는 1
 fn cpu_count() -> usize;                                // 온라인 CPU 수 (pool 크기)
 async fn race<I: IntoIterator<Item = Task<T>>, T>(tasks: I) -> T;   // 첫 완료 task 결과. 나머지는 취소
@@ -91,6 +92,19 @@ await task::yield_now();
 
 ```rok
 let n = await task::spawn_blocking(|| heavy_checksum(path));
+```
+
+`f`는 일반 캡처를 자기를 만든 코드와 공유하므로, 그 캡처는 `Send + Sync`여야 합니다([refs-lang 4.6.9](../../refs-lang/004-functions/406-capture-semantics.md#469-병렬과-동시성-문맥의-추가-제약)). 블로킹 작업만 쓰는 값(컬렉션, `Command`)은 두 방식 가운데 하나로 그 작업에 줍니다.
+
+- `f`의 캡처 리스트에 `[move x]`를 적으면 `x`를 클로저로 옮깁니다([refs-lang 4.6.11](../../refs-lang/004-functions/406-capture-semantics.md#4611-move-캡처-move-x-캡처-리스트)).
+- `spawn_blocking_with_arg(arg, f)`는 채널 send와 같은 방식으로 `arg`를 넘기고, 풀 스레드에서 `f(arg)`를 부릅니다. 그 스레드는 `arg`가 닿는 모든 컬렉션의 복사본을 받고, 그 뒤에 `arg`를 쓰면 컴파일 에러입니다([2.13.9](213-marker.md#2139-send--sync-스레드-경계-마커)). `arg`는 `Send`만 요구합니다.
+
+어느 쪽이든 띄우는 쪽 코드는 그 값을 더 쓸 수 없습니다. move 캡처를 가진 클로저도 함께 넘어가므로, `spawn_blocking(f)` 뒤에 그 클로저를 다시 부르면 컴파일 에러입니다.
+
+```rok
+let rows: List<str> = load();
+let n = await task::spawn_blocking([move rows] || write_all(rows));
+let m = await task::spawn_blocking_with_arg(load(), |rows: List<str>| write_all(rows));
 ```
 
 ### `spawn`의 `Send` 검사

@@ -18,7 +18,7 @@ This decision has three motivations. First, explicitness: the capture mode is cl
 
 ```
 capture_list    ::= "[" capture_item ("," capture_item)* ","? "]"
-capture_item    ::= "ref" capture_name | capture_name
+capture_item    ::= "ref" capture_name | "move" capture_name | capture_name
 capture_name    ::= identifier | "self"
 ```
 
@@ -144,7 +144,7 @@ This distinction is the same as the `self` and `ref self` model of [`impl`](../0
 
 ## 4.6.9. Additional constraints in parallel and concurrent contexts
 
-Every capture of a `fn() + Send` closure (one passed to `task::spawn`, `par::for_each`, `thread::spawn`, etc.) must be `Send + Sync` ([4.4](404-function-type.md#send--sync-bounds)). A `[ref x]` cell is written by both the closure and the code that created it, so it is never `Send` or `Sync`, whatever the type of `x`: a closure with a `[ref]` capture (or one that captures such a closure, or a future made by an `async [ref x] ||` closure) fits no `+ Send` / `+ Sync` slot. Same-thread uses (`spawn_local`, ordinary calls) are unaffected. Collections are `!Sync` ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers)) and cannot be value-captured this way either.
+Every plain capture of a `fn() + Send` closure (one passed to `task::spawn_blocking`, `par::for_each`, `thread::spawn`, etc.) must be `Send + Sync` ([4.4](404-function-type.md#send--sync-bounds)): the closure shares it with the code that made it. A `[move x]` capture is the closure's alone and needs only `Send` ([4.6.11](#4611-move-capture-the-move-x-capture-list)); a `+ Sync` closure (`par::for_each`, which every worker calls) needs every capture `Sync`. A `[ref x]` cell is written by both the closure and the code that created it, so it is never `Send` or `Sync`, whatever the type of `x`: a closure with a `[ref]` capture (or one that captures such a closure, or a future made by an `async [ref x] ||` closure) fits no `+ Send` / `+ Sync` slot. Same-thread uses (`spawn_local`, ordinary calls) are unaffected. Collections are `!Sync` ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers)) and cannot be value-captured this way either.
 
 ```rok
 let buf: List<i32> = [];
@@ -152,7 +152,7 @@ par::for_each(xs, [ref buf] |x| { buf.push(x) });
 // ERROR: a [ref buf] cell cannot cross threads
 ```
 
-Instead, use a fold (`par::fold(xs, 0, |a, b| a + b)`), share through `Mutex` / `RwLock` / `Atomic` / channels, or return the value from the thread (`join()`).
+Instead, use a fold (`par::fold(xs, 0, |a, b| a + b)`), share through `Mutex` / `RwLock` / `Atomic` / channels, or return the value from the thread (`join()`). A value only the spawned code needs is moved in: `thread::spawn([move buf] || buf.len())`.
 
 A value shared this way belongs to its new owner: after `Mutex::new(buf)` or `tx.send(buf)`, using `buf` is a compile error ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers)). Use it through the lock, or hand over `buf.clone()`.
 
@@ -185,3 +185,30 @@ c();                               // 3
 ```
 
 In this example, `count` stays alive, attached to the closure object, after the outer function returns. The [GC](../000-meta/007-glossary.md#gc-garbage-collector) manages this lifetime ([7. Runtime Model](../007-runtime/README.md)).
+
+## 4.6.11. Move capture: the `[move x]` capture list
+
+`[move x]` gives `x` to the closure when the closure is made. It is the counterpart of `[ref x]`: a `ref` capture shares the binding with the code that made the closure, a `move` capture leaves that code without it.
+
+```rok
+let rows: List<str> = load();
+let t = thread::spawn([move rows] || rows.len());
+rows.push("x");
+// ERROR: `rows` was moved into a closure at line 2
+//   help: the closure owns it now; use it inside the closure, ...
+```
+
+- Making the closure hands `x` over as a channel send does ([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers)): the closure gets a copy of every collection `x` reaches, and using `x` (or another handle to what it holds) afterwards is a compile error (`E0105`). A `Sync` value (a number, a `str`, an array of them) is exempt: the closure's copy and `x` are equal and may both be used.
+- A moved capture needs only `Send` for the closure to cross threads: no other code reaches it. So a collection, a `Command` or a `Child` may go to `thread::spawn`, `task::spawn_blocking` or `par::Scope::spawn`. Plain captures keep the `Send + Sync` rule of [4.6.9](#469-additional-constraints-in-parallel-and-concurrent-contexts), and a `+ Sync` slot (`par::for_each`, which every worker calls) needs every capture `Sync`.
+- A closure that owns a moved capture that is not `Sync` is handed over once. Passing it to a parameter typed `fn(..) + Send` without `Sync` hands it over, whatever the function: such a parameter is one the callee may run on another thread (`thread::spawn`, `thread::Builder::spawn`, `task::spawn_blocking`, `task::spawn_blocking_with_arg`'s `f`, `par::join`, `par::Scope::spawn`, `par::TryScope::spawn`, and any function of the program's own with such a parameter). Using it again afterwards, however it travels (a variable, a struct field, a list element, a parameter), is a compile error (`E0134`). A `fn(..) + Send` value whose type does not say `Sync` may own such a capture, so it is handed over once too; `+ Send + Sync` values and closures whose captures are all `Send + Sync` can be passed again. Calling a closure does not hand it over: it may be called any number of times. To run the same work twice on other threads, make two closures, each moving in its own `.clone()`.
+- A must-close value (a `File`, a socket) moves into the closure as a plain capture already does ([4.6.9](#469-additional-constraints-in-parallel-and-concurrent-contexts)); the closure closes it.
+- `move` and `ref` mix in one list (`[move xs, ref n]`); one name may not be both. A name in the list that the body does not use is not captured.
+
+```rok
+let xs: List<i32> = [1, 2];
+let n = 0;
+let f = [move xs, ref n] || { n += 1; xs.push(n) };   // OK, on this thread
+let g = [ref n, move n] || n;                    // ERROR: both ref and move
+```
+
+The same value can be passed as an argument instead: `task::spawn_blocking_with_arg(xs, |xs| xs.len())` ([stdlib 2.18.1](../../refs-standard-libraries/200-core/218-task.md#2181-core-api)).

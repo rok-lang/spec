@@ -43,7 +43,7 @@ rokc inspect --dump path/to/foo.rokhir   # 또는 libfoo.a. 옆의 foo.rokhir �
 이 명령은 미리 빌드한 라이브러리의 [ROKHIR](904-rokhir-bytecode.md)을 사람이 읽을 수 있는 형식으로 출력합니다. 버전, producer, 메타 다음에 인터페이스 파일마다 `--- <경로>`와 그 텍스트가 이어집니다. 텍스트는 구체 함수 본문을 `;`로 잘라 낸 소스입니다.
 
 ```
-rokhir 8
+rokhir 9
 producer: rokc 0.2.0 (81a1b80-18e41085f35ccdd9-18be644-6ae7cf0f.6bda9c9)
 package: geom (hash: 3f8a1c2b)
 source: /home/me/geom
@@ -597,7 +597,7 @@ rokc inspect path/to/libfoo.a        # 또는 foo.rokhir. 짝 파일을 함께 �
 Package: foo
 Hash: 3f8a1c2b
 rokc version: 0.2.0 (<compiler id>)
-ROKHIR version: 8
+ROKHIR version: 9
 GC type ids: 4096..4160
 
 Exports:

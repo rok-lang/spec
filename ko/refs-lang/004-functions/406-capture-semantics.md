@@ -18,7 +18,7 @@ f();                               // 1 (f 는 0 을 가짐)
 
 ```
 capture_list    ::= "[" capture_item ("," capture_item)* ","? "]"
-capture_item    ::= "ref" capture_name | capture_name
+capture_item    ::= "ref" capture_name | "move" capture_name | capture_name
 capture_name    ::= identifier | "self"
 ```
 
@@ -144,7 +144,7 @@ let g = [ref xs] || {
 
 ## 4.6.9. 병렬과 동시성 문맥의 추가 제약
 
-`fn() + Send` 클로저(`task::spawn`, `par::for_each`, `thread::spawn` 등에 넘기는 클로저)의 캡처는 모두 `Send + Sync`여야 합니다([4.4](404-function-type.md#send--sync-바운드)). `[ref x]` 셀은 클로저와 그 클로저를 만든 코드가 함께 씁니다. 그래서 이 셀은 `x`의 타입과 상관없이 `Send`도 `Sync`도 아닙니다. 따라서 `[ref]` 캡처가 있는 클로저는 어떤 `+ Send` / `+ Sync` 자리에도 들어가지 않습니다. 그런 클로저를 캡처한 클로저와 `async [ref x] ||` 클로저가 만든 future도 마찬가지입니다. 같은 스레드 안에서 쓸 때(`spawn_local`, 일반 호출)는 영향이 없습니다. 컬렉션은 `!Sync`이므로([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync-스레드-경계-마커)) 값 캡처로도 이렇게 넘길 수 없습니다.
+`fn() + Send` 클로저(`task::spawn_blocking`, `par::for_each`, `thread::spawn` 등에 넘기는 클로저)의 일반 캡처는 모두 `Send + Sync`여야 합니다([4.4](404-function-type.md#send--sync-바운드)). 클로저가 그 캡처를 자기를 만든 코드와 공유하기 때문입니다. `[move x]` 캡처는 클로저만의 것이므로 `Send`만 요구합니다([4.6.11](#4611-move-캡처-move-x-캡처-리스트)). 모든 워커가 부르는 `+ Sync` 클로저(`par::for_each`)는 모든 캡처가 `Sync`여야 합니다. `[ref x]` 셀은 클로저와 그 클로저를 만든 코드가 함께 씁니다. 그래서 이 셀은 `x`의 타입과 상관없이 `Send`도 `Sync`도 아닙니다. 따라서 `[ref]` 캡처가 있는 클로저는 어떤 `+ Send` / `+ Sync` 자리에도 들어가지 않습니다. 그런 클로저를 캡처한 클로저와 `async [ref x] ||` 클로저가 만든 future도 마찬가지입니다. 같은 스레드 안에서 쓸 때(`spawn_local`, 일반 호출)는 영향이 없습니다. 컬렉션은 `!Sync`이므로([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync-스레드-경계-마커)) 값 캡처로도 이렇게 넘길 수 없습니다.
 
 ```rok
 let buf: List<i32> = [];
@@ -152,7 +152,7 @@ par::for_each(xs, [ref buf] |x| { buf.push(x) });
 // ERROR: a [ref buf] cell cannot cross threads
 ```
 
-대신 fold를 쓰거나(`par::fold(xs, 0, |a, b| a + b)`), `Mutex` / `RwLock` / `Atomic` / 채널로 공유하거나, 스레드에서 값을 돌려받습니다(`join()`).
+대신 fold를 쓰거나(`par::fold(xs, 0, |a, b| a + b)`), `Mutex` / `RwLock` / `Atomic` / 채널로 공유하거나, 스레드에서 값을 돌려받습니다(`join()`). 띄운 코드만 쓰는 값은 move로 넘깁니다(`thread::spawn([move buf] || buf.len())`).
 
 이렇게 공유한 값은 새 소유자의 것입니다. `Mutex::new(buf)`나 `tx.send(buf)` 뒤에 `buf`를 쓰면 컴파일 에러입니다([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync-스레드-경계-마커)). 락을 거쳐 쓰거나 `buf.clone()`을 넘깁니다.
 
@@ -185,3 +185,30 @@ c();                               // 3
 ```
 
 위 예에서 `count`는 바깥 함수가 끝난 뒤에도 클로저 객체에 붙어 살아 있습니다. [GC](../000-meta/007-glossary.md#gc-garbage-collector)가 이 수명을 관리합니다([7. 런타임 모델](../007-runtime/README.md)).
+
+## 4.6.11. move 캡처: `[move x]` 캡처 리스트
+
+`[move x]`는 클로저를 만들 때 `x`를 클로저에 넘깁니다. `[ref x]`와 짝을 이룹니다. `ref` 캡처는 바인딩을 클로저를 만든 코드와 공유하고, `move` 캡처는 그 코드에서 바인딩을 가져갑니다.
+
+```rok
+let rows: List<str> = load();
+let t = thread::spawn([move rows] || rows.len());
+rows.push("x");
+// ERROR: `rows` was moved into a closure at line 2
+//   help: the closure owns it now; use it inside the closure, ...
+```
+
+- 클로저를 만들면 채널 send와 같은 방식으로 `x`를 넘깁니다([stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync-스레드-경계-마커)). 클로저는 `x`가 닿는 모든 컬렉션의 복사본을 받고, 그 뒤에 `x`(나 그 값을 가리키는 다른 핸들)를 쓰면 컴파일 에러(`E0105`)입니다. `Sync` 값(숫자, `str`, 그런 값의 배열)은 예외입니다. 클로저의 사본과 `x`가 같은 값이므로 둘 다 써도 됩니다.
+- move 캡처는 클로저가 스레드를 건널 때 `Send`만 요구합니다. 다른 코드가 닿지 않기 때문입니다. 그래서 컬렉션, `Command`, `Child`도 `thread::spawn`, `task::spawn_blocking`, `par::Scope::spawn`에 넘길 수 있습니다. 일반 캡처는 [4.6.9](#469-병렬과-동시성-문맥의-추가-제약)의 `Send + Sync` 규칙을 그대로 따르고, `+ Sync` 자리(모든 워커가 부르는 `par::for_each`)는 모든 캡처가 `Sync`여야 합니다.
+- `Sync`가 아닌 move 캡처를 가진 클로저는 한 번만 넘길 수 있습니다. `Sync` 없이 `fn(..) + Send`로 적은 매개변수에 넘기면, 어떤 함수든 그 클로저를 넘긴 것입니다. 그런 매개변수는 호출된 함수가 다른 스레드에서 실행할 수 있는 자리이기 때문입니다(`thread::spawn`, `thread::Builder::spawn`, `task::spawn_blocking`, `task::spawn_blocking_with_arg`의 `f`, `par::join`, `par::Scope::spawn`, `par::TryScope::spawn`, 그리고 그런 매개변수가 있는 프로그램 자신의 함수). 그 뒤에 어떤 경로로든(변수, struct 필드, 리스트 원소, 매개변수) 그 클로저를 다시 쓰면 컴파일 에러(`E0134`)입니다. 타입에 `Sync`가 없는 `fn(..) + Send` 값도 그런 캡처를 가질 수 있으므로 한 번만 넘깁니다. `+ Send + Sync` 값과 캡처가 모두 `Send + Sync`인 클로저는 다시 넘길 수 있습니다. 클로저를 부르는 것은 넘기는 것이 아니므로 몇 번이든 부를 수 있습니다. 같은 일을 다른 스레드에서 두 번 하려면 클로저를 두 개 만들고, 각각 자기 `.clone()`을 move로 넘깁니다.
+- 반드시 닫아야 하는 값(`File`, 소켓)은 일반 캡처와 마찬가지로 클로저로 옮겨 가며([4.6.9](#469-병렬과-동시성-문맥의-추가-제약)), 클로저가 닫습니다.
+- 한 리스트에 `move`와 `ref`를 섞을 수 있습니다(`[move xs, ref n]`). 한 이름이 둘 다일 수는 없습니다. 리스트에 적었지만 본문이 쓰지 않는 이름은 캡처하지 않습니다.
+
+```rok
+let xs: List<i32> = [1, 2];
+let n = 0;
+let f = [move xs, ref n] || { n += 1; xs.push(n) };   // OK: 이 스레드 안에서
+let g = [ref n, move n] || n;                          // ERROR: ref 이면서 move
+```
+
+같은 값을 인자로 넘길 수도 있습니다: `task::spawn_blocking_with_arg(xs, |xs| xs.len())`([stdlib 2.18.1](../../refs-standard-libraries/200-core/218-task.md#2181-핵심-api)).

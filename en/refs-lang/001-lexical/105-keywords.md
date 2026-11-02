@@ -114,7 +114,7 @@ struct S { self: i32; }                   // ERROR: self is the exception
 
 ## 1.5.6. Keywords reserved for later use
 
-The last row of 1.5.1, `macro`, `defer`, `dyn`, `move`, `gen` and `do`, are reserved keywords that no syntax uses yet. They are reserved so that later releases can give them syntax without breaking code. Like every reserved keyword they cannot be names outside the name positions of 1.5.5; an identifier spelled as one is a compile error whose help names the raw identifier ([1.4.4](104-identifiers.md#raw-identifiers)).
+The last row of 1.5.1, `macro`, `defer`, `dyn`, `move`, `gen` and `do`, are reserved keywords that no syntax uses yet, except `move` in a closure's capture list (`[move x]`, [4.6.11](../004-functions/406-capture-semantics.md#4611-move-capture-the-move-x-capture-list)). They are reserved so that later releases can give them syntax without breaking code. Like every reserved keyword they cannot be names outside the name positions of 1.5.5; an identifier spelled as one is a compile error whose help names the raw identifier ([1.4.4](104-identifiers.md#raw-identifiers)).
 
 ```rok
 fn gen(n: i32) -> i32 { n }     // ERROR: `gen` is a reserved keyword, not a name

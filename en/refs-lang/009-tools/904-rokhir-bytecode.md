@@ -19,7 +19,7 @@ ROKHIR file (little-endian):
 +-----------------------------------+
 |  Header                           |  (16 bytes fixed)
 |    magic       "ROKH"    (4 bytes)  |
-|    version     u32  (= 8)         |
+|    version     u32  (= 9)         |
 |    flags       u32                |
 |    body_offset u32                |
 +-----------------------------------+
@@ -50,7 +50,7 @@ ROKHIR file (little-endian):
 | Field         | Size | Meaning                                                      |
 |---------------|------|--------------------------------------------------------------|
 | `magic`       | 4    | `"ROKH"`                                                       |
-| `version`     | u32  | Format version (`8`). Bumped when the layout or body content changes: 2 added the `features` meta, 3 the `.wit` files of the body, 4 inlines `include_str!` / `include_bytes!` data, 5 adds the hand-off summaries, 6 adds the summaries' exit kinds, 7 changes the code it pairs with (the thread block passed as a hidden argument), 8 extends the hand-off summaries |
+| `version`     | u32  | Format version (`9`). Bumped when the layout or body content changes: 2 added the `features` meta, 3 the `.wit` files of the body, 4 inlines `include_str!` / `include_bytes!` data, 5 adds the hand-off summaries, 6 adds the summaries' exit kinds, 7 changes the code it pairs with (the thread block passed as a hidden argument), 8 extends the hand-off summaries, 9 records a closure type's `[move x]` captures |
 | `flags`       | u32  | Reserved (0)                                                 |
 | `body_offset` | u32  | Start offset of the body                                     |
 

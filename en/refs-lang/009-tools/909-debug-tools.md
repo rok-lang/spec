@@ -43,7 +43,7 @@ rokc inspect --dump path/to/foo.rokhir   # or libfoo.a; reads the sibling foo.ro
 This command prints the [ROKHIR](904-rokhir-bytecode.md) of a prebuilt library in human-readable form. After the version, producer and meta, each interface file follows as `--- <path>` and its text (source with concrete function bodies cut down to `;`).
 
 ```
-rokhir 8
+rokhir 9
 producer: rokc 0.2.0 (81a1b80-18e41085f35ccdd9-18be644-6ae7cf0f.6bda9c9)
 package: geom (hash: 3f8a1c2b)
 source: /home/me/geom
@@ -580,7 +580,7 @@ This command shows information from the ROKHIR ([9.4](904-rokhir-bytecode.md)) a
 Package: foo
 Hash: 3f8a1c2b
 rokc version: 0.2.0 (<compiler id>)
-ROKHIR version: 8
+ROKHIR version: 9
 GC type ids: 4096..4160
 
 Exports:

@@ -14,6 +14,7 @@ fn try_block_on<T, E>(f: TryAsyncFuture<T, E>) throws (E) -> T;   // block_on fo
 fn spawn<F: Future + Send>(f: F) -> Task<F::Output> where F::Output: Send;
 fn spawn_local<F: Future>(f: F) -> Task<F::Output>;     // non-Send future, pinned to the current worker (not an OS thread)
 fn spawn_blocking<T: Send>(f: fn() -> T + Send) -> Task<T>;   // blocking work on an OS thread outside the executor
+fn spawn_blocking_with_arg<V: Send, T: Send>(arg: V, f: fn(V) -> T + Send) -> Task<T>;   // spawn_blocking that hands arg to f
 fn worker_count() -> usize;                               // pool size inside the executor, 1 outside
 fn cpu_count() -> usize;                                // number of online CPUs (the pool size)
 async fn race<I: IntoIterator<Item = Task<T>>, T>(tasks: I) -> T;   // result of the first task to complete; cancels the others
@@ -89,6 +90,19 @@ Neither waits for the losers' cleanups: they return once cancellation is request
 
 ```rok
 let n = await task::spawn_blocking(|| heavy_checksum(path));
+```
+
+`f` shares its plain captures with the code that made it, so they must be `Send + Sync` ([refs-lang 4.6.9](../../refs-lang/004-functions/406-capture-semantics.md#469-additional-constraints-in-parallel-and-concurrent-contexts)). A value only the blocking work needs (a collection, a `Command`) is given to it, in either of two forms:
+
+- `[move x]` in `f`'s capture list moves `x` into the closure ([refs-lang 4.6.11](../../refs-lang/004-functions/406-capture-semantics.md#4611-move-capture-the-move-x-capture-list)).
+- `spawn_blocking_with_arg(arg, f)` hands `arg` over as a channel send does and calls `f(arg)` on the pool thread: the thread gets a copy of every collection `arg` reaches, and using `arg` afterwards is a compile error ([2.13.9](213-marker.md#2139-send--sync---thread-boundary-markers)). `arg` needs only `Send`.
+
+Either way the spawning code can no longer use the value. A closure that owns a moved capture is handed over too: calling it again after `spawn_blocking(f)` is a compile error.
+
+```rok
+let rows: List<str> = load();
+let n = await task::spawn_blocking([move rows] || write_all(rows));
+let m = await task::spawn_blocking_with_arg(load(), |rows: List<str>| write_all(rows));
 ```
 
 ### `Send` check for `spawn`
