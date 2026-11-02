@@ -207,6 +207,8 @@ Stream operations get their twins from traits, not from methods of each type: a 
 | `UnixListener` | `AsyncClose` | `accept_async` |
 | `UnixDatagram` | `AsyncClose` | `connect_async`, `send_async`, `recv_async`, `send_with_fd_async`, `recv_with_fd_async` |
 | `tls::Client`, `tls::Server` | `AsyncRead`, `AsyncWrite`, `AsyncClose` | `new_async`, `with_config_async`, `close_notify_async`, `key_update_async` |
+| `net::ReadHalf<T>` | `AsyncRead`, `AsyncClose` | `shutdown_async` |
+| `net::WriteHalf<T>` | `AsyncWrite`, `AsyncClose` | `shutdown_async`, `key_update_async` (TLS) |
 | `ChildStdin` | `AsyncWrite`, `AsyncClose` | |
 | `ChildStdout`, `ChildStderr` | `AsyncRead`, `AsyncClose` | |
 | `Child` | | `wait_async` |

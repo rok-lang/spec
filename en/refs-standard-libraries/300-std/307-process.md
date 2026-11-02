@@ -78,6 +78,15 @@ impl Child {
     // Linux: pidfd, ChildExt (3.11.5)
 
     fn send_signal(self, sig: Signal) throws (IoError);  // Windows: Kill only
+    fn handle(self) -> ChildHandle;                      // signals the child from another thread or task
+}
+
+struct ChildHandle { /* opaque: pid */ }                 // Send + Sync; copies are free
+
+impl ChildHandle {
+    fn id(self) -> u32;                                  // pid
+    fn kill(self) throws (IoError);
+    fn send_signal(self, sig: Signal) throws (IoError);  // Windows: Kill only
 }
 
 impl ChildStdin {                        // write end of the child's stdin pipe; impl io::Write + io::Close, io::AsyncWrite + io::AsyncClose
@@ -89,7 +98,7 @@ impl ChildStdout {                       // read end of the child's stdout pipe;
 impl ChildStderr {                       // read end of the child's stderr pipe; impl io::Read + io::Close, io::AsyncRead + io::AsyncClose
     fn close(self) throws (IoError);
 }
-// + AsRawFd (unix), AsRawHandle (Windows) for the three pipes: 3.11
+// + AsRawFd, IntoRawFd (unix), AsRawHandle, IntoRawHandle (Windows) for the three pipes: 3.11
 
 struct ExitStatus { /* opaque */ }
 
@@ -147,9 +156,20 @@ using child = try Command::new("long_running")
 }    // ← on using release, Drop → kill
 ```
 
-As the last example shows, binding a `Child` with `kill_on_drop` enabled in `using` cleans up the child even on flows such as error propagation or early return. `Drop` issues the kill where the owner releases the `Child`: at the end of the `using` block, or where its last owner leaves scope ([2.13.4](../200-core/213-marker.md)). `ChildStdin` / `ChildStdout` / `ChildStderr` are file handles of the pipes and are read and written the same way as `File`. The `Child` holds its `Piped` streams until `take_stdin` / `take_stdout` / `take_stderr` hand one over, leaving `none`; from then on the taker owns the pipe and must close it, like a `File`. The pipes never taken close where the `Child` is released. `wait` closes a stdin still held by the `Child` first, so a child reading to end of input can finish; a taken stdin is the taker's to close before `wait`.
+As the last example shows, binding a `Child` with `kill_on_drop` enabled in `using` cleans up the child even on flows such as error propagation or early return. `Drop` issues the kill where the owner releases the `Child`: at the end of the `using` block, or where its owner leaves scope ([2.13.4](../200-core/213-marker.md)). `ChildStdin` / `ChildStdout` / `ChildStderr` are file handles of the pipes and are read and written the same way as `File`. The `Child` holds its `Piped` streams until `take_stdin` / `take_stdout` / `take_stderr` hand one over, leaving `none`; from then on the taker owns the pipe and must close it, like a `File`. The pipes never taken close where the `Child` is released. `wait` closes a stdin still held by the `Child` first, so a child reading to end of input can finish; a taken stdin is the taker's to close before `wait`.
 
-Copies of a `Child` share the process. `wait` / `try_wait` reap the child only after the `send_signal` / `kill` calls in flight through other copies return, so a signal never reaches a pid or pidfd that was reused. A `send_signal` once the child has ended and is being reaped is a no-op. Copies that wait at the same time all get the same `ExitStatus`.
+A `Child` is affine ([2.13.4](../200-core/213-marker.md)): one owner holds its pipes and waits on it. To stop the child from elsewhere while the owner waits (a timeout, a shutdown signal), take a `ChildHandle` with `handle()` and send it to the other thread or task. A handle owns nothing: no pipe, no wait, nothing to close; it only signals. `wait` / `try_wait` reap the child only after the `send_signal` / `kill` calls in flight through handles return, so a signal never reaches a pid or pidfd that was reused; a `send_signal` or `kill` once the child has ended and is being reaped is a no-op.
+
+```rok
+let child = try Command::new("server").spawn();
+let h = child.handle();
+let timer = task::spawn(async {
+    await task::sleep(Duration::secs(30));
+    try h.kill() catch _ {};
+    0
+});
+let status = try await child.wait_async();
+```
 
 ## 3.7.4. Modern additions - pidfd / posix_spawn / CLOEXEC
 

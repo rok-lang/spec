@@ -78,6 +78,15 @@ impl Child {
     // Linux: pidfd, ChildExt (3.11.5)
 
     fn send_signal(self, sig: Signal) throws (IoError);  // Windows: Kill 만
+    fn handle(self) -> ChildHandle;                      // 다른 스레드나 task 에서 자식에게 시그널을 보냄
+}
+
+struct ChildHandle { /* opaque: pid */ }                 // Send + Sync; 복사는 공짜
+
+impl ChildHandle {
+    fn id(self) -> u32;                                  // pid
+    fn kill(self) throws (IoError);
+    fn send_signal(self, sig: Signal) throws (IoError);  // Windows: Kill 만
 }
 
 impl ChildStdin {                        // 자식 stdin pipe 의 쓰기 끝, impl io::Write + io::Close, io::AsyncWrite + io::AsyncClose
@@ -89,7 +98,7 @@ impl ChildStdout {                       // 자식 stdout pipe 의 읽기 끝, i
 impl ChildStderr {                       // 자식 stderr pipe 의 읽기 끝, impl io::Read + io::Close, io::AsyncRead + io::AsyncClose
     fn close(self) throws (IoError);
 }
-// + 세 pipe 모두 AsRawFd (unix), AsRawHandle (Windows): 3.11
+// + 세 pipe 모두 AsRawFd, IntoRawFd (unix), AsRawHandle, IntoRawHandle (Windows): 3.11
 
 struct ExitStatus { /* opaque */ }
 
@@ -147,9 +156,20 @@ using child = try Command::new("long_running")
 }    // ← using 해제 시 Drop → kill
 ```
 
-마지막 예처럼 `kill_on_drop`을 켠 `Child`를 `using`으로 묶으면 에러 전파나 조기 반환 같은 흐름에서도 자식이 함께 정리됩니다. 소유자가 `Child`를 해제하는 곳, 곧 `using` 블록의 끝이나 마지막 소유자가 스코프를 떠나는 곳에서 `Drop`이 자식을 죽입니다([2.13.4](../200-core/213-marker.md)). `ChildStdin` / `ChildStdout` / `ChildStderr`는 파이프의 파일 핸들입니다. `File`과 같은 방식으로 읽고 씁니다. `Child`는 `Piped` 스트림을 들고 있다가 `take_stdin` / `take_stdout` / `take_stderr`가 하나를 넘겨주면 그 자리에 `none`을 남깁니다. 그때부터 파이프는 꺼낸 쪽의 것이고, `File`처럼 직접 닫아야 합니다. 꺼내지 않은 파이프는 `Child`가 해제되는 곳에서 닫힙니다. `wait`는 `Child`가 아직 들고 있는 stdin을 먼저 닫으므로 입력 끝까지 읽는 자식도 끝날 수 있습니다. 꺼낸 stdin은 꺼낸 쪽이 `wait` 전에 닫습니다.
+마지막 예처럼 `kill_on_drop`을 켠 `Child`를 `using`으로 묶으면 에러 전파나 조기 반환 같은 흐름에서도 자식이 함께 정리됩니다. 소유자가 `Child`를 해제하는 곳, 곧 `using` 블록의 끝이나 소유자가 스코프를 떠나는 곳에서 `Drop`이 자식을 죽입니다([2.13.4](../200-core/213-marker.md)). `ChildStdin` / `ChildStdout` / `ChildStderr`는 파이프의 파일 핸들입니다. `File`과 같은 방식으로 읽고 씁니다. `Child`는 `Piped` 스트림을 들고 있다가 `take_stdin` / `take_stdout` / `take_stderr`가 하나를 넘겨주면 그 자리에 `none`을 남깁니다. 그때부터 파이프는 꺼낸 쪽의 것이고, `File`처럼 직접 닫아야 합니다. 꺼내지 않은 파이프는 `Child`가 해제되는 곳에서 닫힙니다. `wait`는 `Child`가 아직 들고 있는 stdin을 먼저 닫으므로 입력 끝까지 읽는 자식도 끝날 수 있습니다. 꺼낸 stdin은 꺼낸 쪽이 `wait` 전에 닫습니다.
 
-`Child`의 복사본들은 같은 프로세스를 공유합니다. `wait` / `try_wait`는 다른 복사본으로 진행 중인 `send_signal` / `kill` 호출이 돌아온 뒤에야 자식을 회수합니다. 그래서 시그널이 재사용된 pid나 pidfd에 닿는 일은 없습니다. 자식이 끝나 회수되는 중에 보낸 `send_signal`은 아무 일도 하지 않습니다. 동시에 기다리는 복사본들은 모두 같은 `ExitStatus`를 받습니다.
+`Child`는 affine입니다([2.13.4](../200-core/213-marker.md)). 소유자 하나가 pipe를 들고 자식을 기다립니다. 소유자가 기다리는 동안 다른 곳에서 자식을 멈추려면(타임아웃, 종료 시그널) `handle()`로 `ChildHandle`을 받아 다른 스레드나 task로 보냅니다. 핸들은 아무것도 소유하지 않습니다. pipe도, 기다리기도, 닫을 것도 없고 시그널만 보냅니다. `wait` / `try_wait`는 핸들로 진행 중인 `send_signal` / `kill` 호출이 돌아온 뒤에야 자식을 회수하므로, 시그널이 재사용된 pid나 pidfd에 닿는 일은 없습니다. 자식이 끝나 회수되는 중에 보낸 `send_signal`이나 `kill`은 아무 일도 하지 않습니다.
+
+```rok
+let child = try Command::new("server").spawn();
+let h = child.handle();
+let timer = task::spawn(async {
+    await task::sleep(Duration::secs(30));
+    try h.kill() catch _ {};
+    0
+});
+let status = try await child.wait_async();
+```
 
 ## 3.7.4. 최신 추가 기능: pidfd / posix_spawn / CLOEXEC
 
