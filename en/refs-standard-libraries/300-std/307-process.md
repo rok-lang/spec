@@ -31,7 +31,7 @@ impl Command {
 
     // execution
     fn spawn(self) throws (IoError) -> Child;
-    fn output(self) throws (IoError) -> Output;          // wait + collect: stdout / stderr left at Inherit are piped; an Inherit stdin is null
+    fn output(self) throws (IoError) -> Output;          // wait + collect: stdout / stderr left at Inherit are piped; an Inherit stdin is null, a Piped one is closed at once (the child sees end of input)
     fn status(self) throws (IoError) -> ExitStatus;      // wait, no output
     async fn output_async(self) throws (IoError) -> Output;
     async fn status_async(self) throws (IoError) -> ExitStatus;

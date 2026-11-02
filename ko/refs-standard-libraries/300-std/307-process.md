@@ -31,7 +31,7 @@ impl Command {
 
     // 실행
     fn spawn(self) throws (IoError) -> Child;
-    fn output(self) throws (IoError) -> Output;          // 대기 + 수집: Inherit 인 stdout / stderr 는 pipe, Inherit 인 stdin 은 null
+    fn output(self) throws (IoError) -> Output;          // 대기 + 수집: Inherit 인 stdout / stderr 는 pipe, Inherit 인 stdin 은 null, Piped 인 stdin 은 바로 닫힘(자식은 입력 끝을 봄)
     fn status(self) throws (IoError) -> ExitStatus;      // wait, no output
     async fn output_async(self) throws (IoError) -> Output;
     async fn status_async(self) throws (IoError) -> ExitStatus;
