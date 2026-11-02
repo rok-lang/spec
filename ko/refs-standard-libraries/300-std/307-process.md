@@ -52,7 +52,7 @@ struct Output {
 }                                        // + Clone, PartialEq, Eq, Debug
 ```
 
-빌더 메서드는 바뀐 명령을 돌려주고, 호출한 쪽 명령은 그대로 둡니다. 그래서 `Command`의 복사본들은 서로 독립입니다. `let a = base.arg("x")` 뒤에도 `base`에는 `x`가 없습니다. 결과를 버린 빌더 호출(`base.arg("x");`)은 아무것도 바꾸지 않고 경고를 냅니다(`#[must_use]`).
+빌더 메서드는 바뀐 명령을 돌려주고, 호출한 쪽 명령은 그대로 둡니다. 그래서 `Command`의 복사본들은 서로 독립입니다. `let a = base.arg("x")` 뒤에도 `base`에는 `x`가 없습니다. 안에 든 `Stdio::File`은 affine이지만 `Command`는 affine이 아닙니다([2.13.4](../200-core/213-marker.md)). 그 파일만은 예외로 모든 복사본이 함께 씁니다(아래). 결과를 버린 빌더 호출(`base.arg("x");`)은 아무것도 바꾸지 않고 경고를 냅니다(`#[must_use]`).
 
 `Stdio`는 네 가지입니다. 부모의 fd를 그대로 물려주는 `Inherit`, 출력을 모두 버리는 `Null`, 양방향 통신용 `Piped`, 열린 파일을 연결하는 `File`입니다.
 

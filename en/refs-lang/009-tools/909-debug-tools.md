@@ -128,7 +128,7 @@ Each diagnostic is one line of JSON object on stdout; no human-format diagnostic
 
 A span has `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_primary`, `label`, `line_end` and `col_end`. `line_end` / `col_end` are where the span ends (the position just past its last character), counted like `line_start` / `col_start` in code points; they are `null` when the source text is not at hand. A diagnostic that knows only the file and no position has just `{"file_name": .., "is_primary": true}`. A fix has `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `text`, `title` (``convert with `as i32` ``), `line_end` and `col_end`; the language server offers it as a quick fix ([9.9.13](#9913-lsp-server)).
 
-Within one `schema`, fields are only added, never removed, renamed or given another meaning, so a reader should ignore fields it does not know. Schema `2` (0.2.0) changed two fields: `code` is the code of the error kind instead of its area (below), and `notes` no longer repeats the help entries, which are only in `help`. The test, bench and `rok deps` records ([9.9.12](#9912-ci--test-integration), [9.10.4](910-rok-frontend.md#9104-dependencies-rok-add--remove--update--deps)) follow the same rule with their own `schema`, still `1`.
+Within one `schema`, fields are only added, never removed, renamed or given another meaning, so a reader should ignore fields it does not know. Schema `2` (0.2.0) changed two fields and removed one: `code` is the code of the error kind instead of its area (below), `notes` no longer repeats the help entries, which are only in `help`, and `spec`, the spec section of the rule, is gone. The test, bench and `rok deps` records ([9.9.12](#9912-ci--test-integration), [9.10.4](910-rok-frontend.md#9104-dependencies-rok-add--remove--update--deps)) follow the same rule with their own `schema`, still `1`.
 
 This format lets IDEs and CI systems read diagnostics mechanically.
 
@@ -137,6 +137,8 @@ This format lets IDEs and CI systems read diagnostics mechanically.
 Every kind of error has its own code, `E` and four digits: `E0040` for mismatched types, `E0027` for a name that is not found. Codes are numbered in the order they were added, not by area; the `kind` field gives the area. A code is never reused: when a kind of error goes away its code stays reserved, and a new kind takes the next free number. A diagnostic of a lint ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)) has the lint code `E0132` whatever part of the compiler raised it, and names the lint in its note and in `lint`.
 
 `rokc --explain <code>` (also `rok --explain`) prints the code's page: its title, what it means and what to write instead ([9.1.5](901-rokc-cli.md#915-global-options)). `E0040`, `e0040` and `40` name the same code; a code that does not exist is a usage error (exit code 2). The error pages of the documentation are the same pages, one per code.
+
+The titles are written exactly as `rokc --explain` prints them.
 
 | Code    | `kind`        | Title                        |
 |---------|---------------|------------------------------|
@@ -281,7 +283,7 @@ Every kind of error has its own code, `E` and four digits: `E0040` for mismatche
 | `E0139` | `type` | `pub` function signature not written out |
 | `E0140` | `handoff` | stream view used past its stream |
 
-The `kind` values are `lexical`, `parse`, `resolve`, `visibility`, `module`, `type`, `pattern`, `handoff` (use after hand-off, [stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers), or of a `SliceMut` after its list was resized, [stdlib 2.9.7a](../../refs-standard-libraries/200-core/209-collections.md#297a-slicemutt---writable-view)), `meta`, `lowering`, `codegen`, `linkage`, `unsupported`, `internal`, `other` and `lint`.
+The `kind` values are `lexical`, `parse`, `resolve`, `visibility`, `module`, `type`, `pattern`, `handoff` (ownership and lifetime of values: use after a hand-off, [stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers); a resource used after it was moved or closed, or not closed, [stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop---cleanup-on-release); a thread-local value kept past `with`; a stream view used past its stream, [stdlib 2.23.1](../../refs-standard-libraries/200-core/223-io.md#2231-read); a `SliceMut` used after its list was resized, [stdlib 2.9.7a](../../refs-standard-libraries/200-core/209-collections.md#297a-slicemutt---writable-view)), `meta`, `lowering` (reserved: no code has it now), `codegen`, `linkage`, `unsupported`, `internal`, `other` and `lint`.
 
 #### Codes before 0.2.0
 

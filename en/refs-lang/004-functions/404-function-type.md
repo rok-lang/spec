@@ -85,7 +85,7 @@ let f: fn(i32) -> i32 = |x| x + n;     // captures n, but the type is fn(i32) ->
 
 Captures are attached internally to the closure object and used automatically at call time. User code therefore need not care whether there are captures, and captures do not appear in the type.
 
-Rust's distinction between the `Fn`, `FnMut` and `FnOnce` traits does not exist in rok. Captures are by value by default, which reduces semantic complexity. The detailed capture semantics are defined in [Closures](405-closure.md).
+Rust's distinction between the `Fn`, `FnMut` and `FnOnce` traits does not exist in rok. Captures are by value by default, which reduces semantic complexity. The detailed capture semantics are defined in [Capture semantics](406-capture-semantics.md).
 
 ### `Send` / `Sync` bounds
 

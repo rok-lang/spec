@@ -133,7 +133,7 @@ let z = x + y;        //→ 4.0 (f64)
 | 세터 | `set_<x>(ref self, ..)`는 unit을 돌려줌. 핸들(파일, 소켓, 커서, 리더)은 OS 상태나 공유 상태를 바꾸므로 세터가 `self`를 받음(`File::set_len`, `TcpStream::set_nodelay`, `Cursor::set_position`). 빌더는 필드 이름을 그대로 쓰고 `Self`를 돌려줌 |
 | 크기 | `len`은 컨테이너의 원소 수나 바이트 수, `<x>_len`은 길이 속성, `count`는 센 것(`count_ones`), `size`는 메모리 크기 |
 | 추가 / 제거 | 양 끝은 `push` / `pop`, 키나 인덱스는 `insert` / `remove`, 여럿은 `extend`, `clear`, `retain`, 꺼내 옮기기는 `take` |
-| 순회 | `iter()`는 `<Type>Iter`를 돌려줌(`BinaryHeap::iter`는 `HeapIter`). 다른 순회 메서드는 정의한 모듈에서 메서드 이름의 CamelCase를 돌려줌(아래). 단 `Iterator::inspect`는 `InspectIter`를 돌려줌(`Inspect`는 2.12의 리플렉션 트레잇) |
+| 순회 | `iter()`는 `<Type>Iter`를 돌려줌(`BinaryHeap::iter`는 `HeapIter`). 다른 순회 메서드는 정의한 모듈에서 메서드 이름의 CamelCase를 돌려줌(아래). 단 `Iterator::inspect`는 `InspectIter`를 돌려줌(`Inspect`는 2.12의 리플렉션 트레잇). 소유하는 스트림 어댑터(`into_lines`, `into_bytes`, `into_split`, `into_take`, 그 `_async` 형태, `into_incoming`)는 뷰의 타입을 감싼 `io::Owned<V, R>`를 돌려줌([2.23.1](../200-core/223-io.md#2231-read)) |
 | 리플렉션 | 접미사 없는 형태는 타입의 답(`T::type_name()`, `T::size()`), `_of_val` 형태는 실행 중 값의 답(`x.type_name_of_val()`, `x.size_of_val()`, `x.field_names_of_val()`) |
 | async | `<name>_async`는 막히는 `<name>`의 짝. `async_` 접두사는 쓰지 않음 |
 | 약어 | 풀어 씀. 정해진 집합만 예외: `len`, `fd`, `io`, `utf8`, `ns` / `us` / `ms` / `secs` / `mins`, `tls`, `der` / `pem`, `mmap`, `pid`, `alpn`, `ocsp`, `dns`, 그리고 Rust에서 굳은 줄임말 `addr`, `dir`, `temp`, `exe`, `env`, `var` / `vars`, `args`, `arg`, `ty`, `os`, `std`(`Stdio`), `ptr`, `buf`, `recv`, `ttl`, `subsec`, 수학 이름 `abs`, `rem`, `ln`, `exp`, `cbrt`, `min` / `max` |
@@ -213,6 +213,7 @@ let z = x + y;        //→ 4.0 (f64)
 | `Child` | | `wait_async` |
 | `Command` | | `output_async`, `status_async` |
 | `BufReader`, `BufWriter`, `LineWriter`, `Cursor` | 안쪽 스트림을 따름([2.23.6](../200-core/223-io.md#2236-버퍼와-cursor)) | |
+| `io::Owned<V, R>`, `io::Chain<A, B>` | `AsyncClose`는 reader를 따름(`R`, `A`와 `B`)([2.23.5](../200-core/223-io.md#2235-async-트레잇)) | |
 
 `Sender`의 `close`는 I/O가 아니므로 짝이 없습니다. `File`과 `Dir`의 짝은 `ref self`를 받고, `close_async`만 핸들을 소비합니다.
 

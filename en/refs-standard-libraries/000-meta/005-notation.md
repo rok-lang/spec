@@ -132,7 +132,7 @@ Every name in the standard library follows this table. A name that breaks it is 
 | setters | `set_<x>(ref self, ..)` returns unit; a handle (a file, socket, cursor or reader) changes OS or shared state, so its setter takes `self` (`File::set_len`, `TcpStream::set_nodelay`, `Cursor::set_position`); a builder uses the bare field name and returns `Self` |
 | sizes | `len` = element or byte count of a container; `<x>_len` = a length property; `count` = something counted (`count_ones`); `size` = memory size |
 | add / remove | `push` / `pop` at the ends, `insert` / `remove` keyed or indexed, `extend` many, `clear`, `retain`, `take` moves out |
-| iteration | `iter()` returns `<Type>Iter` (`BinaryHeap::iter` returns `HeapIter`); any other iterator method returns its own name in CamelCase, in the defining module (below), except `Iterator::inspect`, which returns `InspectIter` because `Inspect` is the reflection trait (2.12) |
+| iteration | `iter()` returns `<Type>Iter` (`BinaryHeap::iter` returns `HeapIter`); any other iterator method returns its own name in CamelCase, in the defining module (below), except `Iterator::inspect`, which returns `InspectIter` because `Inspect` is the reflection trait (2.12), and the owning stream adapters (`into_lines`, `into_bytes`, `into_split`, `into_take`, their `_async` forms, `into_incoming`), which return `io::Owned<V, R>` around the view's type ([2.23.1](../200-core/223-io.md#2231-read)) |
 | reflection | the plain form is the type's answer (`T::type_name()`, `T::size()`), the `_of_val` form the value's answer at run time (`x.type_name_of_val()`, `x.size_of_val()`, `x.field_names_of_val()`) |
 | async | `<name>_async` is the twin of a blocking `<name>`; never an `async_` prefix |
 | abbreviations | spelled out, except the fixed set: `len`, `fd`, `io`, `utf8`, `ns` / `us` / `ms` / `secs` / `mins`, `tls`, `der` / `pem`, `mmap`, `pid`, `alpn`, `ocsp`, `dns`, and the short forms Rust established: `addr`, `dir`, `temp`, `exe`, `env`, `var` / `vars`, `args`, `arg`, `ty`, `os`, `std` (`Stdio`), `ptr`, `buf`, `recv`, `ttl`, `subsec`, and the math names `abs`, `rem`, `ln`, `exp`, `cbrt`, `min` / `max` |
@@ -212,6 +212,7 @@ Stream operations get their twins from traits, not from methods of each type: a 
 | `Child` | | `wait_async` |
 | `Command` | | `output_async`, `status_async` |
 | `BufReader`, `BufWriter`, `LineWriter`, `Cursor` | as their inner stream ([2.23.6](../200-core/223-io.md#2236-buffers-and-cursor)) | |
+| `io::Owned<V, R>`, `io::Chain<A, B>` | `AsyncClose` as their readers (`R`; `A` and `B`) ([2.23.5](../200-core/223-io.md#2235-async-traits)) | |
 
 A `Sender`'s `close` is not I/O and has no twin. A `File` or `Dir` twin takes `ref self`; only `close_async` consumes the handle.
 

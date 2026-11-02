@@ -128,7 +128,7 @@ rokc build --message-format=json
 
 span에는 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `is_primary`, `label`, `line_end`, `col_end`가 있습니다. `line_end` / `col_end`는 span이 끝나는 위치(마지막 문자 바로 다음)이고, `line_start` / `col_start`처럼 코드 포인트로 셉니다. 소스 텍스트가 없으면 `null`입니다. 위치 없이 파일만 아는 진단은 `{"file_name": .., "is_primary": true}`만 둡니다. fix에는 `file_name`, `line_start`, `col_start`, `byte_start`, `byte_end`, `text`, `title`(``convert with `as i32` ``), `line_end`, `col_end`가 있습니다. LSP 서버는 이것을 빠른 수정으로 내놓습니다([9.9.13](#9913-lsp-서버)).
 
-같은 `schema` 안에서는 필드를 더하기만 하고, 빼거나 이름이나 뜻을 바꾸지 않습니다. 그러니 읽는 쪽은 모르는 필드를 무시해야 합니다. 스키마 `2`(0.2.0)는 필드 둘을 바꿨습니다. `code`는 영역이 아니라 에러 종류의 코드이고(아래), `notes`는 help 항목을 되풀이하지 않습니다. help 항목은 `help`에만 있습니다. 테스트, 벤치, `rok deps` 레코드([9.9.12](#9912-ci--테스트-통합), [9.10.4](910-rok-frontend.md#9104-의존성-rok-add--remove--update--deps))도 각자의 `schema`로 같은 규칙을 따르며, 그 번호는 여전히 `1`입니다.
+같은 `schema` 안에서는 필드를 더하기만 하고, 빼거나 이름이나 뜻을 바꾸지 않습니다. 그러니 읽는 쪽은 모르는 필드를 무시해야 합니다. 스키마 `2`(0.2.0)는 필드 둘을 바꾸고 하나를 뺐습니다. `code`는 영역이 아니라 에러 종류의 코드이고(아래), `notes`는 help 항목을 되풀이하지 않습니다. help 항목은 `help`에만 있습니다. 규칙의 사양 절을 담던 `spec`은 없어졌습니다. 테스트, 벤치, `rok deps` 레코드([9.9.12](#9912-ci--테스트-통합), [9.10.4](910-rok-frontend.md#9104-의존성-rok-add--remove--update--deps))도 각자의 `schema`로 같은 규칙을 따르며, 그 번호는 여전히 `1`입니다.
 
 IDE와 CI 시스템은 이 형식으로 진단을 기계적으로 읽을 수 있습니다.
 
@@ -283,7 +283,7 @@ IDE와 CI 시스템은 이 형식으로 진단을 기계적으로 읽을 수 있
 | `E0139` | `type` | `pub` function signature not written out |
 | `E0140` | `handoff` | stream view used past its stream |
 
-`kind` 값은 `lexical`, `parse`, `resolve`, `visibility`, `module`, `type`, `pattern`, `handoff`(넘긴 뒤의 사용, [stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync-스레드-경계-마커), 또는 리스트 크기를 바꾼 뒤의 `SliceMut` 사용, [stdlib 2.9.7a](../../refs-standard-libraries/200-core/209-collections.md#297a-slicemutt-쓰기-가능한-뷰)), `meta`, `lowering`, `codegen`, `linkage`, `unsupported`, `internal`, `other`, `lint`입니다.
+`kind` 값은 `lexical`, `parse`, `resolve`, `visibility`, `module`, `type`, `pattern`, `handoff`(값의 소유와 수명. 넘긴 뒤의 사용, [stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync-스레드-경계-마커). 옮기거나 닫은 뒤에 쓰거나 닫지 않은 자원, [stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop-해제-시-정리). `with` 뒤에도 간직한 스레드 로컬 값. 스트림보다 오래 쓴 스트림 뷰, [stdlib 2.23.1](../../refs-standard-libraries/200-core/223-io.md#2231-read). 리스트 크기를 바꾼 뒤의 `SliceMut` 사용, [stdlib 2.9.7a](../../refs-standard-libraries/200-core/209-collections.md#297a-slicemutt-쓰기-가능한-뷰)), `meta`, `lowering`(예약됨: 지금은 이 kind의 코드가 없음), `codegen`, `linkage`, `unsupported`, `internal`, `other`, `lint`입니다.
 
 #### 0.2.0 이전의 코드
 

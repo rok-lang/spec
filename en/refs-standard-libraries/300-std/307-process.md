@@ -52,7 +52,7 @@ struct Output {
 }                                        // + Clone, PartialEq, Eq, Debug
 ```
 
-A builder method returns the changed command and leaves the one it was called on as it was, so copies of a `Command` are independent: after `let a = base.arg("x")`, `base` has no `x`. A builder call whose result is dropped (`base.arg("x");`) changes nothing and warns (`#[must_use]`).
+A builder method returns the changed command and leaves the one it was called on as it was, so copies of a `Command` are independent: after `let a = base.arg("x")`, `base` has no `x`. A `Command` is not affine although a `Stdio::File` in it is ([2.13.4](../200-core/213-marker.md)): that one file is the exception, shared by every copy (below). A builder call whose result is dropped (`base.arg("x");`) changes nothing and warns (`#[must_use]`).
 
 Note that `Stdio` has four branches: `Inherit`, which passes on the parent's fd; `Null`, which discards output entirely; `Piped`, for two-way communication; and `File`, which plugs in an open file.
 
