@@ -239,7 +239,7 @@ This section defines the standard library methods and behavior on top of that.
 |----------|----------------------------------------------------------------------------------------|
 | `bool`   | `true` / `false`                                                                       |
 | `char`   | Unicode scalar value (4 bytes), compiler primitive. Methods in [2.15](215-string.md)  |
-| `c_char` | C ABI compatible char (1-byte signed, compares as `i8`); FFI only                      |
+| `c_char` | C ABI compatible char (1 byte, sign target-dependent, compares as its byte `c as u8`); FFI only |
 
 ### Two groups - language built-ins vs standard library additions
 
@@ -273,8 +273,8 @@ compiler's responsibility.
 ### Arithmetic / comparison trait impls
 
 Each primitive implements the traits of [2.3 ops](203-ops.md), [2.4 ops-assign](204-ops-assign.md) and
-[2.5 cmp](205-cmp.md). Every operator method and every `PartialEq` / `PartialOrd` method, `bool`, `char` and `c_char` included, carries
-`#[intrinsic("rok.OP.TYPE")]`, which binds it directly to a compiler backend PrimOp. `c_char` compares as a signed byte: `-1 as c_char < 1 as c_char`.
+[2.5 cmp](205-cmp.md). Every operator method and every `PartialEq` / `PartialOrd` method, `char` and `c_char` included, carries
+`#[intrinsic("rok.OP.TYPE")]`, which binds it directly to a compiler backend PrimOp. The one exception is `bool`'s `PartialOrd`, a plain body (`false < true`). `c_char` compares as its byte on every target (`c as u8`, 2.15.5): `255u8 as c_char > 1u8 as c_char`.
 
 ### Methods (per primitive)
 

@@ -148,7 +148,7 @@ let e = b .- a;          //→ [9, 18, 27]
 let f = b ./ a;          //→ [10, 10, 10]
 ```
 
-A length mismatch panics at runtime, naming the method (`List::dot_add: lengths 3 and 2 differ; make both sides the same length`). If the sizes are known at compile time, it is caught as a compile error.
+A length mismatch panics at runtime, naming the method (`List::dot_add: lengths 3 and 2 differ; make both sides the same length`); an operator expression fused into one loop (2.6.6) may hold several operators and says `broadcast:` instead. If the sizes are known at compile time, it is caught as a compile error.
 
 ```rok
 let x: [i32; 3] = [1, 2, 3];

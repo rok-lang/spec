@@ -206,7 +206,7 @@ impl Float {
 |----------|---------------------------------------------------------------------------------------|
 | `bool`   | `true` / `false`                                                                      |
 | `char`   | 유니코드 스칼라 값(4바이트), 컴파일러 원시 타입. 메서드는 [2.15](215-string.md) |
-| `c_char` | C ABI 호환 char(1바이트, 부호 있음, `i8`로 비교), FFI 전용                            |
+| `c_char` | C ABI 호환 char(1바이트, 부호는 타깃에 따름, 바이트 `c as u8`로 비교), FFI 전용 |
 
 ### 두 부류: 언어 내장과 표준 라이브러리 추가
 
@@ -234,7 +234,7 @@ impl PartialEq for c_char { ... }
 
 ### 산술 / 비교 트레잇 impl
 
-원시 타입은 각각 [2.3 ops](203-ops.md), [2.4 ops-assign](204-ops-assign.md), [2.5 cmp](205-cmp.md)의 트레잇을 구현합니다. `bool`, `char`, `c_char`를 포함해 모든 연산자 메서드와 `PartialEq` / `PartialOrd` 메서드에는 `#[intrinsic("rok.OP.TYPE")]`가 붙습니다. 그래서 이 메서드는 컴파일러 백엔드 PrimOp로 바로 이어집니다. `c_char`는 부호 있는 바이트로 비교합니다. `-1 as c_char < 1 as c_char`입니다.
+원시 타입은 각각 [2.3 ops](203-ops.md), [2.4 ops-assign](204-ops-assign.md), [2.5 cmp](205-cmp.md)의 트레잇을 구현합니다. `char`, `c_char`를 포함해 모든 연산자 메서드와 `PartialEq` / `PartialOrd` 메서드에는 `#[intrinsic("rok.OP.TYPE")]`가 붙습니다. 그래서 이 메서드는 컴파일러 백엔드 PrimOp로 바로 이어집니다. 예외는 `bool`의 `PartialOrd` 하나로, 일반 본문입니다(`false < true`). `c_char`는 모든 타깃에서 바이트(`c as u8`, 2.15.5)로 비교합니다. `255u8 as c_char > 1u8 as c_char`입니다.
 
 ### 메서드(원시 타입별)
 

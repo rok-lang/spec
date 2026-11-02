@@ -148,7 +148,7 @@ let e = b .- a;          //→ [9, 18, 27]
 let f = b ./ a;          //→ [10, 10, 10]
 ```
 
-길이가 다르면 메서드 이름을 담아 실행 중에 panic이 일어납니다(`List::dot_add: lengths 3 and 2 differ; make both sides the same length`). 다만 컴파일 시간에 크기를 알 수 있으면 컴파일 에러로 잡힙니다.
+길이가 다르면 메서드 이름을 담아 실행 중에 panic이 일어납니다(`List::dot_add: lengths 3 and 2 differ; make both sides the same length`). 한 루프로 합쳐진 연산자 식(2.6.6)은 연산자가 여럿일 수 있어 `broadcast:`로 시작합니다. 다만 컴파일 시간에 크기를 알 수 있으면 컴파일 에러로 잡힙니다.
 
 ```rok
 let x: [i32; 3] = [1, 2, 3];
