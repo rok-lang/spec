@@ -113,13 +113,13 @@ The meaning of compound assignment (how many times the left-hand side is evaluat
 
 `.` is used for member or method access. `?.` is dot access that passes through a sum type. `??` is the binary operation that fills an empty slot (`none`) with a fallback value. Finally, `?` alone is the postfix unary operator that, when a `T | none` value is `none`, returns `none` early from the enclosing function. Its detailed meaning and desugaring rules are defined in the `?` operator section of [Error control flow](../003-expressions/314-error-control-flow.md#31410-the--operator---early-return-of-none).
 
-`try?` and `try!` are not single tokens. Lexical analysis produces the keyword `try` and the punctuation `?` or `!` as separate tokens, and parsing interprets a `?` / `!` attached to `try` with no whitespace as the [`try?` / `try!`](../003-expressions/314-error-control-flow.md#3143-try-and-try) prefix operator. With whitespace, as in `try !ready()`, it is interpreted as `try` and logical negation `!`.
+`try?` and `try!` are not single tokens. Lexical analysis produces the keyword `try` and the punctuation `?` or `!` as separate tokens, and parsing interprets a `?` / `!` attached to `try` with no whitespace as the [`try?` / `try!`](../003-expressions/314-error-control-flow.md#3143-try-and-try) prefix operator. With whitespace, as in `try !ready()`, it is interpreted as `try` and logical negation `!`. `?` is not a prefix operator, so `try ? f()` is an error whose help asks for `try?`.
 
 ### Single-quote token: character literal vs label
 
 The `'` token branches into two forms. The first is the form `'X'` or `'\X'`, a single character (or escape) followed by a closing `'`, which is a [character literal](108-character-literals.md). The second is the form `'identifier`, an identifier with no closing `'`, which is a label token (see [Labels](../003-expressions/313-loop-expressions.md#3134-labels-controlling-nested-loops) and [Labeled blocks](../003-expressions/309-block-expressions.md#3910-labeled-blocks-label---)).
 
-Lexical analysis decides by looking at the two bytes after `'`. If an identifier start is followed by a closing `'`, it is a character; if an identifier start is followed by a token other than a closing `'`, such as an identifier character, a colon or whitespace, it is a label; an escape (`'\...`) is always a character literal.
+Lexical analysis decides by looking at the two bytes after `'`. If an identifier start is followed by a closing `'`, it is a character; if an identifier start is followed by a token other than a closing `'`, such as an identifier character, a colon or whitespace, it is a label; an escape (`'\...`) is always a character literal. An identifier run followed by a `\` is a character literal too: `'e\u{301}'` is two code points, an error (E0007), not a label.
 
 ### Lambda / arrows
 
