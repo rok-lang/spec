@@ -281,6 +281,7 @@ IDE와 CI 시스템은 이 형식으로 진단을 기계적으로 읽을 수 있
 | `E0137` | `handoff` | thread-local value kept past `with` |
 | `E0138` | `handoff` | list view used after a resize |
 | `E0139` | `type` | `pub` function signature not written out |
+| `E0140` | `handoff` | stream view used past its stream |
 
 `kind` 값은 `lexical`, `parse`, `resolve`, `visibility`, `module`, `type`, `pattern`, `handoff`(넘긴 뒤의 사용, [stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync-스레드-경계-마커), 또는 리스트 크기를 바꾼 뒤의 `SliceMut` 사용, [stdlib 2.9.7a](../../refs-standard-libraries/200-core/209-collections.md#297a-slicemutt-쓰기-가능한-뷰)), `meta`, `lowering`, `codegen`, `linkage`, `unsupported`, `internal`, `other`, `lint`입니다.
 

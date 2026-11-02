@@ -71,7 +71,7 @@ impl Child {
     fn take_stdout(ref self) -> ChildStdout | none;
     fn take_stderr(ref self) -> ChildStderr | none;
     fn kill(self) throws (IoError);
-    fn wait(self) throws (IoError) -> ExitStatus;
+    fn wait(ref self) throws (IoError) -> ExitStatus;
     async fn wait_async(ref self) throws (IoError) -> ExitStatus;
     fn try_wait(self) throws (IoError) -> ExitStatus | none;
 

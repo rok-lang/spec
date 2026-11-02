@@ -151,6 +151,7 @@ A value whose type implements `Drop` is affine: it has one owner, and it is rele
 - A call takes the value only when the callee keeps it: stores it, returns it, closes it, or passes it to a call that keeps it. Any other call borrows it, and the caller still owns it. An `async fn` call that is awaited at once is such a call too: the argument comes back to the caller when the `await` ends, unless the function's body keeps it. A call through a function value or a closure has no body to look into, so it takes the value.
 - An element seen while iterating a container (`for x in list`) or read from one stays the container's.
 - `clone()` (`try_clone()` for a `File`) makes an independent value with its own owner.
+- A stream adapter (`r.lines()`, `r.take(n)`, `l.incoming()`) is a scoped view of the stream, not a second owner: it stays in the owner's scope (E0140, [2.23.1](223-io.md#2231-read)); the `into_` forms (`r.into_lines()`) take the stream instead.
 - A part moves out of a struct only through `marker::replace(ref s.f, v)` or `marker::take(ref s.f)`, which leave a new value in its place.
 - `unsafe { marker::share(x) }` makes a second handle the compiler does not follow: it neither moves nor releases `x`. Using it after the owner released the value is the program's to rule out.
 

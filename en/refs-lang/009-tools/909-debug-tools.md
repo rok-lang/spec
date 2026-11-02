@@ -279,6 +279,7 @@ Every kind of error has its own code, `E` and four digits: `E0040` for mismatche
 | `E0137` | `handoff` | thread-local value kept past `with` |
 | `E0138` | `handoff` | list view used after a resize |
 | `E0139` | `type` | `pub` function signature not written out |
+| `E0140` | `handoff` | stream view used past its stream |
 
 The `kind` values are `lexical`, `parse`, `resolve`, `visibility`, `module`, `type`, `pattern`, `handoff` (use after hand-off, [stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers), or of a `SliceMut` after its list was resized, [stdlib 2.9.7a](../../refs-standard-libraries/200-core/209-collections.md#297a-slicemutt---writable-view)), `meta`, `lowering`, `codegen`, `linkage`, `unsupported`, `internal`, `other` and `lint`.
 
