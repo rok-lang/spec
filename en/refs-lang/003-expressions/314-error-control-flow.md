@@ -24,6 +24,15 @@ A statement of the `throw` keyword followed by any expression; the expression's 
 
 Flow does not continue after a `throw` statement, so a block ending in a `throw` statement is divergent.
 
+A `str` thrown is wrapped: `throw msg` with `msg: str` throws `ValueError::new(msg)` ([stdlib 2.14](../../refs-standard-libraries/200-core/214-error.md)). The enclosing function must accept `ValueError` like any other thrown error: an untyped `throws` does, a typed `throws (E)` must list it (`throws (E | ValueError)`), and otherwise it is E0062 with a help saying so. The `str` is thrown as is where it is taken as a `str`: the function declares `throws (str)` (or a sum holding `str`), or an enclosing `catch e: str` arm takes it.
+
+```rok
+fn check(age: i32) throws -> i32 {
+    if age < 0 { throw f"age {age} is negative"; }   // a ValueError
+    age
+}
+```
+
 ```rok
 let x = if cond { 42i32 } else { throw ValueError::new("not allowed"); };
 // x: i32 (else branch is divergent)
@@ -82,7 +91,7 @@ The two variants of `try` do not propagate the error to the enclosing function; 
 | `try! e` | `T`                      | panic (3.14.8)                    |
 
 ```rok
-let port = (try? env::var("PORT")) ?? "8080";
+let port = try? env::var("PORT") ?? "8080";      // (try? env::var("PORT")) ?? "8080"
 let cfg = try! load_builtin_config();      // failure is a program bug
 ```
 
@@ -96,10 +105,10 @@ match r {
     none => print("lookup failed"),   // outer: an error was thrown
     v => print(f"{v:?}"),             // inner: i32 | none from lookup
 }
-let v = (try? lookup("a")) ?? none;   // i32 | none: error and absence merged
+let v = try? lookup("a") ?? none;     // i32 | none: error and absence merged
 ```
 
-The `?` / `!` of `try?` / `try!` must immediately follow `try`. `try !x` is `try (!x)`. Because `try?` and `try!` do not propagate errors, the enclosing function need not be `throws`. Their coverage is the same as `try`. To chain `??` after the result of `try?`, close the range with parentheses as in the example above. Unparenthesized, `try? f() ?? d` is a compile error, because the coverage rule would make it `try? (f() ?? d)`, where an error gives `none`, not `d`. Write `(try? f()) ?? d` or `try? (f() ?? d)`; the help offers both.
+The `?` / `!` of `try?` / `try!` must immediately follow `try`. `try !x` is `try (!x)`. Because `try?` and `try!` do not propagate errors, the enclosing function need not be `throws`. Their coverage is that of `try`, except that it ends before `??`: `try? f() ?? d` is `(try? f()) ?? d`, `d` on an error, the reading the default is written for. To get `none` on an error from `f() ?? d`, group it: `try? (f() ?? d)`. On a `T | none` result `??` still acts on the outer layer only, as in the example above (`try? lookup("a") ?? none` merges an error with an absent value).
 
 ## 3.14.4. `catch`: postfix handling expression
 
@@ -195,7 +204,7 @@ The value of a `catch` expression is the value of the left expression if it comp
 
 ## 3.14.7. Thrown values and function signatures
 
-The `err` of `throw err` is any expression. A function with typed `throws (E)` may throw values corresponding to the members of `E`; a function with untyped `throws` is shorthand for `throws (any Error)` and may throw values implementing the standard library `Error` trait.
+The `err` of `throw err` is any expression. A function with typed `throws (E)` may throw values corresponding to the members of `E`; a function with untyped `throws` is shorthand for `throws (any Error)` and may throw values implementing the standard library `Error` trait. A thrown `str` is a `ValueError` (3.14.1).
 
 ```rok
 fn parse(s: str) throws -> i32 { ... }              // untyped, any Error

@@ -9,10 +9,12 @@ closure_expr   ::= capture_list? closure_params (return_type block | closure_bod
 closure_params ::= "||"
                  | "|" closure_param_list "|"
 closure_param_list ::= closure_param ("," closure_param)* ","?
-closure_param ::= identifier (":" type_expr)?
+closure_param ::= (identifier | param_pattern) (":" type_expr)?
 closure_body   ::= expr | block
 capture_list   ::= "[" capture_item ("," capture_item)* "]"
 ```
+
+A closure parameter may be an irrefutable pattern, as a function parameter may ([4.2](402-parameters.md)): `|(k, v)| f"{k}={v}"` takes one tuple argument and destructures it, while `|k, v|` takes two arguments.
 
 The zero-parameter form `||` is a single token (see [punctuation and operator tokens](../001-lexical/110-punctuation-and-operator-tokens.md)) and is not split into two `|`.
 

@@ -207,7 +207,7 @@ Each type implements `Error`, `Display`, `Debug`, `PartialEq`, `Eq` and `Clone`.
 | Type              | Thrown by                                                                  |
 |-------------------|----------------------------------------------------------------------------|
 | `TypeError`       | runtime cast failure, type check failure                                   |
-| `ValueError`      | general invalid value (parsers / APIs, etc.)                               |
+| `ValueError`      | general invalid value (parsers / APIs, etc.); what `throw "msg"` throws    |
 | `OverflowError`   | range exceeded in a checked conversion such as `try_into` (arithmetic overflow panics) |
 | `ParseError`      | parse failure such as `str → number` (ROKON uses `RokonError`)             |
 | `ConversionError` | default for `TryFrom::Error`; failure of a non-numeric conversion ([2.11.4](211-conversion.md#2114-tryfromu-trait---fallible-conversion)); `try_from` of `NonNan` / `Finite` |

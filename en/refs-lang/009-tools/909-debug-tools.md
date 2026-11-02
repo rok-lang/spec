@@ -159,7 +159,7 @@ The titles are written exactly as `rokc --explain` prints them.
 | `E0015` | `parse` | doc comment documents nothing |
 | `E0016` | `parse` | visibility where it has no meaning |
 | `E0017` | `parse` | item in the wrong place |
-| `E0018` | `parse` | `return` in top-level statements |
+| `E0018` | `parse` | `return` with a value in top-level statements |
 | `E0019` | `parse` | operators that need parentheses |
 | `E0020` | `parse` | `return` in a trailing closure |
 | `E0021` | `parse` | reserved word used as a name |

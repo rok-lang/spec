@@ -6,7 +6,11 @@ This section defines the form of function parameters and the rules for matching 
 param           ::= self_param | regular_param
 self_param      ::= "ref"? "self"
 regular_param   ::= "ref"? identifier (":" type_expr)? ("=" const_expr)?
+                  | param_pattern (":" type_expr)?
+param_pattern   ::= tuple_pattern | struct_pattern
 ```
+
+A `param_pattern` is an irrefutable pattern ([3.11](../003-expressions/311-patterns.md)) in place of the name: `fn f((a, b): (i32, i32))`, `fn g(P { x, y }: P)`. The argument is destructured at the start of the body, as `let (a, b) = arg;` would ([3.15](../003-expressions/315-destructuring.md)): a tuple of the wrong length is E0101, a refutable pattern E0100. Such a parameter has no name for callers, so it takes no default and no named argument. A `ref` parameter is always a name (`ref (a, b)` is an error).
 
 ## 4.2.1. Basic form
 

@@ -24,6 +24,15 @@ throw err;
 
 `throw` 문 뒤로는 흐름이 이어지지 않으므로 `throw` 문으로 끝나는 블록은 divergent입니다.
 
+던진 `str`은 감쌉니다. `msg: str`일 때 `throw msg`는 `ValueError::new(msg)`를 던집니다([stdlib 2.14](../../refs-standard-libraries/200-core/214-error.md)). 둘러싼 함수는 다른 에러처럼 `ValueError`를 받아야 합니다. 타입을 적지 않은 `throws`는 받고, 타입을 적은 `throws (E)`는 목록에 넣어야 하며(`throws (E | ValueError)`), 그 밖에는 E0062이고 help가 그렇게 알려 줍니다. 다만 `str`을 `str`로 받는 곳에서는 감싸지 않고 그대로 던집니다. 함수가 `throws (str)`(또는 `str`을 담은 합 타입)을 선언했거나, 둘러싼 `catch e: str` 갈래가 받는 경우입니다.
+
+```rok
+fn check(age: i32) throws -> i32 {
+    if age < 0 { throw f"age {age} is negative"; }   // ValueError
+    age
+}
+```
+
 ```rok
 let x = if cond { 42i32 } else { throw ValueError::new("not allowed"); };
 // x: i32 (else 분기 divergent)
@@ -82,7 +91,7 @@ let data = try await fetch(url);
 | `try! e` | `T`                      | panic (3.14.8)                |
 
 ```rok
-let port = (try? env::var("PORT")) ?? "8080";
+let port = try? env::var("PORT") ?? "8080";      // (try? env::var("PORT")) ?? "8080"
 let cfg = try! load_builtin_config();      // 실패하면 프로그램 버그
 ```
 
@@ -96,10 +105,10 @@ match r {
     none => print("조회 실패"),        // 바깥: 에러가 났음
     v => print(f"{v:?}"),             // 안쪽: lookup이 준 i32 | none
 }
-let v = (try? lookup("a")) ?? none;   // i32 | none: 에러와 없음을 합침
+let v = try? lookup("a") ?? none;     // i32 | none: 에러와 없음을 합침
 ```
 
-`try?` / `try!`의 `?` / `!`는 `try` 바로 뒤에 붙여야 합니다. `try !x`는 `try (!x)`입니다. `try?`와 `try!`는 에러를 전파하지 않으므로 둘러싼 함수가 `throws`가 아니어도 됩니다. 덮는 범위는 `try`와 같습니다. `try?`의 결과에 `??`를 이어 쓰려면 위 예처럼 괄호로 범위를 닫습니다. 괄호 없는 `try? f() ?? d`는 컴파일 에러입니다. 덮는 범위 규칙대로라면 `try? (f() ?? d)`가 되어 에러가 나면 `d`가 아니라 `none`이 되기 때문입니다. `(try? f()) ?? d`나 `try? (f() ?? d)`로 적습니다. help가 둘 다 제안합니다.
+`try?` / `try!`의 `?` / `!`는 `try` 바로 뒤에 붙여야 합니다. `try !x`는 `try (!x)`입니다. `try?`와 `try!`는 에러를 전파하지 않으므로 둘러싼 함수가 `throws`가 아니어도 됩니다. 덮는 범위는 `try`와 같지만 `??` 앞에서 끝납니다. `try? f() ?? d`는 `(try? f()) ?? d`이고, 에러가 나면 `d`입니다. 기본값을 적는 뜻 그대로입니다. `f() ?? d`에서 에러가 나면 `none`을 얻으려면 `try? (f() ?? d)`로 묶습니다. 결과가 `T | none`이어도 `??`는 위 예처럼 바깥 층에만 작용합니다(`try? lookup("a") ?? none`은 에러와 없음을 합칩니다).
 
 ## 3.14.4. `catch`: 후위 처리 식
 
@@ -195,7 +204,7 @@ let x = try parse(input) catch _ { default };
 
 ## 3.14.7. 던지는 값과 함수 시그니처
 
-`throw err`의 `err`는 임의의 식입니다. 타입을 적은 `throws (E)` 함수는 `E`의 항에 해당하는 값을 던질 수 있습니다. 타입을 적지 않은 `throws` 함수는 `throws (any Error)`의 줄임입니다. 그래서 표준 라이브러리의 `Error` 트레잇을 구현하는 값을 던질 수 있습니다.
+`throw err`의 `err`는 임의의 식입니다. 타입을 적은 `throws (E)` 함수는 `E`의 항에 해당하는 값을 던질 수 있습니다. 타입을 적지 않은 `throws` 함수는 `throws (any Error)`의 줄임입니다. 그래서 표준 라이브러리의 `Error` 트레잇을 구현하는 값을 던질 수 있습니다. 던진 `str`은 `ValueError`입니다(3.14.1).
 
 ```rok
 fn parse(s: str) throws -> i32 { ... }              // untyped, any Error

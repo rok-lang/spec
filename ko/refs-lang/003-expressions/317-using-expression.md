@@ -8,8 +8,11 @@ GC가 메모리는 자동으로 회수하지만, 외부 자원(파일, 소켓, �
 
 ```
 using_expr     ::= "using" using_binding ("," using_binding)* block
+using_stmt     ::= "using" using_binding ("," using_binding)* ";"
 using_binding  ::= pattern "=" expr
 ```
+
+`using_stmt`는 [3.17.9](#3179-문장-형태)의 문장 형태입니다.
 
 각 구성 요소의 의미는 다음과 같습니다.
 
@@ -113,7 +116,7 @@ using x = 42 { ... }   // ERROR: using 에는 Drop 구현 타입이 필요. i32 
 
 | 언어   | 형태                          | 스코프 단위  | 비고                            |
 |--------|-------------------------------|--------------|---------------------------------|
-| Rok    | `using x = try e { ... }`     | block        | 표현식, 다중 자원, `try` 통합   |
+| Rok    | `using x = try e { ... }`, `using x = e;` | block | 표현식, 다중 자원, `try` 통합 |
 | C#     | `using (var x = e) { ... }`   | block        | `IDisposable` 필요              |
 | Java   | `try (var x = e) { ... }`     | try block    | `AutoCloseable` 필요, 다중 자원 |
 | Python | `with x as f: ...`            | block        | `__enter__` / `__exit__`        |
@@ -123,3 +126,30 @@ using x = 42 { ... }   // ERROR: using 에는 Drop 구현 타입이 필요. i32 
 | Rust   | (RAII 자동, 별도 키워드 없음) | block        | GC 없음, drop 시점 자동 결정    |
 
 Rok의 `using`은 GC 언어(C#, Java, Python)의 명시적 블록 패턴에 세 가지를 더했습니다. 식으로 합성할 수 있고, `try`와 통합되며, 다중 자원을 역순으로 해제합니다.
+
+## 3.17.9. 문장 형태
+
+`using x = e;`는 `x`를 둘러싼 블록의 나머지에 묶고, 그 블록이 끝날 때 해제합니다.
+
+```rok
+fn copy_lines(from: Path) throws (IoError) {
+    using r = BufReader::new(try fs::open(from));
+    try for line in r.lines() {
+        println(f"> {line}");
+    }
+}                                  // ← 여기서 r 해제
+```
+
+뜻은 같은 블록에서 그 뒤에 오는 문장들을 본체로 한 블록 형태입니다.
+
+```rok
+using a = e;
+s1;
+s2
+// 는
+using a = e { s1; s2 }
+```
+
+그래서 블록 형태의 규칙이 모두 그대로 적용됩니다. 3.17.6의 모든 경로에서 해제하고, 바인딩이 여럿이거나 한 블록에 `using` 문이 여럿이면 역순으로 해제하며, 3.17.7의 `Drop` 요건과 묶인 값의 뷰 검사도 같습니다. 블록의 값은 `using` 뒤 문장들의 값입니다. `main.rok`의 top-level 문에서 블록의 나머지는 프로그램의 나머지입니다.
+
+문장 형태는 문장의 맨 앞에 옵니다. 다른 곳(`let x = using r = e;`)에 쓰면 컴파일 에러이고, help가 블록 형태를 알려 줍니다. 뒤에 본체가 없으므로 바인딩 끝의 struct 리터럴에 괄호가 필요 없습니다(`using r = R { n: 1 };`). 블록 나머지보다 짧은 범위와 식으로 쓰는 `using`에는 블록 형태를 그대로 씁니다.

@@ -2,11 +2,12 @@
 
 A character literal is a token representing a single code point or a single byte.
 
-## 1.8.1. Two kinds
+## 1.8.1. Three kinds
 
 ```
 char_lit    ::= "'" char_item "'"
               | "c'" byte_item "'"
+              | "b'" byte_item "'"
 char_item   ::= <any unicode codepoint except "'" or "\\"> | escape_seq
 byte_item   ::= <any ASCII byte except "'" or "\\"> | byte_escape
 byte_escape ::= "\\x" hex_digit hex_digit | escape_seq
@@ -37,13 +38,23 @@ This form consists of the `c` prefix and a pair of single quotes; escape sequenc
 
 This form evaluates to the primitive type `c_char`, the 8-bit character type of the foreign function interface ([FFI](../000-meta/007-glossary.md#ffi-foreign-function-interface)).
 
+### Bytes: `b'A'`
+
+```rok
+b'0'          // 48u8
+b'\n'         // 10u8
+b'\xFF'       // 255u8
+```
+
+This form consists of the `b` prefix and a pair of single quotes, with the contents and escapes of `c'x'`: one ASCII character written directly, or an escape whose value is at most `\xFF`. A non-ASCII character such as `b'é'` is a lexical error whose message says to write `\xHH`. The literal is an integer literal of type `u8` with the byte's value, so it works wherever a `u8` does, patterns and pattern ranges included (`b'0'..=b'9' => ..`). It is the byte counterpart of the `b"..."` byte string ([1.7](107-string-literals.md)).
+
 ## 1.8.2. Why the two kinds are separate
 
 Rather than assigning two meanings to the same token form (`'X'`), the two are separated explicitly by a prefix. A character in the Unicode sense and a single byte of the C [ABI](../000-meta/007-glossary.md#abi-application-binary-interface) have different semantics; lumping them under one notation would leave no way to state intent when calling compatible functions. The `c` prefix also leaves a visible signal that the code "touches FFI".
 
 ## 1.8.3. Mandatory length check
 
-A character literal must contain exactly one code point (ordinary) or exactly one byte (C-compatible). This length check is performed at the lexical stage, and a mismatch is an error immediately.
+A character literal must contain exactly one code point (ordinary) or exactly one byte (C-compatible and byte). This length check is performed at the lexical stage, and a mismatch is an error immediately.
 
 This decision rules out ambiguities such as the following. Can a combining sequence (`e\u{0301}` = `é`) go in one character literal? No: it is two code points. Such text belongs in a string literal. Likewise, what is "one character to the human eye" at the grapheme cluster level is treated as a string-level concept, not a character literal.
 

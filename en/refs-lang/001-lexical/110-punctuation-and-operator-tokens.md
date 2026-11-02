@@ -86,6 +86,8 @@ The following Unicode operators are also fixed tokens. Their precedence is given
 | `⊂ ⊆` | U+2282, U+2286 | Subset (`is_proper_subset`, `is_subset`) |
 | `∪ ∩` | U+222A, U+2229 | Union, intersection (`union`, `intersection`) |
 
+`∈ ∉` also have ASCII spellings, `in` and `!in`, read by the parser rather than the lexer: in operator position the word `in` is `∈`, and `!` written directly before `in` (no space) is `∉`. `x ! in xs` and Python's `x not in xs` are errors whose help says to write `!in`.
+
 Operator characters are all chosen from code points with the Unicode `Pattern_Syntax` property. `∑ ∏ ∫` are `Pattern_Syntax` but have been designated identifier characters ([1.4.1](104-identifiers.md#mathematical-notation-profile)), so they are not operators.
 
 ### Assignment / compound assignment

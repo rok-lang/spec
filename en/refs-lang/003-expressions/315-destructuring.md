@@ -136,28 +136,25 @@ let (q, r) = divmod(num, den);          // two results
 let (head, ..tail) = items;             // split
 ```
 
-A destructuring `let` declares new variables; it does not write existing ones. `let (a, b) = (b, a);` shadows `a` and `b` for the rest of its block, so inside a loop body the outer `a` and `b` keep their values. To update existing variables from several values at once (the C- or Python-style `a, b = b, a + b`), destructure into new names and assign each:
+A destructuring `let` declares new variables; it does not write existing ones. `let (a, b) = (b, a);` shadows `a` and `b` for the rest of its block, so inside a loop body the outer `a` and `b` keep their values. To reassign existing variables, write the tuple without `let` (3.15.12): `(a, b) = (b, a + b);`.
+
+## 3.15.12. Without `let`: destructuring assignment
+
+A tuple of existing places is assigned without `let`:
 
 ```rok
-let a = 0;
-let b = 1;
-for _ in 0..10 {
-    let (x, y) = (b, a + b);            // both computed from the old values
-    a = x;
-    b = y;
-}
-println(f"{a}");                        // 55
+(a, b) = (b, a + b);             // reassigns a and b
 ```
 
-## 3.15.12. Without `let`: destructuring reassignment (none)
+`let` declares and a bare tuple target reassigns, the same split as `let x = ..` and `x = ..`. The rules are those of [3.4.6](304-assignment.md#346-destructuring-assignment).
 
-Destructuring reassignment of existing variables is not adopted.
+## 3.15.13. Patterns in parameters
 
+A function or closure parameter may be an irrefutable pattern instead of a name ([4.2](../004-functions/402-parameters.md), [4.5](../004-functions/405-closure.md)):
+
+```rok
+fn index(self, (i, j): (usize, usize)) -> f64 { self.data[i * self.cols + j] }
+pairs.map(|(k, v)| f"{k}={v}")
 ```
-(a, b) = (1, 2);                // not adopted
-let (x, y) = (1, 2); a = x; b = y;      // write this
-```
 
-`let` is always required, to keep the distinction between new declaration and reassignment clear (consistent with the decision in [assignment](304-assignment.md)).
-
-To assign destructured results to existing variables, go through temporaries or assign them separately.
+The pattern destructures the argument at the start of the body, with the rules of this section.

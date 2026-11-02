@@ -159,7 +159,7 @@ IDE와 CI 시스템은 이 형식으로 진단을 기계적으로 읽을 수 있
 | `E0015` | `parse` | doc comment documents nothing |
 | `E0016` | `parse` | visibility where it has no meaning |
 | `E0017` | `parse` | item in the wrong place |
-| `E0018` | `parse` | `return` in top-level statements |
+| `E0018` | `parse` | `return` with a value in top-level statements |
 | `E0019` | `parse` | operators that need parentheses |
 | `E0020` | `parse` | `return` in a trailing closure |
 | `E0021` | `parse` | reserved word used as a name |

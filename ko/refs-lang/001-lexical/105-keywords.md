@@ -49,7 +49,7 @@ macro     defer     dyn       move      gen       do
 | `type`                             | 항목 시작에서 식별자가 오고 그 뒤에 `=` 또는 `<`가 올 때(타입 별칭)  | [2.6](../002-types/206-sum-types.md) |
 | `any`                              | 타입 자리(`any`, `any Tr`)                                             | [2.2](../002-types/202-any-slot.md) |
 | `some`                             | 함수 반환이나 매개변수 타입에서 바운드 앞(`-> some Tr`, `x: some Tr`) | [4.1.13](../004-functions/401-function-declaration.md#4113-불투명-반환-타입-some-trait) |
-| `in`                               | `for pat in`의 `in`                                                   | [3.13.3](../003-expressions/313-loop-expressions.md#3133-for-반복자-기반-반복) |
+| `in`                               | `for pat in`의 `in`. 식 안에서는 포함 연산자 `in` / `!in`(`∈` / `∉`) | [3.13.3](../003-expressions/313-loop-expressions.md#3133-for-반복자-기반-반복), [3.2.3](../003-expressions/302-precedence-and-associativity.md#323-우선순위와-결합성-표) |
 | `where`                            | 함수 시그니처, `impl` 헤더, `struct` / `enum` / `union` / 타입 별칭 헤더 뒤 | [2.10.4](../002-types/210-generics.md#2104-where-절) |
 | `throws`, `rethrows`               | 함수 시그니처의 매개변수 `)` 뒤                                        | [4.14](../004-functions/414-throws.md) |
 | `catch`, `finally`                 | 식이나 블록 뒤(후위 절)                                                | [3.14](../003-expressions/314-error-control-flow.md) |

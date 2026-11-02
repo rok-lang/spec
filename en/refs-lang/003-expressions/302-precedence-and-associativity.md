@@ -17,7 +17,7 @@ Precedence values are integers; an operator with a larger value binds first.
 ```
 a - b - c       →   (a - b) - c             // left-associative
 a ?? b ?? c     →   a ?? (b ?? c)           // right-associative (example)
-a < b < c       →   ?                        // non-associative (chaining banned)
+a ∈ s == t      →   ?                        // non-associative: an error
 ```
 
 Associativity is one of three kinds.
@@ -26,7 +26,7 @@ Associativity is one of three kinds.
 |----------|------------------------------------------------------|
 | `left`   | Groups from the left. `a OP b OP c` = `(a OP b) OP c` |
 | `right`  | Groups from the right. `a OP b OP c` = `a OP (b OP c)` |
-| `none`   | Chaining banned. `a OP b OP c` is a compile error    |
+| `none`   | No grouping. `a OP b OP c` is a compile error, except the comparison chains of 3.2.5 |
 
 ## 3.2.3. Precedence and associativity table
 
@@ -46,7 +46,7 @@ Level Operators                                                 Assoc
  7   &                                                          left
  6   ^                                                          left
  5   |                                                          left
- 4   == != < > <= >= ≡ ≠ ≤ ≥ ∈ ∉ ⊂ ⊆                            none
+ 4   == != < > <= >= ≡ ≠ ≤ ≥ ∈ ∉ in !in ⊂ ⊆                     none (chains: 3.2.5)
  3   &&                                                         left
  2   ||                                                         left
  1   ?? (null coalescing)                                       right
@@ -60,7 +60,10 @@ The Unicode operators in the table (`× ⋅ ÷ ∩ ∪ ∘ √ ≡ ≠ ≤ ≥ �
 > **Relative precedence of `??` and `..`**: `??` (prec=1) binds **tighter** than the range operators `..` / `..=` (prec=0). So `a ?? 0..3` groups as `(a ?? 0)..3`, and the range operators are weaker than every binary operator except assignment (`a || b..c` is `(a || b)..c`). Neither operator dispatches through a trait; the language handles both directly: `??` is a language-level desugaring over sum types ([3.8.4](308-optional-chaining-and-coalescing.md#384-null-coalescing-)), and ranges are syntax whose six forms the language recognizes as distinct expressions ([3.7](307-range-expressions.md)). The range operators are non-associative, so `a..b..c` is a compile error.
 
 > [!IMPORTANT]
-> **Binding of `try` with `catch` / `finally`**: `try` / `try?` / `try!` and the `catch` / `finally` clauses of [error control flow](314-error-control-flow.md) are also language syntax with no trait connection. `try` is a prefix form, but unlike the prefix unary operators in the table (prec=13) it covers the entire expression to its right. Its operand extends up to a `catch` / `finally` clause, the statement terminator `;`, a closing bracket, or a comma, so `try a + b()` is `try (a + b())`. The `catch` / `finally` clauses bind tighter than assignment (prec=-1) and weaker than every other operator, attaching to the whole expression on their left. Thus `try parse(s) catch _ { 0 }` is `(try parse(s)) catch _ { 0 }`, and `x = try f() catch _ { 0 }` is `x = ((try f()) catch _ { 0 })`.
+> **Binding of `try` with `catch` / `finally`**: `try` / `try?` / `try!` and the `catch` / `finally` clauses of [error control flow](314-error-control-flow.md) are also language syntax with no trait connection. `try` is a prefix form, but unlike the prefix unary operators in the table (prec=13) it covers the entire expression to its right. Its operand extends up to a `catch` / `finally` clause, the statement terminator `;`, a closing bracket, or a comma, so `try a + b()` is `try (a + b())`. The operand of `try?` / `try!` also ends before `??`: `try? f() ?? d` is `(try? f()) ?? d`, while `try f() ?? d` is `try (f() ?? d)`. The `catch` / `finally` clauses bind tighter than assignment (prec=-1) and weaker than every other operator, attaching to the whole expression on their left. Thus `try parse(s) catch _ { 0 }` is `(try parse(s)) catch _ { 0 }`, and `x = try f() catch _ { 0 }` is `x = ((try f()) catch _ { 0 })`.
+
+> [!IMPORTANT]
+> **`in` / `!in` and ranges**: `in` and `!in` are the ASCII spellings of `∈` / `∉` ([1.10.3](../001-lexical/110-punctuation-and-operator-tokens.md#1103-fixed-token-table)). A range on the right of a membership operator needs no parentheses: after the right operand, `..` / `..=` continue it as a range whose end binds like the right operand itself (prec=5). So `i in 0..n` is `i ∈ (0..n)`, `i in 0..n + 1` is `i ∈ (0..(n + 1))`, and `i in 0..n && ok` is `(i ∈ (0..n)) && ok`.
 
 > [!IMPORTANT]
 > **`await`**: `await` is a prefix unary operator at prec=13, like `-` and `!`, so its operand is a unary expression: `await f() == x` is `(await f()) == x` ([4.12.2](../004-functions/412-async.md#4122-the-await-operator)).
@@ -86,30 +89,32 @@ When the same token can appear as prefix, binary, and postfix (for example `-`),
 
 Because the table fixes precedence, registrations cannot conflict on precedence. Connecting different traits to the same (token, position) is a compile error per [6.7.5](../006-meta-system/607-operator-magic.md#675-conflict-checking).
 
-## 3.2.5. No comparison chaining
+## 3.2.5. Comparison chains
 
-> [!WARNING]
-> Chaining by mathematical intuition (`a < b < c` meaning `a < b && b < c`) is not allowed in Rok.
+Comparisons of one direction chain, as in mathematics:
 
-The comparison operators (`<`, `>`, `<=`, `>=`, `==`, `!=`) are all non-associative in the 3.2.3 table.
-
-```
-a < b < c       // ERROR: chaining banned
-a == b == c     // ERROR
+```rok
+0 <= i < n          // 0 <= i && i < n
+a > b >= c          // a > b && b >= c
+a == b == c         // a == b && b == c
 ```
 
-The intended meaning must be written explicitly:
+A chain is a run of level-4 operators taken from one group: `<` and `<=` (`≤`), or `>` and `>=` (`≥`), or `==` (`≡`). `e0 o1 e1 o2 e2 ..` means `e0 o1 e1 && e1 o2 e2 && ..`, with three guarantees:
+
+- each operand is evaluated once, left to right;
+- evaluation stops at the first comparison that is `false`, and the operands after it are not evaluated;
+- the result is `bool`.
+
+A middle operand that is a name, a field of one or a literal is read again for the next comparison, so a literal still takes its type from the other side (`0 <= x < 10` with `x: u8`). Any other middle operand is evaluated once into a temporary.
+
+Everything else stays non-associative: a chain that mixes directions (`a < b > c`), `!=` (`a != b != c`), and membership or subset operators (`x ∈ s == t`) are a compile error (E0019). The help writes the `&&` form (`a < b && b > c`).
 
 ```
-a < b && b < c
+a < b > c       // ERROR: write a < b && b > c
+a != b != c     // ERROR: write a != b && b != c
 ```
 
-There are two reasons for this decision.
-
-- The result of a comparison is `bool`, and comparing that `bool` again contradicts mathematical intuition.
-- Accepting chaining would require a separate chaining rule inconsistent with the other operators.
-
-Writing `&&` explicitly is therefore the simplest and most consistent form.
+One-direction chains read the way they are written in mathematics and in Python, and a range test (`lo <= x < hi`) names `x` once. A mixed chain has no single reading, and `!=` would not be transitive, so these stay errors.
 
 ## 3.2.6. Forcing grouping with parentheses
 

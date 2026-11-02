@@ -204,6 +204,6 @@ let magic = b"\x7FELF";          // [u8; 4]
 let req: Slice<u8> = b"GET /\r\n";
 ```
 
-Characters written directly must be ASCII; any other byte is written as an escape. Escape sequences follow the table of 1.7.1 as for `c'A'` ([1.8.1](108-character-literals.md#181-two-kinds)): `\xHH` may be any value `\x00`-`\xFF`, and every escape's value must lie within `U+0000`-`U+00FF`. A non-ASCII character written directly, or an escape above `U+00FF`, is a lexical error. Line continuation (1.7.1) does not apply: a `\` before a line terminator is an unknown escape and a lexical error.
+Characters written directly must be ASCII; any other byte is written as an escape. Escape sequences follow the table of 1.7.1 as for `c'A'` ([1.8.1](108-character-literals.md#181-three-kinds)): `\xHH` may be any value `\x00`-`\xFF`, and every escape's value must lie within `U+0000`-`U+00FF`. A non-ASCII character written directly, or an escape above `U+00FF`, is a lexical error. Line continuation (1.7.1) does not apply: a `\` before a line terminator is an unknown escape and a lexical error.
 
 Where the expected type is `Slice<u8>`, or a sum type with a `Slice<u8>` member and no array member, the literal is instead a `Slice<u8>` view of that array, as if written `b"..."[:]`.

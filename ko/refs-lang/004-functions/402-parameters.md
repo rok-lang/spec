@@ -6,7 +6,11 @@
 param           ::= self_param | regular_param
 self_param      ::= "ref"? "self"
 regular_param   ::= "ref"? identifier (":" type_expr)? ("=" const_expr)?
+                  | param_pattern (":" type_expr)?
+param_pattern   ::= tuple_pattern | struct_pattern
 ```
+
+`param_pattern`은 이름 자리에 쓰는 반증 불가능 패턴입니다([3.11](../003-expressions/311-patterns.md)). `fn f((a, b): (i32, i32))`, `fn g(P { x, y }: P)`처럼 씁니다. 인자는 본체 시작에서 `let (a, b) = arg;`처럼 분해합니다([3.15](../003-expressions/315-destructuring.md)). 길이가 다른 튜플은 E0101, 반증 가능한 패턴은 E0100입니다. 이런 매개변수에는 호출자가 쓸 이름이 없으므로 기본값과 이름 있는 인자를 받지 않습니다. `ref` 매개변수는 언제나 이름입니다(`ref (a, b)`는 에러).
 
 ## 4.2.1. 기본 형태
 

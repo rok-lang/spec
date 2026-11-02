@@ -207,7 +207,7 @@ struct ZeroError;                     // rok::core::num::niche; message()
 | 타입            | 던지는 자리                                                                |
 |-----------------|----------------------------------------------------------------------------|
 | `TypeError`     | 런타임 캐스트 실패, 타입 검사 실패                                         |
-| `ValueError`    | 일반적인 잘못된 값 (파서 / API 등)                                         |
+| `ValueError`    | 일반적인 잘못된 값 (파서 / API 등). `throw "msg"`가 던지는 값            |
 | `OverflowError` | `try_into` 등 검사하는 변환의 범위 초과 (산술 오버플로는 panic)            |
 | `ParseError`    | `str → number` 등 파싱 실패 (ROKON은 `RokonError`)                                         |
 | `ConversionError` | `TryFrom::Error`의 기본값. 숫자가 아닌 변환의 실패 ([2.11.4](211-conversion.md#2114-tryfromu-트레잇-실패할-수-있는-변환)), `NonNan` / `Finite`의 `try_from` |

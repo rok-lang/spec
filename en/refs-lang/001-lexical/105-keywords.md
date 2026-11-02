@@ -49,7 +49,7 @@ The following words are keywords only in designated positions and are ordinary i
 | `type`                             | At item start, when followed by an identifier and then `=` or `<` (type alias) | [2.6](../002-types/206-sum-types.md) |
 | `any`                              | Type position (`any`, `any Tr`)                                        | [2.2](../002-types/202-any-slot.md) |
 | `some`                             | A function's return or parameter type, before a bound (`-> some Tr`, `x: some Tr`) | [4.1.13](../004-functions/401-function-declaration.md#4113-opaque-return-types-some-trait) |
-| `in`                               | The `in` of `for pat in`                                               | [3.13.3](../003-expressions/313-loop-expressions.md#3133-for-iterator-based-repetition) |
+| `in`                               | The `in` of `for pat in`; in an expression, the membership operator `in` / `!in` (`∈` / `∉`) | [3.13.3](../003-expressions/313-loop-expressions.md#3133-for-iterator-based-repetition), [3.2.3](../003-expressions/302-precedence-and-associativity.md#323-precedence-and-associativity-table) |
 | `where`                            | After a function signature, an `impl` header, or a `struct` / `enum` / `union` / type alias header | [2.10.4](../002-types/210-generics.md#2104-where-clauses) |
 | `throws`, `rethrows`               | After the parameter `)` of a function signature                        | [4.14](../004-functions/414-throws.md) |
 | `catch`, `finally`                 | After an expression or block (postfix clause)                          | [3.14](../003-expressions/314-error-control-flow.md) |

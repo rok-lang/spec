@@ -86,6 +86,8 @@
 | `⊂ ⊆` | U+2282, U+2286 | 부분집합(`is_proper_subset`, `is_subset`) |
 | `∪ ∩` | U+222A, U+2229 | 합집합, 교집합(`union`, `intersection`) |
 
+`∈ ∉`에는 ASCII 철자 `in`과 `!in`도 있습니다. 렉서가 아니라 파서가 읽습니다. 연산자 자리의 단어 `in`은 `∈`이고, `in` 바로 앞에 공백 없이 붙은 `!`는 `∉`입니다. `x ! in xs`와 Python의 `x not in xs`는 에러이며, help가 `!in`으로 적으라고 알려 줍니다.
+
 연산자 글자는 모두 Unicode `Pattern_Syntax` 속성이 있는 코드포인트에서 고릅니다. `∑ ∏ ∫`는 `Pattern_Syntax`이지만 식별자 글자로 정했으므로([1.4.1](104-identifiers.md#수학-표기-프로필)) 연산자가 아닙니다.
 
 ### 대입 / 복합 대입

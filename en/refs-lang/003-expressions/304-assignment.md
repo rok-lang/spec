@@ -8,11 +8,16 @@ compound_stmt   ::= lvalue compound_op expr ";"
 assign_expr     ::= lvalue "=" expr                    // in parentheses or an arm body (3.4.5)
 compound_op     ::= "+=" | "-=" | "*=" | "/=" | "%=" | "%%=" | "&=" | "|="
                   | "^=" | "<<=" | ">>="
+assign_target   ::= lvalue | tuple_target
+tuple_target    ::= "(" target_item ("," target_item)+ ","? ")"
+target_item     ::= lvalue | tuple_target | "_"
 lvalue          ::= identifier
                   | lvalue "." identifier
                   | lvalue "." int_lit                 // tuple position
                   | lvalue "[" expr "]"                // index
 ```
+
+`assign_stmt` takes an `assign_target` on its left: a tuple of places assigns each of them (3.4.6). The other forms take an `lvalue`.
 
 ## 3.4.1. Simple assignment
 
@@ -48,7 +53,7 @@ The following cannot be lvalues.
 foo() = 2;                // a call result is not an lvalue
 foo().x = 2;              // nor is a field of one
 (x + 1) = 2;              // an arithmetic result is not an lvalue
-(a, b) = (b, a);          // a tuple is not an lvalue; swap with a temporary: let t = a; a = b; b = t;
+(a, 1) = (b, 2);          // each element of a tuple target is a place or `_` (3.4.6)
 ```
 
 An element of a `List`, `Dict` or other shared collection is a place even when the collection comes from a call: `rows()[0] = 1;` writes into the list `rows()` returns. A field of a call result is not a place, nor is an element of a fixed array that is one.
@@ -169,3 +174,25 @@ let x = (y = 1);           // x = unit (nearly meaningless)
 This pattern is discouraged, and tools or linters may warn about it.
 
 Outside statement position, an assignment is written in parentheses `(y = 1)` or as a match arm body. An unparenthesized `let x = y = 1;` is not supported. Compound assignment has no expression form.
+
+## 3.4.6. Destructuring assignment
+
+A tuple of places on the left of `=` assigns each place from the matching element of the right side:
+
+```rok
+(a, b) = (b, a);                    // swap
+for _ in 0..n {
+    (x, y) = (y, x + y);            // Fibonacci step
+}
+(xs[i], xs[j]) = (xs[j], xs[i]);    // swap two elements
+(p.x, _, p.y) = (1, 2, 3);          // `_` discards
+(c, (d, e)) = t;                    // nested
+```
+
+The right side is evaluated in full first, then each place is assigned from left to right; a place's own receiver or index is evaluated when it is assigned. So `(a, b) = (b, a + b)` reads the old `a` and `b`. Every place must already exist: assigning does not declare (3.4.2), and a name not yet declared is E0057 with a help to declare it with `let` first. The two shapes must match (E0101). The meaning is that of
+
+```rok
+{ let (t0, t1) = (b, a + b); a = t0; b = t1; }
+```
+
+with hidden temporaries. Destructuring with `let` declares new variables instead ([3.15](315-destructuring.md)); inside a loop, `let (a, b) = (b, a + b);` declares new `a` and `b` for that iteration and leaves the outer ones as they were.

@@ -46,7 +46,7 @@ fn bad() -> i32 {
 }
 ```
 
-This rule forces the signature to state whether a function can throw, which blocks silent error propagation.
+This rule forces the signature to state whether a function can throw, which blocks silent error propagation. The entry point is the one exception: an explicit `fn main()` with no return type throws without declaring it ([4.16.4](416-entry-point.md#4164-exit-codes-and-unhandled-exceptions)).
 
 ## 4.14.3. Untyped `throws`
 
@@ -124,7 +124,7 @@ fn caller3() {                    // catches
 }
 
 fn caller4() -> i32 {             // discards the error or turns it into a panic
-    let a = (try? parse(s)) ?? 0; // try?: none on error
+    let a = try? parse(s) ?? 0;   // try?: none on error, then 0
     let b = try! parse(t);        // try!: panic on error
     a + b
 }

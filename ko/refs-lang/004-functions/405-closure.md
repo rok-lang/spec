@@ -9,10 +9,12 @@ closure_expr   ::= capture_list? closure_params (return_type block | closure_bod
 closure_params ::= "||"
                  | "|" closure_param_list "|"
 closure_param_list ::= closure_param ("," closure_param)* ","?
-closure_param ::= identifier (":" type_expr)?
+closure_param ::= (identifier | param_pattern) (":" type_expr)?
 closure_body   ::= expr | block
 capture_list   ::= "[" capture_item ("," capture_item)* "]"
 ```
+
+클로저 매개변수도 함수 매개변수처럼 반증 불가능 패턴일 수 있습니다([4.2](402-parameters.md)). `|(k, v)| f"{k}={v}"`는 튜플 인자 하나를 받아 분해하고, `|k, v|`는 인자 둘을 받습니다.
 
 매개변수가 없는 형태인 `||`는 토큰 하나입니다([구두점과 연산자 토큰](../001-lexical/110-punctuation-and-operator-tokens.md) 참고). `|` 두 개로 나뉘지 않습니다.
 

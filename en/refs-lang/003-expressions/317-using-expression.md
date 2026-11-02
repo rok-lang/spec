@@ -8,8 +8,11 @@ The GC reclaims memory automatically, but external resources (files, sockets, mu
 
 ```
 using_expr     ::= "using" using_binding ("," using_binding)* block
+using_stmt     ::= "using" using_binding ("," using_binding)* ";"
 using_binding  ::= pattern "=" expr
 ```
+
+`using_stmt` is the statement form of [3.17.9](#3179-statement-form).
 
 The components mean:
 
@@ -113,7 +116,7 @@ This restriction ensures only meaningful resources are bound with `using`, rulin
 
 | Language | Form                          | Scope unit   | Notes                                   |
 |----------|-------------------------------|--------------|-----------------------------------------|
-| Rok      | `using x = try e { ... }`     | block        | expression, multiple resources, `try` integration |
+| Rok      | `using x = try e { ... }`, `using x = e;` | block | expression, multiple resources, `try` integration |
 | C#       | `using (var x = e) { ... }`   | block        | requires `IDisposable`                  |
 | Java     | `try (var x = e) { ... }`     | try block    | requires `AutoCloseable`, multiple resources |
 | Python   | `with x as f: ...`            | block        | `__enter__` / `__exit__`                |
@@ -123,3 +126,30 @@ This restriction ensures only meaningful resources are bound with `using`, rulin
 | Rust     | (automatic RAII, no keyword)  | block        | no GC; drop point determined automatically  |
 
 Rok's `using` combines the explicit block pattern of GC languages (C#, Java, Python) with composability as an expression, `try` integration, and reverse-order release of multiple resources.
+
+## 3.17.9. Statement form
+
+`using x = e;` binds `x` to the rest of the enclosing block and releases it when that block ends:
+
+```rok
+fn copy_lines(from: Path) throws (IoError) {
+    using r = BufReader::new(try fs::open(from));
+    try for line in r.lines() {
+        println(f"> {line}");
+    }
+}                                  // ← r is released here
+```
+
+It means the block form over the statements that follow it in the same block:
+
+```rok
+using a = e;
+s1;
+s2
+// is
+using a = e { s1; s2 }
+```
+
+so every rule of the block form holds: release on all the paths of 3.17.6, in reverse order for several bindings and for several `using` statements in one block, the `Drop` requirement of 3.17.7, and the checks on views of the bound value. The value of the block is the value of its statements after the `using`. In the top-level statements of `main.rok` the rest of the block is the rest of the program.
+
+The statement form starts a statement; elsewhere (`let x = using r = e;`) it is a compile error whose help names the block form. Because no body follows it, a struct literal may end its binding without parentheses (`using r = R { n: 1 };`). The block form stays for a scope shorter than the rest of the block and for `using` as an expression.
