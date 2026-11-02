@@ -142,7 +142,7 @@ Only the token differs; the registration mechanism is exactly the same.
 
 A registration through attributes such as `#[infix]` takes effect only where the trait is visible. Visible means accessible under [5.6](../005-modules/506-visibility.md): a `pub` trait reachable by path suffices; no `use` is needed. Where the trait is not visible, the operator does not work either.
 
-This rule fits library isolation: a user-defined operator trait defined in a package works only in code that imports that package.
+This rule fits library isolation: a user-defined operator trait defined in a package works only in code that imports that package. A `#[literal]` registration follows a narrower rule, its own package only ([6.5.2](605-literal-magic.md#652-form)), since it changes parsing rather than picking a method.
 
 The standard library's operator traits (`Add`, `Sub`, `Mul`, ...) live in `rok::core::ops`. An operator needs no trait name in scope: the mappings of `rok::core` traits apply in every source, so arithmetic and comparison expressions work without a separate import. Naming the trait itself, as in `impl ops::Add for V`, goes through the prelude module `ops` or a `use` ([stdlib 0.2.3](../../refs-standard-libraries/000-meta/002-import.md)).
 

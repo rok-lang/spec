@@ -45,12 +45,15 @@ The following cannot be lvalues.
 
 ```
 1 = 2;                    // a literal is not an lvalue
-foo() = 2;                // a call result is generally not an lvalue
+foo() = 2;                // a call result is not an lvalue
+foo().x = 2;              // nor is a field of one
 (x + 1) = 2;              // an arithmetic result is not an lvalue
 (a, b) = (b, a);          // a tuple is not an lvalue; write let (a, b) = (b, a);
 ```
 
-Whether something can be an lvalue is checked at compile time and determined by form (shape) alone. No runtime check is performed.
+An element of a `List`, `Dict` or other shared collection is a place even when the collection comes from a call: `rows()[0] = 1;` writes into the list `rows()` returns. A field of a call result is not a place, nor is an element of a fixed array that is one.
+
+Whether something can be an lvalue is checked at compile time, from its form and the type of an indexed collection. No runtime check is performed. Assigning to something that is not a place is an error (E0141), with `=` or with a compound assignment (3.4.3): the write would go to a temporary and be lost.
 
 ## 3.4.2. Declaring a new variable vs. reassignment
 
@@ -106,6 +109,12 @@ arr[expensive_index()] += 1;
 ```
 
 If the lvalue is a plain variable or field, it is referenced twice as is; if it contains a call or computation, that part is bound to a temporary and evaluated once. This guarantee prevents an index or method with side effects from being called twice unintentionally.
+
+The lvalue must be a place (3.4.1). `f() += 1` and `d.entry(k).or_insert(0) += 1` are errors (E0141): each would update a temporary. To count in a dictionary, write the entry back:
+
+```rok
+counts[w] = (counts.get(w) ?? 0) + 1;
+```
 
 ### Trait mapping
 

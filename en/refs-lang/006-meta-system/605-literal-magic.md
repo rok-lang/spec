@@ -14,7 +14,6 @@ Beyond the lexical literals from [numeric literals](../001-lexical/106-numeric-l
 0..5                       → Range<T>
 0..=5                      → RangeInclusive<T>
 1:3                        → Slice<T> (compiler)
-2i                         → Complex<T>
 ```
 
 The `(compiler)` marker denotes literals the compiler builds directly without a handler. Fixed arrays, tuples, and the slice `a[i:j]` inside an index are intrinsic to the language and cannot be registered (6.5.7, 6.5.9).
@@ -23,7 +22,7 @@ The syntax of these literals consists of tokens from [punctuation and operator t
 
 The `#[literal]` magic attaches that decision to a trait or function.
 
-The type of numeric literals is decided by the language, not by this magic ([1.6.2](../001-lexical/106-numeric-literals.md#162-type-suffixes), [1.6.3](../001-lexical/106-numeric-literals.md#163-unsuffixed-literals)). For numbers, `#[literal]` handles only suffixes the language does not define, such as `2i`.
+The type of numeric literals is decided by the language, not by this magic ([1.6.2](../001-lexical/106-numeric-literals.md#162-type-suffixes), [1.6.3](../001-lexical/106-numeric-literals.md#163-unsuffixed-literals)). For numbers, `#[literal]` handles only suffixes the language does not define, such as `2i` registered by a package with its own complex type. The standard libraries register no numeric suffix.
 
 ## 6.5.2. Form
 
@@ -63,9 +62,11 @@ fn imaginary_literal(n: f64) -> Complex<f64> { ... }
 fn matrix_literal<const C: usize>(rows: ...[f64; C]) -> Matrix { ... }   // [f64; C] per row
 ```
 
+The first five are the standard library's; the last two show what a package with its own `Complex` or `Matrix` type could register (the standard libraries have neither).
+
 The basic form is `#[literal(pattern)]`, optionally followed by `, priority = N` (may be negative, default 0) (6.5.5). The handler is a function, and a literal matching the pattern becomes a call to that function.
 
-Scope of registration: registrations in the standard library are visible in every package; registrations in a user package are visible only within that package. The compiler collects registrations before parsing, so they apply regardless of where they are registered. A handler is called as if from its own module ([6.9.9](609-template-tokens.md#names-in-an-expansion)), so it may have any visibility: the standard library's handlers (`list_literal`, `set_literal`, `dict_literal` and the six `range_*_literal`) are `pub(pkg)`, and naming one outside `rok::core` is an error.
+Scope of registration: registrations in the standard library are visible in every package; registrations in any other package, a dependency included, apply only to that package's own source, not to the packages that depend on it. This differs from operator mappings, which go wherever their trait is visible ([6.7.8](607-operator-magic.md#678-visibility-of-mappings)): an operator mapping belongs to a trait and only selects a method of it, while a literal registration changes how source text is parsed, which a dependency must not do to its dependents. The compiler collects registrations before parsing, so they apply regardless of where they are registered. A handler is called as if from its own module ([6.9.9](609-template-tokens.md#names-in-an-expansion)), so it may have any visibility: the standard library's handlers (`list_literal`, `set_literal`, `dict_literal` and the six `range_*_literal`) are `pub(pkg)`, and naming one outside `rok::core` is an error.
 
 ## 6.5.3. Format of syntax patterns
 

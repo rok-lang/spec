@@ -59,7 +59,7 @@ Because 32-bit targets are in Tier 1, the specification as a whole is defined to
 
 ## 0.6.4. SIMD
 
-Builds target the triple's baseline CPU by default, so binaries are portable: x86-64 baseline (SSE2) for `x86_64`, `apple-m1` for `aarch64-apple-darwin`, armv8-a (NEON) for other `aarch64` targets, and SIMD128 for `wasm32`. Wider instruction sets (AVX, AVX-512, SVE, ...) are opt-in with `-C target-cpu=<cpu>|native` and `-C target-feature=+avx2,...` ([9.1](../009-tools/901-rokc-cli.md)). The compiler does no runtime feature detection; a program that wants it does it itself.
+Builds target the triple's baseline CPU by default, so binaries are portable: x86-64 baseline (SSE2) for `x86_64`, `apple-m1` for `aarch64-apple-darwin`, armv8-a (NEON) for other `aarch64` targets, and SIMD128 for `wasm32`. Wider instruction sets (AVX, AVX-512, SVE, ...) are opt-in with `-C target-cpu=<cpu>|native` and `-C target-feature=+avx2,...` ([9.1](../009-tools/901-rokc-cli.md)). The compiler does no runtime feature detection; a program that wants it does it itself. At `-O2`, `-O3` and `-Os` the optimizer vectorizes loops for that CPU: plain loops, iterator chains and the one loop a fused dot expression becomes ([3.3.4](../003-expressions/303-broadcast-operators.md#334-automatic-loop-fusion)) alike. Nothing is compiled in several versions to pick from at run time, `par::map` included ([stdlib 2.19.6](../../refs-standard-libraries/200-core/219-par.md#2196-simd--gpu-integration)).
 
 The library surface for SIMD itself is defined separately in other documents of this specification.
 

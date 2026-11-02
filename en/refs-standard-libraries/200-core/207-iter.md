@@ -113,6 +113,10 @@ impl Iterator {
 
 `sum` starts from `Zero::zero()` and accumulates with `+`; `product` starts from `One::one()` and accumulates with `*`. The sum of an empty iterator is therefore 0 and its product is 1. `Zero` / `One` are traits of `rok::core::num` ([2.1](201-numbers.md)).
 
+### `min` / `max` and floats
+
+`min`, `max`, `min_by_key` and `max_by_key` need `Ord`, a total order. `f32` and `f64` are not `Ord`, since NaN is unordered, so `xs.iter().max()` over floats is an error (E0069) whose help names the float form: fold with the float method, `xs.iter().reduce(|a, b| a.max(b))`. `f64::max` returns the other operand when one is NaN.
+
 ### Stopping, running state, groups
 
 - `take_while(pred)` yields items until `pred` first rejects one. That item is taken from the inner iterator and dropped; nothing after it is taken, so side effects past the stop do not run. `skip_while(pred)` drops items until `pred` first rejects one, then yields that one and every later item unchecked.

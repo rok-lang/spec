@@ -59,7 +59,7 @@ Linux, macOS, Windows의 주요 아키텍처를 모두 다룹니다. 정적 바�
 
 ## 0.6.4. SIMD
 
-빌드는 기본적으로 트리플의 baseline CPU를 대상으로 합니다. 그래서 바이너리를 다른 기기로 옮겨도 동작합니다. `x86_64`는 x86-64 baseline(SSE2), `aarch64-apple-darwin`은 `apple-m1`, 그 밖의 `aarch64`는 armv8-a(NEON), `wasm32`는 SIMD128이 기준입니다. 더 넓은 명령 세트(AVX, AVX-512, SVE 등)는 `-C target-cpu=<cpu>|native`와 `-C target-feature=+avx2,...`로 켭니다([9.1](../009-tools/901-rokc-cli.md)). 컴파일러는 런타임에 CPU 기능을 감지하지 않습니다. 감지가 필요한 프로그램이 직접 합니다.
+빌드는 기본적으로 트리플의 baseline CPU를 대상으로 합니다. 그래서 바이너리를 다른 기기로 옮겨도 동작합니다. `x86_64`는 x86-64 baseline(SSE2), `aarch64-apple-darwin`은 `apple-m1`, 그 밖의 `aarch64`는 armv8-a(NEON), `wasm32`는 SIMD128이 기준입니다. 더 넓은 명령 세트(AVX, AVX-512, SVE 등)는 `-C target-cpu=<cpu>|native`와 `-C target-feature=+avx2,...`로 켭니다([9.1](../009-tools/901-rokc-cli.md)). 컴파일러는 런타임에 CPU 기능을 감지하지 않습니다. 감지가 필요한 프로그램이 직접 합니다. `-O2`, `-O3`, `-Os`에서 최적화기는 그 CPU에 맞춰 루프를 벡터화합니다. 보통 루프, 이터레이터 체인, 융합된 점 식이 되는 루프 하나([3.3.4](../003-expressions/303-broadcast-operators.md#334-자동-루프-융합))가 모두 같습니다. 여러 버전으로 컴파일해 런타임에 고르는 것은 없으며 `par::map`도 마찬가지입니다([stdlib 2.19.6](../../refs-standard-libraries/200-core/219-par.md#2196-simd--gpu-통합)).
 
 SIMD의 라이브러리 표면은 이 사양의 다른 문서에서 따로 정의합니다.
 

@@ -171,7 +171,7 @@ let m = 2 .* a;          //→ [2, 4, 6]
 let t = a ./ 2;          //→ [0, 1, 1]    (i32 truncate)
 ```
 
-Here separate impls (`DotAdd<T> for List<T>`, and `DotAdd<List<T>> for T` for the scalar-left form) treat the scalar side. Fixed arrays `[T; N]` have no scalar-left impls.
+Here separate impls (`DotAdd<T> for List<T>`, and `DotAdd<List<T>> for T` for the scalar-left form) treat the scalar side. `Slice<T>` has the same pair; fixed arrays `[T; N]` have no scalar-left impls. Only core can write a scalar-left impl: `impl DotMul<Matrix> for f64` in another package implements a trait it does not own for a type it does not own, which the orphan rule forbids ([2.9.5](../../refs-lang/002-types/209-impl.md#295-orphan-rule)). A library container therefore takes a scalar only on the right (`m .* 2.0`).
 
 ### Comparison dot - returns `Container<bool>`
 
@@ -264,7 +264,7 @@ The compiler fuses consecutive dot operations into a single loop.
 let result = f64::sin.(a) .+ f64::cos.(b) .* 2.0;
 ```
 
-A naive lowering would need 3 temporary List allocations and 3 loops. Rok guarantees one loop with no intermediate collections; the mechanism (for example a `linalg.generic` op) is the compiler's choice.
+A naive lowering would need 3 temporary List allocations and 3 loops. Over `List`, `Slice` and arrays Rok guarantees one loop with no intermediate collections ([3.3.4](../../refs-lang/003-expressions/303-broadcast-operators.md#334-automatic-loop-fusion) gives the exact condition). A dot expression over another type, such as a library's `Matrix`, calls the dot traits one operator at a time.
 
 ```rok
 // conceptually equivalent to this single elementwise call
@@ -283,9 +283,9 @@ Dot trait impls map onto container types as follows.
 | `i32`/`f64`/etc. | scalar-left | scalar-left | scalar-left | no scalar-scalar impl (ordinary `+`/`*`/`==`); `T` implements `DotAdd<List<T>>` / `DotAdd<Slice<T>>` for the scalar-left form (2.6.4) |
 | `T \| none`       | (operator) | (operator) | (operator) | option propagation (`none .+ x = none`) |
 
-The dot meaning of `T | none` is option propagation: if either side is `none`, the result is `none`. It is handled at the operator level, with no library impl.
+The dot meaning of `T | none` is option propagation: if either side is `none`, the result is `none`. It is handled at the operator level, with no library impl: the whole dot tree's operands are evaluated once, in source order; then each `T | none` operand is tested, and the first `none` makes the tree's value `none` without running it. Otherwise the tree runs on the `T` values, fused or through the dot traits as 2.6.6 says, so no dot trait is called with `none`. The value's type is the tree's type `| none`.
 
-Numeric containers such as `Matrix<T>` / `Tensor<T>` are defined in external libraries, which implement the same dot traits directly and follow NumPy-style broadcasting rules.
+Numeric containers such as `Matrix<T>` / `Tensor<T>` are defined in external libraries, which implement the same dot traits directly and follow NumPy-style broadcasting rules. Such a container's dot expressions are not fused (2.6.6) and take a scalar on the right only (2.6.4).
 
 ## 2.6.8. NumPy-style broadcasting rules
 

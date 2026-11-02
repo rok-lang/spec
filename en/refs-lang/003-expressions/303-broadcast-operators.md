@@ -71,17 +71,17 @@ Function and method broadcast has no trait of its own; it is sugar over iterator
 
 ## 3.3.4. Automatic loop fusion
 
-The compiler may fuse consecutive dot-prefixed expressions into a single kernel.
+An expression tree of dot-prefixed operators and function broadcasts is fused into one loop.
 
 ```
 sin.(a) .+ cos.(b) .* 2.0f64
 ```
 
-Where possible, this produces the result in a single pass without creating intermediate arrays.
+Fusion is guaranteed when every container operand is a core `List`, `Slice` or fixed array and every other operand of a dot operator is a primitive or the element type: the result is built in one pass, with no intermediate collections. Each operand is evaluated once, in source order, before the loop; lengths are checked before the first element (fixed arrays at compile time). The result is a `List`, or an array when every container operand is an array.
 
-Fusion is made possible by the MLIR stage of the [compilation pipeline](../000-meta/002-pipeline.md) recognizing an adjacent dot-prefixed chain as a single linalg operation. SIMD and GPU can be used through the same mechanism.
+Any other tree, such as one over a library's `Matrix`, is not fused: each operator calls its dot trait (3.3.1) and makes its own result. A library type gets no fusion today.
 
-Whether fusion happens depends on compiler analysis and is not guaranteed by the specification. It is a practical promise that fusion happens in most cases.
+The fused loop is an ordinary loop, vectorized like any other ([0.6.4](../000-meta/006-platform-targets.md#064-simd)).
 
 ## 3.3.5. Semantic difference from ordinary operators
 
