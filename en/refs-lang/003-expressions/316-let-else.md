@@ -45,7 +45,7 @@ The most common use is accepting one case of a `T | none` or an `enum` variant a
 
 ```rok
 // unwrap one member of a sum type
-let n: i32 = x else {                    // x: i32 | f32
+let n: i32 = x else {                    // x: f32 | i32
     panic("expected i32");
 };
 // here n: i32

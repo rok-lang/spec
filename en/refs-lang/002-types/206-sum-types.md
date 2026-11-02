@@ -64,7 +64,7 @@ Sum types are always handled in normal form.
 - Term order is irrelevant. `A | B` and `B | A` are the same type.
 - If one term remains, it is that type itself. `A | A` is `A`.
 
-The result of expanding a type alias is normalized again (with `type N = i32 | f64;`, `N | i32` is `i32 | f64`). Substitution of generic parameters follows "Layers of generic sums" below.
+The result of expanding a type alias is normalized again (with `type N = i32 | f64;`, `N | i32` is `f64 | i32`). Substitution of generic parameters follows "Layers of generic sums" below.
 
 So sum types of the same shape are the same type, and the user need not care whether `i32 | f32` or `f32 | i32` was written.
 
@@ -95,7 +95,7 @@ The layering rule applies when a generic term is replaced by an actual type. If 
 - A non-generic type alias is a written type, so it is always flattened. With `type Opt = i32 | none; type Flat = Opt | none;`, `Flat` is `i32 | none`.
 - Parameters of a generic alias are generic terms and follow the rules above (see "Writing nested types" below).
 
-**Writing nested types.** An optional is written with postfix `?` ([2.1.5a](201-type-expressions.md#215a-optional-types-t)). `T?` is the same as `Maybe<T>`, so its operand is a generic term and the same layering rule applies. Other nestings (`(i32 | E) | E` etc.) are written with a generic alias or `Self::X`.
+**Writing nested types.** An optional is written with postfix `?` ([2.1.5a](201-type-expressions.md#215a-optional-types-t)). `T?` is the same as `Maybe<T>`, so its operand is a generic term and the same layering rule applies. Other nestings (`(E | i32) | E` etc.) are written with a generic alias or `Self::X`.
 
 ```rok
 type Maybe<T> = T | none;
@@ -116,7 +116,7 @@ let v: i32 | none = xs.get(0);    // ERROR: xs: List<i32 | none>
 
 **Operations.** Patterns, `is`, `?.`, `??` and `?` act on the **outermost layer**. The other side of the outer layer is bound to the inner `T`. A binding pattern after arms that cover every outer-layer term binds the inner layer.
 
-**Diagnostic notation.** Diagnostics show nested layers in parentheses. If the outer layer is only `none`, it is written `(i32 | none)?`; otherwise as `(i32 | E) | E`, `(i32 | none) | str | none`. `(i32 | none)?` is also valid source with the same meaning.
+**Diagnostic notation.** Diagnostics show nested layers in parentheses. If the outer layer is only `none`, it is written `(i32 | none)?`; otherwise as `(E | i32) | E`, `(i32 | none) | str | none`. `(i32 | none)?` is also valid source with the same meaning.
 
 ```rok
 struct ParseErr { msg: str; }
@@ -126,12 +126,12 @@ fn check<T>(x: T) -> T | ParseErr {
     x                                                // a value of T: inner layer
 }
 
-let a = check(1i32);                  // T = i32, no overlap: i32 | ParseErr
+let a = check(1i32);                  // T = i32, no overlap: ParseErr | i32
 let v: i32 | ParseErr = ParseErr { msg: "earlier" };
-let r = check(v);                     // T = i32 | ParseErr, overlap: (i32 | ParseErr) | ParseErr
+let r = check(v);                     // T = ParseErr | i32, overlap: (ParseErr | i32) | ParseErr
 match r {
     e: ParseErr => print(f"check failed: {e.msg}"),        // outer layer: error made by check
-    inner => match inner {                                // inner: i32 | ParseErr
+    inner => match inner {                                // inner: ParseErr | i32
         e: ParseErr => print(f"original value was an error: {e.msg}"), // inner layer: error that was in v
         n: i32 => print(n),
     },
@@ -171,7 +171,7 @@ ys.sort_by_key(|v| match v { n: i32 => (0, n, ""), s: str => (1, 0, s) });
 ```rok
 let v: i32 | str | f64 | none = ...;
 match v {
-    n: i32 | f64 => use_num(n),     // n: i32 | f64
+    n: i32 | f64 => use_num(n),     // n: f64 | i32
     s: str => use_str(s),
     none => {},
 }

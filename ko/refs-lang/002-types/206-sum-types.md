@@ -64,7 +64,7 @@ let y: i32 | f32 = 3.14f32;     // 태그가 f32 자리에 있음
 - 항의 순서는 의미가 없습니다. `A | B`와 `B | A`는 같은 타입입니다.
 - 항이 하나만 남으면 그 타입 자체입니다. `A | A`는 `A`입니다.
 
-타입 별칭을 펼친 결과도 다시 정규화합니다(`type N = i32 | f64;`이면 `N | i32`는 `i32 | f64`). 제네릭 매개변수의 치환은 아래 "제네릭 합의 층"을 따릅니다.
+타입 별칭을 펼친 결과도 다시 정규화합니다(`type N = i32 | f64;`이면 `N | i32`는 `f64 | i32`). 제네릭 매개변수의 치환은 아래 "제네릭 합의 층"을 따릅니다.
 
 그래서 모양이 같은 합 타입은 같은 타입입니다. `i32 | f32`와 `f32 | i32` 중 어느 쪽으로 적었는지는 상관없습니다.
 
@@ -95,7 +95,7 @@ let y: i32 | f32 = 3.14f32;     // 태그가 f32 자리에 있음
 - 제네릭이 아닌 타입 별칭은 적힌 타입이므로 언제나 펼칩니다. `type Opt = i32 | none; type Flat = Opt | none;`이면 `Flat`은 `i32 | none`입니다.
 - 제네릭 별칭의 매개변수는 제네릭 항이므로 위 규칙을 따릅니다(아래 "중첩 타입 적기").
 
-**중첩 타입 적기.** optional은 후위 `?`로 적습니다([2.1.5a](201-type-expressions.md#215a-optional-타입t)). `T?`는 `Maybe<T>`와 같으므로 피연산자는 제네릭 항이고, 같은 층 규칙이 적용됩니다. 그 밖의 중첩(`(i32 | E) | E` 등)은 제네릭 별칭이나 `Self::X`로 적습니다.
+**중첩 타입 적기.** optional은 후위 `?`로 적습니다([2.1.5a](201-type-expressions.md#215a-optional-타입t)). `T?`는 `Maybe<T>`와 같으므로 피연산자는 제네릭 항이고, 같은 층 규칙이 적용됩니다. 그 밖의 중첩(`(E | i32) | E` 등)은 제네릭 별칭이나 `Self::X`로 적습니다.
 
 ```rok
 type Maybe<T> = T | none;
@@ -116,7 +116,7 @@ let v: i32 | none = xs.get(0);    // ERROR: xs: List<i32 | none>
 
 **연산.** 패턴, `is`, `?.`, `??`, `?`는 **가장 바깥 층**에 작용합니다. 바깥 층의 나머지 쪽은 안쪽 `T`에 묶입니다. 바깥 층의 모든 항을 덮는 가지 뒤에 오는 바인딩 패턴은 안쪽 층을 묶습니다.
 
-**진단 표기.** 컴파일러는 진단에서 중첩 층을 괄호로 묶어 보여 줍니다. 바깥 층이 `none` 하나뿐이면 `(i32 | none)?`로 적고, 그 밖에는 `(i32 | E) | E`, `(i32 | none) | str | none`처럼 적습니다. `(i32 | none)?`는 같은 뜻의 올바른 소스이기도 합니다.
+**진단 표기.** 컴파일러는 진단에서 중첩 층을 괄호로 묶어 보여 줍니다. 바깥 층이 `none` 하나뿐이면 `(i32 | none)?`로 적고, 그 밖에는 `(E | i32) | E`, `(i32 | none) | str | none`처럼 적습니다. `(i32 | none)?`는 같은 뜻의 올바른 소스이기도 합니다.
 
 ```rok
 struct ParseErr { msg: str; }
@@ -126,12 +126,12 @@ fn check<T>(x: T) -> T | ParseErr {
     x                                                // T 의 값: 안쪽 층
 }
 
-let a = check(1i32);                  // T = i32, 겹치지 않음: i32 | ParseErr
+let a = check(1i32);                  // T = i32, 겹치지 않음: ParseErr | i32
 let v: i32 | ParseErr = ParseErr { msg: "earlier" };
-let r = check(v);                     // T = i32 | ParseErr, 겹침: (i32 | ParseErr) | ParseErr
+let r = check(v);                     // T = ParseErr | i32, 겹침: (ParseErr | i32) | ParseErr
 match r {
     e: ParseErr => print(f"check 실패: {e.msg}"),        // 바깥 층: check 가 만든 에러
-    inner => match inner {                                // inner: i32 | ParseErr
+    inner => match inner {                                // inner: ParseErr | i32
         e: ParseErr => print(f"원래 값이 에러: {e.msg}"), // 안쪽 층: v 에 들어 있던 에러
         n: i32 => print(n),
     },
@@ -171,7 +171,7 @@ ys.sort_by_key(|v| match v { n: i32 => (0, n, ""), s: str => (1, 0, s) });
 ```rok
 let v: i32 | str | f64 | none = ...;
 match v {
-    n: i32 | f64 => use_num(n),     // n: i32 | f64
+    n: i32 | f64 => use_num(n),     // n: f64 | i32
     s: str => use_str(s),
     none => {},
 }

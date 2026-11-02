@@ -45,7 +45,7 @@ let v: T = compute() else {
 
 ```rok
 // 합 타입에서 한 항만 풀기
-let n: i32 = x else {                    // x: i32 | f32
+let n: i32 = x else {                    // x: f32 | i32
     panic("expected i32");
 };
 // 여기서 n: i32
