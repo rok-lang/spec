@@ -19,7 +19,7 @@ ROKHIR file (little-endian):
 +-----------------------------------+
 |  Header                           |  (16 bytes fixed)
 |    magic       "ROKH"    (4 bytes)  |
-|    version     u32  (= 6)         |
+|    version     u32  (= 8)         |
 |    flags       u32                |
 |    body_offset u32                |
 +-----------------------------------+
@@ -50,11 +50,11 @@ ROKHIR file (little-endian):
 | 필드          | 크기 | 의미                                                         |
 |---------------|------|--------------------------------------------------------------|
 | `magic`       | 4    | `"ROKH"`                                                       |
-| `version`     | u32  | 포맷 버전(`6`). 레이아웃이나 본문 내용이 바뀌면 올림. 2는 `features` 메타, 3은 본문의 `.wit` 파일을 더함. 4는 `include_str!` / `include_bytes!` 데이터를 인라인함. 5는 넘김 요약을 더함. 6은 요약의 출구 종류를 더함 |
+| `version`     | u32  | 포맷 버전(`8`). 레이아웃이나 본문 내용이 바뀌면 올림. 2는 `features` 메타, 3은 본문의 `.wit` 파일을 더함. 4는 `include_str!` / `include_bytes!` 데이터를 인라인함. 5는 넘김 요약을 더함. 6은 요약의 출구 종류를 더함. 7은 함께 쓰는 코드가 바뀜(스레드 블록을 숨은 인자로 넘김). 8은 넘김 요약을 넓힘 |
 | `flags`       | u32  | 예약 (0)                                                     |
 | `body_offset` | u32  | 본문의 시작 오프셋                                          |
 
-producer 문자열은 `rokc <버전> (<compiler id>)`입니다. compiler id는 그 `rokc` 실행 파일의 크기와 수정 시각(`<size>-<mtime>`, 16진수)입니다.
+producer 문자열은 `rokc <버전> (<compiler id>)`입니다. compiler id는 빌드의 커밋과, 그 `rokc` 실행 파일을 쓰거나 바꿀 때마다 달라지는 도장입니다. 도장은 크기, 수정 시각, inode, 변경 시각입니다(`<size>-<mtime>-<inode>-<ctime>.<ctime_nsec>`, 16진수. Windows에서는 inode와 변경 시각 대신 파일 id와 생성 시각).
 
 ## 9.4.5. VarInt 인코딩
 

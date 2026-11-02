@@ -163,7 +163,6 @@ Package {
 - 값은 ROKON의 리터럴(문자열, `{ "k": v }` dict, 빈 dict `{}`)과 `Dep::path("..")` / `Dep::git("url", rev | tag | branch: "..")` / `Dep::version("req", registry: "url")`입니다. `Dep::git`에는 `rev` / `tag` / `branch` 중 많아야 하나만 씁니다. `Dep::version`의 `registry`는 선택입니다. 의존성 값이 문자열 하나면 `Dep::version`을 줄여 쓴 것입니다.
 - `Dep::path` / `Dep::git` / `Dep::version`은 `optional: true`, `features: ["<f>", ..]`, `default_features: false`도 받습니다(9.10.4c). optional인 dev 의존은 에러입니다.
 - `package: "<name>"`은 의존성의 이름을 바꿉니다. `<name>`이 패키지이고, 키는 이 패키지의 코드가 그 패키지를 부르는 이름입니다(`"j": Dep::version("^1", package: "json5")`는 `json5`이고 `use j::..`로 씁니다). 이름은 의존하는 패키지마다 따로 정하므로 두 패키지가 한 패키지를 서로 다른 이름으로 부를 수 있습니다. 그래도 한 패키지이고 한 번만 빌드하며, 어느 이름으로 불러도 타입은 같습니다. 한 패키지에 키 둘로 의존하면 에러입니다(`` the root package depends on package `json5` twice, as `j` and `json5`; depend on it once ``).
-- `package: "<name>"`은 의존의 이름을 바꿉니다. 키는 코드가 부르는 이름(`use j5::..`)이고, `<name>`은 패키지(stone, 또는 path / git 패키지의 `name`)이자 lock에 적히는 이름입니다. 한 빌드는 한 패키지를 한 이름으로 부릅니다. 두 의존하는 쪽이 서로 다른 이름으로 부르면 둘을 밝히는 에러입니다(`` package `json5` is called `j5` by .. and `json5` by ..; one build calls a package by one name ``).
 - `target: "<target>"`은 의존을 맞는 target의 빌드로 한정합니다. target 이름(`x86_64-unknown-linux-gnu`)이나, [6.3.2](../006-meta-system/603-cfg.md#632-predicate-종류)의 target 키(`target_os`, `target_arch`, `target_family`, `target_env`, `target_endian`, `target_pointer_width`)에 대한 `cfg(<조건>)`이고, `all(..)`, `any(..)`, `not(..)`을 씁니다. 그 밖의 값은 매니페스트를 읽을 때 에러입니다. 해소와 lock은 모든 target에 대해 그 의존을 다룹니다. 다른 target의 빌드는 그 의존과, 그 의존이 켤 feature를 뺍니다.
 - `Dep::registry`는 `rok.lock` 전용입니다. `rok.rokon`에 쓰면 에러입니다.
 - 패키지 이름(`deps`의 키, `name`)은 `[a-z0-9_-]+`의 소문자 ASCII이고 글자로 시작해야 합니다. 숫자, `-`, `_`로 시작하면 에러입니다.
@@ -187,7 +186,7 @@ Package {
 - `include` / `exclude`는 게시하는 커밋의 파일 경로에 대한 glob입니다(`*`와 `?`는 이름 하나 안에서, `**`는 여러 이름에 걸쳐 맞습니다. `/`가 없는 패턴은 어느 깊이의 이름에나 맞고, 디렉터리에 맞는 패턴은 그 안의 파일에도 맞습니다). `include`가 비었거나 파일에 맞고 `exclude`가 맞지 않으면 stone이 그 파일을 담습니다. `rok.rokon`은 늘 담습니다. 이 둘은 `rok publish`가 보내는 묶음 크기를 정합니다(9.10.4a). source는 여전히 커밋 전체입니다.
 - `links`는 패키지가 링크하는 native 라이브러리의 이름입니다. 한 빌드의 두 패키지가 같은 `links`를 쓰면 둘을 밝히는 에러입니다.
 - `default_run`은 `rok run`이 실행할 실행 파일의 이름입니다. 패키지의 실행 파일은 많아야 하나(`src/main.rok`, 패키지 이름)이므로 그 이름입니다.
-- `rok`이 모르는 필드는 `file:line:col`이 붙은 경고이고(`` unknown field `edtion` is ignored; did you mean `edition`? ``, 가까운 이름이 있으면 제안), 매니페스트는 그 필드 없이 읽습니다. `rok publish`는 그 필드를 적은 그대로 `meta`에 담아 보냅니다(9.10.4a). 그래서 새 레지스트리가 그 필드를 쓸 수 있습니다.
+- `rok`이 모르는 필드는 `file:line:col`이 붙은 경고이고(`` unknown field `licence` is ignored; did you mean `license`? ``, 가까운 이름이 있으면 제안), 매니페스트는 그 필드 없이 읽습니다. `rok publish`는 그 필드를 적은 그대로 `meta`에 담아 보냅니다(9.10.4a). 그래서 새 레지스트리가 그 필드를 쓸 수 있습니다.
 - 다음은 에러입니다. 모르는 `Dep` 종류 / 이름 있는 인자, 중복, 9.10.4c의 규칙을 어기는 `features`, 규칙에 맞지 않는 패키지 이름, ROKON이 아닌 문법, `Package { .. }` 하나가 아닌 값, 뒤에 남은 토큰. 진단은 `file:line:col`과 캐럿(^)으로 위치를 보여 줍니다.
 
 | 의존성 출처 | 형태                                                         | `rok.lock`에 고정  |
@@ -478,9 +477,9 @@ rok yank --native <name>@<version> [--undo] [--registry <url> | --index-dir <dir
 - 패키지(`src/main.rok`, `src/lib.rok`, `rok.rokon` 중 하나가 있는 디렉터리)는 자기 `rok.rokon`의 의존성만 씁니다. 환경에 설치한 라이브러리는 보지 않습니다. 스크립트도 마찬가지입니다. 패키지에 작용하는 명령을 `--env`와 함께 쓰면 에러입니다.
 - 이름 있는 환경은 `$ROK_HOME/envs/<name>/`에 `rok.rokon`, `rok.lock`, `target/`을 둡니다. 그 `deps`는 REPL과 Jupyter를 위해 `rok install`([9.10.5a](#9105a-rok-install--rok-uninstall))로 설치한 라이브러리입니다. 이 목록을 바꾸는 것은 `rok install` / `rok uninstall`과 `rok env import`뿐입니다. 그 안의 path 의존은 절대 경로입니다. 설치한 라이브러리는 그 `target/`에 미리 빌드합니다.
 - 패키지 밖(REPL, Jupyter, 언어 서버, `rok install`)에서 쓸 환경은 `--env <name>` > `ROK_ENV` > `rok env use`(`$ROK_HOME/envs/.current`) > `default` 순으로 정합니다. `default` 환경은 그 환경으로 처음 `rok install`을 실행할 때 만들어집니다. 패키지 안에서 경로 없는 `rok repl` / `jupyter` / `lsp`는 그 패키지를 쓰고, `--env`가 있으면 그 환경을 씁니다.
-- 환경 이름은 ASCII 글자, 숫자, `_`, `-`, `.`로 쓰고, `.`로 시작할 수 없으며, 64자를 넘을 수 없고, Windows 장치 이름(`con`, `nul.txt`, ..)일 수 없습니다. `current`는 대소문자와 상관없이 예약되어 있습니다. `rok env create`는 다른 환경과 대소문자만 다른 이름(`foo`가 있을 때 `Foo`)을 거부합니다. Windows와 macOS는 둘을 한 디렉터리로 보기 때문입니다.
-- 이름이 오는 모든 곳(`--env`, `ROK_ENV`, `rok env use`의 파일, `rok env`의 인자)을 검사합니다. 구분자(`/`, `\`, `:`)가 들어 있거나 `.`, `..`인 이름은 어디서든 에러입니다(`` `../p` is a path, not an environment name; use a name from `rok env list`, e.g. `default` ``). `rok env create`가 거부할 다른 이름도 에러입니다. 다만 그 환경이 이미 있으면(예전 `rok`이 만든 것) 경고만 하고 명령을 계속합니다. `rok jupyter install --env <name>`은 그 환경이 있어야 합니다(`default`는 예외).
-- `rok env use`는 이름을 `$ROK_HOME/envs/.current`에 쓰고, 예전 `rok`이 읽는 `envs/CURRENT`에도 씁니다. 그 이름의 디렉터리가 있으면 `CURRENT`는 쓰지 않습니다. 첫 줄만 읽습니다. 두 파일이 다 있으면 더 새 파일을 따릅니다. `CURRENT` 없이 `.current`만 있으면 예전 `rok`이 고른 환경을 지운 것이므로 고른 환경이 없습니다. 고른 환경을 `rok env remove`로 지우면 두 파일을 다 지웁니다.
+- 환경 이름은 ASCII 글자, 숫자, `_`, `-`, `.`로 쓰고, `.`로 시작할 수 없으며, 64자를 넘을 수 없고, Windows 장치 이름(`con`, `nul.txt`, ..)일 수 없습니다. `rok env create`는 다른 환경과 대소문자만 다른 이름(`foo`가 있을 때 `Foo`)을 거부합니다. Windows와 macOS는 둘을 한 디렉터리로 보기 때문입니다.
+- 이름이 오는 모든 곳(`--env`, `ROK_ENV`, `rok env use`의 파일, `rok env`의 인자)을 검사합니다. 구분자(`/`, `\`, `:`)가 들어 있거나 `.`, `..`인 이름은 어디서든 에러입니다(`` `../p` is a path, not an environment name; use a name from `rok env list`, e.g. `default` ``). `rok env create`가 거부할 다른 이름도 에러입니다. 다만 그 환경이 이미 있으면(디렉터리를 손으로 만든 것) 경고만 하고 명령을 계속합니다. `rok jupyter install --env <name>`은 그 환경이 있어야 합니다(`default`는 예외).
+- `rok env use`는 이름을 `$ROK_HOME/envs/.current`에 씁니다. 첫 줄만 읽습니다. 고른 환경을 `rok env remove`로 지우면 이 파일도 지우므로 고른 환경이 없게 됩니다.
 
 ### 의존성의 출처
 
@@ -545,7 +544,7 @@ rok uninstall [--native] <name>..
 - 9.10.4a와 같은 버전 요구(`^0.3.1`, `~0.3.1`, `=0.3.1`, `>=0.3, <0.5`). 받아들이는 설치 버전 가운데 가장 높은 것과 맞습니다.
 - toolchain 디렉터리 이름(`0.3.1-<triple>`). 그 디렉터리와 맞습니다.
 
-설치된 것 가운데 가장 높은 것이 이깁니다. 매니페스트의 고정이 이 중 어느 것도 아니면 무엇을 쓸지 알려 주는 경고입니다(`` `toolchain: "banana"`: write a version (`0.1`), a requirement (`^0.1.5`) or a toolchain directory name ``). 맞는 toolchain이 없으면 에러입니다. 에러는 고정과 그 출처를 밝히고, 그것을 설치하는 `rok toolchain install <pin>`을 안내합니다.
+설치된 것 가운데 가장 높은 것이 이깁니다. 매니페스트의 고정이 이 중 어느 것도 아니면 무엇을 쓸지 알려 주는 경고입니다(`` `toolchain: "banana"`: write a version (`0.1`), a requirement (`^0.1.5`) or a toolchain directory name ``). 맞는 toolchain이 없으면 에러입니다. 에러는 고정과 그 출처를 밝히고, 그것을 설치하는 명령을 안내합니다. 전체 버전이면 `rok toolchain install <pin>`, 아니면 고정이 받아들이는 전체 버전으로 `rok toolchain install <version>`, 또는 `--from`입니다.
 
 시리즈는 깨지는 변경 한 단계가 묶는 릴리스입니다. 메이저 버전이 0인 동안은 `0.MINOR`(`0.1`), 그 뒤로는 `MAJOR`(`1`)입니다.
 
@@ -563,11 +562,11 @@ rok toolchain clean                        # 기본값을 제외한 설치된 �
 ```
 
 - 설치본은 `$ROK_HOME/toolchains/<version>-<triple>/`에 있고, 그 안에서 완결됩니다([9.2.19](902-aot-pipeline.md#9219-설치-레이아웃)).
-- `install --from`은 디렉터리, 아카이브, 또는 그 URL에서 설치합니다. `<version>`은 toolchain이 맞아야 하는 고정입니다. `--from`이 없으면 `install`은 릴리스를 내려받습니다(아래 배포). 이때 `<version>`은 전체 버전이거나, 시리즈, 접두사, 버전 요구입니다. 뒤의 셋은 그 시리즈에서 받아들이는 가장 새 릴리스입니다. 이미 설치된 toolchain은 다시 내려받지 않습니다(`toolchain <dir> is already installed`). 기본값은 바꾸지 않습니다.
+- `install --from`은 디렉터리, 아카이브, 또는 그 URL에서 설치합니다. `<version>`은 toolchain이 맞아야 하는 고정입니다. `--from`이 없으면 `install`은 릴리스를 내려받습니다(아래 배포). 이때 `<version>`은 전체 버전(`0.1.6`)입니다. 그 밖의 것은 전체 버전을 쓰라는 에러입니다(`` rok toolchain install: `0.1` is not a full version; write one like `0.1.6` ``). 이미 설치된 toolchain은 다시 내려받지 않습니다(`toolchain <dir> is already installed`). 기본값은 바꾸지 않습니다.
 - `install`은 `bin/rokc --version --verbose`로 검증합니다. 버전과 호스트가 맞아야 합니다.
 - 처음 설치한 toolchain이 기본값이 되고, 이때 `bin/` 프록시를 만듭니다.
 - `install`, `default`, `update`, `remove`, `clean`은 `bin/` 프록시가 하나라도 없거나 가장 새 toolchain의 `rok`이 아니면 다시 쓰고, 아니면 그대로 둡니다. 옛 toolchain을 기본값으로 해도 새 프록시가 남고, 가장 새 toolchain을 지우면 그다음으로 새것의 프록시가 됩니다.
-- `rok toolchain update`는 `$ROK_HOME` 아래의 기본 toolchain을 교체합니다. 인자가 없으면 가장 새 릴리스(`latest/download/rok-version`)를 설치합니다. 그것이 다른 시리즈여도 마찬가지입니다(rustup 방식). 기본값이 다른 시리즈로 옮겨 가면, 이전 toolchain이 남는다는 note가 그 시리즈에 머무는 방법도 알려 줍니다. ``note: rok 0.1.6 stays installed; a project that must stay on 0.1 pins it (`toolchain: "0.1"` in rok.rokon or a script's `//! rokon` block, as `rok new` writes) or runs `rok +0.1 ..` ``. 인자를 주면 `install`과 같이 읽어 그 릴리스를 설치합니다. `update 0.1`은 가장 새 0.1 릴리스입니다. 설치한 toolchain이 기본값이 되고 가장 새 toolchain이 바뀌었으면 `bin/` 프록시를 다시 씁니다. Windows에서는 실행 중인 프록시의 이름을 바꾼 뒤 그 사본으로 교체합니다. 릴리스 아카이브를 받아 SHA-256을 검증하고(아래 배포), 따로 풀어 제자리로 옮깁니다. 그런 다음 프록시가 새 toolchain을 실행하는지 확인합니다. 실패하면 이전 기본값과 프록시를 되돌리고 새 toolchain을 지웁니다. 이전 toolchain은 설치된 채로 남습니다. 이미 설치된 버전은 내려받지 않고 기본값이 됩니다. `rok update`는 `rok.lock`을 다시 해소하고, `rok toolchain update`는 toolchain을 교체합니다(9.10.4).
+- `rok toolchain update`는 `$ROK_HOME` 아래의 기본 toolchain을 교체합니다. 인자가 없으면 가장 새 릴리스(`latest/download/rok-version`)를 설치합니다. 그것이 다른 시리즈여도 마찬가지입니다(rustup 방식). 기본값이 다른 시리즈로 옮겨 가면, 이전 toolchain이 남는다는 note가 그 시리즈에 머무는 방법도 알려 줍니다. ``note: rok 0.1.6 stays installed; a project that must stay on 0.1 pins it (`toolchain: "0.1"` in rok.rokon or a script's `//! rokon` block, as `rok new` writes) or runs `rok +0.1 ..` ``. 인자를 주면 그 릴리스를 설치합니다. 인자는 전체 버전(`update 0.1.6`)이고, 시리즈로 고르는 기능은 없습니다. 그 밖의 것은 전체 버전을 쓰라는 에러입니다(`` rok toolchain update: `0.1` is not a full version; write one like `0.1.6`, or nothing for the newest release ``). 설치한 toolchain이 기본값이 되고 가장 새 toolchain이 바뀌었으면 `bin/` 프록시를 다시 씁니다. Windows에서는 실행 중인 프록시의 이름을 바꾼 뒤 그 사본으로 교체합니다. 릴리스 아카이브를 받아 SHA-256을 검증하고(아래 배포), 따로 풀어 제자리로 옮깁니다. 그런 다음 프록시가 새 toolchain을 실행하는지 확인합니다. 실패하면 이전 기본값과 프록시를 되돌리고 새 toolchain을 지웁니다. 이전 toolchain은 설치된 채로 남습니다. 이미 설치된 버전은 내려받지 않고 기본값이 됩니다. `rok update`는 `rok.lock`을 다시 해소하고, `rok toolchain update`는 toolchain을 교체합니다(9.10.4).
 - `rok toolchain default <version>`이나 `rok toolchain update` 뒤에는 설치 스크립트가 쓴 자동 완성 스크립트(아래 배포)를 다시 씁니다. 새 기본 toolchain의 `rok completions` / `rokc completions`로 씁니다. 있는 파일만 다시 쓰고 새로 만들지는 않습니다. `completions`가 없는 toolchain이면 그대로 둡니다. 아무것도 출력하지 않고, `-v`이면 다시 쓴 파일을 알려 줍니다.
 - `rok toolchain default <version>`이나 `rok toolchain update` 뒤에 `rok`은 `PATH`에서 `rok`을 찾습니다(Windows에서는 `PATHEXT`의 각 확장자로). 처음 찾은 것이 `$ROK_HOME/bin/rok`이 아니면(실제 경로로 비교) 경고합니다. 경고는 그 파일과 그 `--version`이 출력하는 버전을 알립니다. `warning: your shell runs <path> (rok X) before ~/.rok/bin/rok; put ~/.rok/bin first on PATH or remove the other one`. `-q`이면 경고하지 않습니다(설치 스크립트가 이렇게 실행함).
 - `rok --version -v`(또는 `rok version -v`)는 버전 줄 다음에 다음 줄을 출력합니다. `binary`(이 실행 파일), `toolchain`(활성 toolchain과 그 이유), `rokc`(여기서 명령이 실행할 `rokc`. 자기 것이거나, 명령을 넘길 때는 고정한 toolchain의 것), `host`입니다. 이유는 명령줄의 `+`, `ROK_TOOLCHAIN`, 고정한 `rok.rokon`, 기본값 중 하나이고, toolchain이 없으면 `none`입니다. 각 줄은 값을 맞춰 정렬한 `key: value` 형태로, `rokc --version -v`(`host: <triple>`)와 같습니다. `--format json`(`rok version -v --format json`, `rok --version --format=json`)은 대신 JSON 객체 하나를 출력합니다. `schema`(지금은 `1`), `version`, `line`(버전 줄에서 `rok ` 뒤의 텍스트)이 있고, `-v`면 위 네 키도 있습니다.
@@ -575,7 +574,7 @@ rok toolchain clean                        # 기본값을 제외한 설치된 �
 
 ### toolchain이 함께 쓰는 파일
 
-한 `$ROK_HOME`에 설치된 모든 toolchain은 그 안의 같은 파일을 읽고 씁니다. `config.rokon`, `tokens.rokon`, `sources.rokon`, `installs.rokon`, `envs/CURRENT`입니다. 새 `rok`이 옛 `rok`이 모르는 필드를 써 두었을 수 있습니다.
+한 `$ROK_HOME`에 설치된 모든 toolchain은 그 안의 같은 파일을 읽고 씁니다. `config.rokon`, `tokens.rokon`, `sources.rokon`, `installs.rokon`, `envs/.current`입니다. 새 `rok`이 옛 `rok`이 모르는 필드를 써 두었을 수 있습니다.
 
 - 읽을 때 `rok`은 모르는 필드를 건너뜁니다. `installs.rokon`에서는 모르는 `Dep` 인자와 항목 종류도 건너뜁니다(모르는 종류의 항목은 목록에 나오지 않음). `-v`이면 건너뛴 것을 파일마다 한 번 알립니다. ``note: <file>: skipped `x`, written by a newer rok (kept in the file)``.
 - 쓸 때는 모르는 것을 그대로 둡니다. `rok toolchain default`는 `config.rokon`의 그 필드 하나만, `rok install` / `rok uninstall`은 `installs.rokon`의 그 항목 하나만 설정하거나 지웁니다. `rok login`은 `tokens.rokon`에서 그 index의 항목을 설정하고, `rok logout`은 그 항목만 지웁니다. `sources.rokon`은 읽기만 합니다.
@@ -597,14 +596,15 @@ rok toolchain clean                        # 기본값을 제외한 설치된 �
 - `install.ps1`은 `$ROK_HOME\bin`을 사용자 `Path` 맨 앞에 둡니다. 그리고 `$ROK_HOME\completions\rok.ps1`을 쓰고, PowerShell 프로필에 가드한 줄을 한 번 더해 이 파일을 읽게 합니다.
 - `install.sh`와 `install.ps1`은 `rok`처럼 stderr에 상태 줄을 출력하고, 같은 팔레트와 규칙([9.1.5](901-rokc-cli.md#915-전역-옵션), [9.1.8](901-rokc-cli.md#색))을 `tput` 없이 따릅니다. `install.sh`는 stderr를 보므로 터미널에서 `curl .. | sh`도 색이 납니다.
 - `--no-modify-path`(`install.ps1 -NoModifyPath`)나 `ROK_NO_MODIFY_PATH=1`을 주면 셸 파일, `Path`, 프로필을 건드리지 않고 `PATH`에 더할 내용을 출력합니다.
-- 릴리스는 `$ROK_DIST`(기본값 `https://github.com/rok-lang/rok/releases`)에서 내려받습니다. `<dist>/download/v<version>/<archive>`와 그 `.sha256`이 있습니다. `<dist>/download/channels/rok-version-<series>`는 그 시리즈의 가장 새 릴리스를 한 줄로 적습니다. `<dist>/latest/download/rok-version`은 시리즈와 상관없이 가장 새 릴리스를 한 줄로 적습니다. 릴리스 후보(`<version>-rc.N`)는 prerelease입니다. `latest/`는 이를 적지 않으므로, 전체 버전으로만 설치합니다.
-- `rok toolchain update <series>` / `install <series>`와 `install.sh --version <series>`(`install.ps1 -Version <series>`)는 그 시리즈의 채널 파일을 읽습니다. 채널 파일이 아직 없으면(HTTP 404) 대신 `latest/download/rok-version`을 읽고, 그것이 그 시리즈의 릴리스를 적을 때만 씁니다. 그렇지 않으면 전체 버전을 적으라는 에러입니다.
+- 릴리스는 `$ROK_DIST`(기본값 `https://github.com/rok-lang/rok/releases`)에서 내려받습니다. `<dist>/download/v<version>/<archive>`와 그 `.sha256`이 있습니다. `<dist>/latest/download/rok-version`은 시리즈와 상관없이 가장 새 릴리스를 한 줄로 적고, 인자 없는 `rok toolchain update`가 이것을 읽습니다. 릴리스 후보(`<version>-rc.N`)는 prerelease입니다. `latest/`는 이를 적지 않으므로, 전체 버전으로만 설치합니다.
+- `rok toolchain update <version>` / `install <version>`, `install.sh --version <version>`, `install.ps1 -Version <version>`은 전체 버전을 받습니다. 가장 새 릴리스가 아닌 릴리스는 이렇게 설치합니다. 시리즈별 파일은 내보내지 않습니다.
 
 ### 설치 계약
 
 0.1.0부터 0.1.6까지 toolchain의 `rok toolchain update` / `install`과 그 릴리스들의 설치 스크립트는 이후의 모든 릴리스를 설치할 수 있어야 합니다. 그래서 릴리스 아카이브는 이들이 기대는 것을 지킵니다. 이 계약은 고정이며, 이를 깨는 릴리스는 내보내지 않습니다.
 
 - 이름: `rok-<version>-<triple>.tar.gz`(Windows는 `rok-<version>-<triple>.zip`)이고, Windows가 아니면 `.tar.xz`도 있습니다. 위의 배포 절에서처럼 내려받으며, 각각 옆에 `.sha256`이 있습니다.
+- 포인터: `<dist>/latest/download/rok-version`은 가장 새 릴리스를 한 줄로 적습니다. 이들의 인자 없는 `rok toolchain update`가 이것으로 가장 새 릴리스에 닿습니다. 시리즈를 주면(`update 0.1`) 0.1.6은 먼저 `download/channels/rok-version-<series>`를 찾습니다. 그 파일은 내보내지 않으므로 이 포인터로 돌아가고, 맞지 않으면 전체 버전을 적으라고 합니다.
 - 레이아웃: 최상위 디렉터리 `rok-<version>-<triple>/` 하나에 `bin/rok`과 `bin/rokc`(Windows는 `bin\rok.exe`와 `bin\rokc.exe`), `lib/<runtime>`(`lib/librokr.a`, Windows는 `lib\rokr.lib`), `lib/rok/core/src/lib.rok`이 있습니다.
 - `bin/rokc --version --verbose`는 첫 줄에 `rokc <version>`(뒤에 공백과 다른 글이 올 수 있음)을, 그리고 `host: <triple>` 줄을 출력합니다.
 

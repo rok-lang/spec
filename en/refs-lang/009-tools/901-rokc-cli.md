@@ -67,7 +67,7 @@ The package name (the output name) is the name of the package directory; for an 
 rokc build [path]
 ```
 
-`[path]` follows the package selection rules above. Output is placed in the per-profile `target/` of [9.2.15](902-aot-pipeline.md#9215-output). `src/main.rok` produces `target/<profile>/<name>`; `src/lib.rok` produces `target/<profile>/lib<name>.a` plus the interface `target/<profile>/<name>.rokhir` ([9.4](904-rokhir-bytecode.md)); a package with both produces both. The profile is `release` for `-O2` / `-O3` / `-Os` (including `--release`) and `debug` otherwise; with `--target=<target>` the directory is `target/<name>/<profile>/`. If `--target-dir=<dir>` or `ROK_TARGET_DIR` is set, that directory is used instead of `target/`.
+`[path]` follows the package selection rules above. Output is placed in the per-profile `target/` of [9.2.15](902-aot-pipeline.md#9215-output). `src/main.rok` produces `target/<profile>/<name>`; `src/lib.rok` produces `target/<profile>/lib<name>.a` plus the interface `target/<profile>/<name>.rokhir` ([9.4](904-rokhir-bytecode.md)); a package with both produces both. The profile is `release` for `-O2` / `-O3` / `-Os` (including `--release`) and `debug` otherwise; with `--target=<target>` the directory is `target/<target>/<profile>/`. If `--target-dir=<dir>` or `ROK_TARGET_DIR` is set, that directory is used instead of `target/`.
 
 A lone file ([4.16.8](../004-functions/416-entry-point.md#4168-single-file-execution)) is built the way `rokc run` builds it, and its executable is copied next to the file as its stem plus the target's executable suffix (`hello.rok` gives `hello`, `hello.exe` on Windows), unless `-o` names another file. A file already at that path that an earlier build of the script did not write is left alone: the build fails and names `-o <file>`.
 
@@ -165,7 +165,7 @@ Options are the same as `rokc build`, plus three more:
 
 - `--threads=N` sets the number of test processes run concurrently. The default is `ROK_TEST_THREADS`, or the CPU count if that is unset.
 - `--show-output` also shows the stdout / stderr of passing tests. Output of failing tests is always shown.
-- `--format=human|json` selects the output form (default `human`). `json` writes a JSON record per test and a summary on stdout and the text below on stderr ([9.9.12](909-debug-tools.md#9912-ci--test-integration)).
+- `--format=human|json` selects the output form (default `human`); `rokbench` is for `bench` only and is a usage error here. `json` writes a JSON record per test and a summary on stdout and the text below on stderr ([9.9.12](909-debug-tools.md#9912-ci--test-integration)).
 
 Output goes to stdout in the following form.
 
@@ -203,14 +203,14 @@ A benchmark takes a `Bench` handle and times a closure, so setup stays out of th
 
 ```rok
 #[bench]
-fn parse_1kb(b: Bench) {
-    let input = sample(1024);               // setup: run once, not timed
-    b.set_bytes(1024);                       // optional: report throughput
-    b.iter(|| parse(black_box(input)));     // the timed region
+fn parse_1kb(b: bench::Bench) {
+    let input = sample(1024);                   // setup: run once, not timed
+    b.set_bytes(1024);                          // optional: report throughput
+    b.iter(|| parse(hint::black_box(input)));   // the timed region
 }
 ```
 
-`b.iter(f)` performs the whole measurement (calibrate, warm up, sample); its result is black-boxed. `black_box` ([`rok::core::hint`](../../refs-standard-libraries/200-core/README.md#benchmarks--optimizer-hints)) is an identity the optimizer cannot see through. Apply it to the inputs and result of the timed region so the work is neither hoisted out nor folded away. `b.set_bytes(n)` / `b.set_items(n)` add a throughput column. `Bench`, `black_box` and the statistics are library API; the method is defined in [9.9.11](909-debug-tools.md#9911-benchmarks).
+`b.iter(f)` performs the whole measurement (calibrate, warm up, sample); its result is black-boxed. `hint::black_box` ([`rok::core::hint`](../../refs-standard-libraries/200-core/README.md#benchmarks--optimizer-hints)) is an identity the optimizer cannot see through. Apply it to the inputs and result of the timed region so the work is neither hoisted out nor folded away. `b.set_bytes(n)` / `b.set_items(n)` add a throughput column. `Bench`, `black_box` and the statistics are library API; the method is defined in [9.9.11](909-debug-tools.md#9911-benchmarks).
 
 - `--iters=N` fixes the number of calls per sample instead of calibrating.
 - `--samples=N` is the number of samples measured (default 10).
@@ -285,15 +285,15 @@ A file with lexical errors is left untouched and the error is reported, with exi
 rokc check [path] [--check-library]
 ```
 
-Runs the front end through type checking and MIR building, plus lints, and reports diagnostics. No code generation (no MLIR) is performed. Options are the same as `rokc build`. `--check-library` lowers and checks every body of a library regardless of reachability, and checks every generic body against its bounds ([2.10.9](../002-types/210-generics.md#2109-body-checking)); its lints then cover the standard library's own code too, with `missing_docs` at `deny` ([6.2.9](../006-meta-system/602-built-in-attributes.md)). A package with both root files checks its library, then, if the library has no error, its executable with the library compiled in; each warning is reported once.
+Runs the front end through type checking and MIR building, plus lints, then code generation (MLIR) without the native build (no object files, no link), and reports diagnostics. Options are the same as `rokc build`. `--check-library` lowers and checks every body of a library regardless of reachability, and checks every generic body against its bounds ([2.10.9](../002-types/210-generics.md#2109-body-checking)); its lints then cover the standard library's own code too, with `missing_docs` at `deny` ([6.2.9](../006-meta-system/602-built-in-attributes.md)). A package with both root files checks its library, then, if the library has no error, its executable with the library compiled in; each warning is reported once.
 
 ### `rokc lint`: linter
 
 ```
-rokc lint [path] [--list]
+rokc lint [path] [--list] [--check-library]
 ```
 
-`rokc check` without code generation. Every compiling command reports the same lints ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)); `lint` runs only them and the front end. The diagnostic format is 9.1.8; lint diagnostics have code `E0132`. The list of lints and groups is in [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control). `--list` prints the lints with their default levels and the release that added each, then the groups.
+`rokc check` without code generation. Every compiling command reports the same lints ([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control)); `lint` runs only them and the front end. The diagnostic format is 9.1.8; lint diagnostics have code `E0132`. The list of lints and groups is in [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-lint-control). `--list` prints the lints with their default levels and the release that added each, then the groups. `--check-library` is as for `rokc check`.
 
 Lint levels are set by the global options `-A` / `-W` / `-D` (9.1.5) and by attributes in code. If any `deny`-level lint fires, the exit code is `1`.
 
@@ -450,6 +450,8 @@ The global options are listed below. They may appear before or after the subcomm
 | `--explain <code>`               | Print the page of an error code (`E0040`): what it means and what to write instead, then exit ([9.9.4](909-debug-tools.md#error-codes)) |
 | `-A` / `-W` / `-D <lint \| group>` | Lint level (`--allow` / `--warn` / `--deny`). Applies to every command that compiles the package (`build`, `run`, `test`, `bench`, `emit`, `check`, `lint`, `lsp`). May be repeated; the later one wins |
 
+`rokc help` lists the `--print` forms with the build options, since what they print depends on `--target` and `--cfg`; they need no subcommand.
+
 The lint level is determined in the order: the lint's default level < `-A` / `-W` / `-D` < `#[allow(..)]` / `#[warn(..)]` / `#[deny(..)]` in code (innermost wins). `rok` prepends the manifest's `lints` as these flags ([9.10.1](910-rok-frontend.md#9101-subcommands-and-global-options)).
 
 Colour is decided for stdout and stderr separately, in this order: `--color=never` turns it off and `--color=always` on; otherwise (`--color=auto`, the default) a non-empty `NO_COLOR` turns it off, a `CLICOLOR_FORCE` that is non-empty and not `0` turns it on, `TERM=dumb` turns it off, and else a stream is coloured when it is a terminal. On Windows a console that does not take escape sequences gets plain text.
@@ -475,7 +477,7 @@ Exit codes are defined as follows.
 
 A usage error prints `rokc: <message>` and then the line ``run `rokc help <subcommand>` for usage`` (``run `rokc help` for usage`` when no known subcommand was given). The message says what to write instead: an unknown subcommand or option names the closest one when there is one (``unknown option `--relase`; did you mean `--release`?``), and an unknown subcommand that names a file (it contains `/` or ends in `.rok`) suggests `rokc run <file>`. When `__ROK_CLI` is `rok` (9.1.7), both lines say `rok` instead of `rokc`.
 
-`rokc` does not read `ROK_HOME` (the sysroot is relative to the executable). If rokc itself panics (internal compiler error), it prints a message and exits with `70` (`EX_SOFTWARE`), apart from a program's panic, which exits with `101`. `rokc lsp`, `rokc repl` and `rokc jupyter` survive it: the language server reports it as an error diagnostic of the analyzed buffer, the REPL / kernel fails that cell ([9.7.5](907-jit-cells.md#975-error-modes)); both keep serving. `rokc run` exits with the exit code of the program it ran (9.1.2).
+The sysroot does not come from `ROK_HOME`: it is relative to the executable. `rokc` reads `ROK_HOME` only for the REPL history (`$ROK_HOME/repl_history`) and to show a fetched dependency's path under `$ROK_HOME/cache/`. If rokc itself panics (internal compiler error), it prints a message and exits with `70` (`EX_SOFTWARE`), apart from a program's panic, which exits with `101`. `rokc lsp`, `rokc repl` and `rokc jupyter` survive it: the language server reports it as an error diagnostic of the analyzed buffer, the REPL / kernel fails that cell ([9.7.5](907-jit-cells.md#975-error-modes)); both keep serving. `rokc run` exits with the exit code of the program it ran (9.1.2).
 
 If standard output or standard error is a pipe whose reader has gone, `rokc` stops without a message: on Unix it is terminated by `SIGPIPE` (a shell reports `141`); on Windows it exits with `1`. This is not an internal error.
 
@@ -497,6 +499,10 @@ The environment variables that affect `rokc` are:
 | `ROK_INCREMENTAL` | Where the front end keeps the package's parses and lowered bodies (default `target/<profile>/incremental/`; `0`: nowhere); the library's collected items are kept in `lib/rok-cache/library/` ([9.2.16](902-aot-pipeline.md#9216-incremental-build)) |
 | `ROK_INCREMENTAL_VERIFY` | `1`: lower every body again and fail on a difference ([9.2.16](902-aot-pipeline.md#9216-incremental-build)) |
 | `ROK_TEST_THREADS` | Default for `rokc test --threads` (CPU core count if unset)                              |
+| `ROK_HOME`        | The REPL history and the display of fetched dependencies (9.1.6; default `~/.rok`)        |
+| `ROK_REPL_TIME`   | `1`: the time of each phase of a REPL cell on stderr ([9.9.9](909-debug-tools.md#999-repl--jupyter-debugging)) |
+| `LIBRARY_PATH`    | Native library search directories, after `-L`                                            |
+| `BROWSER`         | The browser `rokc doc --open` starts                                                     |
 | `NO_COLOR`        | Non-empty: `--color=auto` does not use colour (9.1.5)                                    |
 | `CLICOLOR_FORCE`  | Non-empty and not `0`: `--color=auto` uses colour even when the stream is not a terminal, unless `NO_COLOR` is set (9.1.5) |
 | `COLORTERM`       | `truecolor` or `24bit`: colour uses 24-bit values (9.1.8)                                |
@@ -549,6 +555,8 @@ Progress is shown on stderr with right-aligned verbs. Nothing is printed with `-
 | `Built`     | A lone file's executable copied next to it (`build`): `Built hello (use -o to put it elsewhere)`. A test or bench harness built without `--emit-harness` (`test`, `bench`), followed by a note naming `rok test` or `rok bench` to run it |
 | `Wrote`     | One `--emit` output written                   |
 | `Std`       | With `-v`: the standard library used, `prebuilt (<path>)` or `from source` |
+| `Reused`    | With `-v`, after the front end: how many files' parses and bodies' lowerings came from the incremental cache ([9.2.16](902-aot-pipeline.md#9216-incremental-build)) |
+| `Units`     | With `-v`, during code generation: how many code units were reused and how many compiled |
 | `Finished`  | Build done (time since the command started, a standard library build included) |
 | `Running`   | Program run (`run`): the executable relative to the current directory; a lone file by its file name (`Running hello.rok`), with `-v` the cached executable |
 | `Created`   | Package created (`new`), then the command to run next under it ([9.10.2](910-rok-frontend.md#9102-rok-new--rok-init-package-creation)) |

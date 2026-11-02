@@ -19,7 +19,7 @@ ROKHIR file (little-endian):
 +-----------------------------------+
 |  Header                           |  (16 bytes fixed)
 |    magic       "ROKH"    (4 bytes)  |
-|    version     u32  (= 6)         |
+|    version     u32  (= 8)         |
 |    flags       u32                |
 |    body_offset u32                |
 +-----------------------------------+
@@ -50,11 +50,11 @@ ROKHIR file (little-endian):
 | Field         | Size | Meaning                                                      |
 |---------------|------|--------------------------------------------------------------|
 | `magic`       | 4    | `"ROKH"`                                                       |
-| `version`     | u32  | Format version (`6`). Bumped when the layout or body content changes: 2 added the `features` meta, 3 the `.wit` files of the body, 4 inlines `include_str!` / `include_bytes!` data, 5 adds the hand-off summaries, 6 adds the summaries' exit kinds |
+| `version`     | u32  | Format version (`8`). Bumped when the layout or body content changes: 2 added the `features` meta, 3 the `.wit` files of the body, 4 inlines `include_str!` / `include_bytes!` data, 5 adds the hand-off summaries, 6 adds the summaries' exit kinds, 7 changes the code it pairs with (the thread block passed as a hidden argument), 8 extends the hand-off summaries |
 | `flags`       | u32  | Reserved (0)                                                 |
 | `body_offset` | u32  | Start offset of the body                                     |
 
-The producer string is `rokc <version> (<compiler id>)`. The compiler id is the size and modification time of that `rokc` executable (`<size>-<mtime>`, hexadecimal).
+The producer string is `rokc <version> (<compiler id>)`. The compiler id is the build's commit and a stamp of that `rokc` executable that changes whenever it is written or replaced: its size, modification time, inode and change time (`<size>-<mtime>-<inode>-<ctime>.<ctime_nsec>`, hexadecimal; on Windows the file id and creation time take the place of the inode and change time).
 
 ## 9.4.5. VarInt encoding
 

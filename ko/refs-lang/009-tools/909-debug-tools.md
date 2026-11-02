@@ -43,8 +43,8 @@ rokc inspect --dump path/to/foo.rokhir   # 또는 libfoo.a. 옆의 foo.rokhir �
 이 명령은 미리 빌드한 라이브러리의 [ROKHIR](904-rokhir-bytecode.md)을 사람이 읽을 수 있는 형식으로 출력합니다. 버전, producer, 메타 다음에 인터페이스 파일마다 `--- <경로>`와 그 텍스트가 이어집니다. 텍스트는 구체 함수 본문을 `;`로 잘라 낸 소스입니다.
 
 ```
-rokhir 6
-producer: rokc 0.1.0 (1f2a40-17f3a9c2e1b0c4d8)
+rokhir 8
+producer: rokc 0.2.0 (81a1b80-18e41085f35ccdd9-18be644-6ae7cf0f.6bda9c9)
 package: geom (hash: 3f8a1c2b)
 source: /home/me/geom
 gc types: 4096..4160
@@ -107,7 +107,7 @@ error[E0027]: cannot find value `count` in this scope
 rokc build --message-format=json
 ```
 
-진단 하나가 stdout의 JSON 객체 한 줄입니다. 사람용 형식은 stderr에 나옵니다.
+진단 하나가 stdout의 JSON 객체 한 줄입니다. 사람용 형식의 진단은 출력하지 않고, stderr에는 진행 줄만 나옵니다.
 
 ```json
 {"type":"error","code":"E0040","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"...","line_end":5,"col_end":15}],"notes":["..."],"fixes":[],"spec":["..."],"help":["..."],"lint":null,"schema":2}
@@ -281,6 +281,7 @@ IDE와 CI 시스템은 이 형식으로 진단을 기계적으로 읽을 수 있
 | `E0136` | `resolve` | trait of the method not in scope |
 | `E0137` | `handoff` | thread-local value kept past `with` |
 | `E0138` | `handoff` | list view used after a resize |
+| `E0139` | `type` | `pub` function signature not written out |
 
 `kind` 값은 `lexical`, `parse`, `resolve`, `visibility`, `module`, `type`, `pattern`, `handoff`(넘긴 뒤의 사용, [stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync-스레드-경계-마커), 또는 리스트 크기를 바꾼 뒤의 `SliceMut` 사용, [stdlib 2.9.7a](../../refs-standard-libraries/200-core/209-collections.md#297a-slicemutt-쓰기-가능한-뷰)), `meta`, `lowering`, `codegen`, `linkage`, `unsupported`, `internal`, `other`, `lint`입니다.
 
@@ -326,9 +327,12 @@ IDE와 CI 시스템은 이 형식으로 진단을 기계적으로 읽을 수 있
 상세 모드에서는 단계별 시간을 함께 표시합니다.
 
 ```
+         Std prebuilt (<path>)
    Compiling foo (path/to/foo)
    Stage: front end (134ms)
-    Building target/debug/foo
+      Reused: 12 of 107 files parsed, 3 of 4 bodies lowered
+    Building ./target/debug/foo
+       Units 2 reused, 1 compiled
    Stage: codegen + link (812ms)
     Finished in 0.95s
 ```
@@ -453,7 +457,7 @@ rokc build --release -C profile-use=app.profdata  #    profile 로 다시 빌드
 | `:reload`            | 마지막으로 로드한 프로그램을 다시 로드                               |
 | `:edit`              | `$VISUAL`이나 `$EDITOR`(없으면 `vi`, Windows는 `notepad`)로 임시 파일을 열고 그 내용을 셀로 실행. 셀이 실패하면 다음 `:edit`에서 그 텍스트를 다시 엶 |
 | `:save <file>`       | 세션을 스크립트로 씀. 항목을 먼저, 이어서 실행된 셀을 씀. 같은 타입으로 다시 선언한 이름은 대입으로 씀. 타입이 다르면 파일 끝까지 이어지는 블록을 엶([5.1.4](../005-modules/501-variable-declaration.md#514-같은-스코프-내-재선언-금지)). `it`은 이후 셀이 읽는 곳에서만 선언. 첫 줄은 `// rok repl session (:save); :load replays it cell by cell`이고 각 셀 앞에 `// :cell` 줄이 옴. 스크립트를 `:load`로 로드하면 셀을 하나씩 다시 실행하므로 다시 선언한 이름은 마지막 바인딩을 유지함. `rokc run`은 프로그램으로 실행함 |
-| `:opt [<level>]`     | 최적화 수준(`-O`처럼 `0`, `1`, `2`, `3`, `s`, `z`)을 출력하거나 이후 셀에 설정 |
+| `:opt [<level>]`     | 최적화 수준(`-O`처럼 `0`, `1`, `2`, `3`, `s`)을 출력하거나 이후 셀에 설정 |
 | `:reset`             | 세션을 처음 상태로 되돌림(라이브러리 경로의 `use`는 다시 넣음)         |
 | `:add <dep> ..`      | 의존성을 추가하고(현재 환경에서는 `rok install`, 패키지의 세션에서는 `rok add`) 세션에 붙임([9.10.5](910-rok-frontend.md#9105-환경)) |
 | `:help`, `:h`        | 모든 명령과 별칭을 나열                                               |
@@ -592,8 +596,8 @@ rokc inspect path/to/libfoo.a        # 또는 foo.rokhir. 짝 파일을 함께 �
 ```
 Package: foo
 Hash: 3f8a1c2b
-rokc version: 0.1.0
-ROKHIR version: 1
+rokc version: 0.2.0 (<compiler id>)
+ROKHIR version: 8
 GC type ids: 4096..4160
 
 Exports:

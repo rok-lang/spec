@@ -67,7 +67,7 @@ option          ::= "--" identifier ("=" value)?
 rokc build [path]
 ```
 
-`[path]`는 위의 패키지 지정 규칙을 따릅니다. 산출물은 [9.2.15](902-aot-pipeline.md#9215-산출물)의 프로필별 `target/`에 놓입니다. `src/main.rok`은 `target/<profile>/<name>`을 만들고, `src/lib.rok`은 `target/<profile>/lib<name>.a`와 인터페이스 `target/<profile>/<name>.rokhir`([9.4](904-rokhir-bytecode.md))을 만듭니다. 둘 다 있는 패키지는 둘 다 만듭니다. 프로필은 `-O2` / `-O3` / `-Os`(`--release` 포함)이면 `release`이고, 그 밖에는 `debug`입니다. `--target=<target>`을 주면 `target/<name>/<profile>/`입니다. `--target-dir=<dir>`나 `ROK_TARGET_DIR`이 있으면 `target/` 대신 그 디렉터리를 씁니다.
+`[path]`는 위의 패키지 지정 규칙을 따릅니다. 산출물은 [9.2.15](902-aot-pipeline.md#9215-산출물)의 프로필별 `target/`에 놓입니다. `src/main.rok`은 `target/<profile>/<name>`을 만들고, `src/lib.rok`은 `target/<profile>/lib<name>.a`와 인터페이스 `target/<profile>/<name>.rokhir`([9.4](904-rokhir-bytecode.md))을 만듭니다. 둘 다 있는 패키지는 둘 다 만듭니다. 프로필은 `-O2` / `-O3` / `-Os`(`--release` 포함)이면 `release`이고, 그 밖에는 `debug`입니다. `--target=<target>`을 주면 `target/<target>/<profile>/`입니다. `--target-dir=<dir>`나 `ROK_TARGET_DIR`이 있으면 `target/` 대신 그 디렉터리를 씁니다.
 
 단독 파일([4.16.8](../004-functions/416-entry-point.md#4168-단일-파일-실행))은 `rokc run`처럼 빌드합니다. 실행 파일은 파일 옆에 "파일 이름의 stem + 타깃의 실행 파일 접미사"라는 이름으로 복사합니다(`hello.rok`이면 `hello`, Windows에서는 `hello.exe`). `-o`로 다른 파일을 지정하면 그곳에 둡니다. 그 경로에 이 스크립트의 이전 빌드가 쓰지 않은 파일이 이미 있으면 그 파일은 건드리지 않습니다. 이때 빌드는 실패하고 `-o <file>`을 안내합니다.
 
@@ -165,7 +165,7 @@ rokc test [path] [filter]
 
 - `--threads=N`은 동시에 실행할 테스트 프로세스 수를 지정합니다. 기본값은 `ROK_TEST_THREADS`이고, 그것도 없으면 CPU 수입니다.
 - `--show-output`은 성공한 테스트의 stdout / stderr도 표시합니다. 실패한 테스트의 출력은 늘 표시합니다.
-- `--format=human|json`은 출력 형식을 고릅니다(기본값 `human`). `json`은 테스트마다 JSON 레코드 하나와 summary를 stdout에, 아래 텍스트를 stderr에 씁니다([9.9.12](909-debug-tools.md#9912-ci--테스트-통합)).
+- `--format=human|json`은 출력 형식을 고릅니다(기본값 `human`). `rokbench`는 `bench` 전용이라 여기서는 사용법 에러입니다. `json`은 테스트마다 JSON 레코드 하나와 summary를 stdout에, 아래 텍스트를 stderr에 씁니다([9.9.12](909-debug-tools.md#9912-ci--테스트-통합)).
 
 출력은 stdout에 다음 형태로 나옵니다.
 
@@ -203,14 +203,14 @@ rokc bench [path] [filter]
 
 ```rok
 #[bench]
-fn parse_1kb(b: Bench) {
-    let input = sample(1024);               // setup: 한 번만, 측정 안 함
-    b.set_bytes(1024);                       // 선택: 처리량 보고
-    b.iter(|| parse(black_box(input)));     // 측정 구간
+fn parse_1kb(b: bench::Bench) {
+    let input = sample(1024);                   // setup: 한 번만, 측정 안 함
+    b.set_bytes(1024);                          // 선택: 처리량 보고
+    b.iter(|| parse(hint::black_box(input)));   // 측정 구간
 }
 ```
 
-`b.iter(f)`가 측정 전체(보정, 예열, 표본 수집)를 맡고, 결과는 black_box를 거칩니다. `black_box`([`rok::core::hint`](../../refs-standard-libraries/200-core/README.md#벤치마크--최적화-힌트))는 옵티마이저가 꿰뚫어 볼 수 없는 항등 함수입니다. 측정 구간의 입력과 결과에 적용하면 작업이 구간 밖으로 끌려 나가거나 상수로 접히지 않습니다. `b.set_bytes(n)` / `b.set_items(n)`은 처리량 열을 더합니다. `Bench`, `black_box`, 통계는 라이브러리 API이고, 측정 방법은 [9.9.11](909-debug-tools.md#9911-벤치마크)에서 정의합니다.
+`b.iter(f)`가 측정 전체(보정, 예열, 표본 수집)를 맡고, 결과는 black_box를 거칩니다. `hint::black_box`([`rok::core::hint`](../../refs-standard-libraries/200-core/README.md#벤치마크--최적화-힌트))는 옵티마이저가 꿰뚫어 볼 수 없는 항등 함수입니다. 측정 구간의 입력과 결과에 적용하면 작업이 구간 밖으로 끌려 나가거나 상수로 접히지 않습니다. `b.set_bytes(n)` / `b.set_items(n)`은 처리량 열을 더합니다. `Bench`, `black_box`, 통계는 라이브러리 API이고, 측정 방법은 [9.9.11](909-debug-tools.md#9911-벤치마크)에서 정의합니다.
 
 - `--iters=N`은 보정 대신 표본 하나의 호출 횟수를 고정합니다.
 - `--samples=N`은 측정할 표본 수입니다(기본값 10).
@@ -285,15 +285,15 @@ rokc fmt [path]
 rokc check [path] [--check-library]
 ```
 
-프런트엔드를 타입 검사와 MIR 생성까지 돌리고, 린트와 함께 진단을 냅니다. 코드 생성(MLIR 포함)은 하지 않습니다. 옵션은 `rokc build`와 같습니다. `--check-library`는 도달 여부와 상관없이 라이브러리의 모든 본문을 낮추고 검사하며, 모든 제네릭 본체를 그 바운드에 맞춰 검사합니다([2.10.9](../002-types/210-generics.md#2109-본체-검사)). 이때 린트는 표준 라이브러리 자체의 코드도 검사하고, `missing_docs`는 `deny`로 봅니다([6.2.9](../006-meta-system/602-built-in-attributes.md)). 루트 파일이 둘 다 있는 패키지는 먼저 라이브러리를 검사합니다. 라이브러리에 에러가 없으면 라이브러리를 함께 컴파일한 실행 파일을 검사합니다. 각 경고는 한 번만 보고합니다.
+프런트엔드를 타입 검사와 MIR 생성까지 돌리고, 린트와 코드 생성(MLIR)까지 돌리고 진단을 냅니다. 네이티브 빌드(오브젝트 파일, 링크)는 하지 않습니다. 옵션은 `rokc build`와 같습니다. `--check-library`는 도달 여부와 상관없이 라이브러리의 모든 본문을 낮추고 검사하며, 모든 제네릭 본체를 그 바운드에 맞춰 검사합니다([2.10.9](../002-types/210-generics.md#2109-본체-검사)). 이때 린트는 표준 라이브러리 자체의 코드도 검사하고, `missing_docs`는 `deny`로 봅니다([6.2.9](../006-meta-system/602-built-in-attributes.md)). 루트 파일이 둘 다 있는 패키지는 먼저 라이브러리를 검사합니다. 라이브러리에 에러가 없으면 라이브러리를 함께 컴파일한 실행 파일을 검사합니다. 각 경고는 한 번만 보고합니다.
 
 ### `rokc lint`: 린터
 
 ```
-rokc lint [path] [--list]
+rokc lint [path] [--list] [--check-library]
 ```
 
-`rokc check`에서 코드 생성을 뺀 것입니다. 컴파일하는 모든 명령이 같은 린트를 보고합니다([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). `lint`는 린트와 프런트엔드만 돌립니다. 진단 형식은 9.1.8을 따르고, 린트 진단의 코드는 `E0132`입니다. 린트 목록과 그룹은 [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)에 있습니다. `--list`는 린트를 기본 수준, 추가된 릴리스와 함께 출력하고, 이어서 그룹을 출력합니다.
+`rokc check`에서 코드 생성을 뺀 것입니다. 컴파일하는 모든 명령이 같은 린트를 보고합니다([6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)). `lint`는 린트와 프런트엔드만 돌립니다. 진단 형식은 9.1.8을 따르고, 린트 진단의 코드는 `E0132`입니다. 린트 목록과 그룹은 [6.2.9](../006-meta-system/602-built-in-attributes.md#629-allow--deny--warn-린트-제어)에 있습니다. `--list`는 린트를 기본 수준, 추가된 릴리스와 함께 출력하고, 이어서 그룹을 출력합니다. `--check-library`는 `rokc check`와 같습니다.
 
 린트 수준은 전역 옵션 `-A` / `-W` / `-D`(9.1.5)와 코드의 속성이 정합니다. `deny` 수준의 린트가 하나라도 걸리면 종료 코드는 `1`입니다.
 
@@ -450,6 +450,8 @@ rokc <subcommand> --help
 | `--explain <code>`               | 에러 코드(`E0040`)의 설명, 곧 뜻과 대신 쓸 코드를 출력하고 끝냄([9.9.4](909-debug-tools.md#에러-코드)) |
 | `-A` / `-W` / `-D <lint \| group>` | 린트 수준(`--allow` / `--warn` / `--deny`). 패키지를 컴파일하는 모든 명령(`build`, `run`, `test`, `bench`, `emit`, `check`, `lint`, `lsp`)에 적용. 여러 번 쓸 수 있고 뒤의 것이 이김 |
 
+`rokc help`는 `--print` 형식들을 빌드 옵션과 함께 보여 줍니다. 출력하는 내용이 `--target`과 `--cfg`에 따라 달라지기 때문입니다. 서브명령 없이도 씁니다.
+
 린트 수준은 린트의 기본 수준 < `-A` / `-W` / `-D` < 코드의 `#[allow(..)]` / `#[warn(..)]` / `#[deny(..)]`(가장 안쪽이 이김) 순으로 정합니다. `rok`은 매니페스트의 `lints`를 이 플래그로 바꿔 앞에 붙여 넘깁니다([9.10.1](910-rok-frontend.md#9101-서브명령과-전역-옵션)).
 
 색은 stdout과 stderr에 따로 다음 순서로 정합니다. `--color=never`면 끄고 `--color=always`면 켭니다. 그 밖(`--color=auto`, 기본값)에는 `NO_COLOR`가 비어 있지 않으면 끄고, `CLICOLOR_FORCE`가 비어 있지 않고 `0`도 아니면 켭니다. `TERM=dumb`면 끄고, 아니면 그 스트림이 터미널일 때 색을 씁니다. Windows에서 escape sequence를 받지 않는 콘솔에는 색 없는 글자를 보냅니다.
@@ -475,7 +477,7 @@ rokc --cwd=examples/hello run
 
 사용법 에러는 `rokc: <메시지>` 다음에 ``run `rokc help <subcommand>` for usage`` 줄을 출력합니다(알려진 서브명령이 없으면 ``run `rokc help` for usage``). 메시지는 대신 쓸 것을 알려 줍니다. 모르는 서브명령이나 옵션은 가장 가까운 것이 있으면 그 이름을 댑니다(``unknown option `--relase`; did you mean `--release`?``). 파일을 가리키는(`/`를 담거나 `.rok`으로 끝나는) 모르는 서브명령에는 `rokc run <file>`을 제안합니다. `__ROK_CLI`가 `rok`이면(9.1.7) 두 줄 모두 `rokc` 대신 `rok`이라고 씁니다.
 
-`rokc`는 `ROK_HOME`을 읽지 않습니다(sysroot는 실행 파일 기준). rokc 자신이 panic으로 끝나면(internal compiler error) 메시지를 출력하고 `70`(`EX_SOFTWARE`)으로 끝납니다. 프로그램의 panic은 `101`로 끝나므로 둘은 구별됩니다. `rokc lsp`, `rokc repl`, `rokc jupyter`는 이 panic을 견딥니다. language server는 이를 분석한 버퍼의 에러 진단으로 보고하고, REPL / 커널은 그 셀을 실패로 처리합니다([9.7.5](907-jit-cells.md#975-에러-모드)). 둘 다 계속 서비스합니다. `rokc run`은 실행한 프로그램의 종료 코드로 끝납니다(9.1.2).
+sysroot는 `ROK_HOME`에서 오지 않고 실행 파일 기준입니다. `rokc`는 REPL 기록(`$ROK_HOME/repl_history`)과, 가져온 의존 패키지의 경로를 `$ROK_HOME/cache/` 아래로 보여 줄 때만 `ROK_HOME`을 읽습니다. rokc 자신이 panic으로 끝나면(internal compiler error) 메시지를 출력하고 `70`(`EX_SOFTWARE`)으로 끝납니다. 프로그램의 panic은 `101`로 끝나므로 둘은 구별됩니다. `rokc lsp`, `rokc repl`, `rokc jupyter`는 이 panic을 견딥니다. language server는 이를 분석한 버퍼의 에러 진단으로 보고하고, REPL / 커널은 그 셀을 실패로 처리합니다([9.7.5](907-jit-cells.md#975-에러-모드)). 둘 다 계속 서비스합니다. `rokc run`은 실행한 프로그램의 종료 코드로 끝납니다(9.1.2).
 
 표준 출력이나 표준 에러가 읽는 쪽이 사라진 파이프이면 `rokc`는 메시지 없이 멈춥니다. Unix에서는 `SIGPIPE`로 종료되고(셸은 `141`을 보고), Windows에서는 `1`로 끝납니다. 이 경우는 내부 에러가 아닙니다.
 
@@ -497,6 +499,10 @@ rokc --cwd=examples/hello run
 | `ROK_INCREMENTAL` | 프런트엔드가 패키지의 파싱 결과와 낮춘 본체를 두는 곳(기본값 `target/<profile>/incremental/`, `0`이면 두지 않음). 라이브러리에서 모은 항목은 `lib/rok-cache/library/`에 둠([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |
 | `ROK_INCREMENTAL_VERIFY` | `1`이면 모든 본체를 다시 낮추고, 결과가 다르면 실패([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |
 | `ROK_TEST_THREADS` | `rokc test --threads`의 기본값(없으면 CPU 코어 수)                                     |
+| `ROK_HOME`        | REPL 기록과 가져온 의존 패키지의 표시(9.1.6, 기본값 `~/.rok`)                            |
+| `ROK_REPL_TIME`   | `1`이면 REPL 셀의 단계마다 걸린 시간을 stderr에 출력([9.9.9](909-debug-tools.md#999-repl--jupyter-디버그)) |
+| `LIBRARY_PATH`    | 네이티브 라이브러리 검색 디렉터리. `-L` 다음에 찾음                                      |
+| `BROWSER`         | `rokc doc --open`이 여는 브라우저                                                        |
 | `NO_COLOR`        | 비어 있지 않으면 `--color=auto`가 색을 쓰지 않음(9.1.5)                                |
 | `CLICOLOR_FORCE`  | 비어 있지 않고 `0`이 아니면 스트림이 터미널이 아니어도 `--color=auto`가 색을 씀. `NO_COLOR`가 있으면 쓰지 않음(9.1.5) |
 | `COLORTERM`       | `truecolor`나 `24bit`이면 24비트 색 값을 씀(9.1.8)                                        |
@@ -549,6 +555,8 @@ error[E0027]: cannot find value `count` in this scope
 | `Built`     | 단독 파일의 실행 파일을 그 옆에 복사함(`build`). `Built hello (use -o to put it elsewhere)`. 테스트 / 벤치 harness를 `--emit-harness` 없이 빌드함(`test`, `bench`). 뒤에 그것을 실행할 `rok test`나 `rok bench`를 알리는 note가 따라옴 |
 | `Wrote`     | `--emit` 산출물 하나를 씀                 |
 | `Std`       | `-v`일 때 쓰는 표준 라이브러리. `prebuilt (<path>)`나 `from source` |
+| `Reused`    | `-v`일 때 프런트엔드 뒤. 증분 캐시에서 가져온 파일 파싱과 본문 낮춤의 수([9.2.16](902-aot-pipeline.md#9216-증분-빌드)) |
+| `Units`     | `-v`일 때 코드 생성 중. 재사용한 코드 단위와 컴파일한 코드 단위의 수 |
 | `Finished`  | 빌드 끝(명령 시작부터 걸린 시간, 표준 라이브러리 빌드 포함) |
 | `Running`   | 프로그램 실행(`run`). 현재 디렉터리 기준의 실행 파일. 단독 파일은 파일 이름(`Running hello.rok`), `-v`면 캐시된 실행 파일 |
 | `Created`   | 패키지 생성(`new`). 그 아래에 이어서 실행할 명령을 보임([9.10.2](910-rok-frontend.md#9102-rok-new--rok-init-패키지-생성)) |

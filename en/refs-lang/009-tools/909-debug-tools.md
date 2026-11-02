@@ -43,8 +43,8 @@ rokc inspect --dump path/to/foo.rokhir   # or libfoo.a; reads the sibling foo.ro
 This command prints the [ROKHIR](904-rokhir-bytecode.md) of a prebuilt library in human-readable form. After the version, producer and meta, each interface file follows as `--- <path>` and its text (source with concrete function bodies cut down to `;`).
 
 ```
-rokhir 6
-producer: rokc 0.1.0 (1f2a40-17f3a9c2e1b0c4d8)
+rokhir 8
+producer: rokc 0.2.0 (81a1b80-18e41085f35ccdd9-18be644-6ae7cf0f.6bda9c9)
 package: geom (hash: 3f8a1c2b)
 source: /home/me/geom
 gc types: 4096..4160
@@ -107,7 +107,7 @@ For tool integration, output can also be produced as JSON.
 rokc build --message-format=json
 ```
 
-Each diagnostic is one line of JSON object on stdout (the human format goes to stderr).
+Each diagnostic is one line of JSON object on stdout; no human-format diagnostic is printed, and stderr holds only progress lines.
 
 ```json
 {"type":"error","code":"E0040","kind":"type","message":"...","spans":[{"file_name":"src/main.rok","line_start":5,"col_start":10,"byte_start":71,"byte_end":76,"is_primary":true,"label":"...","line_end":5,"col_end":15}],"notes":["..."],"fixes":[],"spec":["..."],"help":["..."],"lint":null,"schema":2}
@@ -279,6 +279,7 @@ Every kind of error has its own code, `E` and four digits: `E0040` for mismatche
 | `E0136` | `resolve` | trait of the method not in scope |
 | `E0137` | `handoff` | thread-local value kept past `with` |
 | `E0138` | `handoff` | list view used after a resize |
+| `E0139` | `type` | `pub` function signature not written out |
 
 The `kind` values are `lexical`, `parse`, `resolve`, `visibility`, `module`, `type`, `pattern`, `handoff` (use after hand-off, [stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers), or of a `SliceMut` after its list was resized, [stdlib 2.9.7a](../../refs-standard-libraries/200-core/209-collections.md#297a-slicemutt---writable-view)), `meta`, `lowering`, `codegen`, `linkage`, `unsupported`, `internal`, `other` and `lint`.
 
@@ -324,9 +325,12 @@ Progress lines go to stderr; the list of verbs is in [9.1.8](901-rokc-cli.md#918
 Verbose mode also shows per-stage timing.
 
 ```
+         Std prebuilt (<path>)
    Compiling foo (path/to/foo)
    Stage: front end (134ms)
-    Building target/debug/foo
+      Reused: 12 of 107 files parsed, 3 of 4 bodies lowered
+    Building ./target/debug/foo
+       Units 2 reused, 1 compiled
    Stage: codegen + link (812ms)
     Finished in 0.95s
 ```
@@ -446,7 +450,7 @@ An unset or empty variable has its default. A value outside those listed prints 
 | `:reload`            | Loads the last loaded program again                                  |
 | `:edit`              | Opens `$VISUAL` or `$EDITOR` (else `vi`; `notepad` on Windows) on a scratch file, then runs what it holds as cells; after a failed cell the text opens again on the next `:edit` |
 | `:save <file>`       | Writes the session as a script: the items, then the cells that ran. A name declared again with the same type is assigned; with another type, it opens a block that lasts to the end of the file ([5.1.4](../005-modules/501-variable-declaration.md#514-no-redeclaration-in-the-same-scope)). `it` is declared only where a later cell reads it. The first line is `// rok repl session (:save); :load replays it cell by cell` and a `// :cell` line comes before each cell: `:load` of the script runs the cells again one by one, so a name declared again keeps its last binding; `rokc run` runs it as a program |
-| `:opt [<level>]`     | Prints, or sets for later cells, the optimization level (`0`, `1`, `2`, `3`, `s`, `z`, as `-O`) |
+| `:opt [<level>]`     | Prints, or sets for later cells, the optimization level (`0`, `1`, `2`, `3`, `s`, as `-O`) |
 | `:reset`             | Resets the session to its initial state (the `use` of a library path is inserted again) |
 | `:add <dep> ..`      | Adds dependencies (`rok install` into the current environment, or `rok add` in a package's session) and attaches them to the session ([9.10.5](910-rok-frontend.md#9105-environments)) |
 | `:help`, `:h`        | Lists every command and alias                                        |
@@ -573,8 +577,8 @@ This command shows information from the ROKHIR ([9.4](904-rokhir-bytecode.md)) a
 ```
 Package: foo
 Hash: 3f8a1c2b
-rokc version: 0.1.0
-ROKHIR version: 1
+rokc version: 0.2.0 (<compiler id>)
+ROKHIR version: 8
 GC type ids: 4096..4160
 
 Exports:
