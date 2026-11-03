@@ -21,15 +21,15 @@ fixed primitive (i8..i64, u8..u64, isize, usize, f32, f64; 하드웨어 친화�
 
 ### 기본으로 쓰는 쪽
 
-접미사 없는 리터럴(`42`, `3.14`)은 기대 타입이 없으면 **`i32` / `f64`**가 됩니다. auto-promote 세계는 `int` / `float`를 적은 자리에서만 쓰입니다.
+접미사 없는 리터럴(`42`, `3.14`)은 타입을 정하는 것이 없으면 **`i64` / `f64`**가 됩니다(`let`이 묶은 리터럴은 이후 쓰임에서 타입을 받음, [1.6.3](../../refs-lang/001-lexical/106-numeric-literals.md#163-접미사-없는-리터럴)). auto-promote 세계는 `int` / `float`를 적은 자리에서만 쓰입니다.
 
 ```rok
 let total: int = 0;               // int (auto-promote), 명시
 for x in xs { total = total + x; }
-// total 이 i32 범위 넘어가도 자동 promote, silent overflow 없음
+// total 이 i64 범위 넘어가도 자동 promote, silent overflow 없음
 
-let n = 0;                        // i32 (기대 타입 없음)
-let perf_critical: i64 = 0;       // i64: 기대 타입을 따름
+let n = 0;                        // i64 (정하는 것이 없음)
+let small: i32 = 0;               // i32: 기대 타입을 따름
 ```
 
 ## 2.1.2. `int`: 무한 정밀도 정수

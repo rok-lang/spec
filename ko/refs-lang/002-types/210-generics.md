@@ -61,9 +61,10 @@ takes_strs(empty());                // T = str, 매개변수 타입 List<str> �
 기대 타입이 없는 `let`은 나중의 쓰임에서 추론합니다. 주석 없는 `let x = f();`에서 `f`의 제네릭 반환 타입이 호출만으로 정해지지 않으면, 이후의 쓰임이 그 타입을 정합니다. 시그니처는 항상 명시합니다.
 
 - **범위**: 그 변수의 스코프, 곧 블록의 나머지입니다. 그 안의 클로저와 async 본문도 포함합니다.
-- **타입을 정하는 쓰임**: 타입이 정해진 자리로 값을 넘기는 쓰임입니다. 함수 / 메서드 인자, 대입, 주석 있는 `let`, struct 필드, `return`이 여기에 속합니다. 연산자, f-string 구멍, 패턴, 필드 읽기는 타입을 정하지 않습니다.
+- **타입을 정하는 쓰임**: 타입이 정해진 자리로 값을 넘기는 쓰임입니다. 함수 / 메서드 인자, 대입, 주석 있는 `let`, struct 필드, `return`, 본문의 값이 여기에 속합니다. 연산자는 열린 리터럴 피연산자의 타입을 다른 피연산자에서 정합니다(`c += x`). 그 밖의 연산자, f-string 구멍, 패턴, 필드 읽기는 타입을 정하지 않습니다.
+- **빈 생성자**: `[]`, `Dict::new()`, `Set::new()`, `channel()`, `Mutex::new([])`의 타입 인자도 같은 방식으로 정해지며, `d[k] = v`와 튜플 `let`(`let (tx, rx) = channel(); tx.send(1)`)도 포함합니다.
 - **서로 정하기**: 아직 열린 `let` 여럿이 서로의 타입을 정할 수 있습니다(`let a = List::new(); let b = List::new(); a.push(b); b.push(1);` → `b: List<i32>`, `a: List<List<i32>>`).
-- **리터럴의 기본 타입**: `i32` / `f64`는 같은 종류(정수 / 실수)의 이후 구체 쓰임에 양보합니다. `ys.push(1); sum_i64(ys)`의 `ys`는 `List<i64>`입니다.
+- **리터럴의 기본 타입**: `i64` / `f64`는 같은 종류(정수 / 실수)의 이후 구체 쓰임에 양보합니다. `ys.push(1); sum_i32(ys)`의 `ys`는 `List<i32>`입니다. `let` 자신이 묶는 리터럴(`let c = 0`)도 같은 방식으로 열려 있습니다([1.6.3](../001-lexical/106-numeric-literals.md#163-접미사-없는-리터럴)).
 - **충돌**: 서로 다른 두 쓰임은 합 타입이 되지 않고 에러입니다(`xs.push(none); xs.push(1)`, [5.1.7](../005-modules/501-variable-declaration.md#517-타입-명시와-타입-추론)의 분기 규칙과 같음). `let v = none;`만으로는 여전히 에러입니다.
 - 클로저 매개변수([4.5.2](../004-functions/405-closure.md))와 메서드 경로 값([3.5.3](../003-expressions/305-member-access-and-method-call.md#메서드-경로-값))도 문맥이 없으면 이후 호출이 타입을 정합니다(`let f = |x| x * 2; f(4)`, `let f = Box::get; f(b)`).
 
@@ -73,6 +74,7 @@ takes_strs(empty());                // T = str, 매개변수 타입 List<str> �
 |--------------|----------------------------------------------|----------------------------------------------------------------------------|
 | 끝까지 안 정해짐 | 그 `let`                                    | `` type annotations needed: cannot infer the type of `d` (`Dict<_, _>`) `` |
 | 충돌         | 쓰임 자리, 타입을 정한 자리를 보조 레이블로 | `` conflicting uses of `c` (`List<_>`): `str` here, but `i32` fixed at 8:5 `` |
+| 리터럴을 실수로 씀 | 쓰임 자리, 선언을 보조 레이블로 | `` `t` is used as `f64` here, but it holds an integer (`i64`) from `0` at 3:13 ``, 도움말 `` make it a float at the declaration: `let t = 0.0;` `` |
 
 ```rok
 let xs = empty();                   // 아직 List<?>

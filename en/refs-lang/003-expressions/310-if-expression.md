@@ -102,7 +102,7 @@ This rule lets early exits be expressed naturally.
 The condition position of `if` can also combine with pattern matching.
 
 ```rok
-if let v: User = compute() {       // compute(): User | none
+if let v = compute() {             // compute(): User | none; v: User
     consume(v);
 } else {
     fallback();
@@ -113,7 +113,7 @@ if let v: User = compute() {       // compute(): User | none
 if_let ::= "if" "let" pattern (":" type_expr)? "=" expr block ("else" (block | if_expr))?
 ```
 
-- Without a type, the expression's value is matched against `pattern`.
+- Without a type, the expression's value is matched against `pattern`. When the value is optional (a sum with `none`) and `pattern` is a plain name, the name matches the value without its `none`: `if let x = xs.pop()` binds `x: T` for `T | none`, and `x: A | B` for `A | B | none`. Only one layer is taken off: on a `(T | none)?` (`try?` of an optional call), `x` is `T | none`. Tuple and struct patterns already match only the member of their shape.
 - With `: T`, the value is first narrowed to `T`, then destructured by `pattern`. In this case `pattern` must be irrefutable for `T` (`if let (a, b): (i32, i32) = v { .. }`).
 - On a match, the body runs and the pattern's bindings are visible inside it. Otherwise, `else` runs.
 

@@ -28,7 +28,7 @@ fn 이름(매개변수들) -> 반환타입 {
 - `fn` 키워드로 시작합니다.
 - 함수 이름은 [식별자](../001-lexical/104-identifiers.md)의 형식을 따릅니다.
 - 이어서 괄호로 감싼 매개변수 목록이 옵니다. 자세한 규칙은 [매개변수](402-parameters.md)에서 정의합니다.
-- 반환 타입은 선택 사항입니다. `->` 토큰([구두점과 연산자 토큰](../001-lexical/110-punctuation-and-operator-tokens.md)) 뒤에 [타입 표현식](../002-types/201-type-expressions.md)을 둡니다.
+- 반환 타입은 선택 사항입니다. `->` 토큰([구두점과 연산자 토큰](../001-lexical/110-punctuation-and-operator-tokens.md)) 뒤에 [타입 표현식](../002-types/201-type-expressions.md)이나 불투명 `some Tr`([4.1.13](#4113-불투명-반환-타입-some-trait))을 둡니다.
 - 본체는 [블록 표현식](../003-expressions/309-block-expressions.md)입니다.
 
 ## 4.1.2. 가장 간단한 예
@@ -261,3 +261,57 @@ let it: iter::TryGenIter<str, IoError> = lines("a.txt");
 4. 호출 지점에 결과를 전달합니다.
 
 세부 평가 순서는 [매개변수](402-parameters.md)의 매개변수 평가 순서 절에서 정의합니다.
+
+## 4.1.13. 불투명 반환 타입: `some Trait`
+
+```
+opaque_ret ::= "some" (bound | "(" bound ("+" bound)* ")")
+bound      ::= type_path | fn_type
+```
+
+함수의 반환 타입(`->` 뒤, `throws (E) ->` 뒤 포함)은 `some Tr`일 수 있습니다. `Tr`을 가진 구체 타입 하나를 뜻하며, 본문이 고르고 호출자에게는 숨깁니다. `Tr`은 바운드처럼 연관 타입 바인딩을 쓴 트레잇(`some Iterator<Item = str>`)이거나 함수 타입(`some fn(i32) -> i32`)입니다. 바운드가 여럿이면 괄호에 넣습니다: `some (Iterator<Item = i32> + Clone)`.
+
+```rok
+pub fn evens(n: i32) -> some Iterator<Item = i32> {
+    (0..n).filter(|x| x % 2 == 0)
+}
+
+fn adder(k: i32) -> some fn(i32) -> i32 {
+    |x| x + k                     // x: i32, 바운드에서
+}
+
+let total = evens(10).map(|x| x * x).sum();
+```
+
+- 구체 타입은 본문 값의 타입이며, `pub` 함수에서도 [4.1.3](#413-반환-타입-생략)처럼 추론합니다. 호출은 정적입니다. [제네릭](../002-types/210-generics.md)처럼 태그도 박싱도 없습니다.
+- 함수마다 구체 타입은 하나입니다. 반환 경로의 타입이 다르면 에러(`the return paths of `f` have different types ..`)이고, 도움말은 `` to return several types, write `-> any Tr` ``입니다.
+- 구체 타입은 모든 바운드를 가져야 합니다. 아니면 바운드 자리에 `` `f` returns `ListIter<i32>`, which is not `Iterator<Item = str>` `` 에러가 납니다.
+- 호출자는 바운드만 봅니다. 바운드(와 그 슈퍼트레잇)의 메서드를 부르고, 바운드가 반복자면 반복하고, 같은 바운드의 제네릭 매개변수 자리에 넘기고, 바운드가 함수 타입이면 호출할 수 있습니다. 구체 타입을 이름 붙이거나 쓰면 에러입니다: `` no method `contains` on `some Iterator<Item = i32>`: callers see only its bounds ``, `` `let b` expects `Range<i32>`, found `some Iterator<Item = i32>` ``.
+- 같은 함수는 늘 같은 타입을 반환하므로 두 호출의 결과는 한 타입입니다. 다른 함수의 결과는 다른 타입입니다.
+- `some`은 함수의 반환 타입이나 매개변수 타입([4.1.14](#4114-some-매개변수))에 씁니다. 다른 자리(`let` 주석, 필드, 타입 인자, 클로저 매개변수)에서는 무엇을 쓸지 알려 주는 에러입니다: 변수는 주석 없이, 필드나 타입 인자는 제네릭 `<T: Tr>`, 여러 타입의 값은 `any Tr`.
+- 패키지를 넘을 때는 함수 본문이 패키지 인터페이스와 함께 가므로 의존하는 빌드가 구체 타입을 압니다. 그 사용자에게는 여전히 바운드만 보입니다.
+- `Fn` 트레잇은 없습니다. 함수 바운드는 함수 타입 `fn(A) -> R`입니다.
+
+## 4.1.14. `some` 매개변수
+
+매개변수의 타입은 `some Tr`일 수 있습니다(바운드는 [4.1.13](#4113-불투명-반환-타입-some-trait)과 같습니다). 이름 없는 타입 매개변수입니다. `fn show(x: some Display)`는 `T`에 이름이 없는 `fn show<T: Display>(x: T)`입니다.
+
+```rok
+fn show(x: some Display) -> str { f"<{x}>" }
+fn both(a: some Display, b: some Display) -> str { f"{a}{b}" }
+fn count(it: some Iterator<Item = i32>) -> usize { it.count() }
+fn twice(f: some fn(i32) -> i32, x: i32) -> i32 { f(f(x)) }
+
+let s = both(1, 2.5);            // a: i64, b: f64
+let n = count([1, 2, 3].iter());
+let t = twice(|x| x * 3, 2);     // x: i32, 바운드에서
+```
+
+- 호출마다 매개변수의 정적 타입은 하나, 인자의 타입입니다. [제네릭](../002-types/210-generics.md)처럼 태그도 박싱도 없습니다. 인자는 모든 바운드를 가져야 합니다.
+- `some` 매개변수는 저마다 따로인 타입 매개변수입니다. `both(1, 2.5)`에서 `a`와 `b`의 타입은 다릅니다.
+- 본문은 이름 있는 매개변수 `T: Tr`처럼 바운드만 봅니다.
+- `some fn(A) -> R`은 함수 값(함수나 클로저)을 받고, 클로저의 매개변수는 그 타입을 받습니다.
+- 자유 함수, 메서드, 트레잇 메서드가 이름 있는 타입 매개변수와 함께 `some` 매개변수를 가질 수 있습니다.
+- 그 타입에는 이름이 없습니다. 호출의 `::<..>`는 이름 있는 타입 매개변수만 줍니다. 더 쓰면 에러이고, 도움말은 `some` 매개변수의 타입은 인자의 타입이니 인자를 넘기거나, `::<..>`로 고르려면 `<T: Tr>`를 선언하라고 합니다.
+
+`any Tr`과 `some Tr`은 짝입니다. `any Tr`은 동적 슬롯으로, `Tr`을 가진 아무 타입의 값을 그때그때 담고 호출은 실행 중에 디스패치합니다([2.2](../002-types/202-any-slot.md)). `some Tr`은 숨긴 정적 타입 하나로, 반환이면 피호출자의 본문이, 매개변수면 호출의 인자가 정하고 호출은 정적으로 디스패치합니다.

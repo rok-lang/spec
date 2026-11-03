@@ -105,9 +105,11 @@ if v is i32 {
 
 The narrowing rules are:
 
-- The narrowing condition is `x is T`, where `x` must be a local variable. It may be the whole condition or one term of an `a && b && ..` chain.
+- The narrowing condition is `x is T`, where `x` must be a local variable. It may be the whole condition or one term of an `a && b && ..` chain. On an optional `x` (a sum with `none`), `x != none` and `!(x is none)` narrow `x` to its members other than `none`.
 - `x` is `T` in the following `&&` terms, the `then` block of `if`, and the body of `while`.
-- No narrowing happens under `||` or `!`, in the `else` block, or on field paths (`p.x is T`).
+- `x == none` (or `x is none`), as the whole condition or one term of an `a || b || ..` chain, narrows `x` to its members other than `none` in the `else` block.
+- After an `if` statement one of whose branches always leaves (`return`, `break`, `continue`, `throw`, a `!` call), the other branch's narrowing holds for the rest of the enclosing block: `if x == none { return; }` makes `x` non-`none` below it.
+- Otherwise no narrowing happens under `||` or `!`, in the `else` block, or on field paths (`p.x is T`).
 - A variant check `x is Enum::Variant` (2.2.5) does not narrow.
 - When the operand's static type is a plain member `A` of the checked sum, `x is (A | B)` does not narrow; `x` keeps type `A`.
 - When `x` is captured by `[ref x]` ([4.6.2](../004-functions/406-capture-semantics.md#462-reference-capture-the-ref-x-capture-list)), each read of `x` in the narrowed scope checks the shared cell again; if a closure stored a value that is not `T`, the read panics.
@@ -120,6 +122,12 @@ if v is i32 && v > 0i32 {      // v: i32 in the second term
     v = "x";                   // ends the narrowing: v is any again
 }
 if v is i32 || flag { ... }    // no narrowing
+
+fn first(xs: List<i32>) -> i32 {
+    let x = xs.pop();          // i32 | none
+    if x == none { return 0; }
+    x + 1                      // x: i32 for the rest of the block
+}
 ```
 
 For narrowing with patterns, see the type-check patterns in [Patterns](../003-expressions/311-patterns.md).

@@ -19,11 +19,13 @@ let 패턴 = 식 else { 발산 };
 ## 3.16.2. 동작
 
 ```rok
-let value: T = compute() else {       // compute(): T | none
+let value = compute() else {          // compute(): T | none
     return default;
 };
 // 여기서 value 는 T 타입의 값 (none 이면 위 else 로 빠짐)
 ```
+
+`if let`([3.10.5](310-if-expression.md#3105-if-let-패턴-매칭과-결합))처럼 옵셔널 값에 쓴 이름 하나는 `none`을 한 겹 뺀 값을 받습니다. 더 넓은 합에서 `T`를 검사하려면 여전히 `let value: T = compute() else { .. }`로 씁니다.
 
 먼저 식의 결과를 패턴에 매칭합니다. 매칭에 성공하면 패턴의 바인딩이 현재 스코프에 도입되고 다음 줄로 넘어갑니다. 실패하면 `else` 본체를 평가합니다. `else`는 divergent이므로 흐름은 그 자리에서 밖으로 나갑니다.
 

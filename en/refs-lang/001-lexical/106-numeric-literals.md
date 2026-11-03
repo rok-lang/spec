@@ -104,32 +104,56 @@ Numeric type name suffixes (`i8` `i16` `i32` `i64` `isize` `u8` `u16` `u32` `u64
 
 The type of an unsuffixed literal (`42`, `3.14`) is determined by the expected type.
 
-- Integer literal: if the expected type is an integer or floating-point type, it is that type. With no expected type, it is `i32`.
+- Integer literal: if the expected type is an integer or floating-point type, it is that type. With no expected type, it is `i64`.
 - Floating-point literal: if the expected type is a floating-point type, it is that type. With no expected type, it is `f64`. It cannot appear where an integer type is expected.
 - The arbitrary-precision std types `int` and `float` also count: an integer literal may take `int` or `float`, and a floating-point literal may take `float`. These types hold any value, so no range check applies.
 - In a binary operation, if the type of one operand is statically fixed, that type becomes the expected type for the literal side.
 - When an integer literal is placed where a floating-point type is expected and that floating-point type cannot represent the value exactly, it is a compile error (`let f: f32 = 16777217;`).
 - If the expected type is a sum type with an integer type member, an integer literal takes that integer type (the `1` in `let v: i64 | f64 = 1;` is `i64`).
-- If the sum has more than one integer member and a floating-point member, an unsuffixed integer literal is ambiguous and a compile error (`let v: u16 | u8 | f32 = 1;`): write a suffix, `1u16` or `1u8`, or `1.0` for the floating-point member. Without a floating-point member, such a literal is `i32` and is checked against the sum like any `i32` value.
-- Arithmetic among unsuffixed literals (`1 + 2`, `-1`, `2 * (3 + 4)`) remains untyped until it meets a typed operand or an expected type. When it does, the whole expression takes that type; if it never does, it takes the defaults above (`i32` / `f64`).
-- If one branch of `if` / `else` is an unsuffixed integer literal and the other branch has an integer type, the literal branch follows the other branch's type.
+- If the sum has more than one integer member and a floating-point member, an unsuffixed integer literal is ambiguous and a compile error (`let v: u16 | u8 | f32 = 1;`): write a suffix, `1u16` or `1u8`, or `1.0` for the floating-point member. Without a floating-point member, such a literal is `i64` and is checked against the sum like any `i64` value.
+- Arithmetic among unsuffixed literals (`1 + 2`, `-1`, `2 * (3 + 4)`) remains untyped until it meets a typed operand or an expected type. When it does, the whole expression takes that type; if it never does, it takes the defaults above (`i64` / `f64`).
+- If one branch of `if` / `else`, or one arm of a `match` whose type no slot fixes, is an unsuffixed integer literal and another has an integer type, the literal follows that type.
+- In the `...` position of a C variadic function ([8.6](../008-abi/806-calling-convention.md)), an unsuffixed integer literal is `i32` (C `int`).
 
 The expected type comes from a `let` type annotation, the parameter type in argument position, the return type in return position, and the binary operation rule above.
 
+A literal bound by an unannotated `let` has no expected type at its declaration. Its type is an inference variable fixed by the uses that follow in the variable's scope (the rest of the block, closures included), as in [5.1.7](../005-modules/501-variable-declaration.md#517-type-annotations-and-type-inference); the defaults apply only when no use fixes it.
+
+- What counts: the initializer is the literal (`let c = 0`, `let c = -1`), literal arithmetic (`let n = 1 + 2`), an `if` / `match` whose branches are literals (`let f = if b { 1 } else { 0 }`), or a direct element or argument of the initializer (`let xs = [0, 0]`, `let (a, b) = (0, 1)`, `let n = Atomic::new(0)`).
+- What fixes it: everything that fixes an open `let` (arguments, assignments, annotated `let`s, `return`, the body's value) and also an operator whose other operand has a fixed type (`c += x`, `c < limit`).
+- `for i in 0..10` with literal bounds is the same: `i`'s type comes from the loop body.
+- A negative literal is not made unsigned by its use: `let i = -1; xs[i]` keeps `i64` (an index from the end).
+- In a function body every unsuffixed literal with no expected type is an integer or float type variable from the start (`{integer}` / `{float}`). Each use unifies it like any other type variable: arguments and generic bounds (also `where` clauses) with their associated types (`tasks.push(spawn(async { 0 }))` into a `List<Task<i32>>`), closure returns and annotated closure parameters, a typed `collect()` target through iterator adapters (`(0..4).chain(7..10).collect::<List<i32>>()`), operators, `if` / `match` branches and `break` values, a sum slot's one number member, a type pattern, a struct literal's type arguments under the struct's bounds (`B { v: 3 }` with `B<T: Num>`), an implicit generic's body (`fn add(a, b) { a + b }` called as `add(1, x_i32)`), and the one impl, trait or operator of the number types of its kind that fits (`9.once()` with `Twice` implemented for `i32` alone, `(1, 2).foo()` with `Foo` on `(i32, i32)`, `Wave::hi(3)`, `84 / nz` with `Div<NonZero<i32>>` on `i32`). The body is checked once; at its end every variable nothing fixed takes its default.
+- A `const` item's value, a field default and a parameter default are each checked on their own, against their declared type, before they are evaluated.
+- A use that needs one type at once fixes the variable there: if exactly one number type of its kind works, the variable is that type; otherwise it takes its default at that use. Such uses are a method call that the variable's type does not already have (a method of a generic or blanket impl leaves it open), a trait-qualified call (`Tr::f(x)`), an overloaded call (`int::from(i)`), and storing into `any`. An f-string hole does not fix it.
+- A literal receiver of a number slot has the slot's type (`let n: i32 = 7.max(-2)`), and a tuple or list literal into a sum takes the member of its shape.
+- No conversion is added: an integer literal never becomes a floating-point type, and two uses that want different types are an error at the second use; for a literal-bound `let` it names the first (`` conflicting uses of `c`: `i64` here, but `i32` fixed at 16:16 ``). The help points at the declaration (`let c: i64 = 0`, or `let t = 0.0`), not a cast at the use.
+
 ```rok
-let a = 42;              // i32
+let a = 42;              // i64
 let b = 3.14;            // f64
 let x: f64 = 1;          // f64
 let y: u8 = 200;         // u8
-let r = a * 2;           // 2 is i32 (follows a)
+let r = a * 2;           // 2 is i64 (follows a)
 let s: f64 = 2.0;
 let t = s * 2;           // 2 is f64 (follows s)
 let e: i32 = 1.5;        // ERROR: floating-point literal cannot be an integer type
 let w: i64 = 7i64;
 let k = w + (1 + 2);     // 1 + 2 is i64 (meets w)
 let m: u8 = 2 * 100;     // 2 * 100 is u8 (expected type)
-let n = 1 + 2;           // i32 (never fixed → default)
+let n = 1 + 2;           // i64 (never fixed → default)
 let v = if flag { 0 } else { w };   // 0 is i64 → v: i64
+
+fn count(xs: List<i32>) -> i32 {
+    let c = 0;                // i32: fixed by the body's value below
+    for x in xs { if x > 0 { c += 1; } }
+    c
+}
+let t = 0;
+let big: List<u64> = [1, 2];
+for x in big { t += x; }      // t: u64
+let z = 0;
+let f: f64 = z;               // ERROR: `z` holds an integer; write `let z = 0.0;`
 ```
 
 ## 1.6.4. Range checking

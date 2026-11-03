@@ -237,7 +237,6 @@ fn strict_zone() { ... }
 | `unused_doc_comments`    | 0.1.0   | 문서화 대상이 아닌 것(문, match 가지, struct 리터럴이나 튜플 필드, 식)에 붙은 문서 주석. 일반 주석은 `//`를 씀 |
 | `ignored_error`          | 0.1.0   | `try? f();` 문장이 에러를 조용히 버림. `let _ = try? f();`는 실패해도 괜찮은 호출이라는 표시이므로 보고하지 않음 |
 | `nan_comparison`         | 0.1.0   | NaN과 비교 (늘 거짓, `!=`는 늘 참). `.is_nan()`을 씁니다 (deny) |
-| `none_comparison`        | 0.1.0   | `x is none` 대신 `x == none`                                       |
 | `bool_comparison`        | 0.1.0   | `bool`을 `true` / `false`와 비교                                 |
 | `self_assignment`        | 0.1.0   | `x = x;` (deny)                                                    |
 | `while_true`             | 0.1.0   | `loop` 대신 `while true`                                           |

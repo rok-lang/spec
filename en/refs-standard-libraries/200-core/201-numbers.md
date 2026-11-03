@@ -29,15 +29,15 @@ large arrays, hot loops), and their overflow policy is explicit (see [2.3 overfl
 
 ### Which one is the default
 
-An unsuffixed literal (`42`, `3.14`) is **`i32` / `f64`** when there is no expected type. The auto-promote world is used only where `int` / `float` is written out.
+An unsuffixed literal (`42`, `3.14`) is **`i64` / `f64`** when nothing fixes its type (a `let`-bound literal takes its type from later uses, [1.6.3](../../refs-lang/001-lexical/106-numeric-literals.md#163-unsuffixed-literals)). The auto-promote world is used only where `int` / `float` is written out.
 
 ```rok
 let total: int = 0;               // int (auto-promote), explicit
 for x in xs { total = total + x; }
-// total is auto-promoted even past the i32 range; no silent overflow
+// total is auto-promoted even past the i64 range; no silent overflow
 
-let n = 0;                        // i32 (no expected type)
-let perf_critical: i64 = 0;       // i64: follows the expected type
+let n = 0;                        // i64 (nothing fixes it)
+let small: i32 = 0;               // i32: follows the expected type
 ```
 
 ## 2.1.2. `int` - arbitrary-precision integer

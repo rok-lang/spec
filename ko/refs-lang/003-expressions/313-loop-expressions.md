@@ -71,7 +71,7 @@ let x = while cond { ... };     // x: unit
 ### `while let`: 패턴 매칭과 결합
 
 ```rok
-while let v: T = compute() {     // compute(): T | none
+while let v = compute() {        // compute(): T | none; v: T
     consume(v);
 }
 ```
@@ -80,7 +80,7 @@ while let v: T = compute() {     // compute(): T | none
 while_let ::= "while" "let" pattern (":" type_expr)? "=" expr block
 ```
 
-반복할 때마다 식을 평가하고 `if let`([3.10.5](310-if-expression.md#3105-if-let-패턴-매칭과-결합))과 같은 규칙으로 매칭합니다. 매칭되면 본체를 실행하고, 아니면 끝납니다. 패턴의 바인딩은 본체에서 보입니다.
+반복할 때마다 식을 평가하고 `if let`([3.10.5](310-if-expression.md#3105-if-let-패턴-매칭과-결합))과 같은 규칙으로 매칭합니다. 그래서 이름 하나는 `none`을 뺀 값을 받습니다. 매칭되면 본체를 실행하고, 아니면 끝납니다. 패턴의 바인딩은 본체에서 보입니다.
 
 [패턴](311-patterns.md)의 모든 패턴 형태를 쓸 수 있고, 보통은 `enum`이나 합 타입의 변형을 매칭할 때 씁니다.
 

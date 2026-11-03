@@ -102,7 +102,7 @@ let x: i32 = if cond {
 `if`의 조건 자리에 패턴 매칭을 결합할 수 있습니다.
 
 ```rok
-if let v: User = compute() {       // compute(): User | none
+if let v = compute() {             // compute(): User | none; v: User
     consume(v);
 } else {
     fallback();
@@ -113,7 +113,7 @@ if let v: User = compute() {       // compute(): User | none
 if_let ::= "if" "let" pattern (":" type_expr)? "=" expr block ("else" (block | if_expr))?
 ```
 
-- 타입이 없으면 식의 값을 `pattern`에 매칭합니다.
+- 타입이 없으면 식의 값을 `pattern`에 매칭합니다. 값이 옵셔널(`none`이 든 합)이고 `pattern`이 이름 하나면, 그 이름은 `none`을 뺀 값에 매칭합니다. `T | none`에서 `if let x = xs.pop()`은 `x: T`를, `A | B | none`에서는 `x: A | B`를 묶습니다. 한 겹만 벗깁니다. `(T | none)?`(옵셔널 호출의 `try?`)에서 `x`는 `T | none`입니다. 튜플과 struct 패턴은 원래 그 모양의 멤버에만 매칭합니다.
 - `: T`가 있으면 값을 먼저 `T`로 좁힌 뒤 `pattern`으로 분해합니다. 이때 `pattern`은 `T`에 대해 반증 불가능해야 합니다(`if let (a, b): (i32, i32) = v { .. }`).
 - 매칭되면 본체를 실행하고, 패턴의 바인딩은 본체 안에서 보입니다. 매칭되지 않으면 `else`를 실행합니다.
 

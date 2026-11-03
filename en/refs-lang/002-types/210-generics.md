@@ -61,9 +61,10 @@ takes_strs(empty());                // T = str, from the parameter type List<str
 A `let` without an expected type is inferred from later uses. In an unannotated `let x = f();`, if the generic return type of `f` is not determined by the call alone, later uses determine it. Signatures are always explicit.
 
 - **Scope**: the variable's scope, i.e. the rest of the block, including closures and async bodies within it.
-- **Uses that fix the type**: uses that pass the value to a position whose type is fixed: function / method arguments, assignment, annotated `let`, struct fields, `return`. Operators, f-string holes, patterns and field reads do not fix the type.
+- **Uses that fix the type**: uses that pass the value to a position whose type is fixed: function / method arguments, assignment, annotated `let`, struct fields, `return`, the value of the body. An operator fixes the type of an open literal operand from its other operand (`c += x`); otherwise operators, f-string holes, patterns and field reads do not fix the type.
+- **Empty constructors**: the type arguments of `[]`, `Dict::new()`, `Set::new()`, `channel()`, `Mutex::new([])` are fixed the same way, also through `d[k] = v` and a tuple `let` (`let (tx, rx) = channel(); tx.send(1)`).
 - **Mutual fixing**: several open `let`s may fix each other (`let a = List::new(); let b = List::new(); a.push(b); b.push(1);` → `b: List<i32>`, `a: List<List<i32>>`).
-- **Default types of literals**: `i32` / `f64` yield to a later concrete use of the same kind (integer / real). In `ys.push(1); sum_i64(ys)`, `ys` is `List<i64>`.
+- **Default types of literals**: `i64` / `f64` yield to a later concrete use of the same kind (integer / real). In `ys.push(1); sum_i32(ys)`, `ys` is `List<i32>`. A literal bound by the `let` itself (`let c = 0`) is open the same way ([1.6.3](../001-lexical/106-numeric-literals.md#163-unsuffixed-literals)).
 - **Conflicts**: two different uses do not form a sum type; it is an error (`xs.push(none); xs.push(1)`, same as the branch rule of [5.1.7](../005-modules/501-variable-declaration.md#517-type-annotations-and-type-inference)). `let v = none;` alone is still an error.
 - Closure parameters ([4.5.2](../004-functions/405-closure.md)) and method path values ([3.5.3](../003-expressions/305-member-access-and-method-call.md#method-path-values)) without context are likewise fixed by later calls (`let f = |x| x * 2; f(4)`, `let f = Box::get; f(b)`).
 
@@ -73,6 +74,7 @@ Diagnostics:
 |----------------------|-----------------------------------------------------------|----------------------------------------------------------------------------|
 | Never determined     | That `let`                                                | `` type annotations needed: cannot infer the type of `d` (`Dict<_, _>`) `` |
 | Conflict             | The use site, with the site that fixed the type as a secondary label | `` conflicting uses of `c` (`List<_>`): `str` here, but `i32` fixed at 8:5 `` |
+| Literal used as a float | The use site, with the declaration as a secondary label | `` `t` is used as `f64` here, but it holds an integer (`i64`) from `0` at 3:13 ``, help `` make it a float at the declaration: `let t = 0.0;` `` |
 
 ```rok
 let xs = empty();                   // still List<?>

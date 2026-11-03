@@ -19,11 +19,13 @@ let pattern = expr else { diverge };
 ## 3.16.2. Behavior
 
 ```rok
-let value: T = compute() else {       // compute(): T | none
+let value = compute() else {          // compute(): T | none
     return default;
 };
 // here value is a value of type T (if none, control left via the else above)
 ```
+
+As in `if let` ([3.10.5](310-if-expression.md#3105-if-let-combining-with-pattern-matching)), a plain name on an optional value takes it without its `none`, one layer; `let value: T = compute() else { .. }` still tests for `T` in a wider sum.
 
 Evaluation proceeds as follows. The expression's result is matched against the pattern; on success, the pattern's bindings are introduced into the current scope and evaluation continues with the next line. On failure, the `else` body is evaluated, and because `else` is divergent, control leaves at that point.
 

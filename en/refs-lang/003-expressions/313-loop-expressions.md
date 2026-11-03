@@ -71,7 +71,7 @@ To return a value, use `loop { ... break v; ... }`.
 ### `while let`: combining with pattern matching
 
 ```rok
-while let v: T = compute() {     // compute(): T | none
+while let v = compute() {        // compute(): T | none; v: T
     consume(v);
 }
 ```
@@ -80,7 +80,7 @@ while let v: T = compute() {     // compute(): T | none
 while_let ::= "while" "let" pattern (":" type_expr)? "=" expr block
 ```
 
-On each iteration the expression is evaluated and matched by the same rules as `if let` ([3.10.5](310-if-expression.md#3105-if-let-combining-with-pattern-matching)). On a match the body runs; otherwise the loop ends. The pattern's bindings are visible in the body.
+On each iteration the expression is evaluated and matched by the same rules as `if let` ([3.10.5](310-if-expression.md#3105-if-let-combining-with-pattern-matching)), so a plain name takes the value without its `none`. On a match the body runs; otherwise the loop ends. The pattern's bindings are visible in the body.
 
 Every pattern form of [patterns](311-patterns.md) may be used; typically it matches `enum` or sum type variants.
 

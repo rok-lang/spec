@@ -28,7 +28,7 @@ The components mean:
 - It begins with the `fn` keyword.
 - The function name follows the form of an [identifier](../001-lexical/104-identifiers.md).
 - A parenthesized parameter list follows; the detailed rules are defined in [Parameters](402-parameters.md).
-- The return type is optional: a [type expression](../002-types/201-type-expressions.md) after the `->` token ([punctuation and operator tokens](../001-lexical/110-punctuation-and-operator-tokens.md)).
+- The return type is optional: a [type expression](../002-types/201-type-expressions.md), or an opaque `some Tr` ([4.1.13](#4113-opaque-return-types-some-trait)), after the `->` token ([punctuation and operator tokens](../001-lexical/110-punctuation-and-operator-tokens.md)).
 - The body is a [block expression](../003-expressions/309-block-expressions.md).
 
 ## 4.1.2. The simplest examples
@@ -261,3 +261,57 @@ The evaluation order of a call is:
 4. Deliver the result to the call site.
 
 The detailed evaluation order is defined in the parameter evaluation order section of [Parameters](402-parameters.md).
+
+## 4.1.13. Opaque return types: `some Trait`
+
+```
+opaque_ret ::= "some" (bound | "(" bound ("+" bound)* ")")
+bound      ::= type_path | fn_type
+```
+
+A function's return type (after `->`, also after `throws (E) ->`) may be `some Tr`: one concrete type that has `Tr`, chosen by the body and hidden from callers. `Tr` is a trait, with associated type bindings as written in bounds (`some Iterator<Item = str>`), or a function type (`some fn(i32) -> i32`). Several bounds go in parentheses: `some (Iterator<Item = i32> + Clone)`.
+
+```rok
+pub fn evens(n: i32) -> some Iterator<Item = i32> {
+    (0..n).filter(|x| x % 2 == 0)
+}
+
+fn adder(k: i32) -> some fn(i32) -> i32 {
+    |x| x + k                     // x: i32, from the bound
+}
+
+let total = evens(10).map(|x| x * x).sum();
+```
+
+- The concrete type is the type of the body's value, inferred as in [4.1.3](#413-omitting-the-return-type), also on a `pub` function. Calls are static: no tag, no boxing, as with [generics](../002-types/210-generics.md).
+- One concrete type per function: return paths of different types are an error (`the return paths of `f` have different types ..`), help `` to return several types, write `-> any Tr` ``.
+- The concrete type must have every bound: otherwise `` `f` returns `ListIter<i32>`, which is not `Iterator<Item = str>` `` at the bound.
+- Callers see only the bounds: they may call the bounds' methods (and their supertraits'), iterate it when the bound is an iterator, pass it where a generic parameter with those bounds is expected, and call it when the bound is a function type. Naming or using the concrete type is an error: `` no method `contains` on `some Iterator<Item = i32>`: callers see only its bounds ``; `` `let b` expects `Range<i32>`, found `some Iterator<Item = i32>` ``.
+- The same function always returns the same type, so two calls' results have one type. Results of different functions are different types.
+- `some` is a function's return type or a parameter's type ([4.1.14](#4114-some-parameters)). Elsewhere (a `let` annotation, a field, a type argument, a closure parameter) it is an error that says what to write: no annotation for a variable, a generic `<T: Tr>` for a field or a type argument, `any Tr` for a value of several types.
+- Across packages the function's body travels with the package's interface, so the dependent build knows the concrete type; its users still see only the bounds.
+- There is no `Fn` trait: a function bound is the function type `fn(A) -> R`.
+
+## 4.1.14. `some` parameters
+
+A parameter's type may be `some Tr` (the bounds as in [4.1.13](#4113-opaque-return-types-some-trait)): an anonymous type parameter. `fn show(x: some Display)` is `fn show<T: Display>(x: T)` with `T` unnamed.
+
+```rok
+fn show(x: some Display) -> str { f"<{x}>" }
+fn both(a: some Display, b: some Display) -> str { f"{a}{b}" }
+fn count(it: some Iterator<Item = i32>) -> usize { it.count() }
+fn twice(f: some fn(i32) -> i32, x: i32) -> i32 { f(f(x)) }
+
+let s = both(1, 2.5);            // a: i64, b: f64
+let n = count([1, 2, 3].iter());
+let t = twice(|x| x * 3, 2);     // x: i32, from the bound
+```
+
+- Each call has one static type for the parameter, the argument's, as with [generics](../002-types/210-generics.md): no tag, no boxing. The argument must have every bound.
+- Each `some` parameter is its own type parameter: `both(1, 2.5)` gives `a` and `b` different types.
+- The body sees only the bounds, as for a named parameter `T: Tr`.
+- `some fn(A) -> R` takes the function value (a function or a closure), and the closure's parameters take their types from it.
+- Free functions, methods and trait methods may have `some` parameters, alongside named type parameters.
+- The type has no name: `::<..>` at a call gives only the named type parameters. Writing more is an error with the help that a `some` parameter's type is the argument's: pass the argument, or declare `<T: Tr>` to choose `T` with `::<..>`.
+
+`any Tr` and `some Tr` are a pair. `any Tr` is a dynamic slot: it holds a value of any type with `Tr`, a different one each time, and calls dispatch at run time ([2.2](../002-types/202-any-slot.md)). `some Tr` is one static type, hidden: the callee's body (for a return) or the call's argument (for a parameter) fixes it, and calls dispatch statically.

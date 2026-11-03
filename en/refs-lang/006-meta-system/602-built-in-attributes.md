@@ -237,7 +237,6 @@ The default level of every lint is `warn`, except `nan_comparison` and `self_ass
 | `unused_doc_comments`    | 0.1.0   | A doc comment on what is not documented (a statement, match arm, struct literal or tuple field, expression); use `//` for a plain comment |
 | `ignored_error`          | 0.1.0   | A `try? f();` statement silently discarding an error; `let _ = try? f();` marks a deliberate best-effort call and is not reported |
 | `nan_comparison`         | 0.1.0   | Comparison with NaN (always false; `!=` always true); use `.is_nan()` (deny) |
-| `none_comparison`        | 0.1.0   | `x == none` instead of `x is none`                                  |
 | `bool_comparison`        | 0.1.0   | Comparing a `bool` with `true` / `false`                            |
 | `self_assignment`        | 0.1.0   | `x = x;` (deny)                                                     |
 | `while_true`             | 0.1.0   | `while true` instead of `loop`                                      |

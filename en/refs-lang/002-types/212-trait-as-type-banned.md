@@ -57,6 +57,14 @@ struct ConfigError { msg: str; cause: any Error | none; }
 
 An `any Trait` slot accepts only values of types implementing `Trait` (checked at compile time), and methods of `Trait` and its supertraits can be called on its value. Calls are dispatched by runtime tag, with the same cost model as [The `any` slot](202-any-slot.md). The exact rules are defined in [2.2.10](202-any-slot.md#2210-constrained-any-any-trait).
 
+### 4. `some Trait` for a function's hidden return type
+
+A function may return one concrete type that its callers see only through traits: `-> some Iterator<Item = i32>` ([4.1.13](../004-functions/401-function-declaration.md#4113-opaque-return-types-some-trait)), and a parameter may take one: `x: some Display` ([4.1.14](../004-functions/401-function-declaration.md#4114-some-parameters)). Dispatch is static, as with generics: `some Tr` is one static type, hidden, and `any Tr` holds a value of any type with `Tr` and dispatches at run time.
+
+```rok
+pub fn evens(n: i32) -> some Iterator<Item = i32> { (0..n).filter(|x| x % 2 == 0) }
+```
+
 ## 2.12.4. Decision criteria
 
 Use the following criteria to choose among the alternatives.
@@ -65,6 +73,7 @@ Use the following criteria to choose among the alternatives.
 |---------------------------------------------------------------|-------------|
 | Candidates are a small fixed set (3-5)                        | Sum type    |
 | Candidates are extensible by users / libraries                | Generics    |
+| A function returns one type its callers need not name         | `-> some Trait` |
 | Candidates are decided only at runtime (e.g. plugins, heterogeneous collections) | `any Trait` |
 | Anything must be held, with no constraint                     | `any`       |
 

@@ -57,6 +57,14 @@ struct ConfigError { msg: str; cause: any Error | none; }
 
 `any Trait` 슬롯에는 `Trait`을 구현하는 타입의 값만 넣을 수 있습니다. 컴파일러가 이를 컴파일 타임에 검사합니다. 그 값에서는 `Trait`과 그 슈퍼트레잇의 메서드를 호출할 수 있습니다. 런타임은 태그를 보고 호출을 디스패치하고, 비용 모델은 [`any` 슬롯](202-any-slot.md)과 같습니다. 정확한 규칙은 [2.2.10](202-any-slot.md#2210-제약-붙은-any-any-trait)에서 정의합니다.
 
+### 4. 함수가 숨긴 반환 타입이면 `some Trait`
+
+함수는 호출자가 트레잇으로만 보는 구체 타입 하나를 반환할 수 있고(`-> some Iterator<Item = i32>`, [4.1.13](../004-functions/401-function-declaration.md#4113-불투명-반환-타입-some-trait)), 매개변수도 그런 타입 하나를 받을 수 있습니다(`x: some Display`, [4.1.14](../004-functions/401-function-declaration.md#4114-some-매개변수)). 디스패치는 제네릭처럼 정적입니다. `some Tr`은 숨긴 정적 타입 하나이고, `any Tr`은 `Tr`을 가진 아무 타입의 값을 담아 실행 중에 디스패치합니다.
+
+```rok
+pub fn evens(n: i32) -> some Iterator<Item = i32> { (0..n).filter(|x| x % 2 == 0) }
+```
+
 ## 2.12.4. 결정 기준
 
 대안은 다음 기준으로 고릅니다.
@@ -65,6 +73,7 @@ struct ConfigError { msg: str; cause: any Error | none; }
 |----------------------------------------------------|-------------|
 | 후보가 고정된 작은 집합 (3~5개)                    | 합 타입     |
 | 사용자나 라이브러리가 후보를 늘릴 수 있음          | 제네릭      |
+| 함수가 호출자가 이름 붙일 필요 없는 타입 하나를 반환 | `-> some Trait` |
 | 후보가 런타임에만 정해짐 (예: 플러그인, 이종 컬렉션) | `any Trait` |
 | 어떤 제약도 없이 무엇이든 담아야 함                | `any`       |
 
