@@ -63,7 +63,7 @@ Operations on almost all values outside the list above are the library's decisio
 
 Instead, the specification states the following: which trait method call the operation desugars into; the location convention for which library tier defines that trait; and the form of the compile error that occurs when it is not defined.
 
-This split is how Rok's design slogan, "a small language, rich libraries", is realized at the specification level.
+This split is how Rok's design principle, "a narrow core, rich libraries", is realized at the specification level.
 
 ## 0.4.4. Implementation limits
 

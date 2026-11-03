@@ -20,7 +20,7 @@ Real workflows cut across all three. Code that starts in a notebook becomes part
 ## Design slogan
 
 > [!IMPORTANT]
-> **"A small language, rich libraries."**
+> **"A narrow core, rich libraries."**
 
 The language specification keeps its own scope narrow. Numeric operations, conversions, collections, I/O, concurrency and the like are all delegated to the standard libraries. The language core stays small, and domain semantics are decided by libraries.
 
