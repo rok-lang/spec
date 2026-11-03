@@ -266,20 +266,11 @@ Rok은 `Add`를 `AddAssign`의 상위 트레잇(supertrait)으로 묶지 **않�
 
 ## 2.4.10. 관련: broadcast `*Assign` 여부
 
-[2.6 broadcast](206-broadcast.md)의 토큰 20개(`.+`, `.*`, `.%%`, `.&&` 등)에는 복합 대입 변형이 없습니다. `a .+= b` 같은 토큰은 없습니다. 브로드캐스트 결과는 보통 새 컨테이너이므로 제자리 갱신의 의미가 모호하기 때문입니다.
-
-필요하면 `dot_add_assign` 같은 메서드를 명시적으로 호출합니다.
+브로드캐스트 토큰에는 `*Assign` 트레잇이 없습니다. 대신 제자리 브로드캐스트는 언어 문법입니다. `y .= v`와 `y .+= v` `.-=` `.*=` `./=` `.%=` `.**=`는 오른쪽 식과 함께 융합되어 할당 없이 `List`, 고정 배열, `Broadcastable` 대상에 원소별로 씁니다([refs-lang 3.3.7](../../refs-lang/003-expressions/303-broadcast-operators.md#337-제자리-브로드캐스트)). 그 밖의 연산자는 `.=`로 씁니다(`xs .= xs .%% 3`).
 
 ```rok
-xs.dot_add_assign(ys);    // 메서드 호출 (broadcast in-place)
+xs .+= ys;                // xs[i] = xs[i] + ys[i]; 길이가 같아야 함
+y .= a .* x .+ b;         // y로 들어가는 루프 하나
 ```
 
-```rok
-impl<T> List<T> {
-    fn dot_add_assign(self, rhs: List<T>) where T: Add<Output = T>;
-    // dot_OP_assign 도 같음. OP 는 add, sub, mul, div, rem, modulo,
-    // bitand, bitor, bitxor, shl, shr 이며 각각 T: OP<Output = T> 필요
-}
-```
-
-두 길이는 같아야 합니다. 다르면 메서드 이름을 담아 panic이 일어납니다(`List::dot_add_assign: lengths 3 and 2 differ; make both sides the same length`). `Slice` 형태는 없습니다.
+길이가 다르면 융합된 식처럼 panic합니다(`broadcast: lengths 3 and 2 differ; make both sides the same length`).

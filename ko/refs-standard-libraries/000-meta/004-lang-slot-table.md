@@ -68,6 +68,8 @@
 | `debug_trait`         | `f"{x:?}"` 디버그 포맷     | `rok::core::fmt::Debug`         | 2.10 |
 | `future_trait`        | `await expr`의 단계 진행   | `rok::core::future::Future`     | 2.20 |
 | `axis_indexed_trait`  | 인덱스 부분을 축 인자로    | `rok::core::index::AxisIndexed` | 2.3  |
+| `broadcastable_trait` | 융합된 점 식의 피연산자    | `rok::core::ops::Broadcastable` | 2.6.6 |
+| `materialize_trait`   | 융합된 점 식의 결과        | `rok::core::ops::Materialize`   | 2.6.6 |
 | `close_trait`         | 실패할 수 있는 닫기: 주인이 닫음 | `rok::core::io::Close`     | 2.23 |
 
 다음은 연산자 트레잇 슬롯입니다. 연산자 토큰을 어느 메서드로 디스패치할지는 각 트레잇 메서드에 붙은 `#[infix]` / `#[prefix]`([refs-lang 6.7](../../refs-lang/006-meta-system/607-operator-magic.md))가 정합니다. 우선순위는 [refs-lang 3.2](../../refs-lang/003-expressions/302-precedence-and-associativity.md) 표가 고정합니다. 아래 슬롯은 고정된 자리입니다. 컴파일러는 원시 타입 연산을 낮추거나 진단을 낼 때 이 자리로 "덧셈 트레잇", "비교 트레잇" 등을 이름으로 찾습니다. 복합 대입(`AddAssign` 등, 2.4), broadcast(`DotAdd` 등, 2.6), floored modulo(`Modulo`, `%%`) 트레잇은 `#[infix]` 등록만으로 충분하므로 슬롯이 없습니다.
@@ -134,6 +136,20 @@
 | `axis_from_u64_fn`   | 축 인덱스의 부호 없는 위치                      | `rok::core::index::axis_from_u64`         | 2.3  |
 | `axis_from_i64_fn`   | 축 인덱스의 넓은 부호 있는 위치                 | `rok::core::index::axis_from_i64`         | 2.3  |
 | `array_literal_fn`   | `Array` 슬롯의 중첩 리스트 리터럴               | `rok::core::array::array_literal`         | 2.9.14 |
+| `fused_shape_fn` | 융합된 점 식: 피연산자가 늘어날 모양 | `rok::core::array::fused_shape` | 2.6.6 |
+| `fused_view_fn` | 융합된 점 식: 그 모양으로 본 피연산자 | `rok::core::array::fused_view` | 2.6.6 |
+| `fused_alloc_fn` | 융합된 점 식: 새 결과 배열 | `rok::core::array::fused_alloc` | 2.6.6 |
+| `fused_flat_fn` | 융합된 점 식: 뷰가 연속인지 | `rok::core::array::fused_flat` | 2.6.6 |
+| `fused_inner_fn` | 융합된 점 식: 행의 길이(마지막 축) | `rok::core::array::fused_inner` | 2.6.6 |
+| `fused_rows_fn` | 융합된 점 식: 행의 수 | `rok::core::array::fused_rows` | 2.6.6 |
+| `fused_row_fn` | 융합된 점 식: 행의 버퍼 위치 | `rok::core::array::fused_row` | 2.6.6 |
+| `fused_step_fn` | 융합된 점 식: 마지막 축의 보폭 | `rok::core::array::fused_step` | 2.6.6 |
+| `fused_at_fn` | 융합된 점 식: 연속 구간의 원소 | `rok::core::array::fused_at` | 2.6.6 |
+| `fused_put_fn` | 융합된 점 식: 연속 구간에 저장 | `rok::core::array::fused_put` | 2.6.6 |
+| `fused_get_fn` | 융합된 점 식: 보폭 있는 행의 원소 | `rok::core::array::fused_get` | 2.6.6 |
+| `fused_set_fn` | 융합된 점 식: 보폭 있는 행에 저장 | `rok::core::array::fused_set` | 2.6.6 |
+| `fused_dest_fn` | 융합된 점 식: 제자리 결과가 대상에 맞는지 | `rok::core::array::fused_dest` | 2.6.6 |
+| `fused_source_fn` | 융합된 점 식: 대상과 겹치는 제자리 원천은 복사 | `rok::core::array::fused_source` | 2.6.6 |
 
 ### 계층끼리 공유하는 항목: `#[internal]`
 
@@ -168,7 +184,7 @@
 | 컴파일러 동작                                | lookup 슬롯                              |
 |----------------------------------------------|------------------------------------------|
 | `none` 리터럴 낮추기                         | `none_type`                              |
-| `42` (기대 타입 없음) 리터럴 타입             | `i32_type`                               |
+| `42` (기대 타입 없음) 리터럴 타입             | `i64_type`                               |
 | `3.14` (기대 타입 없음) 리터럴 타입           | `f64_type`                               |
 | `"hello"` 리터럴 타입                        | `str_type`                               |
 | `for x in xs` 풀어 쓰기                      | `into_iterator_trait`, `iterator_trait`, `try_iterator_trait` |

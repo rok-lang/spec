@@ -265,12 +265,47 @@ The compiler fuses consecutive dot operations into a single loop.
 let result = f64::sin.(a) .+ f64::cos.(b) .* 2.0;
 ```
 
-A naive lowering would need 3 temporary List allocations and 3 loops. Over `List`, `Slice` and arrays Rok guarantees one loop with no intermediate collections ([3.3.4](../../refs-lang/003-expressions/303-broadcast-operators.md#334-automatic-loop-fusion) gives the exact condition). A dot expression over another type, such as a library's `Matrix`, calls the dot traits one operator at a time.
+A naive lowering would need 3 temporary List allocations and 3 loops. Rok guarantees one loop with no intermediate collections over `List`, `Slice` and arrays, and over any `Broadcastable` type ([3.3.4](../../refs-lang/003-expressions/303-broadcast-operators.md#334-automatic-loop-fusion) gives the exact condition). In-place forms (`y .= ..`, `y .+= ..`, [3.3.7](../../refs-lang/003-expressions/303-broadcast-operators.md#337-in-place-broadcast)) write into the target with no allocation at all.
 
 ```rok
 // conceptually equivalent to this single elementwise call
 let result = elementwise(a, b, |x, y| x.sin() + y.cos() * 2.0);
 ```
+
+### `Broadcastable` and `Materialize`
+
+The fusion protocol is two traits of `rok::core::ops`.
+
+```rok
+pub trait Broadcastable<const N: usize> {
+    type Elem;
+    /// The elements as an array: a view sharing the storage.
+    fn broadcast_view(self) -> Array<Elem, N>;
+}
+
+pub trait Materialize<U, const N: usize> {
+    type Output;
+    /// The result built around `out`, a fresh row-major array.
+    fn materialize(self, out: Array<U, N>) -> Output;
+}
+```
+
+An `Array` ([2.9.14](209-collections.md#2914-arrayt-const-n-usize---n-dimensional-array)) is a buffer, an offset, a shape and strides, so it describes any strided storage; a type of its own (a stone's `Tensor`, a dataframe column) implements `Broadcastable` by returning the `Array` it keeps, and `Materialize` to be the result when it leads. `Array` implements both: its view is itself, and an expression it leads gives an `Array<U, N>`.
+
+```rok
+struct Signal { data: Array<f64, 1>; }
+impl Broadcastable<1> for Signal {
+    type Elem = f64;
+    fn broadcast_view(self) -> Array<f64, 1> { self.data }
+}
+impl Materialize<f64, 1> for Signal {
+    type Output = Signal;
+    fn materialize(self, out: Array<f64, 1>) -> Signal { Signal { data: out } }
+}
+let t = s .* 2.0 .+ k;      // one loop; a Signal
+```
+
+A fused expression views each operand (`broadcast_view`), stretches the views to one shape (2.6.8), allocates the result for the leading operand (the first of the highest rank) and hands it to that operand's `materialize`. The loop runs over the buffers directly: one run of positions when the result and every view are contiguous, otherwise a walk over rows of the last axis with each view's stride. A leading operand without `Materialize` is a compile error naming the trait.
 
 ## 2.6.7. Trait implementation matrix
 
@@ -286,11 +321,11 @@ Dot trait impls map onto container types as follows.
 
 The dot meaning of `T | none` is option propagation: if either side is `none`, the result is `none`. It is handled at the operator level, with no library impl: the whole dot tree's operands are evaluated once, in source order; then each `T | none` operand is tested, and the first `none` makes the tree's value `none` without running it. Otherwise the tree runs on the `T` values, fused or through the dot traits as 2.6.6 says, so no dot trait is called with `none`. The value's type is the tree's type `| none`.
 
-The n-dimensional `Array<T, N>` of core ([2.9.14](209-collections.md#2914-arrayt-const-n-usize---n-dimensional-array)) implements every dot trait: array with array of the same rank, array with scalar, scalar with array, by the rule of 2.6.8. A library's numeric container (`Tensor<T>`, a dataframe column) implements the same traits directly, a scalar on the left included: the orphan rule admits `impl DotMul<Tensor> for f64` in the package that defines `Tensor` ([refs-lang 2.9.5](../../refs-lang/002-types/209-impl.md#295-orphan-rule)). Such dot expressions call the traits one operator at a time (2.6.6).
+The n-dimensional `Array<T, N>` of core ([2.9.14](209-collections.md#2914-arrayt-const-n-usize---n-dimensional-array)) implements every dot trait: array with array of the same rank, array with scalar, scalar with array, by the rule of 2.6.8. A library's numeric container (`Tensor<T>`, a dataframe column) implements the same traits directly, a scalar on the left included: the orphan rule admits `impl DotMul<Tensor> for f64` in the package that defines `Tensor` ([refs-lang 2.9.5](../../refs-lang/002-types/209-impl.md#295-orphan-rule)). A dot expression over such a type calls the traits one operator at a time unless the type is `Broadcastable` (2.6.6); `Array` is, so its dot expressions fuse and its trait impls serve bounds and calls by name.
 
 ## 2.6.8. NumPy-style broadcasting rules
 
-One rule, defined in core so every array type agrees: `rok::core::array::broadcast_shape(a, b)` takes two shapes of the same rank and, axis by axis, keeps equal lengths and stretches a length 1 to the other side's length. Any other pair panics naming both shapes and the axis (`broadcast: shapes [2, 3] and [2, 2] differ on axis 1; each axis must match or have length 1`). A scalar applies to every element. Operands of different rank are first lined up by giving the shorter one leading axes of length 1, written out (`v[none, :]` turns a `[3]` vector into a `[1, 3]` row): the rank is part of the type, so the result's rank stays visible. `Array::broadcast_to(shape)` gives the stretched view itself (stride 0 on a stretched axis, no copy).
+One rule, defined in core so every array type agrees: `rok::core::array::broadcast_shape(a, b)` takes two shapes of the same rank and, axis by axis, keeps equal lengths and stretches a length 1 to the other side's length. Any other pair panics naming both shapes and the axis (`broadcast: shapes [2, 3] and [2, 2] differ on axis 1; each axis must match or have length 1`). A scalar applies to every element. In a dot expression operands of different rank line up at their last axes: the shorter one counts as having leading axes of length 1 (a `[3]` vector and a `[2, 3]` matrix give `[2, 3]`), and the result has the highest rank, which the types show. The dot trait impls themselves take one rank, so generic code and calls by name line ranks up explicitly (`v[none, :]` turns a `[3]` vector into a `[1, 3]` row). `Array::broadcast_to(shape)` gives the stretched view itself (stride 0 on a stretched axis, no copy).
 
 1-D containers (`List<T>`, `[T; N]`, `Slice<T>`) have one axis and no length-1 stretch: their lengths must be equal (2.6.4).
 

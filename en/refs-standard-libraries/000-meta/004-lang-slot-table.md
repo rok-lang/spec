@@ -68,6 +68,8 @@ Trait slots indicate which trait the compiler goes to when user-written syntax i
 | `debug_trait`         | `f"{x:?}"` debug format         | `rok::core::fmt::Debug`         | 2.10 |
 | `future_trait`        | Stepping in `await expr`        | `rok::core::future::Future`     | 2.20 |
 | `axis_indexed_trait`  | index parts as axis arguments   | `rok::core::index::AxisIndexed` | 2.3  |
+| `broadcastable_trait` | An operand of a fused dot expression | `rok::core::ops::Broadcastable` | 2.6.6 |
+| `materialize_trait`   | The result of a fused dot expression | `rok::core::ops::Materialize`   | 2.6.6 |
 | `close_trait`         | A close that can fail: the owner closes it | `rok::core::io::Close`     | 2.23 |
 
 Next come the operator trait slots. The dispatch target of an operator token is determined by the `#[infix]` / `#[prefix]` ([refs-lang 6.7](../../refs-lang/006-meta-system/607-operator-magic.md)) attached to each trait method, and precedence is fixed by the table in [refs-lang 3.2](../../refs-lang/003-expressions/302-precedence-and-associativity.md); the slots below are fixed locations that let the compiler find "the addition trait", "the comparison trait", etc. by name during primitive lowering and diagnostics. Compound assignment (`AddAssign`, etc., 2.4), broadcast (`DotAdd`, etc., 2.6) and floored modulo (`Modulo`, `%%`) traits need only `#[infix]` registration and have no slots.
@@ -134,6 +136,20 @@ The other twenty are **hooks**: functions that code the compiler writes calls, f
 | `axis_from_u64_fn`   | An unsigned position in an axis index                  | `rok::core::index::axis_from_u64`         | 2.3  |
 | `axis_from_i64_fn`   | A wide signed position in an axis index                | `rok::core::index::axis_from_i64`         | 2.3  |
 | `array_literal_fn`   | A nested list literal in an `Array` slot               | `rok::core::array::array_literal`         | 2.9.14 |
+| `fused_shape_fn` | A fused dot expression: the shape operands stretch to | `rok::core::array::fused_shape` | 2.6.6 |
+| `fused_view_fn` | A fused dot expression: an operand viewed at that shape | `rok::core::array::fused_view` | 2.6.6 |
+| `fused_alloc_fn` | A fused dot expression: the fresh result array | `rok::core::array::fused_alloc` | 2.6.6 |
+| `fused_flat_fn` | A fused dot expression: a view is contiguous | `rok::core::array::fused_flat` | 2.6.6 |
+| `fused_inner_fn` | A fused dot expression: the length of a row (the last axis) | `rok::core::array::fused_inner` | 2.6.6 |
+| `fused_rows_fn` | A fused dot expression: the number of rows | `rok::core::array::fused_rows` | 2.6.6 |
+| `fused_row_fn` | A fused dot expression: the buffer position of a row | `rok::core::array::fused_row` | 2.6.6 |
+| `fused_step_fn` | A fused dot expression: the step along the last axis | `rok::core::array::fused_step` | 2.6.6 |
+| `fused_at_fn` | A fused dot expression: an element of a contiguous run | `rok::core::array::fused_at` | 2.6.6 |
+| `fused_put_fn` | A fused dot expression: a store into a contiguous run | `rok::core::array::fused_put` | 2.6.6 |
+| `fused_get_fn` | A fused dot expression: an element of a strided row | `rok::core::array::fused_get` | 2.6.6 |
+| `fused_set_fn` | A fused dot expression: a store into a strided row | `rok::core::array::fused_set` | 2.6.6 |
+| `fused_dest_fn` | A fused dot expression: an in-place result fits its target | `rok::core::array::fused_dest` | 2.6.6 |
+| `fused_source_fn` | A fused dot expression: an in-place source that overlaps the target is copied | `rok::core::array::fused_source` | 2.6.6 |
 
 ### Items the tiers share: `#[internal]`
 
@@ -168,7 +184,7 @@ Where the previous sections listed "which slots exist", this section summarizes 
 | Compiler action                                    | Slot looked up                           |
 |----------------------------------------------------|------------------------------------------|
 | Lowering the `none` literal                        | `none_type`                              |
-| Literal type of `42` (no expected type)            | `i32_type`                               |
+| Literal type of `42` (no expected type)            | `i64_type`                               |
 | Literal type of `3.14` (no expected type)          | `f64_type`                               |
 | Literal type of `"hello"`                          | `str_type`                               |
 | Desugaring `for x in xs`                           | `into_iterator_trait`, `iterator_trait`, `try_iterator_trait` |

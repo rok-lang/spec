@@ -266,20 +266,11 @@ The reason is that some types, such as collections, have no meaningful `Add` (`x
 
 ## 2.4.10. Related - broadcast `*Assign`?
 
-No compound assignment variants are defined for the 20 tokens of [2.6 broadcast](206-broadcast.md) (`.+`, `.*`, `.%%`, `.&&`, ...). That is, a token such as `a .+= b` does not exist. The background is that broadcast results usually create a new container, which makes in-place meaning ambiguous.
-
-Where needed, the user calls a method such as `dot_add_assign` explicitly.
+The broadcast tokens have no `*Assign` traits. In-place broadcast is language syntax instead: `y .= v` and `y .+= v` `.-=` `.*=` `./=` `.%=` `.**=` write element-wise into a `List`, a fixed array or a `Broadcastable` target, fused with the expression on the right and with no allocation ([refs-lang 3.3.7](../../refs-lang/003-expressions/303-broadcast-operators.md#337-in-place-broadcast)). Other operators go through `.=` (`xs .= xs .%% 3`).
 
 ```rok
-xs.dot_add_assign(ys);    // method call (broadcast in place)
+xs .+= ys;                // xs[i] = xs[i] + ys[i]; lengths must match
+y .= a .* x .+ b;         // one loop into y
 ```
 
-```rok
-impl<T> List<T> {
-    fn dot_add_assign(self, rhs: List<T>) where T: Add<Output = T>;
-    // likewise dot_OP_assign for OP in add, sub, mul, div, rem, modulo,
-    // bitand, bitor, bitxor, shl, shr; each requires T: OP<Output = T>
-}
-```
-
-The lengths must match; otherwise it panics, naming the method (`List::dot_add_assign: lengths 3 and 2 differ; make both sides the same length`). There is no `Slice` form.
+A length mismatch panics like a fused expression (`broadcast: lengths 3 and 2 differ; make both sides the same length`).

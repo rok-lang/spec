@@ -51,7 +51,10 @@ These are dot-prefixed forms for element-wise (broadcast) operations. Each arith
 .==     .!=     .<      .>      .<=     .>=
 .&&     .||
 .&      .|      .^      .<<     .>>
+.??
 ```
+
+`.??` is the element-wise `??` (3.3.8); it has no trait.
 
 Each of these forms maps to a different trait method from its dotless form. For example, `+` maps to `Add::add` and `.+` to `DotAdd::dot_add`; these mappings are defined in the standard libraries. Unlike their dotless forms, the dot-prefixed logical operators (`.&&`, `.||`) do **not** short-circuit: because broadcast is lowered to a fused loop, both operands are evaluated (see [2.6 broadcast](../../refs-standard-libraries/200-core/206-broadcast.md) for details).
 
@@ -97,7 +100,10 @@ Operator characters are all chosen from code points with the Unicode `Pattern_Sy
 ```
 =       +=      -=      *=      /=      %=      %%=     **=
 &=      |=      ^=      <<=     >>=
+.=      .+=     .-=     .*=     ./=     .%=     .**=
 ```
+
+The last row is in-place broadcast ([3.3.7](../003-expressions/303-broadcast-operators.md#337-in-place-broadcast)). By the longest-match rule `.+=` is matched before `.+`, and `.**=` before `.**`; `.=` is a token only when no second `=` follows, so `.==` stays the element-wise comparison.
 
 The meaning of compound assignment (how many times the left-hand side is evaluated, the trait mapping, etc.) is defined in the expression specification. `%%=` is the compound assignment form of `%%` (floored modulo); by the longest-match rule, `%%=` is matched before `%=` or `%`.
 

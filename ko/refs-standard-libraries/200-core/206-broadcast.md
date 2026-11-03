@@ -265,12 +265,47 @@ let m = f64::max.(a, b);             //→ [10.0, 20.0, 30.0]
 let result = f64::sin.(a) .+ f64::cos.(b) .* 2.0;
 ```
 
-단순하게 낮추면 임시 List 할당 3번과 루프 3개가 필요합니다. `List`, `Slice`, 배열에 대해 Rok은 중간 컬렉션 없는 루프 하나를 보장합니다(정확한 조건은 [3.3.4](../../refs-lang/003-expressions/303-broadcast-operators.md#334-자동-루프-융합)). 라이브러리의 `Matrix` 같은 다른 타입의 점 식은 연산자마다 점 트레잇을 호출합니다.
+단순하게 낮추면 임시 List 할당 3번과 루프 3개가 필요합니다. Rok은 `List`, `Slice`, 배열과 모든 `Broadcastable` 타입에 대해 중간 컬렉션 없는 루프 하나를 보장합니다(정확한 조건은 [3.3.4](../../refs-lang/003-expressions/303-broadcast-operators.md#334-자동-루프-융합)). 제자리 형태(`y .= ..`, `y .+= ..`, [3.3.7](../../refs-lang/003-expressions/303-broadcast-operators.md#337-제자리-브로드캐스트))는 할당 없이 대상에 씁니다.
 
 ```rok
 // 개념적으로는 다음과 같은 단일 elementwise 호출과 같습니다.
 let result = elementwise(a, b, |x, y| x.sin() + y.cos() * 2.0);
 ```
+
+### `Broadcastable`과 `Materialize`
+
+융합 프로토콜은 `rok::core::ops`의 트레잇 두 개입니다.
+
+```rok
+pub trait Broadcastable<const N: usize> {
+    type Elem;
+    /// 원소를 배열로: 저장소를 공유하는 뷰.
+    fn broadcast_view(self) -> Array<Elem, N>;
+}
+
+pub trait Materialize<U, const N: usize> {
+    type Output;
+    /// 새 행 우선 배열 `out`을 감싼 결과.
+    fn materialize(self, out: Array<U, N>) -> Output;
+}
+```
+
+`Array`([2.9.14](209-collections.md#2914-arrayt-const-n-usize-n차원-배열))는 버퍼, 오프셋, 모양, 보폭이므로 보폭이 있는 어떤 저장소든 나타냅니다. 직접 만든 타입(스톤의 `Tensor`, 데이터프레임 열)은 가진 `Array`를 돌려주어 `Broadcastable`을 구현하고, 앞선 피연산자일 때 결과가 되려면 `Materialize`를 구현합니다. `Array`는 둘 다 구현합니다. 뷰는 자기 자신이고, `Array`가 앞서는 식은 `Array<U, N>`을 줍니다.
+
+```rok
+struct Signal { data: Array<f64, 1>; }
+impl Broadcastable<1> for Signal {
+    type Elem = f64;
+    fn broadcast_view(self) -> Array<f64, 1> { self.data }
+}
+impl Materialize<f64, 1> for Signal {
+    type Output = Signal;
+    fn materialize(self, out: Array<f64, 1>) -> Signal { Signal { data: out } }
+}
+let t = s .* 2.0 .+ k;      // 루프 하나; Signal
+```
+
+융합된 식은 피연산자마다 뷰를 얻고(`broadcast_view`), 뷰를 한 모양으로 늘리고(2.6.8), 앞선 피연산자(랭크가 가장 높은 것 중 첫째)를 위해 결과를 할당해 그 피연산자의 `materialize`에 넘깁니다. 루프는 버퍼를 직접 돕니다. 결과와 모든 뷰가 연속이면 위치 한 줄을, 아니면 뷰마다 보폭을 써서 마지막 축의 행을 돕니다. `Materialize`가 없는 앞선 피연산자는 그 트레잇을 밝히는 컴파일 에러입니다.
 
 ## 2.6.7. 트레잇 구현 매트릭스
 
@@ -286,11 +321,11 @@ let result = elementwise(a, b, |x, y| x.sin() + y.cos() * 2.0);
 
 `T | none`에서 점 연산의 의미는 옵션 전파(option propagation)입니다. 어느 한쪽이 `none`이면 결과도 `none`입니다. 이 처리는 라이브러리 구현 없이 연산자 수준에서 합니다. 점 식 트리의 피연산자를 모두 소스 순서대로 한 번씩 평가한 다음, `T | none` 피연산자를 검사합니다. 처음 만난 `none`이 있으면 트리를 실행하지 않고 값이 `none`이 됩니다. 아니면 `T` 값으로 트리를 실행합니다(2.6.6대로 융합하거나 점 트레잇을 호출). 그래서 점 트레잇은 `none`을 받지 않습니다. 값의 타입은 트리의 타입에 `| none`을 더한 것입니다.
 
-core의 n차원 `Array<T, N>`([2.9.14](209-collections.md#2914-arrayt-const-n-usize-n차원-배열))은 모든 점 트레잇을 구현합니다. 같은 랭크의 배열과 배열, 배열과 스칼라, 스칼라와 배열을 2.6.8 규칙으로 받습니다. 라이브러리의 수치 컨테이너(`Tensor<T>`, 데이터프레임 열)도 같은 트레잇을 직접 구현하며 왼쪽 스칼라도 받을 수 있습니다. orphan 규칙이 `Tensor`를 정의한 패키지의 `impl DotMul<Tensor> for f64`를 허용하기 때문입니다([refs-lang 2.9.5](../../refs-lang/002-types/209-impl.md#295-orphan-규칙)). 이런 점 식은 연산자마다 트레잇을 호출합니다(2.6.6).
+core의 n차원 `Array<T, N>`([2.9.14](209-collections.md#2914-arrayt-const-n-usize-n차원-배열))은 모든 점 트레잇을 구현합니다. 같은 랭크의 배열과 배열, 배열과 스칼라, 스칼라와 배열을 2.6.8 규칙으로 받습니다. 라이브러리의 수치 컨테이너(`Tensor<T>`, 데이터프레임 열)도 같은 트레잇을 직접 구현하며 왼쪽 스칼라도 받을 수 있습니다. orphan 규칙이 `Tensor`를 정의한 패키지의 `impl DotMul<Tensor> for f64`를 허용하기 때문입니다([refs-lang 2.9.5](../../refs-lang/002-types/209-impl.md#295-orphan-규칙)). 이런 타입의 점 식은 그 타입이 `Broadcastable`이 아니면 연산자마다 트레잇을 호출합니다(2.6.6). `Array`는 `Broadcastable`이므로 점 식이 융합되고, 트레잇 구현은 바운드와 이름으로 부르는 호출에 쓰입니다.
 
 ## 2.6.8. NumPy 식 broadcasting 규칙
 
-규칙은 하나이며, 모든 배열 타입이 같도록 core에 있습니다. `rok::core::array::broadcast_shape(a, b)`는 랭크가 같은 두 모양을 받아 축마다 같은 길이는 그대로 두고 길이 1은 다른 쪽 길이로 늘립니다. 그 밖의 쌍은 두 모양과 축을 밝혀 panic합니다(`broadcast: shapes [2, 3] and [2, 2] differ on axis 1; each axis must match or have length 1`). 스칼라는 모든 원소에 적용합니다. 랭크가 다른 피연산자는 짧은 쪽 앞에 길이 1인 축을 명시적으로 붙여 맞춥니다(`v[none, :]`은 `[3]` 벡터를 `[1, 3]` 행으로 바꿉니다). 랭크가 타입의 일부이므로 결과의 랭크가 보이게 남습니다. `Array::broadcast_to(shape)`는 늘린 뷰 자체를 줍니다(늘린 축은 보폭 0, 복사 없음).
+규칙은 하나이며, 모든 배열 타입이 같도록 core에 있습니다. `rok::core::array::broadcast_shape(a, b)`는 랭크가 같은 두 모양을 받아 축마다 같은 길이는 그대로 두고 길이 1은 다른 쪽 길이로 늘립니다. 그 밖의 쌍은 두 모양과 축을 밝혀 panic합니다(`broadcast: shapes [2, 3] and [2, 2] differ on axis 1; each axis must match or have length 1`). 스칼라는 모든 원소에 적용합니다. 점 식에서 랭크가 다른 피연산자는 마지막 축끼리 맞춥니다. 짧은 쪽은 앞에 길이 1인 축이 있는 것으로 봅니다(`[3]` 벡터와 `[2, 3]` 행렬은 `[2, 3]`). 결과의 랭크는 가장 높은 랭크이며 타입에 드러납니다. 점 트레잇 구현은 한 랭크만 받으므로 제네릭 코드와 이름으로 부르는 호출은 랭크를 명시적으로 맞춥니다(`v[none, :]`은 `[3]` 벡터를 `[1, 3]` 행으로 바꿉니다). `Array::broadcast_to(shape)`는 늘린 뷰 자체를 줍니다(늘린 축은 보폭 0, 복사 없음).
 
 1차원 컨테이너(`List<T>`, `[T; N]`, `Slice<T>`)는 축이 하나이고 길이 1 늘리기가 없습니다. 길이가 같아야 합니다(2.6.4).
 

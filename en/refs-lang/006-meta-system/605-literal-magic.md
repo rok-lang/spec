@@ -67,7 +67,7 @@ The first five are the standard library's; the last two show what a package with
 
 The basic form is `#[literal(pattern)]`, optionally followed by `, priority = N` (may be negative, default 0) (6.5.5). The handler is a function, and a literal matching the pattern becomes a call to that function.
 
-Scope of registration: registrations in the standard library are visible in every package; registrations in any other package, a dependency included, apply only to that package's own source, not to the packages that depend on it. This differs from operator mappings, which go wherever their trait is visible ([6.7.8](607-operator-magic.md#678-visibility-of-mappings)): an operator mapping belongs to a trait and only selects a method of it, while a literal registration changes how source text is parsed, which a dependency must not do to its dependents. The compiler collects registrations before parsing, so they apply regardless of where they are registered. A handler is called as if from its own module ([6.9.9](609-template-tokens.md#names-in-an-expansion)), so it may have any visibility: the standard library's handlers (`list_literal`, `set_literal`, `dict_literal` and the six `range_*_literal`) are `pub(pkg)`, and naming one outside `rok::core` is an error.
+Scope of registration: registrations in the standard library are visible in every package. A registration in any other package applies to that package's own source, and, when its handler is `pub`, to the source of every package that depends on it directly, as an operator mapping goes wherever its trait is visible ([6.7.8](607-operator-magic.md#678-visibility-of-mappings)): depending on a `units` stone that exports `#[literal(number "m")] pub fn meters(..)` makes `9.81m` mean `units::meters(9.81)`, with no `use`. A handler that is not `pub` stays in its package, and a package's registrations never reach the packages that depend on its dependents. Conflicts between packages follow 6.5.5 (a dependency's `i` outranks the standard library's priority -1 one; two dependencies registering one suffix at one priority make its uses ambiguous). The compiler collects registrations before parsing, so they apply regardless of where they are registered. A handler is called as if from its own module ([6.9.9](609-template-tokens.md#names-in-an-expansion)), so it may have any visibility: the standard library's handlers (`list_literal`, `set_literal`, `dict_literal` and the six `range_*_literal`) are `pub(pkg)`, and naming one outside `rok::core` is an error.
 
 ## 6.5.3. Format of syntax patterns
 
@@ -116,9 +116,9 @@ When `[1, 2, 3]` appears in source, it is processed in these steps.
 ```rok
 [1, 2, 3]
    ↓
-list_literal(1, 2, 3)          // items: Slice<i32>
+list_literal(1, 2, 3)          // items: Slice<i64>
    ↓
-List<i32> instance
+List<i64> instance
 ```
 
 Captures become handler arguments in order.

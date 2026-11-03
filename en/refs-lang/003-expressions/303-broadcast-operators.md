@@ -77,9 +77,13 @@ An expression tree of dot-prefixed operators and function broadcasts is fused in
 sin.(a) .+ cos.(b) .* 2.0f64
 ```
 
-Fusion is guaranteed when every container operand is a core `List`, `Slice` or fixed array and every other operand of a dot operator is a primitive or the element type: the result is built in one pass, with no intermediate collections. Each operand is evaluated once, in source order, before the loop; lengths are checked before the first element (fixed arrays at compile time). The result is a `List`, or an array when every container operand is an array.
+Fusion is guaranteed when the container operands are all core `List`, `Slice` or fixed arrays, or all `Broadcastable` ([stdlib 2.6.6](../../refs-standard-libraries/200-core/206-broadcast.md#266-loop-fusion)), and every other operand of a dot operator is a primitive or an element type: the result is built in one pass, with no intermediate collections. Each operand is evaluated once, in source order, before the loop.
 
-Any other tree, such as one over a library's `Matrix`, is not fused: each operator calls its dot trait (3.3.1) and makes its own result. A library type gets no fusion today.
+- Over core collections the lengths are checked before the first element (fixed arrays at compile time). The result is a `List`, or an array when every container operand is an array.
+- Over `Broadcastable` operands (`Array`, or a type of your own) each operand is viewed as an array, the views are stretched to one shape by the broadcast rule ([stdlib 2.6.8](../../refs-standard-libraries/200-core/206-broadcast.md#268-numpy-style-broadcasting-rules)) before the first element, and the leading operand (the first of the highest rank) builds the result through `Materialize`.
+- A tree that mixes the two kinds is an error whose help converts the list (`Array::from_list(xs, [xs.len()])`).
+
+Any other tree, one with an operand that is neither a container, a primitive nor an element type, is not fused: each operator calls its dot trait (3.3.1) and makes its own result.
 
 The fused loop is an ordinary loop, vectorized like any other ([0.6.4](../000-meta/006-platform-targets.md#064-simd)).
 
@@ -108,4 +112,28 @@ impl ops::DotAdd for MyVector {
 }
 ```
 
-Dot-prefixed operations are supported through this same pattern, with no additional traits or macros.
+Dot-prefixed operations are supported through this same pattern, with no additional traits or macros. A type that implements `Broadcastable` instead gets fused expressions and in-place broadcast (3.3.4, 3.3.7); its dot trait impls then serve trait bounds and calls by name.
+
+## 3.3.7. In-place broadcast
+
+`target .= value` writes the elements of `value`, a dot expression, a container or a scalar, into `target` element by element; `target .op= value` for `op` in `+ - * / % **` is `target .= target .op value` with `target` evaluated once. They are statements, like `=`.
+
+```rok
+y .= a .* x .+ b;          // one loop, no array allocated
+y .+= 1.0;                 // y .= y .+ 1.0
+m[:, 0] .= 0.0;            // a view is a target: the column of m
+xs .*= ys;                 // a List, lengths equal
+```
+
+- The target is evaluated first, then the operands in source order.
+- A `List` or fixed array target takes operands of its length (checked before the first element, at compile time for fixed arrays); each element is stored through `IndexSet`. A `Slice` is a read-only view and is not a target.
+- A `Broadcastable` target keeps its shape: the operands stretch to it (stdlib 2.6.8) and an operand of higher rank is a compile error; a result shape that differs panics (`broadcast: the result has shape [2, 3], which does not fit the destination of shape [1, 3]; the destination is not stretched`). The elements are written through the target's view, so a slice of an array (`a[1:]`) writes the array.
+- An operand that shares the target's buffer at other positions (`v .= v[::-1]`) is read from a copy made before the loop; the same view (`v .+= v`) or a buffer apart from it is read in place. The result is as if every element were computed before any is stored.
+- Other operators go through `.=`: `xs .= xs .%% 3`.
+- Any other target is an error whose help writes the operation out (`x = x .+ ..;`).
+
+## 3.3.8. Broadcast coalesce `.??`
+
+`a .?? b` is `??` element-wise: each `none` element of `a` becomes the matching element of `b`, or `b` itself when it is a scalar. It fuses with the rest of the tree; it binds like `??` (level 1, right-associative). Its result's elements are the `??` of the elements (`List<f64 | none> .?? 0.0` is a `List<f64>`). Without a container operand it is an error whose help is `x ?? y`.
+
+`none` and NaN stay apart: `.??` replaces `none` only, and a NaN element is a value that passes through (`[1.0, none, NaN] .?? 0.0` is `[1.0, 0.0, NaN]`). An `f64 | none` is not stored with NaN as its `none`: NaN is an ordinary result of float arithmetic, and conflating the two would lose a missing value or invent one. To treat NaN as missing, mask it: `a[f64::is_nan.(a)] = 0.0`.

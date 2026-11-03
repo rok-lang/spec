@@ -849,7 +849,7 @@ m[m .< 0.0] = 0.0;
 | `to_list()`, `map(f)`, `sum()` | 행 우선 리스트, `f(x)`의 새 배열, 합(`T: Add + Zero`) |
 | `unsafe fn as_ptr() -> ConstPtr<T>` | 첫 원소. 8 KiB 이상이면 도달할 수 있는 동안 고정(작은 배열은 pin) |
 
-**원소별 연산자.** 모든 점 연산자(2.6)가 같은 랭크의 배열과 배열, 배열과 스칼라, 스칼라와 배열을 받습니다. 산술은 `Array<T, N>`을, 비교는 `Array<bool, N>`을 주고, `.&&` / `.||`는 `Array<bool, N>`끼리 합칩니다. 두 배열은 `broadcast_shape(a, b)`로 한 모양으로 늘어납니다. 축마다 길이가 같으면 그대로, 길이 1은 다른 쪽 길이로 늘고, 그 밖의 쌍은 두 모양을 밝혀 panic합니다(`broadcast: shapes [2, 3] and [2, 2] differ on axis 1; ...`). 랭크가 다른 배열은 길이 1인 축을 명시적으로 더해 맞춥니다(`v[none, :]`). `PartialEq`는 모양과 원소를 비교하고, `Debug` / `Display`는 중첩 괄호로 출력합니다.
+**원소별 연산자.** 모든 점 연산자(2.6)가 같은 랭크의 배열과 배열, 배열과 스칼라, 스칼라와 배열을 받습니다. 산술은 `Array<T, N>`을, 비교는 `Array<bool, N>`을 주고, `.&&` / `.||`는 `Array<bool, N>`끼리 합칩니다. 두 배열은 `broadcast_shape(a, b)`로 한 모양으로 늘어납니다. 축마다 길이가 같으면 그대로, 길이 1은 다른 쪽 길이로 늘고, 그 밖의 쌍은 두 모양을 밝혀 panic합니다(`broadcast: shapes [2, 3] and [2, 2] differ on axis 1; ...`). 점 식에서 랭크가 낮은 배열은 마지막 축끼리 맞추며(2.6.8), 식은 중간 배열 없는 루프 하나로 실행됩니다. `Array`가 `Broadcastable`이자 `Materialize`이기 때문입니다(2.6.6). `.=`, `.+=` 등은 배열이나 그 뷰에 제자리로 씁니다(`a[:, 0] .= 0.0`, [refs-lang 3.3.7](../../refs-lang/003-expressions/303-broadcast-operators.md#337-제자리-브로드캐스트)). `PartialEq`는 모양과 원소를 비교하고, `Debug` / `Display`는 중첩 괄호로 출력합니다.
 
 ## 2.9.13. 기본값, 연산자, 생성자
 
