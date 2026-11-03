@@ -8,7 +8,7 @@ int / float    (auto-promote, arbitrary precision, opt-in)
 fixed primitive (i8..i64, u8..u64, isize, usize, f32, f64; hardware-friendly, default)
 ```
 
-The two worlds **coexist**. An unsuffixed literal follows the expected type; if there is no expected type it is `i32` / `f64` ([refs-lang 1.6.3](../../refs-lang/001-lexical/106-numeric-literals.md#163-unsuffixed-literals)). `int` / `float` are used only where the type is written out.
+The two worlds **coexist**. An unsuffixed literal follows the expected type; if there is no expected type it is `i64` / `f64` ([refs-lang 1.6.3](../../refs-lang/001-lexical/106-numeric-literals.md#163-unsuffixed-literals)). `int` / `float` are used only where the type is written out.
 
 ## 2.1.1. Two worlds of numbers - why they are separate
 

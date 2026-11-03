@@ -14,7 +14,7 @@ struct Secret {                                     // crypto::secret
     fn as_bytes(self) -> Slice<u8>;                 // the bytes in place, not a copy
     fn wipe(self);                                  // overwrite with zeros now
 }
-impl Index<usize> for Secret; impl IndexSet<usize> for Secret;   // s[i], s[i] = b (bounds-checked)
+impl Index<usize> for Secret; impl IndexSet<usize, u8> for Secret;   // s[i], s[i] = b (bounds-checked)
 impl Sliceable<Range<usize>> for Secret;           // s[a:b]: a view in place
 impl Drop for Secret;                               // using release wipes
 impl Debug for Secret;                              // "Secret { len: n, .. }", never the bytes

@@ -439,7 +439,8 @@ trait Default {
 | `PartialOrd`  | 필드 선언 순서의 사전식 비교                | 모든 필드 `PartialOrd`, `PartialEq` |
 | `Ord`         | 필드 선언 순서의 사전식 비교                | `Eq`, `PartialOrd`도 derive/구현   |
 | `Hash`        | 선언 순서대로 각 필드의 `hash`. 열거형은 variant 번호를 먼저 씀 (쓰기는 정하지 않음) | 모든 필드 `Hash`                   |
+| `Error`       | 기본 `source()`로 구현한 `Error` ([2.14](214-error.md#deriveerror)) | `Display`와 `Debug`를 구현했거나 derive함 |
 
-- `Display`는 derive로 구현할 수 없습니다([2.10](210-fmt.md)).
+- `Display`는 derive로 구현할 수 없습니다. `#[display("..")]`가 f-string으로 구현합니다([2.10.14](210-fmt.md#21014-derive-정책-요약)).
 - `Eq` / `Ord`를 상위 트레잇 없이 derive로 구현하면 컴파일 에러입니다.
 - `union`에 `#[derive]`를 붙이면 컴파일 에러입니다.

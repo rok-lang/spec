@@ -173,7 +173,7 @@ A slice is a place: `arr[a:b:k] = v;` stores through it.
 
 ```
 xs[a : b] = ys;       →   { let t = xs; slice_mut(t, a..b).copy_from_slice(ys[:]) }   // a List
-a[a : b : k] = v;     →   IndexSet::index_set(a, SliceArg::new(a, b, k), v)           // an AxisIndexed type (3.6.3)
+m[a : b : k] = v;     →   IndexSet::index_set(m, SliceArg::new(a, b, k), v)           // an AxisIndexed type (3.6.3)
 ```
 
 - On a `List`, the values come from a `List` / `Slice` of exactly the same length (`copy_from_slice` panics otherwise; a change of length is `splice`). A stepped slice of a list cannot be assigned (error, with the help to store elements one at a time).

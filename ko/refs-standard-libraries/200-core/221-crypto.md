@@ -14,7 +14,7 @@ struct Secret {                                     // crypto::secret
     fn as_bytes(self) -> Slice<u8>;                 // 사본이 아니라 제자리의 바이트
     fn wipe(self);                                  // 지금 0 으로 덮어씀
 }
-impl Index<usize> for Secret; impl IndexSet<usize> for Secret;   // s[i], s[i] = b (범위 검사)
+impl Index<usize> for Secret; impl IndexSet<usize, u8> for Secret;   // s[i], s[i] = b (범위 검사)
 impl Sliceable<Range<usize>> for Secret;           // s[a:b]: 제자리의 view
 impl Drop for Secret;                               // using 해제가 지움
 impl Debug for Secret;                              // "Secret { len: n, .. }", 바이트는 결코 보이지 않음

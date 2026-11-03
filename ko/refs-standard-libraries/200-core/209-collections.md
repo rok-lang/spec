@@ -703,7 +703,7 @@ zero(bytes);                            // 리스트 전체: [0, 0, 0]
 
 [2.3 ops](203-ops.md)의 트레잇이 컨테이너의 `[]`, `[i] = v`, `[a:b]`의 의미를 정의합니다.
 
-| 컨테이너     | `Index<I>`                     | `IndexSet<I>`             | `Sliceable<R>`                          |
+| 컨테이너     | `Index<I>`                     | `IndexSet<I, V>`          | `Sliceable<R>`                          |
 |--------------|--------------------------------|---------------------------|-----------------------------------------|
 | `List<T>`    | `Index<usize>` → T             | `IndexSet<usize, T>` | `Sliceable<Range<usize>>` → `Slice<T>`  |
 | `Dict<K, V>` | `Index<K>` → V                 | `IndexSet<K, V>` | **없음**                                |
@@ -794,6 +794,25 @@ impl<T> GcBuf<T> {
 fn buf_same<T>(a: GcBuf<T>, b: GcBuf<T>) -> bool;   // 같은 buffer 인가 (내용이 아니라 정체). 아무것도 고정하지 않음
 ```
 
+## 2.9.13. 기본값, 연산자, 생성자
+
+**`d[k, default: v]`.** 이름 붙은 마지막 부분 `default:`가 있는 인덱스는 읽을 때 `d.get_or(k, v)`입니다. `k`가 없으면 `v`이고 딕셔너리는 바뀌지 않습니다. `=`나 복합 대입의 대상일 때, 필드 / 인덱스 대상의 바탕일 때(`d[k, default: v].f += 1`), 메서드 호출의 수신자일 때(`d[k, default: []].push(x)`)는 먼저 `d.get_or_insert(k, v)`를 실행해 `k`가 없으면 `v`를 넣고, 그다음 `d[k]`에 대해 동작합니다. `d`와 `k`는 한 번 평가하고, `v`는 식이 실행될 때마다 평가합니다(Swift의 `subscript(_:default:)`. Python의 `defaultdict`는 읽을 때마다 넣지만 Rok의 읽기는 넣지 않습니다).
+
+```rok
+counts[w, default: 0] += 1;
+groups[sale.region, default: Group {}].orders += 1;
+by_len[w.len(), default: []].push(w);
+let n = counts["zz", default: 0];        // 항목을 만들지 않음
+```
+
+**`Dict<K, usize>::most_common(n: usize | none = none) -> List<(K, usize)>`.** 가장 큰 횟수 `n`개(`none`이면 전부)를 큰 것부터 돌려주며, 같은 횟수는 처음 본 순서입니다(Python의 `Counter.most_common`).
+
+**Set 연산자.** `a | b`는 `a.union(b)`, `a & b`는 `a.intersection(b)`, `a - b`는 `a.difference(b)`, `a ^ b`는 `a.symmetric_difference(b)`입니다. 모두 새 집합을 만들고 두 피연산자는 바꾸지 않습니다([2.3](203-ops.md)).
+
+**`List + List`.** `xs + ys`는 `xs`의 항목 다음에 `ys`의 항목이 오는 새 리스트이고 둘 다 바뀌지 않습니다(`xs += ys`는 제자리에 덧붙임). 원소별 덧셈은 브로드캐스트 `.+`입니다([2.6](206-broadcast.md)).
+
+**`List::from_fn(n: usize, f: fn(usize) -> T) -> List<T>`**는 항목 `n`개를 만들며 `i`번째 항목은 `f(i)`입니다. `List::filled(n, x)`는 `x`를 `n`개 복사해 만듭니다.
+
 ## 2.9.14. `Array<T, const N: usize>`: n차원 배열
 
 `rok::core::array::Array<T, N>`은 표준 n차원 배열입니다. `N`은 랭크(축의 수)이고, 원소 버퍼는 사본끼리 공유하며(`List`처럼), 모양(shape)과 축마다의 보폭(stride)이 각 원소의 자리를 정합니다. core는 컨테이너와 그 프로토콜을 두고, 수치 알고리즘(선형대수, 통계, FFT)은 그 위에 만든 패키지가 제공합니다.
@@ -850,22 +869,3 @@ m[m .< 0.0] = 0.0;
 | `unsafe fn as_ptr() -> ConstPtr<T>` | 첫 원소. 8 KiB 이상이면 도달할 수 있는 동안 고정(작은 배열은 pin) |
 
 **원소별 연산자.** 모든 점 연산자(2.6)가 같은 랭크의 배열과 배열, 배열과 스칼라, 스칼라와 배열을 받습니다. 산술은 `Array<T, N>`을, 비교는 `Array<bool, N>`을 주고, `.&&` / `.||`는 `Array<bool, N>`끼리 합칩니다. 두 배열은 `broadcast_shape(a, b)`로 한 모양으로 늘어납니다. 축마다 길이가 같으면 그대로, 길이 1은 다른 쪽 길이로 늘고, 그 밖의 쌍은 두 모양을 밝혀 panic합니다(`broadcast: shapes [2, 3] and [2, 2] differ on axis 1; ...`). 점 식에서 랭크가 낮은 배열은 마지막 축끼리 맞추며(2.6.8), 식은 중간 배열 없는 루프 하나로 실행됩니다. `Array`가 `Broadcastable`이자 `Materialize`이기 때문입니다(2.6.6). `.=`, `.+=` 등은 배열이나 그 뷰에 제자리로 씁니다(`a[:, 0] .= 0.0`, [refs-lang 3.3.7](../../refs-lang/003-expressions/303-broadcast-operators.md#337-제자리-브로드캐스트)). `PartialEq`는 모양과 원소를 비교하고, `Debug` / `Display`는 중첩 괄호로 출력합니다.
-
-## 2.9.13. 기본값, 연산자, 생성자
-
-**`d[k, default: v]`.** 이름 붙은 마지막 부분 `default:`가 있는 인덱스는 읽을 때 `d.get_or(k, v)`입니다. `k`가 없으면 `v`이고 딕셔너리는 바뀌지 않습니다. `=`나 복합 대입의 대상일 때, 필드 / 인덱스 대상의 바탕일 때(`d[k, default: v].f += 1`), 메서드 호출의 수신자일 때(`d[k, default: []].push(x)`)는 먼저 `d.get_or_insert(k, v)`를 실행해 `k`가 없으면 `v`를 넣고, 그다음 `d[k]`에 대해 동작합니다. `d`와 `k`는 한 번 평가하고, `v`는 식이 실행될 때마다 평가합니다(Swift의 `subscript(_:default:)`. Python의 `defaultdict`는 읽을 때마다 넣지만 Rok의 읽기는 넣지 않습니다).
-
-```rok
-counts[w, default: 0] += 1;
-groups[sale.region, default: Group {}].orders += 1;
-by_len[w.len(), default: []].push(w);
-let n = counts["zz", default: 0];        // 항목을 만들지 않음
-```
-
-**`Dict<K, usize>::most_common(n: usize | none = none) -> List<(K, usize)>`.** 가장 큰 횟수 `n`개(`none`이면 전부)를 큰 것부터 돌려주며, 같은 횟수는 처음 본 순서입니다(Python의 `Counter.most_common`).
-
-**Set 연산자.** `a | b`는 `a.union(b)`, `a & b`는 `a.intersection(b)`, `a - b`는 `a.difference(b)`, `a ^ b`는 `a.symmetric_difference(b)`입니다. 모두 새 집합을 만들고 두 피연산자는 바꾸지 않습니다([2.3](203-ops.md)).
-
-**`List + List`.** `xs + ys`는 `xs`의 항목 다음에 `ys`의 항목이 오는 새 리스트이고 둘 다 바뀌지 않습니다(`xs += ys`는 제자리에 덧붙임). 원소별 덧셈은 브로드캐스트 `.+`입니다([2.6](206-broadcast.md)).
-
-**`List::from_fn(n: usize, f: fn(usize) -> T) -> List<T>`**는 항목 `n`개를 만들며 `i`번째 항목은 `f(i)`입니다. `List::filled(n, x)`는 `x`를 `n`개 복사해 만듭니다.

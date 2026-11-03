@@ -177,6 +177,7 @@ impl Add<List<Matrix>> for i32 { ... }   // ERROR: `List<Matrix>`는 `rok::core`
 - 구체 `impl`은 그 구체 타입이 제네릭 `impl`의 바운드를 만족할 때만 제네릭 `impl`과 겹칩니다.
 - 두 제네릭 `impl`은 대상과 트레잇 인자가 단일화(unify)되면 겹칩니다. 컴파일러는 이를 선언 시점에 에러로 보고합니다. 단일화 뒤에도 제네릭으로 남는 매개변수의 바운드로는 둘을 구별하지 않습니다. 두 바운드를 모두 만족하는 타입이 아직 없더라도 에러입니다(Rust의 coherence와 같음).
 - 겹침을 따질 때 `T?`와 `T | none`은 같은 타입입니다.
+- `const` 인자([2.11](211-const-generics.md))는 값으로 비교합니다. `Buf<3>`과 `Buf<{1 + 2}>`는 같은 타입입니다. `const` 매개변수에 정수를 곱해 더하고 상수를 더한 꼴(`Buf<{N + 1}>`, `Buf<{2 * N}>`)은 어떤 정수 값에서 다른 인자와 같아질 수 있을 때만 겹칩니다. 부호 없는 타입의 매개변수는 음수가 되지 않습니다. 그래서 `impl<const N: usize> X for Buf<{N + 1}>`과 `impl X for Buf<0>`은 겹치지 않고, `Buf<{2 * N}>`과 `Buf<{2 * M + 1}>`도 겹치지 않습니다. 그 밖의 꼴(`{N * M}`)은 겹친다고 봅니다.
 - 부정 추론은 알려진 타입에만 합니다.
   1. 단일화로 구체 타입이 된 매개변수는 그 바운드를 검사합니다. `impl<U: Num> X for Pair<U, i32>`와 `impl<U> X for Pair<str, U>`를 단일화하면 `U = str`입니다. `str: Num`이 성립하지 않으므로 둘은 겹치지 않습니다.
   2. 알려진 타입 생성자의 바운드(`List<T>: Iterator`)는 그 트레잇의 impl 중에 그 생성자나 맨 매개변수를 대상으로 하는 것이 없으면 둘을 구별합니다. 그래서 `impl<I: Iterator> IntoIterator for I`와 `impl<T> IntoIterator for List<T>`가 함께 있을 수 있습니다.

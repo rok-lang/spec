@@ -29,9 +29,10 @@ The arguments of `#[derive(...)]` are trait names separated by commas. For each 
 
 ### Built-in derivable traits
 
-Only `Clone`, `Copy`, `Debug`, `Default`, `PartialEq`, `Eq`, `PartialOrd`, `Ord`, and `Hash` can be derived. The generation rules and requirements for each trait are defined in [stdlib 2.13.11](../../refs-standard-libraries/200-core/213-marker.md#21311-derivable-traits).
+Only `Clone`, `Copy`, `Debug`, `Default`, `PartialEq`, `Eq`, `PartialOrd`, `Ord`, `Hash` and `Error` can be derived. The generation rules and requirements for each trait are defined in [stdlib 2.13.11](../../refs-standard-libraries/200-core/213-marker.md#21311-derivable-traits).
 
-- `Display` cannot be derived. The display format is decided by the type's author ([stdlib 2.10](../../refs-standard-libraries/200-core/210-fmt.md)).
+- `Display` cannot be derived. The display format is decided by the type's author, with an `impl Display` or with `#[display("..")]` ([stdlib 2.10.14](../../refs-standard-libraries/200-core/210-fmt.md#21014-derive-policy-summary)).
+- `Error` implements `Error` with its default `source()`; `Display` and `Debug` come from their own derive, attribute or impl ([stdlib 2.14](../../refs-standard-libraries/200-core/214-error.md#deriveerror)).
 - Deriving `Eq` / `Ord` without their supertraits (`PartialEq` / `PartialOrd`, `Eq`) is a compile error. `Copy` requires `Clone` and cannot be combined with `Drop`.
 - `#[derive]` on a `union` is a compile error.
 
@@ -359,6 +360,7 @@ The compiler also recognizes the following attributes. Each is specified where i
 | `#[no_mangle]`                 | function                      | Exempts the function from the naming and unused-function lints. It does not change the symbol; use `#[export_name]` for that |
 | `#[wit::export]`               | function, `pub struct`        | Implements a WIT export: a function, or a resource ([stdlib 1.8](../../refs-standard-libraries/100-bare/108-wit.md)) |
 | `#[niche(..)]`                 | newtype struct                | Declares values the type never holds, used as the niche of `T \| none` ([2.7.4](../002-types/207-niche-optimization.md#274-opt-in-niches-niche)) |
+| `#[display("text")]`          | `struct`, `enum`, enum variant | Implements `Display` by writing `f"text"` ([stdlib 2.10.14](../../refs-standard-libraries/200-core/210-fmt.md#21014-derive-policy-summary)) |
 | `#[intrinsic("rok.OP.TYPE")]`  | standard library only         | Binds a function or method to a compiler operation; an error in user code ([stdlib 0.3](../../refs-standard-libraries/000-meta/003-intrinsics.md)) |
 | `#[no_safepoint]`              | `extern "rok"` block          | Toolchain-internal: the block's functions neither allocate nor block, so calls to them are not safepoints; an error on other blocks ([5.9.2](../005-modules/509-extern-block.md#592-abi-specifiers)) |
 | `#[sealed]`                    | `trait`                       | Only the defining package implements the trait ([6.2.15](#6215-sealed-impls-only-in-the-defining-package)) |

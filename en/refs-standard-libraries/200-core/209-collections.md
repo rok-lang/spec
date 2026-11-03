@@ -703,7 +703,7 @@ zero(bytes);                            // the whole list: [0, 0, 0]
 
 The traits of [2.3 ops](203-ops.md) define the meaning of `[]`, `[i] = v` and `[a:b]` on containers.
 
-| Container    | `Index<I>`                     | `IndexSet<I>`             | `Sliceable<R>`                          |
+| Container    | `Index<I>`                     | `IndexSet<I, V>`          | `Sliceable<R>`                          |
 |--------------|--------------------------------|---------------------------|-----------------------------------------|
 | `List<T>`    | `Index<usize>` → T             | `IndexSet<usize, T>` | `Sliceable<Range<usize>>` → `Slice<T>`  |
 | `Dict<K, V>` | `Index<K>` → V                 | `IndexSet<K, V>` | **none**                                |
@@ -794,6 +794,25 @@ Elements are packed: element `i` is at byte `i * size_of::<T>()` of the payload,
 fn buf_same<T>(a: GcBuf<T>, b: GcBuf<T>) -> bool;   // whether they are the same buffer (identity, not contents). Pins nothing
 ```
 
+## 2.9.13. Defaults, operators and constructors
+
+**`d[k, default: v]`.** A two-part index with the named part `default:` reads `d.get_or(k, v)`: `v` when `k` is absent, and the dict is unchanged. As the target of `=` or a compound assignment, or as the base of a field / index target (`d[k, default: v].f += 1`), and as the receiver of a method call (`d[k, default: []].push(x)`), it first runs `d.get_or_insert(k, v)`, so `v` is stored when `k` is absent, and then works on `d[k]`. `d` and `k` are evaluated once; `v` is evaluated each time the expression runs (Swift's `subscript(_:default:)`; Python's `defaultdict` inserts on every read, Rok's read does not).
+
+```rok
+counts[w, default: 0] += 1;
+groups[sale.region, default: Group {}].orders += 1;
+by_len[w.len(), default: []].push(w);
+let n = counts["zz", default: 0];        // no entry made
+```
+
+**`Dict<K, usize>::most_common(n: usize | none = none) -> List<(K, usize)>`.** The `n` largest counts (all when `none`), largest first, equal counts in first-seen order (Python's `Counter.most_common`).
+
+**Set operators.** `a | b` is `a.union(b)`, `a & b` `a.intersection(b)`, `a - b` `a.difference(b)`, `a ^ b` `a.symmetric_difference(b)`; each makes a new set and leaves both operands unchanged ([2.3](203-ops.md)).
+
+**`List + List`.** `xs + ys` is a new list of `xs`'s items then `ys`'s; neither changes (`xs += ys` appends in place). Element-wise addition is the broadcast `.+` ([2.6](206-broadcast.md)).
+
+**`List::from_fn(n: usize, f: fn(usize) -> T) -> List<T>`** makes `n` items, item `i` being `f(i)`; `List::filled(n, x)` makes `n` copies of `x`.
+
 ## 2.9.14. `Array<T, const N: usize>` - n-dimensional array
 
 `rok::core::array::Array<T, N>` is the canonical n-dimensional array: `N` is the rank, the element buffer is shared by copies (like `List`), and a shape and per-axis strides say where each element is. Core holds the container and its protocol; numerical algorithms (linear algebra, statistics, FFT) come from packages built on it.
@@ -850,22 +869,3 @@ m[m .< 0.0] = 0.0;
 | `unsafe fn as_ptr() -> ConstPtr<T>` | the first element; stable while reachable from 8 KiB on (pin a smaller one) |
 
 **Element-wise operators.** Every dot operator (2.6) takes array with array of the same rank, array with scalar and scalar with array; arithmetic gives `Array<T, N>`, comparisons `Array<bool, N>`, `.&&` / `.||` combine `Array<bool, N>`s. Two arrays stretch to one shape by `broadcast_shape(a, b)`: per axis, equal lengths stay and a length 1 stretches to the other; any other pair panics with both shapes (`broadcast: shapes [2, 3] and [2, 2] differ on axis 1; ...`). In a dot expression an array of lower rank lines up at the last axes (2.6.8), and the expression runs as one loop with no intermediate array: `Array` is `Broadcastable` and `Materialize` (2.6.6). `.=` and `.+=` .. write into an array or a view of one in place (`a[:, 0] .= 0.0`, [refs-lang 3.3.7](../../refs-lang/003-expressions/303-broadcast-operators.md#337-in-place-broadcast)). `PartialEq` compares shape and elements; `Debug` / `Display` print nested brackets.
-
-## 2.9.13. Defaults, operators and constructors
-
-**`d[k, default: v]`.** A two-part index with the named part `default:` reads `d.get_or(k, v)`: `v` when `k` is absent, and the dict is unchanged. As the target of `=` or a compound assignment, or as the base of a field / index target (`d[k, default: v].f += 1`), and as the receiver of a method call (`d[k, default: []].push(x)`), it first runs `d.get_or_insert(k, v)`, so `v` is stored when `k` is absent, and then works on `d[k]`. `d` and `k` are evaluated once; `v` is evaluated each time the expression runs (Swift's `subscript(_:default:)`; Python's `defaultdict` inserts on every read, Rok's read does not).
-
-```rok
-counts[w, default: 0] += 1;
-groups[sale.region, default: Group {}].orders += 1;
-by_len[w.len(), default: []].push(w);
-let n = counts["zz", default: 0];        // no entry made
-```
-
-**`Dict<K, usize>::most_common(n: usize | none = none) -> List<(K, usize)>`.** The `n` largest counts (all when `none`), largest first, equal counts in first-seen order (Python's `Counter.most_common`).
-
-**Set operators.** `a | b` is `a.union(b)`, `a & b` `a.intersection(b)`, `a - b` `a.difference(b)`, `a ^ b` `a.symmetric_difference(b)`; each makes a new set and leaves both operands unchanged ([2.3](203-ops.md)).
-
-**`List + List`.** `xs + ys` is a new list of `xs`'s items then `ys`'s; neither changes (`xs += ys` appends in place). Element-wise addition is the broadcast `.+` ([2.6](206-broadcast.md)).
-
-**`List::from_fn(n: usize, f: fn(usize) -> T) -> List<T>`** makes `n` items, item `i` being `f(i)`; `List::filled(n, x)` makes `n` copies of `x`.

@@ -282,6 +282,11 @@ The titles are written exactly as `rokc --explain` prints them.
 | `E0138` | `handoff` | list view used after a resize |
 | `E0139` | `type` | `pub` function signature not written out |
 | `E0140` | `handoff` | stream view used past its stream |
+| `E0141` | `type` | assignment to a value that is not a place |
+| `E0142` | `resolve` | method generic parameter named like its impl's |
+| `E0143` | `type` | rows of an array literal differ in length |
+| `E0144` | `type` | multi-axis index on a type indexed along one axis |
+| `E0145` | `type` | integer raised to a negative power |
 
 The `kind` values are `lexical`, `parse`, `resolve`, `visibility`, `module`, `type`, `pattern`, `handoff` (ownership and lifetime of values: use after a hand-off, [stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync---thread-boundary-markers); a resource used after it was moved or closed, or not closed, [stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop---cleanup-on-release); a thread-local value kept past `with`; a stream view used past its stream, [stdlib 2.23.1](../../refs-standard-libraries/200-core/223-io.md#2231-read); a `SliceMut` used after its list was resized, [stdlib 2.9.7a](../../refs-standard-libraries/200-core/209-collections.md#297a-slicemutt---writable-view)), `meta`, `lowering` (reserved: no code has it now), `codegen`, `linkage`, `unsupported`, `internal`, `other` and `lint`.
 

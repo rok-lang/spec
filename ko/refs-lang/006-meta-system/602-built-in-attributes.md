@@ -29,9 +29,10 @@ struct Point { x: i64; y: i64; }
 
 ### 내장 derive 가능 트레잇
 
-derive할 수 있는 트레잇은 `Clone`, `Copy`, `Debug`, `Default`, `PartialEq`, `Eq`, `PartialOrd`, `Ord`, `Hash`뿐입니다. 각 트레잇의 생성 규칙과 요구 조건은 [stdlib 2.13.11](../../refs-standard-libraries/200-core/213-marker.md#21311-derive-가능한-트레잇)에서 정의합니다.
+derive할 수 있는 트레잇은 `Clone`, `Copy`, `Debug`, `Default`, `PartialEq`, `Eq`, `PartialOrd`, `Ord`, `Hash`, `Error`뿐입니다. 각 트레잇의 생성 규칙과 요구 조건은 [stdlib 2.13.11](../../refs-standard-libraries/200-core/213-marker.md#21311-derive-가능한-트레잇)에서 정의합니다.
 
-- `Display`는 derive로 구현할 수 없습니다. 표시 형식은 타입 작성자가 정합니다([stdlib 2.10](../../refs-standard-libraries/200-core/210-fmt.md)).
+- `Display`는 derive로 구현할 수 없습니다. 표시 형식은 타입 작성자가 `impl Display`나 `#[display("..")]`로 정합니다([stdlib 2.10.14](../../refs-standard-libraries/200-core/210-fmt.md#21014-derive-정책-요약)).
+- `Error`는 기본 `source()`로 `Error`를 구현합니다. `Display`와 `Debug`는 각자의 derive, 속성, impl에서 옵니다([stdlib 2.14](../../refs-standard-libraries/200-core/214-error.md#deriveerror)).
 - `Eq` / `Ord`를 상위 트레잇(`PartialEq` / `PartialOrd`, `Eq`) 없이 derive로 구현하면 컴파일 에러입니다. `Copy`는 `Clone`이 필요하고, `Drop`과 함께 쓸 수 없습니다.
 - `union`에 `#[derive]`를 붙이면 컴파일 에러입니다.
 
@@ -359,6 +360,7 @@ fn expect_positive(n: i32) -> i32 {
 | `#[no_mangle]`                 | 함수                          | 함수를 이름 린트와 미사용 함수 린트에서 뺌. 심볼은 바꾸지 않음. 심볼 이름은 `#[export_name]`으로 정함 |
 | `#[wit::export]`               | 함수, `pub struct`            | WIT export를 구현함. 함수 또는 resource ([stdlib 1.8](../../refs-standard-libraries/100-bare/108-wit.md)) |
 | `#[niche(..)]`                 | newtype struct                | 타입에 없는 값을 선언함. 그 값이 `T \| none`의 niche가 됨 ([2.7.4](../002-types/207-niche-optimization.md#274-opt-in-niche-niche)) |
+| `#[display("text")]`          | `struct`, `enum`, enum variant | `f"text"`를 쓰는 `Display`를 구현함 ([stdlib 2.10.14](../../refs-standard-libraries/200-core/210-fmt.md#21014-derive-정책-요약)) |
 | `#[intrinsic("rok.OP.TYPE")]`  | 표준 라이브러리 전용          | 함수나 메서드를 컴파일러 연산에 묶음. 사용자 코드에서는 에러 ([stdlib 0.3](../../refs-standard-libraries/000-meta/003-intrinsics.md)) |
 | `#[no_safepoint]`              | `extern "rok"` 블록           | toolchain 내부용. 블록의 함수는 할당도 블로킹도 하지 않으므로 그 호출은 safepoint가 아님. 다른 블록에서는 에러 ([5.9.2](../005-modules/509-extern-block.md#592-abi-명시)) |
 | `#[sealed]`                    | `trait`                       | 정의한 패키지만 그 트레잇을 구현함 ([6.2.15](#6215-sealed-정의한-패키지에서만-구현)) |

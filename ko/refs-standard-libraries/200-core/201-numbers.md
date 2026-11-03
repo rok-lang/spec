@@ -7,7 +7,7 @@ int / float    (auto-promote, 무한 정밀도, opt-in)
 fixed primitive (i8..i64, u8..u64, isize, usize, f32, f64; 하드웨어 친화적, 기본)
 ```
 
-두 세계는 **공존**합니다. 접미사 없는 리터럴은 기대 타입을 따르고, 기대 타입이 없으면 `i32` / `f64`가 됩니다([refs-lang 1.6.3](../../refs-lang/001-lexical/106-numeric-literals.md#163-접미사-없는-리터럴)). `int` / `float`는 타입을 적은 자리에서만 쓰입니다.
+두 세계는 **공존**합니다. 접미사 없는 리터럴은 기대 타입을 따르고, 기대 타입이 없으면 `i64` / `f64`가 됩니다([refs-lang 1.6.3](../../refs-lang/001-lexical/106-numeric-literals.md#163-접미사-없는-리터럴)). `int` / `float`는 타입을 적은 자리에서만 쓰입니다.
 
 ## 2.1.1. 두 세계의 숫자: 분리하는 이유
 
@@ -594,4 +594,4 @@ arange(0.0, 1.0, 0.25)    //→ [0.0, 0.25, 0.5, 0.75]: stop 전까지 start + i
 
 **`div_floor` / `rem_floor`.** 모든 정수 타입에 `div_floor(rhs)`(음의 무한대 쪽으로 내린 몫, Python의 `//`)와 `rem_floor(rhs)`(나누는 수의 부호를 따르는 나머지, Python의 `%`, Rok의 `%%`)가 있습니다: `(-7).div_floor(2) == -4`, `(-7).rem_floor(2) == 1`. 부호 없는 타입에서는 `/`와 `%`입니다.
 
-**`Complex<T>`**(`rok::core::num::Complex`, `num::complex`에 있음)는 `struct Complex<T> { pub re: T; pub im: T; }`입니다. `T: FloatingPoint`이면 `new`, `i()`, `from_polar`, `abs`, `norm_sqr`, `arg`, `conj`, `recip`, `exp`, `ln`, `sqrt`, `powi`, `pow`, `is_nan`이 있습니다. 복소수끼리, 그리고 어느 쪽이든 실수 `T`와의 `+ - * /`와 단항 `-`(`2.0 * z`, `z / 2.0`. 왼쪽 실수는 `f32`와 `f64`), `Zero`, `One`, `PartialEq`, `Debug`(`Complex { re: 1.0, im: 2.0 }`), `Display`(`1+2i`, `1-2i`)를 구현합니다. 수 접미사 `i`는 core가 `#[literal(number "i", priority = -1)]`로 등록하며 허수 `Complex<f64>`를 만듭니다: `3.0 + 4.0i`, `1i`. 패키지 자신의 `i` 처리기가 이보다 우선합니다([refs-lang 6.5.5](../../refs-lang/006-meta-system/605-literal-magic.md#655-여러-처리기-모호성)).
+**`Complex<T>`**(`rok::core::num::Complex`, `num::complex`에 있음)는 `struct Complex<T> { pub re: T; pub im: T; }`입니다. `T: FloatingPoint`이면 `new`, `i()`, `from_polar`, `abs`, `norm_sqr`, `arg`, `conj`, `recip`, `exp`, `ln`, `sqrt`, `powi`, `pow`, `is_nan`이 있습니다. 복소수끼리, 그리고 어느 쪽이든 실수 `T`와의 `+ - * /`와 단항 `-`(`2.0 * z`, `z / 2.0`. 왼쪽 실수는 `f32`와 `f64`), `Zero`, `One`, `PartialEq`, `Debug`(`Complex { re: 1.0, im: 2.0 }`), `Display`(`1+2i`, `1-2i`)를 구현합니다. 수 접미사 `i`는 core가 `#[literal(number "i", priority = -1)]`로 등록하며 허수 `Complex<f64>`를 만듭니다: `3.0 + 4.0i`, `1i`. 패키지 자신의 `i` 처리기가 이보다 우선합니다([refs-lang 6.5.5](../../refs-lang/006-meta-system/605-literal-magic.md#655-다중-핸들러모호성)).

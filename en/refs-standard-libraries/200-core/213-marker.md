@@ -439,7 +439,8 @@ The built-in traits that `#[derive(...)]` ([refs-lang 6.2.1](../../refs-lang/006
 | `PartialOrd`  | lexicographic comparison in field declaration order | every field `PartialOrd`, `PartialEq` |
 | `Ord`         | lexicographic comparison in field declaration order | `Eq`, `PartialOrd` also derived/implemented |
 | `Hash`        | each field's `hash` in declaration order; an enum writes its variant index first (writes unspecified) | every field `Hash` |
+| `Error`       | `Error` with its default `source()` ([2.14](214-error.md#deriveerror)) | `Display` and `Debug` implemented or derived |
 
-- `Display` cannot be derived ([2.10](210-fmt.md)).
+- `Display` cannot be derived; `#[display("..")]` writes it from an f-string ([2.10.14](210-fmt.md#21014-derive-policy-summary)).
 - Deriving `Eq` / `Ord` without its supertrait is a compile error.
 - Applying `#[derive]` to a `union` is a compile error.

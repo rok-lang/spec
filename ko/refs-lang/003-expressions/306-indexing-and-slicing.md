@@ -173,7 +173,7 @@ arr[a : b]            →   slice_mut(arr, a..b)                  // SliceMut �
 
 ```
 xs[a : b] = ys;       →   { let t = xs; slice_mut(t, a..b).copy_from_slice(ys[:]) }   // List
-a[a : b : k] = v;     →   IndexSet::index_set(a, SliceArg::new(a, b, k), v)           // AxisIndexed 타입 (3.6.3)
+m[a : b : k] = v;     →   IndexSet::index_set(m, SliceArg::new(a, b, k), v)           // AxisIndexed 타입 (3.6.3)
 ```
 
 - `List`에서는 정확히 같은 길이의 `List` / `Slice`에서 값을 가져옵니다(다르면 `copy_from_slice`가 panic합니다. 길이를 바꾸려면 `splice`). 스텝이 있는 리스트 슬라이스에는 대입할 수 없습니다(에러, 원소를 하나씩 저장하라는 도움말).

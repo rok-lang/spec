@@ -217,7 +217,7 @@ d += {"b": 20, "c": 3};   //→ {"a": 1, "b": 20, "c": 3}
 
 ```rok
 let xs: List<i32> = [1, 2, 3];
-let alias = xs;             // 같은 객체 공유 (Python 식, refs-lang 4.7.x)
+let alias = xs;             // 같은 객체 공유 (Python 식, refs-lang 4.7)
 
 xs += [4, 5];               // xs 에 push (새 객체 안 만듦)
 alias;                       //→ [1, 2, 3, 4, 5]  (alias 도 변화 봄)

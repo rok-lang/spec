@@ -217,7 +217,7 @@ For mutable containers such as `List<T>` / `Dict<K,V>`, `*Assign` performs a **t
 
 ```rok
 let xs: List<i32> = [1, 2, 3];
-let alias = xs;             // shares the same object (Python-style, refs-lang 4.7.x)
+let alias = xs;             // shares the same object (Python-style, refs-lang 4.7)
 
 xs += [4, 5];               // push onto xs (no new object)
 alias;                       //→ [1, 2, 3, 4, 5]  (alias sees the change too)

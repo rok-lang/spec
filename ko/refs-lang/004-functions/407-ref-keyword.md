@@ -20,9 +20,7 @@ fn increment(ref n: i32) {
 }
 
 fn swap(ref a: i32, ref b: i32) {
-    let t = a;
-    a = b;
-    b = t;
+    (a, b) = (b, a);
 }
 ```
 
@@ -204,9 +202,7 @@ fn reset(ref xs: List<i32>) { xs = []; }    // 호출자의 변수가 새 List �
 
 ```rok
 fn swap(ref a: i32, ref b: i32) {
-    let t = a;
-    a = b;
-    b = t;
+    (a, b) = (b, a);
 }
 
 let x = 1i32;
