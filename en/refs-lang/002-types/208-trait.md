@@ -77,7 +77,7 @@ An associated type can be used in signatures within the same trait, as in `Item 
 
 ### Defaults
 
-An associated type can have a default with `type X: Bounds = T;`. An impl either omits the associated type to use the default or overrides it with `type X = U;`. The default is resolved at the trait's definition site, with the trait's parameters substituted.
+An associated type can have a default with `type X: Bounds = T;`. An impl either omits the associated type to use the default or overrides it with `type X = U;`; one without a default must be given (E0072). The default is resolved at the trait's definition site, with the trait's parameters substituted.
 
 ```rok
 trait TryFrom<U> {

@@ -400,7 +400,7 @@ impl f64 {
     const MAX: f64;              // largest finite value
     const MIN: f64;              // -MAX
     const MIN_POSITIVE: f64;     // smallest positive normal value
-    const NAN: f64;
+    const NAN: f64;              // quiet NaN, sign bit clear: from_bits(0x7ff8_0000_0000_0000)
     const INFINITY: f64;
     const NEG_INFINITY: f64;
     const PI: f64;
@@ -646,7 +646,7 @@ literals follow the expected type (`i32` / `f64` if none), and `int` / `float` a
 
 **`FloatingPoint`.** `trait FloatingPoint: Num + Neg<Output = Self>` is implemented by `f32` and `f64` (not by `float`, whose type is named `Float`, hence the trait's Swift name). It carries the constants `NAN`, `INFINITY`, `NEG_INFINITY`, `EPSILON`, `PI`, `E` and the methods `abs sqrt cbrt exp ln log2 log10 powi pow sin cos tan asin acos atan atan2 sinh cosh tanh hypot floor ceil round trunc signum mul_add min max is_nan is_infinite is_finite total_cmp`, each the type's own method of that name, and `to_f64`, `from_f64` (round to nearest) and `from_usize`.
 
-**`total_cmp`.** `f32::total_cmp` / `f64::total_cmp(self, other) -> Ordering` is the IEEE 754 `totalOrder`: `-NaN < -inf < .. < -0.0 < +0.0 < .. < inf < +NaN`. `xs.sort_by(f64::total_cmp)` sorts any float list; `f64` stays without `Ord` and `==` stays IEEE.
+**`total_cmp`.** `f32::total_cmp` / `f64::total_cmp(self, other) -> Ordering` is the IEEE 754 `totalOrder`: `-NaN < -inf < .. < -0.0 < +0.0 < .. < inf < +NaN`. `xs.sort_by(f64::total_cmp)` sorts any float list; `f64` stays without `Ord` and `==` stays IEEE. `f64::NAN` and `f32::NAN` (`0x7fc0_0000`) have the sign bit clear on every target, so they order after `inf`; a NaN that arithmetic makes (`0.0 / 0.0`) may have either sign (x86 sets it), and a negative one orders first.
 
 **`linspace` / `arange`** (`rok::core::num`, generic over `T: FloatingPoint`, returning `List<T>`):
 

@@ -357,7 +357,7 @@ impl f64 {
     const MAX: f64;              // 가장 큰 유한 값
     const MIN: f64;              // -MAX
     const MIN_POSITIVE: f64;     // 가장 작은 양의 normal 값
-    const NAN: f64;
+    const NAN: f64;              // 부호 비트가 0인 quiet NaN: from_bits(0x7ff8_0000_0000_0000)
     const INFINITY: f64;
     const NEG_INFINITY: f64;
     const PI: f64;
@@ -581,7 +581,7 @@ rational / real)도 중요한 참고 대상입니다. **Python int**는 무한 �
 
 **`FloatingPoint`.** `trait FloatingPoint: Num + Neg<Output = Self>`는 `f32`와 `f64`가 구현합니다(`float`는 아닙니다. 그 타입 이름이 `Float`이어서 트레잇은 Swift의 이름을 씁니다). 상수 `NAN`, `INFINITY`, `NEG_INFINITY`, `EPSILON`, `PI`, `E`와 메서드 `abs sqrt cbrt exp ln log2 log10 powi pow sin cos tan asin acos atan atan2 sinh cosh tanh hypot floor ceil round trunc signum mul_add min max is_nan is_infinite is_finite total_cmp`(각각 그 타입의 같은 이름 메서드), `to_f64`, `from_f64`(가장 가까운 값으로 반올림), `from_usize`를 가집니다.
 
-**`total_cmp`.** `f32::total_cmp` / `f64::total_cmp(self, other) -> Ordering`은 IEEE 754 `totalOrder`입니다: `-NaN < -inf < .. < -0.0 < +0.0 < .. < inf < +NaN`. `xs.sort_by(f64::total_cmp)`는 어떤 부동소수 리스트든 정렬합니다. `f64`에는 여전히 `Ord`가 없고 `==`는 IEEE 그대로입니다.
+**`total_cmp`.** `f32::total_cmp` / `f64::total_cmp(self, other) -> Ordering`은 IEEE 754 `totalOrder`입니다: `-NaN < -inf < .. < -0.0 < +0.0 < .. < inf < +NaN`. `xs.sort_by(f64::total_cmp)`는 어떤 부동소수 리스트든 정렬합니다. `f64`에는 여전히 `Ord`가 없고 `==`는 IEEE 그대로입니다. `f64::NAN`과 `f32::NAN`(`0x7fc0_0000`)은 모든 타깃에서 부호 비트가 0이므로 `inf` 뒤에 놓입니다. 연산이 만든 NaN(`0.0 / 0.0`)은 부호가 어느 쪽이든 될 수 있고(x86은 1로 둡니다), 음수 NaN은 맨 앞에 놓입니다.
 
 **`linspace` / `arange`**(`rok::core::num`, `T: FloatingPoint`에 대해 제네릭, `List<T>`를 돌려줌):
 
