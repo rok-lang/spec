@@ -3,10 +3,12 @@
 An expression enclosed in square brackets (`[`, `]`) is used in two forms that access part of a value: indexing, which extracts the element at a given position, and slicing, which cuts out a region.
 
 ```
-index_expr      ::= primary "[" expr ("," expr)* "]"
-slice_expr      ::= primary "[" slice_arg "]"          // no "," (3.6.3)
+index_expr      ::= primary "[" part ("," part)* ","? "]"
+part            ::= expr | slice_arg
 slice_arg       ::= expr? ":" expr? (":" expr?)?
 ```
+
+A bracket holding one `slice_arg` alone is slicing (3.6.2); every other bracket is indexing, each comma-separated part one argument (3.6.1, 3.6.3).
 
 ## 3.6.1. Indexing: `arr[i]`
 
@@ -167,19 +169,55 @@ The result type is determined by an associated type of `Sliceable`. In the stand
 
 ### Slice assignment
 
-Slice assignment (`arr[1:3] = other;`) is not supported. Assign elements one at a time, or write through a `SliceMut` (`let s: SliceMut<i32> = arr[1:3]; s.copy_from_slice(other[:]);`).
-
-## 3.6.3. Token separation of indexing and slicing
-
-Within the same `[ ... ]`, a comma (`,`) means indexing (multidimensional or key tuple) and a colon (`:`) means slicing. Mixing the two forms in one bracket is not allowed.
+A slice is a place: `arr[a:b:k] = v;` stores through it.
 
 ```
-arr[1, 2]                  // OK: indexing (i, j)
-arr[1:3]                   // OK: slicing
-arr[1:3, 4:6]              // ERROR: mixed
+xs[a : b] = ys;       →   { let t = xs; slice_mut(t, a..b).copy_from_slice(ys[:]) }   // a List
+a[a : b : k] = v;     →   IndexSet::index_set(a, SliceArg::new(a, b, k), v)           // an AxisIndexed type (3.6.3)
 ```
 
-If multidimensional slicing is needed, a standard library multidimensional slice `trait` (for example something like `MatrixSlice` in a matrix library) may provide it in a separate form.
+- On a `List`, the values come from a `List` / `Slice` of exactly the same length (`copy_from_slice` panics otherwise; a change of length is `splice`). A stepped slice of a list cannot be assigned (error, with the help to store elements one at a time).
+- On an axis-indexed type such as `Array` the selection is a view, and the value is a scalar that fills it (`a[1:3] = 0.0`) or an array that stretches to its shape (`a[1:3] = b`), whichever `IndexSet` impl takes the value's type.
+- `str`, `StrBuf`, `Slice` and fixed arrays take no slice assignment (error); a `SliceMut` view is written element by element or with `copy_from_slice`.
+
+## 3.6.3. Multi-axis indexing
+
+Each comma-separated part of a bracket is one argument, and a part may be a slice: `m[1:, ::2]`, `m[i, :]`. The parts are passed as one tuple through `Index` / `IndexSet` (3.6.1), a slice part as the value `rok::core::index::SliceArg { start, stop, step }` (each `isize | none`, a missing part `none`):
+
+```
+m[1:, ::2]          →   Index::index(m, (SliceArg::new(1, none, none), SliceArg::new(none, none, 2)))
+m[i, :]             →   Index::index(m, (i, SliceArg::FULL))
+m[1:3, :] = x       →   IndexSet::index_set(m, (SliceArg::new(1, 3, none), SliceArg::FULL), x)
+```
+
+`SliceArg::indices(len)` applies the rules of 3.6.2 to one axis and returns `(first, count, step)`.
+
+A type that implements the marker trait `rok::core::index::AxisIndexed` (`Array` does, [stdlib 2.9.14](../../refs-standard-libraries/200-core/209-collections.md#2914-arrayt-const-n-usize---n-dimensional-array)) receives every part as an *axis argument*, so one set of impls over `isize` serves every way of writing the index:
+
+| Part                        | Axis argument                    | Meaning (for `Array`)                         |
+|-----------------------------|----------------------------------|-----------------------------------------------|
+| an integer of any type      | `isize` (a literal is one; `usize`, `u64`, `i64` and `u32` are checked, other types widen) | one position; the axis is dropped; negative counts from the end (3.6.1) |
+| `a:b:k`                     | `SliceArg`                       | a strided range of the axis (3.6.2 rules)      |
+| `..` beside other parts     | `rok::core::index::Rest`         | every axis the other parts leave, whole        |
+| `none`                      | `rok::core::index::NewAxis`      | a new axis of length 1                         |
+| anything else (a mask)      | as written                       | the impl decides (`Array<bool, N>`: a mask)    |
+
+```rok
+use rok::core::array::Array;
+
+let a: Array<f64, 2> = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]];
+a[1, :]          // [4.0, 5.0, 6.0]: row 1, a view
+a[:, -1]         // [3.0, 6.0]: the last column
+a[::-1, 1:]      // rows reversed, columns 1..
+a[.., 0]         // [1.0, 4.0]
+a[:, none]       // shape [2, 1, 3]
+a[a .> 2.0]      // [3.0, 4.0, 5.0, 6.0]: a mask selects a copy
+a[:, 0] = 0.0;   // fills a column
+```
+
+`..` alone (`a[..]`) stays the whole range (3.6.2). A type that is not `AxisIndexed` gets the parts with their own types (an integer literal takes its default type), and its `Index` impls decide what they accept.
+
+A multi-part index with a slice among the parts on a type indexed along one axis (`List`, `Slice`, fixed arrays, `str`) is an error (E0144), with the help to slice and index in separate brackets (`m[1:][0]`) or to keep the data in an `Array`.
 
 ## 3.6.4. Empty brackets and malformed forms
 

@@ -16,7 +16,7 @@
 | 함수   | Rok이 **intrinsic처럼 호출**하는 표준 라이브러리 함수, 낮춘 코드가 호출하는 훅 | 20 |
 | 합계   |                                                                      | **67**  |
 
-## 0.4.2. 타입 슬롯(14)
+## 0.4.2. 타입 슬롯(18)
 
 타입 슬롯은 컴파일러가 리터럴이나 키워드를 만났을 때 낮출 구체 타입을 가리킵니다. 이 그룹은 다시 두 부류로 나뉩니다. 첫째는 소문자 식별자로 바로 드러나는 언어 기본 타입입니다. 이 타입은 키워드를 따로 등록하지 않아도 되고, 사용자가 매일 쓰는 원시 타입입니다.
 
@@ -45,10 +45,14 @@
 | `int_type`   | `int` auto-promote 타입   | `rok::core::num::bigint::Int` + `#[keyword("int")]` | 2.1  |
 | `float_type` | `float` auto-promote 타입 | `rok::core::num::bigfloat::Float` + `#[keyword("float")]` | 2.1  |
 | `range_type` | `Range<T>` (`a..b`)       | `rok::core::range::Range` + `#[literal( expr ".." expr )]`  | 2.7  |
+| `slice_arg_type` | 여러 부분 인덱스의 슬라이스 부분 `a:b:k` | `rok::core::index::SliceArg` | 2.3  |
+| `rest_axis_type` | 축 인덱스에서 다른 부분 옆의 `..` | `rok::core::index::Rest` | 2.3  |
+| `new_axis_type`  | 축 인덱스의 `none`        | `rok::core::index::NewAxis` | 2.3  |
+| `ndarray_type`   | 그 슬롯의 중첩 리스트 리터럴 | `rok::core::array::Array` | 2.9.14 |
 
 기본 타입을 내장한 컴파일러는 `i32_type` ... `str_type`, `none_type`, `char_type`에 아무것도 붙이지 않아도 됩니다. 참조 컴파일러가 그렇습니다. 참조 컴파일러는 이 슬롯 이름을 받아들이지만 라이브러리는 여기에 어떤 항목도 붙이지 않습니다. `str`과 `c_char`는 라이브러리 struct가 아니고, `NoneSentinel`은 `#[lang]` 항목이 아니라 별칭입니다. 0.4.6에서 이 가운데 하나를 찾는 자리에서는 컴파일러가 내장 타입을 씁니다.
 
-## 0.4.3. 트레잇 슬롯(32)
+## 0.4.3. 트레잇 슬롯(33)
 
 트레잇 슬롯은 컴파일러가 사용자가 쓴 문법을 표준 라이브러리 트레잇 호출로 풀어 쓸 때 찾아갈 트레잇을 가리킵니다. `for` 루프, 인덱싱, 슬라이싱, 포맷, `await` 같은 핵심 문법이 모두 여기 등록된 트레잇으로 풀립니다. 그래서 이 표는 언어 문법과 라이브러리를 잇는 가장 굵은 다리입니다.
 
@@ -63,6 +67,7 @@
 | `display_trait`       | `f"{x}"` 기본 포맷         | `rok::core::fmt::Display`       | 2.10 |
 | `debug_trait`         | `f"{x:?}"` 디버그 포맷     | `rok::core::fmt::Debug`         | 2.10 |
 | `future_trait`        | `await expr`의 단계 진행   | `rok::core::future::Future`     | 2.20 |
+| `axis_indexed_trait`  | 인덱스 부분을 축 인자로    | `rok::core::index::AxisIndexed` | 2.3  |
 | `close_trait`         | 실패할 수 있는 닫기: 주인이 닫음 | `rok::core::io::Close`     | 2.23 |
 
 다음은 연산자 트레잇 슬롯입니다. 연산자 토큰을 어느 메서드로 디스패치할지는 각 트레잇 메서드에 붙은 `#[infix]` / `#[prefix]`([refs-lang 6.7](../../refs-lang/006-meta-system/607-operator-magic.md))가 정합니다. 우선순위는 [refs-lang 3.2](../../refs-lang/003-expressions/302-precedence-and-associativity.md) 표가 고정합니다. 아래 슬롯은 고정된 자리입니다. 컴파일러는 원시 타입 연산을 낮추거나 진단을 낼 때 이 자리로 "덧셈 트레잇", "비교 트레잇" 등을 이름으로 찾습니다. 복합 대입(`AddAssign` 등, 2.4), broadcast(`DotAdd` 등, 2.6), floored modulo(`Modulo`, `%%`) 트레잇은 `#[infix]` 등록만으로 충분하므로 슬롯이 없습니다.
@@ -95,7 +100,7 @@
 > [!NOTE]
 > 비교 슬롯 이름과 트레잇 이름은 일대일로 대응하지 않습니다. `eq_trait`는 동등 연산자를 정의하는 `PartialEq`에, `cmp_trait`는 순서 비교 연산자를 정의하는 `PartialOrd`에 붙습니다. marker 트레잇 `Eq`, `Copy`, `Default`에는 슬롯이 없습니다. 합 타입이 이 트레잇을 구조적으로 얻기 때문입니다. `T`가 `Eq`이면 `T | none`도 `Eq`이고, 그 `Default`는 `none`입니다. 컴파일러는 이 트레잇을 `rok::core`의 고정 경로로 찾습니다.
 
-## 0.4.4. 함수 슬롯(20)
+## 0.4.4. 함수 슬롯(23)
 
 함수 슬롯은 컴파일러가 intrinsic처럼 직접 호출하는 표준 라이브러리 함수를 가리킵니다. 주로 비정상 종료 경로(`throw`, OOM, 도달 불가)가 여기에 모입니다. 정상 흐름 밖에서 진입점을 하나로 모아야 할 때 씁니다.
 
@@ -105,7 +110,7 @@
 | `oom_fn`         | OOM abort (런타임 할당 실패는 `rok_oom` 직접) | `rok::core::panic::oom`         | 2.14 |
 | `unreachable_fn` | 컴파일러가 unreachable 자리 호출 | `rok::core::panic::unreachable` | 2.14 |
 
-나머지 열일곱은 **훅**입니다. 컴파일러가 만든 코드가 음수 인덱스, 슬라이스 경계, 쓰기 가능한 뷰, 펼치기(spread), f-string 자리, 취소 지점, 컬렉션 브로드캐스트에서 호출하는 함수입니다. 낮추기는 각 훅을 경로가 아니라 슬롯으로 찾습니다. 그래서 훅은 그 코드가 들어가는 자리에서 보이지 않아도 됩니다. 훅은 API가 아닙니다. 모두 `rok::core` 안에서 `pub(pkg)`이며, 다른 패키지에서 직접 적은 호출은 오류입니다.
+나머지 스물은 **훅**입니다. 컴파일러가 만든 코드가 음수 인덱스, 슬라이스 경계, 쓰기 가능한 뷰, 펼치기(spread), f-string 자리, 취소 지점, 컬렉션 브로드캐스트에서 호출하는 함수입니다. 낮추기는 각 훅을 경로가 아니라 슬롯으로 찾습니다. 그래서 훅은 그 코드가 들어가는 자리에서 보이지 않아도 됩니다. 훅은 API가 아닙니다. 모두 `rok::core` 안에서 `pub(pkg)`이며, 다른 패키지에서 직접 적은 호출은 오류입니다.
 
 | slot 이름            | 호출되는 자리                                  | 표준 라이브러리 함수                      | 참조 |
 |----------------------|------------------------------------------------|-------------------------------------------|------|
@@ -126,6 +131,9 @@
 | `cleanup_running_fn` | 취소로 떠난 프레임이 정리 코드에 들어감         | `rok::core::task::cleanup_running`        | 2.18 |
 | `cleanup_done_fn`    | 그 프레임이 정리 코드를 마침                    | `rok::core::task::cleanup_done`           | 2.18 |
 | `broadcast_len_fn`   | 브로드캐스트 `xs .+ ys`가 길이가 같은지 검사    | `rok::core::collections::broadcast::check_len` | 2.6 |
+| `axis_from_u64_fn`   | 축 인덱스의 부호 없는 위치                      | `rok::core::index::axis_from_u64`         | 2.3  |
+| `axis_from_i64_fn`   | 축 인덱스의 넓은 부호 있는 위치                 | `rok::core::index::axis_from_i64`         | 2.3  |
+| `array_literal_fn`   | `Array` 슬롯의 중첩 리스트 리터럴               | `rok::core::array::array_literal`         | 2.9.14 |
 
 ### 계층끼리 공유하는 항목: `#[internal]`
 

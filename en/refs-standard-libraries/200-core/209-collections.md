@@ -193,7 +193,7 @@ let (a, b) = zs.split_at(1);                 //→ views of [1] and [2, 4]
 | `IntoIterator`        | Always              | `for x in xs`                   |
 | `FromIterator<T>`     | Always              | `(0..5).collect::<List<i32>>()` |
 | `Index<usize>`        | Always              | `xs[i]`                         |
-| `IndexSet<usize>`     | Always (`Value = T`) | `xs[i] = v`                    |
+| `IndexSet<usize, T>`  | Always              | `xs[i] = v`                    |
 | `AddAssign<T>`        | Always              | `xs += x` pushes `x`            |
 | `AddAssign<List<T>>`  | Always              | `xs += ys` appends every element of `ys` |
 | `Sliceable<Range<usize>>` | Always          | `xs[1:3]`                       |
@@ -278,7 +278,7 @@ impl<K: Hash + Eq, V: Default, S: BuildHasher> Entry<K, V, S> {
 }
 ```
 
-`Dict` implements `IntoIterator`, `Index<K>`, `IndexSet<K>`, `AddAssign<Dict<K, V, S>>`, `PartialEq` / `Eq` / `Hash` (on `V`), `Debug` (`K: Debug, V: Debug`), `Clone` (`K: Clone, V: Clone`; keys and values cloned, same hasher), `Default`, `FromIterator<(K, V)>` and `From<List<(K, V)>>`. `Default`, `FromIterator` and `From<List<(K, V)>>` need `S: BuildHasher + Default`; the other impls take any `S: BuildHasher`.
+`Dict` implements `IntoIterator`, `Index<K>`, `IndexSet<K, V>`, `AddAssign<Dict<K, V, S>>`, `PartialEq` / `Eq` / `Hash` (on `V`), `Debug` (`K: Debug, V: Debug`), `Clone` (`K: Clone, V: Clone`; keys and values cloned, same hasher), `Default`, `FromIterator<(K, V)>` and `From<List<(K, V)>>`. `Default`, `FromIterator` and `From<List<(K, V)>>` need `S: BuildHasher + Default`; the other impls take any `S: BuildHasher`.
 
 ```rok
 use rok::core::hash::BuildHasherDefault;
@@ -655,7 +655,7 @@ impl<T: PartialEq> SliceMut<T> {
 }
 
 impl<T> Index<usize> for SliceMut<T> { ... }              // s[i]: panics when out of range
-impl<T> IndexSet<usize> for SliceMut<T> { ... }           // s[i] = x writes element i of the list
+impl<T> IndexSet<usize, T> for SliceMut<T> { ... }           // s[i] = x writes element i of the list
 impl<T> Sliceable<Range<usize>> for SliceMut<T> { ... }   // s[a:b]: a writable view of the view; the range is clamped
 impl<T> IntoIterator for SliceMut<T> { ... }
 impl<T: PartialEq> PartialEq for SliceMut<T> { ... }
@@ -705,14 +705,15 @@ The traits of [2.3 ops](203-ops.md) define the meaning of `[]`, `[i] = v` and `[
 
 | Container    | `Index<I>`                     | `IndexSet<I>`             | `Sliceable<R>`                          |
 |--------------|--------------------------------|---------------------------|-----------------------------------------|
-| `List<T>`    | `Index<usize>` → T             | `IndexSet<usize>` (Value = T) | `Sliceable<Range<usize>>` → `Slice<T>`  |
-| `Dict<K, V>` | `Index<K>` → V                 | `IndexSet<K>` (Value = V) | **none**                                |
+| `List<T>`    | `Index<usize>` → T             | `IndexSet<usize, T>` | `Sliceable<Range<usize>>` → `Slice<T>`  |
+| `Dict<K, V>` | `Index<K>` → V                 | `IndexSet<K, V>` | **none**                                |
 | `Set<T>`     | **none**                       | **none**                  | **none**                                |
 | `Tuple<...>` | **compiler-direct** (`.0`/.1)  | **compiler-direct**       | **none**                                |
-| `[T; N]`     | `Index<usize>` → T             | `IndexSet<usize>` (Value = T) | `Sliceable<Range<usize>>` → `Slice<T>` (copy) |
+| `[T; N]`     | `Index<usize>` → T             | `IndexSet<usize, T>` | `Sliceable<Range<usize>>` → `Slice<T>` (copy) |
 | `Slice<T>`   | `Index<usize>` → T             | **none** (read-only view) | `Sliceable<Range<usize>>` → `Slice<T>`  |
-| `SliceMut<T>` | `Index<usize>` → T            | `IndexSet<usize>` (Value = T) | `Sliceable<Range<usize>>` → `SliceMut<T>` |
+| `SliceMut<T>` | `Index<usize>` → T            | `IndexSet<usize, T>` | `Sliceable<Range<usize>>` → `SliceMut<T>` |
 | `str`        | **none** (direct byte access rejected) | **none**          | `Sliceable<Range<usize>>` → `str` (copy, UTF-8 boundary check) |
+| `Array<T, N>` | axis tuples (2.9.14) → `T` or a view | axis tuples, `V` = `T` or a view-shaped `Array` | through `Index<SliceArg>` (refs-lang 3.6.3) |
 
 `s[10]` on a `str` is deliberately not provided, for the safety of UTF-8 multibyte characters. Use `s.chars()` for character-wise access and `s[10..15]` for extraction (as a slice, multibyte boundaries are validated).
 
@@ -769,14 +770,14 @@ Rok differs most in these ways. First, `List`, `Dict`, `Set`, `Tuple` and `Slice
 
 ## 2.9.12. `GcBuf<T>` - raw GC buffer
 
-`GcBuf<T>` (`rok::bare::mem::GcBuf`) is the fixed-length GC buffer used by collection implementations such as `List` / `Dict`, and is a type known to the compiler. Its one public path is `rok::bare::mem` ([0.1.6](../000-meta/001-tier-model.md#016-one-path-per-item)); the collections reach it through a module internal to core. It sits on top of the runtime's word-traced buffer (type id `2`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-runtime-reserved-type-ids)).
+`GcBuf<T>` (`rok::bare::mem::GcBuf`) is the fixed-length GC buffer used by collection implementations such as `List` / `Dict`, and is a type known to the compiler. Its one public path is `rok::bare::mem` ([0.1.6](../000-meta/001-tier-model.md#016-one-path-per-item)); the collections reach it through a module internal to core. A buffer of a `T` with no GC reference (numbers, `bool`, `char`, `Pod` structs) is raw data the collector never scans (type id `1`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-runtime-reserved-type-ids)); a buffer of a `T` with references is scanned through `T`'s array `ScanTable`, at its reference slots only.
 
 ```rok
 struct GcBuf<T> { /* representation known to the compiler */ }
 
 impl<T> GcBuf<T> {
     #[intrinsic("rok.buf_new")]
-    unsafe fn new(len: usize) -> GcBuf<T>;           // every word set to 0 (null)
+    unsafe fn new(len: usize) -> GcBuf<T>;           // every byte set to 0 (references null)
     #[intrinsic("rok.buf_get")]
     unsafe fn get(self, i: usize) -> T;        // no bounds check (the owner tracks the length)
     #[intrinsic("rok.buf_set")]
@@ -784,7 +785,7 @@ impl<T> GcBuf<T> {
 }
 ```
 
-Each element occupies one word. Ordinary user code uses `List<T>`; `GcBuf<T>` is for implementing collections.
+Elements are packed: element `i` is at byte `i * size_of::<T>()` of the payload, with `T`'s own alignment. A buffer of 8 KiB or more is a large object: its payload is 64-byte aligned and never moves while reachable ([refs-lang 7.2.9](../../refs-lang/007-runtime/702-allocation.md#729-los-allocation-of-large-objects)). Ordinary user code uses `List<T>` or `Array<T, N>` (2.9.14); `GcBuf<T>` is for implementing collections.
 
 `GcBuf<T>` and its primitives (`rok::bare::mem::{buf_new, buf_get, buf_set}`, `new` / `get` / `set`, indexing a `GcBuf`) are `unsafe`: they skip the element-type and initialization checks the collections keep.
 
@@ -792,6 +793,63 @@ Each element occupies one word. Ordinary user code uses `List<T>`; `GcBuf<T>` is
 #[intrinsic("rok.buf_same")]
 fn buf_same<T>(a: GcBuf<T>, b: GcBuf<T>) -> bool;   // whether they are the same buffer (identity, not contents). Pins nothing
 ```
+
+## 2.9.14. `Array<T, const N: usize>` - n-dimensional array
+
+`rok::core::array::Array<T, N>` is the canonical n-dimensional array: `N` is the rank, the element buffer is shared by copies (like `List`), and a shape and per-axis strides say where each element is. Core holds the container and its protocol; numerical algorithms (linear algebra, statistics, FFT) come from packages built on it.
+
+```rok
+pub struct Array<T, const N: usize> { /* buffer, offset, shape: [usize; N], strides: [isize; N] */ }
+pub type Vector<T> = Array<T, 1>;
+pub type Matrix<T> = Array<T, 2>;
+```
+
+**Storage.** The buffer is a `GcBuf<T>` (2.9.12): packed, never scanned by the collector when `T` holds no reference, 64-byte aligned and never moved from 8 KiB on ([refs-lang 7.2.9](../../refs-lang/007-runtime/702-allocation.md#729-los-allocation-of-large-objects)). A fresh array is row-major (the last axis contiguous). `Array` is `!Sync` (its copies share an unlocked buffer).
+
+**Literal.** In an `Array<T, N>` slot a nested list literal builds the array: the nesting depth is the rank, the shape comes from the nesting, the leaves are the elements in row-major order, each typed as `T`. Rows that differ in length are a compile error (E0143) whose help says to make them equal or keep a `List<List<T>>`; an element that should be a row but is not a `[..]` literal is the same error.
+
+```rok
+let m: Matrix<f64> = [[1, 2, 3],
+                      [4, 5, 6]];          // shape [2, 3]
+let e: Array<f64, 2> = [[]];               // shape [1, 0]
+```
+
+**Construction.**
+
+| Item | Meaning |
+|------|---------|
+| `Array::full(shape, v)` | every element `v` |
+| `Array::zeros(shape)` / `Array::ones(shape)` | `T: Zero` / `T: One` |
+| `Array::from_fn(shape, f)` | element at index `idx` is `f(idx)`, `idx: [usize; N]` |
+| `Array::from_list(xs, shape)` | the list's elements in row-major order; panics unless the counts agree |
+| `From<List<T>> for Array<T, 1>` | `Array::from(xs)` |
+
+**Shape and views.** `shape() -> [usize; N]`, `strides() -> [isize; N]` (in elements), `ndim()`, `len()` (the element count), `is_empty()`, `is_contiguous()`. The following return views of the same elements, with no copy: `t()` (axes reversed), `permute(axes)`, `broadcast_to(shape)` (a length-1 axis repeats with stride 0), `reshape(shape)` (a view when contiguous, else of a contiguous copy; panics unless the counts agree), and every basic index (below). `copy()` makes a contiguous array with its own buffer; `clone()` also clones the elements.
+
+**Indexing.** `Array` is `AxisIndexed` ([refs-lang 3.6.3](../../refs-lang/003-expressions/306-indexing-and-slicing.md#363-multi-axis-indexing)): each part of a bracket is an axis argument. A position (`isize`, negative from the end, out of range panics naming the axis) drops its axis, a slice (`SliceArg`, Python's rules per axis) keeps it with a stride, `..` (`Rest`) stands for the axes the others leave, `none` (`NewAxis`) adds an axis of length 1, and axes no part names are taken whole. As many positions as the rank give the element `T` (ranks 1 to 4); anything else gives a view `Array<T, M>`, `M = N - positions + new axes`. A mask `Array<bool, N>` of the same shape selects the elements where it is `true`, as a rank-1 copy. The impls cover up to two parts with any kinds and three parts of positions, slices and one `..`; more parts on one array is a missing `Index` impl.
+
+```rok
+m[1, 2]          // 6.0
+m[1]             // [4.0, 5.0, 6.0] (a view)
+m[:, ::-1]       // columns reversed
+m[m .> 2.0]      // [3.0, 4.0, 5.0, 6.0] (a copy)
+m[:, 0] = 0.0;   // IndexSet: a scalar fills the view
+m[0, :] = row;   // an array stretches to the view's shape
+m[m .< 0.0] = 0.0;
+```
+
+| Method | Meaning |
+|--------|---------|
+| `get(idx: [usize; N]) -> T \| none` | the element, `none` past an axis |
+| `at(idx)` / `set(idx, v)` | the element; past an axis panics |
+| `fill(v)` | every element (of a view too) |
+| `assign(src)` | copy `src` in, stretched to this shape |
+| `masked(mask)`, `fill_masked(mask, v)`, `assign_masked(mask, vals)` | what `a[mask]` and `a[mask] = v` call |
+| `iter()`, `IntoIterator` | the elements in row-major order |
+| `to_list()`, `map(f)`, `sum()` | a list in row-major order; a new array of `f(x)`; the sum (`T: Add + Zero`) |
+| `unsafe fn as_ptr() -> ConstPtr<T>` | the first element; stable while reachable from 8 KiB on (pin a smaller one) |
+
+**Element-wise operators.** Every dot operator (2.6) takes array with array of the same rank, array with scalar and scalar with array; arithmetic gives `Array<T, N>`, comparisons `Array<bool, N>`, `.&&` / `.||` combine `Array<bool, N>`s. Two arrays stretch to one shape by `broadcast_shape(a, b)`: per axis, equal lengths stay and a length 1 stretches to the other; any other pair panics with both shapes (`broadcast: shapes [2, 3] and [2, 2] differ on axis 1; ...`). Arrays of different rank are lined up by adding axes of length 1 explicitly (`v[none, :]`). `PartialEq` compares shape and elements; `Debug` / `Display` print nested brackets.
 
 ## 2.9.13. Defaults, operators and constructors
 

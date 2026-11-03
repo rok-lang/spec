@@ -193,7 +193,7 @@ let (a, b) = zs.split_at(1);                 //→ [1] 과 [2, 4] 의 view
 | `IntoIterator`        | 항상                | `for x in xs`                   |
 | `FromIterator<T>`     | 항상                | `(0..5).collect::<List<i32>>()` |
 | `Index<usize>`        | 항상                | `xs[i]`                         |
-| `IndexSet<usize>`     | 항상 (`Value = T`)  | `xs[i] = v`                     |
+| `IndexSet<usize, T>`  | 항상                | `xs[i] = v`                     |
 | `AddAssign<T>`        | 항상                | `xs += x`는 `x`를 뒤에 넣음     |
 | `AddAssign<List<T>>`  | 항상                | `xs += ys`는 `ys`의 모든 원소를 덧붙임 |
 | `Sliceable<Range<usize>>` | 항상            | `xs[1:3]`                       |
@@ -278,7 +278,7 @@ impl<K: Hash + Eq, V: Default, S: BuildHasher> Entry<K, V, S> {
 }
 ```
 
-`Dict`는 `IntoIterator`, `Index<K>`, `IndexSet<K>`, `AddAssign<Dict<K, V, S>>`, `PartialEq` / `Eq` / `Hash`(`V` 기준), `Debug`(`K: Debug, V: Debug`), `Clone`(`K: Clone, V: Clone`, 키와 값을 복제하고 해셔는 같음), `Default`, `FromIterator<(K, V)>`, `From<List<(K, V)>>`를 구현합니다. `Default`, `FromIterator`, `From<List<(K, V)>>`는 `S: BuildHasher + Default`가 필요합니다. 나머지 구현은 모든 `S: BuildHasher`를 받습니다.
+`Dict`는 `IntoIterator`, `Index<K>`, `IndexSet<K, V>`, `AddAssign<Dict<K, V, S>>`, `PartialEq` / `Eq` / `Hash`(`V` 기준), `Debug`(`K: Debug, V: Debug`), `Clone`(`K: Clone, V: Clone`, 키와 값을 복제하고 해셔는 같음), `Default`, `FromIterator<(K, V)>`, `From<List<(K, V)>>`를 구현합니다. `Default`, `FromIterator`, `From<List<(K, V)>>`는 `S: BuildHasher + Default`가 필요합니다. 나머지 구현은 모든 `S: BuildHasher`를 받습니다.
 
 ```rok
 use rok::core::hash::BuildHasherDefault;
@@ -655,7 +655,7 @@ impl<T: PartialEq> SliceMut<T> {
 }
 
 impl<T> Index<usize> for SliceMut<T> { ... }              // s[i]: 범위 밖이면 panic
-impl<T> IndexSet<usize> for SliceMut<T> { ... }           // s[i] = x 는 리스트의 i 번째 원소에 씀
+impl<T> IndexSet<usize, T> for SliceMut<T> { ... }           // s[i] = x 는 리스트의 i 번째 원소에 씀
 impl<T> Sliceable<Range<usize>> for SliceMut<T> { ... }   // s[a:b]: 뷰의 쓰기 가능한 뷰, 범위는 잘라 맞춤
 impl<T> IntoIterator for SliceMut<T> { ... }
 impl<T: PartialEq> PartialEq for SliceMut<T> { ... }
@@ -705,14 +705,15 @@ zero(bytes);                            // 리스트 전체: [0, 0, 0]
 
 | 컨테이너     | `Index<I>`                     | `IndexSet<I>`             | `Sliceable<R>`                          |
 |--------------|--------------------------------|---------------------------|-----------------------------------------|
-| `List<T>`    | `Index<usize>` → T             | `IndexSet<usize>` (Value = T) | `Sliceable<Range<usize>>` → `Slice<T>`  |
-| `Dict<K, V>` | `Index<K>` → V                 | `IndexSet<K>` (Value = V) | **없음**                                |
+| `List<T>`    | `Index<usize>` → T             | `IndexSet<usize, T>` | `Sliceable<Range<usize>>` → `Slice<T>`  |
+| `Dict<K, V>` | `Index<K>` → V                 | `IndexSet<K, V>` | **없음**                                |
 | `Set<T>`     | **없음**                       | **없음**                  | **없음**                                |
 | `Tuple<...>` | **컴파일러 직접** (`.0`/.1)    | **컴파일러 직접**         | **없음**                                |
-| `[T; N]`     | `Index<usize>` → T             | `IndexSet<usize>` (Value = T) | `Sliceable<Range<usize>>` → `Slice<T>` (사본) |
+| `[T; N]`     | `Index<usize>` → T             | `IndexSet<usize, T>` | `Sliceable<Range<usize>>` → `Slice<T>` (사본) |
 | `Slice<T>`   | `Index<usize>` → T             | **없음**(읽기 전용 뷰)    | `Sliceable<Range<usize>>` → `Slice<T>`  |
-| `SliceMut<T>` | `Index<usize>` → T            | `IndexSet<usize>`(Value = T) | `Sliceable<Range<usize>>` → `SliceMut<T>` |
+| `SliceMut<T>` | `Index<usize>` → T            | `IndexSet<usize, T>` | `Sliceable<Range<usize>>` → `SliceMut<T>` |
 | `str`        | **없음**(바이트 직접 접근 거부) | **없음**                 | `Sliceable<Range<usize>>` → `str` (사본, UTF-8 경계 검사) |
+| `Array<T, N>` | 축 튜플(2.9.14) → `T` 또는 뷰 | 축 튜플, `V` = `T` 또는 뷰 모양의 `Array` | `Index<SliceArg>`로 (refs-lang 3.6.3) |
 
 `str`의 `s[10]`은 UTF-8 멀티바이트 문자를 지키려고 일부러 두지 않았습니다. 문자 단위로 접근하려면 `s.chars()`를 쓰세요. 일부를 잘라 내려면 `s[10..15]`를 쓰세요. 슬라이스이므로 멀티바이트 경계를 검사합니다.
 
@@ -769,14 +770,14 @@ Rok이 가장 크게 다른 점은 다음과 같습니다. 첫째, `List`, `Dict
 
 ## 2.9.12. `GcBuf<T>`: 원시 GC 버퍼
 
-`GcBuf<T>`(`rok::bare::mem::GcBuf`)는 `List` / `Dict` 같은 컬렉션 구현이 쓰는 고정 길이 GC 버퍼입니다. 컴파일러가 아는 타입입니다. 공개 경로는 `rok::bare::mem` 하나뿐이고([0.1.6](../000-meta/001-tier-model.md#016-항목마다-경로-하나)), 컬렉션은 core 내부 모듈을 거쳐 씁니다. 이 버퍼는 런타임의 워드 단위 추적 버퍼(type id `2`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-런타임-예약-type-id)) 위에 놓입니다.
+`GcBuf<T>`(`rok::bare::mem::GcBuf`)는 `List` / `Dict` 같은 컬렉션 구현이 쓰는 고정 길이 GC 버퍼입니다. 컴파일러가 아는 타입입니다. 공개 경로는 `rok::bare::mem` 하나뿐이고([0.1.6](../000-meta/001-tier-model.md#016-항목마다-경로-하나)), 컬렉션은 core 내부 모듈을 거쳐 씁니다. GC 참조가 없는 `T`(수, `bool`, `char`, `Pod` 구조체)의 버퍼는 수집기가 훑지 않는 원시 데이터입니다(type id `1`, [refs-lang 8.2.12](../../refs-lang/008-abi/802-scan-table.md#8212-런타임-예약-type-id)). 참조가 있는 `T`의 버퍼는 `T`의 배열 `ScanTable`로 참조 슬롯만 훑습니다.
 
 ```rok
 struct GcBuf<T> { /* 컴파일러가 아는 표현 */ }
 
 impl<T> GcBuf<T> {
     #[intrinsic("rok.buf_new")]
-    unsafe fn new(len: usize) -> GcBuf<T>;           // 모든 word 를 0 (null) 으로
+    unsafe fn new(len: usize) -> GcBuf<T>;           // 모든 바이트를 0으로 (참조는 null)
     #[intrinsic("rok.buf_get")]
     unsafe fn get(self, i: usize) -> T;        // 경계 검사 없음 (길이는 소유자가 관리)
     #[intrinsic("rok.buf_set")]
@@ -784,7 +785,7 @@ impl<T> GcBuf<T> {
 }
 ```
 
-원소 하나는 워드 하나를 차지합니다. 일반 코드는 `List<T>`를 씁니다. `GcBuf<T>`는 컬렉션을 구현할 때 씁니다.
+원소는 빈틈없이 놓입니다. 원소 `i`는 payload의 `i * size_of::<T>()` 바이트에 `T` 자신의 정렬로 있습니다. 8 KiB 이상인 버퍼는 큰 객체입니다. payload는 64바이트에 정렬되고 도달할 수 있는 동안 옮겨지지 않습니다([refs-lang 7.2.9](../../refs-lang/007-runtime/702-allocation.md#729-큰-객체의-los-할당)). 일반 코드는 `List<T>`나 `Array<T, N>`(2.9.14)을 씁니다. `GcBuf<T>`는 컬렉션을 구현할 때 씁니다.
 
 `GcBuf<T>`와 그 기본 연산(`rok::bare::mem::{buf_new, buf_get, buf_set}`, `new` / `get` / `set`, `GcBuf` 인덱싱)은 `unsafe`입니다. 컬렉션이 지키는 원소 타입 검사와 초기화 검사를 건너뛰기 때문입니다.
 
@@ -792,6 +793,63 @@ impl<T> GcBuf<T> {
 #[intrinsic("rok.buf_same")]
 fn buf_same<T>(a: GcBuf<T>, b: GcBuf<T>) -> bool;   // 같은 buffer 인가 (내용이 아니라 정체). 아무것도 고정하지 않음
 ```
+
+## 2.9.14. `Array<T, const N: usize>`: n차원 배열
+
+`rok::core::array::Array<T, N>`은 표준 n차원 배열입니다. `N`은 랭크(축의 수)이고, 원소 버퍼는 사본끼리 공유하며(`List`처럼), 모양(shape)과 축마다의 보폭(stride)이 각 원소의 자리를 정합니다. core는 컨테이너와 그 프로토콜을 두고, 수치 알고리즘(선형대수, 통계, FFT)은 그 위에 만든 패키지가 제공합니다.
+
+```rok
+pub struct Array<T, const N: usize> { /* 버퍼, 오프셋, shape: [usize; N], strides: [isize; N] */ }
+pub type Vector<T> = Array<T, 1>;
+pub type Matrix<T> = Array<T, 2>;
+```
+
+**저장.** 버퍼는 `GcBuf<T>`(2.9.12)입니다. 빈틈없이 놓이고, `T`에 참조가 없으면 수집기가 훑지 않으며, 8 KiB 이상이면 64바이트에 정렬되고 옮겨지지 않습니다([refs-lang 7.2.9](../../refs-lang/007-runtime/702-allocation.md#729-큰-객체의-los-할당)). 새 배열은 행 우선(row-major, 마지막 축이 연속)입니다. `Array`는 `!Sync`입니다(사본이 잠금 없는 버퍼를 공유).
+
+**리터럴.** `Array<T, N>` 슬롯에서 중첩 리스트 리터럴은 배열을 만듭니다. 중첩 깊이가 랭크이고, 모양은 중첩에서 나오며, 잎은 행 우선 순서의 원소로 각각 `T` 타입이 됩니다. 행의 길이가 다르면 컴파일 에러(E0143)이며, 도움말은 길이를 맞추거나 `List<List<T>>`를 쓰라고 안내합니다. 행이어야 할 자리에 `[..]` 리터럴이 아닌 원소가 와도 같은 에러입니다.
+
+```rok
+let m: Matrix<f64> = [[1, 2, 3],
+                      [4, 5, 6]];          // 모양 [2, 3]
+let e: Array<f64, 2> = [[]];               // 모양 [1, 0]
+```
+
+**만들기.**
+
+| 항목 | 의미 |
+|------|------|
+| `Array::full(shape, v)` | 모든 원소가 `v` |
+| `Array::zeros(shape)` / `Array::ones(shape)` | `T: Zero` / `T: One` |
+| `Array::from_fn(shape, f)` | 인덱스 `idx`의 원소가 `f(idx)`, `idx: [usize; N]` |
+| `Array::from_list(xs, shape)` | 리스트의 원소를 행 우선으로. 개수가 맞지 않으면 panic |
+| `From<List<T>> for Array<T, 1>` | `Array::from(xs)` |
+
+**모양과 뷰.** `shape() -> [usize; N]`, `strides() -> [isize; N]`(원소 단위), `ndim()`, `len()`(원소 수), `is_empty()`, `is_contiguous()`. 다음은 복사 없이 같은 원소의 뷰를 돌려줍니다. `t()`(축 순서 뒤집기), `permute(axes)`, `broadcast_to(shape)`(길이 1인 축이 보폭 0으로 반복), `reshape(shape)`(연속이면 뷰, 아니면 연속 사본의 뷰. 개수가 맞지 않으면 panic), 그리고 모든 기본 인덱스(아래). `copy()`는 자기 버퍼를 가진 연속 배열을 만들고, `clone()`은 원소도 clone합니다.
+
+**인덱싱.** `Array`는 `AxisIndexed`입니다([refs-lang 3.6.3](../../refs-lang/003-expressions/306-indexing-and-slicing.md#363-다축-인덱싱)). 괄호의 각 부분이 축 인자입니다. 위치(`isize`, 음수는 끝에서, 범위를 벗어나면 축을 밝혀 panic)는 그 축을 없애고, 슬라이스(`SliceArg`, 축마다 Python 규칙)는 보폭을 두고 축을 남기며, `..`(`Rest`)는 다른 부분이 남긴 축들을, `none`(`NewAxis`)은 길이 1인 축을 더하고, 어느 부분도 가리키지 않은 축은 통째로 씁니다. 랭크만큼의 위치는 원소 `T`를 줍니다(랭크 1부터 4). 그 밖에는 뷰 `Array<T, M>`을 줍니다(`M = N - 위치 수 + 새 축 수`). 같은 모양의 마스크 `Array<bool, N>`은 `true`인 원소를 골라 랭크 1 사본으로 줍니다. impl은 종류에 상관없는 두 부분까지와, 위치·슬라이스·`..` 하나로 된 세 부분까지를 덮습니다. 한 배열에 그보다 많은 부분을 쓰면 `Index` impl이 없다는 에러입니다.
+
+```rok
+m[1, 2]          // 6.0
+m[1]             // [4.0, 5.0, 6.0] (뷰)
+m[:, ::-1]       // 열 뒤집기
+m[m .> 2.0]      // [3.0, 4.0, 5.0, 6.0] (사본)
+m[:, 0] = 0.0;   // IndexSet: 스칼라가 뷰를 채움
+m[0, :] = row;   // 배열은 뷰의 모양으로 늘어남
+m[m .< 0.0] = 0.0;
+```
+
+| 메서드 | 의미 |
+|--------|------|
+| `get(idx: [usize; N]) -> T \\| none` | 원소. 축을 넘으면 `none` |
+| `at(idx)` / `set(idx, v)` | 원소. 축을 넘으면 panic |
+| `fill(v)` | 모든 원소(뷰도) |
+| `assign(src)` | 이 모양으로 늘린 `src`를 복사해 넣음 |
+| `masked(mask)`, `fill_masked(mask, v)`, `assign_masked(mask, vals)` | `a[mask]`와 `a[mask] = v`가 호출 |
+| `iter()`, `IntoIterator` | 행 우선 순서의 원소 |
+| `to_list()`, `map(f)`, `sum()` | 행 우선 리스트, `f(x)`의 새 배열, 합(`T: Add + Zero`) |
+| `unsafe fn as_ptr() -> ConstPtr<T>` | 첫 원소. 8 KiB 이상이면 도달할 수 있는 동안 고정(작은 배열은 pin) |
+
+**원소별 연산자.** 모든 점 연산자(2.6)가 같은 랭크의 배열과 배열, 배열과 스칼라, 스칼라와 배열을 받습니다. 산술은 `Array<T, N>`을, 비교는 `Array<bool, N>`을 주고, `.&&` / `.||`는 `Array<bool, N>`끼리 합칩니다. 두 배열은 `broadcast_shape(a, b)`로 한 모양으로 늘어납니다. 축마다 길이가 같으면 그대로, 길이 1은 다른 쪽 길이로 늘고, 그 밖의 쌍은 두 모양을 밝혀 panic합니다(`broadcast: shapes [2, 3] and [2, 2] differ on axis 1; ...`). 랭크가 다른 배열은 길이 1인 축을 명시적으로 더해 맞춥니다(`v[none, :]`). `PartialEq`는 모양과 원소를 비교하고, `Debug` / `Display`는 중첩 괄호로 출력합니다.
 
 ## 2.9.13. 기본값, 연산자, 생성자
 

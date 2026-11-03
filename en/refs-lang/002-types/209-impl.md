@@ -147,7 +147,23 @@ Implementing a trait defined in one package for a type defined in another packag
 impl Display for i32 { ... }     // ERROR: both from external packages (E0076)
 ```
 
-So at least one must hold: the trait is defined in the current package, or the target type is defined in the current package. Built-in types (primitives, tuples, arrays, function types) count as defined in `rok::core`.
+So at least one must hold:
+
+1. the trait is defined in the current package;
+2. the target type is defined in the current package;
+3. the trait is generic and, among the target type and the trait's type arguments taken in that order (`impl Tr<T1, .., Tn> for T0`: `T0`, `T1`, .., `Tn`), a type defined in the current package comes before any bare type parameter of the `impl` (Rust's rule, RFC 2451).
+
+Rule 3 is what lets a package put a scalar on the left of its own type's operators:
+
+```rok
+// in a package defining `Matrix`
+impl Mul<Matrix> for f64 { type Output = Matrix; ... }      // OK: `Matrix` is local (rule 3)
+impl DotAdd<Matrix> for f64 { type Output = Matrix; ... }   // OK
+impl<T> Mul<Matrix> for T { ... }        // ERROR: the bare `T` comes first (E0076)
+impl Add<List<Matrix>> for i32 { ... }   // ERROR: `List<Matrix>` is `rok::core`'s type (E0076)
+```
+
+A bare parameter before the local type is refused because another package could write the same `impl` for its own type in that position; a local type only nested in a foreign one (`List<Matrix>`) does not count. Built-in types (primitives, tuples, arrays, function types) count as defined in `rok::core`.
 
 The unit of this rule is the package of [Source units](../000-meta/003-source-units.md). Different modules within the same package may therefore `impl` freely.
 

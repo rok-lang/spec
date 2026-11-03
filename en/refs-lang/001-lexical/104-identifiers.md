@@ -50,7 +50,7 @@ A keycap sequence (`1️⃣`) starts with a digit and is therefore not an identi
 
 ### `x²` is a name
 
-`x²` is not `x` squared but a single name, `x²`. Squaring is written `x * x` or `x.pow(2)`.
+`x²` is not `x` squared but a single name, `x²`. Squaring is written `x ** 2`, `x * x` or `x.pow(2)`.
 
 ### Valid examples
 

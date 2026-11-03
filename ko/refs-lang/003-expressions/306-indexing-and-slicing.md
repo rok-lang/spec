@@ -3,10 +3,12 @@
 대괄호(`[`, `]`)로 둘러싼 표현식은 값의 일부에 접근하는 두 가지 형태에 쓰입니다. 하나는 특정 위치의 원소를 꺼내는 인덱싱이고, 다른 하나는 영역을 잘라 내는 슬라이싱입니다.
 
 ```
-index_expr      ::= primary "[" expr ("," expr)* "]"
-slice_expr      ::= primary "[" slice_arg "]"          // no "," (3.6.3)
+index_expr      ::= primary "[" part ("," part)* ","? "]"
+part            ::= expr | slice_arg
 slice_arg       ::= expr? ":" expr? (":" expr?)?
 ```
+
+`slice_arg` 하나만 든 괄호는 슬라이싱입니다(3.6.2). 그 밖의 괄호는 모두 인덱싱이며, 콤마로 나뉜 부분 하나가 인자 하나입니다(3.6.1, 3.6.3).
 
 ## 3.6.1. 인덱싱: `arr[i]`
 
@@ -167,19 +169,55 @@ arr[a : b]            →   slice_mut(arr, a..b)                  // SliceMut �
 
 ### 슬라이스 대입
 
-슬라이스 대입(`arr[1:3] = other;`)은 지원하지 않습니다. 원소를 하나씩 대입하거나, `SliceMut`을 거쳐 쓰세요(`let s: SliceMut<i32> = arr[1:3]; s.copy_from_slice(other[:]);`).
-
-## 3.6.3. 인덱싱과 슬라이싱의 토큰 분리
-
-같은 `[ ... ]` 안이라도 콤마(`,`)가 있으면 인덱싱(다차원 또는 키 튜플)이고, 콜론(`:`)이 있으면 슬라이싱입니다. 한 괄호 안에서 두 형태를 섞을 수 없습니다.
+슬라이스는 자리(place)입니다. `arr[a:b:k] = v;`는 슬라이스를 거쳐 저장합니다.
 
 ```
-arr[1, 2]                  // OK: 인덱싱 (i, j)
-arr[1:3]                   // OK: 슬라이싱
-arr[1:3, 4:6]              // ERROR: 섞임
+xs[a : b] = ys;       →   { let t = xs; slice_mut(t, a..b).copy_from_slice(ys[:]) }   // List
+a[a : b : k] = v;     →   IndexSet::index_set(a, SliceArg::new(a, b, k), v)           // AxisIndexed 타입 (3.6.3)
 ```
 
-다차원 슬라이싱은 표준 라이브러리의 다차원 슬라이스 `trait`이 별도 형태로 제공할 수 있습니다(예: 행렬 라이브러리의 `MatrixSlice`).
+- `List`에서는 정확히 같은 길이의 `List` / `Slice`에서 값을 가져옵니다(다르면 `copy_from_slice`가 panic합니다. 길이를 바꾸려면 `splice`). 스텝이 있는 리스트 슬라이스에는 대입할 수 없습니다(에러, 원소를 하나씩 저장하라는 도움말).
+- `Array` 같은 축 인덱싱 타입에서는 선택이 뷰이고, 값은 그 뷰를 채우는 스칼라(`a[1:3] = 0.0`)이거나 그 모양으로 늘어나는 배열(`a[1:3] = b`)입니다. 값의 타입을 받는 `IndexSet` impl이 고릅니다.
+- `str`, `StrBuf`, `Slice`, 고정 배열은 슬라이스 대입을 받지 않습니다(에러). `SliceMut` 뷰는 원소 단위로 쓰거나 `copy_from_slice`로 씁니다.
+
+## 3.6.3. 다축 인덱싱
+
+괄호 안의 콤마로 나뉜 부분 하나하나가 인자 하나이며, 부분은 슬라이스일 수 있습니다: `m[1:, ::2]`, `m[i, :]`. 부분들은 튜플 하나로 묶여 `Index` / `IndexSet`(3.6.1)을 거치고, 슬라이스 부분은 값 `rok::core::index::SliceArg { start, stop, step }`(각각 `isize | none`, 빠진 부분은 `none`)로 넘어갑니다.
+
+```
+m[1:, ::2]          →   Index::index(m, (SliceArg::new(1, none, none), SliceArg::new(none, none, 2)))
+m[i, :]             →   Index::index(m, (i, SliceArg::FULL))
+m[1:3, :] = x       →   IndexSet::index_set(m, (SliceArg::new(1, 3, none), SliceArg::FULL), x)
+```
+
+`SliceArg::indices(len)`는 3.6.2의 규칙을 한 축에 적용해 `(first, count, step)`을 돌려줍니다.
+
+표시 trait `rok::core::index::AxisIndexed`를 구현한 타입(`Array`가 구현합니다, [stdlib 2.9.14](../../refs-standard-libraries/200-core/209-collections.md#2914-arrayt-const-n-usize-n차원-배열))은 모든 부분을 *축 인자*로 받습니다. 그래서 `isize`에 대한 impl 한 벌이 인덱스를 쓰는 모든 방식을 받습니다.
+
+| 부분                         | 축 인자                           | 의미 (`Array`)                                |
+|-----------------------------|----------------------------------|-----------------------------------------------|
+| 아무 타입의 정수              | `isize` (리터럴은 `isize`, `usize`·`u64`·`i64`·`u32`는 검사, 그 밖은 넓힘) | 위치 하나. 그 축은 빠짐. 음수는 끝에서 셈(3.6.1) |
+| `a:b:k`                     | `SliceArg`                       | 축의 보폭 있는 범위(3.6.2 규칙)                  |
+| 다른 부분 옆의 `..`          | `rok::core::index::Rest`         | 다른 부분이 남긴 모든 축, 통째로                  |
+| `none`                      | `rok::core::index::NewAxis`      | 길이 1인 새 축                                  |
+| 그 밖(마스크)                 | 쓴 그대로                         | impl이 정함 (`Array<bool, N>`: 마스크)          |
+
+```rok
+use rok::core::array::Array;
+
+let a: Array<f64, 2> = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]];
+a[1, :]          // [4.0, 5.0, 6.0]: 1행, 뷰
+a[:, -1]         // [3.0, 6.0]: 마지막 열
+a[::-1, 1:]      // 행 뒤집기, 열 1..
+a[.., 0]         // [1.0, 4.0]
+a[:, none]       // 모양 [2, 1, 3]
+a[a .> 2.0]      // [3.0, 4.0, 5.0, 6.0]: 마스크는 복사본을 고름
+a[:, 0] = 0.0;   // 열 하나를 채움
+```
+
+`..` 하나만(`a[..]`)은 여전히 전체 범위입니다(3.6.2). `AxisIndexed`가 아닌 타입은 부분을 그 자신의 타입으로 받고(정수 리터럴은 기본 타입), 무엇을 받을지는 그 타입의 `Index` impl이 정합니다.
+
+한 축으로 인덱싱되는 타입(`List`, `Slice`, 고정 배열, `str`)에 슬라이스가 섞인 여러 부분의 인덱스를 쓰면 에러입니다(E0144). 도움말은 슬라이스와 인덱스를 다른 괄호에 쓰거나(`m[1:][0]`) 데이터를 `Array`에 두라고 안내합니다.
 
 ## 3.6.4. 빈 대괄호와 잘못된 형태
 

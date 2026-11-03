@@ -2,9 +2,9 @@
 
 The broadcast traits in `rok::core::ops` are the trait authority for Julia-style dot operators. Dot operators (`.+` / `.*` / `.==` / `f.(x)`) make element-wise meaning visually distinct in the syntax itself, which rules out confusion with a user-defined `*` (e.g. matrix multiply).
 
-This chapter defines the 19 broadcast traits together with the desugaring rules for function broadcast.
+This chapter defines the 20 broadcast traits together with the desugaring rules for function broadcast.
 
-The traits are declared in `rok::core::ops`, their one path ([0.1.6](../000-meta/001-tier-model.md#016-one-path-per-item)); there is no `broadcast` submodule. `Dot`, the `⋅` dot-product trait of [2.3.10](203-ops.md#2310-unicode-math-operator-traits), sits beside them. `Dot` is not one of the 19 broadcast traits: `a ⋅ b` reduces two operands to one value (`fn dot(self, rhs: Rhs) -> Output`) instead of working element-wise, and the standard library implements it for no type.
+The traits are declared in `rok::core::ops`, their one path ([0.1.6](../000-meta/001-tier-model.md#016-one-path-per-item)); there is no `broadcast` submodule. `Dot`, the `⋅` dot-product trait of [2.3.10](203-ops.md#2310-unicode-math-operator-traits), sits beside them. `Dot` is not one of the 20 broadcast traits: `a ⋅ b` reduces two operands to one value (`fn dot(self, rhs: Rhs) -> Output`) instead of working element-wise, and the standard library implements it for no type.
 
 ## 2.6.1. Motivation - why separate dot operators
 
@@ -19,15 +19,15 @@ m .* n      // element-wise (Hadamard product), always broadcast
 
 The dot prefix (`.`) acts as a visual signal stating element-wise intent, and the compiler enforces it. In any container (List, Vec, Matrix, etc.), `.+` consistently dispatches to `DotAdd::dot_add`.
 
-## 2.6.2. 19 traits - operator mapping
+## 2.6.2. 20 traits - operator mapping
 
-The full set is arithmetic (6) + comparison (6) + logical (2) + bitwise (3) + shift (2) = **19** traits.
+The full set is arithmetic (7) + comparison (6) + logical (2) + bitwise (3) + shift (2) = **20** traits.
 
 > [!NOTE]
-> This chapter defines all 19 traits: 6 arithmetic, 6 comparison, 2 logical, 3 bitwise and 2 shift. The dot comparisons (`.==`/`.!=`/`.<`/`.>`/`.<=`/`.>=`) are given only as **brief signatures** in [2.5.8 Broadcast comparison](205-cmp.md#258-broadcast-comparison-traits);
+> This chapter defines all 20 traits: 7 arithmetic, 6 comparison, 2 logical, 3 bitwise and 2 shift. The dot comparisons (`.==`/`.!=`/`.<`/`.>`/`.<=`/`.>=`) are given only as **brief signatures** in [2.5.8 Broadcast comparison](205-cmp.md#258-broadcast-comparison-traits);
 > this chapter is the **full authority**.
 
-### Arithmetic (6)
+### Arithmetic (7)
 
 | Trait       | Operator | Precedence | Meaning                       |
 |-------------|----------|------------|-------------------------------|
@@ -37,6 +37,7 @@ The full set is arithmetic (6) + comparison (6) + logical (2) + bitwise (3) + sh
 | `DotDiv`    | `./`     | 10 (left)  | element-wise division         |
 | `DotRem`    | `.%`     | 10 (left)  | element-wise remainder (Rem)  |
 | `DotModulo` | `.%%`    | 10 (left)  | element-wise floored modulo   |
+| `DotPow`    | `.**`    | 13 (right) | element-wise power (`**`, 2.3.1) |
 
 ### Comparison (6)
 
@@ -171,7 +172,7 @@ let m = 2 .* a;          //→ [2, 4, 6]
 let t = a ./ 2;          //→ [0, 1, 1]    (i32 truncate)
 ```
 
-Here separate impls (`DotAdd<T> for List<T>`, and `DotAdd<List<T>> for T` for the scalar-left form) treat the scalar side. `Slice<T>` has the same pair; fixed arrays `[T; N]` have no scalar-left impls. Only core can write a scalar-left impl: `impl DotMul<Matrix> for f64` in another package implements a trait it does not own for a type it does not own, which the orphan rule forbids ([2.9.5](../../refs-lang/002-types/209-impl.md#295-orphan-rule)). A library container therefore takes a scalar only on the right (`m .* 2.0`).
+Here separate impls (`DotAdd<T> for List<T>`, and `DotAdd<List<T>> for T` for the scalar-left form) treat the scalar side. `Slice<T>` has the same pair; fixed arrays `[T; N]` have no scalar-left impls. A library container gets the scalar-left form the same way for its own type: the orphan rule admits `impl DotMul<Matrix> for f64` in the package that defines `Matrix`, since the local `Matrix` comes before any type parameter ([2.9.5](../../refs-lang/002-types/209-impl.md#295-orphan-rule)), so `2.0 .* m` and `m .* 2.0` both work.
 
 ### Comparison dot - returns `Container<bool>`
 
@@ -285,13 +286,13 @@ Dot trait impls map onto container types as follows.
 
 The dot meaning of `T | none` is option propagation: if either side is `none`, the result is `none`. It is handled at the operator level, with no library impl: the whole dot tree's operands are evaluated once, in source order; then each `T | none` operand is tested, and the first `none` makes the tree's value `none` without running it. Otherwise the tree runs on the `T` values, fused or through the dot traits as 2.6.6 says, so no dot trait is called with `none`. The value's type is the tree's type `| none`.
 
-Numeric containers such as `Matrix<T>` / `Tensor<T>` are defined in external libraries, which implement the same dot traits directly and follow NumPy-style broadcasting rules. Such a container's dot expressions are not fused (2.6.6) and take a scalar on the right only (2.6.4).
+The n-dimensional `Array<T, N>` of core ([2.9.14](209-collections.md#2914-arrayt-const-n-usize---n-dimensional-array)) implements every dot trait: array with array of the same rank, array with scalar, scalar with array, by the rule of 2.6.8. A library's numeric container (`Tensor<T>`, a dataframe column) implements the same traits directly, a scalar on the left included: the orphan rule admits `impl DotMul<Tensor> for f64` in the package that defines `Tensor` ([refs-lang 2.9.5](../../refs-lang/002-types/209-impl.md#295-orphan-rule)). Such dot expressions call the traits one operator at a time (2.6.6).
 
 ## 2.6.8. NumPy-style broadcasting rules
 
-Broadcasting between arrays of different dimensions follows NumPy. When 1-D meets 0-D (a scalar), the scalar applies to every element; the same dimension with the same shape is pointwise; different shapes are matched from the trailing dimension, and a dimension of 1 is stretched.
+One rule, defined in core so every array type agrees: `rok::core::array::broadcast_shape(a, b)` takes two shapes of the same rank and, axis by axis, keeps equal lengths and stretches a length 1 to the other side's length. Any other pair panics naming both shapes and the axis (`broadcast: shapes [2, 3] and [2, 2] differ on axis 1; each axis must match or have length 1`). A scalar applies to every element. Operands of different rank are first lined up by giving the shorter one leading axes of length 1, written out (`v[none, :]` turns a `[3]` vector into a `[1, 3]` row): the rank is part of the type, so the result's rank stays visible. `Array::broadcast_to(shape)` gives the stretched view itself (stride 0 on a stretched axis, no copy).
 
-This section defines only the general meaning of the dot traits; full authority over multidimensional broadcasting rules is delegated to external tensor libraries. The Rok standard library is responsible only for the element-wise meaning of 1-D containers (`List<T>`, `[T; N]`, `Slice<T>`).
+1-D containers (`List<T>`, `[T; N]`, `Slice<T>`) have one axis and no length-1 stretch: their lengths must be equal (2.6.4).
 
 ## 2.6.9. Comparison with other languages
 
@@ -305,6 +306,6 @@ Compared with other major languages:
 | function broadcast | `np.vectorize(f)(x)` | `f.(x)`                    | `arrayfun(f, x)` | `f.(x)`                       |
 | loop fusion        | **none**             | `@.` macro (automatic)     | **none**         | automatic for dot chains (MLIR) |
 | comparison         | `==` returns array   | `.==`                      | `==` (confusing) | `.==`                         |
-| separate dot traits | **none**            | **none** (`*` overload only) | **none**       | **DotAdd/DotMul/...** (19)    |
+| separate dot traits | **none**            | **none** (`*` overload only) | **none**       | **DotAdd/DotMul/...** (20)    |
 
 Rok differs most from other languages in two points. First, every dot operator has its own trait. Julia layers dot syntax on top of an overloaded `+`, whereas in Rok `Add` and `DotAdd` are different traits, and `Matrix * Matrix` and `Matrix .* Matrix` follow entirely different dispatch. Second, the compiler enforces dot usage. Broadcasting through ordinary `*` is **impossible**, which guarantees a deterministic separation that does not depend on user code.

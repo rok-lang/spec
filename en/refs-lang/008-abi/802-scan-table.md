@@ -211,11 +211,11 @@ The following three type ids are defined directly by the runtime; the compiler d
 
 | type id | Meaning           | scan                                                    |
 |---------|-------------------|---------------------------------------------------------|
-| `1`     | GC string         | payload is bytes and is not scanned                     |
+| `1`     | raw data          | payload holds no reference and is not scanned: GC strings, byte buffers, and every `GcBuf<T>` whose `T` holds no GC reference (numbers, `bool`, `char`, `Pod` structs) |
 | `2`     | word-traced buffer | every word of the payload is scanned as an ambiguous word (`AMBIGUOUS`) |
 | `3`     | weak cell (`Weak<T>`) | one `WEAK_REF` word (8.2.8); made by `rok_gc_weak_new` |
 
-Ids `1` and `2` are allocated with `rok_gc_alloc_slow` with type id `1` or `2` ([8.5.1](805-extern-symbols.md#851-gc-area)). The standard library's [`GcBuf<T>`](../../refs-standard-libraries/200-core/209-collections.md#2912-gcbuft---raw-gc-buffer) sits on top of this.
+Ids `1` and `2` are allocated with `rok_gc_alloc_slow` with type id `1` or `2` ([8.5.1](805-extern-symbols.md#851-gc-area)). The standard library's [`GcBuf<T>`](../../refs-standard-libraries/200-core/209-collections.md#2912-gcbuft---raw-gc-buffer) sits on top of this: the compiler allocates a buffer of a reference-free `T` with id `1`, so the collector spends no time on numeric data however large (a live 256 MiB `List<f64>` adds nothing measurable to a full collection; the same bytes as a type `2` buffer take about 140 ms per collection), and no number in it can keep garbage alive. A buffer whose `T` holds references gets an array `ScanTable` of `T` (bit 15 of `version`, 8.2.3), which scans only the reference slots. Type id `2` is for runtime word buffers only.
 
 ## 8.2.13. Registration time
 

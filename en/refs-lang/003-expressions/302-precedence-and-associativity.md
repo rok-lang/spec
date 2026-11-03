@@ -37,6 +37,7 @@ The language fixes the precedence and associativity of every built-in operator t
 ```
 Level Operators                                                 Assoc
 14   postfix: member access (.), ?., method call, indexing, ?   left
+13   ** .** (power)                                             right
 13   prefix unary: - ! ~ √ await                                -
 12   as is (postfix conversion / type test)                     left
 11   ∘ (function composition)                                   left
@@ -51,7 +52,7 @@ Level Operators                                                 Assoc
  2   ||                                                         left
  1   ?? (null coalescing)                                       right
  0   .. ..= (range)                                             none
--1   = += -= *= /= %= %%= &= |= ^= <<= >>= (assignment)         right  (statement only, 3.4.3)
+-1   = += -= *= **= /= %= %%= &= |= ^= <<= >>= (assignment)     right  (statement only, 3.4.3)
 ```
 
 The Unicode operators in the table (`× ⋅ ÷ ∩ ∪ ∘ √ ≡ ≠ ≤ ≥ ∈ ∉ ⊂ ⊆`) are fixed tokens of [1.10.3](../001-lexical/110-punctuation-and-operator-tokens.md#1103-fixed-token-table). Extension tokens not in the 3.2 table ([1.10.4](../001-lexical/110-punctuation-and-operator-tokens.md#1104-extension-tokens)) do not create new levels; they take the level and associativity of the existing token named at registration, as in `like = "+"` ([6.7.2](../006-meta-system/607-operator-magic.md#672-arguments)).
@@ -64,6 +65,9 @@ The Unicode operators in the table (`× ⋅ ÷ ∩ ∪ ∘ √ ≡ ≠ ≤ ≥ �
 
 > [!IMPORTANT]
 > **`in` / `!in` and ranges**: `in` and `!in` are the ASCII spellings of `∈` / `∉` ([1.10.3](../001-lexical/110-punctuation-and-operator-tokens.md#1103-fixed-token-table)). A range on the right of a membership operator needs no parentheses: after the right operand, `..` / `..=` continue it as a range whose end binds like the right operand itself (prec=5). So `i in 0..n` is `i ∈ (0..n)`, `i in 0..n + 1` is `i ∈ (0..(n + 1))`, and `i in 0..n && ok` is `(i ∈ (0..n)) && ok`.
+
+> [!IMPORTANT]
+> **`**` and prefix operators**: `**` (power, trait `Pow`, [stdlib 2.3.1](../../refs-standard-libraries/200-core/203-ops.md#231-arithmetic-traits)) sits on level 13 with the prefix operators but binds its left operand tighter than they do, as in mathematics, Python and Fortran: `-x**2` is `-(x**2)`, while `(-x)**2` squares `-x`. It is right-associative, `2**3**2` is `2**(3**2)` = 512, and its right operand may itself start with a prefix operator: `2.0 ** -1` is `0.5`, `2 ** -x ** 2` is `2 ** (-(x ** 2))`. Postfix forms bind tighter still (`a.b**2` is `(a.b)**2`), and `as` binds looser (`n ** 2 as f64` is `(n ** 2) as f64`). `.**` is the element-wise form at the same level.
 
 > [!IMPORTANT]
 > **`await`**: `await` is a prefix unary operator at prec=13, like `-` and `!`, so its operand is a unary expression: `await f() == x` is `(await f()) == x` ([4.12.2](../004-functions/412-async.md#4122-the-await-operator)).

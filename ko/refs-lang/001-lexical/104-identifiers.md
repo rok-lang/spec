@@ -50,7 +50,7 @@ UAX #31 §7.1 "Mathematical Compatibility Notation Profile"을 따릅니다. `ma
 
 ### 이름인 `x²`
 
-`x²`는 `x`의 제곱이 아니라 `x²`라는 하나의 이름입니다. 제곱은 `x * x`나 `x.pow(2)`로 씁니다.
+`x²`는 `x`의 제곱이 아니라 `x²`라는 하나의 이름입니다. 제곱은 `x ** 2`, `x * x`, `x.pow(2)`로 씁니다.
 
 ### 정상 예
 

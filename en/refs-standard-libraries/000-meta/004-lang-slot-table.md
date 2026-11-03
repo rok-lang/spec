@@ -16,7 +16,7 @@ The 67 slots fall into four groups according to their responsibility. The table 
 | Function | Standard library functions Rok calls as **intrinsic calls**, and the hooks lowered code calls | 20 |
 | Total   |                                                                             | **67**  |
 
-## 0.4.2. Type slots (14)
+## 0.4.2. Type slots (18)
 
 Type slots indicate the concrete type the compiler lowers to when it encounters a literal or keyword. This group divides further into two kinds. First, there are the language default types exposed directly as lowercase identifiers. They need no separate keyword registration and are the primitives users encounter every day.
 
@@ -45,10 +45,14 @@ Syntax-tied slots:
 | `int_type`   | `int` auto-promote type       | `rok::core::num::bigint::Int` + `#[keyword("int")]` | 2.1  |
 | `float_type` | `float` auto-promote type     | `rok::core::num::bigfloat::Float` + `#[keyword("float")]` | 2.1  |
 | `range_type` | `Range<T>` (`a..b`)           | `rok::core::range::Range` + `#[literal( expr ".." expr )]` | 2.7  |
+| `slice_arg_type` | a slice part `a:b:k` of a multi-part index | `rok::core::index::SliceArg` | 2.3  |
+| `rest_axis_type` | `..` beside other parts of an axis index | `rok::core::index::Rest` | 2.3  |
+| `new_axis_type`  | `none` in an axis index         | `rok::core::index::NewAxis` | 2.3  |
+| `ndarray_type`   | a nested list literal in its slot | `rok::core::array::Array` | 2.9.14 |
 
 A compiler that provides the primitive types built in may leave `i32_type` ... `str_type`, `none_type` and `char_type` unattached. The reference compiler does: these slot names are accepted, but the library attaches no item to them (`str` and `c_char` are not library structs, and `NoneSentinel` is an alias, not a `#[lang]` item). Where 0.4.6 looks up one of them, the compiler uses its built-in type.
 
-## 0.4.3. Trait slots (32)
+## 0.4.3. Trait slots (33)
 
 Trait slots indicate which trait the compiler goes to when user-written syntax is desugared into a standard library trait call. Core syntax such as `for` loops, indexing, slicing, formatting and `await` all resolves through the traits registered here, so this table is the thickest bridge between the language syntax and the library.
 
@@ -63,6 +67,7 @@ Trait slots indicate which trait the compiler goes to when user-written syntax i
 | `display_trait`       | `f"{x}"` default format         | `rok::core::fmt::Display`       | 2.10 |
 | `debug_trait`         | `f"{x:?}"` debug format         | `rok::core::fmt::Debug`         | 2.10 |
 | `future_trait`        | Stepping in `await expr`        | `rok::core::future::Future`     | 2.20 |
+| `axis_indexed_trait`  | index parts as axis arguments   | `rok::core::index::AxisIndexed` | 2.3  |
 | `close_trait`         | A close that can fail: the owner closes it | `rok::core::io::Close`     | 2.23 |
 
 Next come the operator trait slots. The dispatch target of an operator token is determined by the `#[infix]` / `#[prefix]` ([refs-lang 6.7](../../refs-lang/006-meta-system/607-operator-magic.md)) attached to each trait method, and precedence is fixed by the table in [refs-lang 3.2](../../refs-lang/003-expressions/302-precedence-and-associativity.md); the slots below are fixed locations that let the compiler find "the addition trait", "the comparison trait", etc. by name during primitive lowering and diagnostics. Compound assignment (`AddAssign`, etc., 2.4), broadcast (`DotAdd`, etc., 2.6) and floored modulo (`Modulo`, `%%`) traits need only `#[infix]` registration and have no slots.
@@ -95,7 +100,7 @@ Next come the operator trait slots. The dispatch target of an operator token is 
 > [!NOTE]
 > Comparison slot names and trait names do not correspond one-to-one. `eq_trait` is attached to `PartialEq`, which defines the equality operators, and `cmp_trait` to `PartialOrd`, which defines the ordering operators. The marker traits `Eq`, `Copy` and `Default` have no slots: sum types get them structurally (`T | none` is `Eq` when `T` is; its `Default` is `none`), so the compiler finds them by their fixed paths in `rok::core`.
 
-## 0.4.4. Function slots (20)
+## 0.4.4. Function slots (23)
 
 Function slots are for standard library functions that the compiler calls directly, like intrinsics. They mainly cover abnormal termination paths (`throw`, OOM, unreachable) and are used where a uniform entry point is needed outside normal flow.
 
@@ -105,7 +110,7 @@ Function slots are for standard library functions that the compiler calls direct
 | `oom_fn`         | OOM abort (runtime allocation failure calls `rok_oom` directly) | `rok::core::panic::oom` | 2.14 |
 | `unreachable_fn` | Called by the compiler at unreachable points | `rok::core::panic::unreachable` | 2.14 |
 
-The other seventeen are **hooks**: functions that code the compiler writes calls, for a negative index, a slice bound, a writable view, a spread, an f-string hole, a cancellation point and a broadcast over collections. Lowering finds each through its slot, not by its path, so a hook need not be visible to the code it is lowered into. A hook is not API: each is `pub(pkg)` in `rok::core`, and a call written by hand in another package is an error.
+The other twenty are **hooks**: functions that code the compiler writes calls, for a negative index, a slice bound, a writable view, a spread, an f-string hole, a cancellation point and a broadcast over collections. Lowering finds each through its slot, not by its path, so a hook need not be visible to the code it is lowered into. A hook is not API: each is `pub(pkg)` in `rok::core`, and a call written by hand in another package is an error.
 
 | Slot name            | Called for                                             | Standard library function                 | Ref  |
 |----------------------|--------------------------------------------------------|-------------------------------------------|------|
@@ -126,6 +131,9 @@ The other seventeen are **hooks**: functions that code the compiler writes calls
 | `cleanup_running_fn` | A frame left by a cancel enters its cleanups           | `rok::core::task::cleanup_running`        | 2.18 |
 | `cleanup_done_fn`    | That frame finished its cleanups                       | `rok::core::task::cleanup_done`           | 2.18 |
 | `broadcast_len_fn`   | A broadcast `xs .+ ys` checks the lengths agree        | `rok::core::collections::broadcast::check_len` | 2.6 |
+| `axis_from_u64_fn`   | An unsigned position in an axis index                  | `rok::core::index::axis_from_u64`         | 2.3  |
+| `axis_from_i64_fn`   | A wide signed position in an axis index                | `rok::core::index::axis_from_i64`         | 2.3  |
+| `array_literal_fn`   | A nested list literal in an `Array` slot               | `rok::core::array::array_literal`         | 2.9.14 |
 
 ### Items the tiers share: `#[internal]`
 

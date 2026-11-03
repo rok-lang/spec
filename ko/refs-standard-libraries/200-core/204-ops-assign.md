@@ -67,6 +67,17 @@ trait MulAssign<Rhs = Self> {
 }
 ```
 
+### `PowAssign`: `**=`
+
+```rok
+trait PowAssign<Rhs = Self> {
+    #[infix("**=")]
+    fn pow_assign(ref self, rhs: Rhs);
+}
+```
+
+`x **= e`는 `x = x ** e`입니다. 지수 impl은 `Pow`(2.3.1)와 같습니다: 정수에는 `u32`, 부동소수에는 같은 부동소수 타입이나 `i32`.
+
 ### `DivAssign`: `/=`
 
 ```rok
@@ -255,7 +266,7 @@ Rok은 `Add`를 `AddAssign`의 상위 트레잇(supertrait)으로 묶지 **않�
 
 ## 2.4.10. 관련: broadcast `*Assign` 여부
 
-[2.6 broadcast](206-broadcast.md)의 토큰 19개(`.+`, `.*`, `.%%`, `.&&` 등)에는 복합 대입 변형이 없습니다. `a .+= b` 같은 토큰은 없습니다. 브로드캐스트 결과는 보통 새 컨테이너이므로 제자리 갱신의 의미가 모호하기 때문입니다.
+[2.6 broadcast](206-broadcast.md)의 토큰 20개(`.+`, `.*`, `.%%`, `.&&` 등)에는 복합 대입 변형이 없습니다. `a .+= b` 같은 토큰은 없습니다. 브로드캐스트 결과는 보통 새 컨테이너이므로 제자리 갱신의 의미가 모호하기 때문입니다.
 
 필요하면 `dot_add_assign` 같은 메서드를 명시적으로 호출합니다.
 

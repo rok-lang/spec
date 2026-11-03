@@ -95,6 +95,11 @@ The slow path starts a collection in these cases. The conditions and the choice 
 
 Objects of 8 KiB or more, or requiring alignment greater than 8 bytes, bypass the TLAB and are allocated individually in the LOS. Placing a large object in a TLAB wastes the remaining space, and since LOS objects are not moved, bump allocation gives no benefit.
 
+Two guarantees hold for every object of 8 KiB or more:
+
+- **Alignment.** Its payload (the address right after the 16-byte header) is aligned to 64 bytes (`LOS_ALIGN`), a cache line and enough for every SIMD width. A buffer that asks for more (`align > 64`) gets its own alignment.
+- **Address stability.** The collector never moves it: its payload address stays the same for as long as the object is reachable. A pointer taken from it (`Array::as_ptr`, `List::as_ptr`, [stdlib 2.9.12](../../refs-standard-libraries/200-core/209-collections.md#2912-gcbuft---raw-gc-buffer)) can be handed to vector code or C (BLAS, LAPACK) without pinning, provided the owner stays reachable for the duration of the use. A smaller object can move (evacuation, 7.3.1); pin it ([7.2.10](#7210-pinned-objects)) when its address must stay fixed.
+
 ## 7.2.10. Pinned objects
 
 During an `extern "C"` call that receives a GC pointer, no separate pinning is needed ([7.4.1](704-barriers-and-roots.md#objects-pointed-to-by-roots-are-not-moved)). If C keeps the pointer after the call, pin it with `rok_gc_pin`. Pinning only sets the `PINNED` bit; it does not copy the object. `rok_gc_unpin` releases it.

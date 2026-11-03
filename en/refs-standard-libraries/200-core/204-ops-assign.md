@@ -67,6 +67,17 @@ trait MulAssign<Rhs = Self> {
 }
 ```
 
+### `PowAssign` - `**=`
+
+```rok
+trait PowAssign<Rhs = Self> {
+    #[infix("**=")]
+    fn pow_assign(ref self, rhs: Rhs);
+}
+```
+
+`x **= e` is `x = x ** e`; the exponent impls are those of `Pow` (2.3.1): `u32` on an integer, the float type or `i32` on a float.
+
 ### `DivAssign` - `/=`
 
 ```rok
@@ -255,7 +266,7 @@ The reason is that some types, such as collections, have no meaningful `Add` (`x
 
 ## 2.4.10. Related - broadcast `*Assign`?
 
-No compound assignment variants are defined for the 19 tokens of [2.6 broadcast](206-broadcast.md) (`.+`, `.*`, `.%%`, `.&&`, ...). That is, a token such as `a .+= b` does not exist. The background is that broadcast results usually create a new container, which makes in-place meaning ambiguous.
+No compound assignment variants are defined for the 20 tokens of [2.6 broadcast](206-broadcast.md) (`.+`, `.*`, `.%%`, `.&&`, ...). That is, a token such as `a .+= b` does not exist. The background is that broadcast results usually create a new container, which makes in-place meaning ambiguous.
 
 Where needed, the user calls a method such as `dot_add_assign` explicitly.
 

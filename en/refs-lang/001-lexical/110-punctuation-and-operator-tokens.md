@@ -30,7 +30,7 @@ The following is the complete list of operator and punctuation character sequenc
 ### Arithmetic / comparison / logic
 
 ```
-+       -       *       /       %       %%
++       -       *       /       %       %%      **
 ==      !=      <       >       <=      >=
 &&      ||      !
 &       |       ^       ~       <<      >>
@@ -40,12 +40,14 @@ The following is the complete list of operator and punctuation character sequenc
 
 The mapping of each token to the trait method it calls is defined in the standard library operator specification. This document guarantees only lexical tokenization.
 
+`**` is power (`Pow`; `**=` its compound form, `.**` the element-wise one); by the longest-match rule `**=` is matched before `**`, `**` before `*=` or `*`, and `.**` before `.*`. `^` stays bitwise XOR. `use a::**` (a recursive glob) is the same token.
+
 ### Broadcast (`.` prefix)
 
 These are dot-prefixed forms for element-wise (broadcast) operations. Each arithmetic, comparison, logical, bitwise and shift operator above, prefixed with a single dot, is separated as a distinct token.
 
 ```
-.+      .-      .*      ./      .%      .%%
+.+      .-      .*      ./      .%      .%%     .**
 .==     .!=     .<      .>      .<=     .>=
 .&&     .||
 .&      .|      .^      .<<     .>>
@@ -93,7 +95,7 @@ Operator characters are all chosen from code points with the Unicode `Pattern_Sy
 ### Assignment / compound assignment
 
 ```
-=       +=      -=      *=      /=      %=      %%=
+=       +=      -=      *=      /=      %=      %%=     **=
 &=      |=      ^=      <<=     >>=
 ```
 

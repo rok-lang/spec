@@ -147,7 +147,23 @@ impl<T> ops::Add for Pair<T> where T: ops::Add<T> {
 impl Display for i32 { ... }     // ERROR: 둘 다 외부 패키지 (E0076)
 ```
 
-따라서 트레잇과 대상 타입 중 적어도 하나는 현재 패키지에 정의되어 있어야 합니다. 내장 타입(원시 타입, 튜플, 배열, 함수 타입)은 `rok::core`에서 정의한 것으로 봅니다.
+따라서 다음 중 적어도 하나가 성립해야 합니다.
+
+1. 트레잇이 현재 패키지에 정의되어 있다.
+2. 대상 타입이 현재 패키지에 정의되어 있다.
+3. 트레잇이 제네릭이고, 대상 타입과 트레잇의 타입 인자를 이 순서로 볼 때(`impl Tr<T1, .., Tn> for T0`: `T0`, `T1`, .., `Tn`) 현재 패키지에 정의된 타입이 `impl`의 맨 타입 매개변수보다 먼저 나온다(Rust 규칙, RFC 2451).
+
+규칙 3 덕분에 패키지는 자기 타입의 연산자 왼쪽에 스칼라를 둘 수 있습니다.
+
+```rok
+// `Matrix`를 정의한 패키지에서
+impl Mul<Matrix> for f64 { type Output = Matrix; ... }      // OK: `Matrix`가 현재 패키지 것 (규칙 3)
+impl DotAdd<Matrix> for f64 { type Output = Matrix; ... }   // OK
+impl<T> Mul<Matrix> for T { ... }        // ERROR: 맨 `T`가 먼저 나옴 (E0076)
+impl Add<List<Matrix>> for i32 { ... }   // ERROR: `List<Matrix>`는 `rok::core`의 타입 (E0076)
+```
+
+현재 패키지의 타입보다 맨 매개변수가 먼저 나오면 거부합니다. 다른 패키지가 그 자리에 자기 타입을 넣은 같은 `impl`을 쓸 수 있기 때문입니다. 외부 타입 안에만 들어 있는 현재 패키지 타입(`List<Matrix>`)은 세지 않습니다. 내장 타입(원시 타입, 튜플, 배열, 함수 타입)은 `rok::core`에서 정의한 것으로 봅니다.
 
 이 규칙의 단위는 [소스 단위](../000-meta/003-source-units.md)의 패키지입니다. 그래서 같은 패키지 안의 서로 다른 모듈끼리는 자유롭게 `impl`할 수 있습니다.
 

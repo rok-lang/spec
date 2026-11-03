@@ -211,11 +211,11 @@ ScanTable 포맷의 호환성은 version 필드로 다룹니다.
 
 | type id | 의미              | scan                                                    |
 |---------|-------------------|---------------------------------------------------------|
-| `1`     | GC 문자열         | payload는 바이트이며 훑지 않음                     |
+| `1`     | 원시 데이터       | payload에 참조가 없으며 훑지 않음: GC 문자열, 바이트 버퍼, 그리고 `T`에 GC 참조가 없는 모든 `GcBuf<T>`(수, `bool`, `char`, `Pod` 구조체) |
 | `2`     | word-traced buffer | payload의 모든 word를 모호한 word(`AMBIGUOUS`)로 훑음    |
 | `3`     | weak cell (`Weak<T>`) | `WEAK_REF` word 하나 (8.2.8), `rok_gc_weak_new`로 만듦  |
 
-id `1`과 `2`는 type id `1` 또는 `2`를 넘겨 `rok_gc_alloc_slow`를 호출해 할당합니다([8.5.1](805-extern-symbols.md#851-gc-영역)). 표준 라이브러리의 [`GcBuf<T>`](../../refs-standard-libraries/200-core/209-collections.md#2912-gcbuft-원시-gc-버퍼)가 이 위에 놓입니다.
+id `1`과 `2`는 type id `1` 또는 `2`를 넘겨 `rok_gc_alloc_slow`를 호출해 할당합니다([8.5.1](805-extern-symbols.md#851-gc-영역)). 표준 라이브러리의 [`GcBuf<T>`](../../refs-standard-libraries/200-core/209-collections.md#2912-gcbuft-원시-gc-버퍼)가 이 위에 놓입니다. 컴파일러는 참조가 없는 `T`의 버퍼를 id `1`로 할당하므로, 수 데이터는 아무리 커도 수집 시간을 쓰지 않고(살아 있는 256 MiB `List<f64>`는 전체 수집 시간에 측정할 만한 차이를 주지 않습니다. 같은 바이트를 type `2` 버퍼로 두면 수집마다 약 140 ms가 걸립니다), 그 안의 어떤 수도 쓰레기를 붙잡지 않습니다. `T`에 참조가 있는 버퍼는 `T`의 배열 `ScanTable`(`version`의 비트 15, 8.2.3)을 받아 참조 슬롯만 훑습니다. type id `2`는 런타임 word 버퍼 전용입니다.
 
 ## 8.2.13. 등록 시점
 
