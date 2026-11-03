@@ -108,6 +108,7 @@ The narrowing rules are:
 - The narrowing condition is `x is T`, where `x` must be a local variable. It may be the whole condition or one term of an `a && b && ..` chain. On an optional `x` (a sum with `none`), `x != none` and `!(x is none)` narrow `x` to its members other than `none`.
 - `x` is `T` in the following `&&` terms, the `then` block of `if`, and the body of `while`.
 - `x == none` (or `x is none`), as the whole condition or one term of an `a || b || ..` chain, narrows `x` to its members other than `none` in the `else` block.
+- On any value whose type has `none` among other members, `x == none`, `x != none`, `none == x` and `none != x` are a `none` test, as `x is none` is: the other members need no `PartialEq`, so `fn has<T>(v: T | none) -> bool { v != none }` needs no bound on `T`. On a type without `none`, or the type `none` itself, the comparison is an error (E0054).
 - After an `if` statement one of whose branches always leaves (`return`, `break`, `continue`, `throw`, a `!` call), the other branch's narrowing holds for the rest of the enclosing block: `if x == none { return; }` makes `x` non-`none` below it.
 - Otherwise no narrowing happens under `||` or `!`, in the `else` block, or on field paths (`p.x is T`).
 - A variant check `x is Enum::Variant` (2.2.5) does not narrow.

@@ -108,6 +108,7 @@ if v is i32 {
 - 좁히기 조건은 `x is T`이고, `x`는 지역 변수여야 합니다. 이 조건은 조건 전체여도 되고, `a && b && ..` 체인의 한 항이어도 됩니다. 옵셔널 `x`(`none`이 든 합)에서는 `x != none`과 `!(x is none)`이 `x`를 `none` 밖의 멤버로 좁힙니다.
 - `x`는 그 뒤의 `&&` 항, `if`의 then 블록, `while` 본체에서 `T`입니다.
 - 조건 전체나 `a || b || ..` 체인의 한 항인 `x == none`(또는 `x is none`)은 `else` 블록에서 `x`를 `none` 밖의 멤버로 좁힙니다.
+- 타입에 `none`과 다른 멤버가 함께 든 값에서 `x == none`, `x != none`, `none == x`, `none != x`는 `x is none`처럼 `none` 검사입니다. 다른 멤버에 `PartialEq`가 없어도 되므로 `fn has<T>(v: T | none) -> bool { v != none }`은 `T`에 바운드가 필요 없습니다. `none`이 없는 타입이나 `none` 타입 자체에서는 이 비교가 오류(E0054)입니다.
 - 한 분기가 항상 빠져나가는(`return`, `break`, `continue`, `throw`, `!` 호출) `if` 문 뒤에서는 다른 분기의 좁히기가 감싼 블록의 나머지에 이어집니다. `if x == none { return; }` 아래에서 `x`는 `none`이 아닙니다.
 - 그 밖에는 `||`나 `!` 아래, `else` 블록, 필드 경로(`p.x is T`)에서 좁히지 않습니다.
 - 변형 검사 `x is Enum::Variant`(2.2.5)는 좁히지 않습니다.

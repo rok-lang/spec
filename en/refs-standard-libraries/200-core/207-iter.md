@@ -65,8 +65,8 @@ impl Iterator {
     fn map<U>(self, f: fn(Item) -> U) -> Map<Self, U>;
     fn filter(self, pred: fn(Item) -> bool) -> Filter<Self>;
     fn enumerate(self, start: usize = 0) -> Enumerate<Self>;   // (index, item) pairs, from `start`
-    fn zip<J: Iterator>(self, other: J) -> Zip<Self, J>;    // Item = (Item, J::Item)
-    fn chain<I: Iterator<Item = Item>>(self, other: I) -> Chain<Self, I>;
+    fn zip<J: IntoIterator>(self, other: J) -> Zip<Self, J::IntoIter>;    // Item = (Item, J::Item)
+    fn chain<J: IntoIterator<Item = Item>>(self, other: J) -> Chain<Self, J::IntoIter>;
     fn take(self, n: usize) -> Take<Self>;
     fn skip(self, n: usize) -> Skip<Self>;
     fn step_by(self, step: usize) -> StepBy<Self>;
