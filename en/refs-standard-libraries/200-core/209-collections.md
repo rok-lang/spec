@@ -69,6 +69,13 @@ impl<T: PartialEq, const N: usize> [T; N] {
 }
 ```
 
+`array::from_fn::<T, N>(f: fn(usize) -> T) -> [T; N]` makes a fixed array whose element `i` is `f(i)`, called in order; `N` comes from the expected type or the type arguments. Each element is its own value, so it builds an array of elements `[v; N]` cannot copy: a type that is not `Clone`, or a resource with one owner.
+
+```rok
+let bags = array::from_fn::<Bag, 3>(|i| Bag { xs: [i] });
+let files: [File; 2] = array::from_fn(|i| try! File::open(paths[i]));
+```
+
 ```rok
 let a: [i32; 3] = [1, 2, 3];
 a.len();                 //→ 3

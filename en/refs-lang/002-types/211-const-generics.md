@@ -97,7 +97,7 @@ Inference priority and disambiguation are defined in the expression specificatio
 
 - If `T` is `Copy`, or a value type with nothing in it that refers to shared storage (numbers, `bool`, `char`, `str`, `none`, functions, and arrays, tuples, structs and enums of these), every element is a bitwise copy of `v` and no `clone` is called.
 - Otherwise elements `0` to `N - 2` are `v.clone()`, called in index order, and the last element is `v` itself. A `List` element, an array of lists or a struct that holds a `Dict` gives `N` separate collections, so writing through one element leaves the others unchanged.
-- If `T` is not `Clone`, the literal is an error (E0069) whose help writes `List::from_fn(N, |_| ..)`, which builds each element with its own value. A type parameter needs a `T: Clone` bound.
+- If `T` is not `Clone`, the literal is an error (E0069) whose help writes `array::from_fn::<T, N>(|i| ..)` ([stdlib 2.9](../../refs-standard-libraries/200-core/209-collections.md)), which builds each element with its own value; a `List` repeat literal's help writes `List::from_fn(N, |_| ..)`. A type parameter needs a `T: Clone` bound.
 - If `T` holds a value with one owner (a must-close type such as `File`, or a `Drop` type, at any array depth), the literal is an error with the same help: `N` elements cannot share one owner.
 
 ```rok

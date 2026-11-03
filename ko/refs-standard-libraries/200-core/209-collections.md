@@ -69,6 +69,13 @@ impl<T: PartialEq, const N: usize> [T; N] {
 }
 ```
 
+`array::from_fn::<T, N>(f: fn(usize) -> T) -> [T; N]`은 원소 `i`가 `f(i)`인 고정 배열을 만들며, `f`는 순서대로 부릅니다. `N`은 기대 타입이나 타입 인자에서 옵니다. 원소마다 따로 만든 값이므로 `[v; N]`이 복사할 수 없는 원소, 곧 `Clone`이 아닌 타입이나 소유자가 하나인 자원으로도 배열을 만들 수 있습니다.
+
+```rok
+let bags = array::from_fn::<Bag, 3>(|i| Bag { xs: [i] });
+let files: [File; 2] = array::from_fn(|i| try! File::open(paths[i]));
+```
+
 ```rok
 let a: [i32; 3] = [1, 2, 3];
 a.len();                 //→ 3
