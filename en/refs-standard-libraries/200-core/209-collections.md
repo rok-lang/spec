@@ -333,7 +333,7 @@ The `d[k]` notation assumes the key is present; use `.get(k)` when safe access i
 
 `d += e` (`AddAssign<Dict<K, V>>`) inserts every entry of `e` into `d` in place; on a shared key the value from `e` wins.
 
-`Dict::from(pairs)` (`From<List<(K, V)>>`) builds a dict from a list of pairs; on a repeated key the later value wins.
+`Dict::from(pairs)` (`From<List<(K, V)>>`) builds a dict from a list of pairs; on a repeated key the later value wins. `K` and `V` come from the argument, so `let d = Dict::from([("a", 1)]);` needs no annotation.
 
 ### Lazy views
 
@@ -395,7 +395,7 @@ let u = a.union(b);       //→ {1, 2, 3, 4}
 let i = a.intersection(b);//→ {2, 3}
 ```
 
-`Set::from(xs)` (`From<List<T>>`) builds a set from a list, dropping duplicates. `s += x` (`AddAssign<T>`) inserts `x`.
+`Set::from(xs)` (`From<List<T>>`) builds a set from a list, dropping duplicates; `T` comes from the argument (`let s = Set::from([1, 2, 2]);`). `s += x` (`AddAssign<T>`) inserts `x`.
 
 ## 2.9.5. Insertion order
 

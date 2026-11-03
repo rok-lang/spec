@@ -137,7 +137,7 @@ q.x = 9.0;                        // ps[0].x unchanged
 ps[0] = q;                        // written back
 ```
 
-A field write on a copy that nothing reads afterwards is a compile error, `E0057`: the change would be lost. The copies checked are a by-value parameter or `self`, a `for` binding, and a `let` of an element (`let q = xs[i];`). The write is an error when no later read, loop iteration, return or call can see the change; a read that only feeds another write to the same variable does not count, and a variable a closure or coroutine block mentions is not checked. The help names what to write instead: `ref self` or a `ref` parameter ([4.7](../004-functions/407-ref-keyword.md)), `for ref` ([3.13.3](../003-expressions/313-loop-expressions.md#for-ref-elements-as-places)), or writing the element back.
+A field write on a copy that nothing reads afterwards is a compile error, `E0057`: the change would be lost. The copies checked are a by-value parameter or `self`, a closure's by-value parameter (`xs.for_each(|p| { p.x = 0.0; })`), a `for` binding, and a `let` of an element (`let q = xs[i];`). The write is an error when no later read, loop iteration, return or call can see the change; a read that only feeds another write to the same variable does not count, and a variable a closure or coroutine block captures is not checked. The help names what to write instead: `ref self` or a `ref` parameter ([4.7](../004-functions/407-ref-keyword.md)), `for ref` ([3.13.3](../003-expressions/313-loop-expressions.md#for-ref-elements-as-places)), returning a closure's argument and using the result, or writing the element back.
 
 ```rok
 impl Counter {
@@ -145,6 +145,8 @@ impl Counter {
 }
 for p in ps { p.x = 0.0; }        // error[E0057]: `p.x` is set on a copy of the element; write `for ref p in ps`
 for ref p in ps { p.x = 0.0; }    // writes every element of ps
+ps.for_each(|p| { p.x = 0.0; });  // error[E0057]: `p.x` is set on a copy of the closure's argument
+let qs = ps.map(|p| { p.x = 0.0; p }).to_list();  // returned: kept
 let c = self;                     // a local copy on purpose: change `c`, then read or return it
 ```
 

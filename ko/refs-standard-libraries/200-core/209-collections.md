@@ -333,7 +333,7 @@ impl<K: Hash + Eq, V> Index<K> for Dict<K, V> {
 
 `d += e`(`AddAssign<Dict<K, V>>`)는 `e`의 모든 항목을 `d`에 제자리에서 삽입합니다. 키가 겹치면 `e`의 값이 남습니다.
 
-`Dict::from(pairs)`(`From<List<(K, V)>>`)는 쌍의 리스트로 dict를 만듭니다. 키가 겹치면 뒤의 값이 남습니다.
+`Dict::from(pairs)`(`From<List<(K, V)>>`)는 쌍의 리스트로 dict를 만듭니다. 키가 겹치면 뒤의 값이 남습니다. `K`와 `V`는 인자에서 정해지므로 `let d = Dict::from([("a", 1)]);`에는 타입 표기가 필요 없습니다.
 
 ### lazy view
 
@@ -395,7 +395,7 @@ let u = a.union(b);       //→ {1, 2, 3, 4}
 let i = a.intersection(b);//→ {2, 3}
 ```
 
-`Set::from(xs)`(`From<List<T>>`)는 리스트로 set을 만들고 중복은 버립니다. `s += x`(`AddAssign<T>`)는 `x`를 삽입합니다.
+`Set::from(xs)`(`From<List<T>>`)는 리스트로 set을 만들고 중복은 버립니다. `T`는 인자에서 정해집니다(`let s = Set::from([1, 2, 2]);`). `s += x`(`AddAssign<T>`)는 `x`를 삽입합니다.
 
 ## 2.9.5. 삽입 순서
 
