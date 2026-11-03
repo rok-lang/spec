@@ -287,6 +287,8 @@ IDE와 CI 시스템은 이 형식으로 진단을 기계적으로 읽을 수 있
 | `E0143` | `type` | rows of an array literal differ in length |
 | `E0144` | `type` | multi-axis index on a type indexed along one axis |
 | `E0145` | `type` | integer raised to a negative power |
+| `E0146` | `type` | named `some` type not defined by its module |
+| `E0147` | `type` | named `some` type used as its concrete type |
 
 `kind` 값은 `lexical`, `parse`, `resolve`, `visibility`, `module`, `type`, `pattern`, `handoff`(값의 소유와 수명. 넘긴 뒤의 사용, [stdlib 2.13.9](../../refs-standard-libraries/200-core/213-marker.md#2139-send--sync-스레드-경계-마커). 옮기거나 닫은 뒤에 쓰거나 닫지 않은 자원, [stdlib 2.13.4](../../refs-standard-libraries/200-core/213-marker.md#2134-drop-해제-시-정리). `with` 뒤에도 간직한 스레드 로컬 값. 스트림보다 오래 쓴 스트림 뷰, [stdlib 2.23.1](../../refs-standard-libraries/200-core/223-io.md#2231-read). 리스트 크기를 바꾼 뒤의 `SliceMut` 사용, [stdlib 2.9.7a](../../refs-standard-libraries/200-core/209-collections.md#297a-slicemutt-쓰기-가능한-뷰)), `meta`, `lowering`(예약됨: 지금은 이 kind의 코드가 없음), `codegen`, `linkage`, `unsupported`, `internal`, `other`, `lint`입니다.
 

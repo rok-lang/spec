@@ -288,7 +288,7 @@ let total = evens(10).map(|x| x * x).sum();
 - The concrete type must have every bound: otherwise `` `f` returns `ListIter<i32>`, which is not `Iterator<Item = str>` `` at the bound.
 - Callers see only the bounds: they may call the bounds' methods (and their supertraits'), iterate it when the bound is an iterator, pass it where a generic parameter with those bounds is expected, and call it when the bound is a function type. Naming or using the concrete type is an error: `` no method `contains` on `some Iterator<Item = i32>`: callers see only its bounds ``; `` `let b` expects `Range<i32>`, found `some Iterator<Item = i32>` ``.
 - The same function always returns the same type, so two calls' results have one type. Results of different functions are different types.
-- `some` is a function's return type or a parameter's type ([4.1.14](#4114-some-parameters)). Elsewhere (a `let` annotation, a field, a type argument, a closure parameter) it is an error that says what to write: no annotation for a variable, a generic `<T: Tr>` for a field or a type argument, `any Tr` for a value of several types.
+- `some` is a function's return type, a parameter's type ([4.1.14](#4114-some-parameters)) or the right side of a named opaque type ([4.1.15](#4115-named-opaque-types-type-x--some-trait)). Elsewhere (a `let` annotation, a field, a type argument, a closure parameter) it is an error that says what to write: no annotation for a variable, a generic `<T: Tr>` for a field or a type argument, `any Tr` for a value of several types.
 - Across packages the function's body travels with the package's interface, so the dependent build knows the concrete type; its users still see only the bounds.
 - There is no `Fn` trait: a function bound is the function type `fn(A) -> R`.
 
@@ -315,3 +315,40 @@ let t = twice(|x| x * 3, 2);     // x: i32, from the bound
 - The type has no name: `::<..>` at a call gives only the named type parameters. Writing more is an error with the help that a `some` parameter's type is the argument's: pass the argument, or declare `<T: Tr>` to choose `T` with `::<..>`.
 
 `any Tr` and `some Tr` are a pair. `any Tr` is a dynamic slot: it holds a value of any type with `Tr`, a different one each time, and calls dispatch at run time ([2.2](../002-types/202-any-slot.md)). `some Tr` is one static type, hidden: the callee's body (for a return) or the call's argument (for a parameter) fixes it, and calls dispatch statically.
+
+## 4.1.15. Named opaque types: `type X = some Trait`
+
+```
+opaque_alias ::= visibility? "type" identifier "=" opaque_ret ";"
+```
+
+`type X = some Tr;` names one concrete type that has `Tr` (the bounds as in [4.1.13](#4113-opaque-return-types-some-trait)). Unlike `-> some Tr`, the type has a name, so it can be written wherever a type goes: a field, a `let` annotation, a type argument (`List<X>`), a parameter and a return type.
+
+```rok
+mod nums {
+    pub type Evens = some Iterator<Item = i64>;
+
+    pub fn evens(n: i64) -> Evens {        // defines Evens
+        (0..n).filter(|x| x % 2 == 0)
+    }
+
+    pub fn first(e: Evens) -> i64 | none { e.next() }
+}
+
+struct Shelf { evens: nums::Evens; more: List<nums::Evens>; }
+
+fn total(e: nums::Evens) -> i64 { e.sum() }
+
+let s = Shelf { evens: nums::evens(10), more: [nums::evens(4)] };
+println(total(s.evens));                  // 20
+```
+
+- The defining functions are the free functions of X's module whose return type is `X` (written `X` or `self::X`). Each one's concrete type is the type of its body's value, inferred as for `-> some Tr`, and must have every bound. There must be at least one, and they must all give the same type: none is `` `X` has no defining function `` (E0146), help ``a function in this module that returns `X` gives its type``; two that differ is `` `g` returns `B`, but `X` is `A` (from `f`) `` (E0146), help to return the same type or to call `f`.
+- A defining function has no type parameters, and `X` has none: a generic one is an error (E0146) whose help writes `fn f<T>(..) -> some Tr`, a hidden type per call ([4.1.13](#4113-opaque-return-types-some-trait)).
+- Methods, and functions that return `List<X>` or `X | none`, do not define `X`; they use it.
+- Inside X's module (not its submodules), `X` is its concrete type: the module's functions call its methods, read its fields and build it like any value of that type.
+- Outside X's module, `X` is a type of its own that has only its bounds: a value is stored, passed, returned and kept in `List<X>` as `X`, and used through the bounds' methods (and their supertraits'), as a `-> some Tr` result is. The concrete type is hidden: a method or field the bounds do not give is `` no method `len` on `Evens`: outside `nums`, only its bounds are visible ``; a value of `X` where another type is expected, or a value of another type where `X` is expected (a function outside the module that returns `X` from its own body), is `` `let n` expects `i64`, found `X`: outside `m`, `X` is opaque `` (E0147), help to keep the value as `X`, get one from X's defining functions, or move the code into X's module.
+- With a function type as bound (`type Step = some fn(i64) -> i64;`), a value is only callable, so the type stays its concrete type everywhere.
+- Calls and storage are static: a field of type `X` holds the concrete type inline, with no tag and no boxing.
+- `pub type X = some Tr;` exports the name. Across packages the defining functions' bodies travel with the package's interface ([4.1.13](#4113-opaque-return-types-some-trait)), so the dependent build lays out `X`; dependents see only the bounds.
+- `type X = any Tr;` is a plain type alias ([2.6.9](../002-types/206-sum-types.md#269-combining-with-type-aliases)) of the dynamic slot `any Tr`: each value of `X` may have a different type and calls dispatch at run time. `type X = some Tr;` is one static type, fixed by its module.
