@@ -91,12 +91,25 @@ Inference priority and disambiguation are defined in the expression specificatio
 
 ### Repeat literal `[v; N]`
 
-`[v; N]` is a `[T; N]` array repeating the value `v` `N` times. `N` is a `const` expression and may be a `const` parameter.
+`[v; N]` is a `[T; N]` array of `N` elements, each a copy of `v`. `N` is a `const` expression and may be a `const` parameter.
+
+`v` is evaluated exactly once, before any element is written, so its side effects happen once (also when `N` is 0). Each element is then a value of its own:
+
+- If `T` is `Copy`, or a value type with nothing in it that refers to shared storage (numbers, `bool`, `char`, `str`, `none`, functions, and arrays, tuples, structs and enums of these), every element is a bitwise copy of `v` and no `clone` is called.
+- Otherwise elements `0` to `N - 2` are `v.clone()`, called in index order, and the last element is `v` itself. A `List` element, an array of lists or a struct that holds a `Dict` gives `N` separate collections, so writing through one element leaves the others unchanged.
+- If `T` is not `Clone`, the literal is an error (E0069) whose help writes `List::from_fn(N, |_| ..)`, which builds each element with its own value. A type parameter needs a `T: Clone` bound.
+- If `T` holds a value with one owner (a must-close type such as `File`, or a `Drop` type, at any array depth), the literal is an error with the same help: `N` elements cannot share one owner.
 
 ```rok
 fn zeros<const N: usize>() -> [f64; N] { [0.0; N] }
 let z: [f64; 4] = zeros();              // N = 4, from the expected type
 let w = [1u8; 16];                       // [u8; 16]
+
+let g = [[0; 3]; 2];
+g[0][1] = 5;                             // g[1] is still [0, 0, 0]
+let rows = [List::<i32>::new(); 3];
+rows[0].push(1);                         // rows[1] and rows[2] stay empty
+let fs = [try File::open("a"); 2];       // ERROR: a `File` has one owner (E0069)
 ```
 
 ## 2.11.7. Monomorphization

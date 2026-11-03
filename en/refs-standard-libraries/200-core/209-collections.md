@@ -49,6 +49,8 @@ The parser decides from the contents alone: the `expr ":"` form is a Dict, a com
 
 `[1, 2, 3]` is `List<T>` when there is no expected type. A fixed-size array `[T; N]` is created only when the expected type is written as `[T; N]`, as in `let a: [i32; 3] = [1, 2, 3];`. Fixed arrays are built directly by the compiler without going through a handler.
 
+The repeat literal `[v; N]` is always a fixed array. It evaluates `v` once and gives each element its own copy: a bitwise copy for a `Copy` or plain value element, `v.clone()` for one that holds a collection, so `[List::<i32>::new(); 3]` is three separate lists ([refs-lang 2.11.6](../../refs-lang/002-types/211-const-generics.md#2116-parameter-inference)). `Default` for `[T; N]` likewise calls `T::default()` once per element.
+
 A fixed array implements `Clone` / `Copy` / `Default` / `Debug` / `PartialEq` / `Eq` / `PartialOrd` / `Ord` / `Hash` when its element does. Ordering is lexicographic, so comparison operators (`==`, `<`, etc.) can be used directly. Its methods:
 
 ```rok
