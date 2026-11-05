@@ -138,6 +138,8 @@ A `TryIterator` held in a variable, or in a field of one, is stepped in place: `
 
 A plain `for` over an `Iterator` held in a variable steps a copy: `into_iter` of an iterator is the iterator itself, and `it` above is a new variable. The variable keeps its own position, so `let r = 0..3; for i in r { .. } for i in r { .. }` walks `r` twice. To go on where a loop stopped, step the iterator by hand (`while let x: T = it.next() { .. }`), which works on the variable itself.
 
+A `List`'s iterator reads the list as it is at each step, so a body that changes the length of the list it walks changes the loop: a `push` keeps it going, a `remove` skips the element that moved into the removed place. The warning lint `resize_while_iterating` ([6.2](../006-meta-system/602-built-in-attributes.md)) reports a call of `push`, `pop`, `insert`, `remove`, `clear`, `truncate`, `drain`, `retain`, `dedup`, `extend` or `append` on the iterated variable in the body, unless a `break`, `return` or `throw` follows it in the same block. To change the list, walk a copy (`for x in xs.clone()`) or collect the changes and apply them after the loop.
+
 ### Result value
 
 The result value of `for` is always unit (for the same reason as `while`), and a `break` with a value whose target is a `for` is a compile error.

@@ -138,6 +138,8 @@ loop {
 
 변수에 든 `Iterator`를 도는 일반 `for`는 복사본을 진행합니다. 반복자의 `into_iter`는 반복자 자신이고, 위의 `it`은 새 변수입니다. 변수는 자기 위치를 그대로 가지므로 `let r = 0..3; for i in r { .. } for i in r { .. }`는 `r`을 두 번 돕니다. 반복이 멈춘 곳에서 이어 가려면 반복자를 직접 진행하세요(`while let x: T = it.next() { .. }`). 이렇게 하면 변수 자체가 진행합니다.
 
+`List`의 반복자는 단계마다 그 순간의 리스트를 읽습니다. 그래서 본문이 도는 리스트의 길이를 바꾸면 루프도 달라집니다. `push`하면 루프가 계속 이어지고, `remove`하면 지운 자리로 옮겨 온 원소를 건너뜁니다. 경고 린트 `resize_while_iterating`([6.2](../006-meta-system/602-built-in-attributes.md))은 본문에서 도는 변수에 `push`, `pop`, `insert`, `remove`, `clear`, `truncate`, `drain`, `retain`, `dedup`, `extend`, `append`를 부르는 곳을 알려 줍니다. 같은 블록에서 그 뒤에 `break`, `return`, `throw`가 오면 알리지 않습니다. 리스트를 바꾸려면 복사본을 돌거나(`for x in xs.clone()`) 바꿀 내용을 모아 두었다가 루프가 끝난 뒤에 적용하세요.
+
 ### 결과 값
 
 `for`의 결과 값은 항상 unit입니다(`while`과 같은 이유). 대상이 `for`인 `break`에 값을 붙이면 컴파일 에러입니다.
